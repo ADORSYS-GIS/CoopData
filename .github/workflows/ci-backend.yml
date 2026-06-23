@@ -1,0 +1,73 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  backend-ci:
+    name: Backend CI (Fmt, Clippy, Doc, Test, Build)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Restore Cargo dependency cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            backend/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Fetch dependencies
+        run: cargo fetch
+
+      - name: Verify code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Execute static analysis (Clippy)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Validate documentation generation
+        run: cargo doc --no-deps
+
+      - name: Execute documentation tests
+        run: cargo test --doc
+
+      - name: Execute unit and integration tests
+        run: cargo test --all-features
+
+      - name: Validate production build
+        run: cargo build --release
+
+      - name: Upload build artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-binary
+          path: ./backend/target/release/coopdata-backend
+          retention-days: 7
