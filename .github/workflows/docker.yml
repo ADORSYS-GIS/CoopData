@@ -1,6 +1,8 @@
 name: Docker Build, Scan & Publish
 
 on:
+  pull_request:
+    branches: [main, develop]
   workflow_run:
     workflows: ["Frontend CI", "Backend CI", "Security Validation"]
     types:
@@ -22,7 +24,7 @@ jobs:
   docker-build-scan-publish:
     name: Build, Scan & Publish Docker Images
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
 
     permissions:
       contents: read
@@ -66,8 +68,8 @@ jobs:
       - name: Build frontend Docker image (no push)
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: false
           load: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
@@ -121,8 +123,8 @@ jobs:
         if: success()
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
