@@ -1,5 +1,5 @@
 # Dockerfile for backend (Rust Axum)
-FROM rust:1.75-slim AS builder
+FROM rust:1.85-slim AS builder
 WORKDIR /app
 # Install build dependencies
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
@@ -13,8 +13,6 @@ RUN cargo build --release
 RUN rm -rf src
 # Copy actual source code
 COPY src ./src
-# Touch the main file to force cargo to rebuild it
-RUN touch src/main.rs
 # Build the application
 RUN cargo build --release
 
