@@ -1,0 +1,6 @@
+[advisories]
+ignore = [
+  "RUSTSEC-2023-0071", # Marvin Attack: potential key recovery in rsa (no fixed upgrade is available)
+  "RUSTSEC-2024-0370", # proc-macro-error is unmaintained (informational warning)
+  "RUSTSEC-2026-0173"  # proc-macro-error2 is unmaintained (informational warning)
+]

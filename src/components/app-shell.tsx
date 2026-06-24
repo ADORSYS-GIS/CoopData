@@ -111,7 +111,9 @@ function Sidebar({
             <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
               Ministry Platform
             </p>
-            <p className="font-heading text-[15px] font-bold tracking-tight text-sidebar-foreground">CoopData</p>
+            <p className="font-heading text-[15px] font-bold tracking-tight text-sidebar-foreground">
+              CoopData
+            </p>
           </div>
         )}
         {/* Collapse toggle — desktop only */}
@@ -215,7 +217,9 @@ function Sidebar({
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold truncate text-sidebar-foreground">{user.name}</p>
+                <p className="text-[13px] font-semibold truncate text-sidebar-foreground">
+                  {user.name}
+                </p>
                 <p className="text-[11px] text-sidebar-foreground/50 truncate">
                   {currentRole.label}
                 </p>

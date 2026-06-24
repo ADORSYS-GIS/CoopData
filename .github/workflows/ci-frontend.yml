@@ -6,11 +6,11 @@ on:
   push:
     branches: [main, develop]
     paths-ignore:
-      - 'backend/**'
-      - 'docs/**'
-      - 'README.md'
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
+      - "backend/**"
+      - "docs/**"
+      - "README.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
 
 jobs:
   frontend-install:
@@ -23,9 +23,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: './package-lock.json'
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "./package-lock.json"
 
       - name: Install dependencies
         run: npm ci
@@ -53,7 +53,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Run ESLint validation
         run: npm run lint
@@ -75,7 +75,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Run TypeScript type checking
         run: npx tsc --noEmit
@@ -97,7 +97,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Execute frontend unit tests
         run: npm run test -- --coverage --run
@@ -128,7 +128,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Validate application build
         run: npm run build

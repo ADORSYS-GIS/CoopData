@@ -93,31 +93,31 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-frontend-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          format: "sarif"
+          output: "trivy-frontend-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
 
       - name: Run Trivy vulnerability scanner on backend image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-backend-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          format: "sarif"
+          output: "trivy-backend-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
 
       - name: Upload Trivy frontend scan results to GitHub Security tab
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-frontend-results.sarif'
+          sarif_file: "trivy-frontend-results.sarif"
 
       - name: Upload Trivy backend scan results to GitHub Security tab
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-backend-results.sarif'
+          sarif_file: "trivy-backend-results.sarif"
 
       - name: Push frontend Docker image to GHCR
         if: success()

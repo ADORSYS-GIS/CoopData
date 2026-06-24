@@ -6,6 +6,7 @@
 ## What is a Layout?
 
 A layout is a **wrapper component** that:
+
 1. Lives in `frontend/src/layouts/`
 2. Provides persistent UI (navbar, sidebar, footer)
 3. Renders child routes via `<Outlet />`
@@ -37,12 +38,12 @@ export const MainLayout: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <Header />
-        
+
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
@@ -53,7 +54,8 @@ export const MainLayout: React.FC = () => {
 };
 ```
 
-**Why**: 
+**Why**:
+
 - Sidebar and header persist across all pages
 - `<Outlet />` renders the current page
 - Responsive layout with overflow handling
@@ -83,7 +85,8 @@ export const AuthLayout: React.FC = () => {
 };
 ```
 
-**Why**: 
+**Why**:
+
 - Centered card design
 - No navigation (user isn't logged in)
 - Clean, focused on the form
@@ -109,7 +112,7 @@ export const MainLayout: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header>
@@ -121,7 +124,7 @@ export const MainLayout: React.FC = () => {
             <Menu className="h-5 w-5" />
           </Button>
         </Header>
-        
+
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
@@ -175,12 +178,12 @@ export const Sidebar = ({ isOpen, onClose }) => {
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 lg:hidden z-40"
           onClick={onClose}
         />
       )}
-      
+
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
@@ -208,8 +211,8 @@ module.exports = {
     extend: {
       colors: {
         sidebar: {
-          bg: 'hsl(var(--sidebar-bg))',
-          text: 'hsl(var(--sidebar-text))',
+          bg: "hsl(var(--sidebar-bg))",
+          text: "hsl(var(--sidebar-text))",
         },
       },
     },

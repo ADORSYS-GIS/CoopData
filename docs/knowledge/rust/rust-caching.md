@@ -94,14 +94,14 @@ impl CacheService {
     /// Get value from cache
     pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
         let store = self.store.read().await;
-        
+
         if let Some(entry) = store.get(key) {
             // Check if expired
             if entry.expires_at > Instant::now() {
                 return bincode::deserialize(&entry.value).ok();
             }
         }
-        
+
         None
     }
 
@@ -111,7 +111,7 @@ impl CacheService {
             value: bincode::serialize(value).unwrap_or_default(),
             expires_at: Instant::now() + ttl,
         };
-        
+
         let mut store = self.store.write().await;
         store.insert(key.to_string(), entry);
     }
@@ -182,25 +182,25 @@ pub async fn list_dimensions(
     State(state): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
     let cache_key = "dimensions:all";
-    
+
     // Try cache first
     if let Some(cached) = state.cache.get::<Vec<DimensionResponse>>(cache_key).await {
         tracing::debug!("Cache hit for dimensions");
         return Ok((StatusCode::OK, Json(cached)));
     }
-    
+
     tracing::debug!("Cache miss for dimensions");
-    
+
     // Fetch from database
     let dimensions = DimensionsRepository::find_all(&state.db).await?;
-    
+
     // Store in cache (fire and forget)
     let cache = state.cache.clone();
     let dimensions_clone = dimensions.clone();
     tokio::spawn(async move {
         cache.set(cache_key, &dimensions_clone, Duration::from_secs(300)).await;
     });
-    
+
     Ok((StatusCode::OK, Json(dimensions)))
 }
 
@@ -210,22 +210,22 @@ pub async fn get_dimension(
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let key = cache_key("dimension", &id.to_string());
-    
+
     // Try cache
     if let Some(cached) = state.cache.get::<DimensionResponse>(&key).await {
         return Ok((StatusCode::OK, Json(cached)));
     }
-    
+
     // Fetch from database
     let dimension = DimensionsRepository::find_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("Dimension not found: {}", id)))?;
-    
+
     let response = DimensionResponse::from(dimension);
-    
+
     // Cache it
     state.cache.set(&key, &response, Duration::from_secs(300)).await;
-    
+
     Ok((StatusCode::OK, Json(response)))
 }
 ```
@@ -241,11 +241,11 @@ pub async fn update_dimension(
 ) -> AppResult<impl IntoResponse> {
     // Update in database
     let updated = DimensionsRepository::update(&state.db, id, request.into()).await?;
-    
+
     // Invalidate caches
     state.cache.delete(&cache_key("dimension", &id.to_string())).await;
     state.cache.delete("dimensions:all").await;
-    
+
     Ok((StatusCode::OK, Json(DimensionResponse::from(updated))))
 }
 ```

@@ -73,7 +73,12 @@ import {
   formatCurrency,
   formatNumber,
 } from "@/lib/mock-data";
-import { calculateFinancialKPIs, calculateMembershipKPIs, calculateLoanKPIs, type ComplianceScoreResult } from "@/lib/kpi-calculations";
+import {
+  calculateFinancialKPIs,
+  calculateMembershipKPIs,
+  calculateLoanKPIs,
+  type ComplianceScoreResult,
+} from "@/lib/kpi-calculations";
 import { useAuth } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
