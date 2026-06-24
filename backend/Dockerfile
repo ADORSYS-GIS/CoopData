@@ -1,5 +1,5 @@
 # Dockerfile for backend (Rust Axum)
-FROM rust:1.85-slim AS builder
+FROM rust:1.86-slim AS builder
 WORKDIR /app
 # Install build dependencies
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
