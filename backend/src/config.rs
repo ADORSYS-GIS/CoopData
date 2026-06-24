@@ -1,0 +1,76 @@
+use once_cell::sync::Lazy;
+use serde::Deserialize;
+use std::env;
+
+static CONFIG: Lazy<AppConfig> = Lazy::new(AppConfig::from_env_unchecked);
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppConfig {
+    pub host: String,
+    pub port: u16,
+    pub database_url: String,
+    pub redis_url: String,
+    pub keycloak_url: String,
+    pub keycloak_realm: String,
+    pub keycloak_client_id: String,
+    pub keycloak_client_secret: String,
+    pub jwt_issuer: String,
+    pub jwt_audience: String,
+    pub frontend_url: String,
+    pub environment: Environment,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub enum Environment {
+    Development,
+    Staging,
+    Production,
+}
+
+impl AppConfig {
+    pub fn from_env() -> anyhow::Result<Self> {
+        Ok(Self {
+            host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into()),
+            port: env::var("PORT")
+                .and_then(|s| s.parse().map_err(|_| env::VarError::NotPresent))
+                .unwrap_or(3000),
+            database_url: env::var("DATABASE_URL")
+                .expect("DATABASE_URL must be set"),
+            redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".into()),
+            keycloak_url: env::var("KEYCLOAK_URL")
+                .expect("KEYCLOAK_URL must be set"),
+            keycloak_realm: env::var("KEYCLOAK_REALM").unwrap_or_else(|_| "coopdata".into()),
+            keycloak_client_id: env::var("KEYCLOAK_CLIENT_ID")
+                .expect("KEYCLOAK_CLIENT_ID must be set"),
+            keycloak_client_secret: env::var("KEYCLOAK_CLIENT_SECRET")
+                .expect("KEYCLOAK_CLIENT_SECRET must be set"),
+            jwt_issuer: env::var("JWT_ISSUER").unwrap_or_else(|_| "coopdata".into()),
+            jwt_audience: env::var("JWT_AUDIENCE").unwrap_or_else(|_| "coopdata-api".into()),
+            frontend_url: env::var("FRONTEND_URL")
+                .expect("FRONTEND_URL must be set"),
+            environment: env::var("ENVIRONMENT")
+                .map(|s| match s.to_lowercase().as_str() {
+                    "production" => Environment::Production,
+                    "staging" => Environment::Staging,
+                    _ => Environment::Development,
+                })
+                .unwrap_or(Environment::Development),
+        })
+    }
+
+    fn from_env_unchecked() -> Self {
+        Self::from_env().expect("Failed to load configuration from environment")
+    }
+
+    pub fn global() -> &'static Self {
+        &CONFIG
+    }
+
+    pub fn is_production(&self) -> bool {
+        self.environment == Environment::Production
+    }
+
+    pub fn is_development(&self) -> bool {
+        self.environment == Environment::Development
+    }
+}
