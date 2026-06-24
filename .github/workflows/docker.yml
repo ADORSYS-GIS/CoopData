@@ -1,13 +1,17 @@
-name: Docker Build & Scan
+name: Docker Build, Scan & Publish
 
 on:
-  push:
-    branches: [main]
   workflow_run:
     workflows: ["Frontend CI", "Backend CI", "Security Validation"]
     types:
       - completed
     branches: [main]
+  release:
+    types: [published]
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -15,10 +19,10 @@ env:
   BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
 
 jobs:
-  docker-build-scan:
-    name: Docker Build & Trivy Scan
+  docker-build-scan-publish:
+    name: Build, Scan & Publish Docker Images
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'release' || github.event.workflow_run.conclusion == 'success' }}
 
     permissions:
       contents: read
@@ -59,7 +63,7 @@ jobs:
             type=sha,prefix=
             type=ref,event=tag
 
-      - name: Build frontend Docker image
+      - name: Build frontend Docker image (no push)
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -71,7 +75,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build backend Docker image
+      - name: Build backend Docker image (no push)
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -84,7 +88,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner on frontend image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
           format: 'sarif'
@@ -93,7 +97,7 @@ jobs:
           exit-code: '1'
 
       - name: Run Trivy vulnerability scanner on backend image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
           format: 'sarif'
@@ -113,7 +117,7 @@ jobs:
         with:
           sarif_file: 'trivy-backend-results.sarif'
 
-      - name: Push frontend Docker image
+      - name: Push frontend Docker image to GHCR
         if: success()
         uses: docker/build-push-action@v5
         with:
@@ -125,7 +129,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Push backend Docker image
+      - name: Push backend Docker image to GHCR
         if: success()
         uses: docker/build-push-action@v5
         with:

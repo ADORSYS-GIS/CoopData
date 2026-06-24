@@ -10,14 +10,9 @@ on:
       - '.github/workflows/ci-frontend.yml'
 
 jobs:
-  frontend-ci:
-    name: Frontend CI (Lint, Type-Check, Test, Build)
+  frontend-install:
+    name: Frontend Install
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./frontend
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -29,25 +24,84 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './frontend/package-lock.json'
 
-      - name: Restore npm dependency cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
       - name: Install dependencies
         run: npm ci
+        working-directory: ./frontend
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+
+  frontend-lint:
+    name: Frontend Lint
+    needs: frontend-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Restore node modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Run ESLint validation
         run: npm run lint
+        working-directory: ./frontend
+
+  frontend-typecheck:
+    name: Frontend TypeScript
+    needs: frontend-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Restore node modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Run TypeScript type checking
         run: npx tsc --noEmit
+        working-directory: ./frontend
+
+  frontend-test:
+    name: Frontend Unit Tests
+    needs: frontend-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Restore node modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Execute frontend unit tests
-        run: npm run test -- --coverage --watchAll=false
+        run: npm run test -- --coverage --run
+        working-directory: ./frontend
 
       - name: Upload test coverage artifact
         if: always()
@@ -57,8 +111,28 @@ jobs:
           path: ./frontend/coverage/
           retention-days: 7
 
+  frontend-build:
+    name: Frontend Build
+    needs: frontend-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Restore node modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Validate application build
         run: npm run build
+        working-directory: ./frontend
 
       - name: Upload build artifact
         if: success()
