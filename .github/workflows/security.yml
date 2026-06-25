@@ -35,6 +35,7 @@ jobs:
         run: npm ci
 
       - name: Run npm audit (frontend vulnerabilities)
+        working-directory: ./frontend
         run: npm audit --audit-level=critical
         continue-on-error: false
 

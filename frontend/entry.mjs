@@ -28,7 +28,18 @@ const MIME_TYPES = {
   ".map": "application/json",
 };
 
-const IMMUTABLE_EXTENSIONS = new Set([".css", ".js", ".mjs", ".woff", ".woff2", ".ttf", ".svg", ".png", ".jpg", ".webp"]);
+const IMMUTABLE_EXTENSIONS = new Set([
+  ".css",
+  ".js",
+  ".mjs",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".svg",
+  ".png",
+  ".jpg",
+  ".webp",
+]);
 
 async function serveStatic(pathname) {
   const filePath = join(clientDir, pathname);
@@ -53,7 +64,11 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || `${host}:${port}`}`);
 
-    if (url.pathname.startsWith("/assets/") || url.pathname === "/robots.txt" || url.pathname === "/favicon.ico") {
+    if (
+      url.pathname.startsWith("/assets/") ||
+      url.pathname === "/robots.txt" ||
+      url.pathname === "/favicon.ico"
+    ) {
       const staticResponse = await serveStatic(url.pathname);
       if (staticResponse) {
         res.statusCode = staticResponse.status;

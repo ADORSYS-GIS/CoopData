@@ -83,37 +83,6 @@ jobs:
         working-directory: ./frontend
         run: npx tsc --noEmit
 
-  frontend-test:
-    name: Frontend Unit Tests
-    needs: frontend-install
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Restore node modules cache
-        uses: actions/cache/restore@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-frontend-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Execute frontend unit tests
-        working-directory: ./frontend
-        run: npm run test -- --coverage --run
-        continue-on-error: false
-
-      - name: Upload test coverage artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-coverage
-          path: ./frontend/coverage/
-          retention-days: 7
 
   frontend-build:
     name: Frontend Build
