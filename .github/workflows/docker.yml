@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, develop]
   push:
-    branches: [main]
+    branches: [main, develop]
   release:
     types: [published]
 
@@ -48,7 +48,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
             type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
@@ -59,7 +60,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
             type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
