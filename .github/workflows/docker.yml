@@ -91,7 +91,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on frontend image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:pr-${{ github.event.number }}
+          image-ref: docker://${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:pr-${{ github.event.number }}
           format: "sarif"
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL,HIGH"
@@ -100,7 +100,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on backend image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:pr-${{ github.event.number }}
+          image-ref: docker://${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:pr-${{ github.event.number }}
           format: "sarif"
           output: "trivy-backend-results.sarif"
           severity: "CRITICAL,HIGH"
