@@ -47,6 +47,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo-audit binary
+        id: cache-cargo-audit
         uses: actions/cache@v4
         with:
           path: ~/.cargo/bin/cargo-audit
@@ -54,6 +55,7 @@ jobs:
 
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
+        if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
 
       - name: Run cargo audit (backend vulnerabilities)
         working-directory: ./backend
