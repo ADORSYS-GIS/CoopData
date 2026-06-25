@@ -50,6 +50,10 @@ jobs:
           cache: "npm"
           cache-dependency-path: "./frontend/package-lock.json"
 
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
       - name: Run ESLint validation
         working-directory: ./frontend
         run: npm run lint
@@ -68,6 +72,10 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: "./frontend/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
 
       - name: Run TypeScript type checking
         working-directory: ./frontend
@@ -88,6 +96,10 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: "./frontend/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
 
       - name: Validate application build
         working-directory: ./frontend
