@@ -71,7 +71,9 @@ jobs:
           file: ./Dockerfile
           push: false
           load: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
+          tags: |
+            ${{ steps.meta-frontend.outputs.tags }}
+            coopdata-frontend:scan
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -83,7 +85,9 @@ jobs:
           file: ./backend/Dockerfile
           push: false
           load: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
+          tags: |
+            ${{ steps.meta-backend.outputs.tags }}
+            coopdata-backend:scan
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -91,26 +95,20 @@ jobs:
       - name: Run Trivy vulnerability scanner on frontend image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:pr-${{ github.event.number }}
+          image-ref: coopdata-frontend:scan
           format: "sarif"
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"
-          trivy-config: |
-            input:
-              type: docker
 
       - name: Run Trivy vulnerability scanner on backend image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:pr-${{ github.event.number }}
+          image-ref: coopdata-backend:scan
           format: "sarif"
           output: "trivy-backend-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"
-          trivy-config: |
-            input:
-              type: docker
 
       - name: Upload Trivy frontend scan results to GitHub Security tab
         if: always()
