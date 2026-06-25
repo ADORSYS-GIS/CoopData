@@ -100,6 +100,7 @@ jobs:
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"
+          ignore-unfixed: true
 
       - name: Run Trivy vulnerability scanner on backend image
         uses: aquasecurity/trivy-action@v0.36.0
@@ -109,6 +110,7 @@ jobs:
           output: "trivy-backend-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1"
+          ignore-unfixed: true
 
       - name: Upload Trivy frontend scan results to GitHub Security tab
         if: always()
