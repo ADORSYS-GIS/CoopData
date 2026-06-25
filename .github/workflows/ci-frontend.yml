@@ -25,16 +25,17 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: "./package-lock.json"
+          cache-dependency-path: "./frontend/package-lock.json"
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
 
       - name: Cache node modules
         uses: actions/cache@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-node-modules-${{ hashFiles('frontend/package-lock.json') }}
 
   frontend-lint:
     name: Frontend Lint
@@ -47,8 +48,8 @@ jobs:
       - name: Restore node modules cache
         uses: actions/cache/restore@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-node-modules-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -56,6 +57,7 @@ jobs:
           node-version: "22"
 
       - name: Run ESLint validation
+        working-directory: ./frontend
         run: npm run lint
 
   frontend-typecheck:
@@ -69,8 +71,8 @@ jobs:
       - name: Restore node modules cache
         uses: actions/cache/restore@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-node-modules-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -78,6 +80,7 @@ jobs:
           node-version: "22"
 
       - name: Run TypeScript type checking
+        working-directory: ./frontend
         run: npx tsc --noEmit
 
   frontend-test:
@@ -91,8 +94,8 @@ jobs:
       - name: Restore node modules cache
         uses: actions/cache/restore@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-node-modules-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -100,6 +103,7 @@ jobs:
           node-version: "22"
 
       - name: Execute frontend unit tests
+        working-directory: ./frontend
         run: npm run test -- --coverage --run
         continue-on-error: false
 
@@ -108,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
-          path: ./coverage/
+          path: ./frontend/coverage/
           retention-days: 7
 
   frontend-build:
@@ -122,8 +126,8 @@ jobs:
       - name: Restore node modules cache
         uses: actions/cache/restore@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ github.sha }}
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-node-modules-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -131,6 +135,7 @@ jobs:
           node-version: "22"
 
       - name: Validate application build
+        working-directory: ./frontend
         run: npm run build
 
       - name: Upload build artifact
@@ -138,5 +143,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: ./dist/
+          path: ./frontend/dist/
           retention-days: 7

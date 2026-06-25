@@ -120,7 +120,7 @@ jobs:
         with:
           sarif_file: "trivy-frontend-results.sarif"
           category: trivy-frontend
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Upload Trivy backend scan results to GitHub Security tab
         if: always()
@@ -128,7 +128,7 @@ jobs:
         with:
           sarif_file: "trivy-backend-results.sarif"
           category: trivy-backend
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Fail if Trivy found CRITICAL/HIGH vulnerabilities
         if: always()
