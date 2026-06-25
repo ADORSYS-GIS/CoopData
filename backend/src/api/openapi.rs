@@ -30,7 +30,6 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::delete_user,
         api_module::handlers::assign_role,
     ),
-    paths(api_module::handlers::health_check,),
     components(schemas(
         api_module::dto::PaginationParams,
         api_module::dto::ErrorResponse,
