@@ -47,4 +47,7 @@ jobs:
 
       - name: Run cargo audit (backend vulnerabilities)
         working-directory: ./backend
-        run: cargo audit
+        run: |
+          mkdir -p .cargo
+          cp audit.toml .cargo/audit.toml
+          cargo audit
