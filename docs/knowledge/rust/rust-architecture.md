@@ -307,7 +307,7 @@ Handler calls Repository/Service
                                         ├── AppError::Database     → 500
                                         ├── AppError::External     → 502
                                         └── AppError::Anyhow       → 500
-                                        
+
 Each error is logged via tracing before being converted to JSON:
   { "error": "Not found", "message": "Assessment not found: uuid", "code": 404 }
 ```
@@ -319,44 +319,59 @@ Each error is logged via tracing before being converted to JSON:
 ### Example: Adding "Reports" feature
 
 #### Step 1: Create Entity
+
 **File:** `src/entities/report.rs`
+
 - Define Model struct (maps to DB table)
 - Define Relations
 - Implement ActiveModelBehavior
 
 #### Step 2: Create Migration
+
 **File:** `migration/src/xxxx_create_reports_table.rs`
+
 - CREATE TABLE with columns, constraints, indexes
 
 #### Step 3: Create DTOs
+
 **File:** `src/api/dto/report.rs`
+
 - ReportCreateRequest
 - ReportUpdateRequest
 - ReportResponse
 - Implement From<Entity> for Response
 
 #### Step 4: Create Repository
+
 **File:** `src/repositories/reports.rs`
+
 - find_by_id, find_all, create, update, delete
-- Optional: find_paginated, find_by_*
+- Optional: find*paginated, find_by*\*
 
 #### Step 5: Create Handler
+
 **File:** `src/api/handlers/report.rs`
+
 - create_report, get_report, list_reports, update_report, delete_report
 - Add #[utoipa::path] annotations
 - Validate input, call repository, return DTO
 
 #### Step 6: Create Routes
+
 **File:** `src/api/routes/report.rs`
+
 - Wire handlers to URLs
 - Register in api.rs
 
 #### Step 7: Register in OpenAPI
+
 **File:** `src/api/openapi.rs`
+
 - Add path to paths()
 - Add schemas to components()
 
 #### Step 8: Add to mod.rs files
+
 - entities/mod.rs
 - api/dto/mod.rs
 - api/handlers/mod.rs
@@ -382,7 +397,7 @@ AppState is created once at startup and shared across all handlers:
 
 Handlers receive AppState via axum's State extractor:
   pub async fn handler(State(state): State<AppState>) -> ...
-  
+
 Arc = Atomic Reference Counted (thread-safe, cloneable)
 ```
 

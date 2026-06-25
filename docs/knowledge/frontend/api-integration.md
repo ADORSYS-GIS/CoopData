@@ -6,6 +6,7 @@
 ## What is the API Layer?
 
 The API layer consists of:
+
 1. **Generated Client**: `frontend/src/openapi-client/services.gen.ts` (auto-generated from OpenAPI spec)
 2. **Type Definitions**: `frontend/src/openapi-client/types.gen.ts` (auto-generated types)
 3. **Custom Hooks**: `frontend/src/hooks/use[Feature].ts` (wraps API calls with React Query)
@@ -41,14 +42,14 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
   isActive: boolean;
 }
 
 export interface CreateUserDto {
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
 }
 ```
 
@@ -61,14 +62,14 @@ export interface CreateUserDto {
 **File**: `frontend/src/hooks/useUsers.ts`
 
 ```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UsersService } from '@/openapi-client/services.gen';
-import type { User, CreateUserDto } from '@/openapi-client/types.gen';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UsersService } from "@/openapi-client/services.gen";
+import type { User, CreateUserDto } from "@/openapi-client/types.gen";
 
 // Query for fetching
 export const useUsers = () => {
   return useQuery({
-    queryKey: ['users'],
+    queryKey: ["users"],
     queryFn: () => UsersService.getUsers(),
   });
 };
@@ -76,18 +77,18 @@ export const useUsers = () => {
 // Mutation for creating
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: CreateUserDto) => 
-      UsersService.createUser({ requestBody: data }),
+    mutationFn: (data: CreateUserDto) => UsersService.createUser({ requestBody: data }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 };
 ```
 
-**Why**: 
+**Why**:
+
 - React Query handles caching, loading states, and refetching
 - Mutations automatically invalidate stale data
 - No manual state management needed
@@ -125,7 +126,7 @@ export const UsersPage = () => {
 The OpenAPI client is configured once at app startup:
 
 ```typescript
-import { OpenAPI } from '@/openapi-client';
+import { OpenAPI } from "@/openapi-client";
 
 // Set base URL
 OpenAPI.BASE = import.meta.env.VITE_API_URL;
@@ -134,7 +135,7 @@ OpenAPI.BASE = import.meta.env.VITE_API_URL;
 OpenAPI.interceptors.request.use(async (request) => {
   const token = await authService.getAccessToken();
   if (token) {
-    request.headers.set('Authorization', `Bearer ${token}`);
+    request.headers.set("Authorization", `Bearer ${token}`);
   }
   return request;
 });
@@ -145,14 +146,15 @@ OpenAPI.interceptors.response.use(
   (error) => {
     if (error.status === 401) {
       // Redirect to login
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
     return Promise.reject(error);
-  }
+  },
 );
 ```
 
-**Why**: 
+**Why**:
+
 - Auth tokens are added automatically
 - Global error handling (401 redirects)
 - No need to configure in each request
@@ -179,7 +181,7 @@ const createUser = useCreateUser();
 const handleCreate = (data) => {
   createUser.mutate(data, {
     onSuccess: () => {
-      toast.success('User created');
+      toast.success("User created");
     },
     onError: (error) => {
       toast.error(`Failed: ${error.message}`);
@@ -193,6 +195,7 @@ const handleCreate = (data) => {
 ## What NOT to Do
 
 ❌ **Don't** call the API directly in components:
+
 ```typescript
 // BAD
 const [users, setUsers] = useState([]);
@@ -202,18 +205,21 @@ useEffect(() => {
 ```
 
 ✅ **Do** use a custom hook:
+
 ```typescript
 // GOOD
 const { data: users } = useUsers();
 ```
 
 ❌ **Don't** write manual fetch calls:
+
 ```typescript
 // BAD
-fetch('/api/users').then(r => r.json());
+fetch("/api/users").then((r) => r.json());
 ```
 
 ✅ **Do** use the generated client:
+
 ```typescript
 // GOOD
 UsersService.getUsers();

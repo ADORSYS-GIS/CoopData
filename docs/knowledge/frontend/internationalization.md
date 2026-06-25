@@ -29,11 +29,11 @@ npm install i18next react-i18next i18next-browser-languagedetector
 **File**: `frontend/src/i18n/index.ts`
 
 ```typescript
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-import en from './locales/en.json';
-import es from './locales/es.json';
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import en from "./locales/en.json";
+import es from "./locales/es.json";
 
 i18n
   .use(LanguageDetector)
@@ -43,7 +43,7 @@ i18n
       en: { translation: en },
       es: { translation: es },
     },
-    fallbackLng: 'en',
+    fallbackLng: "en",
     interpolation: {
       escapeValue: false, // React already escapes
     },
@@ -153,6 +153,7 @@ const LoginPage = () => {
 ### With Variables
 
 **Translation**:
+
 ```json
 {
   "users": {
@@ -163,6 +164,7 @@ const LoginPage = () => {
 ```
 
 **Usage**:
+
 ```typescript
 const { t } = useTranslation();
 
@@ -173,6 +175,7 @@ const { t } = useTranslation();
 ### Pluralization
 
 **Translation**:
+
 ```json
 {
   "users": {
@@ -183,6 +186,7 @@ const { t } = useTranslation();
 ```
 
 **Usage**:
+
 ```typescript
 <p>{t('users.itemCount', { count: items.length })}</p>
 ```

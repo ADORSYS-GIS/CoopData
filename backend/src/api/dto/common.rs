@@ -10,8 +10,12 @@ pub struct PaginationParams {
     pub per_page: u64,
 }
 
-fn default_page() -> u64 { 1 }
-fn default_per_page() -> u64 { 20 }
+fn default_page() -> u64 {
+    1
+}
+fn default_per_page() -> u64 {
+    20
+}
 
 impl PaginationParams {
     pub fn offset(&self) -> u64 {
@@ -35,7 +39,13 @@ pub struct PaginatedResponse<T> {
 impl<T> PaginatedResponse<T> {
     pub fn new(data: Vec<T>, total: u64, page: u64, per_page: u64) -> Self {
         let total_pages = (total + per_page - 1) / per_page.max(1);
-        Self { data, total, page, per_page, total_pages }
+        Self {
+            data,
+            total,
+            page,
+            per_page,
+            total_pages,
+        }
     }
 }
 

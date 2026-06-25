@@ -146,6 +146,7 @@ impl ActiveModelBehavior for ActiveModel {
 ```
 
 **Why**:
+
 - Clear sections: MODEL, ENUM, RELATIONS, BEHAVIOR
 - Proper relationships defined
 - Timestamps auto-updated

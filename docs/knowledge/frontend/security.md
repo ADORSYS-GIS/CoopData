@@ -3,6 +3,7 @@
 > **Core Philosophy**: The frontend is a **trusted UI layer, never a security boundary**. Role enforcement in the UI provides a good user experience — but the backend re-validates every token and permission on sync. In our offline-first architecture, we apply a **Double-Gatekeeper Pattern**: client-side RBAC protects navigation and surfaces, and server-side validation protects data integrity during sync.
 >
 > **Stop-and-Ask Rule**: If you are adding a route, button, or action that involves privileged data, always check both:
+>
 > 1. Is `ProtectedRoute` configured with the correct `allowedRoles`?
 > 2. Does the corresponding backend endpoint validate the JWT?
 
@@ -78,12 +79,12 @@ Every time authentication or a token refresh succeeds, we call `authService.stor
 
 ```typescript
 keycloak.onAuthSuccess = () => {
-  authService.storeTokens();   // Persists accessToken, refreshToken, idToken to IndexedDB
+  authService.storeTokens(); // Persists accessToken, refreshToken, idToken to IndexedDB
   updateAuthState();
 };
 
 keycloak.onAuthRefreshSuccess = () => {
-  authService.storeTokens();   // Update cache with new tokens after successful refresh
+  authService.storeTokens(); // Update cache with new tokens after successful refresh
   updateAuthState();
 };
 ```
@@ -123,19 +124,19 @@ const rehydrate = async () => {
   try {
     const { get } = await import("idb-keyval");
     const cachedProfile = await get("auth_profile");
-    const cachedTokens  = await get("auth_tokens");
+    const cachedTokens = await get("auth_tokens");
 
     if (cachedProfile && (cachedTokens?.accessToken || !!keycloak.token)) {
       // When offline and Keycloak hasn't initialized its own token:
       if (!navigator.onLine && cachedTokens?.accessToken && !keycloak.token) {
         // Restore token so organization/cooperation claim helpers work
-        keycloak.token        = cachedTokens.accessToken;
+        keycloak.token = cachedTokens.accessToken;
         keycloak.refreshToken = cachedTokens.refreshToken;
-        keycloak.idToken      = cachedTokens.idToken;
+        keycloak.idToken = cachedTokens.idToken;
         keycloak.authenticated = true;
 
         // Parse the token manually to restore tokenParsed claims
-        const tokenPayload = JSON.parse(atob(cachedTokens.accessToken.split('.')[1]));
+        const tokenPayload = JSON.parse(atob(cachedTokens.accessToken.split(".")[1]));
         keycloak.tokenParsed = tokenPayload;
       }
 
@@ -155,12 +156,12 @@ const rehydrate = async () => {
 
   // No cache found — stop loading spinner so login page renders
   if (!keycloak.authenticated && !keycloak.token) {
-    setAuthState(prev => ({ ...prev, loading: false }));
+    setAuthState((prev) => ({ ...prev, loading: false }));
   }
 };
 ```
 
-> **Security Note**: The parsed JWT is trusted for *display and UX decisions only*. The server re-verifies the real token signature on every API call during sync.
+> **Security Note**: The parsed JWT is trusted for _display and UX decisions only_. The server re-verifies the real token signature on every API call during sync.
 
 ---
 
@@ -173,13 +174,7 @@ After **10 minutes** of inactivity, the user is automatically logged out. This i
 
 const INACTIVITY_LOGOUT_MS = 10 * 60 * 1000; // 10 minutes
 
-const ACTIVITY_EVENTS = [
-  "mousemove",
-  "mousedown",
-  "keydown",
-  "touchstart",
-  "scroll",
-] as const;
+const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
 
 // Only active when the user is authenticated
 useEffect(() => {
@@ -311,12 +306,12 @@ For `org_admin` routes, we check `user.organization`. **This check is skipped wh
 
 IndexedDB is visible in browser developer tools. Follow these rules:
 
-| Rule | Reason |
-|---|---|
-| Never store raw passwords in IndexedDB | Plain text is readable by anyone with devtools access |
-| Store tokens in `idb-keyval` only, not in Dexie tables | Separates auth data from domain data |
-| Minimize PII in cached entities | Only cache what is needed for offline functionality |
-| Disable verbose logging in production | `console.log(tokens)` leaks sensitive data |
+| Rule                                                   | Reason                                                |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| Never store raw passwords in IndexedDB                 | Plain text is readable by anyone with devtools access |
+| Store tokens in `idb-keyval` only, not in Dexie tables | Separates auth data from domain data                  |
+| Minimize PII in cached entities                        | Only cache what is needed for offline functionality   |
+| Disable verbose logging in production                  | `console.log(tokens)` leaks sensitive data            |
 
 ```typescript
 // BAD — leaks token data in production

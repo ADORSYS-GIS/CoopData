@@ -1,0 +1,9 @@
+# Trivy ignore file
+# Add CVE IDs here that have no fix available or are acceptable risk
+# Format: CVE-ID or vulnerability identifier
+
+# Example:
+# CVE-2024-XXXXX  # No fix available, low risk
+
+# Common false positives or acceptable risks for Node.js/Debian images:
+# CVE-2023-5363  # OpenSSL issue - fixed in newer base image

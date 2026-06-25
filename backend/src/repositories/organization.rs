@@ -1,7 +1,7 @@
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
-use uuid::Uuid;
-use crate::entities::{organization};
+use crate::entities::organization;
 use crate::error::AppResult;
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use uuid::Uuid;
 
 pub struct OrganizationRepository {
     db: DatabaseConnection,

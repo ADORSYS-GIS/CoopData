@@ -30,6 +30,7 @@ export const keycloakConfig = {
 ```
 
 **Environment Variables** (`.env`):
+
 ```bash
 VITE_KEYCLOAK_URL=https://keycloak.example.com
 VITE_KEYCLOAK_REALM=my-realm
@@ -68,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const kc = new Keycloak(keycloakConfig);
-    
+
     kc.init({ onLoad: 'check-sso' }).then((authenticated) => {
       setKeycloak(kc);
       setIsAuthenticated(authenticated);
@@ -169,6 +170,7 @@ export const ProtectedRoute = () => {
 ```
 
 **Usage in Router**:
+
 ```typescript
 <Route element={<ProtectedRoute />}>
   <Route path="/dashboard" element={<DashboardPage />} />
@@ -182,13 +184,13 @@ export const ProtectedRoute = () => {
 **File**: `frontend/src/main.tsx`
 
 ```typescript
-import { OpenAPI } from '@/openapi-client';
+import { OpenAPI } from "@/openapi-client";
 
 // Configure OpenAPI client
 OpenAPI.interceptors.request.use(async (request) => {
   const token = keycloak?.token;
   if (token) {
-    request.headers.set('Authorization', `Bearer ${token}`);
+    request.headers.set("Authorization", `Bearer ${token}`);
   }
   return request;
 });
@@ -204,9 +206,9 @@ Define role constants:
 
 ```typescript
 export const ROLES = {
-  ADMIN: 'admin',
-  ORG_ADMIN: 'org_admin',
-  USER: 'user',
+  ADMIN: "admin",
+  ORG_ADMIN: "org_admin",
+  USER: "user",
 } as const;
 ```
 

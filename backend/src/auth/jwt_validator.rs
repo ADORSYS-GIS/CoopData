@@ -1,4 +1,4 @@
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use thiserror::Error;
@@ -56,9 +56,9 @@ pub struct JwtValidator {
 
 impl JwtValidator {
     pub fn new(issuer: &str, audience: &str, public_key: &str) -> Result<Self, JwtError> {
-        let decoding_key = DecodingKey::from_rsa_pem(public_key.as_bytes())
-            .map_err(JwtError::InvalidToken)?;
-        
+        let decoding_key =
+            DecodingKey::from_rsa_pem(public_key.as_bytes()).map_err(JwtError::InvalidToken)?;
+
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&[issuer]);
         validation.set_audience(&[audience]);
@@ -74,9 +74,9 @@ impl JwtValidator {
     }
 
     pub fn validate(&self, token: &str) -> Result<Claims, JwtError> {
-        let token_data: TokenData<Claims> = decode(token, &self.decoding_key, &self.validation)
-            .map_err(JwtError::InvalidToken)?;
-        
+        let token_data: TokenData<Claims> =
+            decode(token, &self.decoding_key, &self.validation).map_err(JwtError::InvalidToken)?;
+
         if token_data.claims.iss != self.issuer {
             return Err(JwtError::InvalidIssuer);
         }
@@ -90,16 +90,17 @@ impl JwtValidator {
 
     pub fn extract_roles(&self, claims: &Claims) -> HashSet<String> {
         let mut roles = HashSet::new();
-        
+
         if let Some(realm_access) = &claims.realm_access {
             roles.extend(realm_access.roles.iter().cloned());
         }
-        
+
         roles
     }
 
     pub fn has_role(&self, claims: &Claims, role: &str) -> bool {
-        claims.realm_access
+        claims
+            .realm_access
             .as_ref()
             .map(|ra| ra.roles.iter().any(|r| r == role))
             .unwrap_or(false)

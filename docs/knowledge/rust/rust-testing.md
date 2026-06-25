@@ -67,7 +67,7 @@ mod tests {
             .unwrap();
 
         let result = create_assessment(...).await;
-        
+
         assert!(result.is_err());
     }
 }
@@ -127,10 +127,10 @@ mod tests {
             )
             .await
             .unwrap();
-        
+
         assert_eq!(create_response.status(), StatusCode::CREATED);
         let assessment: Assessment = serde_json::from_slice(&create_response.into_body()).unwrap();
-        
+
         // READ
         let get_response = ctx.app
             .oneshot(
@@ -141,9 +141,9 @@ mod tests {
             )
             .await
             .unwrap();
-        
+
         assert_eq!(get_response.status(), StatusCode::OK);
-        
+
         // UPDATE
         // DELETE
     }
@@ -193,26 +193,31 @@ fn test_with_factory() {
 ## Running Tests
 
 ### Run All Tests
+
 ```bash
 cargo test
 ```
 
 ### Run Specific Test
+
 ```bash
 cargo test test_create_assessment_success
 ```
 
 ### Run with Output
+
 ```bash
 cargo test -- --nocapture
 ```
 
 ### Run Integration Tests Only
+
 ```bash
 cargo test --test integration
 ```
 
 ### Run with Coverage
+
 ```bash
 cargo tarpaulin --out Html --output-dir ./coverage
 ```
@@ -248,13 +253,13 @@ Examples:
 
 ## What to Test
 
-| Layer | What to Test | Test Type |
-|-------|-------------|-----------|
-| DTOs | Validation, serialization | Unit |
-| Handlers | Request parsing, response format | Unit + Integration |
-| Services | Business logic, external calls | Unit (mocked) |
-| Repositories | Database queries | Integration |
-| Routes | Routing, middleware | Integration |
+| Layer        | What to Test                     | Test Type          |
+| ------------ | -------------------------------- | ------------------ |
+| DTOs         | Validation, serialization        | Unit               |
+| Handlers     | Request parsing, response format | Unit + Integration |
+| Services     | Business logic, external calls   | Unit (mocked)      |
+| Repositories | Database queries                 | Integration        |
+| Routes       | Routing, middleware              | Integration        |
 
 ---
 

@@ -8,6 +8,7 @@
 ## What is a Page?
 
 A page is a **top-level component** that:
+
 1. Lives in `frontend/src/pages/`
 2. Is connected to a route in `frontend/src/router/`
 3. Calls custom hooks (which wrap local repositories) for data
@@ -47,11 +48,11 @@ import { toast } from 'sonner';
 
 export const UsersPage: React.FC = () => {
   const isOnline = useOnlineStatus();
-  
+
   // Step 3: Call hooks at the top (these wrap offline repositories)
   const { data: users, isLoading } = useUsers();
   const createUser = useCreateUser();
-  
+
   // Step 4: Local UI state
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -61,8 +62,8 @@ export const UsersPage: React.FC = () => {
       onSuccess: () => {
         setIsFormOpen(false);
         toast.success(
-          !isOnline 
-            ? "Saved locally! Will sync when connection is restored." 
+          !isOnline
+            ? "Saved locally! Will sync when connection is restored."
             : "User created successfully."
         );
       },
@@ -89,7 +90,7 @@ export const UsersPage: React.FC = () => {
         {/* Actions requiring network are conditionally disabled or flagged */}
         <Button onClick={() => setIsFormOpen(true)}>Add User</Button>
       </div>
-      
+
       <UserTable data={users || []} />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -139,7 +140,7 @@ export const UserDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { i18n } = useTranslation();
   const lang = i18n.language || 'en';
-  
+
   // Custom query hook passes localized values down to repositories
   const { data: user, isLoading } = useUser(id!, lang);
 
@@ -180,9 +181,9 @@ export const CreateUserPage: React.FC = () => {
     <div className="container mx-auto p-6 space-y-4">
       <ConnectionStatusBanner />
       <h1 className="text-2xl font-bold">Create User</h1>
-      <UserForm 
-        onSubmit={handleSubmit} 
-        isLoading={createUser.isPending} 
+      <UserForm
+        onSubmit={handleSubmit}
+        isLoading={createUser.isPending}
         isOffline={!isOnline}
       />
     </div>
@@ -195,21 +196,26 @@ export const CreateUserPage: React.FC = () => {
 ## What Pages Should NOT Do
 
 ❌ **Don't** call API directly:
+
 ```typescript
 // BAD
 const [users, setUsers] = useState([]);
 useEffect(() => {
-  fetch('/api/users').then(r => r.json()).then(setUsers);
+  fetch("/api/users")
+    .then((r) => r.json())
+    .then(setUsers);
 }, []);
 ```
 
 ✅ **Do** use hooks that retrieve from local Repositories:
+
 ```typescript
 // GOOD
 const { data: users } = useUsers();
 ```
 
 ❌ **Don't** put complex business or database mapping logic inside page components:
+
 ```typescript
 // BAD
 const handleCreate = (data) => {
@@ -226,11 +232,13 @@ const handleCreate = (data) => {
 ## Dependencies
 
 **Pages depend on**:
+
 - `frontend/src/hooks/` - Data fetching hooks (see `docs/hooks.md`)
 - `frontend/src/components/` - UI components (see `docs/components.md`)
 - `frontend/src/types/` - TypeScript types (see `docs/data-types.md`)
 
 **Pages are used by**:
+
 - `frontend/src/router/` - Router configuration (see `docs/routing.md`)
 
 ---
@@ -238,6 +246,7 @@ const handleCreate = (data) => {
 ## Checklist
 
 Before marking a page complete:
+
 - [ ] Page is in `frontend/src/pages/[subfolder]/[Name]Page.tsx`
 - [ ] Uses custom hooks wrapping local repositories (no direct API calls)
 - [ ] Renders components (no inline JSX complexity)

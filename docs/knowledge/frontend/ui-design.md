@@ -9,10 +9,11 @@
 Every page must leverage smart design tokens to ensure a premium look. Avoid hardcoding custom tailwind color codes (like `text-blue-600`); instead, use the application's semantic classes.
 
 ### Color Palette & Spacing Rules
-*   **Neutral Backgrounds**: Use off-white or muted slate surfaces (`bg-background`, `bg-slate-50/50`) with high contrast text.
-*   **Borders & Radii**: Prefer soft rounded corners (`rounded-xl` or `rounded-2xl`) and thin, light borders (`border border-slate-100` or `border-border`) paired with subtle shadows (`shadow-sm` or `shadow-md`).
-*   **Typography**: Use font size and weights for clear hierarchical layouts. Headings should be bold/semibold (`font-bold tracking-tight text-slate-900`). Primary metrics should stand out clearly.
-*   **Spacing**: Ensure generous padding inside elements. Avoid crowding input fields and tables.
+
+- **Neutral Backgrounds**: Use off-white or muted slate surfaces (`bg-background`, `bg-slate-50/50`) with high contrast text.
+- **Borders & Radii**: Prefer soft rounded corners (`rounded-xl` or `rounded-2xl`) and thin, light borders (`border border-slate-100` or `border-border`) paired with subtle shadows (`shadow-sm` or `shadow-md`).
+- **Typography**: Use font size and weights for clear hierarchical layouts. Headings should be bold/semibold (`font-bold tracking-tight text-slate-900`). Primary metrics should stand out clearly.
+- **Spacing**: Ensure generous padding inside elements. Avoid crowding input fields and tables.
 
 ---
 
@@ -21,25 +22,29 @@ Every page must leverage smart design tokens to ensure a premium look. Avoid har
 When the user transitions to an offline state, the app must display a non-intrusive status banner. This banner should be absolute-positioned or embedded in the main layout frame to prevent layout shifts.
 
 ### Style Standard: Connectivity Banner
+
 ```tsx
 import { useOnlineStatus } from "@/hooks/utils/useOnlineStatus";
 import { WifiOff } from "lucide-react";
 
 export const ConnectionStatusBanner = () => {
   const isOnline = useOnlineStatus();
-  
+
   if (isOnline) return null;
 
   return (
     <div className="bg-amber-500 text-white text-xs sm:text-sm font-medium py-2 px-4 w-full flex items-center justify-center gap-2 animate-slide-down">
       <WifiOff className="h-4 w-4 animate-bounce" />
-      <span>You are currently working offline. Changes will be saved locally and synced when connection is restored.</span>
+      <span>
+        You are currently working offline. Changes will be saved locally and synced when connection
+        is restored.
+      </span>
     </div>
   );
 };
 ```
 
-*   **Design Rule**: Place at the very top of the application layout shell (`sticky top-0 z-50`). Do not overlay critical navigation links.
+- **Design Rule**: Place at the very top of the application layout shell (`sticky top-0 z-50`). Do not overlay critical navigation links.
 
 ---
 
@@ -50,6 +55,7 @@ Offline-first apps experience "Double-Pass Rendering": they show cached data ins
 When local data is missing or loading from IndexedDB, render **Skeleton Loaders** instead of plain spinners to maintain visual structures.
 
 ### Style Standard: Metric Card Skeleton
+
 ```tsx
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -76,18 +82,26 @@ export const MetricCardSkeleton = () => {
 Background syncing must occur silently without blocking the viewport with modals or loaders. Use non-intrusive UI widgets to reflect queue status.
 
 ### A. Toast Indicators (using Sonner)
+
 - **Start Syncing**: Show a loading toast when processing the sync queue.
   `toast.loading("Synchronizing local changes...", { id: "sync-status" });`
 - **End Syncing**: Update the same toast to success.
   `toast.success("Synchronization complete!", { id: "sync-status" });`
 
 ### B. Header Sync Status Icons
+
 Place a small indicator icon inside the navigation header to show when local data is writing or syncing.
 
 ```tsx
 import { CloudLightning, CloudCheck } from "lucide-react";
 
-export const HeaderSyncIndicator = ({ isSyncing, hasPendingItems }: { isSyncing: boolean; hasPendingItems: boolean }) => {
+export const HeaderSyncIndicator = ({
+  isSyncing,
+  hasPendingItems,
+}: {
+  isSyncing: boolean;
+  hasPendingItems: boolean;
+}) => {
   if (isSyncing) {
     return (
       <div className="flex items-center gap-1.5 text-xs text-slate-500" title="Syncing changes...">
@@ -99,7 +113,10 @@ export const HeaderSyncIndicator = ({ isSyncing, hasPendingItems }: { isSyncing:
 
   if (hasPendingItems) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-amber-600" title="Offline changes waiting to sync">
+      <div
+        className="flex items-center gap-1.5 text-xs text-amber-600"
+        title="Offline changes waiting to sync"
+      >
         <CloudLightning className="h-4 w-4 text-amber-500 animate-pulse" />
         <span className="hidden sm:inline">Pending Sync</span>
       </div>

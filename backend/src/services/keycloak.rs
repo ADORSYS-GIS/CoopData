@@ -29,8 +29,9 @@ impl KeycloakService {
 
     pub async fn verify_token(&self, token: &str) -> Result<KeycloakUser, AppError> {
         let url = format!("{}/protocol/openid-connect/userinfo", self.realm_url());
-        
-        let response = self.client
+
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(token)
             .send()
@@ -51,14 +52,15 @@ impl KeycloakService {
 
     pub async fn get_admin_token(&self) -> Result<KeycloakToken, AppError> {
         let url = format!("{}/protocol/openid-connect/token", self.realm_url());
-        
+
         let params = [
             ("grant_type", "client_credentials"),
             ("client_id", self.client_id.as_str()),
             ("client_secret", self.client_secret.as_str()),
         ];
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .form(&params)
             .send()
@@ -66,7 +68,9 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AppError::ExternalServiceError("Failed to get admin token".into()));
+            return Err(AppError::ExternalServiceError(
+                "Failed to get admin token".into(),
+            ));
         }
 
         let token: KeycloakToken = response

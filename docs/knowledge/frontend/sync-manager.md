@@ -28,6 +28,7 @@ frontend/src/services/sync/
 ## 2. Initialization
 
 `syncManager.initialize()` is called **once** at app boot from `main.tsx`, after Keycloak has resolved. It:
+
 1. Registers `window.addEventListener("online")` and `window.addEventListener("offline")`.
 2. Runs `syncAll()` immediately if already online (to flush pending queue from a previous session).
 3. Runs `precacheAll()` immediately if online (to warm the IndexedDB cache for offline use).
@@ -59,6 +60,7 @@ initialize() {
 ## 3. Online/Offline Event Handlers
 
 ### `handleOnline()`
+
 Fires when the browser reconnects. Shows a user-facing toast, then calls `syncAll()`. On completion, shows a success toast.
 
 ```typescript
@@ -72,6 +74,7 @@ handleOnline() {
 ```
 
 ### `handleOffline()`
+
 Fires when the browser loses connection. Shows an informational warning toast. Does not interrupt ongoing operations.
 
 ```typescript
@@ -135,6 +138,7 @@ async syncAll(organizationId: string | null) {
 ```
 
 ### Dependency Order Rule
+
 When adding a new sync service, determine where it belongs in the chain:
 
 ```
@@ -206,6 +210,7 @@ syncManager.precacheAll(orgId).catch((e: unknown) => {
 When adding a new entity that supports offline writes, follow this exact pattern:
 
 ### Step 1 — Create the sync service
+
 ```typescript
 // File: frontend/src/services/sync/myEntitySyncService.ts
 import { db } from "../db";
@@ -215,10 +220,7 @@ import { MyEntityService } from "@/openapi-client/services.gen";
 export const myEntitySyncService = {
   async sync() {
     // 1. Get all pending items for this entity type
-    const pending = await db.sync_queue
-      .where("entityType")
-      .equals("myEntities")
-      .toArray();
+    const pending = await db.sync_queue.where("entityType").equals("myEntities").toArray();
 
     for (const item of pending) {
       try {
@@ -226,7 +228,10 @@ export const myEntitySyncService = {
         if (item.action === "CREATE") {
           await MyEntityService.createMyEntity({ requestBody: item.payload as any });
         } else if (item.action === "UPDATE") {
-          await MyEntityService.updateMyEntity({ id: item.entityId, requestBody: item.payload as any });
+          await MyEntityService.updateMyEntity({
+            id: item.entityId,
+            requestBody: item.payload as any,
+          });
         } else if (item.action === "DELETE") {
           await MyEntityService.deleteMyEntity({ id: item.entityId });
         }
@@ -239,7 +244,6 @@ export const myEntitySyncService = {
           syncStatus: SyncStatus.SYNCED,
           lastError: undefined,
         });
-
       } catch (error) {
         // 5. On failure, mark as FAILED and store error
         await db.table("myEntities").update(item.entityId, {
@@ -249,11 +253,12 @@ export const myEntitySyncService = {
         console.error(`Failed to sync myEntity ${item.entityId}:`, error);
       }
     }
-  }
+  },
 };
 ```
 
 ### Step 2 — Register in `syncManager.syncAll()`
+
 Place it at the correct position in the dependency chain:
 
 ```typescript
@@ -268,6 +273,7 @@ async syncAll(organizationId: string | null) {
 ```
 
 ### Step 3 — Add to `precacheAll()` if needed
+
 If the entity should be pre-downloaded, add it to `precacheAll()` in the appropriate role-gated section.
 
 ---
@@ -305,6 +311,7 @@ export const usePendingSyncCount = () => {
 ```
 
 **Usage in layout header**:
+
 ```tsx
 import { usePendingSyncCount } from "@/hooks/usePendingSyncCount";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";

@@ -83,7 +83,9 @@ pub fn create_api_routes() -> Router<AppState> {
 ## How to Add a New Route
 
 ### Step 1: Create Handler (if not exists)
+
 File: `src/api/handlers/my_feature.rs`
+
 ```rust
 pub async fn create_my_entity(...) -> AppResult<impl IntoResponse> { }
 pub async fn get_my_entity(...) -> AppResult<impl IntoResponse> { }
@@ -91,7 +93,9 @@ pub async fn list_my_entities(...) -> AppResult<impl IntoResponse> { }
 ```
 
 ### Step 2: Create Router
+
 File: `src/api/routes/my_feature.rs`
+
 ```rust
 use crate::api::handlers::my_feature::*;
 
@@ -104,7 +108,9 @@ pub fn create_my_feature_routes() -> Router<AppState> {
 ```
 
 ### Step 3: Register in Main Router
+
 File: `src/api/routes/api.rs`
+
 ```rust
 // Add import
 use crate::api::routes::my_feature::create_my_feature_routes;

@@ -69,7 +69,8 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) =>
 };
 ```
 
-**Why**: 
+**Why**:
+
 - Component receives data via props
 - No business logic
 - Uses shadcn/ui components
@@ -90,10 +91,10 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ 
-  title, 
-  description, 
-  actions 
+export const PageHeader: React.FC<PageHeaderProps> = ({
+  title,
+  description,
+  actions
 }) => {
   return (
     <div className="flex items-center justify-between mb-6">
@@ -110,6 +111,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 ```
 
 **Usage**:
+
 ```typescript
 <PageHeader
   title="Users"
@@ -163,7 +165,8 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete }) =
 };
 ```
 
-**Why**: 
+**Why**:
+
 - Handles empty state
 - Responsive grid layout
 - Delegates rendering to child component
@@ -184,10 +187,10 @@ interface SearchInputProps {
   placeholder?: string;
 }
 
-export const SearchInput: React.FC<SearchInputProps> = ({ 
-  value, 
-  onChange, 
-  placeholder = 'Search...' 
+export const SearchInput: React.FC<SearchInputProps> = ({
+  value,
+  onChange,
+  placeholder = 'Search...'
 }) => {
   return (
     <div className="relative">

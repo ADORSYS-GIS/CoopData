@@ -6,10 +6,7 @@ use tower_http::{
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
-    api::routes::create_router,
-    config::AppConfig,
-    database,
-    services::cache::CacheService,
+    api::routes::create_router, config::AppConfig, database, services::cache::CacheService,
     AppState,
 };
 
@@ -34,7 +31,12 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState { db, config, cache };
 
     let app = create_router(state.clone())
-        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
         .layer(TraceLayer::new_for_http());
 
     let addr: SocketAddr = format!("{}:{}", state.config.host, state.config.port).parse()?;
