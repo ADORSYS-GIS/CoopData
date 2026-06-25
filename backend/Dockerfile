@@ -1,5 +1,5 @@
 # Dockerfile for backend (Rust Axum)
-FROM rust:1.88-slim AS builder
+FROM rust:1.88-bookworm AS builder
 WORKDIR /app
 # Install build dependencies
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
@@ -16,9 +16,8 @@ COPY src ./src
 # Build the application
 RUN cargo build --release
 
-FROM debian:bookworm-slim
+FROM gcr.io/distroless/cc-debian12
 WORKDIR /app
-RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/coop-data-backend ./coop-data-backend
 ENV RUST_LOG=info
 EXPOSE 8080
