@@ -59,8 +59,8 @@ pub struct JwtValidator {
 
 impl JwtValidator {
     pub fn new(issuer: &str, audiences: &[String], public_key_pem: &str) -> Result<Self, JwtError> {
-        let decoding_key = DecodingKey::from_rsa_pem(public_key_pem.as_bytes())
-            .map_err(JwtError::InvalidToken)?;
+        let decoding_key =
+            DecodingKey::from_rsa_pem(public_key_pem.as_bytes()).map_err(JwtError::InvalidToken)?;
 
         let valid_audiences: HashSet<String> = audiences.iter().cloned().collect();
 
@@ -80,8 +80,15 @@ impl JwtValidator {
         })
     }
 
-    pub async fn from_keycloak(keycloak_url: &str, realm: &str, audiences: &[String]) -> Result<Self, JwtError> {
-        let certs_url = format!("{}/realms/{}/protocol/openid-connect/certs", keycloak_url, realm);
+    pub async fn from_keycloak(
+        keycloak_url: &str,
+        realm: &str,
+        audiences: &[String],
+    ) -> Result<Self, JwtError> {
+        let certs_url = format!(
+            "{}/realms/{}/protocol/openid-connect/certs",
+            keycloak_url, realm
+        );
 
         let client = reqwest::Client::new();
         let response = client
@@ -102,11 +109,12 @@ impl JwtValidator {
             .await
             .map_err(|e| JwtError::JwksFetchError(format!("Failed to parse JWKS: {}", e)))?;
 
-        let key = jwks.keys.first()
-            .ok_or_else(|| JwtError::JwksFetchError("No keys found in JWKS response".to_string()))?;
+        let key = jwks.keys.first().ok_or_else(|| {
+            JwtError::JwksFetchError("No keys found in JWKS response".to_string())
+        })?;
 
-        let decoding_key = DecodingKey::from_rsa_components(&key.n, &key.e)
-            .map_err(JwtError::InvalidToken)?;
+        let decoding_key =
+            DecodingKey::from_rsa_components(&key.n, &key.e).map_err(JwtError::InvalidToken)?;
 
         let issuer = format!("{}/realms/{}", keycloak_url, realm);
 
@@ -129,8 +137,8 @@ impl JwtValidator {
     }
 
     pub fn validate(&self, token: &str) -> Result<Claims, JwtError> {
-        let token_data: TokenData<Claims> = decode(token, &self.decoding_key, &self.validation)
-            .map_err(JwtError::InvalidToken)?;
+        let token_data: TokenData<Claims> =
+            decode(token, &self.decoding_key, &self.validation).map_err(JwtError::InvalidToken)?;
 
         if token_data.claims.iss != self.issuer {
             return Err(JwtError::InvalidIssuer {
@@ -149,13 +157,11 @@ impl JwtValidator {
     fn is_valid_audience(&self, claims: &Claims) -> bool {
         match &claims.aud {
             Some(serde_json::Value::String(s)) => self.valid_audiences.contains(s),
-            Some(serde_json::Value::Array(arr)) => {
-                arr.iter().any(|v| {
-                    v.as_str()
-                        .map(|s| self.valid_audiences.contains(s))
-                        .unwrap_or(false)
-                })
-            }
+            Some(serde_json::Value::Array(arr)) => arr.iter().any(|v| {
+                v.as_str()
+                    .map(|s| self.valid_audiences.contains(s))
+                    .unwrap_or(false)
+            }),
             Some(serde_json::Value::Null) | None => false,
             _ => false,
         }

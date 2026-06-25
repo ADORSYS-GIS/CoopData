@@ -2,13 +2,8 @@ use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
-    api::routes::create_app,
-    auth::JwtValidator,
-    config::AppConfig,
-    database,
-    services::cache::CacheService,
-    services::keycloak::KeycloakService,
-    AppState,
+    api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
+    services::cache::CacheService, services::keycloak::KeycloakService, AppState,
 };
 
 #[tokio::main]
@@ -54,7 +49,9 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn init_jwt_validator_with_retry(config: &AppConfig) -> anyhow::Result<std::sync::Arc<JwtValidator>> {
+async fn init_jwt_validator_with_retry(
+    config: &AppConfig,
+) -> anyhow::Result<std::sync::Arc<JwtValidator>> {
     let max_retries = 30u32;
     let mut attempt = 0;
 

@@ -1,12 +1,6 @@
 use std::sync::Arc;
 
-use axum::{
-    body::Body,
-    extract::State,
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
+use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
 
 use crate::auth::Claims;
 use crate::{AppError, AppState};
@@ -38,7 +32,8 @@ pub async fn auth_layer(
 
 pub fn require_role(role: &'static str) -> impl Fn(&Claims) -> bool + Clone + 'static {
     move |claims: &Claims| {
-        claims.realm_access
+        claims
+            .realm_access
             .as_ref()
             .map(|ra| ra.roles.iter().any(|r| r == role))
             .unwrap_or(false)

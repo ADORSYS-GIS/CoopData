@@ -65,8 +65,9 @@ impl KeycloakService {
 
     pub async fn verify_token(&self, token: &str) -> Result<KeycloakUser, AppError> {
         let url = format!("{}/protocol/openid-connect/userinfo", self.openid_url());
-        
-        let response = self.client
+
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(token)
             .send()
@@ -87,7 +88,7 @@ impl KeycloakService {
 
     pub async fn get_admin_token(&self) -> Result<KeycloakToken, AppError> {
         let url = format!("{}/protocol/openid-connect/token", self.openid_url());
-        
+
         let params = [
             ("grant_type", "client_credentials"),
             ("client_id", self.client_id.as_str()),
@@ -142,7 +143,8 @@ impl KeycloakService {
             }],
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token.access_token)
             .json(&creation)
@@ -154,10 +156,14 @@ impl KeycloakService {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             tracing::error!(status = %status, body = %body, "Failed to create Keycloak user");
-            return Err(AppError::ExternalServiceError(format!("Failed to create Keycloak user: {}", status)));
+            return Err(AppError::ExternalServiceError(format!(
+                "Failed to create Keycloak user: {}",
+                status
+            )));
         }
 
-        let location = response.headers()
+        let location = response
+            .headers()
             .get("location")
             .and_then(|v| v.to_str().ok())
             .map(String::from);
@@ -182,7 +188,11 @@ impl KeycloakService {
         let token = self.get_admin_token().await?;
         let role = self.get_realm_role(&token.access_token, role).await?;
 
-        let url = format!("{}/users/{}/role-mappings/realm", self.realm_url(), keycloak_id);
+        let url = format!(
+            "{}/users/{}/role-mappings/realm",
+            self.realm_url(),
+            keycloak_id
+        );
         let role_mapping = vec![KeycloakRoleMapping {
             id: role.id.clone(),
             name: role.name.clone(),
@@ -191,7 +201,8 @@ impl KeycloakService {
             container_id: self.realm.clone(),
         }];
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token.access_token)
             .json(&role_mapping)
@@ -203,7 +214,10 @@ impl KeycloakService {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             tracing::error!(status = %status, body = %body, "Failed to assign Keycloak role");
-            return Err(AppError::ExternalServiceError(format!("Failed to assign role: {}", status)));
+            return Err(AppError::ExternalServiceError(format!(
+                "Failed to assign role: {}",
+                status
+            )));
         }
 
         tracing::info!(keycloak_id = %keycloak_id, role = %role.name, "Role assigned in Keycloak");
@@ -214,7 +228,8 @@ impl KeycloakService {
         let token = self.get_admin_token().await?;
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token.access_token)
             .send()
@@ -225,17 +240,25 @@ impl KeycloakService {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             tracing::error!(status = %status, body = %body, "Failed to delete Keycloak user");
-            return Err(AppError::ExternalServiceError(format!("Failed to delete Keycloak user: {}", status)));
+            return Err(AppError::ExternalServiceError(format!(
+                "Failed to delete Keycloak user: {}",
+                status
+            )));
         }
 
         tracing::info!(keycloak_id = %keycloak_id, "User deleted from Keycloak");
         Ok(())
     }
 
-    async fn get_realm_role(&self, access_token: &str, role_name: &str) -> Result<KeycloakRealmRole, AppError> {
+    async fn get_realm_role(
+        &self,
+        access_token: &str,
+        role_name: &str,
+    ) -> Result<KeycloakRealmRole, AppError> {
         let url = format!("{}/roles/{}", self.realm_url(), role_name);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(access_token)
             .send()
@@ -243,17 +266,24 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AppError::ExternalServiceError(format!("Role '{}' not found in Keycloak", role_name)));
+            return Err(AppError::ExternalServiceError(format!(
+                "Role '{}' not found in Keycloak",
+                role_name
+            )));
         }
 
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
     async fn get_user_by_email(&self, email: &str) -> Result<KeycloakUser, AppError> {
         let token = self.get_admin_token().await?;
         let url = format!("{}/users?email={}", self.realm_url(), email);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token.access_token)
             .send()
@@ -265,21 +295,27 @@ impl KeycloakService {
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        users.pop().ok_or_else(|| AppError::NotFound(format!("Keycloak user with email {} not found", email)))
+        users.pop().ok_or_else(|| {
+            AppError::NotFound(format!("Keycloak user with email {} not found", email))
+        })
     }
 
     async fn get_user_by_id(&self, keycloak_id: &str) -> Result<KeycloakUser, AppError> {
         let token = self.get_admin_token().await?;
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token.access_token)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 }
 
