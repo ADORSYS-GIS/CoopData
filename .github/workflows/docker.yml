@@ -94,23 +94,27 @@ jobs:
 
       - name: Run Trivy vulnerability scanner on frontend image
         uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true
         with:
           image-ref: coopdata-frontend:scan
           format: "sarif"
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL,HIGH"
-          exit-code: "1"
+          exit-code: "0"
           ignore-unfixed: true
+          args: "--skip-version-check"
 
       - name: Run Trivy vulnerability scanner on backend image
         uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true
         with:
           image-ref: coopdata-backend:scan
           format: "sarif"
           output: "trivy-backend-results.sarif"
           severity: "CRITICAL,HIGH"
-          exit-code: "1"
+          exit-code: "0"
           ignore-unfixed: true
+          args: "--skip-version-check"
 
       - name: Upload Trivy frontend scan results to GitHub Security tab
         if: always()
@@ -125,6 +129,30 @@ jobs:
         with:
           sarif_file: "trivy-backend-results.sarif"
         continue-on-error: true
+
+      - name: Fail if Trivy found CRITICAL/HIGH vulnerabilities
+        if: always()
+        run: |
+          set -euo pipefail
+          found=false
+          check_sarif() {
+            f="$1"
+            [ -f "$f" ] || return 1
+            if jq -e '.runs[]?.results? | length > 0' "$f" >/dev/null 2>&1; then
+              return 0
+            fi
+            return 1
+          }
+          for f in trivy-frontend-results.sarif trivy-backend-results.sarif; do
+            if check_sarif "$f"; then
+              echo "Vulnerabilities found in $f"
+              found=true
+            fi
+          done
+          if [ "$found" = true ]; then
+            echo "::error::Critical/High vulnerabilities detected by Trivy"
+            exit 1
+          fi
 
       - name: Push frontend Docker image to GHCR
         if: github.event_name != 'pull_request'
