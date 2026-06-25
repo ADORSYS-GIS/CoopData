@@ -62,7 +62,7 @@ impl JwtValidator {
         let decoding_key =
             DecodingKey::from_rsa_pem(public_key_pem.as_bytes()).map_err(JwtError::InvalidToken)?;
 
-        let valid_audiences: HashSet<String> = audiences.to_vec().into_iter().collect();
+        let valid_audiences: HashSet<String> = audiences.iter().cloned().collect();
 
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&[issuer]);
@@ -126,7 +126,7 @@ impl JwtValidator {
         let aud_strings: Vec<String> = audiences.to_vec();
         validation.set_audience(&aud_strings);
 
-        let valid_audiences: HashSet<String> = audiences.to_vec().into_iter().collect();
+        let valid_audiences: HashSet<String> = audiences.iter().cloned().collect();
 
         Ok(Self {
             decoding_key,
