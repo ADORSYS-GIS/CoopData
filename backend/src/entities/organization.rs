@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "organizations")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -33,6 +34,8 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     Federation,
+    #[sea_orm(has_many = "super::user::Entity")]
+    Users,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -46,5 +49,11 @@ impl Related<super::assessment::Entity> for Entity {
 impl Related<Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Federation.def()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Users.def()
     }
 }

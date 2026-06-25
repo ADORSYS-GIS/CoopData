@@ -70,6 +70,14 @@ impl AppConfig {
         self.environment == Environment::Production
     }
 
+    pub fn jwt_audiences(&self) -> Vec<String> {
+        vec![
+            self.keycloak_client_id.clone(),
+            "coopdata-frontend".to_string(),
+            "coopdata-backend".to_string(),
+        ]
+    }
+
     pub fn is_development(&self) -> bool {
         self.environment == Environment::Development
     }

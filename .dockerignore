@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+docs/
+*.md
+!backend/Cargo.toml
+
+# Frontend (not needed for backend build)
+frontend/
+
+# Keycloak realm data
+keycloak/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Docker files
+docker-compose.yml
+docker-compose*.yml
+start.sh
+
+# IDE
+.idea
+.vscode
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
