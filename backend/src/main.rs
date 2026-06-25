@@ -6,10 +6,7 @@ use tower_http::{
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
-    api::routes::create_router,
-    config::AppConfig,
-    database,
-    services::cache::CacheService,
+    api::routes::create_router, config::AppConfig, database, services::cache::CacheService,
     AppState,
 };
 

@@ -20,28 +20,48 @@ impl CacheService {
         Ok(Self { client })
     }
 
-    pub async fn get_connection(&self) -> Result<redis::aio::MultiplexedConnection, redis::RedisError> {
+    pub async fn get_connection(
+        &self,
+    ) -> Result<redis::aio::MultiplexedConnection, redis::RedisError> {
         self.client.get_multiplexed_async_connection().await
     }
 
-    pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>, redis::RedisError> {
+    pub async fn get<T: DeserializeOwned>(
+        &self,
+        key: &str,
+    ) -> Result<Option<T>, redis::RedisError> {
         let mut conn = self.get_connection().await?;
         let result: Option<String> = conn.get(key).await?;
 
         match result {
             Some(json) => {
-                let value = serde_json::from_str(&json)
-                    .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "deserialization error", e.to_string())))?;
+                let value = serde_json::from_str(&json).map_err(|e| {
+                    redis::RedisError::from((
+                        redis::ErrorKind::TypeError,
+                        "deserialization error",
+                        e.to_string(),
+                    ))
+                })?;
                 Ok(Some(value))
             }
             None => Ok(None),
         }
     }
 
-    pub async fn set<T: Serialize>(&self, key: &str, value: &T, ttl: Duration) -> Result<(), redis::RedisError> {
+    pub async fn set<T: Serialize>(
+        &self,
+        key: &str,
+        value: &T,
+        ttl: Duration,
+    ) -> Result<(), redis::RedisError> {
         let mut conn = self.get_connection().await?;
-        let json = serde_json::to_string(value)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "serialization error", e.to_string())))?;
+        let json = serde_json::to_string(value).map_err(|e| {
+            redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "serialization error",
+                e.to_string(),
+            ))
+        })?;
 
         conn.set_ex(key, json, ttl.as_secs()).await
     }
