@@ -35,7 +35,7 @@ jobs:
 
       - name: Run npm audit (frontend vulnerabilities)
         run: npm audit --audit-level=critical
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Install Rust toolchain for backend audit
         uses: dtolnay/rust-toolchain@stable
@@ -45,7 +45,4 @@ jobs:
 
       - name: Run cargo audit (backend vulnerabilities)
         working-directory: ./backend
-        run: |
-          mkdir -p .cargo
-          cp audit.toml .cargo/audit.toml
-          cargo audit
+        run: cargo audit

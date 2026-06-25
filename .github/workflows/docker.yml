@@ -69,8 +69,8 @@ jobs:
       - name: Build frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: false
           load: true
           tags: |
@@ -83,7 +83,7 @@ jobs:
       - name: Build backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile
           push: false
           load: true
@@ -96,7 +96,6 @@ jobs:
 
       - name: Run Trivy vulnerability scanner on frontend image
         uses: aquasecurity/trivy-action@v0.36.0
-        continue-on-error: true
         with:
           image-ref: coopdata-frontend:scan
           format: "sarif"
@@ -107,7 +106,6 @@ jobs:
 
       - name: Run Trivy vulnerability scanner on backend image
         uses: aquasecurity/trivy-action@v0.36.0
-        continue-on-error: true
         with:
           image-ref: coopdata-backend:scan
           format: "sarif"
@@ -122,7 +120,7 @@ jobs:
         with:
           sarif_file: "trivy-frontend-results.sarif"
           category: trivy-frontend
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload Trivy backend scan results to GitHub Security tab
         if: always()
@@ -130,11 +128,10 @@ jobs:
         with:
           sarif_file: "trivy-backend-results.sarif"
           category: trivy-backend
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Fail if Trivy found CRITICAL/HIGH vulnerabilities
         if: always()
-        continue-on-error: true # TODO: remove once CVEs are resolved
         run: |
           set -euo pipefail
           found=false
@@ -161,8 +158,8 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
@@ -173,7 +170,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}

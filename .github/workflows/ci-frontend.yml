@@ -101,7 +101,7 @@ jobs:
 
       - name: Execute frontend unit tests
         run: npm run test -- --coverage --run
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload test coverage artifact
         if: always()
