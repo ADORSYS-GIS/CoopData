@@ -9,6 +9,10 @@ on:
       - "backend/**"
       - ".github/workflows/ci-backend.yml"
 
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
