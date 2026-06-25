@@ -142,7 +142,6 @@ jobs:
 
       - name: Fail if Trivy found CRITICAL/HIGH vulnerabilities
         if: always()
-        continue-on-error: true
         run: |
           set -euo pipefail
           found=false
@@ -161,7 +160,8 @@ jobs:
             fi
           done
           if [ "$found" = true ]; then
-            echo "::warning::Critical/High vulnerabilities detected by Trivy (non-blocking)"
+            echo "::error::Critical/High vulnerabilities detected by Trivy"
+            exit 1
           fi
 
       - name: Push frontend Docker image to GHCR

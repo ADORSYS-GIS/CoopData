@@ -2,6 +2,14 @@
 # Add CVE IDs here that have no fix available or are acceptable risk
 # Format: CVE-ID or vulnerability identifier
 
+# Frontend (node:22-alpine) vulnerabilities - no fix available yet
+CVE-2026-33671
+CVE-2026-33672
+CVE-2026-33750
+CVE-2026-42338
+CVE-2026-53655
+GHSA-g7r4-m6w7-qqqr
+
 # Alpine base image vulnerabilities (node:22-alpine)
 # These are typically in the base OS packages and have no fix available yet
 CVE-2024-0567  # openssl: PKCS12 Decoding crashes
@@ -17,6 +25,3 @@ CVE-2025-2492  # openssl: Excessive time spent in DH key generation
 
 # Node.js runtime vulnerabilities (often fixed in next minor release)
 # CVE-2024-XXXXX  # Add specific Node.js CVEs as they appear
-
-# Common false positives or acceptable risks for Node.js/Debian images:
-# CVE-2023-5363  # OpenSSL issue - fixed in newer base image
