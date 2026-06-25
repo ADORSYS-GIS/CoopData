@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: coopdata-postgres
+    environment:
+      POSTGRES_USER: coopdata
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: coopdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coopdata"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: coopdata-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: coopdata
+      KC_DB_USERNAME: coopdata
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: "8180"
+    ports:
+      - "8180:8180"
+      - "9000:9000"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8180'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: coopdata-backend
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: postgresql://coopdata:password@postgres:5432/coopdata
+      REDIS_URL: redis://redis:6379
+      KEYCLOAK_URL: http://keycloak:8180
+      KEYCLOAK_REALM: coop-data
+      KEYCLOAK_CLIENT_ID: coopdata-backend
+      KEYCLOAK_CLIENT_SECRET: change-me-in-production
+      JWT_ISSUER: http://keycloak:8180/realms/coop-data
+      JWT_AUDIENCE: coopdata-frontend
+      FRONTEND_URL: http://localhost:5173
+      ENVIRONMENT: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3000/api/v1
+        VITE_KEYCLOAK_URL: http://localhost:8180
+        VITE_KEYCLOAK_REALM: coop-data
+        VITE_KEYCLOAK_CLIENT_ID: coopdata-frontend
+    container_name: coopdata-frontend
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3001"
+      NODE_ENV: production
+    ports:
+      - "5174:3001"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

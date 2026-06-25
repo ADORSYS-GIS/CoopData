@@ -1,10 +1,11 @@
+use axum::Router;
 use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
 use crate::api as api_module;
+use crate::AppState;
 
-pub fn create_openapi_router() -> SwaggerUi {
-    SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi())
+pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
+    ApiDoc::openapi()
 }
 
 #[derive(OpenApi)]
@@ -13,13 +14,78 @@ pub fn create_openapi_router() -> SwaggerUi {
         title = "CoopData API",
         version = "0.1.0",
         description = "Eswatini National Cooperative Management Platform API",
-        contact(name = "CoopData Team", email = "support@coopdata.org")
+        contact(
+            name = "CoopData Team",
+            email = "support@coopdata.org"
+        )
+    ),
+    paths(
+        api_module::handlers::health_check,
+        api_module::handlers::list_organizations,
+        api_module::handlers::get_organization,
+        api_module::handlers::create_organization,
+        api_module::handlers::update_organization,
+        api_module::handlers::delete_organization,
+        api_module::handlers::list_users,
+        api_module::handlers::get_user,
+        api_module::handlers::create_user,
+        api_module::handlers::update_user,
+        api_module::handlers::delete_user,
+        api_module::handlers::assign_role,
     ),
     paths(api_module::handlers::health_check,),
     components(schemas(
         api_module::dto::PaginationParams,
         api_module::dto::ErrorResponse,
         api_module::dto::SuccessResponse,
+        api_module::dto::CreateOrganizationRequest,
+        api_module::dto::UpdateOrganizationRequest,
+        api_module::dto::OrganizationResponse,
+        api_module::dto::CreateUserRequest,
+        api_module::dto::UpdateUserRequest,
+        api_module::dto::UserResponse,
+        api_module::dto::AssignRoleRequest,
     ))
 )]
 pub struct ApiDoc;
+
+pub fn serve_openapi() -> Router<AppState> {
+    let spec = ApiDoc::openapi();
+    let spec_json = serde_json::to_string(&spec).expect("Failed to serialize OpenAPI spec");
+
+    Router::new()
+        .route("/api-docs/openapi.json", axum::routing::get(move || {
+            let json = spec_json.clone();
+            async move { axum::Json(serde_json::from_str::<serde_json::Value>(&json).unwrap()) }
+        }))
+        .route("/swagger-ui", axum::routing::get(|| async move {
+            axum::response::Html(SWAGGER_UI_HTML.to_string())
+        }))
+        .route("/swagger-ui/", axum::routing::get(|| async move {
+            axum::response::Html(SWAGGER_UI_HTML.to_string())
+        }))
+}
+
+const SWAGGER_UI_HTML: &str = r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>CoopData API - Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+    window.onload = function() {
+        SwaggerUIBundle({
+            url: "/api-docs/openapi.json",
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIBundle
+            ],
+        })
+    }
+    </script>
+</body>
+</html>"#;
