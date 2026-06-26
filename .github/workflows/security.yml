@@ -3,8 +3,6 @@ name: Security Validation
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
 
 concurrency:
   group: security-${{ github.ref }}

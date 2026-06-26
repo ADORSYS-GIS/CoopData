@@ -3,14 +3,6 @@ name: Frontend CI
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
-    paths-ignore:
-      - "backend/**"
-      - "docs/**"
-      - "README.md"
-      - "AGENTS.md"
-      - "CLAUDE.md"
 
 concurrency:
   group: ci-frontend-${{ github.ref }}
@@ -81,6 +73,60 @@ jobs:
         working-directory: ./frontend
         run: npx tsc --noEmit
 
+
+  frontend-prettier:
+    name: Frontend Prettier
+    needs: frontend-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "./frontend/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Check formatting
+        working-directory: ./frontend
+        run: npm run prettier:check
+
+  frontend-unit-tests:
+    name: Frontend Unit Tests
+    needs: frontend-install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "./frontend/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        working-directory: ./frontend
+        run: npm run test:unit -- --passWithNoTests --coverage.enabled=false
+
+      - name: Upload coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./frontend/coverage/
+          retention-days: 7
 
   frontend-build:
     name: Frontend Build

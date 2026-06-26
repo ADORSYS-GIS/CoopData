@@ -3,11 +3,6 @@ name: Backend CI
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
-    paths:
-      - "backend/**"
-      - ".github/workflows/ci-backend.yml"
 
 concurrency:
   group: ci-backend-${{ github.ref }}
