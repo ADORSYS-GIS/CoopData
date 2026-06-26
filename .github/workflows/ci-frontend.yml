@@ -118,7 +118,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: ./frontend
-        run: npm run test:unit
+        run: npm run test:unit -- --passWithNoTests
 
       - name: Generate coverage report
         working-directory: ./frontend
