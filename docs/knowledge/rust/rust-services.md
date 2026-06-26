@@ -19,6 +19,7 @@ src/services/
 ## When to Create a Service
 
 **CREATE A SERVICE WHEN:**
+
 - Integrating with external APIs (Keycloak, payment gateways)
 - Complex business logic spanning 3+ repositories
 - File operations (upload, download, processing)
@@ -26,6 +27,7 @@ src/services/
 - Caching strategies
 
 **DON'T CREATE SERVICE WHEN:**
+
 - Single CRUD operation → Use Repository directly
 - Simple data validation → Do in Handler or DTO
 - Single database table query → Use Repository
@@ -54,7 +56,7 @@ impl KeycloakService {
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .expect("Failed to create HTTP client");
-        
+
         Self { client, config }
     }
 
@@ -65,7 +67,7 @@ impl KeycloakService {
             self.config.keycloak.url,
             self.config.keycloak.realm
         );
-        
+
         let response = self.client
             .post(&url)
             .form(&[
@@ -75,7 +77,7 @@ impl KeycloakService {
             ])
             .send()
             .await?;
-        
+
         // Parse and return token
         let token: TokenResponse = response.json().await?;
         Ok(token.access_token)
@@ -98,6 +100,7 @@ impl KeycloakService {
 ## How to Create a New Service
 
 ### Step 1: Define the Service Struct
+
 ```rust
 pub struct MyService {
     client: Client,       // HTTP client if needed
@@ -107,6 +110,7 @@ pub struct MyService {
 ```
 
 ### Step 2: Implement Constructor
+
 ```rust
 impl MyService {
     pub fn new(config: Config) -> Self {
@@ -119,13 +123,14 @@ impl MyService {
 ```
 
 ### Step 3: Add Methods
+
 ```rust
 impl MyService {
     pub async fn do_something(&self, param: &str) -> Result<Output> {
         // Always return Result for error propagation
         // Use tracing for logging
         tracing::info!(param = %param, "Doing something");
-        
+
         // Implementation
         Ok(output)
     }
@@ -133,7 +138,9 @@ impl MyService {
 ```
 
 ### Step 4: Register in AppState
+
 File: `src/lib.rs`
+
 ```rust
 #[derive(Clone)]
 pub struct AppState {
@@ -144,6 +151,7 @@ pub struct AppState {
 ```
 
 ### Step 5: Initialize in `run()`
+
 ```rust
 let my_service = Arc::new(MyService::new(config.clone()));
 
@@ -180,22 +188,22 @@ impl ReportService {
         organization_id: &str,
     ) -> AppResult<ConsolidatedReport> {
         // This spans multiple repositories - perfect for service layer
-        
+
         // Step 1: Get all completed assessments
         let assessments = AssessmentsRepository::find_all_completed_by_organization_id(
             &self.db,
             organization_id.to_string(),
         ).await?;
-        
+
         // Step 2: Calculate dimensions
         let dimensions = self.calculate_dimensions(&assessments).await?;
-        
+
         // Step 3: Calculate gaps
         let gaps = self.calculate_gaps(&assessments).await?;
-        
+
         // Step 4: Generate recommendations
         let recommendations = self.generate_recommendations(&gaps).await?;
-        
+
         Ok(ConsolidatedReport {
             organization_id: organization_id.to_string(),
             generated_at: chrono::Utc::now(),
@@ -204,7 +212,7 @@ impl ReportService {
             recommendations,
         })
     }
-    
+
     async fn calculate_dimensions(&self, ...) -> AppResult<Vec<...>> { }
     async fn calculate_gaps(&self, ...) -> AppResult<Vec<...>> { }
     async fn generate_recommendations(&self, ...) -> AppResult<Vec<...>> { }

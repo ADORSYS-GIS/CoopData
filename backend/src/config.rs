@@ -34,11 +34,9 @@ impl AppConfig {
             port: env::var("PORT")
                 .and_then(|s| s.parse().map_err(|_| env::VarError::NotPresent))
                 .unwrap_or(3000),
-            database_url: env::var("DATABASE_URL")
-                .expect("DATABASE_URL must be set"),
+            database_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
             redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".into()),
-            keycloak_url: env::var("KEYCLOAK_URL")
-                .expect("KEYCLOAK_URL must be set"),
+            keycloak_url: env::var("KEYCLOAK_URL").expect("KEYCLOAK_URL must be set"),
             keycloak_realm: env::var("KEYCLOAK_REALM").unwrap_or_else(|_| "coopdata".into()),
             keycloak_client_id: env::var("KEYCLOAK_CLIENT_ID")
                 .expect("KEYCLOAK_CLIENT_ID must be set"),
@@ -46,8 +44,7 @@ impl AppConfig {
                 .expect("KEYCLOAK_CLIENT_SECRET must be set"),
             jwt_issuer: env::var("JWT_ISSUER").unwrap_or_else(|_| "coopdata".into()),
             jwt_audience: env::var("JWT_AUDIENCE").unwrap_or_else(|_| "coopdata-api".into()),
-            frontend_url: env::var("FRONTEND_URL")
-                .expect("FRONTEND_URL must be set"),
+            frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
             environment: env::var("ENVIRONMENT")
                 .map(|s| match s.to_lowercase().as_str() {
                     "production" => Environment::Production,
@@ -68,6 +65,14 @@ impl AppConfig {
 
     pub fn is_production(&self) -> bool {
         self.environment == Environment::Production
+    }
+
+    pub fn jwt_audiences(&self) -> Vec<String> {
+        vec![
+            self.keycloak_client_id.clone(),
+            "coopdata-frontend".to_string(),
+            "coopdata-backend".to_string(),
+        ]
     }
 
     pub fn is_development(&self) -> bool {

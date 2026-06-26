@@ -1,0 +1,14 @@
+frontend/
+.git
+.github
+docs/
+node_modules
+keycloak/
+*.md
+.env
+.env.*
+!.env.example
+.dockerignore
+docker-compose.yml
+docker-compose*.yml
+start.sh

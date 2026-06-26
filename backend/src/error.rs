@@ -51,20 +51,32 @@ impl IntoResponse for AppError {
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::InternalServerError(_) => {
                 tracing::error!("Internal server error: {:?}", self);
-                (StatusCode::INTERNAL_SERVER_ERROR, "An internal error occurred".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "An internal error occurred".to_string(),
+                )
             }
             AppError::DatabaseError(err) => {
                 tracing::error!("Database error: {:?}", err);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to process database request".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to process database request".to_string(),
+                )
             }
             AppError::ValidationError(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg.clone()),
             AppError::CacheError(_) => {
                 tracing::error!("Cache error: {:?}", self);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to process cache request".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to process cache request".to_string(),
+                )
             }
             AppError::ExternalServiceError(_) => {
                 tracing::error!("External service error: {:?}", self);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to communicate with external service".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to communicate with external service".to_string(),
+                )
             }
         };
 

@@ -1,14 +1,6 @@
-use axum::{
-    body::Body,
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
+use axum::{body::Body, http::Request, middleware::Next, response::Response};
 
-pub async fn request_logging(
-    req: Request<Body>,
-    next: Next,
-) -> Response {
+pub async fn request_logging(req: Request<Body>, next: Next) -> Response {
     let method = req.method().to_string();
     let uri = req.uri().to_string();
     let start = std::time::Instant::now();

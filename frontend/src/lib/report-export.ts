@@ -37,7 +37,7 @@ export function formatNumber(n: number): string {
 }
 
 export function generateCSV(data: ReportData): string {
-  const rows: string[][] = [];
+  const rows: (string | number | undefined)[][] = [];
 
   // Header
   rows.push(["CoopData Financial Report"]);
@@ -405,7 +405,7 @@ export function downloadPDF(htmlContent: string, filename: string): void {
 }
 
 export function generateBalanceSheetCSV(balanceSheet: BalanceSheet): string {
-  const rows: string[][] = [];
+  const rows: (string | number | undefined)[][] = [];
 
   rows.push(["Balance Sheet", balanceSheet.cooperativeName]);
   rows.push(["Reporting Period", balanceSheet.reportingPeriod]);

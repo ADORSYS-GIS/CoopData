@@ -19,6 +19,7 @@ stateDiagram-v2
 ```
 
 ### Sync Status Definitions:
+
 - **`SYNCED`**: The local record matches the server exactly. This is the default stable state.
 - **`PENDING`**: Modified locally, waiting to be sent to the server.
 - **`FAILED`**: The sync attempt encountered an error. The error message is stored in `lastError` on the entity.
@@ -52,13 +53,13 @@ export const syncManager = {
           await db.sync_queue.delete(task.id);
         } catch (error) {
           console.error(`Sync task ${task.id} failed:`, error);
-          
+
           // 3. Mark row as failed locally to show warning badges
           await db.table(task.entityType).update(task.entityId, {
             syncStatus: SyncStatus.FAILED,
             lastError: error instanceof Error ? error.message : "Sync error",
           });
-          
+
           // Stop execution if there is a blocking parent failure
           break;
         }
@@ -66,7 +67,7 @@ export const syncManager = {
     } finally {
       this.isSyncing = false;
     }
-  }
+  },
 };
 ```
 
@@ -77,6 +78,7 @@ export const syncManager = {
 When synchronization resolves online, the remote service may inform the repository that a record was modified by another client during the offline interval. The frontend must apply one of the following strategies:
 
 ### Strategy A: Last-Write-Wins (LWW)
+
 The record with the most recent timestamp (`updated_at`) overrides the older one.
 
 ```typescript
@@ -89,6 +91,7 @@ export const resolveLastWriteWins = (local: any, remote: any) => {
 ```
 
 ### Strategy B: Client-Wins (Force)
+
 Local changes are forced, overwriting whatever is stored on the server. Useful for personal dashboard preferences.
 
 ```typescript
@@ -98,6 +101,7 @@ export const resolveClientWins = (local: any, remote: any) => {
 ```
 
 ### Strategy C: Server-Wins (Overwrite)
+
 The server's record is pulled, and the local edit is discarded. Useful for read-only metadata updates.
 
 ```typescript
@@ -107,6 +111,7 @@ export const resolveServerWins = (local: any, remote: any) => {
 ```
 
 ### Strategy D: Interactive Merge Resolver
+
 If fields do not overlap, merge them. If they overlap (e.g. different maturity answers for the same category), trigger a UI conflict state forcing the user to select which version to preserve.
 
 ```typescript
@@ -118,8 +123,8 @@ export const resolveMerge = (local: any, remote: any) => {
     // Combine answers
     answers: {
       ...remote.answers,
-      ...local.answers
-    }
+      ...local.answers,
+    },
   };
 };
 ```
@@ -144,7 +149,7 @@ interface ConflictResolverProps {
 export const ConflictResolver: React.FC<ConflictResolverProps> = ({
   localData,
   remoteData,
-  onResolve
+  onResolve,
 }) => {
   return (
     <div className="border border-red-200 bg-red-50/50 rounded-xl p-6 space-y-4">
@@ -152,7 +157,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
       <p className="text-sm text-red-800">
         This record was updated by another administrator while you were offline.
       </p>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Local edit */}
         <div className="bg-white border rounded-lg p-4">

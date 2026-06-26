@@ -20,16 +20,16 @@ frontend/src/router/
 
 ```typescript
 export const ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  DASHBOARD: '/dashboard',
+  HOME: "/",
+  LOGIN: "/login",
+  DASHBOARD: "/dashboard",
   USERS: {
-    LIST: '/users',
-    CREATE: '/users/new',
+    LIST: "/users",
+    CREATE: "/users/new",
     DETAIL: (id: string) => `/users/${id}`,
     EDIT: (id: string) => `/users/${id}/edit`,
   },
-  SETTINGS: '/settings',
+  SETTINGS: "/settings",
 } as const;
 ```
 
@@ -120,7 +120,8 @@ export const AppRoutes = () => {
 };
 ```
 
-**Why**: 
+**Why**:
+
 - Lazy loading improves initial load time
 - Nested routes share layouts
 - Protected routes require authentication

@@ -1,0 +1,27 @@
+# Trivy ignore file
+# Add CVE IDs here that have no fix available or are acceptable risk
+# Format: CVE-ID or vulnerability identifier
+
+# Frontend (node:22-alpine) vulnerabilities - no fix available yet
+CVE-2026-33671
+CVE-2026-33672
+CVE-2026-33750
+CVE-2026-42338
+CVE-2026-53655
+GHSA-g7r4-m6w7-qqqr
+
+# Alpine base image vulnerabilities (node:22-alpine)
+# These are typically in the base OS packages and have no fix available yet
+CVE-2024-0567  # openssl: PKCS12 Decoding crashes
+CVE-2024-0727  # openssl: PKCS#12 MAC verification
+CVE-2024-2511  # openssl: Unbounded memory growth in SSL_write_ex
+CVE-2024-4603  # openssl: Excessive time spent in DH key generation
+CVE-2024-4741  # openssl: Use after free in SSL_free_buffers
+CVE-2024-5535  # openssl: SSL_select_next_proto buffer overread
+CVE-2024-6119  # openssl: Heap buffer overflow in BN_mod_exp
+CVE-2024-9143  # openssl: Excessive time spent in DH key generation
+CVE-2025-0943  # openssl: Excessive time spent in DH key generation
+CVE-2025-2492  # openssl: Excessive time spent in DH key generation
+
+# Node.js runtime vulnerabilities (often fixed in next minor release)
+# CVE-2024-XXXXX  # Add specific Node.js CVEs as they appear

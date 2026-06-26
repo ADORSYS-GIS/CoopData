@@ -582,9 +582,14 @@ function Announcements() {
               <h3 className="font-heading text-lg font-bold text-foreground leading-tight">
                 {n.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">{n.body}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                {n.body}
+              </p>
               <div className="mt-auto pt-4">
-                <a href="#" className="inline-flex items-center text-sm font-semibold text-accent hover:underline">
+                <a
+                  href="#"
+                  className="inline-flex items-center text-sm font-semibold text-accent hover:underline"
+                >
                   Read full update <ChevronRight className="ml-1 size-4" />
                 </a>
               </div>

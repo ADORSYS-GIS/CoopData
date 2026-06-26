@@ -20,18 +20,18 @@ frontend/src/hooks/
 **File**: `frontend/src/hooks/useUsers.ts`
 
 ```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UsersService } from '@/openapi-client/services.gen';
-import type { User, CreateUserDto, UpdateUserDto } from '@/types/user';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UsersService } from "@/openapi-client/services.gen";
+import type { User, CreateUserDto, UpdateUserDto } from "@/types/user";
 
 // ============================================
 // QUERY KEYS (Centralized)
 // ============================================
 const QUERY_KEYS = {
-  all: ['users'] as const,
-  lists: () => [...QUERY_KEYS.all, 'list'] as const,
+  all: ["users"] as const,
+  lists: () => [...QUERY_KEYS.all, "list"] as const,
   list: (filters: string) => [...QUERY_KEYS.lists(), { filters }] as const,
-  details: () => [...QUERY_KEYS.all, 'detail'] as const,
+  details: () => [...QUERY_KEYS.all, "detail"] as const,
   detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
 };
 
@@ -40,7 +40,7 @@ const QUERY_KEYS = {
 // ============================================
 export const useUsers = (filters?: string) => {
   return useQuery({
-    queryKey: QUERY_KEYS.list(filters || ''),
+    queryKey: QUERY_KEYS.list(filters || ""),
     queryFn: () => UsersService.getUsers({ filters }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -59,10 +59,9 @@ export const useUser = (id: string) => {
 // ============================================
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: CreateUserDto) => 
-      UsersService.createUser({ requestBody: data }),
+    mutationFn: (data: CreateUserDto) => UsersService.createUser({ requestBody: data }),
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() });
@@ -72,7 +71,7 @@ export const useCreateUser = () => {
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateUserDto }) =>
       UsersService.updateUser({ id, requestBody: data }),
@@ -86,7 +85,7 @@ export const useUpdateUser = () => {
 
 export const useDeleteUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (id: string) => UsersService.deleteUser({ id }),
     onSuccess: () => {
@@ -96,7 +95,8 @@ export const useDeleteUser = () => {
 };
 ```
 
-**Why**: 
+**Why**:
+
 - Query keys are centralized for easy cache management
 - Each operation (CRUD) has its own hook
 - Cache invalidation is automatic
@@ -108,13 +108,13 @@ export const useDeleteUser = () => {
 **File**: `frontend/src/hooks/useToggle.ts`
 
 ```typescript
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 export const useToggle = (initialValue: boolean = false) => {
   const [value, setValue] = useState(initialValue);
 
   const toggle = useCallback(() => {
-    setValue(v => !v);
+    setValue((v) => !v);
   }, []);
 
   const setTrue = useCallback(() => setValue(true), []);
@@ -125,6 +125,7 @@ export const useToggle = (initialValue: boolean = false) => {
 ```
 
 **Usage**:
+
 ```typescript
 const { value: isOpen, setTrue: open, setFalse: close } = useToggle();
 ```
@@ -136,7 +137,7 @@ const { value: isOpen, setTrue: open, setFalse: close } = useToggle();
 **File**: `frontend/src/hooks/useLocalStorage.ts`
 
 ```typescript
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export const useLocalStorage = <T>(key: string, initialValue: T) => {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -164,8 +165,9 @@ export const useLocalStorage = <T>(key: string, initialValue: T) => {
 ```
 
 **Usage**:
+
 ```typescript
-const [theme, setTheme] = useLocalStorage('theme', 'light');
+const [theme, setTheme] = useLocalStorage("theme", "light");
 ```
 
 ---
@@ -175,7 +177,7 @@ const [theme, setTheme] = useLocalStorage('theme', 'light');
 **File**: `frontend/src/hooks/useDebounce.ts`
 
 ```typescript
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export const useDebounce = <T>(value: T, delay: number = 500): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -195,8 +197,9 @@ export const useDebounce = <T>(value: T, delay: number = 500): T => {
 ```
 
 **Usage**:
+
 ```typescript
-const [searchTerm, setSearchTerm] = useState('');
+const [searchTerm, setSearchTerm] = useState("");
 const debouncedSearch = useDebounce(searchTerm, 300);
 
 useEffect(() => {
