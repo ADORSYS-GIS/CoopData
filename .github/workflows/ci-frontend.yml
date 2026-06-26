@@ -116,13 +116,9 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         working-directory: ./frontend
-        run: npm run test:unit -- --passWithNoTests
-
-      - name: Generate coverage report
-        working-directory: ./frontend
-        run: npm run coverage
+        run: npm run test:unit -- --passWithNoTests --coverage.enabled=false
 
       - name: Upload coverage report
         if: success()
