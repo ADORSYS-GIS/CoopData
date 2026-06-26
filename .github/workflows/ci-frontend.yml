@@ -3,14 +3,6 @@ name: Frontend CI
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
-    paths-ignore:
-      - "backend/**"
-      - "docs/**"
-      - "README.md"
-      - "AGENTS.md"
-      - "CLAUDE.md"
 
 concurrency:
   group: ci-frontend-${{ github.ref }}
