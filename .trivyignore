@@ -8,6 +8,7 @@ CVE-2026-33672
 CVE-2026-33750
 CVE-2026-42338
 CVE-2026-53655
+CVE-2026-48758
 GHSA-g7r4-m6w7-qqqr
 
 # Alpine base image vulnerabilities (node:22-alpine)
