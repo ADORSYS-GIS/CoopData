@@ -14,8 +14,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
-  BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
 
 jobs:
   build-scan:
@@ -25,19 +23,23 @@ jobs:
       contents: read
       security-events: write
 
-    outputs:
-      frontend-tags: ${{ steps.meta-frontend.outputs.tags }}
-      backend-tags: ${{ steps.meta-backend.outputs.tags }}
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
+      - name: Generate image names (lowercase)
+        id: images
+        run: |
+          echo "frontend=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}-frontend" >> $GITHUB_OUTPUT
+          echo "backend=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}-backend" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
       - id: meta-frontend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          images: ${{ steps.images.outputs.frontend }}
           tags: |
             type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
             type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
@@ -50,7 +52,7 @@ jobs:
       - id: meta-backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          images: ${{ steps.images.outputs.backend }}
           tags: |
             type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
             type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
@@ -87,7 +89,7 @@ jobs:
       - name: Scan frontend with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          image-ref: ${{ steps.images.outputs.frontend }}
           format: sarif
           output: trivy-frontend-results.sarif
           severity: CRITICAL,HIGH
@@ -98,7 +100,7 @@ jobs:
       - name: Scan backend with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          image-ref: ${{ steps.images.outputs.backend }}
           format: sarif
           output: trivy-backend-results.sarif
           severity: CRITICAL,HIGH
@@ -146,11 +148,40 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image names (lowercase)
+        id: images
+        run: |
+          echo "frontend=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}-frontend" >> $GITHUB_OUTPUT
+          echo "backend=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}-backend" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.images.outputs.frontend }}
+          tags: |
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+            type=ref,event=tag
+
+      - id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.images.outputs.backend }}
+          tags: |
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+            type=ref,event=tag
 
       - name: Push frontend image
         uses: docker/build-push-action@v5
@@ -158,7 +189,8 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ needs.build-scan.outputs.frontend-tags }}
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -168,6 +200,7 @@ jobs:
           context: .
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ needs.build-scan.outputs.backend-tags }}
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
