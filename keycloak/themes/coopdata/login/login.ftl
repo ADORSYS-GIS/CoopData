@@ -14,29 +14,7 @@
 
                 <#-- Logo -->
                 <div class="brand-logo">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none" width="180" height="44" aria-label="CoopData Logo">
-                        <defs>
-                            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#93c5fd;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <g transform="translate(4, 4)">
-                            <circle cx="12" cy="12" r="4" fill="url(#logoGrad)"/>
-                            <circle cx="28" cy="8" r="3" fill="url(#logoGrad)"/>
-                            <circle cx="32" cy="24" r="3.5" fill="url(#logoGrad)"/>
-                            <circle cx="16" cy="32" r="3" fill="url(#logoGrad)"/>
-                            <circle cx="6" cy="26" r="2.5" fill="url(#logoGrad)"/>
-                            <line x1="12" y1="12" x2="28" y2="8" stroke="url(#logoGrad)" stroke-width="1.5"/>
-                            <line x1="28" y1="8" x2="32" y2="24" stroke="url(#logoGrad)" stroke-width="1.5"/>
-                            <line x1="32" y1="24" x2="16" y2="32" stroke="url(#logoGrad)" stroke-width="1.5"/>
-                            <line x1="16" y1="32" x2="6" y2="26" stroke="url(#logoGrad)" stroke-width="1.5"/>
-                            <line x1="6" y1="26" x2="12" y2="12" stroke="url(#logoGrad)" stroke-width="1.5"/>
-                            <line x1="12" y1="12" x2="32" y2="24" stroke="url(#logoGrad)" stroke-width="1" opacity="0.5"/>
-                        </g>
-                        <text x="52" y="30" font-family="serif" font-size="24" font-weight="700" fill="url(#logoGrad)">Coop</text>
-                        <text x="120" y="30" font-family="sans-serif" font-size="24" font-weight="500" fill="url(#logoGrad)">Data</text>
-                    </svg>
+                    <img src="${url.resourcesPath}/img/coopdatalogo.jpg" alt="CoopData Logo" width="180" height="44" />
                 </div>
 
                 <#-- Main brand content -->
