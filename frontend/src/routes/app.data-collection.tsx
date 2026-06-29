@@ -1,34 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Plus,
   ClipboardList,
   Wifi,
   WifiOff,
-  GripVertical,
-  ToggleRight,
-  Calendar,
+  BarChart3,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  ArrowUpRight,
+  Database,
+  Users,
+  Wallet,
+  TrendingUp,
+  AlertTriangle,
+  Eye,
+  Settings2,
+  Plus,
+  CheckSquare,
   Hash,
   DollarSign,
   Type,
-  CheckSquare,
+  Calendar,
   FileUp,
-  Eye,
-  Settings2,
+  GripVertical,
+  ToggleRight,
   Zap,
-  AlertTriangle,
-  Send,
-  CheckCircle2,
   Clock,
-  ArrowUpRight,
-  FileText,
-  Users,
-  BarChart3,
-  Sparkles,
-  Grip,
-  FileSpreadsheet,
+  Send,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth";
+import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
+import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
+import type { BalanceSheet } from "@/lib/financial-data";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -39,10 +43,13 @@ export const Route = createFileRoute("/app/data-collection")({
 
 function DataCollectionPage() {
   const { role } = useAuth();
-  const isReadOnly = false; // Read-only access can be granted to ministry users via settings
   const isCooperative = role === "cooperative";
+  const isReadOnly = false;
 
-  const [activeQuestionnaires, setActiveQuestionnaires] = useState([
+  const [showFinancialUpload, setShowFinancialUpload] = useState(false);
+  const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
+
+  const [activeQuestionnaires] = useState([
     {
       name: "Quarterly Financial Filing",
       v: "v4.2",
@@ -85,43 +92,174 @@ function DataCollectionPage() {
     },
   ]);
 
-  const [coopReturn, setCoopReturn] = useState({
-    title: "Annual Compliance Disclosure",
-    savings: "",
-    loans: "",
-    comments: "",
-  });
+  // ── Cooperative View: Upload-first, no manual entry ──
+  if (isCooperative) {
+    return (
+      <AppShell
+        title="Data Upload Center"
+        subtitle="Upload your financial statement and database sheets — we handle the rest"
+      >
+        <div className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              icon={CheckCircle2}
+              label="Databases Ready"
+              value="4/5"
+              subtitle="Almost complete"
+              tone="success"
+            />
+            <StatCard
+              icon={FileSpreadsheet}
+              label="Financial Statement"
+              value="Extracted"
+              subtitle="Data populated"
+              tone="primary"
+            />
+            <StatCard
+              icon={Database}
+              label="Total Records"
+              value="24,810"
+              subtitle="Across all databases"
+              tone="accent"
+            />
+            <StatCard
+              icon={Clock}
+              label="Next Deadline"
+              value="Jul 15"
+              subtitle="Q4 filing closes"
+              tone="warning"
+            />
+          </div>
 
-  const handleCreateQuestionnaire = () => {
-    if (isReadOnly) {
-      toast.error("Action denied: Auditor accounts are read-only.");
-      return;
-    }
-    toast.success("Simulation: Opened new empty questionnaire draft canvas.");
-  };
+          {/* Financial Statement Upload */}
+          <Card
+            title="Financial Statement"
+            subtitle="Upload your audited balance sheet (PDF or image) — data is extracted automatically"
+            action={
+              showFinancialUpload ? undefined : (
+                <button
+                  onClick={() => setShowFinancialUpload(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  <Upload className="size-4" /> Upload Statement
+                </button>
+              )
+            }
+          >
+            {showFinancialUpload ? (
+              <FinancialStatementUpload
+                onDataExtracted={(data) => {
+                  setExtractedFinancialData(data);
+                  toast.success("Financial data extracted! Review your data below.");
+                }}
+                onClose={() => setShowFinancialUpload(false)}
+              />
+            ) : extractedFinancialData ? (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
+                <CheckCircle2 className="size-5 text-success shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">
+                    Financial statement processed
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    All account codes and figures have been extracted. Your financial data is ready
+                    for submission.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowFinancialUpload(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                >
+                  <Upload className="size-3.5" /> Upload New
+                </button>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="size-14 rounded-2xl bg-accent/10 grid place-items-center mx-auto mb-4">
+                  <FileSpreadsheet className="size-7 text-accent" />
+                </div>
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Upload your financial statement
+                </p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Upload a PDF or image of your audited balance sheet. We'll extract all financial
+                  data automatically — no manual entry needed.
+                </p>
+                <button
+                  onClick={() => setShowFinancialUpload(true)}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  <Upload className="size-4" /> Upload Statement
+                </button>
+              </div>
+            )}
+          </Card>
 
-  const handleCoopSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!coopReturn.savings || !coopReturn.loans) {
-      toast.error("Please specify savings and loan balances.");
-      return;
-    }
-    toast.success(`${coopReturn.title} submitted successfully to Federation queue!`);
-    setCoopReturn({ title: "Annual Compliance Disclosure", savings: "", loans: "", comments: "" });
-  };
+          {/* Excel Database Uploads */}
+          <Card
+            title="Database Excel Sheets"
+            subtitle="Upload Excel/CSV files for each of the 5 cooperative databases"
+          >
+            <ExcelDatabaseUpload
+              onUploadComplete={(dbType, result) => {
+                toast.success(`${dbType} database: ${result.validRows} records validated`);
+              }}
+            />
+          </Card>
 
+          {/* Filing Instructions */}
+          <Card
+            title="Filing Guidelines"
+            subtitle="Important information about your data submissions"
+          >
+            <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+              <p>
+                As a cooperative manager, you are required to submit your financial data through the
+                upload process above. Simply upload your audited financial statement and Excel
+                database sheets — the system will extract and validate all data automatically.
+              </p>
+              <div className="p-4 rounded-xl bg-accent/5 border border-accent/15">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="size-4 text-accent" />
+                  <span className="font-semibold text-foreground">Next Deadline</span>
+                </div>
+                <p className="text-xs text-foreground/80">
+                  Q4 reporting cycle closes on <strong>July 1, 2026</strong>. Avoid penalties by
+                  filing before July 15.
+                </p>
+              </div>
+              <ul className="space-y-2">
+                {[
+                  "Upload your audited financial statement (PDF or image)",
+                  "Upload Excel sheets for all 5 databases",
+                  "Review extracted data for accuracy",
+                  "Submit validated data to your Apex for review",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-xs">
+                    <CheckCircle2 className="size-3.5 text-success shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // ── Admin / Ministry / Federation / Apex View: Form Builder ──
   return (
     <AppShell
       title="Data Collection Center"
-      subtitle={
-        isCooperative
-          ? "File regulatory returns and statistics declarations"
-          : "Configure questionnaires · Collect field data · Sync offline"
-      }
+      subtitle="Configure questionnaires · Collect field data · Sync offline"
       actions={
-        !isCooperative && !isReadOnly ? (
+        !isReadOnly ? (
           <button
-            onClick={handleCreateQuestionnaire}
+            onClick={() =>
+              toast.success("Simulation: Opened new empty questionnaire draft canvas.")
+            }
             className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 hover:bg-primary/90 transition-colors shadow-sm press-feedback"
           >
             <Plus className="size-4" /> New questionnaire
@@ -144,270 +282,102 @@ function DataCollectionPage() {
           </div>
         )}
 
-        {/* Cooperative Manager Submission Form */}
-        {isCooperative ? (
-          <>
-            {/* Financial Statement Quick Access */}
-            <Card
-              title="Financial Statement Entry"
-              subtitle="Complete balance sheet and income statement with 41+ account codes"
-              edge="accent"
-              action={
-                <a
-                  href="/app/financial-statement"
-                  className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+        {/* KPI Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={Wifi}
+            label="Online users"
+            value="412"
+            subtitle="Active field officers"
+            tone="success"
+          />
+          <StatCard
+            icon={WifiOff}
+            label="Offline (queued)"
+            value="38"
+            subtitle="Auto-sync on reconnect"
+            tone="warning"
+          />
+          <StatCard
+            icon={ClipboardList}
+            label="Active questionnaires"
+            value={activeQuestionnaires.length.toString()}
+            subtitle="Published forms"
+            tone="primary"
+          />
+          <StatCard
+            icon={BarChart3}
+            label="Submissions today"
+            value="1,284"
+            subtitle="Incoming data"
+            tone="accent"
+          />
+        </div>
+
+        {/* Form Builder + Palette */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Card
+            className="lg:col-span-2"
+            title="Form builder — Quarterly Financial Filing"
+            subtitle={
+              isReadOnly
+                ? "Drag actions disabled (View only)"
+                : "Drag fields to compose · Conditional logic · No-code"
+            }
+            action={
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toast.info("Form properties panel opened.")}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors"
                 >
-                  <FileSpreadsheet className="size-4" /> Open Form
-                </a>
-              }
-            >
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Assets</p>
-                  <p className="text-lg font-bold text-foreground">16 Fields</p>
-                  <p className="text-xs text-muted-foreground">Codes 1000-1999</p>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Liabilities & Equity</p>
-                  <p className="text-lg font-bold text-foreground">15 Fields</p>
-                  <p className="text-xs text-muted-foreground">Codes 2000-3999</p>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Income & Expenses</p>
-                  <p className="text-lg font-bold text-foreground">10 Fields</p>
-                  <p className="text-xs text-muted-foreground">Codes 4000-5999</p>
-                </div>
+                  <Settings2 className="size-3.5" /> Settings
+                </button>
+                <button
+                  onClick={() => toast.info("Opening form preview modal...")}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors"
+                >
+                  <Eye className="size-3.5" /> Preview
+                </button>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Complete financial statement entry with real-time balance validation. Enter your
-                cooperative's audited figures for assets, liabilities, equity, income, and expenses.
+            }
+          >
+            <FormBuilder isReadOnly={isReadOnly} />
+          </Card>
+
+          <Card title="Field palette" subtitle="Drag fields to canvas layout">
+            <Palette isReadOnly={isReadOnly} />
+            <div className="mt-6 pt-5 border-t border-border">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                <Zap className="size-3 text-warning-foreground" /> Conditional logic
               </p>
-            </Card>
-
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card
-                className="lg:col-span-2"
-                title="Quick Filing Template"
-                subtitle="Simple return for basic declarations"
-                edge="none"
-              >
-                <form onSubmit={handleCoopSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      Filing Template
-                    </label>
-                    <select
-                      value={coopReturn.title}
-                      onChange={(e) => setCoopReturn({ ...coopReturn, title: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-                    >
-                      <option>Annual Compliance Disclosure</option>
-                      <option>Quarterly Financial Filing</option>
-                      <option>Membership Census 2025</option>
-                    </select>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                        Total Cooperative Savings (USD)
-                      </label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <input
-                          type="number"
-                          required
-                          value={coopReturn.savings}
-                          onChange={(e) =>
-                            setCoopReturn({ ...coopReturn, savings: e.target.value })
-                          }
-                          placeholder="500,000"
-                          className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2.5 text-sm font-mono outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                        Outstanding Loans Portfolio (USD)
-                      </label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <input
-                          type="number"
-                          required
-                          value={coopReturn.loans}
-                          onChange={(e) => setCoopReturn({ ...coopReturn, loans: e.target.value })}
-                          placeholder="350,000"
-                          className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2.5 text-sm font-mono outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      Explanatory notes / Disclosures
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={coopReturn.comments}
-                      onChange={(e) => setCoopReturn({ ...coopReturn, comments: e.target.value })}
-                      placeholder="Enter any variance declarations or explanatory notes for federation validation..."
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 resize-none transition-shadow"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap justify-between items-center gap-3 pt-1">
-                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
-                      <CheckCircle2 className="size-4 text-success" /> Validated locally with schema
-                      v2.5
+              <ul className="space-y-2.5">
+                <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Zap className="size-3.5 text-warning-foreground shrink-0" />
+                    <span className="text-sm truncate">
+                      Show "Loan provisions" if portfolio &gt; $1M
                     </span>
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm press-feedback"
-                    >
-                      <Send className="size-4" /> Submit Report Return
-                    </button>
                   </div>
-                </form>
-              </Card>
-
-              <Card title="Filing Instructions" subtitle="Registry guidelines" edge="info">
-                <div className="space-y-4 text-xs leading-relaxed text-muted-foreground">
-                  <p>
-                    As a cooperative manager, you are required under Swaziland Cooperative Societies
-                    Act guidelines to declare all financial metrics within 15 days of the reporting
-                    cycle close.
-                  </p>
-                  <div className="p-3.5 rounded-xl bg-accent/5 border border-accent/15">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Clock className="size-4 text-accent" />
-                      <span className="font-semibold text-foreground text-sm">Next Deadline</span>
-                    </div>
-                    <p className="text-xs text-foreground/80">
-                      Q4 reporting cycle closes on <strong>July 1, 2026</strong>. Avoid fines by
-                      filing before July 15.
-                    </p>
+                  <ToggleRight className="size-4 text-success shrink-0" />
+                </li>
+                <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Zap className="size-3.5 text-warning-foreground shrink-0" />
+                    <span className="text-sm truncate">
+                      Require audit doc if status = "Verified"
+                    </span>
                   </div>
-                  <ul className="space-y-2">
-                    {[
-                      "Ensure savings reports match bank reconciliation sheets",
-                      "Disclose reserve ratio deposits",
-                      "Include external audited balances for the annual census",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-[11px]">
-                        <CheckCircle2 className="size-3.5 text-success shrink-0 mt-0.5" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </Card>
+                  <ToggleRight className="size-4 text-success shrink-0" />
+                </li>
+              </ul>
             </div>
-          </>
-        ) : (
-          /* Admin / Regional / Auditor view */
-          <>
-            {/* KPI Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                icon={Wifi}
-                label="Online users"
-                value="412"
-                subtitle="Active field officers"
-                tone="success"
-              />
-              <StatCard
-                icon={WifiOff}
-                label="Offline (queued)"
-                value="38"
-                subtitle="Auto-sync on reconnect"
-                tone="warning"
-              />
-              <StatCard
-                icon={ClipboardList}
-                label="Active questionnaires"
-                value={activeQuestionnaires.length.toString()}
-                subtitle="Published forms"
-                tone="primary"
-              />
-              <StatCard
-                icon={BarChart3}
-                label="Submissions today"
-                value="1,284"
-                subtitle="Incoming data"
-                tone="accent"
-              />
-            </div>
-
-            {/* Form Builder + Palette */}
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card
-                className="lg:col-span-2"
-                title="Form builder — Quarterly Financial Filing"
-                subtitle={
-                  isReadOnly
-                    ? "Drag actions disabled (View only)"
-                    : "Drag fields to compose · Conditional logic · No-code"
-                }
-                edge="accent"
-                action={
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => toast.info("Form properties panel opened.")}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors"
-                    >
-                      <Settings2 className="size-3.5" /> Settings
-                    </button>
-                    <button
-                      onClick={() => toast.info("Opening form preview modal...")}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors"
-                    >
-                      <Eye className="size-3.5" /> Preview
-                    </button>
-                  </div>
-                }
-              >
-                <FormBuilder isReadOnly={isReadOnly} />
-              </Card>
-
-              <Card title="Field palette" subtitle="Drag fields to canvas layout" edge="none">
-                <Palette isReadOnly={isReadOnly} />
-                <div className="mt-6 pt-5 border-t border-border">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                    <Zap className="size-3 text-warning-foreground" /> Conditional logic
-                  </p>
-                  <ul className="space-y-2.5">
-                    <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Zap className="size-3.5 text-warning-foreground shrink-0" />
-                        <span className="text-sm truncate">
-                          Show "Loan provisions" if portfolio &gt; $1M
-                        </span>
-                      </div>
-                      <ToggleRight className="size-4 text-success shrink-0" />
-                    </li>
-                    <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Zap className="size-3.5 text-warning-foreground shrink-0" />
-                        <span className="text-sm truncate">
-                          Require audit doc if status = "Verified"
-                        </span>
-                      </div>
-                      <ToggleRight className="size-4 text-success shrink-0" />
-                    </li>
-                  </ul>
-                </div>
-              </Card>
-            </div>
-          </>
-        )}
+          </Card>
+        </div>
 
         {/* Active Templates List */}
         <Card
           title="Active templates"
           subtitle="Currently distributed across the national data grid"
-          edge="none"
         >
           <ul className="divide-y divide-border -my-2">
             {activeQuestionnaires.map((q) => (
@@ -417,17 +387,7 @@ function DataCollectionPage() {
                 onClick={() => toast.info(`Opening configuration console for ${q.name}`)}
               >
                 <div
-                  className={`size-10 rounded-xl grid place-items-center shrink-0 ${
-                    q.category === "Financial"
-                      ? "bg-accent/10 text-accent"
-                      : q.category === "Compliance"
-                        ? "bg-success/10 text-success"
-                        : q.category === "Census"
-                          ? "bg-info/10 text-info"
-                          : q.category === "Audit"
-                            ? "bg-warning/15 text-warning-foreground"
-                            : "bg-muted text-muted-foreground"
-                  }`}
+                  className={`size-10 rounded-xl grid place-items-center shrink-0 bg-muted text-muted-foreground`}
                 >
                   <ClipboardList className="size-5" />
                 </div>

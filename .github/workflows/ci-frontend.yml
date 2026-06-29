@@ -8,153 +8,152 @@ concurrency:
   group: ci-frontend-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "22"
+
 jobs:
-  frontend-install:
+  frontend_install:
     name: Frontend Install
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
+          cache-dependency-path: ./frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./frontend
         run: npm ci
 
-  frontend-lint:
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+  frontend_lint:
     name: Frontend Lint
-    needs: frontend-install
+    needs: [frontend_install]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
-      - name: Run ESLint validation
+      - name: ESLint
         working-directory: ./frontend
         run: npm run lint
 
-  frontend-typecheck:
-    name: Frontend TypeScript
-    needs: frontend-install
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
-
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Run TypeScript type checking
-        working-directory: ./frontend
-        run: npx tsc --noEmit
-
-
-  frontend-prettier:
+  frontend_prettier:
     name: Frontend Prettier
-    needs: frontend-install
+    needs: [frontend_install]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
-      - name: Check formatting
+      - name: Prettier
         working-directory: ./frontend
         run: npm run prettier:check
 
-  frontend-unit-tests:
-    name: Frontend Unit Tests
-    needs: frontend-install
+  frontend_typescript:
+    name: Frontend TypeScript
+    needs: [frontend_install]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: TypeScript
         working-directory: ./frontend
-        run: npm ci
+        run: npx tsc --noEmit
 
-      - name: Run unit tests with coverage
+  frontend_unit_tests:
+    name: Frontend Unit Tests
+    needs: [frontend_install]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Unit tests
         working-directory: ./frontend
         run: npm run test:unit -- --passWithNoTests --coverage.enabled=false
 
-      - name: Upload coverage report
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: ./frontend/coverage/
-          retention-days: 7
-
-  frontend-build:
+  frontend_build:
     name: Frontend Build
-    needs: frontend-install
+    needs: [frontend_install]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
-      - name: Validate application build
+      - name: Build
         working-directory: ./frontend
         run: npm run build
 
       - name: Upload build artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: ./frontend/dist/
+          path: frontend/dist
           retention-days: 7

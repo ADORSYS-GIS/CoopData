@@ -37,7 +37,7 @@ export function formatNumber(n: number): string {
 }
 
 export function generateCSV(data: ReportData): string {
-  const rows: (string | number | undefined)[][] = [];
+  const rows: string[][] = [];
 
   // Header
   rows.push(["CoopData Financial Report"]);
@@ -68,29 +68,29 @@ export function generateCSV(data: ReportData): string {
       "PAR 30",
       kpi.par30.formatted,
       kpi.par30.unit,
-      kpi.par30.status,
-      kpi.par30.benchmark?.toString(),
+      kpi.par30.status ?? "",
+      kpi.par30.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "PAR 60",
       kpi.par60.formatted,
       kpi.par60.unit,
-      kpi.par60.status,
-      kpi.par60.benchmark?.toString(),
+      kpi.par60.status ?? "",
+      kpi.par60.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "PAR 90",
       kpi.par90.formatted,
       kpi.par90.unit,
-      kpi.par90.status,
-      kpi.par90.benchmark?.toString(),
+      kpi.par90.status ?? "",
+      kpi.par90.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "Loan Loss Coverage",
       kpi.loanLossCoverage.formatted,
       kpi.loanLossCoverage.unit,
-      kpi.loanLossCoverage.status,
-      kpi.loanLossCoverage.benchmark?.toString(),
+      kpi.loanLossCoverage.status ?? "",
+      kpi.loanLossCoverage.benchmark?.toString() ?? "",
     ]);
     rows.push([]);
 
@@ -99,22 +99,22 @@ export function generateCSV(data: ReportData): string {
       "ROA",
       kpi.roa.formatted,
       kpi.roa.unit,
-      kpi.roa.status,
-      kpi.roa.benchmark?.toString(),
+      kpi.roa.status ?? "",
+      kpi.roa.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "ROE",
       kpi.roe.formatted,
       kpi.roe.unit,
-      kpi.roe.status,
-      kpi.roe.benchmark?.toString(),
+      kpi.roe.status ?? "",
+      kpi.roe.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "Operating Expense Ratio",
       kpi.operatingExpenseRatio.formatted,
       kpi.operatingExpenseRatio.unit,
-      kpi.operatingExpenseRatio.status,
-      kpi.operatingExpenseRatio.benchmark?.toString(),
+      kpi.operatingExpenseRatio.status ?? "",
+      kpi.operatingExpenseRatio.benchmark?.toString() ?? "",
     ]);
     rows.push(["Net Interest Margin", kpi.netInterestMargin.formatted, kpi.netInterestMargin.unit]);
     rows.push([]);
@@ -124,15 +124,15 @@ export function generateCSV(data: ReportData): string {
       "Current Ratio",
       kpi.currentRatio.formatted,
       kpi.currentRatio.unit,
-      kpi.currentRatio.status,
-      kpi.currentRatio.benchmark?.toString(),
+      kpi.currentRatio.status ?? "",
+      kpi.currentRatio.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "Capital Adequacy",
       kpi.capitalAdequacyRatio.formatted,
       kpi.capitalAdequacyRatio.unit,
-      kpi.capitalAdequacyRatio.status,
-      kpi.capitalAdequacyRatio.benchmark?.toString(),
+      kpi.capitalAdequacyRatio.status ?? "",
+      kpi.capitalAdequacyRatio.benchmark?.toString() ?? "",
     ]);
     rows.push([]);
   }
@@ -146,28 +146,28 @@ export function generateCSV(data: ReportData): string {
       "Growth Rate",
       m.membershipGrowthRate.formatted,
       m.membershipGrowthRate.unit,
-      m.membershipGrowthRate.status,
+      m.membershipGrowthRate.status ?? "",
     ]);
     rows.push([
       "Dormancy Rate",
       m.dormancyRate.formatted,
       m.dormancyRate.unit,
-      m.dormancyRate.status,
-      m.dormancyRate.benchmark?.toString(),
+      m.dormancyRate.status ?? "",
+      m.dormancyRate.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "Exit Rate",
       m.exitRate.formatted,
       m.exitRate.unit,
-      m.exitRate.status,
-      m.exitRate.benchmark?.toString(),
+      m.exitRate.status ?? "",
+      m.exitRate.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "Active Members",
       m.activeMembersRatio.formatted,
       m.activeMembersRatio.unit,
-      m.activeMembersRatio.status,
-      m.activeMembersRatio.benchmark?.toString(),
+      m.activeMembersRatio.status ?? "",
+      m.activeMembersRatio.benchmark?.toString() ?? "",
     ]);
     rows.push(["Women Members", m.womenMembersPercent.formatted, m.womenMembersPercent.unit]);
     rows.push(["Youth Members", m.youthMembersPercent.formatted, m.youthMembersPercent.unit]);
@@ -183,15 +183,15 @@ export function generateCSV(data: ReportData): string {
       "On-Time Repayment",
       l.onTimeRepaymentRatio.formatted,
       l.onTimeRepaymentRatio.unit,
-      l.onTimeRepaymentRatio.status,
-      l.onTimeRepaymentRatio.benchmark?.toString(),
+      l.onTimeRepaymentRatio.status ?? "",
+      l.onTimeRepaymentRatio.benchmark?.toString() ?? "",
     ]);
     rows.push([
       "Loans in Arrears",
       l.loansInArrearsPercent.formatted,
       l.loansInArrearsPercent.unit,
-      l.loansInArrearsPercent.status,
-      l.loansInArrearsPercent.benchmark?.toString(),
+      l.loansInArrearsPercent.status ?? "",
+      l.loansInArrearsPercent.benchmark?.toString() ?? "",
     ]);
     rows.push(["Women Borrowers", l.womenBorrowersPercent.formatted, l.womenBorrowersPercent.unit]);
     rows.push(["Youth Borrowers", l.youthBorrowersPercent.formatted, l.youthBorrowersPercent.unit]);
@@ -405,7 +405,7 @@ export function downloadPDF(htmlContent: string, filename: string): void {
 }
 
 export function generateBalanceSheetCSV(balanceSheet: BalanceSheet): string {
-  const rows: (string | number | undefined)[][] = [];
+  const rows: string[][] = [];
 
   rows.push(["Balance Sheet", balanceSheet.cooperativeName]);
   rows.push(["Reporting Period", balanceSheet.reportingPeriod]);
@@ -415,90 +415,124 @@ export function generateBalanceSheetCSV(balanceSheet: BalanceSheet): string {
   rows.push(["=== ASSETS ==="]);
   rows.push([]);
   rows.push(["--- Liquid Assets (1100) ---"]);
-  rows.push(["Cash on Hand (1101)", balanceSheet.liquidAssets.cashOnHand]);
-  rows.push(["Cash at Bank - Current (1102)", balanceSheet.liquidAssets.cashAtBankCurrent]);
-  rows.push(["Cash at Bank - Savings (1103)", balanceSheet.liquidAssets.cashAtBankSavings]);
-  rows.push(["Short-term Investments (1104)", balanceSheet.liquidAssets.shortTermInvestments]);
+  rows.push(["Cash on Hand (1101)", String(balanceSheet.liquidAssets.cashOnHand)]);
+  rows.push(["Cash at Bank - Current (1102)", String(balanceSheet.liquidAssets.cashAtBankCurrent)]);
+  rows.push(["Cash at Bank - Savings (1103)", String(balanceSheet.liquidAssets.cashAtBankSavings)]);
+  rows.push([
+    "Short-term Investments (1104)",
+    String(balanceSheet.liquidAssets.shortTermInvestments),
+  ]);
   rows.push([]);
 
   rows.push(["--- Loans & Advances (1200) ---"]);
-  rows.push(["Performing Loans (1201)", balanceSheet.loanPortfolio.performingLoanPortfolio]);
-  rows.push(["Loans in Arrears 1-30 Days (1202)", balanceSheet.loanPortfolio.loansInArrears_1_30]);
+  rows.push([
+    "Performing Loans (1201)",
+    String(balanceSheet.loanPortfolio.performingLoanPortfolio),
+  ]);
+  rows.push([
+    "Loans in Arrears 1-30 Days (1202)",
+    String(balanceSheet.loanPortfolio.loansInArrears_1_30),
+  ]);
   rows.push([
     "Loans in Arrears 31-60 Days (1203)",
-    balanceSheet.loanPortfolio.loansInArrears_31_60,
+    String(balanceSheet.loanPortfolio.loansInArrears_31_60),
   ]);
   rows.push([
     "Loans in Arrears 61-90 Days (1204)",
-    balanceSheet.loanPortfolio.loansInArrears_61_90,
+    String(balanceSheet.loanPortfolio.loansInArrears_61_90),
   ]);
-  rows.push(["Non-Performing Loans (1205)", balanceSheet.loanPortfolio.nonPerformingLoans]);
+  rows.push(["Non-Performing Loans (1205)", String(balanceSheet.loanPortfolio.nonPerformingLoans)]);
   rows.push([]);
 
   rows.push([
     "Other Assets (1300)",
-    balanceSheet.otherAssets.accountsReceivable +
-      balanceSheet.otherAssets.prepaidExpenses +
-      balanceSheet.otherAssets.fixedAssetsCost +
-      balanceSheet.otherAssets.intangibleAssets,
+    String(
+      balanceSheet.otherAssets.accountsReceivable +
+        balanceSheet.otherAssets.prepaidExpenses +
+        balanceSheet.otherAssets.fixedAssetsCost +
+        balanceSheet.otherAssets.intangibleAssets,
+    ),
   ]);
   rows.push([]);
 
   rows.push(["=== LIABILITIES ==="]);
   rows.push([]);
   rows.push(["--- Member Deposits (2100) ---"]);
-  rows.push(["Voluntary Savings (2101)", balanceSheet.memberDeposits.voluntarySavings]);
-  rows.push(["Mandatory Savings (2102)", balanceSheet.memberDeposits.mandatorySavings]);
-  rows.push(["Fixed/Term Deposits (2103)", balanceSheet.memberDeposits.fixedTermDeposits]);
+  rows.push(["Voluntary Savings (2101)", String(balanceSheet.memberDeposits.voluntarySavings)]);
+  rows.push(["Mandatory Savings (2102)", String(balanceSheet.memberDeposits.mandatorySavings)]);
+  rows.push(["Fixed/Term Deposits (2103)", String(balanceSheet.memberDeposits.fixedTermDeposits)]);
   rows.push([]);
 
   rows.push(["--- Borrowings (2200) ---"]);
-  rows.push(["Short-term Borrowings (2201)", balanceSheet.borrowings.shortTermBorrowings]);
-  rows.push(["Long-term Borrowings (2202)", balanceSheet.borrowings.longTermBorrowings]);
+  rows.push(["Short-term Borrowings (2201)", String(balanceSheet.borrowings.shortTermBorrowings)]);
+  rows.push(["Long-term Borrowings (2202)", String(balanceSheet.borrowings.longTermBorrowings)]);
   rows.push([]);
 
   rows.push(["=== EQUITY ==="]);
   rows.push([]);
   rows.push(["--- Member Shares (3100) ---"]);
-  rows.push(["Permanent Share Capital (3101)", balanceSheet.memberShares.permanentShareCapital]);
-  rows.push(["Withdrawable Shares (3102)", balanceSheet.memberShares.withdrawableShares]);
+  rows.push([
+    "Permanent Share Capital (3101)",
+    String(balanceSheet.memberShares.permanentShareCapital),
+  ]);
+  rows.push(["Withdrawable Shares (3102)", String(balanceSheet.memberShares.withdrawableShares)]);
   rows.push([]);
 
   rows.push(["--- Reserves (3200) ---"]);
-  rows.push(["Statutory Reserve (3201)", balanceSheet.reserves.statutoryReserve]);
-  rows.push(["General Reserve (3202)", balanceSheet.reserves.generalReserve]);
-  rows.push(["Risk Capital Reserve (3203)", balanceSheet.reserves.riskCapitalAdequacyReserve]);
+  rows.push(["Statutory Reserve (3201)", String(balanceSheet.reserves.statutoryReserve)]);
+  rows.push(["General Reserve (3202)", String(balanceSheet.reserves.generalReserve)]);
+  rows.push([
+    "Risk Capital Reserve (3203)",
+    String(balanceSheet.reserves.riskCapitalAdequacyReserve),
+  ]);
   rows.push([]);
 
   rows.push([
     "Retained Earnings (3300)",
-    balanceSheet.retainedEarnings.accumulatedSurplus +
-      balanceSheet.retainedEarnings.currentYearSurplus,
+    String(
+      balanceSheet.retainedEarnings.accumulatedSurplus +
+        balanceSheet.retainedEarnings.currentYearSurplus,
+    ),
   ]);
   rows.push([]);
 
   rows.push(["=== INCOME STATEMENT ==="]);
   rows.push([]);
-  rows.push(["Interest Income on Loans (4101)", balanceSheet.financialIncome.interestIncomeLoans]);
-  rows.push(["Fees & Commissions (4102)", balanceSheet.financialIncome.feesCommissionsIncome]);
-  rows.push(["Other Operating Income (4201)", balanceSheet.otherIncome.otherOperatingIncome]);
+  rows.push([
+    "Interest Income on Loans (4101)",
+    String(balanceSheet.financialIncome.interestIncomeLoans),
+  ]);
+  rows.push([
+    "Fees & Commissions (4102)",
+    String(balanceSheet.financialIncome.feesCommissionsIncome),
+  ]);
+  rows.push([
+    "Other Operating Income (4201)",
+    String(balanceSheet.otherIncome.otherOperatingIncome),
+  ]);
   rows.push([]);
   rows.push([
     "Interest Expense on Deposits (5101)",
-    balanceSheet.financialExpenses.interestExpenseDeposits,
+    String(balanceSheet.financialExpenses.interestExpenseDeposits),
   ]);
   rows.push([
     "Interest Expense on Borrowings (5102)",
-    balanceSheet.financialExpenses.interestExpenseBorrowings,
+    String(balanceSheet.financialExpenses.interestExpenseBorrowings),
   ]);
-  rows.push(["Personnel Costs (5201)", balanceSheet.operatingExpenses.personnelCosts]);
+  rows.push(["Personnel Costs (5201)", String(balanceSheet.operatingExpenses.personnelCosts)]);
   rows.push([
     "Administrative Expenses (5202)",
-    balanceSheet.operatingExpenses.administrativeExpenses,
+    String(balanceSheet.operatingExpenses.administrativeExpenses),
   ]);
-  rows.push(["Governance Expenses (5203)", balanceSheet.operatingExpenses.governanceExpenses]);
-  rows.push(["Depreciation (5204)", balanceSheet.operatingExpenses.depreciationAmortization]);
-  rows.push(["Credit Loss Expense (5301)", balanceSheet.creditLossExpense]);
+  rows.push([
+    "Governance Expenses (5203)",
+    String(balanceSheet.operatingExpenses.governanceExpenses),
+  ]);
+  rows.push([
+    "Depreciation (5204)",
+    String(balanceSheet.operatingExpenses.depreciationAmortization),
+  ]);
+  rows.push(["Credit Loss Expense (5301)", String(balanceSheet.creditLossExpense)]);
 
   return rows.map((row) => row.join(",")).join("\n");
 }

@@ -61,6 +61,7 @@ async fn init_jwt_validator_with_retry(
             &config.keycloak_url,
             &config.keycloak_realm,
             &config.jwt_audiences(),
+            &config.jwt_issuer_aliases,
         )
         .await
         {

@@ -1,14 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Inbox,
   Download,
   CheckCircle2,
   Clock,
   XCircle,
-  RefreshCw,
   Search,
-  AlertTriangle,
-  X,
   FileText,
   ChevronRight,
 } from "lucide-react";
@@ -24,24 +21,40 @@ export const Route = createFileRoute("/app/submissions")({
 });
 
 type Submission = (typeof INITIAL_SUBMISSIONS)[0];
-type FilterType = "all" | "verified" | "pending" | "rejected";
+type FilterType = "all" | "verified" | "pending" | "rejected" | "forwarded";
 
 function SubmissionsPage() {
   const { role } = useAuth();
-  const [submissionsList, setSubmissionsList] = useState<Submission[]>(INITIAL_SUBMISSIONS);
+  const navigate = useNavigate();
+  const [submissionsList] = useState<Submission[]>(INITIAL_SUBMISSIONS);
   const [filter, setFilter] = useState<FilterType>("all");
   const [search, setSearch] = useState("");
-  const [reviewingSub, setReviewingSub] = useState<Submission | null>(null);
 
-  const isReadOnly = false; // Read-only access can be granted to ministry users via settings
-  const canValidate = role === "federation" || role === "regional_officer" || role === "ministry";
+  const canValidate = role === "federation" || role === "apex" || role === "ministry";
+
+  const titleByRole: Record<string, string> = {
+    ministry: "Submissions — National Oversight",
+    federation: "Submissions — Federation Review",
+    apex: "Submissions — Apex Review",
+    cooperative: "My Submissions",
+  };
+  const subtitleByRole: Record<string, string> = {
+    ministry: "National submission oversight · monitor all inbound data returns across the country",
+    federation: "Review and validate submissions forwarded from apex organizations",
+    apex: "Review and validate submissions from cooperatives under your management",
+    cooperative: "Track and manage your cooperative's data submissions",
+  };
+
+  const pageTitle = titleByRole[role] || "Submissions";
+  const pageSubtitle = subtitleByRole[role] || "Inbound data returns and validation queue";
 
   const filtered = submissionsList.filter((s) => {
     const matchesFilter =
       filter === "all" ||
       (filter === "verified" && s.status === "Verified") ||
       (filter === "pending" && s.status === "Pending Review") ||
-      (filter === "rejected" && (s.status === "Rejected" || s.status === "Resubmit"));
+      (filter === "rejected" && (s.status === "Rejected" || s.status === "Resubmit")) ||
+      (filter === "forwarded" && s.status === "Verified");
     const matchesSearch =
       !search ||
       s.coopName.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,15 +62,6 @@ function SubmissionsPage() {
       s.type.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-
-  const handleReviewAction = (status: "Verified" | "Rejected" | "Resubmit") => {
-    if (!reviewingSub) return;
-    setSubmissionsList((prev) =>
-      prev.map((s) => (s.id === reviewingSub.id ? { ...s, status } : s)),
-    );
-    toast.success(`Submission ${reviewingSub.reference} → ${status.toUpperCase()}`);
-    setReviewingSub(null);
-  };
 
   const counts = {
     total: submissionsList.length,
@@ -68,19 +72,8 @@ function SubmissionsPage() {
   };
 
   return (
-    <AppShell
-      title="Submissions"
-      subtitle="Inbound data returns from cooperatives and field collectors · real-time validation queue"
-    >
+    <AppShell title={pageTitle} subtitle={pageSubtitle}>
       <div className="space-y-6">
-        {/* Audit read-only banner */}
-        {isReadOnly && (
-          <div className="flex items-center gap-3 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-xs font-semibold text-warning-foreground">
-            <AlertTriangle className="size-4 shrink-0" />
-            AUDIT MODE — Interactive validation is locked. Data is read-only.
-          </div>
-        )}
-
         {/* KPI Stats Row */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
@@ -113,96 +106,32 @@ function SubmissionsPage() {
           />
         </div>
 
-        {/* Review Panel — appears when selecting a submission */}
-        {reviewingSub && (
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 space-y-4 shadow-[var(--shadow-elev-2)]">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase mb-1">
-                  {reviewingSub.reference}
-                </p>
-                <h3 className="font-heading text-base font-bold text-foreground">
-                  Reviewing: {reviewingSub.coopName}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {reviewingSub.type} · Filed {reviewingSub.submittedOn}
-                </p>
-              </div>
-              <button
-                onClick={() => setReviewingSub(null)}
-                className="press-feedback rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4 rounded-xl bg-surface border border-border p-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
-                  Type
-                </p>
-                <p className="text-sm font-semibold text-foreground">{reviewingSub.type}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
-                  Filed By
-                </p>
-                <p className="text-sm font-semibold text-foreground">{reviewingSub.submittedBy}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
-                  Timestamp
-                </p>
-                <p className="text-sm font-semibold text-foreground">{reviewingSub.submittedOn}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-              <button
-                onClick={() => handleReviewAction("Verified")}
-                className="press-feedback inline-flex items-center gap-2 rounded-lg bg-success px-4 py-2 text-xs font-bold text-white hover:bg-success/90 transition-colors"
-              >
-                <CheckCircle2 className="size-3.5" /> Approve Return
-              </button>
-              <button
-                onClick={() => handleReviewAction("Resubmit")}
-                className="press-feedback inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-xs font-bold text-foreground hover:bg-muted transition-colors"
-              >
-                <RefreshCw className="size-3.5" /> Request Re-submission
-              </button>
-              <button
-                onClick={() => handleReviewAction("Rejected")}
-                className="press-feedback inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-xs font-bold text-white hover:bg-destructive/90 transition-colors"
-              >
-                <XCircle className="size-3.5" /> Reject Declaration
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Submissions Table Card */}
         <Card
           title="Submission Queue"
           subtitle="Real-time inbox · automated routing and validation console"
           action={
-            <button
-              onClick={() => toast.success("Exporting submissions registry...")}
-              className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors"
-            >
-              <Download className="size-3.5" /> Export
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => toast.success("Exporting submissions registry...")}
+                className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors"
+              >
+                <Download className="size-3.5" /> Export
+              </button>
+            </div>
           }
         >
           {/* Filters & Search Bar */}
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Status Tabs */}
             <div className="flex flex-wrap gap-1.5 text-xs">
-              {(["all", "verified", "pending", "rejected"] as FilterType[]).map((f) => {
+              {(["all", "pending", "verified", "rejected"] as FilterType[]).map((f) => {
                 const labels: Record<FilterType, string> = {
                   all: `All (${counts.total})`,
-                  verified: `Verified (${counts.verified})`,
                   pending: `Pending (${counts.pending})`,
+                  verified: `Verified (${counts.verified})`,
                   rejected: `Flagged (${counts.rejected})`,
+                  forwarded: `Forwarded`,
                 };
                 return (
                   <button
@@ -260,7 +189,10 @@ function SubmissionsPage() {
                   filtered.map((s) => (
                     <tr
                       key={s.id}
-                      className="group hover:bg-muted/30 transition-colors duration-150"
+                      className="group hover:bg-muted/30 transition-colors duration-150 cursor-pointer"
+                      onClick={() => {
+                        navigate({ to: "/app/submissions/$id", params: { id: s.id } });
+                      }}
                     >
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
                         {s.reference}
@@ -305,18 +237,10 @@ function SubmissionsPage() {
                         </StatusPill>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        {canValidate && s.status === "Pending Review" ? (
-                          <button
-                            onClick={() => setReviewingSub(s)}
-                            className="press-feedback inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline"
-                          >
-                            Review <ChevronRight className="size-3" />
-                          </button>
-                        ) : isReadOnly ? (
-                          <span className="text-xs text-muted-foreground italic">Audit View</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-accent group-hover:underline">
+                          {canValidate && s.status === "Pending Review" ? "Review" : "View"}{" "}
+                          <ChevronRight className="size-3" />
+                        </span>
                       </td>
                     </tr>
                   ))

@@ -1,7 +1,7 @@
 import { Card } from "@/components/app-shell";
 import { FinancialKPIGrid } from "@/components/kpi-summary";
-import { type BalanceSheet } from "@/lib/financial-data";
 import { calculateFinancialKPIs } from "@/lib/kpi-calculations";
+import type { BalanceSheet } from "@/lib/financial-data";
 import { SAMPLE_BALANCE_SHEETS } from "@/lib/mock-data";
 import { TrendingUp, BarChart3, PieChart as PieChartIcon } from "lucide-react";
 import {

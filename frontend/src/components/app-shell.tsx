@@ -6,8 +6,6 @@ import {
   Inbox,
   FileBarChart,
   PieChart,
-  ShieldCheck,
-  Plug,
   Users,
   Settings,
   Search,
@@ -21,6 +19,8 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Landmark,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -36,6 +36,8 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     label: "Oversight",
     items: [
       { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/app/federations", label: "Federations", icon: Landmark },
+      { to: "/app/apexes", label: "Apexes", icon: Network },
       { to: "/app/cooperatives", label: "Cooperatives", icon: Building2 },
       { to: "/app/data-collection", label: "Data Collection", icon: ClipboardList },
       { to: "/app/submissions", label: "Submissions", icon: Inbox, badge: "3" },
@@ -47,14 +49,12 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     items: [
       { to: "/app/reports", label: "Reports", icon: FileBarChart },
       { to: "/app/analytics", label: "Analytics", icon: PieChart },
-      { to: "/app/compliance", label: "Compliance", icon: ShieldCheck },
     ],
   },
   {
     id: "system",
     label: "System",
     items: [
-      { to: "/app/integrations", label: "Integrations", icon: Plug },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
     ],
@@ -108,7 +108,7 @@ function Sidebar({
         </div>
         {!isCollapsed && (
           <div className="leading-tight min-w-0 flex-1">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/75">
               Ministry Platform
             </p>
             <p className="font-heading text-[15px] font-bold tracking-tight text-sidebar-foreground">
@@ -120,7 +120,7 @@ function Sidebar({
         {!mobile && onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
-            className={`flex size-7 items-center justify-center rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors shrink-0 ${isCollapsed ? "" : "ml-auto"}`}
+            className={`flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors shrink-0 ${isCollapsed ? "" : "ml-auto"}`}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -134,7 +134,7 @@ function Sidebar({
         {mobile && onClose && (
           <button
             onClick={onClose}
-            className="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            className="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             aria-label="Close menu"
           >
             <X className="size-4" />
@@ -147,7 +147,7 @@ function Sidebar({
         {filteredGroups.map((group) => (
           <div key={group.id}>
             {!isCollapsed && (
-              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/35">
+              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/60">
                 {group.label}
               </p>
             )}
@@ -166,14 +166,14 @@ function Sidebar({
                         isCollapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5",
                         active
                           ? "bg-accent/15 text-accent shadow-sm ring-1 ring-inset ring-accent/20"
-                          : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       ].join(" ")}
                     >
                       <Icon
                         className={`size-[17px] shrink-0 transition-colors ${
                           active
                             ? "text-accent"
-                            : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground/75 group-hover:text-sidebar-accent-foreground"
                         }`}
                         aria-hidden
                       />
@@ -220,7 +220,7 @@ function Sidebar({
                 <p className="text-[13px] font-semibold truncate text-sidebar-foreground">
                   {user.name}
                 </p>
-                <p className="text-[11px] text-sidebar-foreground/50 truncate">
+                <p className="text-[11px] text-sidebar-foreground/75 truncate">
                   {currentRole.label}
                 </p>
               </div>
@@ -229,7 +229,7 @@ function Sidebar({
           {!isCollapsed && (
             <button
               onClick={handleLogout}
-              className="rounded-md p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/40 hover:text-sidebar-accent-foreground transition-colors"
+              className="rounded-md p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors"
               title="Sign out"
             >
               <LogOut className="size-3.5" />
@@ -239,7 +239,7 @@ function Sidebar({
         {!isCollapsed && (
           <div className="flex items-center gap-2 px-3 py-1.5">
             <span className="size-1.5 rounded-full bg-success animate-pulse shrink-0" />
-            <span className="text-[11px] text-sidebar-foreground/45 font-medium">
+            <span className="text-[11px] text-sidebar-foreground/70 font-medium">
               All systems operational
             </span>
           </div>
@@ -403,7 +403,7 @@ export function Card({
   action,
   children,
   className = "",
-  edge = "accent",
+  edge = "none",
 }: {
   title?: string;
   subtitle?: string;
@@ -412,20 +412,8 @@ export function Card({
   className?: string;
   edge?: "accent" | "success" | "warning" | "danger" | "info" | "primary" | "none";
 }) {
-  const edgeCls =
-    edge === "none"
-      ? "shadow-[var(--shadow-elev-1)]"
-      : edge === "success"
-        ? "card-edge-success"
-        : edge === "warning"
-          ? "card-edge-warning"
-          : edge === "danger"
-            ? "card-edge-danger"
-            : edge === "info"
-              ? "card-edge-info"
-              : edge === "primary"
-                ? "card-edge-primary"
-                : "card-edge";
+  // Color lines are disabled to align with a clean, solid, professional dashboard design
+  const edgeCls = "shadow-[var(--shadow-elev-1)]";
 
   return (
     <section
@@ -461,26 +449,15 @@ export function StatCard({
   value,
   subtitle,
   tone = "primary",
+  children,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
   subtitle?: string;
   tone?: "primary" | "success" | "warning" | "danger" | "info" | "accent";
+  children?: ReactNode;
 }) {
-  const edgeCls =
-    tone === "success"
-      ? "border-l-4 border-l-success shadow-[var(--shadow-elev-1)]"
-      : tone === "warning"
-        ? "border-l-4 border-l-warning shadow-[var(--shadow-elev-1)]"
-        : tone === "danger"
-          ? "border-l-4 border-l-destructive shadow-[var(--shadow-elev-1)]"
-          : tone === "info"
-            ? "border-l-4 border-l-info shadow-[var(--shadow-elev-1)]"
-            : tone === "accent"
-              ? "border-l-4 border-l-accent shadow-[var(--shadow-elev-1)]"
-              : "border-l-4 border-l-primary shadow-[var(--shadow-elev-1)]";
-
   const iconBadgeCls =
     tone === "success"
       ? "bg-success/10 text-success"
@@ -507,9 +484,22 @@ export function StatCard({
               ? "text-accent"
               : "text-primary";
 
+  const toneBorderCls =
+    tone === "success"
+      ? "border-l-4 border-l-success"
+      : tone === "warning"
+        ? "border-l-4 border-l-warning"
+        : tone === "danger"
+          ? "border-l-4 border-l-destructive"
+          : tone === "info"
+            ? "border-l-4 border-l-info"
+            : tone === "accent"
+              ? "border-l-4 border-l-accent"
+              : "border-l-4 border-l-primary";
+
   return (
     <div
-      className={`relative overflow-hidden rounded-xl bg-surface p-5 hover-lift ${edgeCls} border-y border-r border-border`}
+      className={`relative overflow-hidden rounded-xl border border-border bg-surface p-5 hover-lift shadow-[var(--shadow-elev-1)] ${toneBorderCls}`}
     >
       {/* Ghost watermark icon */}
       <Icon
@@ -533,6 +523,7 @@ export function StatCard({
       {subtitle && (
         <p className="mt-1 text-xs text-muted-foreground leading-snug truncate">{subtitle}</p>
       )}
+      {children}
     </div>
   );
 }

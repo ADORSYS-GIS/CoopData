@@ -123,6 +123,15 @@
         "clientRole": false,
         "containerId": "3078d73b-ca9c-409b-a31a-65d83ac47485",
         "attributes": {}
+      },
+      {
+        "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "name": "apex",
+        "description": "apex",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "3078d73b-ca9c-409b-a31a-65d83ac47485",
+        "attributes": {}
       }
     ],
     "client": {
@@ -851,6 +860,38 @@
             "access.token.claim": "true",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-def4-567890123456",
+          "name": "cooperation",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "cooperation",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efa5-678901234567",
+          "name": "assigned dimensions",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "assigned_dimensions",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "assigned_dimensions",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
         }
       ],
       "defaultClientScopes": [
@@ -859,12 +900,12 @@
         "profile",
         "roles",
         "basic",
-        "email"
+        "email",
+        "organization"
       ],
       "optionalClientScopes": [
         "address",
         "phone",
-        "organization",
         "offline_access",
         "microprofile-jwt"
       ]

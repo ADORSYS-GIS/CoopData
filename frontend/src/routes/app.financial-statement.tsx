@@ -9,6 +9,8 @@ import {
   Send,
   ArrowLeft,
   ArrowRight,
+  Upload,
+  X,
 } from "lucide-react";
 import { AppShell, Card } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth";
@@ -31,6 +33,7 @@ import {
   calculateTotalExpenses,
   validateBalanceSheet,
 } from "@/lib/financial-data";
+import type { BalanceSheet } from "@/lib/financial-data";
 import {
   AssetsSection,
   LiabilitiesSection,
@@ -38,6 +41,7 @@ import {
   IncomeSection,
   ExpensesSection,
 } from "@/components/financial-form";
+import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
 
 export const Route = createFileRoute("/app/financial-statement")({
   head: () => ({ meta: [{ title: "Financial Statement — CoopData" }] }),
@@ -51,8 +55,17 @@ function FinancialStatementPage() {
   const [activeTab, setActiveTab] = useState<Tab>("assets");
   const [balanceSheet, setBalanceSheet] = useState(createEmptyBalanceSheet());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [dataPopulated, setDataPopulated] = useState(false);
 
-  const isReadOnly = role === "regional_officer";
+  const isReadOnly = role === "apex";
+
+  const handleDataExtracted = (data: BalanceSheet) => {
+    setBalanceSheet(data);
+    setDataPopulated(true);
+    setShowUpload(false);
+    toast.success("Financial data applied! Review each section and edit as needed.");
+  };
 
   const handleSectionChange = (
     section:
@@ -208,6 +221,72 @@ function FinancialStatementPage() {
       }
     >
       <div className="space-y-6">
+        {/* Upload Financial Statement Banner */}
+        {!isReadOnly && !showUpload && (
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
+              <Upload className="size-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {dataPopulated
+                  ? "Data populated from uploaded document"
+                  : "Upload a financial statement to auto-fill this form"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {dataPopulated
+                  ? "Review each section carefully and edit any values before submitting."
+                  : "Upload a PDF or image of your balance sheet. Extracted data will populate the form fields."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {dataPopulated && (
+                <button
+                  onClick={() => {
+                    setBalanceSheet(createEmptyBalanceSheet());
+                    setDataPopulated(false);
+                    toast.success("Form cleared. You can start fresh or upload again.");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  <X className="size-3.5" />
+                  Clear Data
+                </button>
+              )}
+              <button
+                onClick={() => setShowUpload(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Upload className="size-3.5" />
+                {dataPopulated ? "Upload Different" : "Upload Document"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Panel */}
+        {showUpload && !isReadOnly && (
+          <Card
+            title="Upload Financial Statement"
+            subtitle="Upload a PDF or image to extract financial data automatically"
+            edge="accent"
+            action={
+              <button
+                onClick={() => setShowUpload(false)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <X className="size-3.5" />
+                Close
+              </button>
+            }
+          >
+            <FinancialStatementUpload
+              onDataExtracted={handleDataExtracted}
+              onClose={() => setShowUpload(false)}
+            />
+          </Card>
+        )}
+
         {/* Balance Sheet Status */}
         <div
           className={`p-4 rounded-xl border ${isBalanced ? "bg-success/5 border-success/20" : "bg-warning/5 border-warning/20"}`}

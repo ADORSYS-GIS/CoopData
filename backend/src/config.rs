@@ -16,6 +16,7 @@ pub struct AppConfig {
     pub keycloak_client_secret: String,
     pub jwt_issuer: String,
     pub jwt_audience: String,
+    pub jwt_issuer_aliases: Vec<String>,
     pub frontend_url: String,
     pub environment: Environment,
 }
@@ -44,6 +45,12 @@ impl AppConfig {
                 .expect("KEYCLOAK_CLIENT_SECRET must be set"),
             jwt_issuer: env::var("JWT_ISSUER").unwrap_or_else(|_| "coopdata".into()),
             jwt_audience: env::var("JWT_AUDIENCE").unwrap_or_else(|_| "coopdata-api".into()),
+            jwt_issuer_aliases: env::var("JWT_ISSUER_ALIASES")
+                .unwrap_or_else(|_| String::new())
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
             frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
             environment: env::var("ENVIRONMENT")
                 .map(|s| match s.to_lowercase().as_str() {

@@ -186,7 +186,7 @@ pub async fn update_user(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if let Some(ref role) = body.role {
+    if let Some(ref role) = &body.role {
         validate_role(role)?;
     }
 
@@ -197,7 +197,7 @@ pub async fn update_user(
         .await?
         .ok_or_else(|| AppError::NotFound(format!("User {} not found", id)))?;
 
-    if let Some(ref role) = body.role {
+    if let Some(ref role) = &body.role {
         if role != &current.role {
             state
                 .keycloak
@@ -233,7 +233,7 @@ pub async fn update_user(
     ),
     tag = "Users"
 )]
-pub async fn assign_role(
+pub async fn assign_role_to_user(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<AssignRoleRequest>,
