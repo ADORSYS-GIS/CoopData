@@ -83,9 +83,33 @@ const DATABASE_EXTRACTIONS = [
     invalidRows: 22,
     columns: ["Member ID", "Full Name", "Gender", "Age", "Join Date", "Status", "Share Capital"],
     previewRows: [
-      { "Member ID": "M-001", "Full Name": "Thandiwe Dlamini", Gender: "Female", Age: "34", "Join Date": "2019-03-15", Status: "Active", "Share Capital": "E 2,500" },
-      { "Member ID": "M-002", "Full Name": "Sibusiso Mkhwanazi", Gender: "Male", Age: "41", "Join Date": "2018-07-22", Status: "Active", "Share Capital": "E 5,000" },
-      { "Member ID": "M-003", "Full Name": "Nomsa Simelane", Gender: "Female", Age: "28", "Join Date": "2021-01-10", Status: "Active", "Share Capital": "E 1,500" },
+      {
+        "Member ID": "M-001",
+        "Full Name": "Thandiwe Dlamini",
+        Gender: "Female",
+        Age: "34",
+        "Join Date": "2019-03-15",
+        Status: "Active",
+        "Share Capital": "E 2,500",
+      },
+      {
+        "Member ID": "M-002",
+        "Full Name": "Sibusiso Mkhwanazi",
+        Gender: "Male",
+        Age: "41",
+        "Join Date": "2018-07-22",
+        Status: "Active",
+        "Share Capital": "E 5,000",
+      },
+      {
+        "Member ID": "M-003",
+        "Full Name": "Nomsa Simelane",
+        Gender: "Female",
+        Age: "28",
+        "Join Date": "2021-01-10",
+        Status: "Active",
+        "Share Capital": "E 1,500",
+      },
     ],
   },
   {
@@ -95,11 +119,39 @@ const DATABASE_EXTRACTIONS = [
     rowCount: 11980,
     validRows: 11950,
     invalidRows: 30,
-    columns: ["Account No", "Member ID", "Balance", "Interest Rate", "Last Transaction", "Account Type"],
+    columns: [
+      "Account No",
+      "Member ID",
+      "Balance",
+      "Interest Rate",
+      "Last Transaction",
+      "Account Type",
+    ],
     previewRows: [
-      { "Account No": "SAV-001", "Member ID": "M-001", Balance: "E 12,400", "Interest Rate": "4.5%", "Last Transaction": "2025-10-20", "Account Type": "Regular" },
-      { "Account No": "SAV-002", "Member ID": "M-002", Balance: "E 28,600", "Interest Rate": "4.5%", "Last Transaction": "2025-10-18", "Account Type": "Premium" },
-      { "Account No": "SAV-003", "Member ID": "M-003", Balance: "E 3,200", "Interest Rate": "3.8%", "Last Transaction": "2025-10-22", "Account Type": "Regular" },
+      {
+        "Account No": "SAV-001",
+        "Member ID": "M-001",
+        Balance: "E 12,400",
+        "Interest Rate": "4.5%",
+        "Last Transaction": "2025-10-20",
+        "Account Type": "Regular",
+      },
+      {
+        "Account No": "SAV-002",
+        "Member ID": "M-002",
+        Balance: "E 28,600",
+        "Interest Rate": "4.5%",
+        "Last Transaction": "2025-10-18",
+        "Account Type": "Premium",
+      },
+      {
+        "Account No": "SAV-003",
+        "Member ID": "M-003",
+        Balance: "E 3,200",
+        "Interest Rate": "3.8%",
+        "Last Transaction": "2025-10-22",
+        "Account Type": "Regular",
+      },
     ],
   },
   {
@@ -111,9 +163,30 @@ const DATABASE_EXTRACTIONS = [
     invalidRows: 10,
     columns: ["FD No", "Member ID", "Amount", "Rate", "Maturity Date", "Term"],
     previewRows: [
-      { "FD No": "FD-001", "Member ID": "M-005", Amount: "E 50,000", Rate: "6.5%", "Maturity Date": "2026-06-15", Term: "12 months" },
-      { "FD No": "FD-002", "Member ID": "M-012", Amount: "E 25,000", Rate: "5.8%", "Maturity Date": "2026-03-20", Term: "6 months" },
-      { "FD No": "FD-003", "Member ID": "M-045", Amount: "E 100,000", Rate: "7.0%", "Maturity Date": "2027-01-10", Term: "24 months" },
+      {
+        "FD No": "FD-001",
+        "Member ID": "M-005",
+        Amount: "E 50,000",
+        Rate: "6.5%",
+        "Maturity Date": "2026-06-15",
+        Term: "12 months",
+      },
+      {
+        "FD No": "FD-002",
+        "Member ID": "M-012",
+        Amount: "E 25,000",
+        Rate: "5.8%",
+        "Maturity Date": "2026-03-20",
+        Term: "6 months",
+      },
+      {
+        "FD No": "FD-003",
+        "Member ID": "M-045",
+        Amount: "E 100,000",
+        Rate: "7.0%",
+        "Maturity Date": "2027-01-10",
+        Term: "24 months",
+      },
     ],
   },
   {
@@ -125,9 +198,33 @@ const DATABASE_EXTRACTIONS = [
     invalidRows: 50,
     columns: ["Loan ID", "Member ID", "Principal", "Outstanding", "Rate", "Due Date", "Status"],
     previewRows: [
-      { "Loan ID": "LN-001", "Member ID": "M-003", Principal: "E 15,000", Outstanding: "E 12,400", Rate: "9.5%", "Due Date": "2026-04-15", Status: "Performing" },
-      { "Loan ID": "LN-002", "Member ID": "M-008", Principal: "E 8,000", Outstanding: "E 6,200", Rate: "10.0%", "Due Date": "2026-01-30", Status: "Performing" },
-      { "Loan ID": "LN-003", "Member ID": "M-022", Principal: "E 25,000", Outstanding: "E 24,100", Rate: "8.5%", "Due Date": "2027-06-01", Status: "Arrears" },
+      {
+        "Loan ID": "LN-001",
+        "Member ID": "M-003",
+        Principal: "E 15,000",
+        Outstanding: "E 12,400",
+        Rate: "9.5%",
+        "Due Date": "2026-04-15",
+        Status: "Performing",
+      },
+      {
+        "Loan ID": "LN-002",
+        "Member ID": "M-008",
+        Principal: "E 8,000",
+        Outstanding: "E 6,200",
+        Rate: "10.0%",
+        "Due Date": "2026-01-30",
+        Status: "Performing",
+      },
+      {
+        "Loan ID": "LN-003",
+        "Member ID": "M-022",
+        Principal: "E 25,000",
+        Outstanding: "E 24,100",
+        Rate: "8.5%",
+        "Due Date": "2027-06-01",
+        Status: "Arrears",
+      },
     ],
   },
   {
@@ -139,9 +236,33 @@ const DATABASE_EXTRACTIONS = [
     invalidRows: 30,
     columns: ["Project ID", "Member ID", "Type", "Amount", "Purpose", "Status", "Yield"],
     previewRows: [
-      { "Project ID": "MP-001", "Member ID": "M-015", Type: "Farm", Amount: "E 30,000", Purpose: "Crop production", Status: "Active", Yield: "12%" },
-      { "Project ID": "MP-002", "Member ID": "M-034", Type: "Multi-purpose", Amount: "E 10,000", Purpose: "Small retail", Status: "Active", Yield: "8%" },
-      { "Project ID": "MP-003", "Member ID": "M-078", Type: "Farm", Amount: "E 45,000", Purpose: "Livestock", Status: "Completed", Yield: "15%" },
+      {
+        "Project ID": "MP-001",
+        "Member ID": "M-015",
+        Type: "Farm",
+        Amount: "E 30,000",
+        Purpose: "Crop production",
+        Status: "Active",
+        Yield: "12%",
+      },
+      {
+        "Project ID": "MP-002",
+        "Member ID": "M-034",
+        Type: "Multi-purpose",
+        Amount: "E 10,000",
+        Purpose: "Small retail",
+        Status: "Active",
+        Yield: "8%",
+      },
+      {
+        "Project ID": "MP-003",
+        "Member ID": "M-078",
+        Type: "Farm",
+        Amount: "E 45,000",
+        Purpose: "Livestock",
+        Status: "Completed",
+        Yield: "15%",
+      },
     ],
   },
 ];
@@ -160,7 +281,8 @@ const REVIEW_TRAIL = [
     reviewerName: "Sibusiso Mkhwanazi",
     reviewerRole: "Apex Reviewer",
     action: "approved" as const,
-    comment: "All financial data verified. Balance sheet balanced. Databases complete with minimal validation errors.",
+    comment:
+      "All financial data verified. Balance sheet balanced. Databases complete with minimal validation errors.",
     timestamp: "2025-10-25 09:15",
   },
   {
@@ -183,7 +305,14 @@ const formatCurrency = (n: number) => {
   return `E ${n.toFixed(0)}`;
 };
 
-type SubmissionStatus = "Pending Review" | "Under Review" | "Approved" | "Rejected" | "Changes Requested" | "Forwarded to Federation" | "Forwarded to Ministry";
+type SubmissionStatus =
+  | "Pending Review"
+  | "Under Review"
+  | "Approved"
+  | "Rejected"
+  | "Changes Requested"
+  | "Forwarded to Federation"
+  | "Forwarded to Ministry";
 
 const statusTone = (status: SubmissionStatus) => {
   switch (status) {
@@ -222,12 +351,18 @@ const actionIcon = (action: string) => {
 
 const actionLabel = (action: string) => {
   switch (action) {
-    case "approved": return "Approved";
-    case "rejected": return "Rejected";
-    case "changes_requested": return "Changes Requested";
-    case "forwarded": return "Forwarded";
-    case "commented": return "Commented";
-    default: return action;
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    case "changes_requested":
+      return "Changes Requested";
+    case "forwarded":
+      return "Forwarded";
+    case "commented":
+      return "Commented";
+    default:
+      return action;
   }
 };
 
@@ -271,14 +406,20 @@ function SubmissionDetailPage() {
     Rejected: "Rejected",
     Resubmit: "Changes Requested",
   };
-  const currentStatus = submission ? (statusMap[submission.status] || "Pending Review") : "Pending Review";
+  const currentStatus = submission
+    ? statusMap[submission.status] || "Pending Review"
+    : "Pending Review";
 
   const canReview =
-    (role === "apex" && (currentStatus === "Pending Review" || currentStatus === "Changes Requested")) ||
-    (role === "federation" && (currentStatus === "Forwarded to Federation" || currentStatus === "Pending Review")) ||
+    (role === "apex" &&
+      (currentStatus === "Pending Review" || currentStatus === "Changes Requested")) ||
+    (role === "federation" &&
+      (currentStatus === "Forwarded to Federation" || currentStatus === "Pending Review")) ||
     role === "ministry";
 
-  const canForward = role === "apex" && (currentStatus === "Pending Review" || currentStatus === "Changes Requested");
+  const canForward =
+    role === "apex" &&
+    (currentStatus === "Pending Review" || currentStatus === "Changes Requested");
   const isCooperative = role === "cooperative";
 
   const toggleSection = (key: string) => {
@@ -287,7 +428,10 @@ function SubmissionDetailPage() {
 
   if (!submission) {
     return (
-      <AppShell title="Submission Not Found" subtitle="The requested submission could not be located">
+      <AppShell
+        title="Submission Not Found"
+        subtitle="The requested submission could not be located"
+      >
         <div className="flex flex-col items-center justify-center py-20">
           <FileText className="size-16 text-muted-foreground/30 mb-4" />
           <h2 className="text-xl font-bold text-foreground">Submission Not Found</h2>
@@ -334,7 +478,9 @@ function SubmissionDetailPage() {
                 </span>
                 <StatusPill tone={statusTone(currentStatus)}>{currentStatus}</StatusPill>
               </div>
-              <h2 className="text-xl font-heading font-bold text-foreground">{submission.coopName}</h2>
+              <h2 className="text-xl font-heading font-bold text-foreground">
+                {submission.coopName}
+              </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {submission.type} · Filed {submission.submittedOn}
               </p>
@@ -359,29 +505,39 @@ function SubmissionDetailPage() {
             <div className="flex items-center gap-2">
               <Building2 className="size-4 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Cooperative</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                  Cooperative
+                </p>
                 <p className="text-sm font-semibold text-foreground">{submission.coopName}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <User className="size-4 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Filed By</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                  Filed By
+                </p>
                 <p className="text-sm font-semibold text-foreground">{submission.submittedBy}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="size-4 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Date</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                  Date
+                </p>
                 <p className="text-sm font-semibold text-foreground">{submission.submittedOn}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Hash className="size-4 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Reference</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{submission.reference}</p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                  Reference
+                </p>
+                <p className="text-sm font-mono font-semibold text-foreground">
+                  {submission.reference}
+                </p>
               </div>
             </div>
           </div>
@@ -397,7 +553,11 @@ function SubmissionDetailPage() {
               className="press-feedback text-xs font-bold text-accent hover:underline flex items-center gap-1"
             >
               {expandedSections.financials ? "Collapse" : "Expand"}
-              {expandedSections.financials ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+              {expandedSections.financials ? (
+                <ChevronUp className="size-3" />
+              ) : (
+                <ChevronDown className="size-3" />
+              )}
             </button>
           }
         >
@@ -413,7 +573,8 @@ function SubmissionDetailPage() {
                     {FINANCIAL_STATEMENT_DATA.fileName}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {FINANCIAL_STATEMENT_DATA.fileSize} · Uploaded {FINANCIAL_STATEMENT_DATA.uploadedOn}
+                    {FINANCIAL_STATEMENT_DATA.fileSize} · Uploaded{" "}
+                    {FINANCIAL_STATEMENT_DATA.uploadedOn}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -447,28 +608,46 @@ function SubmissionDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/30 border-b border-border">
-                        <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Code</th>
-                        <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Account</th>
-                        <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Amount</th>
-                        <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Confidence</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Code
+                        </th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Account
+                        </th>
+                        <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Amount
+                        </th>
+                        <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Confidence
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {FINANCIAL_STATEMENT_DATA.extractedData.balanceSheet.map((row) => {
-                        const isTotal = row.code === "300" || row.code === "600" || row.code === "800";
-                        const isSectionHeader = row.code === "200" || row.code === "400" || row.code === "700";
+                        const isTotal =
+                          row.code === "300" || row.code === "600" || row.code === "800";
+                        const isSectionHeader =
+                          row.code === "200" || row.code === "400" || row.code === "700";
                         return (
                           <tr
                             key={row.code}
                             className={`${isTotal ? "bg-accent/5 font-bold" : isSectionHeader ? "bg-muted/20" : "hover:bg-muted/10"} transition-colors`}
                           >
-                            <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{row.code}</td>
-                            <td className={`px-4 py-2.5 ${isTotal ? "text-foreground" : ""}`}>{row.label}</td>
-                            <td className={`px-4 py-2.5 text-right font-mono ${isTotal ? "text-accent" : ""}`}>
+                            <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                              {row.code}
+                            </td>
+                            <td className={`px-4 py-2.5 ${isTotal ? "text-foreground" : ""}`}>
+                              {row.label}
+                            </td>
+                            <td
+                              className={`px-4 py-2.5 text-right font-mono ${isTotal ? "text-accent" : ""}`}
+                            >
                               {formatCurrency(row.amount)}
                             </td>
                             <td className="px-4 py-2.5 text-center">
-                              <span className={`inline-flex items-center gap-1 text-xs font-bold ${confidenceColor(row.confidence)}`}>
+                              <span
+                                className={`inline-flex items-center gap-1 text-xs font-bold ${confidenceColor(row.confidence)}`}
+                              >
                                 {Math.round(row.confidence * 100)}%
                                 <span className={`text-[10px] ${confidenceColor(row.confidence)}`}>
                                   ({confidenceLabel(row.confidence)})
@@ -493,7 +672,9 @@ function SubmissionDetailPage() {
                   <div className="p-3 rounded-lg bg-surface border border-border">
                     <p className="text-[10px] text-muted-foreground">Liabilities</p>
                     <p className="text-sm font-bold text-foreground">
-                      {formatCurrency(FINANCIAL_STATEMENT_DATA.extractedData.summary.totalLiabilities)}
+                      {formatCurrency(
+                        FINANCIAL_STATEMENT_DATA.extractedData.summary.totalLiabilities,
+                      )}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-surface border border-border">
@@ -543,7 +724,9 @@ function SubmissionDetailPage() {
                 subtitle={`${db.fileName} · ${db.rowCount.toLocaleString()} rows`}
                 action={
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs font-bold ${validPct >= 99 ? "text-success" : validPct >= 95 ? "text-warning-foreground" : "text-destructive"}`}>
+                    <span
+                      className={`text-xs font-bold ${validPct >= 99 ? "text-success" : validPct >= 95 ? "text-warning-foreground" : "text-destructive"}`}
+                    >
                       {validPct}% valid
                     </span>
                     <button
@@ -551,7 +734,11 @@ function SubmissionDetailPage() {
                       className="press-feedback text-xs font-bold text-accent hover:underline flex items-center gap-1"
                     >
                       {isExpanded ? "Collapse" : "Expand"}
-                      {isExpanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                      {isExpanded ? (
+                        <ChevronUp className="size-3" />
+                      ) : (
+                        <ChevronDown className="size-3" />
+                      )}
                     </button>
                   </div>
                 }
@@ -562,15 +749,21 @@ function SubmissionDetailPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="p-3 rounded-lg bg-surface border border-border">
                         <p className="text-[10px] text-muted-foreground">Total Rows</p>
-                        <p className="text-sm font-bold text-foreground">{db.rowCount.toLocaleString()}</p>
+                        <p className="text-sm font-bold text-foreground">
+                          {db.rowCount.toLocaleString()}
+                        </p>
                       </div>
                       <div className="p-3 rounded-lg bg-surface border border-border">
                         <p className="text-[10px] text-muted-foreground">Valid Rows</p>
-                        <p className="text-sm font-bold text-success">{db.validRows.toLocaleString()}</p>
+                        <p className="text-sm font-bold text-success">
+                          {db.validRows.toLocaleString()}
+                        </p>
                       </div>
                       <div className="p-3 rounded-lg bg-surface border border-border">
                         <p className="text-[10px] text-muted-foreground">Invalid Rows</p>
-                        <p className={`text-sm font-bold ${hasIssues ? "text-destructive" : "text-success"}`}>
+                        <p
+                          className={`text-sm font-bold ${hasIssues ? "text-destructive" : "text-success"}`}
+                        >
                           {db.invalidRows}
                         </p>
                       </div>
@@ -586,7 +779,8 @@ function SubmissionDetailPage() {
                         <div>
                           <p className="text-sm font-semibold text-foreground">Validation Issues</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {db.invalidRows} rows have validation errors. These rows will be flagged for manual review before submission.
+                            {db.invalidRows} rows have validation errors. These rows will be flagged
+                            for manual review before submission.
                           </p>
                         </div>
                       </div>
@@ -602,7 +796,10 @@ function SubmissionDetailPage() {
                           <thead>
                             <tr className="bg-muted/30 border-b border-border">
                               {db.columns.map((col) => (
-                                <th key={col} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                                <th
+                                  key={col}
+                                  className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
+                                >
                                   {col}
                                 </th>
                               ))}
@@ -612,7 +809,10 @@ function SubmissionDetailPage() {
                             {db.previewRows.map((row, i) => (
                               <tr key={i} className="hover:bg-muted/10 transition-colors">
                                 {db.columns.map((col) => (
-                                  <td key={col} className="px-3 py-2 text-foreground whitespace-nowrap">
+                                  <td
+                                    key={col}
+                                    className="px-3 py-2 text-foreground whitespace-nowrap"
+                                  >
                                     {row[col as keyof typeof row] || "—"}
                                   </td>
                                 ))}
@@ -648,7 +848,11 @@ function SubmissionDetailPage() {
               className="press-feedback text-xs font-bold text-accent hover:underline flex items-center gap-1"
             >
               {expandedSections.trail ? "Collapse" : "Expand"}
-              {expandedSections.trail ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+              {expandedSections.trail ? (
+                <ChevronUp className="size-3" />
+              ) : (
+                <ChevronDown className="size-3" />
+              )}
             </button>
           }
         >
@@ -663,13 +867,19 @@ function SubmissionDetailPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                         {entry.reviewerRole}
                       </span>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                        entry.action === "approved" ? "bg-success/10 text-success" :
-                        entry.action === "rejected" ? "bg-destructive/10 text-destructive" :
-                        entry.action === "forwarded" ? "bg-accent/10 text-accent" :
-                        entry.action === "changes_requested" ? "bg-info/10 text-info" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                          entry.action === "approved"
+                            ? "bg-success/10 text-success"
+                            : String(entry.action) === "rejected"
+                              ? "bg-destructive/10 text-destructive"
+                              : String(entry.action) === "forwarded"
+                                ? "bg-accent/10 text-accent"
+                                : String(entry.action) === "changes_requested"
+                                  ? "bg-info/10 text-info"
+                                  : "bg-muted text-muted-foreground"
+                        }`}
+                      >
                         {actionLabel(entry.action)}
                       </span>
                     </div>
@@ -767,15 +977,16 @@ function SubmissionDetailPage() {
                 <p className="text-xs text-muted-foreground">
                   {role === "apex" && (
                     <>
-                      <strong className="text-foreground">Apex Review:</strong> Approve to forward this
-                      submission to the federation level. Request changes to send it back to the cooperative
-                      for corrections. Reject to deny the submission entirely.
+                      <strong className="text-foreground">Apex Review:</strong> Approve to forward
+                      this submission to the federation level. Request changes to send it back to
+                      the cooperative for corrections. Reject to deny the submission entirely.
                     </>
                   )}
                   {role === "federation" && (
                     <>
-                      <strong className="text-foreground">Federation Review:</strong> This submission has
-                      been reviewed by the apex. You can approve, request further changes, or reject it.
+                      <strong className="text-foreground">Federation Review:</strong> This
+                      submission has been reviewed by the apex. You can approve, request further
+                      changes, or reject it.
                     </>
                   )}
                   {role === "ministry" && (
@@ -796,9 +1007,12 @@ function SubmissionDetailPage() {
             <div className="p-4 rounded-lg bg-info/5 border border-info/20 flex items-start gap-3">
               <Shield className="size-5 text-info shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-foreground">Your submission is currently <strong>{currentStatus}</strong></p>
+                <p className="text-sm font-semibold text-foreground">
+                  Your submission is currently <strong>{currentStatus}</strong>
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  You will be notified when the review is complete or if changes are requested. You can view the full review trail above to track progress.
+                  You will be notified when the review is complete or if changes are requested. You
+                  can view the full review trail above to track progress.
                 </p>
               </div>
             </div>

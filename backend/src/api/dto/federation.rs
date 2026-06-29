@@ -42,7 +42,9 @@ pub struct DomainResponse {
 
 impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse {
     fn from(org: crate::models::keycloak::KeycloakOrganization) -> Self {
-        let description = org.attributes.as_ref()
+        let description = org
+            .attributes
+            .as_ref()
             .and_then(|attrs| attrs.get("description"))
             .and_then(|vals| vals.first())
             .cloned();
@@ -52,10 +54,14 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
             name: org.name,
             enabled: org.enabled,
             description: description.or(org.description),
-            domains: org.domains.into_iter().map(|d| DomainResponse {
-                name: d.name,
-                verified: d.verified,
-            }).collect(),
+            domains: org
+                .domains
+                .into_iter()
+                .map(|d| DomainResponse {
+                    name: d.name,
+                    verified: d.verified,
+                })
+                .collect(),
         }
     }
 }

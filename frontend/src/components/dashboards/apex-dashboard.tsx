@@ -42,7 +42,9 @@ export function ApexDashboard({
   submissions: typeof INITIAL_SUBMISSIONS;
   setSubmissions: React.Dispatch<React.SetStateAction<typeof INITIAL_SUBMISSIONS>>;
 }) {
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "verified" | "rejected">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "verified" | "rejected">(
+    "all",
+  );
 
   const pendingCount = submissions.filter((s) => s.status === "Pending Review").length;
   const verifiedCount = submissions.filter((s) => s.status === "Verified").length;
@@ -55,9 +57,7 @@ export function ApexDashboard({
     coopName: string,
     action: "Verified" | "Rejected" | "Resubmit",
   ) => {
-    setSubmissions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: action } : s)),
-    );
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status: action } : s)));
     const actionLabel =
       action === "Verified"
         ? "Approved & forwarded to Federation"
@@ -186,9 +186,7 @@ export function ApexDashboard({
                         {sub.status}
                       </StatusPill>
                     </div>
-                    <h4 className="text-sm font-bold truncate text-foreground">
-                      {sub.coopName}
-                    </h4>
+                    <h4 className="text-sm font-bold truncate text-foreground">{sub.coopName}</h4>
                     <p className="text-xs text-muted-foreground">
                       Submitted by {sub.submittedBy} · {sub.submittedOn}
                     </p>
@@ -225,7 +223,8 @@ export function ApexDashboard({
 
                   {(sub.status === "Rejected" || sub.status === "Resubmit") && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold">
-                      <AlertTriangle className="size-3.5" /> {sub.status === "Rejected" ? "Rejected" : "Changes Requested"}
+                      <AlertTriangle className="size-3.5" />{" "}
+                      {sub.status === "Rejected" ? "Rejected" : "Changes Requested"}
                     </div>
                   )}
                 </div>
@@ -263,7 +262,9 @@ export function ApexDashboard({
               <tbody className="divide-y divide-border">
                 {cooperatives.slice(0, 6).map((coop) => (
                   <tr key={coop.id} className="transition-colors hover:bg-muted/40">
-                    <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{coop.regNo}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+                      {coop.regNo}
+                    </td>
                     <td className="px-5 py-3 font-semibold">{coop.name}</td>
                     <td className="px-5 py-3 text-muted-foreground">{coop.sector}</td>
                     <td className="px-5 py-3 text-right num">{coop.members.toLocaleString()}</td>

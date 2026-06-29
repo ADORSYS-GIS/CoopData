@@ -25,12 +25,7 @@ import { toast } from "sonner";
 // TYPES
 // ─────────────────────────────────────────────────────────────────────
 
-export type DatabaseType =
-  | "membership"
-  | "savings"
-  | "fixed-deposit"
-  | "loans"
-  | "multi-purpose";
+export type DatabaseType = "membership" | "savings" | "fixed-deposit" | "loans" | "multi-purpose";
 
 interface DatabaseConfig {
   id: DatabaseType;
@@ -64,13 +59,54 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
     icon: Users,
     description: "Member roster with demographics, status, and participation",
     columns: [
-      "Member ID", "Full Name", "Gender", "Age Group", "Region",
-      "Urban/Rural", "Join Date", "Status", "AGM Attendance", "Voting Exercised",
+      "Member ID",
+      "Full Name",
+      "Gender",
+      "Age Group",
+      "Region",
+      "Urban/Rural",
+      "Join Date",
+      "Status",
+      "AGM Attendance",
+      "Voting Exercised",
     ],
     sampleRows: [
-      { "Member ID": "M-001", "Full Name": "Bongani Hlatshwayo", Gender: "Male", "Age Group": "36-50", Region: "Manzini", "Urban/Rural": "Rural", "Join Date": "2019-03-15", Status: "Active", "AGM Attendance": "Yes", "Voting Exercised": "Yes" },
-      { "Member ID": "M-002", "Full Name": "Thandiwe Dlamini", Gender: "Female", "Age Group": "18-35", Region: "Hhohho", "Urban/Rural": "Urban", "Join Date": "2020-07-22", Status: "Active", "AGM Attendance": "Yes", "Voting Exercised": "No" },
-      { "Member ID": "M-003", "Full Name": "Sibusiso Mkhwanazi", Gender: "Male", "Age Group": "50+", Region: "Lubombo", "Urban/Rural": "Rural", "Join Date": "2015-01-10", Status: "Active", "AGM Attendance": "No", "Voting Exercised": "No" },
+      {
+        "Member ID": "M-001",
+        "Full Name": "Bongani Hlatshwayo",
+        Gender: "Male",
+        "Age Group": "36-50",
+        Region: "Manzini",
+        "Urban/Rural": "Rural",
+        "Join Date": "2019-03-15",
+        Status: "Active",
+        "AGM Attendance": "Yes",
+        "Voting Exercised": "Yes",
+      },
+      {
+        "Member ID": "M-002",
+        "Full Name": "Thandiwe Dlamini",
+        Gender: "Female",
+        "Age Group": "18-35",
+        Region: "Hhohho",
+        "Urban/Rural": "Urban",
+        "Join Date": "2020-07-22",
+        Status: "Active",
+        "AGM Attendance": "Yes",
+        "Voting Exercised": "No",
+      },
+      {
+        "Member ID": "M-003",
+        "Full Name": "Sibusiso Mkhwanazi",
+        Gender: "Male",
+        "Age Group": "50+",
+        Region: "Lubombo",
+        "Urban/Rural": "Rural",
+        "Join Date": "2015-01-10",
+        Status: "Active",
+        "AGM Attendance": "No",
+        "Voting Exercised": "No",
+      },
     ],
     validationRules: [
       "Member ID must be unique",
@@ -86,13 +122,50 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
     icon: Wallet,
     description: "Savings accounts, balances, and contribution patterns",
     columns: [
-      "Savings ID", "Member ID", "Account Type", "Opening Date", "Status",
-      "Contribution Frequency", "Last Contribution", "Balance", "Balance Trend",
+      "Savings ID",
+      "Member ID",
+      "Account Type",
+      "Opening Date",
+      "Status",
+      "Contribution Frequency",
+      "Last Contribution",
+      "Balance",
+      "Balance Trend",
     ],
     sampleRows: [
-      { "Savings ID": "S-001", "Member ID": "M-001", "Account Type": "Voluntary", "Opening Date": "2019-04-01", Status: "Active", "Contribution Frequency": "Monthly", "Last Contribution": "2026-05-15", Balance: 12500, "Balance Trend": "Increasing" },
-      { "Savings ID": "S-002", "Member ID": "M-002", "Account Type": "Mandatory", "Opening Date": "2020-08-01", Status: "Active", "Contribution Frequency": "Monthly", "Last Contribution": "2026-05-20", Balance: 8200, "Balance Trend": "Stable" },
-      { "Savings ID": "S-003", "Member ID": "M-003", "Account Type": "Fixed", "Opening Date": "2022-01-15", Status: "Active", "Contribution Frequency": "Quarterly", "Last Contribution": "2026-04-01", Balance: 45000, "Balance Trend": "Increasing" },
+      {
+        "Savings ID": "S-001",
+        "Member ID": "M-001",
+        "Account Type": "Voluntary",
+        "Opening Date": "2019-04-01",
+        Status: "Active",
+        "Contribution Frequency": "Monthly",
+        "Last Contribution": "2026-05-15",
+        Balance: 12500,
+        "Balance Trend": "Increasing",
+      },
+      {
+        "Savings ID": "S-002",
+        "Member ID": "M-002",
+        "Account Type": "Mandatory",
+        "Opening Date": "2020-08-01",
+        Status: "Active",
+        "Contribution Frequency": "Monthly",
+        "Last Contribution": "2026-05-20",
+        Balance: 8200,
+        "Balance Trend": "Stable",
+      },
+      {
+        "Savings ID": "S-003",
+        "Member ID": "M-003",
+        "Account Type": "Fixed",
+        "Opening Date": "2022-01-15",
+        Status: "Active",
+        "Contribution Frequency": "Quarterly",
+        "Last Contribution": "2026-04-01",
+        Balance: 45000,
+        "Balance Trend": "Increasing",
+      },
     ],
     validationRules: [
       "Savings ID must be unique",
@@ -108,12 +181,42 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
     icon: Database,
     description: "Term deposits, maturity dates, and renewal status",
     columns: [
-      "FD ID", "Member ID", "Deposit Type", "Start Date", "Maturity Date",
-      "Status", "Tenure Category", "Interest Rate", "Balance", "Rollover Flag",
+      "FD ID",
+      "Member ID",
+      "Deposit Type",
+      "Start Date",
+      "Maturity Date",
+      "Status",
+      "Tenure Category",
+      "Interest Rate",
+      "Balance",
+      "Rollover Flag",
     ],
     sampleRows: [
-      { "FD ID": "FD-001", "Member ID": "M-001", "Deposit Type": "Medium-term", "Start Date": "2024-06-01", "Maturity Date": "2025-06-01", Status: "Active", "Tenure Category": "6-12m", "Interest Rate": 5.5, Balance: 25000, "Rollover Flag": "Yes" },
-      { "FD ID": "FD-002", "Member ID": "M-002", "Deposit Type": "Short-term", "Start Date": "2025-01-15", "Maturity Date": "2025-04-15", Status: "Matured", "Tenure Category": "3-6m", "Interest Rate": 4.0, Balance: 15000, "Rollover Flag": "No" },
+      {
+        "FD ID": "FD-001",
+        "Member ID": "M-001",
+        "Deposit Type": "Medium-term",
+        "Start Date": "2024-06-01",
+        "Maturity Date": "2025-06-01",
+        Status: "Active",
+        "Tenure Category": "6-12m",
+        "Interest Rate": 5.5,
+        Balance: 25000,
+        "Rollover Flag": "Yes",
+      },
+      {
+        "FD ID": "FD-002",
+        "Member ID": "M-002",
+        "Deposit Type": "Short-term",
+        "Start Date": "2025-01-15",
+        "Maturity Date": "2025-04-15",
+        Status: "Matured",
+        "Tenure Category": "3-6m",
+        "Interest Rate": 4.0,
+        Balance: 15000,
+        "Rollover Flag": "No",
+      },
     ],
     validationRules: [
       "FD ID must be unique",
@@ -129,12 +232,42 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
     icon: FileText,
     description: "Loan portfolio, repayment status, and risk indicators",
     columns: [
-      "Loan ID", "Member ID", "Loan Product Type", "Start Date", "Maturity Date",
-      "Status", "Loan Amount", "Balance", "Days Past Due", "Repayment Regularity",
+      "Loan ID",
+      "Member ID",
+      "Loan Product Type",
+      "Start Date",
+      "Maturity Date",
+      "Status",
+      "Loan Amount",
+      "Balance",
+      "Days Past Due",
+      "Repayment Regularity",
     ],
     sampleRows: [
-      { "Loan ID": "L-001", "Member ID": "M-001", "Loan Product Type": "Agricultural", "Start Date": "2024-01-15", "Maturity Date": "2026-01-15", Status: "Performing", "Loan Amount": 50000, Balance: 35000, "Days Past Due": 0, "Repayment Regularity": "Regular" },
-      { "Loan ID": "L-002", "Member ID": "M-003", "Loan Product Type": "Emergency", "Start Date": "2025-03-01", "Maturity Date": "2025-09-01", Status: "Arrears", "Loan Amount": 8000, Balance: 6500, "Days Past Due": 45, "Repayment Regularity": "Irregular" },
+      {
+        "Loan ID": "L-001",
+        "Member ID": "M-001",
+        "Loan Product Type": "Agricultural",
+        "Start Date": "2024-01-15",
+        "Maturity Date": "2026-01-15",
+        Status: "Performing",
+        "Loan Amount": 50000,
+        Balance: 35000,
+        "Days Past Due": 0,
+        "Repayment Regularity": "Regular",
+      },
+      {
+        "Loan ID": "L-002",
+        "Member ID": "M-003",
+        "Loan Product Type": "Emergency",
+        "Start Date": "2025-03-01",
+        "Maturity Date": "2025-09-01",
+        Status: "Arrears",
+        "Loan Amount": 8000,
+        Balance: 6500,
+        "Days Past Due": 45,
+        "Repayment Regularity": "Irregular",
+      },
     ],
     validationRules: [
       "Loan ID must be unique",
@@ -150,12 +283,42 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
     icon: Database,
     description: "Agricultural and special-purpose loan programs",
     columns: [
-      "Loan ID", "Member ID", "Program Type", "Crop/Activity", "Season",
-      "Loan Amount", "Disbursed Amount", "Balance", "Status", "Repayment Status",
+      "Loan ID",
+      "Member ID",
+      "Program Type",
+      "Crop/Activity",
+      "Season",
+      "Loan Amount",
+      "Disbursed Amount",
+      "Balance",
+      "Status",
+      "Repayment Status",
     ],
     sampleRows: [
-      { "Loan ID": "MP-001", "Member ID": "M-001", "Program Type": "Farm Input", "Crop/Activity": "Maize", Season: "2025/26", "Loan Amount": 15000, "Disbursed Amount": 12000, Balance: 10000, Status: "Active", "Repayment Status": "On Track" },
-      { "Loan ID": "MP-002", "Member ID": "M-002", "Program Type": "Livestock", "Crop/Activity": "Cattle", Season: "2025", "Loan Amount": 25000, "Disbursed Amount": 25000, Balance: 22000, Status: "Active", "Repayment Status": "On Track" },
+      {
+        "Loan ID": "MP-001",
+        "Member ID": "M-001",
+        "Program Type": "Farm Input",
+        "Crop/Activity": "Maize",
+        Season: "2025/26",
+        "Loan Amount": 15000,
+        "Disbursed Amount": 12000,
+        Balance: 10000,
+        Status: "Active",
+        "Repayment Status": "On Track",
+      },
+      {
+        "Loan ID": "MP-002",
+        "Member ID": "M-002",
+        "Program Type": "Livestock",
+        "Crop/Activity": "Cattle",
+        Season: "2025",
+        "Loan Amount": 25000,
+        "Disbursed Amount": 25000,
+        Balance: 22000,
+        Status: "Active",
+        "Repayment Status": "On Track",
+      },
     ],
     validationRules: [
       "Loan ID must be unique",
@@ -182,7 +345,9 @@ function generateSimulatedExtraction(config: DatabaseConfig, fileName: string): 
   }
   warnings.push("Column headers have been auto-mapped to standard field names.");
   if (fileName.toLowerCase().includes("old") || fileName.toLowerCase().includes("2024")) {
-    warnings.push("File appears to be from a previous reporting period. Please verify data currency.");
+    warnings.push(
+      "File appears to be from a previous reporting period. Please verify data currency.",
+    );
   }
 
   return {
@@ -265,7 +430,9 @@ function DatabaseUploader({
     if (!extractionResult) return;
     setStep("complete");
     onUploadComplete(config.id, extractionResult);
-    toast.success(`${config.name}: ${extractionResult.validRows} valid records ready for submission`);
+    toast.success(
+      `${config.name}: ${extractionResult.validRows} valid records ready for submission`,
+    );
   }, [extractionResult, config, onUploadComplete]);
 
   const handleReset = useCallback(() => {
@@ -297,7 +464,11 @@ function DatabaseUploader({
               <CheckCircle2 className="size-3" /> Ready
             </span>
           )}
-          {expanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+          {expanded ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
         </div>
       </button>
 
@@ -331,7 +502,9 @@ function DatabaseUploader({
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
                   <FileSpreadsheet className="size-5 text-success shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{selectedFile.name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {selectedFile.name}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {(selectedFile.size / 1024).toFixed(0)} KB
                     </p>
@@ -377,7 +550,9 @@ function DatabaseUploader({
               <Loader2 className="size-8 text-primary animate-spin" />
               <div className="text-center">
                 <p className="text-sm font-bold text-foreground">Extracting {config.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">Parsing rows and validating data...</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Parsing rows and validating data...
+                </p>
               </div>
               <div className="w-full max-w-xs space-y-2">
                 <Progress value={extractionProgress} className="h-2" />
@@ -396,7 +571,9 @@ function DatabaseUploader({
                   <p className="text-[10px] text-muted-foreground">Valid Rows</p>
                 </div>
                 <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-center">
-                  <p className="text-lg font-bold text-foreground">{extractionResult.invalidRows}</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {extractionResult.invalidRows}
+                  </p>
                   <p className="text-[10px] text-muted-foreground">Need Review</p>
                 </div>
                 <div className="p-3 rounded-lg bg-info/5 border border-info/20 text-center">
@@ -429,12 +606,17 @@ function DatabaseUploader({
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
                         {config.columns.slice(0, 6).map((col) => (
-                          <th key={col} className="px-2 py-1.5 text-left font-semibold text-muted-foreground whitespace-nowrap">
+                          <th
+                            key={col}
+                            className="px-2 py-1.5 text-left font-semibold text-muted-foreground whitespace-nowrap"
+                          >
                             {col}
                           </th>
                         ))}
                         {config.columns.length > 6 && (
-                          <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">...</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground">
+                            ...
+                          </th>
                         )}
                       </tr>
                     </thead>
@@ -509,7 +691,10 @@ interface ExcelDatabaseUploadProps {
   onSubmitToApex?: (completedDbs: DatabaseType[]) => void;
 }
 
-export function ExcelDatabaseUpload({ onUploadComplete, onSubmitToApex }: ExcelDatabaseUploadProps) {
+export function ExcelDatabaseUpload({
+  onUploadComplete,
+  onSubmitToApex,
+}: ExcelDatabaseUploadProps) {
   const [completedDbs, setCompletedDbs] = useState<Set<DatabaseType>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -519,7 +704,7 @@ export function ExcelDatabaseUpload({ onUploadComplete, onSubmitToApex }: ExcelD
       setCompletedDbs((prev) => new Set([...prev, dbType]));
       onUploadComplete?.(dbType, result);
     },
-    [onUploadComplete]
+    [onUploadComplete],
   );
 
   const allCompleted = completedDbs.size === DATABASE_CONFIGS.length;
@@ -581,9 +766,12 @@ export function ExcelDatabaseUpload({ onUploadComplete, onSubmitToApex }: ExcelD
           <div className="flex items-center gap-3">
             <CheckCircle2 className="size-6 text-success shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-bold text-foreground">All Databases Ready for Submission</p>
+              <p className="text-sm font-bold text-foreground">
+                All Databases Ready for Submission
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                All 5 databases have been uploaded and validated. You can now submit to your Apex for review.
+                All 5 databases have been uploaded and validated. You can now submit to your Apex
+                for review.
               </p>
             </div>
             <button
@@ -610,7 +798,8 @@ export function ExcelDatabaseUpload({ onUploadComplete, onSubmitToApex }: ExcelD
             <div className="flex-1">
               <p className="text-sm font-bold text-foreground">Submission Sent to Apex</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Your 5 databases have been submitted for review. You will be notified once the Apex officer approves or requests changes.
+                Your 5 databases have been submitted for review. You will be notified once the Apex
+                officer approves or requests changes.
               </p>
             </div>
           </div>

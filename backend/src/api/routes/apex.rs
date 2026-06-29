@@ -10,7 +10,7 @@
 
 use axum::{
     extract::{Extension, Path, State},
-    routing::{delete, get, patch, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -44,7 +44,10 @@ use crate::AppState;
 pub fn apex_routes() -> Router<AppState> {
     Router::new()
         // Cooperative CRUD
-        .route("/cooperatives", post(create_cooperative).get(list_cooperatives))
+        .route(
+            "/cooperatives",
+            post(create_cooperative).get(list_cooperatives),
+        )
         .route(
             "/cooperatives/{id}",
             get(get_cooperative)
@@ -80,13 +83,13 @@ pub fn apex_routes() -> Router<AppState> {
 /// 5. Return created cooperative
 async fn create_cooperative(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // Get user's apex group ID for scope enforcement
     let _apex_id = ScopeEnforcement::get_apex_group_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "create_cooperative - TODO",
@@ -99,12 +102,12 @@ async fn create_cooperative(
 /// Apex-only endpoint. Results are scoped to user's group.
 async fn list_cooperatives(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     let _apex_id = ScopeEnforcement::get_apex_group_id(&claims)?;
-    
+
     // TODO: Implement - filter by apex_id
     Ok(Json(serde_json::json!({
         "message": "list_cooperatives - TODO",
@@ -117,11 +120,11 @@ async fn list_cooperatives(
 /// Apex-only endpoint with scope enforcement.
 async fn get_cooperative(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // TODO: Implement scope enforcement - verify cooperative belongs to user's apex
     Ok(Json(serde_json::json!({
         "message": "get_cooperative - TODO",
@@ -133,11 +136,11 @@ async fn get_cooperative(
 /// Apex-only endpoint with scope enforcement.
 async fn update_cooperative(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "update_cooperative - TODO",
@@ -149,11 +152,11 @@ async fn update_cooperative(
 /// Apex-only endpoint with scope enforcement.
 async fn delete_cooperative(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "delete_cooperative - TODO",
@@ -165,11 +168,11 @@ async fn delete_cooperative(
 /// Apex-only endpoint with scope enforcement.
 async fn add_cooperative_member(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "add_cooperative_member - TODO",
@@ -181,11 +184,11 @@ async fn add_cooperative_member(
 /// Apex-only endpoint with scope enforcement.
 async fn list_cooperative_members(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "list_cooperative_members - TODO",
@@ -198,11 +201,11 @@ async fn list_cooperative_members(
 /// Apex-only endpoint with scope enforcement.
 async fn remove_cooperative_member(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "remove_cooperative_member - TODO",
@@ -215,12 +218,12 @@ async fn remove_cooperative_member(
 /// Apex-only endpoint.
 async fn get_apex_profile(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_apex(&claims)?;
-    
+
     let apex_id = ScopeEnforcement::get_apex_group_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "get_apex_profile - TODO",

@@ -10,7 +10,7 @@
 //! Cooperative users have read-only access; Apex users can manage cooperatives.
 
 use axum::{
-    extract::{Extension, Path, State},
+    extract::{Extension, State},
     routing::get,
     Json, Router,
 };
@@ -62,12 +62,12 @@ pub fn cooperative_routes() -> Router<AppState> {
 /// - `apex` role: Can view cooperatives they manage
 async fn get_cooperative_dashboard(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_cooperative_or_apex(&claims)?;
-    
+
     let coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-    
+
     // TODO: Implement
     // - Fetch cooperative data
     // - Calculate stats (member count, assessment status, etc.)
@@ -92,12 +92,12 @@ async fn get_cooperative_dashboard(
 /// - `apex` role: Can edit (use apex routes for editing)
 async fn get_cooperative_profile(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_cooperative_or_apex(&claims)?;
-    
+
     let coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "get_cooperative_profile - TODO",
@@ -118,12 +118,12 @@ async fn get_cooperative_profile(
 /// - `apex` role: Can edit (use apex routes for editing)
 async fn list_cooperative_members_view(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_cooperative_or_apex(&claims)?;
-    
+
     let coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "list_cooperative_members_view - TODO",
@@ -143,12 +143,12 @@ async fn list_cooperative_members_view(
 /// Dimensions come from the `assigned_dimensions` claim in the JWT token.
 async fn get_assigned_dimensions(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_cooperative_or_apex(&claims)?;
-    
+
     let dimensions = claims.get_assigned_dimensions();
-    
+
     // TODO: Implement
     // - Optionally enrich dimension IDs with names from database
     Ok(Json(serde_json::json!({

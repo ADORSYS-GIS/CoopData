@@ -238,9 +238,7 @@ function SubmissionsPage() {
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <span className="inline-flex items-center gap-1 text-xs font-bold text-accent group-hover:underline">
-                          {canValidate && s.status === "Pending Review"
-                            ? "Review"
-                            : "View"}{" "}
+                          {canValidate && s.status === "Pending Review" ? "Review" : "View"}{" "}
                           <ChevronRight className="size-3" />
                         </span>
                       </td>

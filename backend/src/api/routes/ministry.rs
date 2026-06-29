@@ -9,7 +9,7 @@
 
 use axum::{
     extract::{Extension, Path, State},
-    routing::{delete, get, patch, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -39,7 +39,10 @@ use crate::AppState;
 pub fn ministry_routes() -> Router<AppState> {
     Router::new()
         // Federation CRUD
-        .route("/federations", post(create_federation).get(list_federations))
+        .route(
+            "/federations",
+            post(create_federation).get(list_federations),
+        )
         .route(
             "/federations/{id}",
             get(get_federation)
@@ -78,10 +81,10 @@ pub fn ministry_routes() -> Router<AppState> {
 /// 4. Return created federation
 async fn create_federation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "create_federation - TODO",
@@ -93,10 +96,10 @@ async fn create_federation(
 /// Ministry-only endpoint.
 async fn list_federations(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "list_federations - TODO",
@@ -108,11 +111,11 @@ async fn list_federations(
 /// Ministry-only endpoint.
 async fn get_federation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "get_federation - TODO",
@@ -124,11 +127,11 @@ async fn get_federation(
 /// Ministry-only endpoint.
 async fn update_federation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "update_federation - TODO",
@@ -140,11 +143,11 @@ async fn update_federation(
 /// Ministry-only endpoint.
 async fn delete_federation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "delete_federation - TODO",
@@ -156,11 +159,11 @@ async fn delete_federation(
 /// Ministry-only endpoint.
 async fn invite_user_to_federation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "invite_user_to_federation - TODO",
@@ -172,11 +175,11 @@ async fn invite_user_to_federation(
 /// Ministry-only endpoint.
 async fn list_federation_invitations(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "list_federation_invitations - TODO",
@@ -188,11 +191,11 @@ async fn list_federation_invitations(
 /// Ministry-only endpoint.
 async fn cancel_federation_invitation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path((federation_id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "cancel_federation_invitation - TODO",
@@ -205,11 +208,11 @@ async fn cancel_federation_invitation(
 /// Ministry-only endpoint.
 async fn resend_federation_invitation(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path((federation_id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "resend_federation_invitation - TODO",
@@ -222,11 +225,11 @@ async fn resend_federation_invitation(
 /// Ministry-only endpoint.
 async fn list_federation_members(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_ministry(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "list_federation_members - TODO",

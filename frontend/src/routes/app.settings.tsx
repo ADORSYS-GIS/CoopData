@@ -100,9 +100,7 @@ function SettingsPage() {
                 <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-accent transition-colors mt-1" />
               </div>
               <p className="mt-3 text-sm font-semibold text-foreground">{g.title}</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                {g.desc}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{g.desc}</p>
             </button>
           ))}
         </div>
@@ -119,7 +117,9 @@ function SettingsPage() {
                   <p.icon className="size-4 text-muted-foreground shrink-0" />
                   <span className="text-sm text-foreground">{p.k}</span>
                 </div>
-                <span className="text-sm font-medium text-foreground shrink-0 tabular-nums">{p.v}</span>
+                <span className="text-sm font-medium text-foreground shrink-0 tabular-nums">
+                  {p.v}
+                </span>
               </div>
             ))}
           </div>
@@ -134,20 +134,23 @@ function SettingsPage() {
         </Card>
 
         {/* Notification Preferences */}
-        <Card title="Notification Channels" subtitle="Default delivery methods for system events and compliance alerts">
+        <Card
+          title="Notification Channels"
+          subtitle="Default delivery methods for system events and compliance alerts"
+        >
           <div className="grid md:grid-cols-3 gap-4">
             {channels.map((n) => (
               <button
                 key={n.channel}
                 onClick={() => toggleChannel(n.channel)}
                 className={`rounded-lg border p-4 text-left transition-all hover-lift ${
-                  n.enabled
-                    ? "border-accent/25 bg-accent/[0.03]"
-                    : "border-border bg-surface"
+                  n.enabled ? "border-accent/25 bg-accent/[0.03]" : "border-border bg-surface"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className={`size-8 rounded-lg grid place-items-center ${n.enabled ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>
+                  <div
+                    className={`size-8 rounded-lg grid place-items-center ${n.enabled ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}
+                  >
                     <n.icon className="size-4" />
                   </div>
                   {/* Toggle switch */}

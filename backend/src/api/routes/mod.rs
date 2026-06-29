@@ -7,8 +7,8 @@
 //! - `cooperative` - Level 4: End user routes (requires `cooperative` or `apex` role)
 //! - `shared` - Shared routes accessible by multiple roles
 
-mod api;
 mod apex;
+mod api;
 mod cooperative;
 mod federation;
 mod ministry;

@@ -50,11 +50,46 @@ function DataCollectionPage() {
   const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
 
   const [activeQuestionnaires] = useState([
-    { name: "Quarterly Financial Filing", v: "v4.2", submissions: 412, status: "Live", tone: "success" as const, category: "Financial" },
-    { name: "Annual Compliance Disclosure", v: "v2.1", submissions: 188, status: "Live", tone: "success" as const, category: "Compliance" },
-    { name: "Membership Census 2025", v: "v1.0", submissions: 1204, status: "Live", tone: "success" as const, category: "Census" },
-    { name: "Loan Portfolio Stress Test", v: "v1.3", submissions: 84, status: "Draft", tone: "neutral" as const, category: "Financial" },
-    { name: "Field Audit Visit Form", v: "v3.0", submissions: 642, status: "Live", tone: "success" as const, category: "Audit" },
+    {
+      name: "Quarterly Financial Filing",
+      v: "v4.2",
+      submissions: 412,
+      status: "Live",
+      tone: "success" as const,
+      category: "Financial",
+    },
+    {
+      name: "Annual Compliance Disclosure",
+      v: "v2.1",
+      submissions: 188,
+      status: "Live",
+      tone: "success" as const,
+      category: "Compliance",
+    },
+    {
+      name: "Membership Census 2025",
+      v: "v1.0",
+      submissions: 1204,
+      status: "Live",
+      tone: "success" as const,
+      category: "Census",
+    },
+    {
+      name: "Loan Portfolio Stress Test",
+      v: "v1.3",
+      submissions: 84,
+      status: "Draft",
+      tone: "neutral" as const,
+      category: "Financial",
+    },
+    {
+      name: "Field Audit Visit Form",
+      v: "v3.0",
+      submissions: 642,
+      status: "Live",
+      tone: "success" as const,
+      category: "Audit",
+    },
   ]);
 
   // ── Cooperative View: Upload-first, no manual entry ──
@@ -67,10 +102,34 @@ function DataCollectionPage() {
         <div className="space-y-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={CheckCircle2} label="Databases Ready" value="4/5" subtitle="Almost complete" tone="success" />
-            <StatCard icon={FileSpreadsheet} label="Financial Statement" value="Extracted" subtitle="Data populated" tone="primary" />
-            <StatCard icon={Database} label="Total Records" value="24,810" subtitle="Across all databases" tone="accent" />
-            <StatCard icon={Clock} label="Next Deadline" value="Jul 15" subtitle="Q4 filing closes" tone="warning" />
+            <StatCard
+              icon={CheckCircle2}
+              label="Databases Ready"
+              value="4/5"
+              subtitle="Almost complete"
+              tone="success"
+            />
+            <StatCard
+              icon={FileSpreadsheet}
+              label="Financial Statement"
+              value="Extracted"
+              subtitle="Data populated"
+              tone="primary"
+            />
+            <StatCard
+              icon={Database}
+              label="Total Records"
+              value="24,810"
+              subtitle="Across all databases"
+              tone="accent"
+            />
+            <StatCard
+              icon={Clock}
+              label="Next Deadline"
+              value="Jul 15"
+              subtitle="Q4 filing closes"
+              tone="warning"
+            />
           </div>
 
           {/* Financial Statement Upload */}
@@ -100,9 +159,12 @@ function DataCollectionPage() {
               <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
                 <CheckCircle2 className="size-5 text-success shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Financial statement processed</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    Financial statement processed
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    All account codes and figures have been extracted. Your financial data is ready for submission.
+                    All account codes and figures have been extracted. Your financial data is ready
+                    for submission.
                   </p>
                 </div>
                 <button
@@ -121,7 +183,8 @@ function DataCollectionPage() {
                   Upload your financial statement
                 </p>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  Upload a PDF or image of your audited balance sheet. We'll extract all financial data automatically — no manual entry needed.
+                  Upload a PDF or image of your audited balance sheet. We'll extract all financial
+                  data automatically — no manual entry needed.
                 </p>
                 <button
                   onClick={() => setShowFinancialUpload(true)}
@@ -146,11 +209,15 @@ function DataCollectionPage() {
           </Card>
 
           {/* Filing Instructions */}
-          <Card title="Filing Guidelines" subtitle="Important information about your data submissions">
+          <Card
+            title="Filing Guidelines"
+            subtitle="Important information about your data submissions"
+          >
             <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
               <p>
-                As a cooperative manager, you are required to submit your financial data through the upload process above. 
-                Simply upload your audited financial statement and Excel database sheets — the system will extract and validate all data automatically.
+                As a cooperative manager, you are required to submit your financial data through the
+                upload process above. Simply upload your audited financial statement and Excel
+                database sheets — the system will extract and validate all data automatically.
               </p>
               <div className="p-4 rounded-xl bg-accent/5 border border-accent/15">
                 <div className="flex items-center gap-2 mb-2">
@@ -158,7 +225,8 @@ function DataCollectionPage() {
                   <span className="font-semibold text-foreground">Next Deadline</span>
                 </div>
                 <p className="text-xs text-foreground/80">
-                  Q4 reporting cycle closes on <strong>July 1, 2026</strong>. Avoid penalties by filing before July 15.
+                  Q4 reporting cycle closes on <strong>July 1, 2026</strong>. Avoid penalties by
+                  filing before July 15.
                 </p>
               </div>
               <ul className="space-y-2">
@@ -189,7 +257,9 @@ function DataCollectionPage() {
       actions={
         !isReadOnly ? (
           <button
-            onClick={() => toast.success("Simulation: Opened new empty questionnaire draft canvas.")}
+            onClick={() =>
+              toast.success("Simulation: Opened new empty questionnaire draft canvas.")
+            }
             className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 hover:bg-primary/90 transition-colors shadow-sm press-feedback"
           >
             <Plus className="size-4" /> New questionnaire
@@ -214,10 +284,34 @@ function DataCollectionPage() {
 
         {/* KPI Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Wifi} label="Online users" value="412" subtitle="Active field officers" tone="success" />
-          <StatCard icon={WifiOff} label="Offline (queued)" value="38" subtitle="Auto-sync on reconnect" tone="warning" />
-          <StatCard icon={ClipboardList} label="Active questionnaires" value={activeQuestionnaires.length.toString()} subtitle="Published forms" tone="primary" />
-          <StatCard icon={BarChart3} label="Submissions today" value="1,284" subtitle="Incoming data" tone="accent" />
+          <StatCard
+            icon={Wifi}
+            label="Online users"
+            value="412"
+            subtitle="Active field officers"
+            tone="success"
+          />
+          <StatCard
+            icon={WifiOff}
+            label="Offline (queued)"
+            value="38"
+            subtitle="Auto-sync on reconnect"
+            tone="warning"
+          />
+          <StatCard
+            icon={ClipboardList}
+            label="Active questionnaires"
+            value={activeQuestionnaires.length.toString()}
+            subtitle="Published forms"
+            tone="primary"
+          />
+          <StatCard
+            icon={BarChart3}
+            label="Submissions today"
+            value="1,284"
+            subtitle="Incoming data"
+            tone="accent"
+          />
         </div>
 
         {/* Form Builder + Palette */}
@@ -225,7 +319,11 @@ function DataCollectionPage() {
           <Card
             className="lg:col-span-2"
             title="Form builder — Quarterly Financial Filing"
-            subtitle={isReadOnly ? "Drag actions disabled (View only)" : "Drag fields to compose · Conditional logic · No-code"}
+            subtitle={
+              isReadOnly
+                ? "Drag actions disabled (View only)"
+                : "Drag fields to compose · Conditional logic · No-code"
+            }
             action={
               <div className="flex gap-2">
                 <button
@@ -256,14 +354,18 @@ function DataCollectionPage() {
                 <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Zap className="size-3.5 text-warning-foreground shrink-0" />
-                    <span className="text-sm truncate">Show "Loan provisions" if portfolio &gt; $1M</span>
+                    <span className="text-sm truncate">
+                      Show "Loan provisions" if portfolio &gt; $1M
+                    </span>
                   </div>
                   <ToggleRight className="size-4 text-success shrink-0" />
                 </li>
                 <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Zap className="size-3.5 text-warning-foreground shrink-0" />
-                    <span className="text-sm truncate">Require audit doc if status = "Verified"</span>
+                    <span className="text-sm truncate">
+                      Require audit doc if status = "Verified"
+                    </span>
                   </div>
                   <ToggleRight className="size-4 text-success shrink-0" />
                 </li>
@@ -273,7 +375,10 @@ function DataCollectionPage() {
         </div>
 
         {/* Active Templates List */}
-        <Card title="Active templates" subtitle="Currently distributed across the national data grid">
+        <Card
+          title="Active templates"
+          subtitle="Currently distributed across the national data grid"
+        >
           <ul className="divide-y divide-border -my-2">
             {activeQuestionnaires.map((q) => (
               <li
@@ -281,9 +386,9 @@ function DataCollectionPage() {
                 className="py-3.5 flex items-center gap-4 group hover:bg-muted/20 -mx-5 px-5 transition-colors cursor-pointer"
                 onClick={() => toast.info(`Opening configuration console for ${q.name}`)}
               >
-<div
-                   className={`size-10 rounded-xl grid place-items-center shrink-0 bg-muted text-muted-foreground`}
-                 >
+                <div
+                  className={`size-10 rounded-xl grid place-items-center shrink-0 bg-muted text-muted-foreground`}
+                >
                   <ClipboardList className="size-5" />
                 </div>
                 <div className="flex-1 min-w-0">

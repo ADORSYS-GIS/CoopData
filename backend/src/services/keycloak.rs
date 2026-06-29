@@ -1,18 +1,18 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use chrono::Utc;
 use reqwest::Client;
 use serde::Serialize;
 use serde_json::json;
-use tracing::{info, warn, error};
-use chrono::Utc;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 
 use crate::config::AppConfig;
 use crate::error::AppError;
 use crate::models::keycloak::{
-    KeycloakToken, KeycloakUser, KeycloakOrganization, KeycloakOrganizationCreate,
-    KeycloakOrganizationDomain, KeycloakGroup, KeycloakGroupCreate, KeycloakInvitation,
-    KeycloakMember, KeycloakRole, KeycloakClientRole,
+    KeycloakClientRole, KeycloakGroup, KeycloakGroupCreate, KeycloakInvitation, KeycloakMember,
+    KeycloakOrganization, KeycloakOrganizationCreate, KeycloakOrganizationDomain, KeycloakRole,
+    KeycloakToken, KeycloakUser,
 };
 
 #[derive(Clone)]
@@ -139,7 +139,8 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         let access_token = token.access_token.clone();
-        let expires_at = Utc::now() + chrono::Duration::seconds(token.expires_in.saturating_sub(10));
+        let expires_at =
+            Utc::now() + chrono::Duration::seconds(token.expires_in.saturating_sub(10));
 
         {
             let mut cached = self.admin_token.write().await;
@@ -166,7 +167,8 @@ impl KeycloakService {
 
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/clients?clientId=realm-management", self.realm_url());
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -175,14 +177,19 @@ impl KeycloakService {
 
         check_response!(response, "Failed to find realm-management client");
 
-        let clients: Vec<serde_json::Value> = response.json().await
+        let clients: Vec<serde_json::Value> = response
+            .json()
+            .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        let client_id = clients.first()
+        let client_id = clients
+            .first()
             .and_then(|c| c.get("id"))
             .and_then(|id| id.as_str())
             .map(String::from)
-            .ok_or_else(|| AppError::ExternalServiceError("realm-management client not found".into()))?;
+            .ok_or_else(|| {
+                AppError::ExternalServiceError("realm-management client not found".into())
+            })?;
 
         {
             let mut cached = self.realm_management_client_id.write().await;
@@ -202,7 +209,8 @@ impl KeycloakService {
 
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/clients?clientId=account", self.realm_url());
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -211,10 +219,13 @@ impl KeycloakService {
 
         check_response!(response, "Failed to find account client");
 
-        let clients: Vec<serde_json::Value> = response.json().await
+        let clients: Vec<serde_json::Value> = response
+            .json()
+            .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        let client_id = clients.first()
+        let client_id = clients
+            .first()
             .and_then(|c| c.get("id"))
             .and_then(|id| id.as_str())
             .map(String::from)
@@ -235,7 +246,8 @@ impl KeycloakService {
     pub async fn verify_token(&self, token: &str) -> Result<KeycloakUser, AppError> {
         let url = format!("{}/protocol/openid-connect/userinfo", self.openid_url());
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(token)
             .send()
@@ -292,7 +304,9 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         if response.status().as_u16() == 409 {
-            return Err(AppError::Conflict("User with this email already exists".into()));
+            return Err(AppError::Conflict(
+                "User with this email already exists".into(),
+            ));
         }
         check_response!(response, "Failed to create Keycloak user");
 
@@ -310,8 +324,9 @@ impl KeycloakService {
 
         if keycloak_id.is_empty() {
             let users = self.search_users_by_email(&token, email).await?;
-            return users.into_iter().next()
-                .ok_or_else(|| AppError::ExternalServiceError("User created but ID not found".into()));
+            return users.into_iter().next().ok_or_else(|| {
+                AppError::ExternalServiceError("User created but ID not found".into())
+            });
         }
 
         self.assign_realm_role(&token, &keycloak_id, role).await?;
@@ -357,11 +372,17 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         if response.status().as_u16() == 409 {
-            return Err(AppError::Conflict("User with this email already exists".into()));
+            return Err(AppError::Conflict(
+                "User with this email already exists".into(),
+            ));
         }
-        check_response!(response, "Failed to create Keycloak user with email verification");
+        check_response!(
+            response,
+            "Failed to create Keycloak user with email verification"
+        );
 
-        let location = response.headers()
+        let location = response
+            .headers()
             .get("location")
             .and_then(|v| v.to_str().ok())
             .map(String::from);
@@ -374,19 +395,26 @@ impl KeycloakService {
 
         if keycloak_id.is_empty() {
             let users = self.search_users_by_email(&token, email).await?;
-            return users.into_iter().next()
-                .ok_or_else(|| AppError::ExternalServiceError("User created but ID not found".into()));
+            return users.into_iter().next().ok_or_else(|| {
+                AppError::ExternalServiceError("User created but ID not found".into())
+            });
         }
 
         self.assign_realm_role(&token, &keycloak_id, role).await?;
-        self.trigger_email_verification(&token, &keycloak_id).await?;
+        self.trigger_email_verification(&token, &keycloak_id)
+            .await?;
 
         self.get_user_by_id_raw(&token, &keycloak_id).await
     }
 
-    pub async fn search_users_by_email(&self, access_token: &str, email: &str) -> Result<Vec<KeycloakUser>, AppError> {
+    pub async fn search_users_by_email(
+        &self,
+        access_token: &str,
+        email: &str,
+    ) -> Result<Vec<KeycloakUser>, AppError> {
         let url = format!("{}/users?email={}", self.realm_url(), email);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(access_token)
             .send()
@@ -394,12 +422,20 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to search users by email");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    async fn get_user_by_id_raw(&self, access_token: &str, keycloak_id: &str) -> Result<KeycloakUser, AppError> {
+    async fn get_user_by_id_raw(
+        &self,
+        access_token: &str,
+        keycloak_id: &str,
+    ) -> Result<KeycloakUser, AppError> {
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(access_token)
             .send()
@@ -407,7 +443,10 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to get Keycloak user by ID");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
     pub async fn get_user_by_id(&self, keycloak_id: &str) -> Result<KeycloakUser, AppError> {
@@ -415,12 +454,17 @@ impl KeycloakService {
         self.get_user_by_id_raw(&token, keycloak_id).await
     }
 
-    pub async fn update_user_attributes(&self, keycloak_id: &str, attributes: HashMap<String, Vec<String>>) -> Result<(), AppError> {
+    pub async fn update_user_attributes(
+        &self,
+        keycloak_id: &str,
+        attributes: HashMap<String, Vec<String>>,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
         let body = json!({ "attributes": attributes });
 
-        let response = self.client
+        let response = self
+            .client
             .put(&url)
             .bearer_auth(&token)
             .json(&body)
@@ -454,7 +498,8 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/users/{}/groups", self.realm_url(), keycloak_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -462,14 +507,21 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to get user groups");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn get_user_organizations(&self, keycloak_id: &str) -> Result<Vec<KeycloakOrganization>, AppError> {
+    pub async fn get_user_organizations(
+        &self,
+        keycloak_id: &str,
+    ) -> Result<Vec<KeycloakOrganization>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/users/{}/organizations", self.realm_url(), keycloak_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -477,14 +529,26 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to get user organizations");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    async fn trigger_email_verification(&self, access_token: &str, keycloak_id: &str) -> Result<(), AppError> {
-        let url = format!("{}/users/{}/execute-actions-email", self.realm_url(), keycloak_id);
+    async fn trigger_email_verification(
+        &self,
+        access_token: &str,
+        keycloak_id: &str,
+    ) -> Result<(), AppError> {
+        let url = format!(
+            "{}/users/{}/execute-actions-email",
+            self.realm_url(),
+            keycloak_id
+        );
         let actions = vec!["VERIFY_EMAIL"];
 
-        let response = self.client
+        let response = self
+            .client
             .put(&url)
             .bearer_auth(access_token)
             .json(&actions)
@@ -502,9 +566,14 @@ impl KeycloakService {
     // ROLE OPERATIONS
     // ═══════════════════════════════════════════════════════════
 
-    async fn get_realm_role(&self, access_token: &str, role_name: &str) -> Result<KeycloakRole, AppError> {
+    async fn get_realm_role(
+        &self,
+        access_token: &str,
+        role_name: &str,
+    ) -> Result<KeycloakRole, AppError> {
         let url = format!("{}/roles/{}", self.realm_url(), role_name);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(access_token)
             .send()
@@ -512,18 +581,31 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Realm role not found");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn assign_realm_role(&self, access_token: &str, keycloak_id: &str, role_name: &str) -> Result<(), AppError> {
+    pub async fn assign_realm_role(
+        &self,
+        access_token: &str,
+        keycloak_id: &str,
+        role_name: &str,
+    ) -> Result<(), AppError> {
         let role = self.get_realm_role(access_token, role_name).await?;
-        let url = format!("{}/users/{}/role-mappings/realm", self.realm_url(), keycloak_id);
+        let url = format!(
+            "{}/users/{}/role-mappings/realm",
+            self.realm_url(),
+            keycloak_id
+        );
         let body = vec![KeycloakRoleMapping {
             id: role.id.clone(),
             name: role.name.clone(),
         }];
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(access_token)
             .json(&body)
@@ -536,9 +618,20 @@ impl KeycloakService {
         Ok(())
     }
 
-    async fn get_client_role(&self, access_token: &str, client_id: &str, role_name: &str) -> Result<KeycloakClientRole, AppError> {
-        let url = format!("{}/clients/{}/roles/{}", self.realm_url(), client_id, role_name);
-        let response = self.client
+    async fn get_client_role(
+        &self,
+        access_token: &str,
+        client_id: &str,
+        role_name: &str,
+    ) -> Result<KeycloakClientRole, AppError> {
+        let url = format!(
+            "{}/clients/{}/roles/{}",
+            self.realm_url(),
+            client_id,
+            role_name
+        );
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(access_token)
             .send()
@@ -546,21 +639,38 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Client role not found");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    async fn assign_client_role(&self, access_token: &str, keycloak_id: &str, client_id: &str, role_names: &[&str]) -> Result<(), AppError> {
+    async fn assign_client_role(
+        &self,
+        access_token: &str,
+        keycloak_id: &str,
+        client_id: &str,
+        role_names: &[&str],
+    ) -> Result<(), AppError> {
         let mut roles = Vec::new();
         for role_name in role_names {
-            let role = self.get_client_role(access_token, client_id, role_name).await?;
+            let role = self
+                .get_client_role(access_token, client_id, role_name)
+                .await?;
             roles.push(json!({
                 "id": role.id,
                 "name": role.name
             }));
         }
 
-        let url = format!("{}/users/{}/role-mappings/clients/{}", self.realm_url(), keycloak_id, client_id);
-        let response = self.client
+        let url = format!(
+            "{}/users/{}/role-mappings/clients/{}",
+            self.realm_url(),
+            keycloak_id,
+            client_id
+        );
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(access_token)
             .json(&roles)
@@ -575,14 +685,26 @@ impl KeycloakService {
 
     pub async fn assign_federation_roles(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        self.assign_realm_role(&token, keycloak_id, "federation").await?;
+        self.assign_realm_role(&token, keycloak_id, "federation")
+            .await?;
 
         let rm_client_id = self.get_realm_management_client_id().await?;
-        let rm_roles = &["manage-users", "view-users", "query-users", "manage-organizations", "query-groups", "view-realm", "query-clients", "view-clients"];
-        self.assign_client_role(&token, keycloak_id, &rm_client_id, rm_roles).await?;
+        let rm_roles = &[
+            "manage-users",
+            "view-users",
+            "query-users",
+            "manage-organizations",
+            "query-groups",
+            "view-realm",
+            "query-clients",
+            "view-clients",
+        ];
+        self.assign_client_role(&token, keycloak_id, &rm_client_id, rm_roles)
+            .await?;
 
         let account_client_id = self.get_account_client_id().await?;
-        self.assign_client_role(&token, keycloak_id, &account_client_id, &["view-groups"]).await?;
+        self.assign_client_role(&token, keycloak_id, &account_client_id, &["view-groups"])
+            .await?;
 
         Ok(())
     }
@@ -592,25 +714,38 @@ impl KeycloakService {
         self.assign_realm_role(&token, keycloak_id, "apex").await?;
 
         let rm_client_id = self.get_realm_management_client_id().await?;
-        let rm_roles = &["manage-users", "view-users", "query-users", "query-groups", "view-realm", "query-clients", "view-clients"];
-        self.assign_client_role(&token, keycloak_id, &rm_client_id, rm_roles).await?;
+        let rm_roles = &[
+            "manage-users",
+            "view-users",
+            "query-users",
+            "query-groups",
+            "view-realm",
+            "query-clients",
+            "view-clients",
+        ];
+        self.assign_client_role(&token, keycloak_id, &rm_client_id, rm_roles)
+            .await?;
 
         let account_client_id = self.get_account_client_id().await?;
-        self.assign_client_role(&token, keycloak_id, &account_client_id, &["view-groups"]).await?;
+        self.assign_client_role(&token, keycloak_id, &account_client_id, &["view-groups"])
+            .await?;
 
         Ok(())
     }
 
     pub async fn assign_cooperative_roles(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        self.assign_realm_role(&token, keycloak_id, "cooperative").await?;
+        self.assign_realm_role(&token, keycloak_id, "cooperative")
+            .await?;
 
         let rm_client_id = self.get_realm_management_client_id().await?;
         let rm_roles = &["query-groups", "view-users"];
-        self.assign_client_role(&token, keycloak_id, &rm_client_id, rm_roles).await?;
+        self.assign_client_role(&token, keycloak_id, &rm_client_id, rm_roles)
+            .await?;
 
         let account_client_id = self.get_account_client_id().await?;
-        self.assign_client_role(&token, keycloak_id, &account_client_id, &["view-groups"]).await?;
+        self.assign_client_role(&token, keycloak_id, &account_client_id, &["view-groups"])
+            .await?;
 
         Ok(())
     }
@@ -624,7 +759,13 @@ impl KeycloakService {
     // ORGANIZATION (FEDERATION) OPERATIONS
     // ═══════════════════════════════════════════════════════════
 
-    pub async fn create_organization(&self, name: &str, domains: Vec<KeycloakOrganizationDomain>, redirect_url: Option<String>, attributes: Option<HashMap<String, Vec<String>>>) -> Result<KeycloakOrganization, AppError> {
+    pub async fn create_organization(
+        &self,
+        name: &str,
+        domains: Vec<KeycloakOrganizationDomain>,
+        redirect_url: Option<String>,
+        attributes: Option<HashMap<String, Vec<String>>>,
+    ) -> Result<KeycloakOrganization, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations", self.realm_url());
 
@@ -636,7 +777,8 @@ impl KeycloakService {
             attributes,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&payload)
@@ -649,17 +791,21 @@ impl KeycloakService {
         }
         check_response!(response, "Failed to create organization");
 
-        self.get_organizations().await?
+        self.get_organizations()
+            .await?
             .into_iter()
             .find(|o| o.name == name)
-            .ok_or_else(|| AppError::ExternalServiceError("Organization created but not found".into()))
+            .ok_or_else(|| {
+                AppError::ExternalServiceError("Organization created but not found".into())
+            })
     }
 
     pub async fn get_organizations(&self) -> Result<Vec<KeycloakOrganization>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations", self.realm_url());
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -667,14 +813,21 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to list organizations");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn get_organization_by_id(&self, org_id: &str) -> Result<KeycloakOrganization, AppError> {
+    pub async fn get_organization_by_id(
+        &self,
+        org_id: &str,
+    ) -> Result<KeycloakOrganization, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations/{}", self.realm_url(), org_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -682,10 +835,20 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Organization not found");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn update_organization(&self, org_id: &str, name: Option<&str>, description: Option<&str>, domains: Option<Vec<KeycloakOrganizationDomain>>, attributes: Option<HashMap<String, Vec<String>>>) -> Result<KeycloakOrganization, AppError> {
+    pub async fn update_organization(
+        &self,
+        org_id: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+        domains: Option<Vec<KeycloakOrganizationDomain>>,
+        attributes: Option<HashMap<String, Vec<String>>>,
+    ) -> Result<KeycloakOrganization, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations/{}", self.realm_url(), org_id);
 
@@ -703,7 +866,8 @@ impl KeycloakService {
             body["attributes"] = json!(attrs);
         }
 
-        let response = self.client
+        let response = self
+            .client
             .put(&url)
             .bearer_auth(&token)
             .json(&body)
@@ -719,7 +883,8 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations/{}", self.realm_url(), org_id);
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token)
             .send()
@@ -735,18 +900,30 @@ impl KeycloakService {
     // ORGANIZATION INVITATIONS
     // ═══════════════════════════════════════════════════════════
 
-    pub async fn invite_user_to_organization(&self, org_id: &str, email: &str, first_name: &str, last_name: &str, role: &str, _redirect_url: &str) -> Result<KeycloakInvitation, AppError> {
+    pub async fn invite_user_to_organization(
+        &self,
+        org_id: &str,
+        email: &str,
+        first_name: &str,
+        last_name: &str,
+        role: &str,
+        _redirect_url: &str,
+    ) -> Result<KeycloakInvitation, AppError> {
         let token = self.get_cached_admin_token().await?;
 
         let users = self.search_users_by_email(&token, email).await?;
         let keycloak_id = if let Some(existing_user) = users.first() {
             let user_groups = self.get_user_groups(&existing_user.id).await?;
             if !user_groups.is_empty() {
-                return Err(AppError::Conflict("User is already a member of a group".into()));
+                return Err(AppError::Conflict(
+                    "User is already a member of a group".into(),
+                ));
             }
             let user_orgs = self.get_user_organizations(&existing_user.id).await?;
             if !user_orgs.is_empty() {
-                return Err(AppError::Conflict("User is already a member of another organization".into()));
+                return Err(AppError::Conflict(
+                    "User is already a member of another organization".into(),
+                ));
             }
 
             match role {
@@ -759,22 +936,34 @@ impl KeycloakService {
             existing_user.id.clone()
         } else {
             let temp_password = format!("Temp{}!", Utc::now().timestamp());
-            let new_user = self.create_user_with_email_verification(
-                email, first_name, last_name, role, &temp_password, None,
-            ).await?;
+            let new_user = self
+                .create_user_with_email_verification(
+                    email,
+                    first_name,
+                    last_name,
+                    role,
+                    &temp_password,
+                    None,
+                )
+                .await?;
             new_user.id
         };
 
         self.add_user_to_organization(&keycloak_id, org_id).await?;
 
-        let url = format!("{}/organizations/{}/members/invite-user", self.realm_url(), org_id);
+        let url = format!(
+            "{}/organizations/{}/members/invite-user",
+            self.realm_url(),
+            org_id
+        );
         let body = json!({
             "email": email,
             "firstName": first_name,
             "lastName": last_name,
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&body)
@@ -793,11 +982,15 @@ impl KeycloakService {
         })
     }
 
-    pub async fn get_organization_invitations(&self, org_id: &str) -> Result<Vec<KeycloakInvitation>, AppError> {
+    pub async fn get_organization_invitations(
+        &self,
+        org_id: &str,
+    ) -> Result<Vec<KeycloakInvitation>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations/{}/invitations", self.realm_url(), org_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -805,14 +998,27 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to list organization invitations");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn delete_organization_invitation(&self, org_id: &str, invitation_id: &str) -> Result<(), AppError> {
+    pub async fn delete_organization_invitation(
+        &self,
+        org_id: &str,
+        invitation_id: &str,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/organizations/{}/invitations/{}", self.realm_url(), org_id, invitation_id);
+        let url = format!(
+            "{}/organizations/{}/invitations/{}",
+            self.realm_url(),
+            org_id,
+            invitation_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token)
             .send()
@@ -823,11 +1029,21 @@ impl KeycloakService {
         Ok(())
     }
 
-    pub async fn resend_organization_invitation(&self, org_id: &str, invitation_id: &str) -> Result<(), AppError> {
+    pub async fn resend_organization_invitation(
+        &self,
+        org_id: &str,
+        invitation_id: &str,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/organizations/{}/invitations/{}/resend", self.realm_url(), org_id, invitation_id);
+        let url = format!(
+            "{}/organizations/{}/invitations/{}/resend",
+            self.realm_url(),
+            org_id,
+            invitation_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .send()
@@ -838,11 +1054,15 @@ impl KeycloakService {
         Ok(())
     }
 
-    pub async fn get_organization_members(&self, org_id: &str) -> Result<Vec<KeycloakMember>, AppError> {
+    pub async fn get_organization_members(
+        &self,
+        org_id: &str,
+    ) -> Result<Vec<KeycloakMember>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations/{}/members", self.realm_url(), org_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -850,15 +1070,23 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to get organization members");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn add_user_to_organization(&self, keycloak_id: &str, org_id: &str) -> Result<(), AppError> {
+    pub async fn add_user_to_organization(
+        &self,
+        keycloak_id: &str,
+        org_id: &str,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/organizations/{}/members", self.realm_url(), org_id);
         let body = json!({ "id": keycloak_id });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&body)
@@ -875,7 +1103,11 @@ impl KeycloakService {
     // GROUP (APEX) OPERATIONS
     // ═══════════════════════════════════════════════════════════
 
-    pub async fn create_group(&self, name: &str, attributes: Option<HashMap<String, Vec<String>>>) -> Result<KeycloakGroup, AppError> {
+    pub async fn create_group(
+        &self,
+        name: &str,
+        attributes: Option<HashMap<String, Vec<String>>>,
+    ) -> Result<KeycloakGroup, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/groups", self.realm_url());
         let payload = KeycloakGroupCreate {
@@ -883,7 +1115,8 @@ impl KeycloakService {
             attributes,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&payload)
@@ -899,7 +1132,12 @@ impl KeycloakService {
         self.get_group_by_name(&token, name).await
     }
 
-    pub async fn create_subgroup(&self, parent_group_id: &str, name: &str, attributes: Option<HashMap<String, Vec<String>>>) -> Result<KeycloakGroup, AppError> {
+    pub async fn create_subgroup(
+        &self,
+        parent_group_id: &str,
+        name: &str,
+        attributes: Option<HashMap<String, Vec<String>>>,
+    ) -> Result<KeycloakGroup, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/groups/{}/children", self.realm_url(), parent_group_id);
         let payload = KeycloakGroupCreate {
@@ -907,7 +1145,8 @@ impl KeycloakService {
             attributes,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&payload)
@@ -930,7 +1169,8 @@ impl KeycloakService {
             None => format!("{}/groups", self.realm_url()),
         };
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -938,14 +1178,18 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to list groups");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
     pub async fn get_group_by_id(&self, group_id: &str) -> Result<KeycloakGroup, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/groups/{}", self.realm_url(), group_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()
@@ -953,12 +1197,20 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Group not found");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    async fn get_group_by_name(&self, access_token: &str, name: &str) -> Result<KeycloakGroup, AppError> {
+    async fn get_group_by_name(
+        &self,
+        access_token: &str,
+        name: &str,
+    ) -> Result<KeycloakGroup, AppError> {
         let url = format!("{}/groups?search={}", self.realm_url(), name);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(access_token)
             .send()
@@ -966,10 +1218,13 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to search groups");
-        let groups: Vec<KeycloakGroup> = response.json().await
+        let groups: Vec<KeycloakGroup> = response
+            .json()
+            .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        groups.into_iter()
+        groups
+            .into_iter()
             .find(|g| g.name == name)
             .ok_or_else(|| AppError::NotFound(format!("Group '{}' not found", name)))
     }
@@ -978,7 +1233,8 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/groups/{}", self.realm_url(), group_id);
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token)
             .send()
@@ -990,7 +1246,12 @@ impl KeycloakService {
         Ok(())
     }
 
-    pub async fn update_group(&self, group_id: &str, name: Option<&str>, attributes: Option<HashMap<String, Vec<String>>>) -> Result<KeycloakGroup, AppError> {
+    pub async fn update_group(
+        &self,
+        group_id: &str,
+        name: Option<&str>,
+        attributes: Option<HashMap<String, Vec<String>>>,
+    ) -> Result<KeycloakGroup, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/groups/{}", self.realm_url(), group_id);
 
@@ -1002,7 +1263,8 @@ impl KeycloakService {
             body["attributes"] = json!(attrs);
         }
 
-        let response = self.client
+        let response = self
+            .client
             .put(&url)
             .bearer_auth(&token)
             .json(&body)
@@ -1018,11 +1280,21 @@ impl KeycloakService {
     // GROUP MEMBERSHIP (APEX & COOPERATIVE)
     // ═══════════════════════════════════════════════════════════
 
-    pub async fn add_user_to_group(&self, keycloak_id: &str, group_id: &str) -> Result<(), AppError> {
+    pub async fn add_user_to_group(
+        &self,
+        keycloak_id: &str,
+        group_id: &str,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/users/{}/groups/{}", self.realm_url(), keycloak_id, group_id);
+        let url = format!(
+            "{}/users/{}/groups/{}",
+            self.realm_url(),
+            keycloak_id,
+            group_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .put(&url)
             .bearer_auth(&token)
             .send()
@@ -1034,11 +1306,21 @@ impl KeycloakService {
         Ok(())
     }
 
-    pub async fn remove_user_from_group(&self, keycloak_id: &str, group_id: &str) -> Result<(), AppError> {
+    pub async fn remove_user_from_group(
+        &self,
+        keycloak_id: &str,
+        group_id: &str,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/users/{}/groups/{}", self.realm_url(), keycloak_id, group_id);
+        let url = format!(
+            "{}/users/{}/groups/{}",
+            self.realm_url(),
+            keycloak_id,
+            group_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token)
             .send()
@@ -1063,14 +1345,27 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to get group members");
-        response.json().await.map_err(|e| AppError::ExternalServiceError(e.to_string()))
+        response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    pub async fn remove_user_from_organization(&self, keycloak_id: &str, org_id: &str) -> Result<(), AppError> {
+    pub async fn remove_user_from_organization(
+        &self,
+        keycloak_id: &str,
+        org_id: &str,
+    ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/organizations/{}/members/{}", self.realm_url(), org_id, keycloak_id);
+        let url = format!(
+            "{}/organizations/{}/members/{}",
+            self.realm_url(),
+            org_id,
+            keycloak_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token)
             .send()
@@ -1103,24 +1398,33 @@ impl KeycloakService {
             if !user_groups.is_empty() {
                 let already_in_this_group = user_groups.iter().any(|g| g.id == group_id);
                 if already_in_this_group {
-                    return Err(AppError::Conflict("User is already a member of this group".into()));
+                    return Err(AppError::Conflict(
+                        "User is already a member of this group".into(),
+                    ));
                 }
-                return Err(AppError::Conflict("User is already a member of another group".into()));
+                return Err(AppError::Conflict(
+                    "User is already a member of another group".into(),
+                ));
             }
 
             let user_orgs = self.get_user_organizations(&existing_user.id).await?;
             let invited_attr = existing_user.get_attribute("invited_organization");
             if !user_orgs.is_empty() {
-                return Err(AppError::Conflict("User is already a member of an organization".into()));
+                return Err(AppError::Conflict(
+                    "User is already a member of an organization".into(),
+                ));
             }
             if invited_attr.is_some() {
-                return Err(AppError::Conflict("User has a pending organization invitation".into()));
+                return Err(AppError::Conflict(
+                    "User has a pending organization invitation".into(),
+                ));
             }
 
             if let Some(ref dims) = assigned_dimensions {
                 let mut attrs = existing_user.attributes.clone().unwrap_or_default();
                 attrs.insert("assigned_dimensions".to_string(), dims.clone());
-                self.update_user_attributes(&existing_user.id, attrs).await?;
+                self.update_user_attributes(&existing_user.id, attrs)
+                    .await?;
             }
 
             existing_user.id.clone()
@@ -1131,9 +1435,16 @@ impl KeycloakService {
                 attrs.insert("assigned_dimensions".to_string(), dims.clone());
             }
 
-            let new_user = self.create_user_with_email_verification(
-                email, first_name, last_name, role, &temp_password, if attrs.is_empty() { None } else { Some(attrs) },
-            ).await?;
+            let new_user = self
+                .create_user_with_email_verification(
+                    email,
+                    first_name,
+                    last_name,
+                    role,
+                    &temp_password,
+                    if attrs.is_empty() { None } else { Some(attrs) },
+                )
+                .await?;
             new_user.id
         };
 

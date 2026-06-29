@@ -78,7 +78,10 @@ pub fn require_role_layer(
                 "RBAC: Access denied - missing required role"
             );
             Err(forbidden_with_roles(
-                format!("Access denied. Required role: {}", allowed_roles.join(" or ")),
+                format!(
+                    "Access denied. Required role: {}",
+                    allowed_roles.join(" or ")
+                ),
                 allowed_roles.to_vec(),
             ))
         }
@@ -103,7 +106,10 @@ pub fn role_guard(allowed_roles: &'static [&'static str], claims: &Claims) -> Re
         Ok(())
     } else {
         Err(forbidden_with_roles(
-            format!("Access denied. Required role: {}", allowed_roles.join(" or ")),
+            format!(
+                "Access denied. Required role: {}",
+                allowed_roles.join(" or ")
+            ),
             allowed_roles.to_vec(),
         ))
     }

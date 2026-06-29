@@ -32,7 +32,9 @@ pub struct CooperativeBriefResponse {
 
 impl From<crate::models::keycloak::KeycloakGroup> for ApexResponse {
     fn from(group: crate::models::keycloak::KeycloakGroup) -> Self {
-        let description = group.attributes.as_ref()
+        let description = group
+            .attributes
+            .as_ref()
             .and_then(|attrs| attrs.get("description"))
             .and_then(|vals| vals.first())
             .cloned();
@@ -42,10 +44,14 @@ impl From<crate::models::keycloak::KeycloakGroup> for ApexResponse {
             name: group.name,
             path: group.path,
             description,
-            sub_groups: group.sub_groups.into_iter().map(|sg| CooperativeBriefResponse {
-                id: sg.id,
-                name: sg.name,
-            }).collect(),
+            sub_groups: group
+                .sub_groups
+                .into_iter()
+                .map(|sg| CooperativeBriefResponse {
+                    id: sg.id,
+                    name: sg.name,
+                })
+                .collect(),
         }
     }
 }

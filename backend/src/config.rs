@@ -51,8 +51,7 @@ impl AppConfig {
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect(),
-            frontend_url: env::var("FRONTEND_URL")
-                .expect("FRONTEND_URL must be set"),
+            frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
             environment: env::var("ENVIRONMENT")
                 .map(|s| match s.to_lowercase().as_str() {
                     "production" => Environment::Production,

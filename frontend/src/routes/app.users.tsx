@@ -35,7 +35,13 @@ const CAN_CREATE: Record<Role, string[]> = {
 
 // Which role archetype cards each role can see
 const VISIBLE_ROLES: Record<Role, string[]> = {
-  ministry: ["Ministry Official", "Federation Officer", "Apex Officer", "Cooperative Manager", "Read-only Auditor"],
+  ministry: [
+    "Ministry Official",
+    "Federation Officer",
+    "Apex Officer",
+    "Cooperative Manager",
+    "Read-only Auditor",
+  ],
   federation: ["Federation Officer", "Apex Officer"],
   apex: ["Apex Officer", "Cooperative Manager"],
   cooperative: ["Cooperative Manager"],
@@ -43,9 +49,15 @@ const VISIBLE_ROLES: Record<Role, string[]> = {
 
 // Parent entity options per role
 const PARENT_ENTITY: Record<Role, { label: string; options: { id: string; name: string }[] }> = {
-  ministry: { label: "Assign to Federation", options: FEDERATIONS.map((f) => ({ id: f.id, name: f.name })) },
+  ministry: {
+    label: "Assign to Federation",
+    options: FEDERATIONS.map((f) => ({ id: f.id, name: f.name })),
+  },
   federation: { label: "Assign to Apex", options: APEXES.map((a) => ({ id: a.id, name: a.name })) },
-  apex: { label: "Assign to Cooperative", options: COOPERATIVES.map((c) => ({ id: c.id, name: c.name })) },
+  apex: {
+    label: "Assign to Cooperative",
+    options: COOPERATIVES.map((c) => ({ id: c.id, name: c.name })),
+  },
   cooperative: { label: "Cooperative", options: [] },
 };
 
@@ -105,7 +117,7 @@ function UsersPage() {
   const [formParentEntity, setFormParentEntity] = useState("");
 
   // Edit modal state
-  const [editingUser, setEditingUser] = useState<typeof INITIAL_USERS[number] | null>(null);
+  const [editingUser, setEditingUser] = useState<(typeof INITIAL_USERS)[number] | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState("");
@@ -141,19 +153,21 @@ function UsersPage() {
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
 
-    const matchesRole =
-      activeRoleFilter === "All roles" || u.role === activeRoleFilter;
+    const matchesRole = activeRoleFilter === "All roles" || u.role === activeRoleFilter;
 
     const scopeRoles = canCreate;
-    const matchesScope = scopeRoles.includes(u.role) || u.role === ROLES_CONFIG.find((r) => {
-      const roleMap: Record<Role, string> = {
-        ministry: "Ministry Official",
-        federation: "Federation Officer",
-        apex: "Apex Officer",
-        cooperative: "Cooperative Manager",
-      };
-      return r.role === roleMap[role];
-    })?.role;
+    const matchesScope =
+      scopeRoles.includes(u.role) ||
+      u.role ===
+        ROLES_CONFIG.find((r) => {
+          const roleMap: Record<Role, string> = {
+            ministry: "Ministry Official",
+            federation: "Federation Officer",
+            apex: "Apex Officer",
+            cooperative: "Cooperative Manager",
+          };
+          return r.role === roleMap[role];
+        })?.role;
 
     return matchesSearch && matchesRole && matchesScope;
   });
@@ -173,7 +187,7 @@ function UsersPage() {
     toast.success(`Account state toggled for ${name}`);
   };
 
-  const handleEditUser = (user: typeof INITIAL_USERS[number]) => {
+  const handleEditUser = (user: (typeof INITIAL_USERS)[number]) => {
     setEditingUser(user);
     setEditName(user.name);
     setEditEmail(user.email);
@@ -189,9 +203,7 @@ function UsersPage() {
     }
     setUsersList((prev) =>
       prev.map((u) =>
-        u.id === editingUser.id
-          ? { ...u, name: editName, email: editEmail, role: editRole }
-          : u,
+        u.id === editingUser.id ? { ...u, name: editName, email: editEmail, role: editRole } : u,
       ),
     );
     toast.success(`Updated ${editName}'s account`);
@@ -303,7 +315,13 @@ function UsersPage() {
                         : "border-border text-muted-foreground hover:bg-muted/50 bg-surface"
                     }`}
                   >
-                    {r === "All roles" ? "All" : r.replace(" Officer", "").replace(" Manager", "").replace(" Official", "").replace(" Auditor", "")}
+                    {r === "All roles"
+                      ? "All"
+                      : r
+                          .replace(" Officer", "")
+                          .replace(" Manager", "")
+                          .replace(" Official", "")
+                          .replace(" Auditor", "")}
                   </button>
                 ))}
               </div>
@@ -317,7 +335,13 @@ function UsersPage() {
                   <th className="px-5 py-3">Account</th>
                   <th className="px-5 py-3">Role</th>
                   <th className="px-5 py-3 hidden md:table-cell">
-                    {role === "ministry" ? "Federation / Region" : role === "federation" ? "Apex / Region" : role === "apex" ? "Cooperative / Region" : "Region"}
+                    {role === "ministry"
+                      ? "Federation / Region"
+                      : role === "federation"
+                        ? "Apex / Region"
+                        : role === "apex"
+                          ? "Cooperative / Region"
+                          : "Region"}
                   </th>
                   <th className="px-5 py-3 hidden lg:table-cell">Last Active</th>
                   <th className="px-5 py-3">Status</th>
@@ -327,7 +351,10 @@ function UsersPage() {
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={hasEditRights ? 6 : 5} className="py-12 text-center text-muted-foreground">
+                    <td
+                      colSpan={hasEditRights ? 6 : 5}
+                      className="py-12 text-center text-muted-foreground"
+                    >
                       <div className="flex flex-col items-center justify-center">
                         <Users className="size-8 text-muted-foreground/60 mb-2" />
                         <p className="font-semibold text-sm">No users match your query</p>
@@ -351,15 +378,21 @@ function UsersPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-foreground truncate">{u.name}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {u.email}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                            {ROLE_ICON_MAP[u.role] === "Landmark" && <Landmark className="size-3" />}
+                            {ROLE_ICON_MAP[u.role] === "Landmark" && (
+                              <Landmark className="size-3" />
+                            )}
                             {ROLE_ICON_MAP[u.role] === "UserCog" && <UserCog className="size-3" />}
-                            {ROLE_ICON_MAP[u.role] === "Database" && <Database className="size-3" />}
+                            {ROLE_ICON_MAP[u.role] === "Database" && (
+                              <Database className="size-3" />
+                            )}
                             {ROLE_ICON_MAP[u.role] === "Users" && <Users className="size-3" />}
                             {ROLE_ICON_MAP[u.role] === "Eye" && <Eye className="size-3" />}
                             {u.role}
@@ -413,10 +446,24 @@ function UsersPage() {
           {/* Footer */}
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <p>
-              Showing {filtered.length} of {usersList.filter((u) => canCreate.includes(u.role) || u.role === ROLES_CONFIG.find((r) => {
-                const roleMap: Record<Role, string> = { ministry: "Ministry Official", federation: "Federation Officer", apex: "Apex Officer", cooperative: "Cooperative Manager" };
-                return r.role === roleMap[role];
-              })?.role).length} accounts in your scope
+              Showing {filtered.length} of{" "}
+              {
+                usersList.filter(
+                  (u) =>
+                    canCreate.includes(u.role) ||
+                    u.role ===
+                      ROLES_CONFIG.find((r) => {
+                        const roleMap: Record<Role, string> = {
+                          ministry: "Ministry Official",
+                          federation: "Federation Officer",
+                          apex: "Apex Officer",
+                          cooperative: "Cooperative Manager",
+                        };
+                        return r.role === roleMap[role];
+                      })?.role,
+                ).length
+              }{" "}
+              accounts in your scope
             </p>
           </div>
         </Card>
@@ -432,11 +479,15 @@ function UsersPage() {
           <div className="relative w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
             <div className="flex items-center justify-between border-b border-border pb-4 mb-5">
               <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">
-                  Invite User
-                </h3>
+                <h3 className="font-heading text-lg font-bold text-foreground">Invite User</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {role === "ministry" ? "Create a user under your national jurisdiction" : role === "federation" ? "Create a user under your federation" : role === "apex" ? "Create a user under your apex organization" : "Invite a member to your cooperative"}
+                  {role === "ministry"
+                    ? "Create a user under your national jurisdiction"
+                    : role === "federation"
+                      ? "Create a user under your federation"
+                      : role === "apex"
+                        ? "Create a user under your apex organization"
+                        : "Invite a member to your cooperative"}
                 </p>
               </div>
               <button
@@ -487,7 +538,9 @@ function UsersPage() {
                 >
                   <option value="">Select a role...</option>
                   {canCreate.map((r) => (
-                    <option key={r} value={r}>{r}</option>
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -502,9 +555,19 @@ function UsersPage() {
                     onChange={(e) => setFormParentEntity(e.target.value)}
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
                   >
-                    <option value="">Select {role === "ministry" ? "a federation" : role === "federation" ? "an apex" : "a cooperative"}...</option>
+                    <option value="">
+                      Select{" "}
+                      {role === "ministry"
+                        ? "a federation"
+                        : role === "federation"
+                          ? "an apex"
+                          : "a cooperative"}
+                      ...
+                    </option>
                     {parentEntity.options.map((o) => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -553,9 +616,7 @@ function UsersPage() {
           <div className="relative w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
             <div className="flex items-center justify-between border-b border-border pb-4 mb-5">
               <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">
-                  Edit User
-                </h3>
+                <h3 className="font-heading text-lg font-bold text-foreground">Edit User</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Update account details for {editingUser.name}
                 </p>
@@ -605,7 +666,9 @@ function UsersPage() {
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
                 >
                   {canCreate.map((r) => (
-                    <option key={r} value={r}>{r}</option>
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
                   ))}
                 </select>
               </div>

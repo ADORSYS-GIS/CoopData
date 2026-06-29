@@ -10,7 +10,7 @@
 
 use axum::{
     extract::{Extension, Path, State},
-    routing::{delete, get, patch, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -48,9 +48,7 @@ pub fn federation_routes() -> Router<AppState> {
         .route("/apexes", post(create_apex).get(list_apexes))
         .route(
             "/apexes/{id}",
-            get(get_apex)
-                .patch(update_apex)
-                .delete(delete_apex),
+            get(get_apex).patch(update_apex).delete(delete_apex),
         )
         // Apex Members
         .route(
@@ -62,7 +60,10 @@ pub fn federation_routes() -> Router<AppState> {
             delete(remove_apex_member),
         )
         // Federation Profile
-        .route("/profile", get(get_federation_profile).patch(update_federation_profile))
+        .route(
+            "/profile",
+            get(get_federation_profile).patch(update_federation_profile),
+        )
 }
 
 // ============================================================================
@@ -81,13 +82,13 @@ pub fn federation_routes() -> Router<AppState> {
 /// 5. Return created apex
 async fn create_apex(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // Get user's organization ID for scope enforcement
     let _org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "create_apex - TODO",
@@ -100,12 +101,12 @@ async fn create_apex(
 /// Federation-only endpoint. Results are scoped to user's organization.
 async fn list_apexes(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     let _org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
-    
+
     // TODO: Implement - filter by organization_keycloak_id
     Ok(Json(serde_json::json!({
         "message": "list_apexes - TODO",
@@ -118,11 +119,11 @@ async fn list_apexes(
 /// Federation-only endpoint with scope enforcement.
 async fn get_apex(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // TODO: Implement scope enforcement - verify apex belongs to user's federation
     Ok(Json(serde_json::json!({
         "message": "get_apex - TODO",
@@ -134,11 +135,11 @@ async fn get_apex(
 /// Federation-only endpoint with scope enforcement.
 async fn update_apex(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "update_apex - TODO",
@@ -150,11 +151,11 @@ async fn update_apex(
 /// Federation-only endpoint with scope enforcement.
 async fn delete_apex(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "delete_apex - TODO",
@@ -166,11 +167,11 @@ async fn delete_apex(
 /// Federation-only endpoint with scope enforcement.
 async fn add_apex_member(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "add_apex_member - TODO",
@@ -182,11 +183,11 @@ async fn add_apex_member(
 /// Federation-only endpoint with scope enforcement.
 async fn list_apex_members(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "list_apex_members - TODO",
@@ -199,11 +200,11 @@ async fn list_apex_members(
 /// Federation-only endpoint with scope enforcement.
 async fn remove_apex_member(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "remove_apex_member - TODO",
@@ -216,12 +217,12 @@ async fn remove_apex_member(
 /// Federation-only endpoint.
 async fn get_federation_profile(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "get_federation_profile - TODO",
@@ -233,12 +234,12 @@ async fn get_federation_profile(
 /// Federation-only endpoint.
 async fn update_federation_profile(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     require_federation(&claims)?;
-    
+
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
-    
+
     // TODO: Implement
     Ok(Json(serde_json::json!({
         "message": "update_federation_profile - TODO",

@@ -1,4 +1,4 @@
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use thiserror::Error;
@@ -34,8 +34,16 @@ pub struct JwtValidator {
 }
 
 impl JwtValidator {
-    pub async fn from_keycloak(keycloak_url: &str, realm: &str, audiences: &[String], issuer_aliases: &[String]) -> Result<Self, JwtError> {
-        let certs_url = format!("{}/realms/{}/protocol/openid-connect/certs", keycloak_url, realm);
+    pub async fn from_keycloak(
+        keycloak_url: &str,
+        realm: &str,
+        audiences: &[String],
+        issuer_aliases: &[String],
+    ) -> Result<Self, JwtError> {
+        let certs_url = format!(
+            "{}/realms/{}/protocol/openid-connect/certs",
+            keycloak_url, realm
+        );
 
         let client = reqwest::Client::new();
         let response = client
@@ -64,22 +72,25 @@ impl JwtValidator {
                 continue;
             }
 
-            let decoding_key = DecodingKey::from_rsa_components(&key.n, &key.e)
-                .map_err(JwtError::InvalidToken)?;
+            let decoding_key =
+                DecodingKey::from_rsa_components(&key.n, &key.e).map_err(JwtError::InvalidToken)?;
 
             if let Some(kid) = &key.kid {
                 decoding_keys.insert(kid.clone(), decoding_key.clone());
             }
 
-            if key.alg.as_deref() == Some("RS256") || key.r#use.as_deref() == Some("sig") {
-                if key.kid.is_some() {
-                    default_key = Some(decoding_key);
-                }
+            if (key.alg.as_deref() == Some("RS256") || key.r#use.as_deref() == Some("sig"))
+                && key.kid.is_some()
+            {
+                default_key = Some(decoding_key);
             }
         }
 
-        let default_key = default_key.or_else(|| decoding_keys.values().next().cloned())
-            .ok_or_else(|| JwtError::JwksFetchError("No RSA keys found in JWKS response".to_string()))?;
+        let default_key = default_key
+            .or_else(|| decoding_keys.values().next().cloned())
+            .ok_or_else(|| {
+                JwtError::JwksFetchError("No RSA keys found in JWKS response".to_string())
+            })?;
 
         let issuer = format!("{}/realms/{}", keycloak_url, realm);
 
@@ -92,7 +103,6 @@ impl JwtValidator {
         validation.validate_exp = true;
         validation.validate_nbf = false;
 
-        let aud_strings: Vec<String> = audiences.to_vec();
         let aud_strings: Vec<String> = audiences.to_vec();
         validation.set_audience(&aud_strings);
 
@@ -109,10 +119,10 @@ impl JwtValidator {
     }
 
     pub fn validate(&self, token: &str) -> Result<Claims, JwtError> {
-        let header = jsonwebtoken::decode_header(token)
-            .map_err(JwtError::InvalidToken)?;
+        let header = jsonwebtoken::decode_header(token).map_err(JwtError::InvalidToken)?;
 
-        let decoding_key = header.kid
+        let decoding_key = header
+            .kid
             .as_ref()
             .and_then(|kid| self.decoding_keys.get(kid))
             .cloned()
@@ -123,10 +133,12 @@ impl JwtValidator {
             validation.insecure_disable_signature_validation();
         }
 
-        let token_data: TokenData<Claims> = decode(token, &decoding_key, &validation)
-            .map_err(JwtError::InvalidToken)?;
+        let token_data: TokenData<Claims> =
+            decode(token, &decoding_key, &validation).map_err(JwtError::InvalidToken)?;
 
-        if token_data.claims.iss != self.issuer && !self.issuer_aliases.contains(&token_data.claims.iss) {
+        if token_data.claims.iss != self.issuer
+            && !self.issuer_aliases.contains(&token_data.claims.iss)
+        {
             return Err(JwtError::InvalidIssuer {
                 expected: format!("{} (or aliases: {:?})", self.issuer, self.issuer_aliases),
                 actual: token_data.claims.iss,

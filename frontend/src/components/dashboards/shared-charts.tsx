@@ -106,7 +106,7 @@ export function TrendChart() {
             }}
             itemStyle={{ color: "var(--foreground)" }}
             labelStyle={{ fontWeight: "600", color: "var(--foreground)", marginBottom: "4px" }}
-            formatter={(value: any, name: string) => {
+            formatter={(value: number, name: string) => {
               if (name === "loans") {
                 return [`$${value}M`, "Loan Portfolio"];
               }
@@ -294,11 +294,7 @@ export function RegionsHeatGrid() {
 // ─────────────────────────────────────────────────────────────────────
 // Activity Feed List
 // ─────────────────────────────────────────────────────────────────────
-export function ActivityFeedList({
-  activities,
-}: {
-  activities: typeof INITIAL_ACTIVITY_FEED;
-}) {
+export function ActivityFeedList({ activities }: { activities: typeof INITIAL_ACTIVITY_FEED }) {
   const toneMap = {
     success: "bg-success/10 text-success",
     info: "bg-info/10 text-info",
@@ -336,11 +332,7 @@ export function ActivityFeedList({
 // ─────────────────────────────────────────────────────────────────────
 // Top Cooperatives Table
 // ─────────────────────────────────────────────────────────────────────
-export function TopTable({
-  cooperatives,
-}: {
-  cooperatives: typeof INITIAL_COOPERATIVES;
-}) {
+export function TopTable({ cooperatives }: { cooperatives: typeof INITIAL_COOPERATIVES }) {
   const rows = [...cooperatives].sort((a, b) => b.portfolio - a.portfolio).slice(0, 6);
   return (
     <div className="-mx-5 -mb-5 overflow-x-auto">
@@ -364,7 +356,9 @@ export function TopTable({
               <td className="px-5 py-3 text-muted-foreground">{r.sector}</td>
               <td className="px-5 py-3 text-muted-foreground">{r.region}</td>
               <td className="px-5 py-3 text-right num">{r.members.toLocaleString()}</td>
-              <td className="px-5 py-3 text-right font-semibold num">{formatCurrency(r.portfolio)}</td>
+              <td className="px-5 py-3 text-right font-semibold num">
+                {formatCurrency(r.portfolio)}
+              </td>
               <td className="px-5 py-3">
                 <StatusPill
                   tone={

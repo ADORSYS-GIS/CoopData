@@ -1,9 +1,16 @@
-use std::sync::Arc;
-use std::collections::HashMap;
-use axum::{extract::{Path, State}, http::StatusCode, response::IntoResponse, Json};
 use axum::extract::Extension;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::api::dto::cooperative::{CreateCooperativeRequest, CooperativeResponse, UpdateCooperativeRequest};
+use crate::api::dto::cooperative::{
+    CooperativeResponse, CreateCooperativeRequest, UpdateCooperativeRequest,
+};
 use crate::api::dto::member::{AddMemberRequest, MemberResponse};
 use crate::auth::claims::Claims;
 use crate::error::AppResult;
@@ -26,15 +33,20 @@ pub async fn create_cooperative(
     Json(body): Json<CreateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
     if body.name.trim().is_empty() {
-        return Err(crate::error::AppError::BadRequest("Cooperative name is required".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "Cooperative name is required".into(),
+        ));
     }
 
-    let apex_group_id = claims.get_apex_group_id()
-        .ok_or_else(|| crate::error::AppError::Forbidden("User is not associated with an apex group".into()))?;
+    let apex_group_id = claims.get_apex_group_id().ok_or_else(|| {
+        crate::error::AppError::Forbidden("User is not associated with an apex group".into())
+    })?;
 
     let mut attrs = HashMap::new();
     if let Some(ref desc) = body.description {
@@ -42,7 +54,14 @@ pub async fn create_cooperative(
     }
     attrs.insert("type".to_string(), vec!["cooperative".to_string()]);
 
-    let group = state.keycloak.create_subgroup(&apex_group_id, &body.name, if attrs.is_empty() { None } else { Some(attrs) }).await
+    let group = state
+        .keycloak
+        .create_subgroup(
+            &apex_group_id,
+            &body.name,
+            if attrs.is_empty() { None } else { Some(attrs) },
+        )
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(group_id = %group.id, parent_id = %apex_group_id, name = %body.name, "Cooperative created");
@@ -63,21 +82,32 @@ pub async fn list_cooperatives(
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
-    let apex_group_id = claims.get_apex_group_id()
-        .ok_or_else(|| crate::error::AppError::Forbidden("User is not associated with an apex group".into()))?;
+    let apex_group_id = claims.get_apex_group_id().ok_or_else(|| {
+        crate::error::AppError::Forbidden("User is not associated with an apex group".into())
+    })?;
 
-    let parent_group = state.keycloak.get_group_by_id(&apex_group_id).await
+    let parent_group = state
+        .keycloak
+        .get_group_by_id(&apex_group_id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let cooperatives: Vec<CooperativeResponse> = parent_group.sub_groups.into_iter()
-        .filter(|sg| sg.attributes.as_ref()
-            .and_then(|attrs| attrs.get("type"))
-            .and_then(|vals| vals.first())
-            .map(|v| v == "cooperative")
-            .unwrap_or(true))
+    let cooperatives: Vec<CooperativeResponse> = parent_group
+        .sub_groups
+        .into_iter()
+        .filter(|sg| {
+            sg.attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("type"))
+                .and_then(|vals| vals.first())
+                .map(|v| v == "cooperative")
+                .unwrap_or(true)
+        })
         .map(CooperativeResponse::from)
         .collect();
 
@@ -100,10 +130,15 @@ pub async fn get_cooperative(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
-    let group = state.keycloak.get_group_by_id(&id).await
+    let group = state
+        .keycloak
+        .get_group_by_id(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     Ok((StatusCode::OK, Json(CooperativeResponse::from(group))))
@@ -127,7 +162,9 @@ pub async fn update_cooperative(
     Json(body): Json<UpdateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
     let mut attrs = HashMap::new();
@@ -135,7 +172,14 @@ pub async fn update_cooperative(
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
 
-    let group = state.keycloak.update_group(&id, body.name.as_deref(), if attrs.is_empty() { None } else { Some(attrs) }).await
+    let group = state
+        .keycloak
+        .update_group(
+            &id,
+            body.name.as_deref(),
+            if attrs.is_empty() { None } else { Some(attrs) },
+        )
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(group_id = %id, "Cooperative updated");
@@ -158,10 +202,15 @@ pub async fn delete_cooperative(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
-    state.keycloak.delete_group(&id).await
+    state
+        .keycloak
+        .delete_group(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(group_id = %id, "Cooperative deleted");
@@ -187,21 +236,29 @@ pub async fn add_cooperative_member(
     Json(body): Json<AddMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
     if body.role != "cooperative" {
-        return Err(crate::error::AppError::BadRequest("Only 'cooperative' role is allowed when adding members to a cooperative".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "Only 'cooperative' role is allowed when adding members to a cooperative".into(),
+        ));
     }
 
-    let user = state.keycloak.add_member_to_group(
-        &body.email,
-        &body.first_name,
-        &body.last_name,
-        &body.role,
-        &id,
-        body.assigned_dimensions.clone(),
-    ).await.map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let user = state
+        .keycloak
+        .add_member_to_group(
+            &body.email,
+            &body.first_name,
+            &body.last_name,
+            &body.role,
+            &id,
+            body.assigned_dimensions.clone(),
+        )
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     let first_name = user.first_name_str().to_string();
     let last_name = user.last_name_str().to_string();
@@ -209,13 +266,16 @@ pub async fn add_cooperative_member(
     let user_id = user.id.clone();
 
     tracing::info!(group_id = %id, email = %body.email, "Member added to cooperative");
-    Ok((StatusCode::CREATED, Json(MemberResponse {
-        id: user_id,
-        username: user.username.into(),
-        email,
-        first_name: Some(first_name).filter(|s| !s.is_empty()),
-        last_name: Some(last_name).filter(|s| !s.is_empty()),
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(MemberResponse {
+            id: user_id,
+            username: user.username.into(),
+            email,
+            first_name: Some(first_name).filter(|s| !s.is_empty()),
+            last_name: Some(last_name).filter(|s| !s.is_empty()),
+        }),
+    ))
 }
 
 #[utoipa::path(
@@ -233,10 +293,15 @@ pub async fn list_cooperative_members(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() && !claims.is_cooperative() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex or cooperative role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex or cooperative role required".into(),
+        ));
     }
 
-    let members = state.keycloak.get_group_members(&id).await
+    let members = state
+        .keycloak
+        .get_group_members(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     let responses: Vec<MemberResponse> = members.into_iter().map(MemberResponse::from).collect();
@@ -261,10 +326,15 @@ pub async fn remove_cooperative_member(
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_apex() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Apex role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Apex role required".into(),
+        ));
     }
 
-    state.keycloak.remove_user_from_group(&user_id, &group_id).await
+    state
+        .keycloak
+        .remove_user_from_group(&user_id, &group_id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(user_id = %user_id, group_id = %group_id, "Member removed from cooperative");

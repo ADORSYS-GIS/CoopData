@@ -114,7 +114,8 @@ impl Claims {
     }
 
     pub fn get_cooperation_paths(&self) -> Vec<String> {
-        self.cooperation.as_ref()
+        self.cooperation
+            .as_ref()
             .map(|c| c.0.clone())
             .unwrap_or_default()
     }
@@ -123,24 +124,20 @@ impl Claims {
         self.cooperation.as_ref().and_then(|c| {
             c.0.first().and_then(|path| {
                 let without_slash = path.strip_prefix('/').unwrap_or(path);
-                without_slash.split('/')
-                    .next()
-                    .map(|s| s.to_string())
+                without_slash.split('/').next().map(|s| s.to_string())
             })
         })
     }
 
     pub fn get_assigned_dimensions(&self) -> Vec<String> {
-        self.assigned_dimensions.as_ref()
-            .map(|v| {
-                match v {
-                    serde_json::Value::Array(arr) => {
-                        arr.iter()
-                            .filter_map(|item| item.as_str().map(String::from))
-                            .collect()
-                    }
-                    _ => vec![],
-                }
+        self.assigned_dimensions
+            .as_ref()
+            .map(|v| match v {
+                serde_json::Value::Array(arr) => arr
+                    .iter()
+                    .filter_map(|item| item.as_str().map(String::from))
+                    .collect(),
+                _ => vec![],
             })
             .unwrap_or_default()
     }

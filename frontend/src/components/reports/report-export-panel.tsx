@@ -14,11 +14,7 @@ import { toast } from "sonner";
 
 export type ExportFormat = "pdf" | "xlsx" | "csv";
 
-export type ReportScope =
-  | "consolidated"
-  | "individual"
-  | "comparative"
-  | "trend";
+export type ReportScope = "consolidated" | "individual" | "comparative" | "trend";
 
 interface ReportExportOption {
   id: string;
@@ -127,9 +123,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const availableReports = REPORT_EXPORT_OPTIONS.filter((r) =>
-    r.availableTo.includes(role),
-  );
+  const availableReports = REPORT_EXPORT_OPTIONS.filter((r) => r.availableTo.includes(role));
 
   const selectedOption = availableReports.find((r) => r.id === selectedReport);
 
@@ -226,12 +220,8 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                   <Download className="size-4 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
-                    Export Report
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Configure your export settings
-                  </p>
+                  <h3 className="font-heading text-lg font-bold text-foreground">Export Report</h3>
+                  <p className="text-xs text-muted-foreground">Configure your export settings</p>
                 </div>
               </div>
               <button
@@ -256,9 +246,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                     {selectedOption.label}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {selectedOption.description}
-                </p>
+                <p className="text-xs text-muted-foreground">{selectedOption.description}</p>
               </div>
 
               {/* Format Selection */}
@@ -283,9 +271,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                         }`}
                       >
                         <Icon className="size-5" />
-                        <span className="text-xs font-bold uppercase">
-                          {fmt}
-                        </span>
+                        <span className="text-xs font-bold uppercase">{fmt}</span>
                       </button>
                     );
                   })}
@@ -354,8 +340,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                   </>
                 ) : (
                   <>
-                    <Download className="size-3.5" /> Export{" "}
-                    {selectedFormat.toUpperCase()}
+                    <Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}
                   </>
                 )}
               </button>

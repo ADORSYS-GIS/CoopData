@@ -53,59 +53,247 @@ function generateSimulatedExtraction(fileName: string): ExtractionResult {
   const pagesProcessed = isPdf ? 4 : 1;
 
   const fields: ExtractedField[] = [
-    { label: "Cash on Hand", code: "1101", value: 125000, confidence: "high", source: isPdf ? "Page 1, Line 3" : "Top section" },
-    { label: "Cash at Bank (Current)", code: "1102", value: 890000, confidence: "high", source: isPdf ? "Page 1, Line 4" : "Top section" },
-    { label: "Cash at Bank (Savings)", code: "1103", value: 450000, confidence: "high", source: isPdf ? "Page 1, Line 5" : "Top section" },
-    { label: "Short-term Investments", code: "1104", value: 200000, confidence: "medium", source: isPdf ? "Page 1, Line 6" : "Middle section" },
-    { label: "Performing Loan Portfolio", code: "1201", value: 3200000, confidence: "high", source: isPdf ? "Page 1, Line 8" : "Middle section" },
-    { label: "Loans in Arrears 1-30 days", code: "1202", value: 180000, confidence: "high", source: isPdf ? "Page 1, Line 9" : "Middle section" },
-    { label: "Loans in Arrears 31-60 days", code: "1203", value: 95000, confidence: "medium", source: isPdf ? "Page 1, Line 10" : "Middle section" },
-    { label: "Loans in Arrears 61-90 days", code: "1204", value: 45000, confidence: "medium", source: isPdf ? "Page 2, Line 1" : "Bottom section" },
-    { label: "Non-performing Loans", code: "1205", value: 30000, confidence: "low", source: isPdf ? "Page 2, Line 2" : "Bottom section" },
-    { label: "General Loan Loss Provision", code: "1251", value: 150000, confidence: "high", source: isPdf ? "Page 2, Line 4" : "Bottom section" },
-    { label: "Specific Loan Loss Provision", code: "1252", value: 75000, confidence: "medium", source: isPdf ? "Page 2, Line 5" : "Bottom section" },
-    { label: "Accounts Receivable", code: "1301", value: 85000, confidence: "high", source: isPdf ? "Page 2, Line 7" : "Bottom section" },
-    { label: "Prepaid Expenses", code: "1302", value: 35000, confidence: "high", source: isPdf ? "Page 2, Line 8" : "Bottom section" },
-    { label: "Fixed Assets (Cost)", code: "1303", value: 500000, confidence: "high", source: isPdf ? "Page 2, Line 9" : "Bottom section" },
-    { label: "Accumulated Depreciation", code: "1304", value: 120000, confidence: "medium", source: isPdf ? "Page 2, Line 10" : "Bottom section" },
-    { label: "Voluntary Savings", code: "2101", value: 1800000, confidence: "high", source: isPdf ? "Page 3, Line 2" : "Liabilities section" },
-    { label: "Mandatory Savings", code: "2102", value: 950000, confidence: "high", source: isPdf ? "Page 3, Line 3" : "Liabilities section" },
-    { label: "Fixed Term Deposits", code: "2103", value: 420000, confidence: "medium", source: isPdf ? "Page 3, Line 4" : "Liabilities section" },
-    { label: "Short-term Borrowings", code: "2201", value: 200000, confidence: "high", source: isPdf ? "Page 3, Line 6" : "Liabilities section" },
-    { label: "Long-term Borrowings", code: "2202", value: 350000, confidence: "high", source: isPdf ? "Page 3, Line 7" : "Liabilities section" },
-    { label: "Permanent Share Capital", code: "3101", value: 500000, confidence: "high", source: isPdf ? "Page 3, Line 10" : "Equity section" },
-    { label: "Withdrawable Shares", code: "3102", value: 300000, confidence: "high", source: isPdf ? "Page 3, Line 11" : "Equity section" },
-    { label: "Interest Income on Loans", code: "4101", value: 380000, confidence: "high", source: isPdf ? "Page 4, Line 2" : "Income section" },
-    { label: "Fees & Commissions Income", code: "4102", value: 45000, confidence: "medium", source: isPdf ? "Page 4, Line 3" : "Income section" },
-    { label: "Personnel Costs", code: "5201", value: 180000, confidence: "high", source: isPdf ? "Page 4, Line 7" : "Expenses section" },
-    { label: "Administrative Expenses", code: "5202", value: 95000, confidence: "high", source: isPdf ? "Page 4, Line 8" : "Expenses section" },
+    {
+      label: "Cash on Hand",
+      code: "1101",
+      value: 125000,
+      confidence: "high",
+      source: isPdf ? "Page 1, Line 3" : "Top section",
+    },
+    {
+      label: "Cash at Bank (Current)",
+      code: "1102",
+      value: 890000,
+      confidence: "high",
+      source: isPdf ? "Page 1, Line 4" : "Top section",
+    },
+    {
+      label: "Cash at Bank (Savings)",
+      code: "1103",
+      value: 450000,
+      confidence: "high",
+      source: isPdf ? "Page 1, Line 5" : "Top section",
+    },
+    {
+      label: "Short-term Investments",
+      code: "1104",
+      value: 200000,
+      confidence: "medium",
+      source: isPdf ? "Page 1, Line 6" : "Middle section",
+    },
+    {
+      label: "Performing Loan Portfolio",
+      code: "1201",
+      value: 3200000,
+      confidence: "high",
+      source: isPdf ? "Page 1, Line 8" : "Middle section",
+    },
+    {
+      label: "Loans in Arrears 1-30 days",
+      code: "1202",
+      value: 180000,
+      confidence: "high",
+      source: isPdf ? "Page 1, Line 9" : "Middle section",
+    },
+    {
+      label: "Loans in Arrears 31-60 days",
+      code: "1203",
+      value: 95000,
+      confidence: "medium",
+      source: isPdf ? "Page 1, Line 10" : "Middle section",
+    },
+    {
+      label: "Loans in Arrears 61-90 days",
+      code: "1204",
+      value: 45000,
+      confidence: "medium",
+      source: isPdf ? "Page 2, Line 1" : "Bottom section",
+    },
+    {
+      label: "Non-performing Loans",
+      code: "1205",
+      value: 30000,
+      confidence: "low",
+      source: isPdf ? "Page 2, Line 2" : "Bottom section",
+    },
+    {
+      label: "General Loan Loss Provision",
+      code: "1251",
+      value: 150000,
+      confidence: "high",
+      source: isPdf ? "Page 2, Line 4" : "Bottom section",
+    },
+    {
+      label: "Specific Loan Loss Provision",
+      code: "1252",
+      value: 75000,
+      confidence: "medium",
+      source: isPdf ? "Page 2, Line 5" : "Bottom section",
+    },
+    {
+      label: "Accounts Receivable",
+      code: "1301",
+      value: 85000,
+      confidence: "high",
+      source: isPdf ? "Page 2, Line 7" : "Bottom section",
+    },
+    {
+      label: "Prepaid Expenses",
+      code: "1302",
+      value: 35000,
+      confidence: "high",
+      source: isPdf ? "Page 2, Line 8" : "Bottom section",
+    },
+    {
+      label: "Fixed Assets (Cost)",
+      code: "1303",
+      value: 500000,
+      confidence: "high",
+      source: isPdf ? "Page 2, Line 9" : "Bottom section",
+    },
+    {
+      label: "Accumulated Depreciation",
+      code: "1304",
+      value: 120000,
+      confidence: "medium",
+      source: isPdf ? "Page 2, Line 10" : "Bottom section",
+    },
+    {
+      label: "Voluntary Savings",
+      code: "2101",
+      value: 1800000,
+      confidence: "high",
+      source: isPdf ? "Page 3, Line 2" : "Liabilities section",
+    },
+    {
+      label: "Mandatory Savings",
+      code: "2102",
+      value: 950000,
+      confidence: "high",
+      source: isPdf ? "Page 3, Line 3" : "Liabilities section",
+    },
+    {
+      label: "Fixed Term Deposits",
+      code: "2103",
+      value: 420000,
+      confidence: "medium",
+      source: isPdf ? "Page 3, Line 4" : "Liabilities section",
+    },
+    {
+      label: "Short-term Borrowings",
+      code: "2201",
+      value: 200000,
+      confidence: "high",
+      source: isPdf ? "Page 3, Line 6" : "Liabilities section",
+    },
+    {
+      label: "Long-term Borrowings",
+      code: "2202",
+      value: 350000,
+      confidence: "high",
+      source: isPdf ? "Page 3, Line 7" : "Liabilities section",
+    },
+    {
+      label: "Permanent Share Capital",
+      code: "3101",
+      value: 500000,
+      confidence: "high",
+      source: isPdf ? "Page 3, Line 10" : "Equity section",
+    },
+    {
+      label: "Withdrawable Shares",
+      code: "3102",
+      value: 300000,
+      confidence: "high",
+      source: isPdf ? "Page 3, Line 11" : "Equity section",
+    },
+    {
+      label: "Interest Income on Loans",
+      code: "4101",
+      value: 380000,
+      confidence: "high",
+      source: isPdf ? "Page 4, Line 2" : "Income section",
+    },
+    {
+      label: "Fees & Commissions Income",
+      code: "4102",
+      value: 45000,
+      confidence: "medium",
+      source: isPdf ? "Page 4, Line 3" : "Income section",
+    },
+    {
+      label: "Personnel Costs",
+      code: "5201",
+      value: 180000,
+      confidence: "high",
+      source: isPdf ? "Page 4, Line 7" : "Expenses section",
+    },
+    {
+      label: "Administrative Expenses",
+      code: "5202",
+      value: 95000,
+      confidence: "high",
+      source: isPdf ? "Page 4, Line 8" : "Expenses section",
+    },
   ];
 
   const bs = createEmptyBalanceSheet();
-  bs.liquidAssets = { cashOnHand: 125000, cashAtBankCurrent: 890000, cashAtBankSavings: 450000, shortTermInvestments: 200000 };
-  bs.loanPortfolio = { performingLoanPortfolio: 3200000, loansInArrears_1_30: 180000, loansInArrears_31_60: 95000, loansInArrears_61_90: 45000, nonPerformingLoans: 30000 };
+  bs.liquidAssets = {
+    cashOnHand: 125000,
+    cashAtBankCurrent: 890000,
+    cashAtBankSavings: 450000,
+    shortTermInvestments: 200000,
+  };
+  bs.loanPortfolio = {
+    performingLoanPortfolio: 3200000,
+    loansInArrears_1_30: 180000,
+    loansInArrears_31_60: 95000,
+    loansInArrears_61_90: 45000,
+    nonPerformingLoans: 30000,
+  };
   bs.loanLossProvisions = { generalLoanLossProvision: 150000, specificLoanLossProvision: 75000 };
-  bs.otherAssets = { accountsReceivable: 85000, prepaidExpenses: 35000, fixedAssetsCost: 500000, accumulatedDepreciation: 120000, intangibleAssets: 0 };
-  bs.memberDeposits = { voluntarySavings: 1800000, mandatorySavings: 950000, fixedTermDeposits: 420000 };
+  bs.otherAssets = {
+    accountsReceivable: 85000,
+    prepaidExpenses: 35000,
+    fixedAssetsCost: 500000,
+    accumulatedDepreciation: 120000,
+    intangibleAssets: 0,
+  };
+  bs.memberDeposits = {
+    voluntarySavings: 1800000,
+    mandatorySavings: 950000,
+    fixedTermDeposits: 420000,
+  };
   bs.borrowings = { shortTermBorrowings: 200000, longTermBorrowings: 350000 };
   bs.otherLiabilities = { accountsPayable: 60000, accruedExpenses: 40000, deferredIncome: 15000 };
   bs.memberShares = { permanentShareCapital: 500000, withdrawableShares: 300000 };
-  bs.reserves = { statutoryReserve: 120000, generalReserve: 80000, riskCapitalAdequacyReserve: 50000 };
+  bs.reserves = {
+    statutoryReserve: 120000,
+    generalReserve: 80000,
+    riskCapitalAdequacyReserve: 50000,
+  };
   bs.retainedEarnings = { accumulatedSurplus: 350000, currentYearSurplus: 125000 };
   bs.financialIncome = { interestIncomeLoans: 380000, feesCommissionsIncome: 45000 };
   bs.otherIncome = { otherOperatingIncome: 25000 };
   bs.financialExpenses = { interestExpenseDeposits: 95000, interestExpenseBorrowings: 28000 };
-  bs.operatingExpenses = { personnelCosts: 180000, administrativeExpenses: 95000, governanceExpenses: 35000, depreciationAmortization: 45000 };
+  bs.operatingExpenses = {
+    personnelCosts: 180000,
+    administrativeExpenses: 95000,
+    governanceExpenses: 35000,
+    depreciationAmortization: 45000,
+  };
   bs.creditLossExpense = 75000;
 
   const warnings: string[] = [];
   const lowConfidenceFields = fields.filter((f) => f.confidence === "low");
   if (lowConfidenceFields.length > 0) {
     warnings.push(
-      `${lowConfidenceFields.length} field(s) extracted with low confidence — please verify manually: ${lowConfidenceFields.map((f) => f.label).join(", ")}`
+      `${lowConfidenceFields.length} field(s) extracted with low confidence — please verify manually: ${lowConfidenceFields.map((f) => f.label).join(", ")}`,
     );
   }
-  warnings.push("Accumulated depreciation value is negative — this is normal but please verify sign convention.");
+  warnings.push(
+    "Accumulated depreciation value is negative — this is normal but please verify sign convention.",
+  );
 
   return {
     fileName,
@@ -147,13 +335,7 @@ export function FinancialStatementUpload({
   };
 
   const handleFileSelect = useCallback((file: File) => {
-    const validTypes = [
-      "application/pdf",
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "image/webp",
-    ];
+    const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
     if (!validTypes.includes(file.type)) {
       toast.error("Unsupported file type. Please upload a PDF, PNG, JPG, or WebP file.");
       return;
@@ -174,7 +356,7 @@ export function FinancialStatementUpload({
         handleFileSelect(e.dataTransfer.files[0]);
       }
     },
-    [handleFileSelect]
+    [handleFileSelect],
   );
 
   const handleInputChange = useCallback(
@@ -183,7 +365,7 @@ export function FinancialStatementUpload({
         handleFileSelect(e.target.files[0]);
       }
     },
-    [handleFileSelect]
+    [handleFileSelect],
   );
 
   const startExtraction = useCallback(() => {
@@ -216,7 +398,9 @@ export function FinancialStatementUpload({
       const result = generateSimulatedExtraction(selectedFile.name);
       setExtractionResult(result);
       setStep("review");
-      toast.success(`Extracted ${result.fieldsExtracted} fields from ${result.pagesProcessed} page(s)`);
+      toast.success(
+        `Extracted ${result.fieldsExtracted} fields from ${result.pagesProcessed} page(s)`,
+      );
     }, totalDelay + 500);
   }, [selectedFile]);
 
@@ -335,8 +519,8 @@ export function FinancialStatementUpload({
           <p className="text-xs text-muted-foreground">
             <strong className="text-foreground">How it works:</strong> Upload your audited financial
             statement (balance sheet, income statement). Our system uses OCR and pattern recognition
-            to extract account codes and values. You'll review and validate all extracted data before
-            it populates the financial statement form.
+            to extract account codes and values. You'll review and validate all extracted data
+            before it populates the financial statement form.
           </p>
         </div>
       </div>
@@ -405,7 +589,9 @@ export function FinancialStatementUpload({
             <p className="text-[10px] text-muted-foreground">Confident fields</p>
           </div>
           <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-warning-foreground">Medium</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-warning-foreground">
+              Medium
+            </p>
             <p className="text-xl font-bold text-foreground">{medConfidence}</p>
             <p className="text-[10px] text-muted-foreground">Verify fields</p>
           </div>
@@ -428,7 +614,9 @@ export function FinancialStatementUpload({
               <AlertTriangle className="size-4 text-warning-foreground shrink-0 mt-0.5" />
               <div className="space-y-1">
                 {extractionResult.warnings.map((w, i) => (
-                  <p key={i} className="text-xs text-warning-foreground">{w}</p>
+                  <p key={i} className="text-xs text-warning-foreground">
+                    {w}
+                  </p>
                 ))}
               </div>
             </div>
@@ -540,8 +728,8 @@ export function FinancialStatementUpload({
         <div className="text-center">
           <p className="text-lg font-bold text-foreground">Data Applied Successfully</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Your financial statement form has been populated with the extracted data.
-            Review and edit the values as needed before submitting.
+            Your financial statement form has been populated with the extracted data. Review and
+            edit the values as needed before submitting.
           </p>
         </div>
         <div className="flex gap-3">

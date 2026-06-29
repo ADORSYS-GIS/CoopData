@@ -116,7 +116,8 @@ function CooperativesPage() {
   const subtitleByRole: Record<string, string> = {
     apex: "Manage cooperatives under your apex · register new cooperatives and monitor compliance",
     ministry: "Comprehensive national register of cooperative associations, unions, and SACCOs",
-    federation: "Monitor cooperatives across your apex organizations · track compliance and performance",
+    federation:
+      "Monitor cooperatives across your apex organizations · track compliance and performance",
   };
   const registerLabelByRole: Record<string, string> = {
     apex: "Register cooperative",
@@ -245,10 +246,7 @@ function CooperativesPage() {
                   </tr>
                 ) : (
                   filteredCoops.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="hover:bg-muted/30 transition-colors duration-150"
-                    >
+                    <tr key={c.id} className="hover:bg-muted/30 transition-colors duration-150">
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
                         {c.regNo}
                       </td>

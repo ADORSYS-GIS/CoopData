@@ -5,7 +5,7 @@
 
 use axum::{
     extract::{Extension, Path, State},
-    routing::{delete, get, patch, post},
+    routing::{get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -27,7 +27,10 @@ pub fn shared_routes() -> Router<AppState> {
         // Current user profile
         .route("/me", get(get_current_user_profile))
         // Organization endpoints (restricted)
-        .route("/organizations", get(list_organizations).post(create_organization))
+        .route(
+            "/organizations",
+            get(list_organizations).post(create_organization),
+        )
         .route(
             "/organizations/{id}",
             get(get_organization)
@@ -38,9 +41,7 @@ pub fn shared_routes() -> Router<AppState> {
         .route("/users", get(list_users).post(create_user))
         .route(
             "/users/{id}",
-            get(get_user)
-                .patch(update_user)
-                .delete(delete_user),
+            get(get_user).patch(update_user).delete(delete_user),
         )
         .route("/users/{id}/assign-role", post(assign_role_to_user))
 }
@@ -56,7 +57,7 @@ pub fn shared_routes() -> Router<AppState> {
 /// All authenticated users.
 async fn get_current_user_profile(
     Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
     // - Optionally enrich with data from database
@@ -75,8 +76,8 @@ async fn get_current_user_profile(
 /// List all organizations.
 /// Ministry-only endpoint.
 async fn list_organizations(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
     // - Add role check for ministry
@@ -89,8 +90,8 @@ async fn list_organizations(
 /// Create a new organization.
 /// Ministry-only endpoint.
 async fn create_organization(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
     Ok(Json(serde_json::json!({
@@ -100,8 +101,8 @@ async fn create_organization(
 
 /// Get an organization by ID.
 async fn get_organization(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
@@ -113,8 +114,8 @@ async fn get_organization(
 
 /// Update an organization.
 async fn update_organization(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
@@ -126,8 +127,8 @@ async fn update_organization(
 
 /// Delete an organization.
 async fn delete_organization(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
@@ -139,8 +140,8 @@ async fn delete_organization(
 
 /// List all users.
 async fn list_users(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
     Ok(Json(serde_json::json!({
@@ -151,8 +152,8 @@ async fn list_users(
 
 /// Create a new user.
 async fn create_user(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
     Ok(Json(serde_json::json!({
@@ -162,8 +163,8 @@ async fn create_user(
 
 /// Get a user by ID.
 async fn get_user(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
@@ -175,8 +176,8 @@ async fn get_user(
 
 /// Update a user.
 async fn update_user(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
@@ -188,8 +189,8 @@ async fn update_user(
 
 /// Delete a user.
 async fn delete_user(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement
@@ -201,8 +202,8 @@ async fn delete_user(
 
 /// Assign a role to a user.
 async fn assign_role_to_user(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     // TODO: Implement

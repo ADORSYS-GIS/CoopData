@@ -1,9 +1,14 @@
-use std::sync::Arc;
-use std::collections::HashMap;
-use axum::{extract::{Path, State}, http::StatusCode, response::IntoResponse, Json};
 use axum::extract::Extension;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::api::dto::apex::{CreateApexRequest, ApexResponse, UpdateApexRequest};
+use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
 use crate::api::dto::member::{AddMemberRequest, MemberResponse};
 use crate::auth::claims::Claims;
 use crate::error::AppResult;
@@ -26,15 +31,20 @@ pub async fn create_apex(
     Json(body): Json<CreateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
     if body.name.trim().is_empty() {
-        return Err(crate::error::AppError::BadRequest("Apex name is required".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "Apex name is required".into(),
+        ));
     }
 
-    let org_id = claims.get_organization_id()
-        .ok_or_else(|| crate::error::AppError::Forbidden("User is not associated with an organization".into()))?;
+    let org_id = claims.get_organization_id().ok_or_else(|| {
+        crate::error::AppError::Forbidden("User is not associated with an organization".into())
+    })?;
 
     let group_name = format!("{}-{}", org_id, body.name);
 
@@ -45,7 +55,10 @@ pub async fn create_apex(
     attrs.insert("organization_id".to_string(), vec![org_id.clone()]);
     attrs.insert("type".to_string(), vec!["apex".to_string()]);
 
-    let group = state.keycloak.create_group(&group_name, Some(attrs)).await
+    let group = state
+        .keycloak
+        .create_group(&group_name, Some(attrs))
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(group_id = %group.id, name = %group_name, "Apex created");
@@ -66,14 +79,20 @@ pub async fn list_apexes(
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
-    let org_id = claims.get_organization_id()
-        .ok_or_else(|| crate::error::AppError::Forbidden("User is not associated with an organization".into()))?;
+    let org_id = claims.get_organization_id().ok_or_else(|| {
+        crate::error::AppError::Forbidden("User is not associated with an organization".into())
+    })?;
 
     let search_prefix = format!("{}-", org_id);
-    let groups = state.keycloak.get_groups(Some(&search_prefix)).await
+    let groups = state
+        .keycloak
+        .get_groups(Some(&search_prefix))
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     let apexes: Vec<ApexResponse> = groups.into_iter().map(ApexResponse::from).collect();
@@ -96,10 +115,15 @@ pub async fn get_apex(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
-    let group = state.keycloak.get_group_by_id(&id).await
+    let group = state
+        .keycloak
+        .get_group_by_id(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     Ok((StatusCode::OK, Json(ApexResponse::from(group))))
@@ -123,7 +147,9 @@ pub async fn update_apex(
     Json(body): Json<UpdateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
     let mut attrs = HashMap::new();
@@ -131,7 +157,14 @@ pub async fn update_apex(
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
 
-    let group = state.keycloak.update_group(&id, body.name.as_deref(), if attrs.is_empty() { None } else { Some(attrs) }).await
+    let group = state
+        .keycloak
+        .update_group(
+            &id,
+            body.name.as_deref(),
+            if attrs.is_empty() { None } else { Some(attrs) },
+        )
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(group_id = %id, "Apex updated");
@@ -155,10 +188,15 @@ pub async fn delete_apex(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
-    state.keycloak.delete_group(&id).await
+    state
+        .keycloak
+        .delete_group(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(group_id = %id, "Apex deleted");
@@ -184,24 +222,32 @@ pub async fn add_apex_member(
     Json(body): Json<AddMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
     let valid_roles = ["apex", "cooperative"];
     if !valid_roles.contains(&body.role.as_str()) {
-        return Err(crate::error::AppError::BadRequest(
-            format!("Invalid role '{}'. Valid roles: {}", body.role, valid_roles.join(", "))
-        ));
+        return Err(crate::error::AppError::BadRequest(format!(
+            "Invalid role '{}'. Valid roles: {}",
+            body.role,
+            valid_roles.join(", ")
+        )));
     }
 
-    let user = state.keycloak.add_member_to_group(
-        &body.email,
-        &body.first_name,
-        &body.last_name,
-        &body.role,
-        &id,
-        body.assigned_dimensions.clone(),
-    ).await.map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let user = state
+        .keycloak
+        .add_member_to_group(
+            &body.email,
+            &body.first_name,
+            &body.last_name,
+            &body.role,
+            &id,
+            body.assigned_dimensions.clone(),
+        )
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     let first_name = user.first_name_str().to_string();
     let last_name = user.last_name_str().to_string();
@@ -209,13 +255,16 @@ pub async fn add_apex_member(
     let user_id = user.id.clone();
 
     tracing::info!(group_id = %id, email = %body.email, role = %body.role, "Member added to apex");
-    Ok((StatusCode::CREATED, Json(MemberResponse {
-        id: user_id,
-        username: user.username.into(),
-        email,
-        first_name: Some(first_name).filter(|s| !s.is_empty()),
-        last_name: Some(last_name).filter(|s| !s.is_empty()),
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(MemberResponse {
+            id: user_id,
+            username: user.username.into(),
+            email,
+            first_name: Some(first_name).filter(|s| !s.is_empty()),
+            last_name: Some(last_name).filter(|s| !s.is_empty()),
+        }),
+    ))
 }
 
 #[utoipa::path(
@@ -233,10 +282,15 @@ pub async fn list_apex_members(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
-    let members = state.keycloak.get_group_members(&id).await
+    let members = state
+        .keycloak
+        .get_group_members(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     let responses: Vec<MemberResponse> = members.into_iter().map(MemberResponse::from).collect();
@@ -261,10 +315,15 @@ pub async fn remove_apex_member(
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Federation role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
     }
 
-    state.keycloak.remove_user_from_group(&user_id, &group_id).await
+    state
+        .keycloak
+        .remove_user_from_group(&user_id, &group_id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(user_id = %user_id, group_id = %group_id, "Member removed from apex");

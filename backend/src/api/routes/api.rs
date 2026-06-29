@@ -7,8 +7,8 @@
 //! - `cooperative` - Level 4: End user routes (requires `cooperative` or `apex` role)
 //! - `shared` - Shared routes accessible by multiple roles
 
-use axum::Router;
 use axum::routing::get;
+use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::api::handlers;
@@ -17,8 +17,7 @@ use crate::AppState;
 
 /// Public routes that don't require authentication.
 fn public_routes() -> Router<AppState> {
-    Router::new()
-        .route("/health", get(handlers::health_check))
+    Router::new().route("/health", get(handlers::health_check))
 }
 
 /// Ministry-level routes (Level 1).

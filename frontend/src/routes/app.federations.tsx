@@ -35,7 +35,7 @@ function FederationsPage() {
   const [region, setRegion] = useState("Manzini");
 
   // Edit modal state
-  const [editingFed, setEditingFed] = useState<typeof FEDERATIONS[number] | null>(null);
+  const [editingFed, setEditingFed] = useState<(typeof FEDERATIONS)[number] | null>(null);
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
 
@@ -46,8 +46,7 @@ function FederationsPage() {
       return;
     }
 
-    const regNo =
-      "FED-" + new Date().getFullYear() + "-" + Math.floor(100 + Math.random() * 900);
+    const regNo = "FED-" + new Date().getFullYear() + "-" + Math.floor(100 + Math.random() * 900);
     const newFed = {
       id: "f" + (federations.length + 1),
       regNo,
@@ -92,9 +91,7 @@ function FederationsPage() {
       return;
     }
     setFederations((prev) =>
-      prev.map((f) =>
-        f.id === editingFed.id ? { ...f, name: editName, region: editRegion } : f,
-      ),
+      prev.map((f) => (f.id === editingFed.id ? { ...f, name: editName, region: editRegion } : f)),
     );
     toast.success(`Updated "${editName}"`);
     setEditingFed(null);
@@ -232,10 +229,7 @@ function FederationsPage() {
                   </tr>
                 ) : (
                   filteredFeds.map((f) => (
-                    <tr
-                      key={f.id}
-                      className="hover:bg-muted/30 transition-colors duration-150"
-                    >
+                    <tr key={f.id} className="hover:bg-muted/30 transition-colors duration-150">
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
                         {f.regNo}
                       </td>
@@ -423,9 +417,7 @@ function FederationsPage() {
             <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <Pencil className="size-5 text-accent" />
-                <h3 className="font-heading text-lg font-bold text-foreground">
-                  Edit Federation
-                </h3>
+                <h3 className="font-heading text-lg font-bold text-foreground">Edit Federation</h3>
               </div>
               <button
                 onClick={() => setEditingFed(null)}

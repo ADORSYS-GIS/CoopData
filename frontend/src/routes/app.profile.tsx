@@ -92,8 +92,16 @@ function ProfilePage() {
         ];
       case "apex":
         return [
-          { name: "Review Cooperative Submissions", allowed: true, scope: "Cooperatives under apex" },
-          { name: "Approve / Reject / Request Changes", allowed: true, scope: "Cooperative submissions" },
+          {
+            name: "Review Cooperative Submissions",
+            allowed: true,
+            scope: "Cooperatives under apex",
+          },
+          {
+            name: "Approve / Reject / Request Changes",
+            allowed: true,
+            scope: "Cooperative submissions",
+          },
           { name: "Manage Cooperatives", allowed: true, scope: "Apex scope" },
           { name: "Create Cooperative Users", allowed: true, scope: "Apex scope" },
           { name: "Generate Reports", allowed: true, scope: "Apex scope" },

@@ -25,7 +25,10 @@ export const Route = createFileRoute("/app/reports")({
   component: ReportsPage,
 });
 
-const CATEGORIES_BY_ROLE: Record<Role, { tag: string; count: number; title: string; desc: string; icon: typeof TrendingUp }[]> = {
+const CATEGORIES_BY_ROLE: Record<
+  Role,
+  { tag: string; count: number; title: string; desc: string; icon: typeof TrendingUp }[]
+> = {
   ministry: [
     {
       tag: "National",
@@ -132,10 +135,7 @@ function ReportsPage() {
   const categories = CATEGORIES_BY_ROLE[role];
 
   return (
-    <AppShell
-      title={titleByRole[role]}
-      subtitle={subtitleByRole[role]}
-    >
+    <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>
       <div className="space-y-8">
         {/* Category Cards — clean grid, no colored edges */}
         <div className="grid lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden border border-border">

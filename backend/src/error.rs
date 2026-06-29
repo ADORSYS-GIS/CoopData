@@ -86,7 +86,10 @@ impl IntoResponse for AppError {
                     required_roles: None,
                 },
             ),
-            AppError::MissingRole { message, required_roles } => (
+            AppError::MissingRole {
+                message,
+                required_roles,
+            } => (
                 StatusCode::FORBIDDEN,
                 ErrorResponse {
                     error: "forbidden".to_string(),
@@ -175,7 +178,10 @@ impl From<redis::RedisError> for AppError {
 }
 
 /// Helper function to create a forbidden error with role requirements.
-pub fn forbidden_with_roles(message: impl Into<String>, required_roles: Vec<&'static str>) -> AppError {
+pub fn forbidden_with_roles(
+    message: impl Into<String>,
+    required_roles: Vec<&'static str>,
+) -> AppError {
     AppError::MissingRole {
         message: message.into(),
         required_roles: required_roles.iter().map(|s| s.to_string()).collect(),

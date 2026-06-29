@@ -207,11 +207,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                     className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
                   />
                 </div>
-                <Button
-                  size="sm"
-                  onClick={handleCustomApply}
-                  className="mt-4 h-7 text-xs"
-                >
+                <Button size="sm" onClick={handleCustomApply} className="mt-4 h-7 text-xs">
                   Apply
                 </Button>
               </div>

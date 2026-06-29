@@ -61,7 +61,8 @@ impl ScopeEnforcement {
                 "Federation scope violation: user attempted to access another organization"
             );
             return Err(AppError::Forbidden(
-                "Access denied: you can only access resources within your own federation".to_string()
+                "Access denied: you can only access resources within your own federation"
+                    .to_string(),
             ));
         }
 
@@ -78,13 +79,10 @@ impl ScopeEnforcement {
     /// # Returns
     /// * `Ok(())` if the user belongs to the apex group
     /// * `Err(AppError::Forbidden)` if scope violation
-    pub fn apex_can_access_group(
-        claims: &Claims,
-        apex_keycloak_id: &str,
-    ) -> Result<(), AppError> {
-        let user_group_id = claims.get_apex_group_id().ok_or_else(|| {
-            AppError::Forbidden("User has no apex group associated".to_string())
-        })?;
+    pub fn apex_can_access_group(claims: &Claims, apex_keycloak_id: &str) -> Result<(), AppError> {
+        let user_group_id = claims
+            .get_apex_group_id()
+            .ok_or_else(|| AppError::Forbidden("User has no apex group associated".to_string()))?;
 
         if user_group_id != apex_keycloak_id {
             tracing::warn!(
@@ -93,7 +91,7 @@ impl ScopeEnforcement {
                 "Apex scope violation: user attempted to access another apex group"
             );
             return Err(AppError::Forbidden(
-                "Access denied: you can only access cooperatives within your own apex".to_string()
+                "Access denied: you can only access cooperatives within your own apex".to_string(),
             ));
         }
 
@@ -127,10 +125,11 @@ impl ScopeEnforcement {
         // Path format: "/apex-group-uuid/cooperative-subgroup-uuid"
         let without_slash = path.strip_prefix('/').unwrap_or(path);
         let parts: Vec<&str> = without_slash.split('/').collect();
-        
-        parts.get(1).map(|s| s.to_string()).ok_or_else(|| {
-            AppError::Forbidden("Invalid cooperation path format".to_string())
-        })
+
+        parts
+            .get(1)
+            .map(|s| s.to_string())
+            .ok_or_else(|| AppError::Forbidden("Invalid cooperation path format".to_string()))
     }
 
     /// Checks if a user has any of the specified roles.
@@ -206,9 +205,15 @@ mod tests {
     fn test_has_any_role() {
         let claims = make_claims_with_roles(vec!["cooperative", "apex"]);
 
-        assert!(ScopeEnforcement::has_any_role(&claims, &[roles::COOPERATIVE]));
+        assert!(ScopeEnforcement::has_any_role(
+            &claims,
+            &[roles::COOPERATIVE]
+        ));
         assert!(ScopeEnforcement::has_any_role(&claims, &[roles::APEX]));
-        assert!(ScopeEnforcement::has_any_role(&claims, &[roles::COOPERATIVE, roles::APEX]));
+        assert!(ScopeEnforcement::has_any_role(
+            &claims,
+            &[roles::COOPERATIVE, roles::APEX]
+        ));
         assert!(!ScopeEnforcement::has_any_role(&claims, &[roles::MINISTRY]));
     }
 }

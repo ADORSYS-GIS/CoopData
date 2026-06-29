@@ -203,9 +203,7 @@ export function SubmissionReviewPanel({
             {submission.status === "Forwarded to Federation" && <ArrowUpRight className="size-3" />}
             {submission.status}
           </span>
-          <span className="text-xs text-muted-foreground">
-            {submission.priority} priority
-          </span>
+          <span className="text-xs text-muted-foreground">{submission.priority} priority</span>
         </div>
       </div>
 
@@ -215,29 +213,39 @@ export function SubmissionReviewPanel({
           <div className="flex items-center gap-2">
             <Building2 className="size-4 text-muted-foreground shrink-0" />
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Cooperative</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                Cooperative
+              </p>
               <p className="text-sm font-semibold text-foreground">{submission.coopName}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <User className="size-4 text-muted-foreground shrink-0" />
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Filed By</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                Filed By
+              </p>
               <p className="text-sm font-semibold text-foreground">{submission.submittedBy}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="size-4 text-muted-foreground shrink-0" />
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Date</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                Date
+              </p>
               <p className="text-sm font-semibold text-foreground">{submission.submittedOn}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Hash className="size-4 text-muted-foreground shrink-0" />
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Reference</p>
-              <p className="text-sm font-mono font-semibold text-foreground">{submission.reference}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                Reference
+              </p>
+              <p className="text-sm font-mono font-semibold text-foreground">
+                {submission.reference}
+              </p>
             </div>
           </div>
         </div>
@@ -392,7 +400,10 @@ export function SubmissionReviewPanel({
             {canForward && (
               <button
                 onClick={() => {
-                  onForward(submission.id, comment || "Approved by apex reviewer. Forwarded to federation for review.");
+                  onForward(
+                    submission.id,
+                    comment || "Approved by apex reviewer. Forwarded to federation for review.",
+                  );
                   setComment("");
                 }}
                 className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
@@ -449,14 +460,15 @@ export function SubmissionReviewPanel({
               {userRole === "apex" && (
                 <>
                   <strong className="text-foreground">Apex Review:</strong> Approve to forward this
-                  submission to the federation level. Request changes to send it back to the cooperative
-                  for corrections. Reject to deny the submission entirely.
+                  submission to the federation level. Request changes to send it back to the
+                  cooperative for corrections. Reject to deny the submission entirely.
                 </>
               )}
               {userRole === "federation" && (
                 <>
-                  <strong className="text-foreground">Federation Review:</strong> This submission has
-                  been reviewed by the apex. You can approve, request further changes, or reject it.
+                  <strong className="text-foreground">Federation Review:</strong> This submission
+                  has been reviewed by the apex. You can approve, request further changes, or reject
+                  it.
                 </>
               )}
               {userRole === "ministry" && (
@@ -479,8 +491,8 @@ export function SubmissionReviewPanel({
               <p className="text-sm font-semibold text-foreground">Submission Status</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Your submission is currently{" "}
-                <strong className="text-foreground">{submission.status}</strong>. You will be notified
-                when the review is complete or if changes are requested.
+                <strong className="text-foreground">{submission.status}</strong>. You will be
+                notified when the review is complete or if changes are requested.
               </p>
             </div>
           </div>

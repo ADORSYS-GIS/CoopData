@@ -1,8 +1,15 @@
-use std::sync::Arc;
-use axum::{extract::{Path, State}, http::StatusCode, response::IntoResponse, Json};
 use axum::extract::Extension;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use std::sync::Arc;
 
-use crate::api::dto::federation::{CreateFederationRequest, FederationResponse, UpdateFederationRequest};
+use crate::api::dto::federation::{
+    CreateFederationRequest, FederationResponse, UpdateFederationRequest,
+};
 use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
 use crate::auth::claims::Claims;
@@ -26,15 +33,24 @@ pub async fn create_federation(
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
     if body.name.trim().is_empty() {
-        return Err(crate::error::AppError::BadRequest("Federation name is required".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "Federation name is required".into(),
+        ));
     }
 
-    let domains: Vec<crate::models::keycloak::KeycloakOrganizationDomain> = body.domains.iter()
-        .map(|d| crate::models::keycloak::KeycloakOrganizationDomain { name: d.name.clone(), verified: false })
+    let domains: Vec<crate::models::keycloak::KeycloakOrganizationDomain> = body
+        .domains
+        .iter()
+        .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
+            name: d.name.clone(),
+            verified: false,
+        })
         .collect();
 
     let mut attrs = body.attributes.clone().unwrap_or_default();
@@ -42,12 +58,16 @@ pub async fn create_federation(
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
 
-    let org = state.keycloak.create_organization(
-        &body.name,
-        domains,
-        Some(state.config.frontend_url.clone()),
-        if attrs.is_empty() { None } else { Some(attrs) },
-    ).await.map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let org = state
+        .keycloak
+        .create_organization(
+            &body.name,
+            domains,
+            Some(state.config.frontend_url.clone()),
+            if attrs.is_empty() { None } else { Some(attrs) },
+        )
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(org_id = %org.id, name = %org.name, "Federation created");
     Ok((StatusCode::CREATED, Json(FederationResponse::from(org))))
@@ -67,13 +87,19 @@ pub async fn list_federations(
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    let orgs = state.keycloak.get_organizations().await
+    let orgs = state
+        .keycloak
+        .get_organizations()
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let federations: Vec<FederationResponse> = orgs.into_iter().map(FederationResponse::from).collect();
+    let federations: Vec<FederationResponse> =
+        orgs.into_iter().map(FederationResponse::from).collect();
     Ok((StatusCode::OK, Json(federations)))
 }
 
@@ -93,10 +119,15 @@ pub async fn get_federation(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    let org = state.keycloak.get_organization_by_id(&id).await
+    let org = state
+        .keycloak
+        .get_organization_by_id(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     Ok((StatusCode::OK, Json(FederationResponse::from(org))))
@@ -121,11 +152,18 @@ pub async fn update_federation(
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
     let domains = body.domains.map(|d| {
-        d.into_iter().map(|d| crate::models::keycloak::KeycloakOrganizationDomain { name: d.name, verified: false }).collect::<Vec<_>>()
+        d.into_iter()
+            .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
+                name: d.name,
+                verified: false,
+            })
+            .collect::<Vec<_>>()
     });
 
     let mut attrs = body.attributes.clone().unwrap_or_default();
@@ -133,13 +171,17 @@ pub async fn update_federation(
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
 
-    let org = state.keycloak.update_organization(
-        &id,
-        body.name.as_deref(),
-        body.description.as_deref(),
-        domains,
-        if attrs.is_empty() { None } else { Some(attrs) },
-    ).await.map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let org = state
+        .keycloak
+        .update_organization(
+            &id,
+            body.name.as_deref(),
+            body.description.as_deref(),
+            domains,
+            if attrs.is_empty() { None } else { Some(attrs) },
+        )
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(org_id = %id, "Federation updated");
     Ok((StatusCode::OK, Json(FederationResponse::from(org))))
@@ -162,10 +204,15 @@ pub async fn delete_federation(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    state.keycloak.delete_organization(&id).await
+    state
+        .keycloak
+        .delete_organization(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(org_id = %id, "Federation deleted");
@@ -191,33 +238,49 @@ pub async fn invite_user_to_federation(
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
     if body.email.trim().is_empty() {
-        return Err(crate::error::AppError::BadRequest("Email is required".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "Email is required".into(),
+        ));
     }
 
     let valid_roles = ["federation", "apex", "cooperative"];
     if !valid_roles.contains(&body.role.as_str()) {
-        return Err(crate::error::AppError::BadRequest(
-            format!("Invalid role '{}'. Valid roles: {}", body.role, valid_roles.join(", "))
-        ));
+        return Err(crate::error::AppError::BadRequest(format!(
+            "Invalid role '{}'. Valid roles: {}",
+            body.role,
+            valid_roles.join(", ")
+        )));
     }
 
-    let redirect_url = body.redirect_url.clone().unwrap_or_else(|| state.config.frontend_url.clone());
+    let redirect_url = body
+        .redirect_url
+        .clone()
+        .unwrap_or_else(|| state.config.frontend_url.clone());
 
-    let invitation = state.keycloak.invite_user_to_organization(
-        &id,
-        &body.email,
-        &body.first_name,
-        &body.last_name,
-        &body.role,
-        &redirect_url,
-    ).await.map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let invitation = state
+        .keycloak
+        .invite_user_to_organization(
+            &id,
+            &body.email,
+            &body.first_name,
+            &body.last_name,
+            &body.role,
+            &redirect_url,
+        )
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     tracing::info!(org_id = %id, email = %body.email, role = %body.role, "User invited to federation");
-    Ok((StatusCode::CREATED, Json(InvitationResponse::from(invitation))))
+    Ok((
+        StatusCode::CREATED,
+        Json(InvitationResponse::from(invitation)),
+    ))
 }
 
 #[utoipa::path(
@@ -235,13 +298,21 @@ pub async fn list_federation_invitations(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    let invitations = state.keycloak.get_organization_invitations(&id).await
+    let invitations = state
+        .keycloak
+        .get_organization_invitations(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let responses: Vec<InvitationResponse> = invitations.into_iter().map(InvitationResponse::from).collect();
+    let responses: Vec<InvitationResponse> = invitations
+        .into_iter()
+        .map(InvitationResponse::from)
+        .collect();
     Ok((StatusCode::OK, Json(responses)))
 }
 
@@ -263,10 +334,15 @@ pub async fn delete_federation_invitation(
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    state.keycloak.delete_organization_invitation(&id, &invitation_id).await
+    state
+        .keycloak
+        .delete_organization_invitation(&id, &invitation_id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     Ok((StatusCode::NO_CONTENT, ()))
@@ -290,13 +366,21 @@ pub async fn resend_federation_invitation(
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    state.keycloak.resend_organization_invitation(&id, &invitation_id).await
+    state
+        .keycloak
+        .resend_organization_invitation(&id, &invitation_id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    Ok((StatusCode::OK, Json(serde_json::json!({ "message": "Invitation resent" }))))
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({ "message": "Invitation resent" })),
+    ))
 }
 
 #[utoipa::path(
@@ -314,10 +398,15 @@ pub async fn list_federation_members(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden("Access denied. Ministry role required".into()));
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
     }
 
-    let members = state.keycloak.get_organization_members(&id).await
+    let members = state
+        .keycloak
+        .get_organization_members(&id)
+        .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     let responses: Vec<MemberResponse> = members.into_iter().map(MemberResponse::from).collect();

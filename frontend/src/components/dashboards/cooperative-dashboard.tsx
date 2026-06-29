@@ -93,16 +93,26 @@ const membershipTrend = [
   { year: "2025", members: 8910, youth: 3370, women: 4810 },
 ];
 
-const complianceRadial = [
-  { name: "Compliance", value: 96.4, fill: accentColor },
-];
+const complianceRadial = [{ name: "Compliance", value: 96.4, fill: accentColor }];
 
 const databaseStatus = [
   { name: "Membership", records: 8910, status: "Current", icon: Users, color: "text-foreground" },
   { name: "Savings", records: 6400, status: "Current", icon: Wallet, color: "text-foreground" },
-  { name: "Fixed Deposits", records: 3200, status: "Current", icon: TrendingUp, color: "text-foreground" },
+  {
+    name: "Fixed Deposits",
+    records: 3200,
+    status: "Current",
+    icon: TrendingUp,
+    color: "text-foreground",
+  },
   { name: "Loans", records: 4800, status: "Current", icon: BarChart3, color: "text-foreground" },
-  { name: "Multi-purpose", records: 1500, status: "Pending", icon: Database, color: "text-foreground" },
+  {
+    name: "Multi-purpose",
+    records: 1500,
+    status: "Pending",
+    icon: Database,
+    color: "text-foreground",
+  },
 ];
 
 export function CooperativeDashboard({
@@ -204,7 +214,9 @@ export function CooperativeDashboard({
               <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
                 <CheckCircle2 className="size-5 text-success shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Financial statement processed</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    Financial statement processed
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     Data extracted and applied. Charts below reflect your latest figures.
                   </p>
@@ -225,7 +237,8 @@ export function CooperativeDashboard({
                   Upload your financial statement
                 </p>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Upload a PDF or image of your audited balance sheet. We'll extract all account codes and figures automatically — no manual entry needed.
+                  Upload a PDF or image of your audited balance sheet. We'll extract all account
+                  codes and figures automatically — no manual entry needed.
                 </p>
                 <button
                   onClick={() => setShowFinancialUpload(true)}
@@ -288,7 +301,10 @@ export function CooperativeDashboard({
           >
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlySavings} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <BarChart
+                  data={monthlySavings}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis
                     dataKey="month"
@@ -314,9 +330,30 @@ export function CooperativeDashboard({
                     }}
                     formatter={(value: number) => [`$${value}K`]}
                   />
-                  <Bar dataKey="savings" stackId="a" fill={accentColor} fillOpacity={1} radius={[0, 0, 0, 0]} name="Savings" />
-                  <Bar dataKey="loans" stackId="a" fill={accentColor} fillOpacity={0.6} radius={[0, 0, 0, 0]} name="Loans" />
-                  <Bar dataKey="deposits" stackId="a" fill={accentColor} fillOpacity={0.35} radius={[4, 4, 0, 0]} name="Deposits" />
+                  <Bar
+                    dataKey="savings"
+                    stackId="a"
+                    fill={accentColor}
+                    fillOpacity={1}
+                    radius={[0, 0, 0, 0]}
+                    name="Savings"
+                  />
+                  <Bar
+                    dataKey="loans"
+                    stackId="a"
+                    fill={accentColor}
+                    fillOpacity={0.6}
+                    radius={[0, 0, 0, 0]}
+                    name="Loans"
+                  />
+                  <Bar
+                    dataKey="deposits"
+                    stackId="a"
+                    fill={accentColor}
+                    fillOpacity={0.35}
+                    radius={[4, 4, 0, 0]}
+                    name="Deposits"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -353,7 +390,10 @@ export function CooperativeDashboard({
               {loanPortfolio.map((item, i) => (
                 <li key={item.name} className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-muted-foreground">
-                    <span className="size-2.5 rounded-sm shrink-0" style={{ background: accentColor, opacity: accentOpacities[i] ?? 0.2 }} />
+                    <span
+                      className="size-2.5 rounded-sm shrink-0"
+                      style={{ background: accentColor, opacity: accentOpacities[i] ?? 0.2 }}
+                    />
                     {item.name}
                   </span>
                   <span className="font-bold num text-foreground">{item.value}%</span>
@@ -374,7 +414,13 @@ export function CooperativeDashboard({
                   margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <XAxis
+                    type="number"
+                    stroke="var(--muted-foreground)"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <YAxis
                     type="category"
                     dataKey="year"
@@ -392,9 +438,30 @@ export function CooperativeDashboard({
                       fontSize: 12,
                     }}
                   />
-                  <Bar dataKey="women" fill={accentColor} fillOpacity={0.5} radius={[0, 4, 4, 0]} name="Women" barSize={14} />
-                  <Bar dataKey="youth" fill={accentColor} fillOpacity={0.3} radius={[0, 4, 4, 0]} name="Youth" barSize={14} />
-                  <Bar dataKey="members" fill={accentColor} fillOpacity={1} radius={[0, 4, 4, 0]} name="Total" barSize={14} />
+                  <Bar
+                    dataKey="women"
+                    fill={accentColor}
+                    fillOpacity={0.5}
+                    radius={[0, 4, 4, 0]}
+                    name="Women"
+                    barSize={14}
+                  />
+                  <Bar
+                    dataKey="youth"
+                    fill={accentColor}
+                    fillOpacity={0.3}
+                    radius={[0, 4, 4, 0]}
+                    name="Youth"
+                    barSize={14}
+                  />
+                  <Bar
+                    dataKey="members"
+                    fill={accentColor}
+                    fillOpacity={1}
+                    radius={[0, 4, 4, 0]}
+                    name="Total"
+                    barSize={14}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -406,7 +473,11 @@ export function CooperativeDashboard({
                 <PieChart>
                   <Pie data={sectorBreakdown} dataKey="value" nameKey="name" outerRadius={80}>
                     {sectorBreakdown.map((_, i) => (
-                      <Cell key={i} fill={sectorBreakdown[i].fill} fillOpacity={sectorOpacities[i]} />
+                      <Cell
+                        key={i}
+                        fill={sectorBreakdown[i].fill}
+                        fillOpacity={sectorOpacities[i]}
+                      />
                     ))}
                   </Pie>
                   <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -427,8 +498,21 @@ export function CooperativeDashboard({
           <Card title="Compliance Score" subtitle="Current rating">
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={complianceRadial} startAngle={90} endAngle={-270}>
-                  <RadialBar dataKey="value" cornerRadius={10} fill={accentColor} background={{ fill: "var(--muted)" }} />
+                <RadialBarChart
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="60%"
+                  outerRadius="90%"
+                  data={complianceRadial}
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  <RadialBar
+                    dataKey="value"
+                    cornerRadius={10}
+                    fill={accentColor}
+                    background={{ fill: "var(--muted)" }}
+                  />
                 </RadialBarChart>
               </ResponsiveContainer>
             </div>
@@ -445,7 +529,10 @@ export function CooperativeDashboard({
         </div>
 
         {/* ── Statistics Grid Cards ── */}
-        <Card title="Key Financial Metrics" subtitle="Extracted from your latest financial statement">
+        <Card
+          title="Key Financial Metrics"
+          subtitle="Extracted from your latest financial statement"
+        >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { label: "Total Assets", value: "$6.4M", change: "+8.2%", up: true },
@@ -469,7 +556,9 @@ export function CooperativeDashboard({
                   ) : (
                     <ArrowDownRight className="size-3 text-success" />
                   )}
-                  <span className={`text-xs font-semibold ${metric.up ? "text-success" : "text-success"}`}>
+                  <span
+                    className={`text-xs font-semibold ${metric.up ? "text-success" : "text-success"}`}
+                  >
                     {metric.change}
                   </span>
                 </div>
@@ -500,7 +589,9 @@ export function CooperativeDashboard({
                         {sub.reference}
                       </td>
                       <td className="px-5 py-3.5 font-semibold text-foreground">{sub.type}</td>
-                      <td className="px-5 py-3.5 text-xs text-muted-foreground">{sub.submittedOn}</td>
+                      <td className="px-5 py-3.5 text-xs text-muted-foreground">
+                        {sub.submittedOn}
+                      </td>
                       <td className="px-5 py-3.5">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${

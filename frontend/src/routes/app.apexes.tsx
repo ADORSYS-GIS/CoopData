@@ -36,7 +36,7 @@ function ApexesPage() {
   const [federationName, setFederationName] = useState("Manzini Regional Federation");
 
   // Edit modal state
-  const [editingApex, setEditingApex] = useState<typeof APEXES[number] | null>(null);
+  const [editingApex, setEditingApex] = useState<(typeof APEXES)[number] | null>(null);
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
   const [editFederation, setEditFederation] = useState("");
@@ -48,8 +48,7 @@ function ApexesPage() {
       return;
     }
 
-    const regNo =
-      "APX-" + new Date().getFullYear() + "-" + Math.floor(100 + Math.random() * 900);
+    const regNo = "APX-" + new Date().getFullYear() + "-" + Math.floor(100 + Math.random() * 900);
     const newApex = {
       id: "a" + (apexes.length + 1),
       regNo,
@@ -72,7 +71,7 @@ function ApexesPage() {
     setFederationName("Manzini Regional Federation");
   };
 
-const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     startTransition(() => {
       setSearch(val);
@@ -239,10 +238,7 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   </tr>
                 ) : (
                   filteredApexes.map((a) => (
-                    <tr
-                      key={a.id}
-                      className="hover:bg-muted/30 transition-colors duration-150"
-                    >
+                    <tr key={a.id} className="hover:bg-muted/30 transition-colors duration-150">
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
                         {a.regNo}
                       </td>
