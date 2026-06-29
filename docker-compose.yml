@@ -76,6 +76,7 @@ services:
       KEYCLOAK_CLIENT_SECRET: change-me-in-production
       JWT_ISSUER: http://keycloak:8180/realms/coop-data
       JWT_AUDIENCE: coopdata-frontend
+      JWT_ISSUER_ALIASES: http://localhost:8180/realms/coop-data
       FRONTEND_URL: http://localhost:5173
       ENVIRONMENT: development
     ports:

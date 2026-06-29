@@ -11,7 +11,7 @@ pub mod utils;
 
 pub use config::AppConfig;
 pub use database::Database;
-pub use error::{AppError, AppResult};
+pub use error::{forbidden_with_roles, AppError, AppResult};
 pub use services::keycloak::KeycloakService;
 
 #[derive(Clone)]
