@@ -11,6 +11,7 @@ use axum::{
 use std::sync::Arc;
 
 use crate::auth::claims::Claims;
+use crate::auth::middleware::require_ministry;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -24,9 +25,7 @@ use crate::AppState;
 /// - etc.
 pub fn shared_routes() -> Router<AppState> {
     Router::new()
-        // Current user profile
         .route("/me", get(get_current_user_profile))
-        // Organization endpoints (restricted)
         .route(
             "/organizations",
             get(list_organizations).post(create_organization),
@@ -37,7 +36,6 @@ pub fn shared_routes() -> Router<AppState> {
                 .patch(update_organization)
                 .delete(delete_organization),
         )
-        // User endpoints (restricted)
         .route("/users", get(list_users).post(create_user))
         .route(
             "/users/{id}",
@@ -47,7 +45,7 @@ pub fn shared_routes() -> Router<AppState> {
 }
 
 // ============================================================================
-// Shared Handlers (Skeleton)
+// Shared Handlers
 // ============================================================================
 
 /// Get current user profile.
@@ -59,8 +57,6 @@ async fn get_current_user_profile(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
-    // - Optionally enrich with data from database
     Ok(Json(serde_json::json!({
         "id": claims.sub,
         "username": claims.preferred_username,
@@ -75,12 +71,15 @@ async fn get_current_user_profile(
 
 /// List all organizations.
 /// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn list_organizations(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
-    // - Add role check for ministry
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "list_organizations - TODO",
         "organizations": []
@@ -89,23 +88,32 @@ async fn list_organizations(
 
 /// Create a new organization.
 /// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn create_organization(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "create_organization - TODO"
     })))
 }
 
 /// Get an organization by ID.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn get_organization(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "get_organization - TODO",
         "id": id
@@ -113,12 +121,17 @@ async fn get_organization(
 }
 
 /// Update an organization.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn update_organization(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "update_organization - TODO",
         "id": id
@@ -126,12 +139,17 @@ async fn update_organization(
 }
 
 /// Delete an organization.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn delete_organization(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "delete_organization - TODO",
         "id": id
@@ -139,11 +157,16 @@ async fn delete_organization(
 }
 
 /// List all users.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn list_users(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "list_users - TODO",
         "users": []
@@ -151,23 +174,33 @@ async fn list_users(
 }
 
 /// Create a new user.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn create_user(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "create_user - TODO"
     })))
 }
 
 /// Get a user by ID.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn get_user(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "get_user - TODO",
         "id": id
@@ -175,12 +208,17 @@ async fn get_user(
 }
 
 /// Update a user.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn update_user(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "update_user - TODO",
         "id": id
@@ -188,12 +226,17 @@ async fn update_user(
 }
 
 /// Delete a user.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn delete_user(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "delete_user - TODO",
         "id": id
@@ -201,12 +244,17 @@ async fn delete_user(
 }
 
 /// Assign a role to a user.
+/// Ministry-only endpoint.
+///
+/// # Access
+/// Requires `ministry` role.
 async fn assign_role_to_user(
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    // TODO: Implement
+    require_ministry(&claims)?;
+
     Ok(Json(serde_json::json!({
         "message": "assign_role_to_user - TODO",
         "user_id": id
