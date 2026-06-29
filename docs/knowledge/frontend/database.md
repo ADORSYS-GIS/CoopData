@@ -53,14 +53,15 @@ export class AppDB extends Dexie {
 
 Three tables use a **two-field composite primary key** `[id+lang]`. This enables storing the same logical entity in multiple languages simultaneously.
 
-| Table | Primary Key | Secondary Indexes |
-|---|---|---|
-| `dimensions` | `[id+lang]` | `id`, `lang` |
-| `digitalisationLevels` | `[id+lang]` | `id`, `lang`, `dimensionId`, `[dimensionId+levelType]` |
-| `digitalisationGaps` | `[id+lang]` | `id`, `lang`, `dimensionId`, `dimension_key`, `[dimension_key+gap_severity+lang]`, `[dimensionId+gap_severity+lang]` |
-| `dimensionWithStatesCache` | `[id+lang]` | `id`, `lang` |
+| Table                      | Primary Key | Secondary Indexes                                                                                                    |
+| -------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `dimensions`               | `[id+lang]` | `id`, `lang`                                                                                                         |
+| `digitalisationLevels`     | `[id+lang]` | `id`, `lang`, `dimensionId`, `[dimensionId+levelType]`                                                               |
+| `digitalisationGaps`       | `[id+lang]` | `id`, `lang`, `dimensionId`, `dimension_key`, `[dimension_key+gap_severity+lang]`, `[dimensionId+gap_severity+lang]` |
+| `dimensionWithStatesCache` | `[id+lang]` | `id`, `lang`                                                                                                         |
 
 ### Writing to a Composite Key Table
+
 Every object written to these tables **must** contain both `id` AND `lang`. Missing either field causes a silent failure (caught by the error wrapper).
 
 ```typescript
@@ -81,6 +82,7 @@ await db.dimensions.put({
 ```
 
 ### Reading from a Composite Key Table
+
 Use the `[id, lang]` array as the key:
 
 ```typescript
@@ -129,7 +131,9 @@ The `syncManager.syncAll()` processes items in `timestamp` ascending order to pr
 Dexie uses versioned schema migrations. **These rules are non-negotiable:**
 
 ### Rule 1: Never change a primary key in-place
+
 If you need to change the primary key of an existing table, you must:
+
 1. Drop the table by setting it to `null` in a new version.
 2. Recreate it with the new schema in a subsequent version.
 
@@ -143,7 +147,7 @@ this.version(14).stores({
 
 // Version 16 — drop the tables that need PK changes
 this.version(16).stores({
-  dimensions: null,           // ← Must drop before recreating
+  dimensions: null, // ← Must drop before recreating
   digitalisationLevels: null,
   digitalisationGaps: null,
 });
@@ -152,30 +156,39 @@ this.version(16).stores({
 this.version(17).stores({
   dimensions: "[id+lang], id, lang",
   digitalisationLevels: "[id+lang], id, lang, dimensionId, [dimensionId+levelType]",
-  digitalisationGaps: "[id+lang], id, lang, dimensionId, [dimensionId+currentLevel+desiredLevel+lang]",
+  digitalisationGaps:
+    "[id+lang], id, lang, dimensionId, [dimensionId+currentLevel+desiredLevel+lang]",
 });
 ```
 
 ### Rule 2: Only add new versions — never edit existing ones
+
 Modifying a past `.version()` block after it's been deployed to users causes `UpgradeError` crashes. Always increment.
 
 ### Rule 3: New tables or indexes are always additive
+
 To add a new table or a new index to an existing table, simply add a new `.version(N+1).stores({})` block with the delta.
 
 ### Rule 4: One-time data migrations use `.upgrade()`
+
 If a schema version requires data transformation (e.g. normalizing a field), use `.upgrade(tx)`:
 
 ```typescript
-this.version(21).stores({
-  assessments: "id, organization_id, cooperation_id, status",
-}).upgrade(async (tx) => {
-  // Migrate existing records
-  await tx.table("assessments").toCollection().modify((assessment) => {
-    if (!assessment.status) {
-      assessment.status = "active";
-    }
+this.version(21)
+  .stores({
+    assessments: "id, organization_id, cooperation_id, status",
+  })
+  .upgrade(async (tx) => {
+    // Migrate existing records
+    await tx
+      .table("assessments")
+      .toCollection()
+      .modify((assessment) => {
+        if (!assessment.status) {
+          assessment.status = "active";
+        }
+      });
   });
-});
 ```
 
 ---
@@ -186,22 +199,23 @@ All composite-key tables are wrapped with error-safe versions of `put`, `bulkPut
 
 ```typescript
 // Applied in db.ts after the AppDB instance is created:
-wrapTableOperations(db.dimensions, 'dimensions');
-wrapTableOperations(db.digitalisationLevels, 'digitalisationLevels');
-wrapTableOperations(db.digitalisationGaps, 'digitalisationGaps');
-wrapTableOperations(db.dimensionWithStatesCache, 'dimensionWithStatesCache');
+wrapTableOperations(db.dimensions, "dimensions");
+wrapTableOperations(db.digitalisationLevels, "digitalisationLevels");
+wrapTableOperations(db.digitalisationGaps, "digitalisationGaps");
+wrapTableOperations(db.dimensionWithStatesCache, "dimensionWithStatesCache");
 ```
 
 The wrapper catches `key path did not yield a value` errors (missing composite key fields) and logs them without re-throwing, so the application continues operating.
 
 ### Pattern — How the Wrapper Works
+
 ```typescript
-table.put = async function(item: any, key?: any) {
+table.put = async function (item: any, key?: any) {
   try {
     return await originalPut(item, key);
   } catch (error: any) {
     console.error(`IndexedDB ${tableName}.put error:`, error);
-    if (error.message?.includes('key path did not yield a value')) {
+    if (error.message?.includes("key path did not yield a value")) {
       console.error(`Missing required fields for ${tableName}:`, item);
     }
     return Promise.resolve(key || item.id || item); // Graceful no-op
@@ -217,16 +231,16 @@ table.put = async function(item: any, key?: any) {
 
 ```typescript
 // File: frontend/src/main.tsx
-window.addEventListener('unhandledrejection', (event) => {
+window.addEventListener("unhandledrejection", (event) => {
   const reason = event.reason;
   if (
-    reason?.name === 'DataError' ||
-    reason?.message?.includes('IDBObjectStore') ||
-    reason?.name === 'DatabaseError'
+    reason?.name === "DataError" ||
+    reason?.message?.includes("IDBObjectStore") ||
+    reason?.name === "DatabaseError"
   ) {
     event.preventDefault(); // Suppress — do not crash the app
   } else {
-    console.error('Unhandled promise rejection:', reason);
+    console.error("Unhandled promise rejection:", reason);
   }
 });
 ```

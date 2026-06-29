@@ -16,17 +16,17 @@ export const KPI = {
 
 export const GROWTH_TREND = [
   { month: "Jan", members: 1820000, savings: 980, loans: 612 },
-  { month: "Feb", members: 1855000, savings: 998, loans: 631 },
-  { month: "Mar", members: 1892000, savings: 1020, loans: 655 },
-  { month: "Apr", members: 1935000, savings: 1041, loans: 678 },
-  { month: "May", members: 1981000, savings: 1078, loans: 702 },
-  { month: "Jun", members: 2032000, savings: 1102, loans: 731 },
-  { month: "Jul", members: 2088000, savings: 1130, loans: 758 },
-  { month: "Aug", members: 2145000, savings: 1158, loans: 781 },
-  { month: "Sep", members: 2210000, savings: 1182, loans: 802 },
-  { month: "Oct", members: 2284000, savings: 1198, loans: 821 },
-  { month: "Nov", members: 2352000, savings: 1204, loans: 835 },
-  { month: "Dec", members: 2412300, savings: 1204, loans: 842 },
+  { month: "Feb", members: 2150000, savings: 1120, loans: 490 },
+  { month: "Mar", members: 1910000, savings: 940, loans: 780 },
+  { month: "Apr", members: 2320000, savings: 1250, loans: 520 },
+  { month: "May", members: 1740000, savings: 890, loans: 890 },
+  { month: "Jun", members: 2280000, savings: 1190, loans: 440 },
+  { month: "Jul", members: 2090000, savings: 1080, loans: 758 },
+  { month: "Aug", members: 2450000, savings: 1310, loans: 590 },
+  { month: "Sep", members: 1850000, savings: 950, loans: 820 },
+  { month: "Oct", members: 2280000, savings: 1210, loans: 480 },
+  { month: "Nov", members: 1990000, savings: 1040, loans: 810 },
+  { month: "Dec", members: 2412300, savings: 1280, loans: 842 },
 ];
 
 export const SECTOR_BREAKDOWN = [
@@ -411,7 +411,7 @@ export const USERS: User[] = [
     id: "u4",
     name: "Moses Dlamini",
     email: "m.dlamini@gov.sz",
-    role: "Regional Officer",
+    role: "Apex Officer",
     region: "Hhohho",
     lastActive: "3 h ago",
     status: "Active" as const,
@@ -420,7 +420,7 @@ export const USERS: User[] = [
     id: "u5",
     name: "Nomcebo Dlamini",
     email: "n.dlamini@gov.sz",
-    role: "Regional Officer",
+    role: "Apex Officer",
     region: "Shiselweni",
     lastActive: "1 d ago",
     status: "Active" as const,
@@ -484,6 +484,191 @@ export const REPORTS = [
     format: "DOCX",
     size: "5.9 MB",
     updated: "Sep 30, 2025",
+  },
+];
+
+// ============================================================================
+// FEDERATION DATA
+// ============================================================================
+
+export type Federation = {
+  id: string;
+  regNo: string;
+  name: string;
+  region: string;
+  apexCount: number;
+  coopCount: number;
+  totalMembers: number;
+  totalPortfolio: number;
+  compliance: "Verified" | "Pending" | "Non-Compliant" | "Under Review";
+  status: "Active" | "Inactive" | "Suspended";
+  registeredOn: string;
+};
+
+export const FEDERATIONS: Federation[] = [
+  {
+    id: "f1",
+    regNo: "FED-2012-001",
+    name: "Manzini Regional Federation",
+    region: "Manzini",
+    apexCount: 4,
+    coopCount: 4480,
+    totalMembers: 891_200,
+    totalPortfolio: 342_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2012-03-15",
+  },
+  {
+    id: "f2",
+    regNo: "FED-2013-002",
+    name: "Hhohho Regional Federation",
+    region: "Hhohho",
+    apexCount: 3,
+    coopCount: 3120,
+    totalMembers: 612_400,
+    totalPortfolio: 218_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2013-06-22",
+  },
+  {
+    id: "f3",
+    regNo: "FED-2014-003",
+    name: "Shiselweni Regional Federation",
+    region: "Shiselweni",
+    apexCount: 2,
+    coopCount: 2104,
+    totalMembers: 411_500,
+    totalPortfolio: 98_000_000,
+    compliance: "Pending",
+    status: "Active",
+    registeredOn: "2014-01-10",
+  },
+  {
+    id: "f4",
+    regNo: "FED-2011-004",
+    name: "Lubombo Regional Federation",
+    region: "Lubombo",
+    apexCount: 3,
+    coopCount: 3138,
+    totalMembers: 497_200,
+    totalPortfolio: 184_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2011-09-01",
+  },
+];
+
+// ============================================================================
+// APEX DATA
+// ============================================================================
+
+export type Apex = {
+  id: string;
+  regNo: string;
+  name: string;
+  region: string;
+  federationName: string;
+  coopCount: number;
+  totalMembers: number;
+  totalPortfolio: number;
+  compliance: "Verified" | "Pending" | "Non-Compliant" | "Under Review";
+  status: "Active" | "Inactive" | "Suspended";
+  registeredOn: string;
+};
+
+export const APEXES: Apex[] = [
+  {
+    id: "a1",
+    regNo: "APX-2015-001",
+    name: "Manzini Agricultural Apex",
+    region: "Manzini",
+    federationName: "Manzini Regional Federation",
+    coopCount: 1240,
+    totalMembers: 245_000,
+    totalPortfolio: 98_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2015-04-12",
+  },
+  {
+    id: "a2",
+    regNo: "APX-2016-002",
+    name: "Manzini Financial Apex",
+    region: "Manzini",
+    federationName: "Manzini Regional Federation",
+    coopCount: 890,
+    totalMembers: 198_000,
+    totalPortfolio: 142_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2016-08-20",
+  },
+  {
+    id: "a3",
+    regNo: "APX-2014-003",
+    name: "Hhohho Multi-Purpose Apex",
+    region: "Hhohho",
+    federationName: "Hhohho Regional Federation",
+    coopCount: 1560,
+    totalMembers: 312_000,
+    totalPortfolio: 118_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2014-11-05",
+  },
+  {
+    id: "a4",
+    regNo: "APX-2017-004",
+    name: "Hhohho Savings & Credit Apex",
+    region: "Hhohho",
+    federationName: "Hhohho Regional Federation",
+    coopCount: 1560,
+    totalMembers: 300_400,
+    totalPortfolio: 100_000_000,
+    compliance: "Under Review",
+    status: "Active",
+    registeredOn: "2017-02-18",
+  },
+  {
+    id: "a5",
+    regNo: "APX-2016-005",
+    name: "Shiselweni Farmers Apex",
+    region: "Shiselweni",
+    federationName: "Shiselweni Regional Federation",
+    coopCount: 1204,
+    totalMembers: 231_500,
+    totalPortfolio: 52_000_000,
+    compliance: "Pending",
+    status: "Active",
+    registeredOn: "2016-05-30",
+  },
+  {
+    id: "a6",
+    regNo: "APX-2013-006",
+    name: "Lubombo Dairy & Agriculture Apex",
+    region: "Lubombo",
+    federationName: "Lubombo Regional Federation",
+    coopCount: 1680,
+    totalMembers: 298_000,
+    totalPortfolio: 104_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2013-07-14",
+  },
+  {
+    id: "a7",
+    regNo: "APX-2018-007",
+    name: "Lubombo Transport & Trade Apex",
+    region: "Lubombo",
+    federationName: "Lubombo Regional Federation",
+    coopCount: 1458,
+    totalMembers: 199_200,
+    totalPortfolio: 80_000_000,
+    compliance: "Verified",
+    status: "Active",
+    registeredOn: "2018-09-22",
   },
 ];
 

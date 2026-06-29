@@ -53,7 +53,7 @@ describe('UserCard', () => {
 
   it('renders user information', () => {
     render(<UserCard user={mockUser} onEdit={vi.fn()} onDelete={vi.fn()} />);
-    
+
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
     expect(screen.getByText('admin')).toBeInTheDocument();
@@ -62,20 +62,20 @@ describe('UserCard', () => {
   it('calls onEdit when edit button is clicked', async () => {
     const onEdit = vi.fn();
     render(<UserCard user={mockUser} onEdit={onEdit} onDelete={vi.fn()} />);
-    
+
     const editButton = screen.getByRole('button', { name: /edit/i });
     await userEvent.click(editButton);
-    
+
     expect(onEdit).toHaveBeenCalledWith(mockUser);
   });
 
   it('calls onDelete when delete button is clicked', async () => {
     const onDelete = vi.fn();
     render(<UserCard user={mockUser} onEdit={vi.fn()} onDelete={onDelete} />);
-    
+
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await userEvent.click(deleteButton);
-    
+
     expect(onDelete).toHaveBeenCalledWith('1');
   });
 });
@@ -113,7 +113,7 @@ describe('useUsers', () => {
     const mockUsers = [
       { id: '1', name: 'John', email: 'john@example.com' },
     ];
-    
+
     vi.mocked(UsersService.getUsers).mockResolvedValue(mockUsers);
 
     const { result } = renderHook(() => useUsers(), {
@@ -144,17 +144,17 @@ describe('useUsers', () => {
 **File**: `frontend/src/__tests__/utils/formatDate.test.ts`
 
 ```typescript
-import { formatDate } from '@/utils/formatDate';
-import { describe, it, expect } from 'vitest';
+import { formatDate } from "@/utils/formatDate";
+import { describe, it, expect } from "vitest";
 
-describe('formatDate', () => {
-  it('formats date correctly', () => {
-    const date = new Date('2024-01-15T10:30:00Z');
-    expect(formatDate(date)).toBe('Jan 15, 2024');
+describe("formatDate", () => {
+  it("formats date correctly", () => {
+    const date = new Date("2024-01-15T10:30:00Z");
+    expect(formatDate(date)).toBe("Jan 15, 2024");
   });
 
-  it('handles invalid dates', () => {
-    expect(formatDate(null)).toBe('Invalid date');
+  it("handles invalid dates", () => {
+    expect(formatDate(null)).toBe("Invalid date");
   });
 });
 ```
@@ -166,39 +166,39 @@ describe('formatDate', () => {
 **File**: `frontend/e2e/users.spec.ts`
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('User Management', () => {
+test.describe("User Management", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'admin@example.com');
-    await page.fill('input[name="password"]', 'password');
+    await page.goto("/login");
+    await page.fill('input[name="email"]', "admin@example.com");
+    await page.fill('input[name="password"]', "password");
     await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+    await page.waitForURL("/dashboard");
   });
 
-  test('creates a new user', async ({ page }) => {
-    await page.goto('/users');
+  test("creates a new user", async ({ page }) => {
+    await page.goto("/users");
     await page.click('button:has-text("Add User")');
-    
-    await page.fill('input[name="name"]', 'Jane Doe');
-    await page.fill('input[name="email"]', 'jane@example.com');
-    await page.selectOption('select[name="role"]', 'user');
-    
+
+    await page.fill('input[name="name"]', "Jane Doe");
+    await page.fill('input[name="email"]', "jane@example.com");
+    await page.selectOption('select[name="role"]', "user");
+
     await page.click('button[type="submit"]');
-    
-    await expect(page.locator('text=Jane Doe')).toBeVisible();
+
+    await expect(page.locator("text=Jane Doe")).toBeVisible();
   });
 
-  test('deletes a user', async ({ page }) => {
-    await page.goto('/users');
-    
+  test("deletes a user", async ({ page }) => {
+    await page.goto("/users");
+
     const userRow = page.locator('tr:has-text("John Doe")');
     await userRow.locator('button:has-text("Delete")').click();
-    
+
     await page.click('button:has-text("Confirm")');
-    
-    await expect(page.locator('text=John Doe')).not.toBeVisible();
+
+    await expect(page.locator("text=John Doe")).not.toBeVisible();
   });
 });
 ```
@@ -258,13 +258,13 @@ describe("assessmentRepository - Offline Fallback", () => {
         assessment_id: "a1",
         document_title: "Fresh API Item",
         dimensions_id: [],
-      }
+      },
     });
 
     const result = await assessmentRepository.getById("a1");
 
     expect(result?.name).toBe("Fresh API Item");
-    
+
     const savedLocal = await db.assessments.get("a1");
     expect(savedLocal?.name).toBe("Fresh API Item");
     expect(savedLocal?.syncStatus).toBe(SyncStatus.SYNCED);
@@ -279,18 +279,16 @@ describe("assessmentRepository - Offline Fallback", () => {
 **File**: `frontend/src/__tests__/mocks/handlers.ts`
 
 ```typescript
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse } from "msw";
 
 export const handlers = [
-  http.get('/api/users', () => {
-    return HttpResponse.json([
-      { id: '1', name: 'John', email: 'john@example.com' },
-    ]);
+  http.get("/api/users", () => {
+    return HttpResponse.json([{ id: "1", name: "John", email: "john@example.com" }]);
   }),
 
-  http.post('/api/users', async ({ request }) => {
+  http.post("/api/users", async ({ request }) => {
     const body = await request.json();
-    return HttpResponse.json({ id: '2', ...body });
+    return HttpResponse.json({ id: "2", ...body });
   }),
 ];
 ```
@@ -298,9 +296,9 @@ export const handlers = [
 **Setup** (`frontend/src/__tests__/setup.ts`):
 
 ```typescript
-import { setupServer } from 'msw/node';
-import { handlers } from './mocks/handlers';
-import { beforeAll, afterEach, afterAll } from 'vitest';
+import { setupServer } from "msw/node";
+import { handlers } from "./mocks/handlers";
+import { beforeAll, afterEach, afterAll } from "vitest";
 
 const server = setupServer(...handlers);
 
@@ -332,6 +330,7 @@ npm run test:e2e
 ## What to Test
 
 ### ✅ Do Test:
+
 - User interactions (clicks, typing)
 - Conditional rendering
 - Error/loading states and skeleton placeholders
@@ -341,6 +340,7 @@ npm run test:e2e
 - Critical business logic
 
 ### ❌ Don't Test:
+
 - Implementation details (internal state hook variables)
 - Third-party libraries
 - Styling/CSS

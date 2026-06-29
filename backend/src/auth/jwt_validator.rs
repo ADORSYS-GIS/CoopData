@@ -93,6 +93,7 @@ impl JwtValidator {
         validation.validate_nbf = false;
 
         let aud_strings: Vec<String> = audiences.to_vec();
+        let aud_strings: Vec<String> = audiences.to_vec();
         validation.set_audience(&aud_strings);
 
         let valid_audiences: HashSet<String> = audiences.iter().cloned().collect();
@@ -142,13 +143,11 @@ impl JwtValidator {
     fn is_valid_audience(&self, claims: &Claims) -> bool {
         match &claims.aud {
             Some(serde_json::Value::String(s)) => self.valid_audiences.contains(s),
-            Some(serde_json::Value::Array(arr)) => {
-                arr.iter().any(|v| {
-                    v.as_str()
-                        .map(|s| self.valid_audiences.contains(s))
-                        .unwrap_or(false)
-                })
-            }
+            Some(serde_json::Value::Array(arr)) => arr.iter().any(|v| {
+                v.as_str()
+                    .map(|s| self.valid_audiences.contains(s))
+                    .unwrap_or(false)
+            }),
             Some(serde_json::Value::Null) | None => false,
             _ => false,
         }

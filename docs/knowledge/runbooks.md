@@ -1,17 +1,21 @@
 # Runbooks — coop data
 
 Provide actionable, step-by-step instructions for common operational tasks and incidents. Keep each runbook:
+
 - Single-purpose and short (5–10 min to execute)
 - Tied to specific alerts/dashboards
 - Verified at least once per quarter
 
 ## Index
+
 <!-- TODO: Link to individual runbooks below -->
+
 - [Service X: High Error Rate](runbooks/service-x-high-error-rate.md)
 - [Database: High CPU/Connection Saturation](runbooks/database-cpu-saturation.md)
 - [Queue Backlog Growing](runbooks/queue-backlog.md)
 
 ## Template
+
 ```
 Title: <Concise title>
 Owner: <Team or person>

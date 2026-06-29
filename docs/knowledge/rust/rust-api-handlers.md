@@ -269,6 +269,7 @@ pub async fn delete_organization(
 ```
 
 **Why**:
+
 - Clear separation: CREATE, READ, UPDATE, DELETE sections
 - `#[instrument]` for automatic tracing
 - Input validation at the start

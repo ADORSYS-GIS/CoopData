@@ -98,16 +98,21 @@ pub fn serve_openapi() -> Router<AppState> {
     let spec_json = serde_json::to_string(&spec).expect("Failed to serialize OpenAPI spec");
 
     Router::new()
-        .route("/api-docs/openapi.json", axum::routing::get(move || {
-            let json = spec_json.clone();
-            async move { axum::Json(serde_json::from_str::<serde_json::Value>(&json).unwrap()) }
-        }))
-        .route("/swagger-ui", axum::routing::get(|| async move {
-            axum::response::Html(SWAGGER_UI_HTML.to_string())
-        }))
-        .route("/swagger-ui/", axum::routing::get(|| async move {
-            axum::response::Html(SWAGGER_UI_HTML.to_string())
-        }))
+        .route(
+            "/api-docs/openapi.json",
+            axum::routing::get(move || {
+                let json = spec_json.clone();
+                async move { axum::Json(serde_json::from_str::<serde_json::Value>(&json).unwrap()) }
+            }),
+        )
+        .route(
+            "/swagger-ui",
+            axum::routing::get(|| async move { axum::response::Html(SWAGGER_UI_HTML.to_string()) }),
+        )
+        .route(
+            "/swagger-ui/",
+            axum::routing::get(|| async move { axum::response::Html(SWAGGER_UI_HTML.to_string()) }),
+        )
 }
 
 const SWAGGER_UI_HTML: &str = r#"<!DOCTYPE html>

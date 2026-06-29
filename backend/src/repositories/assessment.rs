@@ -1,7 +1,7 @@
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
-use uuid::Uuid;
-use crate::entities::{assessment};
+use crate::entities::assessment;
 use crate::error::AppResult;
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use uuid::Uuid;
 
 pub struct AssessmentRepository {
     db: DatabaseConnection,
@@ -19,7 +19,10 @@ impl AssessmentRepository {
             .map_err(Into::into)
     }
 
-    pub async fn find_by_organization(&self, organization_id: Uuid) -> AppResult<Vec<assessment::Model>> {
+    pub async fn find_by_organization(
+        &self,
+        organization_id: Uuid,
+    ) -> AppResult<Vec<assessment::Model>> {
         assessment::Entity::find()
             .filter(assessment::Column::OrganizationId.eq(organization_id))
             .all(&self.db)

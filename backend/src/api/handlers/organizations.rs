@@ -1,7 +1,15 @@
-use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use uuid::Uuid;
 
-use crate::api::dto::{CreateOrganizationRequest, UpdateOrganizationRequest, OrganizationResponse, PaginationParams, PaginatedResponse};
+use crate::api::dto::{
+    CreateOrganizationRequest, OrganizationResponse, PaginatedResponse, PaginationParams,
+    UpdateOrganizationRequest,
+};
 use crate::entities::organization;
 use crate::error::{AppError, AppResult};
 use crate::repositories::OrganizationRepository;
@@ -27,7 +35,15 @@ pub async fn list_organizations(
     let responses: Vec<OrganizationResponse> = organizations.into_iter().map(Into::into).collect();
     let total = responses.len() as u64;
 
-    Ok((StatusCode::OK, Json(PaginatedResponse::new(responses, total, params.page, params.per_page))))
+    Ok((
+        StatusCode::OK,
+        Json(PaginatedResponse::new(
+            responses,
+            total,
+            params.page,
+            params.per_page,
+        )),
+    ))
 }
 
 #[utoipa::path(
@@ -47,7 +63,9 @@ pub async fn get_organization(
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let repo = OrganizationRepository::new(state.db.clone());
-    let org = repo.find_by_id(id).await?
+    let org = repo
+        .find_by_id(id)
+        .await?
         .ok_or_else(|| AppError::NotFound(format!("Organization {} not found", id)))?;
 
     Ok((StatusCode::OK, Json(OrganizationResponse::from(org))))

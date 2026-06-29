@@ -1,7 +1,15 @@
-use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use uuid::Uuid;
 
-use crate::api::dto::{CreateUserRequest, UpdateUserRequest, UserResponse, AssignRoleRequest, PaginationParams, PaginatedResponse};
+use crate::api::dto::{
+    AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginationParams, UpdateUserRequest,
+    UserResponse,
+};
 use crate::error::{AppError, AppResult};
 use crate::repositories::UserRepository;
 use crate::AppState;
@@ -11,9 +19,11 @@ const VALID_ROLES: [&str; 4] = ["ministry", "federation", "cooperative", "region
 
 fn validate_role(role: &str) -> Result<(), AppError> {
     if !VALID_ROLES.contains(&role) {
-        return Err(AppError::BadRequest(
-            format!("Invalid role '{}'. Valid roles: {}", role, VALID_ROLES.join(", "))
-        ));
+        return Err(AppError::BadRequest(format!(
+            "Invalid role '{}'. Valid roles: {}",
+            role,
+            VALID_ROLES.join(", ")
+        )));
     }
     Ok(())
 }
@@ -37,7 +47,15 @@ pub async fn list_users(
     let responses: Vec<UserResponse> = users.into_iter().map(Into::into).collect();
     let total = responses.len() as u64;
 
-    Ok((StatusCode::OK, Json(PaginatedResponse::new(responses, total, params.page, params.per_page))))
+    Ok((
+        StatusCode::OK,
+        Json(PaginatedResponse::new(
+            responses,
+            total,
+            params.page,
+            params.per_page,
+        )),
+    ))
 }
 
 #[utoipa::path(
@@ -57,7 +75,9 @@ pub async fn get_user(
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let repo = UserRepository::new(state.db.clone());
-    let user_model = repo.find_by_id(id).await?
+    let user_model = repo
+        .find_by_id(id)
+        .await?
         .ok_or_else(|| AppError::NotFound(format!("User {} not found", id)))?;
 
     Ok((StatusCode::OK, Json(UserResponse::from(user_model))))
@@ -87,27 +107,41 @@ pub async fn create_user(
     let user_repo = UserRepository::new(state.db.clone());
 
     if user_repo.find_by_email(&body.email).await?.is_some() {
-        return Err(AppError::Conflict("User with this email already exists".into()));
+        return Err(AppError::Conflict(
+            "User with this email already exists".into(),
+        ));
     }
 
-    let first_name = body.full_name.as_ref()
+    let first_name = body
+        .full_name
+        .as_ref()
         .and_then(|n| n.split_whitespace().next())
         .unwrap_or("User");
-    let last_name = body.full_name.as_ref()
+    let last_name = body
+        .full_name
+        .as_ref()
         .and_then(|n| {
             let parts: Vec<&str> = n.split_whitespace().collect();
-            if parts.len() > 1 { Some(parts[1..].join(" ")) } else { None }
+            if parts.len() > 1 {
+                Some(parts[1..].join(" "))
+            } else {
+                None
+            }
         })
         .unwrap_or_default();
 
-    let keycloak_response = state.keycloak.create_user(
-        &body.email,
-        &body.email,
-        &body.temporary_password,
-        &body.role,
-        first_name,
-        &last_name,
-    ).await.map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+    let keycloak_response = state
+        .keycloak
+        .create_user(
+            &body.email,
+            &body.email,
+            &body.temporary_password,
+            &body.role,
+            first_name,
+            &last_name,
+        )
+        .await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
     let now = chrono::Utc::now();
     let active_model = crate::entities::user::ActiveModel {
@@ -158,12 +192,16 @@ pub async fn update_user(
 
     let user_repo = UserRepository::new(state.db.clone());
 
-    let current = user_repo.find_by_id(id).await?
+    let current = user_repo
+        .find_by_id(id)
+        .await?
         .ok_or_else(|| AppError::NotFound(format!("User {} not found", id)))?;
 
     if let Some(ref role) = &body.role {
         if role != &current.role {
-            state.keycloak.assign_role(&current.keycloak_id, role)
+            state
+                .keycloak
+                .assign_role(&current.keycloak_id, role)
                 .await
                 .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
             tracing::info!(user_id = %id, role = %role, "Role updated in Keycloak");
@@ -203,10 +241,14 @@ pub async fn assign_role_to_user(
     validate_role(&body.role)?;
 
     let user_repo = UserRepository::new(state.db.clone());
-    let current = user_repo.find_by_id(id).await?
+    let current = user_repo
+        .find_by_id(id)
+        .await?
         .ok_or_else(|| AppError::NotFound(format!("User {} not found", id)))?;
 
-    state.keycloak.assign_role(&current.keycloak_id, &body.role)
+    state
+        .keycloak
+        .assign_role(&current.keycloak_id, &body.role)
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
@@ -235,10 +277,14 @@ pub async fn delete_user(
 ) -> AppResult<impl IntoResponse> {
     let user_repo = UserRepository::new(state.db.clone());
 
-    let user_model = user_repo.find_by_id(id).await?
+    let user_model = user_repo
+        .find_by_id(id)
+        .await?
         .ok_or_else(|| AppError::NotFound(format!("User {} not found", id)))?;
 
-    state.keycloak.delete_user(&user_model.keycloak_id)
+    state
+        .keycloak
+        .delete_user(&user_model.keycloak_id)
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 

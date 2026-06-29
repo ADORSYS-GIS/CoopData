@@ -88,7 +88,12 @@ pub fn create_app(state: AppState) -> Router {
     Router::new()
         .nest("/api/v1", public_routes().merge(protected))
         .merge(crate::api::openapi::serve_openapi())
-        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::request_id::SetRequestIdLayer::new(
             axum::http::header::HeaderName::from_static("x-request-id"),

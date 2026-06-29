@@ -90,13 +90,13 @@ function ProfilePage() {
           { name: "View Cooperatives", allowed: true, scope: "Federation scope" },
           { name: "Generate Reports", allowed: true, scope: "Federation scope" },
         ];
-      case "regional_officer":
+      case "apex":
         return [
-          { name: "Data Collection Returns", allowed: true, scope: "Assigned regions" },
-          { name: "Filing Approvals / Sign-off", allowed: true, scope: "Regional declarations" },
-          { name: "Cooperative Audits & Inspections", allowed: true, scope: "Regional scope" },
-          { name: "View Cooperatives", allowed: true, scope: "Assigned regions" },
-          { name: "Submit Questionnaires", allowed: true, scope: "Assigned regions" },
+          { name: "Review Cooperative Submissions", allowed: true, scope: "Cooperatives under apex" },
+          { name: "Approve / Reject / Request Changes", allowed: true, scope: "Cooperative submissions" },
+          { name: "Manage Cooperatives", allowed: true, scope: "Apex scope" },
+          { name: "Create Cooperative Users", allowed: true, scope: "Apex scope" },
+          { name: "Generate Reports", allowed: true, scope: "Apex scope" },
         ];
       case "cooperative":
         return [
@@ -126,12 +126,12 @@ function ProfilePage() {
           { label: "Cooperatives Under Management", value: "142 registered cooperatives" },
           { label: "Federation License Code", value: "FED-MZN-2012", mono: true },
         ];
-      case "regional_officer":
+      case "apex":
         return [
-          { label: "Regional Branch", value: "Hhohho & Lubombo Regional Supervision Hub" },
-          { label: "Reporting Office", value: "District Commissioner Office, Siteki" },
-          { label: "Assigned Cooperatives", value: "28 cooperatives" },
-          { label: "Supervision Code", value: "REG-OFF-HH-LB", mono: true },
+          { label: "Apex Organization", value: "Hhohho & Lubombo Apex Cooperative Union" },
+          { label: "Primary Office", value: "Apex Building, Mbabane" },
+          { label: "Cooperatives Under Management", value: "28 registered cooperatives" },
+          { label: "Apex License Code", value: "APEX-HH-LB-001", mono: true },
         ];
       case "cooperative":
         return [

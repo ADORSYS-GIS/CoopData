@@ -1,0 +1,189 @@
+name: Docker Build, Scan & Publish
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  release:
+    types: [published]
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
+  BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
+
+jobs:
+  docker-build-scan-publish:
+    name: Build, Scan & Publish Docker Images
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+            type=ref,event=tag
+            type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
+
+      - name: Extract metadata (tags, labels) for backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
+            type=ref,event=tag
+            type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
+
+      - name: Build frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ steps.meta-frontend.outputs.tags }}
+            coopdata-frontend:scan
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ steps.meta-backend.outputs.tags }}
+            coopdata-backend:scan
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner on frontend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: coopdata-frontend:scan
+          format: "sarif"
+          output: "trivy-frontend-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
+      - name: Run Trivy vulnerability scanner on backend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: coopdata-backend:scan
+          format: "sarif"
+          output: "trivy-backend-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
+      - name: Upload Trivy frontend scan results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-frontend-results.sarif"
+          category: trivy-frontend
+        continue-on-error: true
+
+      - name: Upload Trivy backend scan results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-backend-results.sarif"
+          category: trivy-backend
+        continue-on-error: true
+
+      - name: Print Trivy vulnerability IDs for debugging
+        if: always()
+        run: |
+          echo "=== Frontend vulnerabilities ==="
+          [ -f trivy-frontend-results.sarif ] && jq -r '.runs[]?.results[]?.ruleId // empty' trivy-frontend-results.sarif 2>/dev/null | sort -u || echo "No results file"
+          echo "=== Backend vulnerabilities ==="
+          [ -f trivy-backend-results.sarif ] && jq -r '.runs[]?.results[]?.ruleId // empty' trivy-backend-results.sarif 2>/dev/null | sort -u || echo "No results file"
+
+      - name: Fail if Trivy found CRITICAL/HIGH vulnerabilities
+        if: always()
+        run: |
+          set -euo pipefail
+          found=false
+          check_sarif() {
+            f="$1"
+            [ -f "$f" ] || return 1
+            if jq -e '.runs[]?.results? | length > 0' "$f" >/dev/null 2>&1; then
+              return 0
+            fi
+            return 1
+          }
+          for f in trivy-frontend-results.sarif trivy-backend-results.sarif; do
+            if check_sarif "$f"; then
+              echo "Vulnerabilities found in $f"
+              found=true
+            fi
+          done
+          if [ "$found" = true ]; then
+            echo "::error::Critical/High vulnerabilities detected by Trivy"
+            exit 1
+          fi
+
+      - name: Push frontend Docker image to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push backend Docker image to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

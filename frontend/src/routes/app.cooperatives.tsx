@@ -11,9 +11,12 @@ import {
   Users,
   Wallet,
   Activity,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { COOPERATIVES, KPI, formatCurrency, formatNumber } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +26,7 @@ export const Route = createFileRoute("/app/cooperatives")({
 });
 
 function CooperativesPage() {
+  const { role } = useAuth();
   const [coops, setCoops] = useState(COOPERATIVES);
   const [search, setSearch] = useState("");
   const [activeSector, setActiveSector] = useState("All sectors");
@@ -77,6 +81,15 @@ function CooperativesPage() {
     });
   };
 
+  const handleEdit = (id: string, name: string) => {
+    toast.info(`Editing cooperative: ${name}`, { description: "Opening editor..." });
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    setCoops((prev) => prev.filter((c) => c.id !== id));
+    toast.success(`Deleted "${name}"`, { description: "Cooperative removed from registry." });
+  };
+
   const filteredCoops = coops.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -95,16 +108,36 @@ function CooperativesPage() {
   ).length;
   const combinedAssets = coops.reduce((sum, c) => sum + c.portfolio, 0);
 
+  const titleByRole: Record<string, string> = {
+    apex: "Cooperative Management",
+    ministry: "National Cooperative Registry",
+    federation: "Cooperative Oversight",
+  };
+  const subtitleByRole: Record<string, string> = {
+    apex: "Manage cooperatives under your apex · register new cooperatives and monitor compliance",
+    ministry: "Comprehensive national register of cooperative associations, unions, and SACCOs",
+    federation: "Monitor cooperatives across your apex organizations · track compliance and performance",
+  };
+  const registerLabelByRole: Record<string, string> = {
+    apex: "Register cooperative",
+    ministry: "Register cooperative",
+    federation: "Register cooperative",
+  };
+
+  const pageTitle = titleByRole[role] || "Cooperative Registry";
+  const pageSubtitle = subtitleByRole[role] || "Comprehensive cooperative registry";
+  const registerLabel = registerLabelByRole[role] || "Register cooperative";
+
   return (
     <AppShell
-      title="Cooperative Registry"
-      subtitle="Comprehensive national register of cooperative associations, unions, and SACCOs"
+      title={pageTitle}
+      subtitle={pageSubtitle}
       actions={
         <button
           onClick={() => setIsModalOpen(true)}
           className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[var(--shadow-elev-2)]"
         >
-          <Plus className="size-4" /> Register cooperative
+          <Plus className="size-4" /> {registerLabel}
         </button>
       }
     >
@@ -194,12 +227,13 @@ function CooperativesPage() {
                   <th className="px-5 py-3 text-right">Portfolio</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Compliance</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredCoops.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={9} className="py-12 text-center text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
                         <Building className="size-8 text-muted-foreground/60 mb-2" />
                         <p className="font-semibold text-sm">No cooperatives match query</p>
@@ -213,8 +247,7 @@ function CooperativesPage() {
                   filteredCoops.map((c) => (
                     <tr
                       key={c.id}
-                      onClick={() => toast.info(`Viewing record file for: ${c.name}`)}
-                      className="cursor-pointer hover:bg-muted/30 transition-colors duration-150"
+                      className="hover:bg-muted/30 transition-colors duration-150"
                     >
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
                         {c.regNo}
@@ -260,6 +293,24 @@ function CooperativesPage() {
                         >
                           {c.compliance}
                         </StatusPill>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleEdit(c.id, c.name)}
+                            className="press-feedback inline-flex items-center justify-center size-7 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(c.id, c.name)}
+                            className="press-feedback inline-flex items-center justify-center size-7 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

@@ -55,11 +55,11 @@ This is the **single most critical type file** in the codebase. Every entity sto
  * - DELETED:  Record was soft-deleted offline and will be deleted server-side on sync.
  */
 export enum SyncStatus {
-  SYNCED  = "synced",
+  SYNCED = "synced",
   PENDING = "pending",
-  FAILED  = "failed",
-  DIRTY   = "dirty",
-  NEW     = "new",
+  FAILED = "failed",
+  DIRTY = "dirty",
+  NEW = "new",
   UPDATED = "updated",
   DELETED = "deleted",
 }
@@ -258,7 +258,7 @@ export interface IDimension extends OfflineEntity {
   category?: string | null;
   weight?: number | null;
   is_active?: boolean | null;
-  lang: string;           // e.g. "en", "fr", "pt", "ss"
+  lang: string; // e.g. "en", "fr", "pt", "ss"
   dimension_key?: string | null; // Stable identifier, same across all language rows
 }
 
@@ -304,7 +304,7 @@ export interface ISubmitDimensionAssessmentRequest {
   desiredStateId: string;
   gapScore: number;
   organizationId: string;
-  cooperationId: string | null;    // null for org_admin users
+  cooperationId: string | null; // null for org_admin users
   userRoles?: string[];
   // Offline storage and UI display fields:
   currentLevel: number;
@@ -326,8 +326,7 @@ export interface IDimensionAssessmentResponse {
 }
 
 /** Locally-cached dimension assessment. Includes sync tracking fields. */
-export interface IDimensionAssessment
-  extends Omit<IDimensionAssessmentResponse, "id"> {
+export interface IDimensionAssessment extends Omit<IDimensionAssessmentResponse, "id"> {
   id: string;
   syncStatus: string;
   lastError?: string;
@@ -348,9 +347,9 @@ import { SyncStatus } from "@/types/sync";
  * Determined by the gap_score from the dimension assessment.
  */
 export enum Gap {
-  HIGH   = "HIGH",
+  HIGH = "HIGH",
   MEDIUM = "MEDIUM",
-  LOW    = "LOW",
+  LOW = "LOW",
 }
 
 /**
@@ -358,9 +357,9 @@ export enum Gap {
  * Used for UI labels and filtering.
  */
 export const scoreRanges = {
-  [Gap.HIGH]:   "0-50",
+  [Gap.HIGH]: "0-50",
   [Gap.MEDIUM]: "50-75",
-  [Gap.LOW]:    "75-100",
+  [Gap.LOW]: "75-100",
 };
 
 /**
@@ -396,8 +395,7 @@ export type AddDigitalisationGapPayload = Omit<
 >;
 
 /** Partial update — requires `id` but all other fields are optional. */
-export type UpdateDigitalisationGapPayload =
-  Partial<AddDigitalisationGapPayload> & { id: string };
+export type UpdateDigitalisationGapPayload = Partial<AddDigitalisationGapPayload> & { id: string };
 ```
 
 ---
@@ -407,10 +405,7 @@ export type UpdateDigitalisationGapPayload =
 ```typescript
 // File: frontend/src/types/digitalisationLevel.ts
 import { OfflineEntity } from "./sync";
-import {
-  CreateCurrentStateRequest,
-  CreateDesiredStateRequest,
-} from "@/openapi-client/types.gen";
+import { CreateCurrentStateRequest, CreateDesiredStateRequest } from "@/openapi-client/types.gen";
 
 /** Whether the level represents a current or desired maturity state. */
 export type LevelType = "current" | "desired";
@@ -557,10 +552,10 @@ These string values **must exactly match** the Keycloak realm role names. They a
  * (role-based pre-caching logic).
  */
 export const ROLES = {
-  ADMIN:      "dgrv_admin",   // Global DGRV administrator
-  ORG_ADMIN:  "org_admin",    // Organization-level administrator
-  COOP_ADMIN: "coop_admin",   // Cooperative-level administrator
-  COOP_USER:  "coop_user",    // Cooperative-level regular user
+  ADMIN: "dgrv_admin", // Global DGRV administrator
+  ORG_ADMIN: "org_admin", // Organization-level administrator
+  COOP_ADMIN: "coop_admin", // Cooperative-level administrator
+  COOP_USER: "coop_user", // Cooperative-level regular user
 };
 ```
 
@@ -574,13 +569,13 @@ Used in dropdown form selects when inviting users or managing cooperative member
 /** Used in UI dropdowns for role assignment forms. */
 export enum UserRole {
   Admin = "admin",
-  User  = "user",
+  User = "user",
 }
 
 /** Ready-to-use options array for <Select> components. */
 export const userRoles = [
   { label: "Admin", value: UserRole.Admin },
-  { label: "User",  value: UserRole.User  },
+  { label: "User", value: UserRole.User },
 ];
 ```
 
@@ -588,16 +583,17 @@ export const userRoles = [
 
 ## 5. Naming Conventions & Code Style
 
-| Subject | Convention | Example |
-|---|---|---|
-| Interfaces | PascalCase | `IDimension`, `OfflineEntity`, `UserProfile` |
-| Enums | PascalCase | `SyncStatus`, `Gap`, `UserRole` |
-| Enum values | UPPER_SNAKE_CASE | `SyncStatus.PENDING`, `Gap.HIGH` |
-| Constants objects | UPPER_SNAKE_CASE | `ROLES`, `CONFIG` |
-| Type aliases | PascalCase | `LevelType`, `RecommendationPriority` |
-| Payload types | Descriptive suffix | `AddAssessmentPayload`, `UpdateDigitalisationGapPayload` |
+| Subject           | Convention         | Example                                                  |
+| ----------------- | ------------------ | -------------------------------------------------------- |
+| Interfaces        | PascalCase         | `IDimension`, `OfflineEntity`, `UserProfile`             |
+| Enums             | PascalCase         | `SyncStatus`, `Gap`, `UserRole`                          |
+| Enum values       | UPPER_SNAKE_CASE   | `SyncStatus.PENDING`, `Gap.HIGH`                         |
+| Constants objects | UPPER_SNAKE_CASE   | `ROLES`, `CONFIG`                                        |
+| Type aliases      | PascalCase         | `LevelType`, `RecommendationPriority`                    |
+| Payload types     | Descriptive suffix | `AddAssessmentPayload`, `UpdateDigitalisationGapPayload` |
 
 **Key rules:**
+
 1. **No `any`** — use `unknown` for truly dynamic payloads (`SyncQueueItem.payload`).
 2. **`as const`** on all plain-object constants to prevent mutation and get literal types.
 3. **`Omit<>`** for payload types — never duplicate fields manually.

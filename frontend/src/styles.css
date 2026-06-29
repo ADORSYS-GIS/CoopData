@@ -223,34 +223,28 @@
 
   /* ── Card colored side-edge ── */
   .card-edge {
-    box-shadow:
-      inset 4px 0 0 0 var(--accent),
-      var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-primary);
   }
   .card-edge-success {
-    box-shadow:
-      inset 4px 0 0 0 var(--success),
-      var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-success);
   }
   .card-edge-warning {
-    box-shadow:
-      inset 4px 0 0 0 var(--warning),
-      var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-warning);
   }
   .card-edge-danger {
-    box-shadow:
-      inset 4px 0 0 0 var(--destructive),
-      var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-destructive);
   }
   .card-edge-info {
-    box-shadow:
-      inset 4px 0 0 0 var(--info),
-      var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-info);
   }
   .card-edge-primary {
-    box-shadow:
-      inset 4px 0 0 0 var(--primary),
-      var(--shadow-elev-1);
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-primary);
   }
 
   /* ── Hover lift ── */

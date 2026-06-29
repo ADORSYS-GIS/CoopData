@@ -2,13 +2,8 @@ use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
-    api::routes::create_app,
-    auth::JwtValidator,
-    config::AppConfig,
-    database,
-    services::cache::CacheService,
-    services::keycloak::KeycloakService,
-    AppState,
+    api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
+    services::cache::CacheService, services::keycloak::KeycloakService, AppState,
 };
 
 #[tokio::main]
@@ -54,7 +49,9 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn init_jwt_validator_with_retry(config: &AppConfig) -> anyhow::Result<std::sync::Arc<JwtValidator>> {
+async fn init_jwt_validator_with_retry(
+    config: &AppConfig,
+) -> anyhow::Result<std::sync::Arc<JwtValidator>> {
     let max_retries = 30u32;
     let mut attempt = 0;
 
@@ -71,14 +68,18 @@ async fn init_jwt_validator_with_retry(config: &AppConfig) -> anyhow::Result<std
             Ok(validator) => return Ok(std::sync::Arc::new(validator)),
             Err(e) => {
                 if attempt >= max_retries {
-                    tracing::error!("Failed to initialize JWT validator after {} attempts: {}", attempt, e);
+                    tracing::error!(
+                        "Failed to initialize JWT validator after {} attempts: {}",
+                        attempt,
+                        e
+                    );
                     return Err(anyhow::anyhow!("Failed to initialize JWT validator: {}", e));
                 }
                 tracing::warn!(
                     attempt,
                     max_retries,
                     error = %e,
-                    "Waiting for Keycloak JWKS endpoint... retrying in 2s"
+                    "Waiting for Keycloak JWKS endpoint... retrying in 2s",
                 );
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             }

@@ -156,7 +156,7 @@ tracing::debug!(cache_key = %key, "Cache miss");
 
 // HTTP Status Codes
 201 Created    → POST success
-200 OK         → GET/PUT success  
+200 OK         → GET/PUT success
 204 No Content → DELETE success
 400 Bad Request → Validation error
 401 Unauthorized → Missing/invalid token

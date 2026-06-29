@@ -196,11 +196,11 @@ use utoipa_swagger_ui::SwaggerUi;
 
 pub fn docs_routes(config: &Config) -> Router {
     let mut openapi = ApiDoc::openapi();
-    
+
     // Add server URL
     let server = utoipa::openapi::Server::new(&config.server_url);
     openapi.servers = Some(vec![server]);
-    
+
     SwaggerUi::new("/swagger-ui")
         .url("/api-docs/openapi.json", openapi)
         .into()
@@ -238,6 +238,7 @@ pub fn docs_routes(config: &Config) -> Router {
 ## Running Swagger UI
 
 ### Development
+
 ```bash
 # Start server
 cargo run
@@ -247,6 +248,7 @@ http://localhost:3000/swagger-ui
 ```
 
 ### Validate OpenAPI Spec (CI)
+
 ```bash
 # Add to tests
 cargo test test_openapi_spec_is_valid

@@ -1,0 +1,63 @@
+name: Security Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-scan:
+    name: Security Scanning (Secrets, Dependencies)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secret detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Setup Node.js for frontend audit
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "./frontend/package-lock.json"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run npm audit (frontend vulnerabilities)
+        working-directory: ./frontend
+        run: npm audit --audit-level=critical
+        continue-on-error: false
+
+      - name: Install Rust toolchain for backend audit
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo-audit binary
+        id: cache-cargo-audit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: ${{ runner.os }}-cargo-audit-${{ hashFiles('backend/Cargo.lock') }}
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+        if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
+
+      - name: Run cargo audit (backend vulnerabilities)
+        working-directory: ./backend
+        run: |
+          mkdir -p .cargo
+          cp audit.toml .cargo/audit.toml
+          cargo audit

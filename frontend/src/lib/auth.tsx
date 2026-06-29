@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
-export type Role = "ministry" | "federation" | "cooperative" | "regional_officer";
+export type Role = "ministry" | "federation" | "apex" | "cooperative";
 
 export const ROLES: {
   id: Role;
@@ -35,11 +35,11 @@ export const ROLES: {
     icon: "Users",
   },
   {
-    id: "regional_officer",
-    label: "Regional Officer",
-    shortLabel: "Regional Officer",
+    id: "apex",
+    label: "Apex Officer",
+    shortLabel: "Apex",
     description:
-      "Field operations — collect data, submit questionnaires, verify records, support cooperatives",
+      "Cooperative oversight — review submissions, manage cooperatives, validate data, approve or request changes",
     icon: "ClipboardList",
   },
 ];
@@ -48,28 +48,30 @@ export type NavGroupId = "oversight" | "intelligence" | "system";
 
 export const ROLE_NAV: Record<Role, NavGroupId[]> = {
   ministry: ["oversight", "intelligence", "system"],
-  federation: ["oversight", "intelligence"],
+  federation: ["oversight", "intelligence", "system"],
   cooperative: ["oversight", "intelligence"],
-  regional_officer: ["oversight", "intelligence"],
+  apex: ["oversight", "intelligence", "system"],
 };
 
 export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>> = {
   ministry: {
-    oversight: ["/app/dashboard", "/app/cooperatives", "/app/data-collection", "/app/submissions"],
-    intelligence: ["/app/reports", "/app/analytics", "/app/compliance"],
-    system: ["/app/integrations", "/app/users", "/app/settings"],
+    oversight: ["/app/dashboard", "/app/federations", "/app/submissions"],
+    intelligence: ["/app/reports", "/app/analytics"],
+    system: ["/app/users", "/app/settings"],
   },
   federation: {
-    oversight: ["/app/dashboard", "/app/cooperatives", "/app/submissions"],
-    intelligence: ["/app/reports", "/app/analytics", "/app/compliance"],
+    oversight: ["/app/dashboard", "/app/apexes", "/app/submissions"],
+    intelligence: ["/app/reports", "/app/analytics"],
+    system: ["/app/users"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/data-collection", "/app/submissions"],
     intelligence: ["/app/reports", "/app/analytics"],
   },
-  regional_officer: {
-    oversight: ["/app/dashboard", "/app/cooperatives", "/app/data-collection"],
-    intelligence: ["/app/reports"],
+  apex: {
+    oversight: ["/app/dashboard", "/app/cooperatives", "/app/submissions"],
+    intelligence: ["/app/reports", "/app/analytics"],
+    system: ["/app/users"],
   },
 };
 
@@ -86,9 +88,9 @@ export const ROLE_DASHBOARD: Record<Role, { title: string; subtitle: string }> =
     title: "Cooperative Dashboard",
     subtitle: "Data submission & reporting · Manage your cooperative",
   },
-  regional_officer: {
-    title: "Regional Officer Dashboard",
-    subtitle: "Field operations · Data collection & verification",
+  apex: {
+    title: "Apex Dashboard",
+    subtitle: "Cooperative oversight · Review submissions, manage cooperatives & validate data",
   },
 };
 
@@ -109,9 +111,9 @@ export const ROLE_USERS: Record<
     initials: "BH",
     region: "Lubombo",
   },
-  regional_officer: {
+  apex: {
     name: "Moses Dlamini",
-    email: "m.dlamini@gov.sz",
+    email: "m.dlamini@hhohho-apex.org",
     initials: "MD",
     region: "Hhohho",
   },

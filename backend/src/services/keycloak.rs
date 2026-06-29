@@ -119,7 +119,8 @@ impl KeycloakService {
             ("client_secret", self.client_secret.as_str()),
         ];
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .form(&params)
             .send()
@@ -127,7 +128,9 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AppError::ExternalServiceError("Failed to get admin token".into()));
+            return Err(AppError::ExternalServiceError(
+                "Failed to get admin token".into(),
+            ));
         }
 
         let token: KeycloakToken = response
@@ -279,7 +282,8 @@ impl KeycloakService {
             attributes: None,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&creation)
@@ -292,7 +296,8 @@ impl KeycloakService {
         }
         check_response!(response, "Failed to create Keycloak user");
 
-        let location = response.headers()
+        let location = response
+            .headers()
             .get("location")
             .and_then(|v| v.to_str().ok())
             .map(String::from);
@@ -342,7 +347,8 @@ impl KeycloakService {
             attributes: attributes.clone(),
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .bearer_auth(&token)
             .json(&creation)
@@ -431,7 +437,8 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&url)
             .bearer_auth(&token)
             .send()
@@ -1047,7 +1054,8 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/groups/{}/members", self.realm_url(), group_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .bearer_auth(&token)
             .send()

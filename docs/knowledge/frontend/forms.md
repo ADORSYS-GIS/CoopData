@@ -165,10 +165,10 @@ export const ManageOrganizationsPage = () => {
   };
 
   return (
-    <AddOrganizationForm 
-      onSubmit={handleFormSubmit} 
-      isSubmitting={isPending} 
-      isOffline={isOffline} 
+    <AddOrganizationForm
+      onSubmit={handleFormSubmit}
+      isSubmitting={isPending}
+      isOffline={isOffline}
     />
   );
 };
@@ -180,7 +180,7 @@ export const ManageOrganizationsPage = () => {
 
 Certain fields or entire forms cannot be processed offline (e.g. initiating key exchange or querying a remote email domain availability).
 
-*   **Design Rule**: Detect offline status and add `disabled={isOffline}` to the fields, rendering a helpful tooltip explanation.
+- **Design Rule**: Detect offline status and add `disabled={isOffline}` to the fields, rendering a helpful tooltip explanation.
 
 ```tsx
 <FormField
@@ -190,10 +190,10 @@ Certain fields or entire forms cannot be processed offline (e.g. initiating key 
     <FormItem>
       <FormLabel className={isOffline ? "text-slate-400" : ""}>External OAuth Token</FormLabel>
       <FormControl>
-        <Input 
-          {...field} 
-          disabled={isOffline} 
-          placeholder={isOffline ? "Connection required to set token" : "Token value"} 
+        <Input
+          {...field}
+          disabled={isOffline}
+          placeholder={isOffline ? "Connection required to set token" : "Token value"}
         />
       </FormControl>
       <FormMessage />

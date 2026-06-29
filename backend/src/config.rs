@@ -35,11 +35,9 @@ impl AppConfig {
             port: env::var("PORT")
                 .and_then(|s| s.parse().map_err(|_| env::VarError::NotPresent))
                 .unwrap_or(3000),
-            database_url: env::var("DATABASE_URL")
-                .expect("DATABASE_URL must be set"),
+            database_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
             redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".into()),
-            keycloak_url: env::var("KEYCLOAK_URL")
-                .expect("KEYCLOAK_URL must be set"),
+            keycloak_url: env::var("KEYCLOAK_URL").expect("KEYCLOAK_URL must be set"),
             keycloak_realm: env::var("KEYCLOAK_REALM").unwrap_or_else(|_| "coopdata".into()),
             keycloak_client_id: env::var("KEYCLOAK_CLIENT_ID")
                 .expect("KEYCLOAK_CLIENT_ID must be set"),

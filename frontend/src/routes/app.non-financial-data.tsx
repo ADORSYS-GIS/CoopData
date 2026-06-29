@@ -103,7 +103,7 @@ function NonFinancialDataPage() {
   const { role } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("membership");
 
-  const isReadOnly = role === "regional_officer";
+  const isReadOnly = role === "apex";
   const isCooperative = role === "cooperative";
 
   // Membership State

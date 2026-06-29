@@ -130,6 +130,7 @@ impl IntoResponse for AppError {
 ```
 
 **Why**:
+
 - Single source of truth for all error types
 - Automatic conversion via `#[from]` attribute
 - Structured logging for debugging
@@ -273,6 +274,7 @@ pub async fn get_user(
 ```
 
 **Why**:
+
 - `?` operator for clean error propagation
 - `map_err` adds context and logging
 - `ok_or_else` converts Option to Result
