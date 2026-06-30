@@ -1,0 +1,134 @@
+/**
+ * React Query hooks for federation-related API endpoints.
+ *
+ * All API calls go through the openapi-fetch client with auth interceptor.
+ * Ministry role required for all federation endpoints.
+ */
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/openapi-client";
+
+const FEDERATIONS_KEY = "federations";
+
+/** List all federations (ministry only) */
+export const useFederations = () =>
+  useQuery({
+    queryKey: [FEDERATIONS_KEY],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ministry/federations");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/** Get a single federation by ID */
+export const useFederation = (id: string) =>
+  useQuery({
+    queryKey: [FEDERATIONS_KEY, id],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}", {
+        params: { path: { id } },
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+/** Create a new federation */
+export const useCreateFederation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; region?: string; contact_email?: string }) => {
+      const { data, error } = await apiClient.POST("/api/v1/ministry/federations", {
+        body: body as any,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY] });
+    },
+  });
+};
+
+/** Update a federation */
+export const useUpdateFederation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...body }: { id: string; name?: string; region?: string; contact_email?: string }) => {
+      const { data, error } = await apiClient.PATCH("/api/v1/ministry/federations/{id}", {
+        params: { path: { id } },
+        body: body as any,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY, variables.id] });
+    },
+  });
+};
+
+/** Delete a federation */
+export const useDeleteFederation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await apiClient.DELETE("/api/v1/ministry/federations/{id}", {
+        params: { path: { id } },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY] });
+    },
+  });
+};
+
+/** List members of a federation */
+export const useFederationMembers = (federationId: string) =>
+  useQuery({
+    queryKey: [FEDERATIONS_KEY, federationId, "members"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/members", {
+        params: { path: { id: federationId } },
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!federationId,
+  });
+
+/** List invitations for a federation */
+export const useFederationInvitations = (federationId: string) =>
+  useQuery({
+    queryKey: [FEDERATIONS_KEY, federationId, "invitations"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/invitations", {
+        params: { path: { id: federationId } },
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!federationId,
+  });
+
+/** Invite a user to a federation */
+export const useInviteUserToFederation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ federationId, ...body }: { federationId: string; email: string; role: string }) => {
+      const { data, error } = await apiClient.POST("/api/v1/ministry/federations/{id}/invitations", {
+        params: { path: { id: federationId } },
+        body: body as any,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY, variables.federationId, "invitations"] });
+    },
+  });
+};

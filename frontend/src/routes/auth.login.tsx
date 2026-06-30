@@ -2,8 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ShieldCheck,
   ArrowRight,
-  Eye,
-  EyeOff,
   Landmark,
   UserCog,
   Users,
@@ -12,9 +10,14 @@ import {
   Lock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useAuth, ROLES, Role, ROLE_USERS } from "../lib/auth";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES, ROLE_USERS, type Role } from "@/constants/roles";
+import { redirectIfAuthenticated } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/auth/login")({
+  beforeLoad: () => {
+    redirectIfAuthenticated();
+  },
   head: () => ({
     meta: [
       { title: "Sign in — CoopData" },
@@ -25,20 +28,28 @@ export const Route = createFileRoute("/auth/login")({
 });
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<Role>("ministry");
-  const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    login(selectedRole);
-    navigate({ to: "/app/dashboard" });
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate({ to: "/app/dashboard" });
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleKeycloakLogin = async () => {
+    try {
+      await login();
+    } catch (error) {
+      console.error("Keycloak login failed:", error);
+    }
   };
 
   const getIcon = (iconName: string) => {
@@ -152,97 +163,83 @@ function LoginPage() {
               Sign in to CoopData
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Select your role to access your personalized dashboard.
+              Authenticate via your organization's identity provider.
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-7">
-            {/* Role selector */}
-            <div className="space-y-2.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Select Your Role
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
-                {ROLES.map((role) => {
-                  const IconComponent = getIcon(role.icon);
-                  const isSelected = selectedRole === role.id;
-                  return (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => setSelectedRole(role.id)}
-                      className={[
-                        "flex flex-col items-start text-left p-4 rounded-xl border transition-all duration-200 press-feedback",
-                        isSelected
-                          ? "border-accent bg-accent/5 shadow-[0_0_0_2px_oklch(0.5_0.17_240/0.25),inset_0_3px_0_var(--accent)]"
-                          : "border-border bg-surface hover:bg-muted/40 hover:border-border/80",
-                      ].join(" ")}
-                    >
-                      <div
-                        className={`flex size-8 items-center justify-center rounded-lg mb-3 transition-colors ${
-                          isSelected ? "bg-accent text-white" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        <IconComponent className="size-4" />
-                      </div>
-                      <p
-                        className={`text-xs font-bold ${isSelected ? "text-accent" : "text-foreground"}`}
-                      >
-                        {role.shortLabel}
-                      </p>
-                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
-                        {role.description.split("—")[1]?.trim() || role.description}
-                      </p>
-                    </button>
-                  );
-                })}
+          {/* Keycloak Login Button */}
+          <button
+            onClick={handleKeycloakLogin}
+            disabled={isLoading}
+            className="press-feedback inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <div className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                Connecting…
+              </>
+            ) : (
+              <>
+                <Lock className="size-4" />
+                Sign in with Keycloak
+                <ArrowRight className="size-4" />
+              </>
+            )}
+          </button>
+
+          {/* Development mock login section */}
+          {import.meta.env.DEV && (
+            <>
+              <div className="flex items-center gap-3 my-6">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Dev Mode
+                </span>
+                <div className="flex-1 h-px bg-border" />
               </div>
-            </div>
 
-            {/* Credential row */}
-            <div
-              className="rounded-xl border border-border bg-surface overflow-hidden"
-              style={{
-                boxShadow: "inset 0 3px 0 var(--accent), 0 1px 3px 0 oklch(0.15 0.02 250 / 0.08)",
-              }}
-            >
-              <div className="grid md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-border">
-                {/* Email + password */}
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      User Email
-                    </label>
-                    <input
-                      type="email"
-                      readOnly
-                      value={activeUser.email}
-                      className="w-full rounded-lg border border-border bg-muted px-3.5 py-2.5 text-sm font-mono text-muted-foreground outline-none cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value="****************"
-                        readOnly
-                        className="w-full rounded-lg border border-border bg-muted px-3.5 py-2.5 text-sm text-muted-foreground outline-none cursor-not-allowed pr-10"
-                      />
+              <div className="space-y-2.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Quick Role Switch (Dev Only)
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {ROLES.map((role) => {
+                    const IconComponent = getIcon(role.icon);
+                    const isSelected = selectedRole === role.id;
+                    return (
                       <button
+                        key={role.id}
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setSelectedRole(role.id)}
+                        className={[
+                          "flex flex-col items-start text-left p-4 rounded-xl border transition-all duration-200 press-feedback",
+                          isSelected
+                            ? "border-accent bg-accent/5 shadow-[0_0_0_2px_oklch(0.5_0.17_240/0.25),inset_0_3px_0_var(--accent)]"
+                            : "border-border bg-surface hover:bg-muted/40 hover:border-border/80",
+                        ].join(" ")}
                       >
-                        {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        <div
+                          className={`flex size-8 items-center justify-center rounded-lg mb-3 transition-colors ${
+                            isSelected ? "bg-accent text-white" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <IconComponent className="size-4" />
+                        </div>
+                        <p
+                          className={`text-xs font-bold ${isSelected ? "text-accent" : "text-foreground"}`}
+                        >
+                          {role.shortLabel}
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                          {role.description.split("—")[1]?.trim() || role.description}
+                        </p>
                       </button>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
+              </div>
 
-                {/* Persona summary + submit */}
+              <div className="rounded-xl border border-border bg-surface overflow-hidden mt-4">
                 <div className="p-5 flex flex-col justify-between gap-4">
                   <div className="bg-muted/60 rounded-lg p-3.5 text-xs leading-relaxed space-y-1">
                     <div className="flex items-center gap-2">
@@ -259,27 +256,16 @@ function LoginPage() {
                       <span className="font-semibold text-foreground">Region:</span>
                       <span className="text-muted-foreground">{activeUser.region}</span>
                     </div>
-                    <p className="text-muted-foreground/80 text-[10px] pt-1 leading-relaxed">
-                      Platform modules and permissions are configured per national cooperative
-                      guidelines.
-                    </p>
                   </div>
-                  <button
-                    type="submit"
-                    className="press-feedback inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
-                  >
-                    Sign in as {activeUser.name.split(" ")[0]}
-                    <ArrowRight className="size-4" />
-                  </button>
                 </div>
               </div>
-            </div>
+            </>
+          )}
 
-            <p className="text-[11px] leading-relaxed text-muted-foreground text-center">
-              By signing in you acknowledge this is the official CoopData platform for the Ministry
-              of Commerce & Cooperative Development of Eswatini.
-            </p>
-          </form>
+          <p className="text-[11px] leading-relaxed text-muted-foreground text-center mt-6">
+            By signing in you acknowledge this is the official CoopData platform for the Ministry of
+            Commerce & Cooperative Development of Eswatini.
+          </p>
         </div>
       </main>
     </div>

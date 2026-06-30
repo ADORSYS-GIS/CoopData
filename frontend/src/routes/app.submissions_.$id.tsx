@@ -29,8 +29,12 @@ import { useAuth } from "@/lib/auth";
 import { SUBMISSIONS } from "@/lib/mock-data";
 import { useState } from "react";
 import { toast } from "sonner";
+import { requireAuth } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/submissions_/$id")({
+  beforeLoad: () => {
+    requireAuth();
+  },
   head: () => ({ meta: [{ title: "Submission Detail — CoopData" }] }),
   component: SubmissionDetailPage,
 });

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useCallback } from "react";
+import { requireAuth } from "@/lib/route-guards";
 import {
   ResponsiveContainer,
   LineChart,
@@ -57,6 +58,9 @@ import {
 import { format, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
 export const Route = createFileRoute("/app/analytics")({
+  beforeLoad: () => {
+    requireAuth();
+  },
   head: () => ({ meta: [{ title: "Analytics — CoopData" }] }),
   component: AnalyticsPage,
 });

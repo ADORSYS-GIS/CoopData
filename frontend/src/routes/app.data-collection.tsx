@@ -35,8 +35,12 @@ import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
 import type { BalanceSheet } from "@/lib/financial-data";
 import { useState } from "react";
 import { toast } from "sonner";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/data-collection")({
+  beforeLoad: () => {
+    requireRole("cooperative");
+  },
   head: () => ({ meta: [{ title: "Data Collection — CoopData" }] }),
   component: DataCollectionPage,
 });

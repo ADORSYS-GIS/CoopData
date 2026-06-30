@@ -17,8 +17,12 @@ import {
 import { AppShell, Card } from "@/components/app-shell";
 import { useState } from "react";
 import { toast } from "sonner";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/settings")({
+  beforeLoad: () => {
+    requireRole("ministry");
+  },
   head: () => ({ meta: [{ title: "Settings — CoopData" }] }),
   component: SettingsPage,
 });

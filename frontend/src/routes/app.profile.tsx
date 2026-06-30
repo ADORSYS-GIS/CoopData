@@ -25,14 +25,20 @@ import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useAuth, ROLES } from "@/lib/auth";
 import { useState } from "react";
 import { toast } from "sonner";
+import { requireAuth } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/profile")({
+  beforeLoad: () => {
+    requireAuth();
+  },
   head: () => ({ meta: [{ title: "My Profile — CoopData" }] }),
   component: ProfilePage,
 });
 
 function ProfilePage() {
   const { role, user } = useAuth();
+
+  if (!user) return null;
 
   const [mfaActive, setMfaActive] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState(60);

@@ -18,8 +18,12 @@ import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { FEDERATIONS, formatCurrency, formatNumber } from "@/lib/mock-data";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/federations")({
+  beforeLoad: () => {
+    requireRole("ministry");
+  },
   head: () => ({ meta: [{ title: "Federations — CoopData" }] }),
   component: FederationsPage,
 });

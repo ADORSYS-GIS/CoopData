@@ -11,8 +11,12 @@ import { MinistryDashboard } from "@/components/dashboards/ministry-dashboard";
 import { FederationDashboard } from "@/components/dashboards/federation-dashboard";
 import { ApexDashboard } from "@/components/dashboards/apex-dashboard";
 import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashboard";
+import { requireAuth } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/dashboard")({
+  beforeLoad: () => {
+    requireAuth();
+  },
   head: () => ({ meta: [{ title: "Dashboard — CoopData" }] }),
   component: DashboardPage,
 });

@@ -42,8 +42,12 @@ import {
   ExpensesSection,
 } from "@/components/financial-form";
 import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/financial-statement")({
+  beforeLoad: () => {
+    requireRole("cooperative");
+  },
   head: () => ({ meta: [{ title: "Financial Statement — CoopData" }] }),
   component: FinancialStatementPage,
 });

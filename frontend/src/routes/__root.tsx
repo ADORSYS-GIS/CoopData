@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { AuthProvider } from "../lib/auth";
+import { KeycloakAuthProvider } from "../context/AuthContext";
 import { ThemeProvider } from "../lib/theme";
 
 function NotFoundComponent() {
@@ -125,11 +125,11 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <KeycloakAuthProvider>
         <QueryClientProvider client={queryClient}>
           <Outlet />
         </QueryClientProvider>
-      </AuthProvider>
+      </KeycloakAuthProvider>
     </ThemeProvider>
   );
 }

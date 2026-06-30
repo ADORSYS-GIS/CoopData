@@ -16,8 +16,12 @@ import {
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/non-financial-data")({
+  beforeLoad: () => {
+    requireRole("cooperative");
+  },
   head: () => ({ meta: [{ title: "Non-Financial Data — CoopData" }] }),
   component: NonFinancialDataPage,
 });

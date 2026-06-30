@@ -17,7 +17,6 @@ use axum::{
 use std::sync::Arc;
 
 use crate::auth::claims::Claims;
-use crate::auth::middleware::require_cooperative_or_apex;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::error::AppResult;
 use crate::AppState;
@@ -64,8 +63,7 @@ async fn get_cooperative_dashboard(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_cooperative_or_apex(&claims)?;
-
+    // Role enforcement handled by middleware
     let coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
 
     // TODO: Implement
@@ -94,8 +92,7 @@ async fn get_cooperative_profile(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_cooperative_or_apex(&claims)?;
-
+    // Role enforcement handled by middleware
     let coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
 
     // TODO: Implement
@@ -120,8 +117,7 @@ async fn list_cooperative_members_view(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_cooperative_or_apex(&claims)?;
-
+    // Role enforcement handled by middleware
     let coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
 
     // TODO: Implement
@@ -145,8 +141,7 @@ async fn get_assigned_dimensions(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_cooperative_or_apex(&claims)?;
-
+    // Role enforcement handled by middleware
     let dimensions = claims.get_assigned_dimensions();
 
     // TODO: Implement

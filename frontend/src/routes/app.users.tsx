@@ -19,8 +19,12 @@ import { USERS as INITIAL_USERS, FEDERATIONS, APEXES, COOPERATIVES } from "@/lib
 import { useAuth, type Role } from "@/lib/auth";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/users")({
+  beforeLoad: () => {
+    requireRole("ministry", "federation", "apex");
+  },
   head: () => ({ meta: [{ title: "Users & Roles — CoopData" }] }),
   component: UsersPage,
 });

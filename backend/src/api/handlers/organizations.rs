@@ -7,8 +7,8 @@ use axum::{
 use uuid::Uuid;
 
 use crate::api::dto::{
-    CreateOrganizationRequest, OrganizationResponse, PaginatedResponse, PaginationParams,
-    UpdateOrganizationRequest,
+    CreateOrganizationRequest, OrganizationResponse, PaginatedOrganizationResponse,
+    PaginatedResponse, PaginationParams, UpdateOrganizationRequest,
 };
 use crate::entities::organization;
 use crate::error::{AppError, AppResult};
@@ -20,7 +20,7 @@ use sea_orm::Set;
     get,
     path = "/api/v1/organizations",
     responses(
-        (status = 200, description = "List of organizations", body = PaginatedResponse<OrganizationResponse>),
+        (status = 200, description = "List of organizations", body = PaginatedOrganizationResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     ),
     tag = "Organizations"
@@ -37,12 +37,12 @@ pub async fn list_organizations(
 
     Ok((
         StatusCode::OK,
-        Json(PaginatedResponse::new(
+        Json(PaginatedOrganizationResponse::from(PaginatedResponse::new(
             responses,
             total,
             params.page,
             params.per_page,
-        )),
+        ))),
     ))
 }
 

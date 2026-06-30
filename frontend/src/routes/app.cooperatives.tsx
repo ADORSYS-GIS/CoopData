@@ -19,8 +19,12 @@ import { COOPERATIVES, KPI, formatCurrency, formatNumber } from "@/lib/mock-data
 import { useAuth } from "@/lib/auth";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { requireRole } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/cooperatives")({
+  beforeLoad: () => {
+    requireRole("apex");
+  },
   head: () => ({ meta: [{ title: "Cooperatives — CoopData" }] }),
   component: CooperativesPage,
 });

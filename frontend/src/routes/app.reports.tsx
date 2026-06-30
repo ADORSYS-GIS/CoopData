@@ -19,8 +19,12 @@ import { REPORTS } from "@/lib/mock-data";
 import { useAuth, type Role } from "@/lib/auth";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
 import { toast } from "sonner";
+import { requireAuth } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/app/reports")({
+  beforeLoad: () => {
+    requireAuth();
+  },
   head: () => ({ meta: [{ title: "Reports — CoopData" }] }),
   component: ReportsPage,
 });
