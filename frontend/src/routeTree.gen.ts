@@ -21,6 +21,8 @@ import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
+import { Route as AppMembersRouteImport } from './routes/app.members'
+import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDataCollectionRouteImport } from './routes/app.data-collection'
@@ -29,8 +31,6 @@ import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
-import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
-import { Route as AppMembersRouteImport } from './routes/app.members'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
   id: '/unauthorized',
@@ -92,6 +92,16 @@ const AppNonFinancialDataRoute = AppNonFinancialDataRouteImport.update({
   path: '/non-financial-data',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvitationsRoute = AppInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
   id: '/financial-statement',
   path: '/financial-statement',
@@ -132,16 +142,6 @@ const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
   path: '/submissions/$id',
   getParentRoute: () => AppRoute,
 } as any)
-const AppInvitationsRoute = AppInvitationsRouteImport.update({
-  id: '/invitations',
-  path: '/invitations',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMembersRoute = AppMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -155,6 +155,8 @@ export interface FileRoutesByFullPath {
   '/app/data-collection': typeof AppDataCollectionRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -164,8 +166,6 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
-  '/app/invitations': typeof AppInvitationsRoute
-  '/app/members': typeof AppMembersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -178,6 +178,8 @@ export interface FileRoutesByTo {
   '/app/data-collection': typeof AppDataCollectionRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -187,8 +189,6 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/app': typeof AppIndexRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
-  '/app/invitations': typeof AppInvitationsRoute
-  '/app/members': typeof AppMembersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -203,6 +203,8 @@ export interface FileRoutesById {
   '/app/data-collection': typeof AppDataCollectionRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -212,81 +214,79 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/submissions_/$id': typeof AppSubmissionsIdRoute
-  '/app/invitations': typeof AppInvitationsRoute
-  '/app/members': typeof AppMembersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-  | '/'
-  | '/app'
-  | '/auth'
-  | '/unauthorized'
-  | '/app/analytics'
-  | '/app/apexes'
-  | '/app/cooperatives'
-  | '/app/dashboard'
-  | '/app/data-collection'
-  | '/app/federations'
-  | '/app/financial-statement'
-  | '/app/non-financial-data'
-  | '/app/profile'
-  | '/app/reports'
-  | '/app/settings'
-  | '/app/submissions'
-  | '/app/users'
-  | '/auth/login'
-  | '/app/'
-  | '/app/submissions/$id'
-  | '/app/invitations'
-  | '/app/members'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/unauthorized'
+    | '/app/analytics'
+    | '/app/apexes'
+    | '/app/cooperatives'
+    | '/app/dashboard'
+    | '/app/data-collection'
+    | '/app/federations'
+    | '/app/financial-statement'
+    | '/app/invitations'
+    | '/app/members'
+    | '/app/non-financial-data'
+    | '/app/profile'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app/submissions'
+    | '/app/users'
+    | '/auth/login'
+    | '/app/'
+    | '/app/submissions/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-  | '/'
-  | '/auth'
-  | '/unauthorized'
-  | '/app/analytics'
-  | '/app/apexes'
-  | '/app/cooperatives'
-  | '/app/dashboard'
-  | '/app/data-collection'
-  | '/app/federations'
-  | '/app/financial-statement'
-  | '/app/non-financial-data'
-  | '/app/profile'
-  | '/app/reports'
-  | '/app/settings'
-  | '/app/submissions'
-  | '/app/users'
-  | '/auth/login'
-  | '/app'
-  | '/app/submissions/$id'
-  | '/app/invitations'
-  | '/app/members'
+    | '/'
+    | '/auth'
+    | '/unauthorized'
+    | '/app/analytics'
+    | '/app/apexes'
+    | '/app/cooperatives'
+    | '/app/dashboard'
+    | '/app/data-collection'
+    | '/app/federations'
+    | '/app/financial-statement'
+    | '/app/invitations'
+    | '/app/members'
+    | '/app/non-financial-data'
+    | '/app/profile'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app/submissions'
+    | '/app/users'
+    | '/auth/login'
+    | '/app'
+    | '/app/submissions/$id'
   id:
-  | '__root__'
-  | '/'
-  | '/app'
-  | '/auth'
-  | '/unauthorized'
-  | '/app/analytics'
-  | '/app/apexes'
-  | '/app/cooperatives'
-  | '/app/dashboard'
-  | '/app/data-collection'
-  | '/app/federations'
-  | '/app/financial-statement'
-  | '/app/non-financial-data'
-  | '/app/profile'
-  | '/app/reports'
-  | '/app/settings'
-  | '/app/submissions'
-  | '/app/users'
-  | '/auth/login'
-  | '/app/'
-  | '/app/submissions_/$id'
-  | '/app/invitations'
-  | '/app/members'
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/unauthorized'
+    | '/app/analytics'
+    | '/app/apexes'
+    | '/app/cooperatives'
+    | '/app/dashboard'
+    | '/app/data-collection'
+    | '/app/federations'
+    | '/app/financial-statement'
+    | '/app/invitations'
+    | '/app/members'
+    | '/app/non-financial-data'
+    | '/app/profile'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app/submissions'
+    | '/app/users'
+    | '/auth/login'
+    | '/app/'
+    | '/app/submissions_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -382,6 +382,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNonFinancialDataRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/members': {
+      id: '/app/members'
+      path: '/members'
+      fullPath: '/app/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/invitations': {
+      id: '/app/invitations'
+      path: '/invitations'
+      fullPath: '/app/invitations'
+      preLoaderRoute: typeof AppInvitationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/financial-statement': {
       id: '/app/financial-statement'
       path: '/financial-statement'
@@ -438,20 +452,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSubmissionsIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/invitations': {
-      id: '/app/invitations'
-      path: '/invitations'
-      fullPath: '/app/invitations'
-      preLoaderRoute: typeof AppInvitationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/members': {
-      id: '/app/members'
-      path: '/members'
-      fullPath: '/app/members'
-      preLoaderRoute: typeof AppMembersRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
@@ -463,6 +463,8 @@ interface AppRouteChildren {
   AppDataCollectionRoute: typeof AppDataCollectionRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
+  AppInvitationsRoute: typeof AppInvitationsRoute
+  AppMembersRoute: typeof AppMembersRoute
   AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -471,8 +473,6 @@ interface AppRouteChildren {
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppSubmissionsIdRoute: typeof AppSubmissionsIdRoute
-  AppInvitationsRoute: typeof AppInvitationsRoute
-  AppMembersRoute: typeof AppMembersRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -483,6 +483,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppDataCollectionRoute: AppDataCollectionRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
+  AppInvitationsRoute: AppInvitationsRoute,
+  AppMembersRoute: AppMembersRoute,
   AppNonFinancialDataRoute: AppNonFinancialDataRoute,
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
@@ -491,8 +493,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,
   AppSubmissionsIdRoute: AppSubmissionsIdRoute,
-  AppInvitationsRoute: AppInvitationsRoute,
-  AppMembersRoute: AppMembersRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

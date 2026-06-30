@@ -11,6 +11,7 @@ import { FederationDashboard } from "@/components/dashboards/federation-dashboar
 import { ApexDashboard } from "@/components/dashboards/apex-dashboard";
 import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashboard";
 import { requireAuth } from "@/lib/route-guards";
+import { Navigate } from "@tanstack/react-router";
 
 export const DashboardPage: React.FC = () => {
   const { role } = useAuth();
@@ -23,6 +24,11 @@ export const DashboardPage: React.FC = () => {
 
   // Suppress unused variable warnings — usersList will be used in future entity management
   void usersList;
+
+  // If no recognized role, redirect to unauthorized page
+  if (!role) {
+    return <Navigate to="/unauthorized" />;
+  }
 
   switch (role) {
     case "ministry":
@@ -54,7 +60,5 @@ export const DashboardPage: React.FC = () => {
           setActivities={setActivities}
         />
       );
-    default:
-      return <MinistryDashboard cooperatives={cooperatives} activities={activities} />;
   }
 };
