@@ -67,7 +67,7 @@ createServer(async (req, res) => {
     if (
       url.pathname.startsWith("/assets/") ||
       url.pathname === "/robots.txt" ||
-      url.pathname === "/favicon.ico"
+      url.pathname === "/img/coopdatalogo.png"
     ) {
       const staticResponse = await serveStatic(url.pathname);
       if (staticResponse) {
