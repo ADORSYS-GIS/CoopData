@@ -77,7 +77,7 @@
                     </div>
 
                     <#if realm.password>
-                        <form id="kc-form-login" class="login-form" onsubmit="login.disabled = true; return false;" action="${url.loginAction}" method="post">
+                        <form id="kc-form-login" class="login-form" onsubmit="login.disabled = true;" action="${url.loginAction}" method="post">
                             <#if !usernameHidden??>
                                 <div class="form-group">
                                     <label for="username">

@@ -1,18 +1,15 @@
-use axum::extract::Extension;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
-use std::sync::Arc;
 
 use crate::api::dto::federation::{
     CreateFederationRequest, FederationResponse, UpdateFederationRequest,
 };
 use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
-use crate::auth::claims::Claims;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -29,15 +26,8 @@ use crate::AppState;
 )]
 pub async fn create_federation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     if body.name.trim().is_empty() {
         return Err(crate::error::AppError::BadRequest(
             "Federation name is required".into(),
@@ -84,14 +74,7 @@ pub async fn create_federation(
 )]
 pub async fn list_federations(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     let orgs = state
         .keycloak
         .get_organizations()
@@ -115,15 +98,8 @@ pub async fn list_federations(
 )]
 pub async fn get_federation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     let org = state
         .keycloak
         .get_organization_by_id(&id)
@@ -147,16 +123,9 @@ pub async fn get_federation(
 )]
 pub async fn update_federation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     let domains = body.domains.map(|d| {
         d.into_iter()
             .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
@@ -200,15 +169,8 @@ pub async fn update_federation(
 )]
 pub async fn delete_federation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     state
         .keycloak
         .delete_organization(&id)
@@ -233,16 +195,9 @@ pub async fn delete_federation(
 )]
 pub async fn invite_user_to_federation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     if body.email.trim().is_empty() {
         return Err(crate::error::AppError::BadRequest(
             "Email is required".into(),
@@ -294,15 +249,8 @@ pub async fn invite_user_to_federation(
 )]
 pub async fn list_federation_invitations(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     let invitations = state
         .keycloak
         .get_organization_invitations(&id)
@@ -330,15 +278,8 @@ pub async fn list_federation_invitations(
 )]
 pub async fn delete_federation_invitation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     state
         .keycloak
         .delete_organization_invitation(&id, &invitation_id)
@@ -362,15 +303,8 @@ pub async fn delete_federation_invitation(
 )]
 pub async fn resend_federation_invitation(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     state
         .keycloak
         .resend_organization_invitation(&id, &invitation_id)
@@ -394,15 +328,8 @@ pub async fn resend_federation_invitation(
 )]
 pub async fn list_federation_members(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_ministry() {
-        return Err(crate::error::AppError::Forbidden(
-            "Access denied. Ministry role required".into(),
-        ));
-    }
-
     let members = state
         .keycloak
         .get_organization_members(&id)

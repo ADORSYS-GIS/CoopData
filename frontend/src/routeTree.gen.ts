@@ -29,6 +29,8 @@ import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
+import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
+import { Route as AppMembersRouteImport } from './routes/app.members'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
   id: '/unauthorized',
@@ -130,6 +132,16 @@ const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
   path: '/submissions/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInvitationsRoute = AppInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +164,8 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,6 +187,8 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/app': typeof AppIndexRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,73 +212,81 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/submissions_/$id': typeof AppSubmissionsIdRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/app'
-    | '/auth'
-    | '/unauthorized'
-    | '/app/analytics'
-    | '/app/apexes'
-    | '/app/cooperatives'
-    | '/app/dashboard'
-    | '/app/data-collection'
-    | '/app/federations'
-    | '/app/financial-statement'
-    | '/app/non-financial-data'
-    | '/app/profile'
-    | '/app/reports'
-    | '/app/settings'
-    | '/app/submissions'
-    | '/app/users'
-    | '/auth/login'
-    | '/app/'
-    | '/app/submissions/$id'
+  | '/'
+  | '/app'
+  | '/auth'
+  | '/unauthorized'
+  | '/app/analytics'
+  | '/app/apexes'
+  | '/app/cooperatives'
+  | '/app/dashboard'
+  | '/app/data-collection'
+  | '/app/federations'
+  | '/app/financial-statement'
+  | '/app/non-financial-data'
+  | '/app/profile'
+  | '/app/reports'
+  | '/app/settings'
+  | '/app/submissions'
+  | '/app/users'
+  | '/auth/login'
+  | '/app/'
+  | '/app/submissions/$id'
+  | '/app/invitations'
+  | '/app/members'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/auth'
-    | '/unauthorized'
-    | '/app/analytics'
-    | '/app/apexes'
-    | '/app/cooperatives'
-    | '/app/dashboard'
-    | '/app/data-collection'
-    | '/app/federations'
-    | '/app/financial-statement'
-    | '/app/non-financial-data'
-    | '/app/profile'
-    | '/app/reports'
-    | '/app/settings'
-    | '/app/submissions'
-    | '/app/users'
-    | '/auth/login'
-    | '/app'
-    | '/app/submissions/$id'
+  | '/'
+  | '/auth'
+  | '/unauthorized'
+  | '/app/analytics'
+  | '/app/apexes'
+  | '/app/cooperatives'
+  | '/app/dashboard'
+  | '/app/data-collection'
+  | '/app/federations'
+  | '/app/financial-statement'
+  | '/app/non-financial-data'
+  | '/app/profile'
+  | '/app/reports'
+  | '/app/settings'
+  | '/app/submissions'
+  | '/app/users'
+  | '/auth/login'
+  | '/app'
+  | '/app/submissions/$id'
+  | '/app/invitations'
+  | '/app/members'
   id:
-    | '__root__'
-    | '/'
-    | '/app'
-    | '/auth'
-    | '/unauthorized'
-    | '/app/analytics'
-    | '/app/apexes'
-    | '/app/cooperatives'
-    | '/app/dashboard'
-    | '/app/data-collection'
-    | '/app/federations'
-    | '/app/financial-statement'
-    | '/app/non-financial-data'
-    | '/app/profile'
-    | '/app/reports'
-    | '/app/settings'
-    | '/app/submissions'
-    | '/app/users'
-    | '/auth/login'
-    | '/app/'
-    | '/app/submissions_/$id'
+  | '__root__'
+  | '/'
+  | '/app'
+  | '/auth'
+  | '/unauthorized'
+  | '/app/analytics'
+  | '/app/apexes'
+  | '/app/cooperatives'
+  | '/app/dashboard'
+  | '/app/data-collection'
+  | '/app/federations'
+  | '/app/financial-statement'
+  | '/app/non-financial-data'
+  | '/app/profile'
+  | '/app/reports'
+  | '/app/settings'
+  | '/app/submissions'
+  | '/app/users'
+  | '/auth/login'
+  | '/app/'
+  | '/app/submissions_/$id'
+  | '/app/invitations'
+  | '/app/members'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -414,6 +438,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSubmissionsIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/invitations': {
+      id: '/app/invitations'
+      path: '/invitations'
+      fullPath: '/app/invitations'
+      preLoaderRoute: typeof AppInvitationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/members': {
+      id: '/app/members'
+      path: '/members'
+      fullPath: '/app/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -433,6 +471,8 @@ interface AppRouteChildren {
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppSubmissionsIdRoute: typeof AppSubmissionsIdRoute
+  AppInvitationsRoute: typeof AppInvitationsRoute
+  AppMembersRoute: typeof AppMembersRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -451,6 +491,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,
   AppSubmissionsIdRoute: AppSubmissionsIdRoute,
+  AppInvitationsRoute: AppInvitationsRoute,
+  AppMembersRoute: AppMembersRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

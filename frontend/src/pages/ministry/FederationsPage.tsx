@@ -14,25 +14,37 @@ import {
   Trash2,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
-import { FEDERATIONS, formatCurrency, formatNumber } from "@/lib/mock-data";
+import { formatCurrency, formatNumber } from "@/lib/mock-data";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { requireRole } from "@/lib/route-guards";
+import {
+  useFederations,
+  useCreateFederation,
+  useUpdateFederation,
+  useDeleteFederation,
+} from "@/hooks/federations/useFederations";
+import type { components } from "@/openapi-client/api";
+
+type Federation = components["schemas"]["FederationResponse"];
 
 export const FederationsPage: React.FC = () => {
-  const [federations, setFederations] = useState(FEDERATIONS);
+  const { data: federations = [], isLoading, error, refetch } = useFederations();
+  const createMutation = useCreateFederation();
+  const updateMutation = useUpdateFederation();
+  const deleteMutation = useDeleteFederation();
+
   const [search, setSearch] = useState("");
-  const [activeRegion, setActiveRegion] = useState("All regions");
+  const [activeDomain, setActiveDomain] = useState("All domains");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [, startTransition] = useTransition();
 
   const [name, setName] = useState("");
-  const [region, setRegion] = useState("Manzini");
+  const [contactEmail, setContactEmail] = useState("");
 
   // Edit modal state
-  const [editingFed, setEditingFed] = useState<(typeof FEDERATIONS)[number] | null>(null);
+  const [editingFed, setEditingFed] = useState<Federation | null>(null);
   const [editName, setEditName] = useState("");
-  const [editRegion, setEditRegion] = useState("");
+  const [editContactEmail, setEditContactEmail] = useState("");
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,26 +53,23 @@ export const FederationsPage: React.FC = () => {
       return;
     }
 
-    const regNo = "FED-" + new Date().getFullYear() + "-" + Math.floor(100 + Math.random() * 900);
-    const newFed = {
-      id: "f" + (federations.length + 1),
-      regNo,
-      name,
-      region,
-      apexCount: 0,
-      coopCount: 0,
-      totalMembers: 0,
-      totalPortfolio: 0,
-      compliance: "Pending" as const,
-      status: "Active" as const,
-      registeredOn: new Date().toISOString().split("T")[0],
-    };
-
-    setFederations([newFed, ...federations]);
-    setIsModalOpen(false);
-    toast.success(`Successfully registered "${name}" with ID ${regNo}!`);
-    setName("");
-    setRegion("Manzini");
+    createMutation.mutate(
+      { name, contact_email: contactEmail || undefined },
+      {
+        onSuccess: () => {
+          toast.success(`Successfully registered "${name}"!`);
+          setIsModalOpen(false);
+          setName("");
+          setContactEmail("");
+          refetch();
+        },
+        onError: (err) => {
+          toast.error("Failed to register federation", {
+            description: String(err),
+          });
+        },
+      },
+    );
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,13 +79,10 @@ export const FederationsPage: React.FC = () => {
     });
   };
 
-  const handleEdit = (id: string, name: string) => {
-    const fed = federations.find((f) => f.id === id);
-    if (fed) {
-      setEditingFed(fed);
-      setEditName(fed.name);
-      setEditRegion(fed.region);
-    }
+  const handleEdit = (fed: Federation) => {
+    setEditingFed(fed);
+    setEditName(fed.name);
+    setEditContactEmail(fed.description || "");
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -85,33 +91,64 @@ export const FederationsPage: React.FC = () => {
       toast.error("Please fill in all required fields.");
       return;
     }
-    setFederations((prev) =>
-      prev.map((f) => (f.id === editingFed.id ? { ...f, name: editName, region: editRegion } : f)),
+    updateMutation.mutate(
+      {
+        id: editingFed.id,
+        name: editName,
+        contact_email: editContactEmail || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Updated "${editName}"`);
+          setEditingFed(null);
+          refetch();
+        },
+        onError: (err) => {
+          toast.error("Failed to update federation", {
+            description: String(err),
+          });
+        },
+      },
     );
-    toast.success(`Updated "${editName}"`);
-    setEditingFed(null);
   };
 
   const handleDelete = (id: string, name: string) => {
-    setFederations((prev) => prev.filter((f) => f.id !== id));
-    toast.success(`Deleted "${name}"`, { description: "Federation removed from registry." });
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success(`Deleted "${name}"`, {
+          description: "Federation removed from registry.",
+        });
+        refetch();
+      },
+      onError: (err) => {
+        toast.error("Failed to delete federation", {
+          description: String(err),
+        });
+      },
+    });
   };
 
-  const filteredFeds = federations.filter((f) => {
+  const federationsList = (federations as Federation[]) || [];
+
+  const filteredFeds = federationsList.filter((f) => {
     const matchesSearch =
       f.name.toLowerCase().includes(search.toLowerCase()) ||
-      f.regNo.toLowerCase().includes(search.toLowerCase()) ||
-      f.region.toLowerCase().includes(search.toLowerCase());
+      (f.description || "").toLowerCase().includes(search.toLowerCase());
 
-    const matchesRegion =
-      activeRegion === "All regions" || f.region.toLowerCase() === activeRegion.toLowerCase();
+    const matchesDomain =
+      activeDomain === "All domains" ||
+      f.domains?.some((d) => d.name.toLowerCase() === activeDomain.toLowerCase());
 
-    return matchesSearch && matchesRegion;
+    return matchesSearch && matchesDomain;
   });
 
-  const activeCount = federations.filter((f) => f.status === "Active").length;
-  const totalMembers = federations.reduce((sum, f) => sum + f.totalMembers, 0);
-  const totalPortfolio = federations.reduce((sum, f) => sum + f.totalPortfolio, 0);
+  const activeCount = federationsList.filter((f) => f.enabled).length;
+  const totalDomains = federationsList.reduce((sum, f) => sum + (f.domains?.length || 0), 0);
+
+  const allDomains = Array.from(
+    new Set(federationsList.flatMap((f) => f.domains?.map((d) => d.name) || [])),
+  );
 
   return (
     <AppShell
@@ -132,7 +169,7 @@ export const FederationsPage: React.FC = () => {
           <StatCard
             icon={Landmark}
             label="Total Federations"
-            value={formatNumber(federations.length)}
+            value={formatNumber(federationsList.length)}
             subtitle="Regional oversight bodies"
             tone="primary"
           />
@@ -145,15 +182,15 @@ export const FederationsPage: React.FC = () => {
           />
           <StatCard
             icon={Users}
-            label="Total Members"
-            value={formatNumber(totalMembers)}
+            label="Total Domains"
+            value={formatNumber(totalDomains)}
             subtitle="Across all federations"
             tone="accent"
           />
           <StatCard
             icon={Wallet}
             label="Combined Portfolio"
-            value={formatCurrency(totalPortfolio)}
+            value={formatCurrency(0)}
             subtitle="Aggregate capital base"
             tone="info"
           />
@@ -181,103 +218,84 @@ export const FederationsPage: React.FC = () => {
               <input
                 defaultValue={search}
                 onChange={handleSearchChange}
-                placeholder="Search by name, code, region..."
+                placeholder="Search by name, domain..."
                 className="w-full rounded-lg border border-input bg-surface py-2 pl-9 pr-3 text-sm transition-all focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
               />
             </div>
             <Pills
-              items={["All regions", "Manzini", "Hhohho", "Shiselweni", "Lubombo"]}
-              active={activeRegion}
-              onChange={setActiveRegion}
+              items={["All domains", ...allDomains]}
+              active={activeDomain}
+              onChange={setActiveDomain}
             />
           </div>
 
           {/* Table */}
-          <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3">Registration</th>
-                  <th className="px-5 py-3">Federation</th>
-                  <th className="px-5 py-3">Region</th>
-                  <th className="px-5 py-3 text-right">Apexes</th>
-                  <th className="px-5 py-3 text-right">Cooperatives</th>
-                  <th className="px-5 py-3 text-right">Members</th>
-                  <th className="px-5 py-3 text-right">Portfolio</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Compliance</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredFeds.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="py-12 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center">
-                        <Landmark className="size-8 text-muted-foreground/60 mb-2" />
-                        <p className="font-semibold text-sm">No federations match query</p>
-                        <p className="text-xs">
-                          Try adjusting search parameters or register a new federation.
-                        </p>
-                      </div>
-                    </td>
+          {isLoading ? (
+            <div className="space-y-3 py-8">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-12 w-full animate-pulse rounded-lg bg-muted/30" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center text-destructive">
+              <ShieldAlert className="mx-auto mb-2 h-8 w-8" />
+              <p>Failed to load federations</p>
+              <p className="text-sm text-muted-foreground">{String(error)}</p>
+            </div>
+          ) : filteredFeds.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <div className="flex flex-col items-center justify-center">
+                <Landmark className="size-8 text-muted-foreground/60 mb-2" />
+                <p className="font-semibold text-sm">No federations match query</p>
+                <p className="text-xs">
+                  Try adjusting search parameters or register a new federation.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    <th className="px-5 py-3">ID</th>
+                    <th className="px-5 py-3">Federation</th>
+                    <th className="px-5 py-3">Domains</th>
+                    <th className="px-5 py-3 text-right">Enabled</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
                   </tr>
-                ) : (
-                  filteredFeds.map((f) => (
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredFeds.map((f) => (
                     <tr key={f.id} className="hover:bg-muted/30 transition-colors duration-150">
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
-                        {f.regNo}
+                        {f.id.slice(0, 8)}
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="font-semibold text-foreground leading-tight">{f.name}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Registered {f.registeredOn}
-                        </p>
+                        {f.description && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {f.description}
+                          </p>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center gap-1 text-xs">
-                          <MapPin className="size-3 text-muted-foreground/75" /> {f.region}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {f.domains?.map((d) => (
+                            <span key={d.name} className="inline-flex items-center gap-1 text-xs">
+                              <MapPin className="size-3 text-muted-foreground/75" /> {d.name}
+                            </span>
+                          )) || <span className="text-xs text-muted-foreground">No domains</span>}
+                        </div>
                       </td>
-                      <td className="px-5 py-3.5 text-right num text-foreground">
-                        <span className="inline-flex items-center gap-1 justify-end">
-                          <Network className="size-3 text-muted-foreground" />
-                          {f.apexCount}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right num text-muted-foreground">
-                        {f.coopCount.toLocaleString()}
-                      </td>
-                      <td className="px-5 py-3.5 text-right num text-muted-foreground">
-                        {formatNumber(f.totalMembers)}
-                      </td>
-                      <td className="px-5 py-3.5 text-right font-semibold num text-foreground">
-                        {formatCurrency(f.totalPortfolio)}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusPill tone={f.status === "Active" ? "success" : "danger"}>
-                          {f.status}
-                        </StatusPill>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusPill
-                          tone={
-                            f.compliance === "Verified"
-                              ? "success"
-                              : f.compliance === "Pending"
-                                ? "warning"
-                                : f.compliance === "Under Review"
-                                  ? "info"
-                                  : "danger"
-                          }
-                        >
-                          {f.compliance}
+                      <td className="px-5 py-3.5 text-right">
+                        <StatusPill tone={f.enabled ? "success" : "danger"}>
+                          {f.enabled ? "Enabled" : "Disabled"}
                         </StatusPill>
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => handleEdit(f.id, f.name)}
+                            onClick={() => handleEdit(f)}
                             className="press-feedback inline-flex items-center justify-center size-7 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                             title="Edit"
                           >
@@ -293,28 +311,17 @@ export const FederationsPage: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <p>
-              Showing {filteredFeds.length} of {federations.length} federations
+              Showing {filteredFeds.length} of {federationsList.length} federations
             </p>
-            <div className="flex gap-1">
-              <button className="press-feedback rounded-lg border border-border px-2.5 py-1.5 transition-colors hover:bg-muted/50">
-                Previous
-              </button>
-              <button className="press-feedback rounded-lg bg-primary px-3 py-1.5 font-bold text-primary-foreground">
-                1
-              </button>
-              <button className="press-feedback rounded-lg border border-border px-2.5 py-1.5 transition-colors hover:bg-muted/50">
-                Next
-              </button>
-            </div>
           </div>
         </Card>
       </div>
@@ -359,25 +366,22 @@ export const FederationsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Jurisdiction Region
+                  Contact Email
                 </label>
-                <select
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
-                >
-                  <option>Manzini</option>
-                  <option>Hhohho</option>
-                  <option>Shiselweni</option>
-                  <option>Lubombo</option>
-                </select>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="contact@federation.org"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
+                />
               </div>
 
               <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
                 <ShieldAlert className="size-4 shrink-0 text-amber-600 mt-0.5" />
                 <span>
                   By registering, you certify this federation operates in accordance with national
-                  cooperative guidelines and has cleared the Ministry's validation process.
+                  cooperative guidelines and has cleared the Ministry's registration process.
                 </span>
               </div>
 
@@ -391,9 +395,10 @@ export const FederationsPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm"
+                  disabled={createMutation.isPending}
+                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50"
                 >
-                  Register Federation
+                  {createMutation.isPending ? "Registering..." : "Register Federation"}
                 </button>
               </div>
             </form>
@@ -438,18 +443,14 @@ export const FederationsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Jurisdiction Region
+                  Contact Email
                 </label>
-                <select
-                  value={editRegion}
-                  onChange={(e) => setEditRegion(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
-                >
-                  <option>Manzini</option>
-                  <option>Hhohho</option>
-                  <option>Shiselweni</option>
-                  <option>Lubombo</option>
-                </select>
+                <input
+                  type="email"
+                  value={editContactEmail}
+                  onChange={(e) => setEditContactEmail(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
+                />
               </div>
 
               <div className="flex justify-end gap-2 border-t border-border pt-3">
@@ -462,9 +463,10 @@ export const FederationsPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm"
+                  disabled={updateMutation.isPending}
+                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50"
                 >
-                  Save Changes
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

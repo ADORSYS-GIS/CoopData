@@ -133,7 +133,10 @@ export const useInviteUserToFederation = () => {
     }: {
       federationId: string;
       email: string;
+      first_name: string;
+      last_name: string;
       role: string;
+      redirect_url?: string;
     }) => {
       const { data, error } = await apiClient.POST(
         "/api/v1/ministry/federations/{id}/invitations",
@@ -144,6 +147,61 @@ export const useInviteUserToFederation = () => {
       );
       if (error) throw error;
       return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [FEDERATIONS_KEY, variables.federationId, "invitations"],
+      });
+    },
+  });
+};
+
+/** Resend an invitation */
+export const useResendInvitation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      federationId,
+      invitationId,
+    }: {
+      federationId: string;
+      invitationId: string;
+    }) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/ministry/federations/{id}/invitations/{invitation_id}/resend",
+        {
+          params: { path: { id: federationId, invitation_id: invitationId } },
+        },
+      );
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [FEDERATIONS_KEY, variables.federationId, "invitations"],
+      });
+    },
+  });
+};
+
+/** Delete an invitation */
+export const useDeleteInvitation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      federationId,
+      invitationId,
+    }: {
+      federationId: string;
+      invitationId: string;
+    }) => {
+      const { error } = await apiClient.DELETE(
+        "/api/v1/ministry/federations/{id}/invitations/{invitation_id}",
+        {
+          params: { path: { id: federationId, invitation_id: invitationId } },
+        },
+      );
+      if (error) throw error;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({

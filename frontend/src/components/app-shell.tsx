@@ -21,6 +21,8 @@ import {
   PanelLeftOpen,
   Landmark,
   Network,
+  Mail,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -38,6 +40,8 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     items: [
       { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/app/federations", label: "Federations", icon: Landmark },
+      { to: "/app/invitations", label: "Invitations", icon: Mail },
+      { to: "/app/members", label: "Members", icon: UserPlus },
       { to: "/app/apexes", label: "Apexes", icon: Network },
       { to: "/app/cooperatives", label: "Cooperatives", icon: Building2 },
       { to: "/app/data-collection", label: "Data Collection", icon: ClipboardList },
