@@ -60,6 +60,7 @@ services:
       - "9000:9000"
     volumes:
       - ./keycloak:/opt/keycloak/data/import
+      - ./keycloak/themes:/opt/keycloak/themes
     depends_on:
       postgres:
         condition: service_healthy

@@ -36,6 +36,36 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
+  openapi_codegen:
+    name: OpenAPI Codegen
+    needs: [frontend_install]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Generate OpenAPI client from backend spec
+        working-directory: ./frontend
+        run: npm run codegen
+
+      - name: Upload generated client
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-client
+          path: frontend/src/openapi-client/
+          retention-days: 1
+
   frontend_lint:
     name: Frontend Lint
     needs: [frontend_install]
@@ -84,7 +114,7 @@ jobs:
 
   frontend_typescript:
     name: Frontend TypeScript
-    needs: [frontend_install]
+    needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +130,12 @@ jobs:
           key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
+
+      - name: Download generated client
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-client
+          path: frontend/src/openapi-client/
 
       - name: TypeScript
         working-directory: ./frontend
@@ -130,7 +166,7 @@ jobs:
 
   frontend_build:
     name: Frontend Build
-    needs: [frontend_install]
+    needs: [frontend_install, openapi_codegen]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -146,6 +182,12 @@ jobs:
           key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
+
+      - name: Download generated client
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-client
+          path: frontend/src/openapi-client/
 
       - name: Build
         working-directory: ./frontend

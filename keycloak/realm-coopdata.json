@@ -31,11 +31,11 @@
   "sslRequired": "external",
   "registrationAllowed": false,
   "registrationEmailAsUsername": false,
-  "rememberMe": false,
+  "rememberMe": true,
   "verifyEmail": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
@@ -1858,6 +1858,7 @@
     ]
   },
   "internationalizationEnabled": false,
+  "loginTheme": "coopdata",
   "authenticationFlows": [
     {
       "id": "54db6385-2c62-4663-9faf-f3400e94e4b2",
