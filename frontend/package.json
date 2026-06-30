@@ -17,7 +17,7 @@
     "fetch-api": "node ../scripts/fetch_openapi.js",
     "generate-client": "openapi-typescript openapi.json -o src/openapi-client/api.d.ts",
     "update-client": "npm run fetch-api && npm run generate-client",
-    "codegen": "node -e \"const fs=require('fs'); const src='../backend/openapi.json'; const dst='openapi.json'; if(fs.existsSync(src)){fs.copyFileSync(src,dst);console.log('Copied '+src+' -> '+dst)}else{console.warn('No backend openapi.json found at '+src);process.exit(1)}\" && openapi-typescript openapi.json -o src/openapi-client/api.d.ts"
+    "codegen": "openapi-typescript openapi.json -o src/openapi-client/api.d.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
