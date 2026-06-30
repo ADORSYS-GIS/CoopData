@@ -3,8 +3,8 @@ import { requireAuth } from "@/lib/route-guards";
 import { ProfilePage } from "@/pages/shared/ProfilePage";
 
 export const Route = createFileRoute("/app/profile")({
-  beforeLoad: () => {
-    requireAuth();
+  beforeLoad: async () => {
+    await requireAuth();
   },
   component: ProfilePage,
 });

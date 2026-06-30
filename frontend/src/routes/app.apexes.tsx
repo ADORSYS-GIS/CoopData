@@ -3,8 +3,8 @@ import { requireRole } from "@/lib/route-guards";
 import { ApexesPage } from "@/pages/federation/ApexesPage";
 
 export const Route = createFileRoute("/app/apexes")({
-  beforeLoad: () => {
-    requireRole("federation");
+  beforeLoad: async () => {
+    await requireRole("federation");
   },
   component: ApexesPage,
 });

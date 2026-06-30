@@ -11,7 +11,7 @@
 
 import createClient from "openapi-fetch";
 import type { paths } from "./api";
-import { getAccessToken, isKeycloakReady, isAuthenticated } from "@/services/shared/authService";
+import { getAccessToken } from "@/services/shared/authService";
 
 // Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
 // Development: VITE_API_BASE_URL should be set to http://localhost:3000
@@ -37,14 +37,9 @@ apiClient.use({
     return request;
   },
   onResponse({ response }) {
-    if (response.status === 401) {
-      // Only redirect if Keycloak is ready and user was authenticated
-      // This prevents redirect loops during initialization
-      if (isKeycloakReady() && isAuthenticated()) {
-        console.warn("[apiClient] 401 response — redirecting to login");
-        window.location.href = "/auth/login";
-      }
-    }
+    // Do NOT redirect here — navigation is handled by route guards and components.
+    // A hard window.location redirect bypasses the router and causes flash/redirect
+    // bugs on pages that fire API calls immediately on mount.
     return response;
   },
 });

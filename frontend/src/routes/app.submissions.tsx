@@ -3,8 +3,8 @@ import { requireAuth } from "@/lib/route-guards";
 import { SubmissionsPage } from "@/pages/shared/SubmissionsPage";
 
 export const Route = createFileRoute("/app/submissions")({
-  beforeLoad: () => {
-    requireAuth();
+  beforeLoad: async () => {
+    await requireAuth();
   },
   component: SubmissionsPage,
 });

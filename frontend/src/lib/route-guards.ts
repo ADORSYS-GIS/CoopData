@@ -1,41 +1,28 @@
 import { redirect } from "@tanstack/react-router";
-import {
-  isAuthenticated,
-  isKeycloakReady,
-  hasAnyRole,
-  getUserProfile,
-} from "@/services/shared/authService";
+import { isAuthenticated, hasAnyRole, getUserProfile, keycloakReady } from "@/services/shared/authService";
 import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 
 /**
  * Route guard for TanStack Router `beforeLoad`.
  *
- * Checks authentication and role-based access before a route loads.
- * - If Keycloak is not ready yet, returns without redirecting
- *   (the component layer handles the loading state).
- * - If not authenticated, redirects to /auth/login.
- * - If authenticated but lacks the required role, redirects to /unauthorized.
- * - If authenticated and authorized, returns normally.
+ * Awaits `keycloakReady` before checking auth state. This is the key fix for
+ * the flash-redirect bug: Keycloak initializes asynchronously at module load
+ * time, and `keycloakReady` resolves once init is complete — ensuring guards
+ * never evaluate auth state before it's known.
  */
-export function requireAuth() {
-  if (!isKeycloakReady()) {
-    // Keycloak still initializing — let the component layer handle it
-    return;
-  }
+export async function requireAuth() {
+  await keycloakReady;
 
   if (!isAuthenticated()) {
     throw redirect({ to: "/auth/login" });
   }
 }
 
-export function requireRole(...roles: Role[]) {
+export async function requireRole(...roles: Role[]) {
   console.log("[requireRole] Checking roles:", roles);
-  
-  if (!isKeycloakReady()) {
-    console.warn("[requireRole] Keycloak not ready yet");
-    return;
-  }
+
+  await keycloakReady;
 
   if (!isAuthenticated()) {
     console.warn("[requireRole] Not authenticated, redirecting to login");
@@ -46,7 +33,7 @@ export function requireRole(...roles: Role[]) {
     console.warn("[requireRole] Access denied, redirecting to /unauthorized");
     throw redirect({ to: "/unauthorized" });
   }
-  
+
   console.log("[requireRole] Access granted");
 }
 
@@ -54,10 +41,8 @@ export function requireRole(...roles: Role[]) {
  * Redirect authenticated users away from auth pages (e.g., login).
  * If already authenticated, redirect to the role-appropriate dashboard.
  */
-export function redirectIfAuthenticated() {
-  if (!isKeycloakReady()) {
-    return;
-  }
+export async function redirectIfAuthenticated() {
+  await keycloakReady;
 
   if (isAuthenticated()) {
     const profile = getUserProfile();

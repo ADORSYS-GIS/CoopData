@@ -3,8 +3,8 @@ import { requireRole } from "@/lib/route-guards";
 import { InvitationList } from "@/pages/ministry/InvitationList";
 
 export const Route = createFileRoute("/app/invitations")({
-  beforeLoad: () => {
-    requireRole("ministry");
+  beforeLoad: async () => {
+    await requireRole("ministry");
   },
   component: InvitationList,
 });

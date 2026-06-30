@@ -25,7 +25,7 @@ import {
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
@@ -360,6 +360,13 @@ export function AppShell({
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
+  // Redirect to login if not authenticated — must be in useEffect, not render body
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate({ to: "/auth/login" });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
@@ -372,7 +379,6 @@ export function AppShell({
   }
 
   if (!isAuthenticated) {
-    navigate({ to: "/auth/login" });
     return null;
   }
 

@@ -10,7 +10,6 @@ import { MinistryDashboard } from "@/components/dashboards/ministry-dashboard";
 import { FederationDashboard } from "@/components/dashboards/federation-dashboard";
 import { ApexDashboard } from "@/components/dashboards/apex-dashboard";
 import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashboard";
-import { requireAuth } from "@/lib/route-guards";
 import { Navigate } from "@tanstack/react-router";
 
 export const DashboardPage: React.FC = () => {

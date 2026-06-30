@@ -1,21 +1,29 @@
-import Keycloak from "keycloak-js";
 import { get, set, del } from "idb-keyval";
 import { keycloak } from "./keycloakConfig";
 import type { UserProfile, CustomKeycloakToken } from "@/types/auth";
 import type { Role } from "@/constants/roles";
-import { mapKeycloakRolesToRole, ROLES } from "@/constants/roles";
+import { mapKeycloakRolesToRole } from "@/constants/roles";
 
 const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
 
-let keycloakInitialized = false;
+// ─── Module-level singleton init ─────────────────────────────────────────────
+//
+// Keycloak's JS adapter cannot be initialized more than once per page load.
+// We kick off initialization here at module import time so:
+//   1. It runs exactly once, even under React StrictMode (double-effect calls).
+//   2. `keycloakReady` is available immediately for `beforeLoad` guards to await.
+//   3. `KeycloakAuthProvider` just reads the result — it never calls init itself.
+//
+let _initPromise: Promise<boolean> | null = null;
 
-export async function initKeycloak(): Promise<boolean> {
-  if (keycloakInitialized) {
-    return keycloak.authenticated ?? false;
-  }
+function getInitPromise(): Promise<boolean> {
+  if (_initPromise) return _initPromise;
+  _initPromise = _runInit();
+  return _initPromise;
+}
 
-  // Try to load cached tokens for offline support
+async function _runInit(): Promise<boolean> {
   const cachedTokens = await loadCachedTokens();
 
   try {
@@ -30,16 +38,13 @@ export async function initKeycloak(): Promise<boolean> {
       idToken: cachedTokens?.idToken ?? undefined,
     });
 
-    keycloakInitialized = true;
-
     if (authenticated) {
       await persistTokens();
-      // Try to refresh the token to ensure it's valid
       try {
         await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
         await persistTokens();
       } catch {
-        // Token refresh failed — clear cache and require re-login
+        // Token refresh failed — session expired
         await clearCachedTokens();
         return false;
       }
@@ -47,16 +52,33 @@ export async function initKeycloak(): Promise<boolean> {
 
     return authenticated;
   } catch (error) {
-    console.error("Keycloak init failed:", error);
-    keycloakInitialized = true;
+    console.error("[authService] Keycloak init failed:", error);
 
-    // If we have cached tokens, try offline mode
+    // Offline fallback: if cached tokens exist, treat as authenticated
     if (cachedTokens?.token) {
       return true;
     }
     return false;
   }
 }
+
+/**
+ * A promise that resolves to `true` (authenticated) or `false` (not authenticated)
+ * once Keycloak has finished initializing. Route guards await this before checking
+ * auth state, so they never fire before the auth state is known.
+ */
+export const keycloakReady: Promise<boolean> = getInitPromise();
+
+/**
+ * Initialize Keycloak. Safe to call multiple times — returns the same promise.
+ * Components (KeycloakAuthProvider) should call this to get the auth result
+ * without triggering a second init.
+ */
+export async function initKeycloak(): Promise<boolean> {
+  return getInitPromise();
+}
+
+// ─── Auth actions ─────────────────────────────────────────────────────────────
 
 export async function login(): Promise<void> {
   await keycloak.login({
@@ -94,6 +116,8 @@ export async function getAccessToken(): Promise<string> {
   return keycloak.token!;
 }
 
+// ─── Profile & role helpers ──────────────────────────────────────────────────
+
 export function getUserProfile(): UserProfile | null {
   if (!keycloak.authenticated || !keycloak.tokenParsed) {
     console.warn("[getUserProfile] Not authenticated or no token");
@@ -103,7 +127,7 @@ export function getUserProfile(): UserProfile | null {
   const token = keycloak.tokenParsed as CustomKeycloakToken;
   const realmRoles = token.realm_access?.roles ?? [];
   console.log("[getUserProfile] Token realm_roles:", realmRoles);
-  
+
   const role = mapKeycloakRolesToRole(realmRoles);
   console.log("[getUserProfile] Mapped role:", role);
 
@@ -116,7 +140,6 @@ export function getUserProfile(): UserProfile | null {
   const lastName = token.family_name ?? token.name?.split(" ").slice(1).join(" ") ?? "";
   const initials = (firstName[0] ?? "") + (lastName[0] ?? "");
 
-  // Compute region from organization/cooperation based on role
   const region =
     role === "ministry"
       ? "National"
@@ -160,24 +183,25 @@ export function isAuthenticated(): boolean {
   return keycloak.authenticated ?? false;
 }
 
+/** @deprecated Use `await keycloakReady` instead of polling isKeycloakReady() */
 export function isKeycloakReady(): boolean {
-  return keycloakInitialized;
+  // A promise is "done" synchronously once resolved, but JS has no sync way to
+  // check a promise's state. This helper is kept for backward compat only.
+  // Route guards should use `await keycloakReady` instead.
+  return keycloak.authenticated !== undefined && _initPromise !== null;
 }
 
-/** Fetch with auth — attaches Bearer token to API calls */
+// ─── Fetch helper ────────────────────────────────────────────────────────────
+
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
   headers.set("Authorization", `Bearer ${token}`);
   headers.set("Content-Type", "application/json");
-
-  return fetch(url, {
-    ...options,
-    headers,
-  });
+  return fetch(url, { ...options, headers });
 }
 
-// --- Token persistence for offline support ---
+// ─── Token persistence (offline support) ────────────────────────────────────
 
 interface CachedTokens {
   token: string;
@@ -188,18 +212,16 @@ interface CachedTokens {
 
 async function persistTokens(): Promise<void> {
   if (!keycloak.token || !keycloak.refreshToken) return;
-
   const tokens: CachedTokens = {
     token: keycloak.token,
     refreshToken: keycloak.refreshToken,
     idToken: keycloak.idToken ?? "",
     timestamp: Date.now(),
   };
-
   try {
     await set(TOKEN_CACHE_KEY, tokens);
   } catch {
-    console.warn("Failed to persist tokens to IndexedDB");
+    console.warn("[authService] Failed to persist tokens to IndexedDB");
   }
 }
 
@@ -209,7 +231,6 @@ async function loadCachedTokens(): Promise<CachedTokens | null> {
     if (tokens && Date.now() - tokens.timestamp < 24 * 60 * 60 * 1000) {
       return tokens;
     }
-    // Expired — clear
     await clearCachedTokens();
     return null;
   } catch {

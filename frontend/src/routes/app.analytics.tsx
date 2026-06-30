@@ -3,8 +3,8 @@ import { requireAuth } from "@/lib/route-guards";
 import { AnalyticsPage } from "@/pages/shared/AnalyticsPage";
 
 export const Route = createFileRoute("/app/analytics")({
-  beforeLoad: () => {
-    requireAuth();
+  beforeLoad: async () => {
+    await requireAuth();
   },
   component: AnalyticsPage,
 });
