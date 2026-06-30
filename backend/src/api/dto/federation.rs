@@ -42,18 +42,27 @@ pub struct DomainResponse {
 
 impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse {
     fn from(org: crate::models::keycloak::KeycloakOrganization) -> Self {
-        let description = org
-            .attributes
-            .as_ref()
-            .and_then(|attrs| attrs.get("description"))
-            .and_then(|vals| vals.first())
-            .cloned();
+        let attrs = org.attributes.as_ref();
+
+        // Prefer the human-readable display_name stored in attributes,
+        // fall back to the slug name Keycloak stores internally
+        let display_name = attrs
+            .and_then(|a| a.get("display_name"))
+            .and_then(|v| v.first())
+            .cloned()
+            .unwrap_or_else(|| org.name.clone());
+
+        let description = attrs
+            .and_then(|a| a.get("description"))
+            .and_then(|v| v.first())
+            .cloned()
+            .or(org.description);
 
         Self {
             id: org.id,
-            name: org.name,
+            name: display_name,
             enabled: org.enabled,
-            description: description.or(org.description),
+            description,
             domains: org
                 .domains
                 .into_iter()

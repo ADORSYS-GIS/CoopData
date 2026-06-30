@@ -34,16 +34,38 @@ pub async fn create_federation(
         ));
     }
 
-    let domains: Vec<crate::models::keycloak::KeycloakOrganizationDomain> = body
-        .domains
-        .iter()
-        .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
-            name: d.name.clone(),
+    // Keycloak uses the org name as an alias — spaces and special chars are not allowed.
+    // We store the display name in attributes and use a slugified version as the name.
+    let display_name = body.name.trim().to_string();
+    let slug = display_name
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+
+    // Keycloak requires at least one domain — auto-derive from slug if not provided
+    let domains: Vec<crate::models::keycloak::KeycloakOrganizationDomain> = if body.domains.is_empty() {
+        vec![crate::models::keycloak::KeycloakOrganizationDomain {
+            name: format!("{}.federation.local", slug),
             verified: false,
-        })
-        .collect();
+        }]
+    } else {
+        body.domains
+            .iter()
+            .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
+                name: d.name.clone(),
+                verified: false,
+            })
+            .collect()
+    };
 
     let mut attrs = body.attributes.clone().unwrap_or_default();
+    // Store the original display name so we can show it in the UI
+    attrs.insert("display_name".to_string(), vec![display_name.clone()]);
     if let Some(ref desc) = body.description {
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
@@ -51,15 +73,15 @@ pub async fn create_federation(
     let org = state
         .keycloak
         .create_organization(
-            &body.name,
+            &slug,
             domains,
             Some(state.config.frontend_url.clone()),
-            if attrs.is_empty() { None } else { Some(attrs) },
+            Some(attrs),
         )
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    tracing::info!(org_id = %org.id, name = %org.name, "Federation created");
+    tracing::info!(org_id = %org.id, name = %display_name, slug = %slug, "Federation created");
     Ok((StatusCode::CREATED, Json(FederationResponse::from(org))))
 }
 
