@@ -14,16 +14,11 @@
 
                 <#-- Logo -->
                 <div class="brand-logo">
-                    <img src="${url.resourcesPath}/img/coopdatalogo.jpg" alt="CoopData Logo" width="180" height="44" />
+                    <img src="${url.resourcesPath}/img/coopdatalogo.png" alt="CoopData Logo" width="180" height="44" />
                 </div>
 
                 <#-- Main brand content -->
                 <div class="brand-content">
-                    <div class="brand-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        </svg>
-                    </div>
                     <h2>Trusted access for every cooperative stakeholder.</h2>
                     <p>CoopData enforces role-based access and device verification for every ministry official, federation officer, cooperative manager, and regional officer.</p>
                     <ul class="brand-features">
@@ -74,11 +69,8 @@
                 <#-- Form content -->
                 <div class="form-container">
                     <div class="form-header">
-                        <div class="secure-badge">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                            </svg>
-                            Secure Platform
+                        <div class="form-logo">
+                            <img src="${url.resourcesPath}/img/coopdatalogo.png" alt="CoopData Logo" />
                         </div>
                         <h1>Sign in to CoopData</h1>
                         <p>Enter your credentials to access your dashboard.</p>
@@ -170,7 +162,6 @@
 
                     <#if realm.password && social.providers??>
                         <div id="kc-social-providers" class="social-providers">
-                            <h3>Or sign in with</h3>
                             <ul>
                                 <#list social.providers as p>
                                     <li>
