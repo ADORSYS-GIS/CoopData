@@ -11,9 +11,11 @@
 
 import createClient from "openapi-fetch";
 import type { paths } from "./api";
-import { getAccessToken } from "@/services/shared/authService";
+import { getAccessToken, isKeycloakReady, isAuthenticated } from "@/services/shared/authService";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
+// Development: VITE_API_BASE_URL should be set to http://localhost:3000
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export const apiClient = createClient<paths>({
   baseUrl: API_BASE_URL,
@@ -36,9 +38,12 @@ apiClient.use({
   },
   onResponse({ response }) {
     if (response.status === 401) {
-      // Token expired or invalid — redirect to login
-      // Use window.location to avoid circular imports
-      window.location.href = "/auth/login";
+      // Only redirect if Keycloak is ready and user was authenticated
+      // This prevents redirect loops during initialization
+      if (isKeycloakReady() && isAuthenticated()) {
+        console.warn("[apiClient] 401 response — redirecting to login");
+        window.location.href = "/auth/login";
+      }
     }
     return response;
   },

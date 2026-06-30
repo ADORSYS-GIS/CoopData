@@ -96,15 +96,19 @@ export async function getAccessToken(): Promise<string> {
 
 export function getUserProfile(): UserProfile | null {
   if (!keycloak.authenticated || !keycloak.tokenParsed) {
+    console.warn("[getUserProfile] Not authenticated or no token");
     return null;
   }
 
   const token = keycloak.tokenParsed as CustomKeycloakToken;
   const realmRoles = token.realm_access?.roles ?? [];
+  console.log("[getUserProfile] Token realm_roles:", realmRoles);
+  
   const role = mapKeycloakRolesToRole(realmRoles);
+  console.log("[getUserProfile] Mapped role:", role);
 
   if (!role) {
-    console.warn("No recognized role in token:", realmRoles);
+    console.warn("[getUserProfile] No recognized role in token:", realmRoles);
     return null;
   }
 
@@ -147,7 +151,9 @@ export function hasRole(role: Role): boolean {
 
 export function hasAnyRole(roles: Role[]): boolean {
   const profile = getUserProfile();
-  return profile ? roles.includes(profile.role) : false;
+  const hasAccess = profile ? roles.includes(profile.role) : false;
+  console.log("[hasAnyRole] Checking:", { required: roles, userRole: profile?.role, hasAccess });
+  return hasAccess;
 }
 
 export function isAuthenticated(): boolean {

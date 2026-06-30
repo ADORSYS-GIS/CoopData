@@ -165,7 +165,10 @@ function Sidebar({
                   <li key={item.to}>
                     <Link
                       to={item.to}
-                      onClick={onClose}
+                      onClick={(e) => {
+                        console.log("[Sidebar] Clicking link:", item.to);
+                        onClose?.();
+                      }}
                       title={isCollapsed ? item.label : undefined}
                       className={[
                         "group flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",

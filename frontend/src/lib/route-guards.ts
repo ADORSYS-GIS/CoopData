@@ -30,17 +30,24 @@ export function requireAuth() {
 }
 
 export function requireRole(...roles: Role[]) {
+  console.log("[requireRole] Checking roles:", roles);
+  
   if (!isKeycloakReady()) {
+    console.warn("[requireRole] Keycloak not ready yet");
     return;
   }
 
   if (!isAuthenticated()) {
+    console.warn("[requireRole] Not authenticated, redirecting to login");
     throw redirect({ to: "/auth/login" });
   }
 
   if (!hasAnyRole(roles)) {
+    console.warn("[requireRole] Access denied, redirecting to /unauthorized");
     throw redirect({ to: "/unauthorized" });
   }
+  
+  console.log("[requireRole] Access granted");
 }
 
 /**
