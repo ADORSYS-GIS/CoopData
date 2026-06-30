@@ -143,19 +143,29 @@ pub fn role_guard_layer(
 pub fn create_app(state: AppState) -> Router {
     let protected = Router::new()
         .merge(shared_routes())
-        .nest("/ministry", ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-            roles::MINISTRY,
-        ]))))
-        .nest("/federation", federation_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-            roles::FEDERATION,
-        ]))))
-        .nest("/apex", apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-            roles::APEX,
-        ]))))
-        .nest("/cooperative", cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-            roles::COOPERATIVE,
-            roles::APEX,
-        ]))))
+        .nest(
+            "/ministry",
+            ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::MINISTRY,
+            ]))),
+        )
+        .nest(
+            "/federation",
+            federation_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::FEDERATION,
+            ]))),
+        )
+        .nest(
+            "/apex",
+            apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[roles::APEX]))),
+        )
+        .nest(
+            "/cooperative",
+            cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::COOPERATIVE,
+                roles::APEX,
+            ]))),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_layer,

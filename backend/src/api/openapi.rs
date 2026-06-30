@@ -14,10 +14,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         title = "CoopData API",
         version = "0.1.0",
         description = "Cooperative Data Management Platform API with RBAC hierarchy (Ministry → Federation → Apex → Cooperative)",
-        contact(
-            name = "CoopData Team",
-            email = "support@coopdata.org"
-        )
+        contact(name = "CoopData Team", email = "support@coopdata.org")
     ),
     paths(
         api_module::handlers::health_check,
