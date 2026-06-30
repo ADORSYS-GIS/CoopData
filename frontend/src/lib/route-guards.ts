@@ -3,6 +3,7 @@ import {
   isAuthenticated,
   isKeycloakReady,
   hasAnyRole,
+  getUserProfile,
 } from "@/services/shared/authService";
 import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
@@ -52,7 +53,6 @@ export function redirectIfAuthenticated() {
   }
 
   if (isAuthenticated()) {
-    const { getUserProfile } = require("@/services/shared/authService");
     const profile = getUserProfile();
     const role: Role = profile?.role ?? "ministry";
     const redirectPath = ROLE_DEFAULT_ROUTE[role];

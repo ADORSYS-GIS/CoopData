@@ -45,5 +45,7 @@ backend/.env.development
 
 # Docs (generated)
 doc
+docs/progress.md
+docs/design.md
 
 frontend/src/openapi-client

@@ -40,7 +40,7 @@ export const useCreateCooperative = () => {
   return useMutation({
     mutationFn: async (body: { name: string; region?: string; contact_email?: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives", {
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -55,10 +55,18 @@ export const useCreateCooperative = () => {
 export const useUpdateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...body }: { id: string; name?: string; region?: string; contact_email?: string }) => {
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name?: string;
+      region?: string;
+      contact_email?: string;
+    }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/apex/cooperatives/{id}", {
         params: { path: { id } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -104,16 +112,25 @@ export const useCooperativeMembers = (cooperativeId: string) =>
 export const useAddCooperativeMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ cooperativeId, ...body }: { cooperativeId: string; user_id: string; role?: string }) => {
+    mutationFn: async ({
+      cooperativeId,
+      ...body
+    }: {
+      cooperativeId: string;
+      user_id: string;
+      role?: string;
+    }) => {
       const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives/{id}/members", {
         params: { path: { id: cooperativeId } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY, variables.cooperativeId, "members"] });
+      queryClient.invalidateQueries({
+        queryKey: [COOPERATIVES_KEY, variables.cooperativeId, "members"],
+      });
     },
   });
 };
@@ -123,13 +140,18 @@ export const useRemoveCooperativeMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ cooperativeId, userId }: { cooperativeId: string; userId: string }) => {
-      const { error } = await apiClient.DELETE("/api/v1/apex/cooperatives/{group_id}/members/{user_id}", {
-        params: { path: { group_id: cooperativeId, user_id: userId } },
-      });
+      const { error } = await apiClient.DELETE(
+        "/api/v1/apex/cooperatives/{group_id}/members/{user_id}",
+        {
+          params: { path: { group_id: cooperativeId, user_id: userId } },
+        },
+      );
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY, variables.cooperativeId, "members"] });
+      queryClient.invalidateQueries({
+        queryKey: [COOPERATIVES_KEY, variables.cooperativeId, "members"],
+      });
     },
   });
 };

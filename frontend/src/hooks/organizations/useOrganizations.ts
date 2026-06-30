@@ -50,7 +50,7 @@ export const useCreateOrganization = () => {
       federation_id?: string;
     }) => {
       const { data, error } = await apiClient.POST("/api/v1/organizations", {
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -65,7 +65,10 @@ export const useCreateOrganization = () => {
 export const useUpdateOrganization = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...body }: {
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
       id: string;
       name?: string;
       organization_type?: string;
@@ -80,7 +83,7 @@ export const useUpdateOrganization = () => {
     }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/organizations/{id}", {
         params: { path: { id } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;

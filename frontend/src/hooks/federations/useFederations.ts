@@ -41,7 +41,7 @@ export const useCreateFederation = () => {
   return useMutation({
     mutationFn: async (body: { name: string; region?: string; contact_email?: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/ministry/federations", {
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -56,10 +56,18 @@ export const useCreateFederation = () => {
 export const useUpdateFederation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...body }: { id: string; name?: string; region?: string; contact_email?: string }) => {
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name?: string;
+      region?: string;
+      contact_email?: string;
+    }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/ministry/federations/{id}", {
         params: { path: { id } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -119,16 +127,28 @@ export const useFederationInvitations = (federationId: string) =>
 export const useInviteUserToFederation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ federationId, ...body }: { federationId: string; email: string; role: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/ministry/federations/{id}/invitations", {
-        params: { path: { id: federationId } },
-        body: body as any,
-      });
+    mutationFn: async ({
+      federationId,
+      ...body
+    }: {
+      federationId: string;
+      email: string;
+      role: string;
+    }) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/ministry/federations/{id}/invitations",
+        {
+          params: { path: { id: federationId } },
+          body: body as never,
+        },
+      );
       if (error) throw error;
       return data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY, variables.federationId, "invitations"] });
+      queryClient.invalidateQueries({
+        queryKey: [FEDERATIONS_KEY, variables.federationId, "invitations"],
+      });
     },
   });
 };

@@ -47,7 +47,7 @@ export const useCreateUser = () => {
       temporary_password: string;
     }) => {
       const { data, error } = await apiClient.POST("/api/v1/users", {
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -62,7 +62,10 @@ export const useCreateUser = () => {
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...body }: {
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
       id: string;
       full_name?: string;
       role?: string;
@@ -72,7 +75,7 @@ export const useUpdateUser = () => {
     }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/users/{id}", {
         params: { path: { id } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -107,7 +110,7 @@ export const useAssignRole = () => {
     mutationFn: async ({ id, role }: { id: string; role: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/users/{id}/assign-role", {
         params: { path: { id } },
-        body: { role } as any,
+        body: { role } as never,
       });
       if (error) throw error;
       return data;

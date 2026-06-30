@@ -19,23 +19,11 @@ ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
 
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM nginx:alpine AS runner
 
-WORKDIR /app
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+EXPOSE 80
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/entry.mjs ./entry.mjs
-COPY --from=builder /app/package.json /app/package-lock.json ./
-RUN npm ci --omit=dev
-
-ENV HOST=0.0.0.0
-ENV PORT=3001
-ENV NODE_ENV=production
-
-USER appuser
-
-EXPOSE 3001
-
-CMD ["node", "entry.mjs"]
+CMD ["nginx", "-g", "daemon off;"]

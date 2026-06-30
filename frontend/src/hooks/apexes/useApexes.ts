@@ -40,7 +40,7 @@ export const useCreateApex = () => {
   return useMutation({
     mutationFn: async (body: { name: string; organization_id?: string; region?: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/federation/apexes", {
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -58,7 +58,7 @@ export const useUpdateApex = () => {
     mutationFn: async ({ id, ...body }: { id: string; name?: string; region?: string }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/federation/apexes/{id}", {
         params: { path: { id } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -107,7 +107,7 @@ export const useAddApexMember = () => {
     mutationFn: async ({ apexId, ...body }: { apexId: string; user_id: string; role?: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/federation/apexes/{id}/members", {
         params: { path: { id: apexId } },
-        body: body as any,
+        body: body as never,
       });
       if (error) throw error;
       return data;
@@ -123,9 +123,12 @@ export const useRemoveApexMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ apexId, userId }: { apexId: string; userId: string }) => {
-      const { error } = await apiClient.DELETE("/api/v1/federation/apexes/{group_id}/members/{user_id}", {
-        params: { path: { group_id: apexId, user_id: userId } },
-      });
+      const { error } = await apiClient.DELETE(
+        "/api/v1/federation/apexes/{group_id}/members/{user_id}",
+        {
+          params: { path: { group_id: apexId, user_id: userId } },
+        },
+      );
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
