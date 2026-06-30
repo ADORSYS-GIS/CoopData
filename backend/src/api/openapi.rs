@@ -14,10 +14,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         title = "CoopData API",
         version = "0.1.0",
         description = "Cooperative Data Management Platform API with RBAC hierarchy (Ministry → Federation → Apex → Cooperative)",
-        contact(
-            name = "CoopData Team",
-            email = "support@coopdata.org"
-        )
+        contact(name = "CoopData Team", email = "support@coopdata.org")
     ),
     paths(
         api_module::handlers::health_check,
@@ -64,7 +61,8 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::PaginationParams,
         api_module::dto::ErrorResponse,
         api_module::dto::SuccessResponse,
-        api_module::dto::PaginatedResponse<api_module::dto::OrganizationResponse>,
+        api_module::dto::PaginatedOrganizationResponse,
+        api_module::dto::PaginatedUserResponse,
         api_module::dto::CreateOrganizationRequest,
         api_module::dto::UpdateOrganizationRequest,
         api_module::dto::OrganizationResponse,

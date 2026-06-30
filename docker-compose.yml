@@ -117,12 +117,8 @@ services:
         VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
     container_name: coopdata-frontend
-    environment:
-      HOST: "0.0.0.0"
-      PORT: "3001"
-      NODE_ENV: production
     ports:
-      - "5174:3001"
+      - "5174:80"
     depends_on:
       - backend
 

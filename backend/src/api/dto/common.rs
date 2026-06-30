@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::organization::OrganizationResponse;
+use super::user::UserResponse;
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaginationParams {
     #[serde(default = "default_page")]
@@ -27,7 +30,9 @@ impl PaginationParams {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+/// Generic paginated response — not registered as a schema directly.
+/// Use the concrete type aliases below for OpenAPI schema registration.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
     pub total: u64,
@@ -45,6 +50,52 @@ impl<T> PaginatedResponse<T> {
             page,
             per_page,
             total_pages,
+        }
+    }
+}
+
+// Concrete paginated response types for OpenAPI schema generation.
+// utoipa cannot handle generic type parameters in OpenAPI 3.0 schemas,
+// so we define explicit type aliases with ToSchema derives.
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedOrganizationResponse {
+    pub data: Vec<OrganizationResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub per_page: u64,
+    pub total_pages: u64,
+}
+
+impl From<PaginatedResponse<OrganizationResponse>> for PaginatedOrganizationResponse {
+    fn from(p: PaginatedResponse<OrganizationResponse>) -> Self {
+        Self {
+            data: p.data,
+            total: p.total,
+            page: p.page,
+            per_page: p.per_page,
+            total_pages: p.total_pages,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedUserResponse {
+    pub data: Vec<UserResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub per_page: u64,
+    pub total_pages: u64,
+}
+
+impl From<PaginatedResponse<UserResponse>> for PaginatedUserResponse {
+    fn from(p: PaginatedResponse<UserResponse>) -> Self {
+        Self {
+            data: p.data,
+            total: p.total,
+            page: p.page,
+            per_page: p.per_page,
+            total_pages: p.total_pages,
         }
     }
 }

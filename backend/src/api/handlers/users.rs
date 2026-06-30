@@ -7,8 +7,8 @@ use axum::{
 use uuid::Uuid;
 
 use crate::api::dto::{
-    AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginationParams, UpdateUserRequest,
-    UserResponse,
+    AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginatedUserResponse,
+    PaginationParams, UpdateUserRequest, UserResponse,
 };
 use crate::error::{AppError, AppResult};
 use crate::repositories::UserRepository;
@@ -32,7 +32,7 @@ fn validate_role(role: &str) -> Result<(), AppError> {
     get,
     path = "/api/v1/users",
     responses(
-        (status = 200, description = "List of users", body = PaginatedResponse<UserResponse>),
+        (status = 200, description = "List of users", body = PaginatedUserResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     ),
     tag = "Users"
@@ -49,12 +49,12 @@ pub async fn list_users(
 
     Ok((
         StatusCode::OK,
-        Json(PaginatedResponse::new(
+        Json(PaginatedUserResponse::from(PaginatedResponse::new(
             responses,
             total,
             params.page,
             params.per_page,
-        )),
+        ))),
     ))
 }
 

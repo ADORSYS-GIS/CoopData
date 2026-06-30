@@ -24,7 +24,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { useAuth, ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
 import { Sun, Moon } from "lucide-react";
 
@@ -73,20 +74,21 @@ function Sidebar({
   onToggleCollapse?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { role, user, logout } = useAuth();
+  const { user, logout, role } = useAuth();
   const navigate = useNavigate();
 
-  const currentRole = ROLES.find((r) => r.id === role)!;
+  const effectiveRole = role ?? "ministry";
+  const currentRole = ROLES.find((r) => r.id === effectiveRole)!;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate({ to: "/auth/login" });
   };
 
-  const visibleGroups = ROLE_NAV[role];
+  const visibleGroups = ROLE_NAV[effectiveRole];
   const filteredGroups = NAV_GROUPS.filter((g) => visibleGroups.includes(g.id))
     .map((group) => {
-      const allowedItems = ROLE_NAV_ITEMS[role][group.id] || [];
+      const allowedItems = ROLE_NAV_ITEMS[effectiveRole][group.id] || [];
       return { ...group, items: group.items.filter((item) => allowedItems.includes(item.to)) };
     })
     .filter((g) => g.items.length > 0);
@@ -213,12 +215,12 @@ function Sidebar({
             className={`flex items-center min-w-0 flex-1 hover:opacity-80 transition-opacity ${isCollapsed ? "justify-center" : "gap-3"}`}
           >
             <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white ring-2 ring-accent/30">
-              {user.initials}
+              {user?.initials ?? "??"}
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold truncate text-sidebar-foreground">
-                  {user.name}
+                  {user?.name ?? "Unknown"}
                 </p>
                 <p className="text-[11px] text-sidebar-foreground/75 truncate">
                   {currentRole.label}
@@ -263,8 +265,8 @@ function Topbar({
   const navigate = useNavigate();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate({ to: "/auth/login" });
   };
 
@@ -347,9 +349,20 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     navigate({ to: "/auth/login" });

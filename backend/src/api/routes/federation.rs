@@ -16,7 +16,6 @@ use axum::{
 use std::sync::Arc;
 
 use crate::auth::claims::Claims;
-use crate::auth::middleware::require_federation;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::error::AppResult;
 use crate::AppState;
@@ -84,9 +83,7 @@ async fn create_apex(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
-    // Get user's organization ID for scope enforcement
+    // Role enforcement handled by middleware
     let _org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 
     // TODO: Implement
@@ -103,8 +100,7 @@ async fn list_apexes(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
+    // Role enforcement handled by middleware
     let _org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 
     // TODO: Implement - filter by organization_keycloak_id
@@ -118,12 +114,11 @@ async fn list_apexes(
 /// Get an apex by ID.
 /// Federation-only endpoint with scope enforcement.
 async fn get_apex(
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
+    // Role enforcement handled by middleware
     // TODO: Implement scope enforcement - verify apex belongs to user's federation
     Ok(Json(serde_json::json!({
         "message": "get_apex - TODO",
@@ -134,13 +129,11 @@ async fn get_apex(
 /// Update an apex.
 /// Federation-only endpoint with scope enforcement.
 async fn update_apex(
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
-    // TODO: Implement
+    // Role enforcement handled by middleware
     Ok(Json(serde_json::json!({
         "message": "update_apex - TODO",
         "id": id
@@ -150,13 +143,11 @@ async fn update_apex(
 /// Delete an apex.
 /// Federation-only endpoint with scope enforcement.
 async fn delete_apex(
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
-    // TODO: Implement
+    // Role enforcement handled by middleware
     Ok(Json(serde_json::json!({
         "message": "delete_apex - TODO",
         "id": id
@@ -166,13 +157,11 @@ async fn delete_apex(
 /// Add a member to an apex.
 /// Federation-only endpoint with scope enforcement.
 async fn add_apex_member(
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
-    // TODO: Implement
+    // Role enforcement handled by middleware
     Ok(Json(serde_json::json!({
         "message": "add_apex_member - TODO",
         "apex_id": id
@@ -182,13 +171,11 @@ async fn add_apex_member(
 /// List members of an apex.
 /// Federation-only endpoint with scope enforcement.
 async fn list_apex_members(
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
-    // TODO: Implement
+    // Role enforcement handled by middleware
     Ok(Json(serde_json::json!({
         "message": "list_apex_members - TODO",
         "apex_id": id,
@@ -199,13 +186,11 @@ async fn list_apex_members(
 /// Remove a member from an apex.
 /// Federation-only endpoint with scope enforcement.
 async fn remove_apex_member(
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
-    // TODO: Implement
+    // Role enforcement handled by middleware
     Ok(Json(serde_json::json!({
         "message": "remove_apex_member - TODO",
         "group_id": group_id,
@@ -219,8 +204,7 @@ async fn get_federation_profile(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
+    // Role enforcement handled by middleware
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 
     // TODO: Implement
@@ -236,8 +220,7 @@ async fn update_federation_profile(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,
 ) -> AppResult<Json<serde_json::Value>> {
-    require_federation(&claims)?;
-
+    // Role enforcement handled by middleware
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 
     // TODO: Implement

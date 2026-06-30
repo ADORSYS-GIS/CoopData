@@ -1,11 +1,18 @@
 //! Route modules for the 4-level IAM hierarchy.
 //!
 //! # Route Structure
+//! - `shared` - Shared routes accessible by all authenticated users (e.g., `/me`)
 //! - `ministry` - Level 1: Platform super-admin routes (requires `ministry` role)
 //! - `federation` - Level 2: Organization admin routes (requires `federation` role)
 //! - `apex` - Level 3: Group admin routes (requires `apex` role)
 //! - `cooperative` - Level 4: End user routes (requires `cooperative` or `apex` role)
-//! - `shared` - Shared routes accessible by multiple roles
+//!
+//! # Authorization Model
+//! Role enforcement is handled exclusively by the `role_guard_layer` middleware.
+//! Handler-level role checks (`require_*`) are NOT used — middleware rejects
+//! unauthorized requests before they reach handlers.
+//! Scope enforcement (e.g., federation can only see own org's apexes) is
+//! handled in handlers via `ScopeEnforcement` methods.
 
 use axum::routing::get;
 use axum::Router;
@@ -119,7 +126,7 @@ pub fn role_guard_layer(
 ///
 /// # Route Structure
 /// - `/api/v1/health` - Public health check
-/// - `/api/v1/me` - Current user profile (authenticated)
+/// - `/api/v1/me` - Current user profile (authenticated, any role)
 /// - `/api/v1/ministry/*` - Ministry routes (requires `ministry` role)
 /// - `/api/v1/federation/*` - Federation routes (requires `federation` role)
 /// - `/api/v1/apex/*` - Apex routes (requires `apex` role)
@@ -131,31 +138,34 @@ pub fn role_guard_layer(
 ///
 /// # Authorization
 /// Route-level role middleware provides early rejection before handler execution.
-/// Handler-level role guards provide defense-in-depth.
+/// No handler-level role checks are needed — middleware enforces roles.
+/// Scope enforcement (data-level access) is handled in handlers via `ScopeEnforcement`.
 pub fn create_app(state: AppState) -> Router {
-    let shared = shared_routes();
-
-    let ministry = ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-        roles::MINISTRY,
-    ])));
-
-    let federation = federation_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-        roles::FEDERATION,
-    ])));
-
-    let apex = apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[roles::APEX])));
-
-    let cooperative = cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-        roles::COOPERATIVE,
-        roles::APEX,
-    ])));
-
     let protected = Router::new()
-        .merge(shared)
-        .merge(ministry)
-        .merge(federation)
-        .merge(apex)
-        .merge(cooperative)
+        .merge(shared_routes())
+        .nest(
+            "/ministry",
+            ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::MINISTRY,
+            ]))),
+        )
+        .nest(
+            "/federation",
+            federation_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::FEDERATION,
+            ]))),
+        )
+        .nest(
+            "/apex",
+            apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[roles::APEX]))),
+        )
+        .nest(
+            "/cooperative",
+            cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::COOPERATIVE,
+                roles::APEX,
+            ]))),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_layer,

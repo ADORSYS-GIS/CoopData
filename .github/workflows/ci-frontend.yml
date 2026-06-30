@@ -101,6 +101,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
+      - name: Generate OpenAPI client
+        working-directory: ./frontend
+        run: npm run codegen
+
       - name: TypeScript
         working-directory: ./frontend
         run: npx tsc --noEmit
@@ -147,13 +151,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
+      - name: Generate OpenAPI client
+        working-directory: ./frontend
+        run: npm run codegen
+
       - name: Build
         working-directory: ./frontend
         run: npm run build
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/dist
-          retention-days: 7
