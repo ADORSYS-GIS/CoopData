@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FinancialStatementPage } from "@/pages/cooperative/FinancialStatementPage";
 
+function FinancialStatementRoute() {
+  return (
+    <ProtectedRoute allowedRoles={["cooperative"]}>
+      <FinancialStatementPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/financial-statement")({
-  beforeLoad: () => {
-    requireRole("cooperative");
-  },
-  component: FinancialStatementPage,
+  component: FinancialStatementRoute,
 });

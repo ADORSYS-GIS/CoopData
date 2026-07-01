@@ -62,6 +62,16 @@ fn shared_routes() -> Router<AppState> {
     crate::api::routes::shared::shared_routes()
 }
 
+/// User management routes accessible by ministry, federation, and apex.
+/// Prefix: `/api/v1`
+fn user_routes() -> Router<AppState> {
+    crate::api::routes::users::user_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+        roles::MINISTRY,
+        roles::FEDERATION,
+        roles::APEX,
+    ])))
+}
+
 /// Creates a role-checking middleware layer for route groups.
 /// This provides early rejection before handlers are called.
 pub fn role_guard_layer(
@@ -143,6 +153,7 @@ pub fn role_guard_layer(
 pub fn create_app(state: AppState) -> Router {
     let protected = Router::new()
         .merge(shared_routes())
+        .merge(user_routes())
         .nest(
             "/ministry",
             ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[

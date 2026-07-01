@@ -2,6 +2,19 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+    #[serde(default)]
+    pub logout_sessions: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ChangePasswordResponse {
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddMemberRequest {
     pub email: String,
     pub first_name: String,
@@ -9,6 +22,12 @@ pub struct AddMemberRequest {
     pub role: String,
     #[serde(default)]
     pub assigned_dimensions: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateMemberRequest {
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

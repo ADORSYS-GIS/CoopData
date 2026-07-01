@@ -11,16 +11,16 @@ import {
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { SUBMISSIONS as INITIAL_SUBMISSIONS } from "@/lib/mock-data";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { useState } from "react";
 import { toast } from "sonner";
-import { requireAuth } from "@/lib/route-guards";
 
 type Submission = (typeof INITIAL_SUBMISSIONS)[0];
 type FilterType = "all" | "verified" | "pending" | "rejected" | "forwarded";
 
 export const SubmissionsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const navigate = useNavigate();
   const [submissionsList] = useState<Submission[]>(INITIAL_SUBMISSIONS);
   const [filter, setFilter] = useState<FilterType>("all");

@@ -1,21 +1,31 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::{
     AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginatedUserResponse,
     PaginationParams, UpdateUserRequest, UserResponse,
 };
+
+use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::repositories::UserRepository;
 use crate::AppState;
-use sea_orm::Set;
+use sea_orm::{EntityTrait, Set};
 
-const VALID_ROLES: [&str; 4] = ["ministry", "federation", "cooperative", "regional_officer"];
+const VALID_ROLES: [&str; 5] = [
+    "ministry",
+    "federation",
+    "apex",
+    "cooperative",
+    "regional_officer",
+];
+const DEFAULT_TEMP_PASSWORD_PREFIX: &str = "CoopDataTemp";
 
 fn validate_role(role: &str) -> Result<(), AppError> {
     if !VALID_ROLES.contains(&role) {
@@ -97,6 +107,7 @@ pub async fn get_user(
 )]
 pub async fn create_user(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Json(body): Json<CreateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.email.trim().is_empty() {
@@ -130,18 +141,34 @@ pub async fn create_user(
         })
         .unwrap_or_default();
 
+    let temporary_password = format!("{}-{}!", DEFAULT_TEMP_PASSWORD_PREFIX, Uuid::new_v4());
+    let organization_id =
+        resolve_user_organization_id(&state, &claims, body.organization_id).await?;
+
+    if let Some(group_id) = body.group_id.as_deref() {
+        validate_group_scope(&state, &claims, group_id).await?;
+    }
+
     let keycloak_response = state
         .keycloak
-        .create_user(
+        .create_user_with_email_verification(
             &body.email,
-            &body.email,
-            &body.temporary_password,
-            &body.role,
             first_name,
             &last_name,
+            &body.role,
+            &temporary_password,
+            None,
         )
         .await
-        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+        .map_err(map_keycloak_error)?;
+
+    if let Some(group_id) = body.group_id.as_deref() {
+        state
+            .keycloak
+            .add_user_to_group(&keycloak_response.id, group_id)
+            .await
+            .map_err(map_keycloak_error)?;
+    }
 
     let now = chrono::Utc::now();
     let active_model = crate::entities::user::ActiveModel {
@@ -150,7 +177,7 @@ pub async fn create_user(
         email: Set(body.email.clone()),
         full_name: Set(body.full_name.clone()),
         role: Set(body.role.clone()),
-        organization_id: Set(body.organization_id),
+        organization_id: Set(organization_id),
         region: Set(body.region.clone()),
         is_active: Set(true),
         last_login_at: Set(None),
@@ -166,6 +193,72 @@ pub async fn create_user(
     }
 
     Ok((StatusCode::CREATED, Json(UserResponse::from(user_model))))
+}
+
+async fn resolve_user_organization_id(
+    state: &AppState,
+    claims: &Claims,
+    requested_organization_id: Option<Uuid>,
+) -> AppResult<Option<Uuid>> {
+    let scoped_id = if claims.is_federation() {
+        claims
+            .get_organization_id()
+            .and_then(|id| Uuid::parse_str(&id).ok())
+    } else {
+        requested_organization_id
+    };
+
+    match scoped_id {
+        Some(id) => {
+            let exists = crate::entities::organization::Entity::find_by_id(id)
+                .one(&state.db)
+                .await?;
+
+            Ok(exists.map(|_| id))
+        }
+        None => Ok(None),
+    }
+}
+
+async fn validate_group_scope(state: &AppState, claims: &Claims, group_id: &str) -> AppResult<()> {
+    if claims.is_ministry() {
+        return Ok(());
+    }
+
+    let group = state
+        .keycloak
+        .get_group_by_id(group_id)
+        .await
+        .map_err(map_keycloak_error)?;
+
+    if claims.is_federation() {
+        let expected_org_id = claims.get_organization_id().ok_or_else(|| {
+            AppError::Forbidden("User is not associated with a federation organization".into())
+        })?;
+
+        let group_org_id = group
+            .attributes
+            .as_ref()
+            .and_then(|attrs| attrs.get("organization_id"))
+            .and_then(|vals| vals.first())
+            .map(String::as_str);
+
+        if group_org_id != Some(expected_org_id.as_str()) {
+            return Err(AppError::Forbidden(
+                "Selected apex does not belong to your federation".into(),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn map_keycloak_error(error: AppError) -> AppError {
+    match error {
+        AppError::Conflict(message) => AppError::Conflict(message),
+        AppError::NotFound(message) => AppError::NotFound(message),
+        other => AppError::ExternalServiceError(other.to_string()),
+    }
 }
 
 #[utoipa::path(

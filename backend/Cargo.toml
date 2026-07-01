@@ -25,6 +25,7 @@ utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }
 
 anyhow = "1"
 thiserror = "1"
+dotenvy = "0.15"
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }

@@ -25,11 +25,10 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { SUBMISSIONS } from "@/lib/mock-data";
 import { useState } from "react";
 import { toast } from "sonner";
-import { requireAuth } from "@/lib/route-guards";
 
 // ─────────────────────────────────────────────────────────────────────
 // MOCK DATA FOR DETAIL VIEW
@@ -380,7 +379,8 @@ const confidenceLabel = (c: number) => {
 
 export const SubmissionDetailPage: React.FC = () => {
   const { id } = useParams({ from: "/app/submissions_/$id" });
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const [comment, setComment] = useState("");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     financials: true,

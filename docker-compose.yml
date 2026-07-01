@@ -55,6 +55,10 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_PORT: "8180"
+      COOPDATA_SUPER_ADMIN_EMAIL: ${COOPDATA_SUPER_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_SUPER_ADMIN_PASSWORD:-Admin@2026}
+      COOPDATA_SUPER_ADMIN_FIRSTNAME: ${COOPDATA_SUPER_ADMIN_FIRSTNAME:-Super}
+      COOPDATA_SUPER_ADMIN_LASTNAME: ${COOPDATA_SUPER_ADMIN_LASTNAME:-Admin}
     ports:
       - "8180:8180"
       - "9000:9000"
@@ -70,6 +74,26 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+
+  keycloak-provision:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak-provision
+    env_file:
+      - .env
+    environment:
+      KEYCLOAK_SERVER: http://keycloak:8180
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      COOPDATA_SUPER_ADMIN_EMAIL: ${COOPDATA_SUPER_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_SUPER_ADMIN_PASSWORD:-Admin@2026}
+      COOPDATA_SUPER_ADMIN_FIRSTNAME: ${COOPDATA_SUPER_ADMIN_FIRSTNAME:-Super}
+      COOPDATA_SUPER_ADMIN_LASTNAME: ${COOPDATA_SUPER_ADMIN_LASTNAME:-Admin}
+    volumes:
+      - ./keycloak/provision.sh:/opt/keycloak/data/import/provision.sh:ro
+    entrypoint: ["/bin/bash", "/opt/keycloak/data/import/provision.sh"]
+    depends_on:
+      keycloak:
+        condition: service_healthy
 
   backend:
     build:

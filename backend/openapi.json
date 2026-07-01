@@ -449,6 +449,46 @@
         }
       }
     },
+    "/api/v1/federation/apexes/{group_id}/members/{user_id}/resend-verification": {
+      "post": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "resend_apex_member_verification",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Apex (Group) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification email resent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federation/apexes/{id}": {
       "get": {
         "tags": [
@@ -667,6 +707,114 @@
         }
       }
     },
+    "/api/v1/federation/profile": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "get_federation_profile",
+        "responses": {
+          "200": {
+            "description": "Federation profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - federation role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "update_federation_profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFederationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Federation profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - federation role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/stats": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "get_federation_stats",
+        "responses": {
+          "200": {
+            "description": "Federation statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - federation role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": [
@@ -698,6 +846,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1692,6 +1890,36 @@
           }
         }
       },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "logout_sessions": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "new_password": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangePasswordResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "CooperativeBriefResponse": {
         "type": "object",
         "required": [
@@ -1869,14 +2097,17 @@
         "type": "object",
         "required": [
           "email",
-          "role",
-          "temporary_password"
+          "role"
         ],
         "properties": {
           "email": {
             "type": "string"
           },
           "full_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "group_id": {
             "type": "string",
             "nullable": true
           },
@@ -1890,9 +2121,6 @@
             "nullable": true
           },
           "role": {
-            "type": "string"
-          },
-          "temporary_password": {
             "type": "string"
           }
         }
@@ -1964,6 +2192,29 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "FederationStatsResponse": {
+        "type": "object",
+        "required": [
+          "total_apexes",
+          "total_members",
+          "federation"
+        ],
+        "properties": {
+          "federation": {
+            "$ref": "#/components/schemas/FederationResponse"
+          },
+          "total_apexes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -2076,6 +2327,44 @@
           },
           "updated_at": {
             "type": "string"
+          }
+        }
+      },
+      "PaginatedApexResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page",
+          "total_pages"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApexResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "per_page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },

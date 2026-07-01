@@ -17,6 +17,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         contact(name = "CoopData Team", email = "support@coopdata.org")
     ),
     paths(
+        api_module::handlers::apex::resend_apex_member_verification,
         api_module::handlers::health_check,
         api_module::handlers::list_organizations,
         api_module::handlers::get_organization,
@@ -56,6 +57,10 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::cooperative::list_cooperative_members,
         api_module::handlers::cooperative::remove_cooperative_member,
         api_module::handlers::me::get_current_user_profile,
+        api_module::handlers::me::change_password,
+        api_module::handlers::federation::get_federation_profile,
+        api_module::handlers::federation::update_federation_profile,
+        api_module::handlers::federation::get_federation_stats,
     ),
     components(schemas(
         api_module::dto::PaginationParams,
@@ -63,6 +68,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::SuccessResponse,
         api_module::dto::PaginatedOrganizationResponse,
         api_module::dto::PaginatedUserResponse,
+        api_module::dto::PaginatedApexResponse,
         api_module::dto::CreateOrganizationRequest,
         api_module::dto::UpdateOrganizationRequest,
         api_module::dto::OrganizationResponse,
@@ -75,6 +81,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::federation::FederationResponse,
         api_module::dto::federation::DomainRequest,
         api_module::dto::federation::DomainResponse,
+        api_module::dto::federation::FederationStatsResponse,
         api_module::dto::apex::CreateApexRequest,
         api_module::dto::apex::UpdateApexRequest,
         api_module::dto::apex::ApexResponse,
@@ -87,6 +94,9 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::member::AddMemberRequest,
         api_module::dto::member::MemberResponse,
         api_module::dto::member::UserProfileResponse,
+        api_module::dto::member::ChangePasswordRequest,
+        api_module::dto::member::ChangePasswordResponse,
+        api_module::dto::common::PaginatedApexResponse,
     ))
 )]
 pub struct ApiDoc;

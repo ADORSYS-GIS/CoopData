@@ -4,7 +4,7 @@
 
 use axum::{
     extract::{Extension, State},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -13,20 +13,15 @@ use crate::auth::claims::Claims;
 use crate::error::AppResult;
 use crate::AppState;
 
-/// Creates the shared routes router.
-/// All routes are prefixed with `/api/v1`.
-///
-/// # Routes
-/// - `GET /me` - Get current user profile (all authenticated users)
 pub fn shared_routes() -> Router<AppState> {
-    Router::new().route("/me", get(get_current_user_profile))
+    Router::new()
+        .route("/me", get(get_current_user_profile))
+        .route(
+            "/me/password",
+            post(crate::api::handlers::me::change_password),
+        )
 }
 
-/// Get current user profile.
-/// Returns the authenticated user's profile from JWT claims.
-///
-/// # Access
-/// All authenticated users.
 async fn get_current_user_profile(
     Extension(claims): Extension<Arc<Claims>>,
     State(_state): State<AppState>,

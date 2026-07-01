@@ -4,16 +4,17 @@ import {
   ACTIVITY_FEED as INITIAL_ACTIVITY_FEED,
   USERS as INITIAL_USERS,
 } from "@/lib/mock-data";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { useState } from "react";
 import { MinistryDashboard } from "@/components/dashboards/ministry-dashboard";
 import { FederationDashboard } from "@/components/dashboards/federation-dashboard";
 import { ApexDashboard } from "@/components/dashboards/apex-dashboard";
 import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashboard";
-import { requireAuth } from "@/lib/route-guards";
 
 export const DashboardPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+
+  if (!role) return null;
 
   // Shared state simulation so changes persist in memory
   const [usersList] = useState(INITIAL_USERS);

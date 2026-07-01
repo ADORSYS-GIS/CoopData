@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ApexesPage } from "@/pages/federation/ApexesPage";
 
+function ApexesRoute() {
+  return (
+    <ProtectedRoute allowedRoles={["federation"]}>
+      <ApexesPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/apexes")({
-  beforeLoad: () => {
-    requireRole("federation");
-  },
-  component: ApexesPage,
+  component: ApexesRoute,
 });

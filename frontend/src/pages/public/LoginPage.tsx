@@ -9,13 +9,13 @@ import {
   CheckCircle2,
   Lock,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_USERS, type Role } from "@/constants/roles";
-import { redirectIfAuthenticated } from "@/lib/route-guards";
+import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 
 export const LoginPage: React.FC = () => {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<Role>("ministry");
   const [mounted, setMounted] = useState(false);
@@ -24,12 +24,11 @@ export const LoginPage: React.FC = () => {
     setMounted(true);
   }, []);
 
-  // If already authenticated, redirect to dashboard
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate({ to: "/app/dashboard" });
+    if (isAuthenticated && user) {
+      navigate({ to: ROLE_DEFAULT_ROUTE[user.role] });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleKeycloakLogin = async () => {
     try {

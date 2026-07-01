@@ -8,8 +8,9 @@ pub struct CreateUserRequest {
     pub full_name: Option<String>,
     pub role: String,
     pub organization_id: Option<Uuid>,
+    #[serde(default)]
+    pub group_id: Option<String>,
     pub region: Option<String>,
-    pub temporary_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -41,6 +42,13 @@ pub struct UserResponse {
     pub updated_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateUserPasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+    pub confirm_password: String,
+}
+
 impl From<crate::entities::user::Model> for UserResponse {
     fn from(m: crate::entities::user::Model) -> Self {
         Self {
@@ -58,3 +66,4 @@ impl From<crate::entities::user::Model> for UserResponse {
         }
     }
 }
+
