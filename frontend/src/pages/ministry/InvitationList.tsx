@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
+  useFederations,
   useFederationInvitations,
   useInviteUserToFederation,
   useResendInvitation,
@@ -27,27 +41,230 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Plus, RefreshCw, Trash2, AlertCircle } from "lucide-react";
+import { Mail, Plus, RefreshCw, Trash2, AlertCircle, Search } from "lucide-react";
 import type { components } from "@/openapi-client/api";
 
 type Invitation = components["schemas"]["InvitationResponse"];
+type Federation = components["schemas"]["FederationResponse"];
+
+// ─── Zod Schema ───────────────────────────────────────────────────────────
+
+const invitationFormSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  role: z.string().min(1, "Role is required"),
+});
+
+type InvitationFormValues = z.infer<typeof invitationFormSchema>;
+
+// ─── Columns ──────────────────────────────────────────────────────────────
+
+function createColumns(
+  onResend: (invitationId: string, email: string) => void,
+  onCancel: (invitationId: string, email: string) => void,
+): ColumnDef<Invitation>[] {
+  return [
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <span className="font-medium">{row.getValue<string>("email") || "N/A"}</span>
+      ),
+    },
+    {
+      accessorKey: "email_sent",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge variant={row.getValue<boolean>("email_sent") ? "default" : "secondary"}>
+          {row.getValue<boolean>("email_sent") ? "Sent" : "Pending"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "created_at",
+      header: "Date Sent",
+      cell: ({ row }) => {
+        const timestamp = row.getValue<number | null | undefined>("created_at");
+        const formatted = timestamp
+          ? new Date(timestamp * 1000).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "N/A";
+        return <span className="text-muted-foreground">{formatted}</span>;
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onResend(row.original.id, row.original.email || "")}
+            title="Resend"
+          >
+            <RefreshCw className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onCancel(row.original.id, row.original.email || "")}
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            title="Cancel"
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+}
+
+// ─── Invitation Form Component ────────────────────────────────────────────
+
+function InvitationForm({
+  federationName,
+  onSubmit,
+  isPending,
+}: {
+  federationName: string;
+  onSubmit: (values: InvitationFormValues) => void;
+  isPending: boolean;
+}) {
+  const form = useForm<InvitationFormValues>({
+    resolver: zodResolver(invitationFormSchema),
+    defaultValues: {
+      email: "",
+      first_name: "",
+      last_name: "",
+      role: "federation",
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address *</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="user@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="first_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name *</FormLabel>
+                <FormControl>
+                  <Input placeholder="John" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="last_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Dlamini" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="federation">Federation Officer</SelectItem>
+                  <SelectItem value="apex">Apex Officer</SelectItem>
+                  <SelectItem value="cooperative">Cooperative Manager</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Sending..." : "Send Invitation"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+// ─── Page Component ───────────────────────────────────────────────────────
 
 export const InvitationList: React.FC = () => {
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    email: "",
-    first_name: "",
-    last_name: "",
-    role: "federation",
-  });
   const [confirmAction, setConfirmAction] = useState<{
     type: "resend" | "cancel";
     invitationId: string;
     email: string;
   } | null>(null);
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  // Load real federations from API
+  const { data: federations = [], isLoading: federationsLoading } = useFederations();
 
   const {
     data: invitations = [],
@@ -59,223 +276,187 @@ export const InvitationList: React.FC = () => {
   const resendMutation = useResendInvitation();
   const deleteMutation = useDeleteInvitation();
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const selectedFederation = (federations as Federation[]).find(
+    (f) => f.id === selectedFederationId,
+  );
+
+  const columns = createColumns(
+    (invitationId, email) => setConfirmAction({ type: "resend", invitationId, email }),
+    (invitationId, email) => setConfirmAction({ type: "cancel", invitationId, email }),
+  );
+
+  const table = useReactTable({
+    data: (invitations as Invitation[]) ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    state: {
+      sorting,
+      globalFilter,
+    },
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
+  });
+
+  const handleInviteSubmit = (values: InvitationFormValues) => {
     if (!selectedFederationId) return;
 
     inviteMutation.mutate(
       {
         federationId: selectedFederationId,
-        email: inviteForm.email,
-        first_name: inviteForm.first_name,
-        last_name: inviteForm.last_name,
-        role: inviteForm.role,
+        email: values.email,
+        first_name: values.first_name,
+        last_name: values.last_name,
+        role: values.role,
       },
       {
         onSuccess: () => {
           toast.success("Invitation sent", {
-            description: `An invitation has been sent to ${inviteForm.email}.`,
+            description: `An invitation has been sent to ${values.email}.`,
           });
-          setInviteForm({ email: "", first_name: "", last_name: "", role: "federation" });
           setShowCreateModal(false);
         },
-        onError: (error) => {
-          toast.error("Failed to send invitation", {
-            description: String(error),
-          });
+        onError: (err) => {
+          toast.error("Failed to send invitation", { description: String(err) });
         },
       },
     );
   };
 
-  const handleResendInvitation = async (invitationId: string) => {
-    if (!selectedFederationId) return;
+  const handleResendConfirm = () => {
+    if (!confirmAction || !selectedFederationId) return;
     resendMutation.mutate(
-      {
-        federationId: selectedFederationId,
-        invitationId,
-      },
+      { federationId: selectedFederationId, invitationId: confirmAction.invitationId },
       {
         onSuccess: () => {
-          toast.success("Invitation resent", {
-            description: `The invitation has been resent successfully.`,
-          });
+          toast.success("Invitation resent successfully.");
           setConfirmAction(null);
         },
-        onError: (error) => {
-          toast.error("Failed to resend invitation", {
-            description: String(error),
-          });
+        onError: (err) => {
+          toast.error("Failed to resend invitation", { description: String(err) });
         },
       },
     );
   };
 
-  const handleCancelInvitation = async (invitationId: string) => {
-    if (!selectedFederationId) return;
+  const handleCancelConfirm = () => {
+    if (!confirmAction || !selectedFederationId) return;
     deleteMutation.mutate(
-      {
-        federationId: selectedFederationId,
-        invitationId,
-      },
+      { federationId: selectedFederationId, invitationId: confirmAction.invitationId },
       {
         onSuccess: () => {
-          toast.success("Invitation cancelled", {
-            description: `The invitation has been cancelled successfully.`,
-          });
+          toast.success("Invitation cancelled.");
           setConfirmAction(null);
         },
-        onError: (error) => {
-          toast.error("Failed to cancel invitation", {
-            description: String(error),
-          });
+        onError: (err) => {
+          toast.error("Failed to cancel invitation", { description: String(err) });
         },
       },
     );
-  };
-
-  const formatDate = (timestamp: number | null | undefined): string => {
-    if (!timestamp) return "N/A";
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   return (
-    <AppShell title="Invitation Management">
+    <AppShell title="Invitation Management" subtitle="Invite users to federations">
       <div className="space-y-6">
         {/* Federation Selector */}
-        <Card title="Select Federation" subtitle="Choose a federation to manage invitations">
+        <Card title="Select Federation" subtitle="Choose a federation to manage its invitations">
           <div className="flex items-center gap-4">
-            <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
-              <SelectTrigger className="w-full max-w-md">
-                <SelectValue placeholder="Select a federation..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="federation-1">Federation One</SelectItem>
-                <SelectItem value="federation-2">Federation Two</SelectItem>
-                <SelectItem value="federation-3">Federation Three</SelectItem>
-              </SelectContent>
-            </Select>
+            {federationsLoading ? (
+              <Skeleton className="h-10 w-full max-w-md" />
+            ) : (
+              <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder="Select a federation..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(federations as Federation[]).length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      No federations found. Create one first.
+                    </div>
+                  ) : (
+                    (federations as Federation[]).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
             <Button
               onClick={() => setShowCreateModal(true)}
               disabled={!selectedFederationId}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 shrink-0"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="size-4" />
               New Invitation
             </Button>
           </div>
         </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard
-            label="Total Invitations"
-            value={isLoading ? "..." : invitations.length.toString()}
-            icon={Mail}
-          />
-          <StatCard
-            label="Pending"
-            value={
-              isLoading
-                ? "..."
-                : invitations.filter((i: Invitation) => !i.email_sent).length.toString()
-            }
-            icon={AlertCircle}
-          />
-          <StatCard
-            label="Sent"
-            value={
-              isLoading
-                ? "..."
-                : invitations.filter((i: Invitation) => i.email_sent).length.toString()
-            }
-            icon={RefreshCw}
-          />
-          <StatCard
-            label="Last 30 Days"
-            value={isLoading ? "..." : invitations.length.toString()}
-            icon={Mail}
-          />
-        </div>
-
-        {/* Create Invitation Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
-              <h3 className="text-lg font-semibold mb-4">Send New Invitation</h3>
-              <form onSubmit={handleInvite} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={inviteForm.email}
-                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                    required
-                    placeholder="user@example.com"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input
-                      id="first_name"
-                      type="text"
-                      value={inviteForm.first_name}
-                      onChange={(e) => setInviteForm({ ...inviteForm, first_name: e.target.value })}
-                      required
-                      placeholder="John"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="last_name">Last Name</Label>
-                    <Input
-                      id="last_name"
-                      type="text"
-                      value={inviteForm.last_name}
-                      onChange={(e) => setInviteForm({ ...inviteForm, last_name: e.target.value })}
-                      required
-                      placeholder="Doe"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={inviteForm.role}
-                    onValueChange={(value) => setInviteForm({ ...inviteForm, role: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="federation">Federation Admin</SelectItem>
-                      <SelectItem value="apex">Apex Admin</SelectItem>
-                      <SelectItem value="cooperative">Cooperative Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={inviteMutation.isPending}>
-                    {inviteMutation.isPending ? "Sending..." : "Send Invitation"}
-                  </Button>
-                </div>
-              </form>
-            </div>
+        {/* Stats — only show when a federation is selected */}
+        {selectedFederationId && (
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Total Invitations"
+              value={isLoading ? "..." : invitations.length.toString()}
+              icon={Mail}
+            />
+            <StatCard
+              label="Pending"
+              value={
+                isLoading
+                  ? "..."
+                  : invitations.filter((i: Invitation) => !i.email_sent).length.toString()
+              }
+              icon={AlertCircle}
+              tone="warning"
+            />
+            <StatCard
+              label="Sent"
+              value={
+                isLoading
+                  ? "..."
+                  : invitations.filter((i: Invitation) => i.email_sent).length.toString()
+              }
+              icon={RefreshCw}
+              tone="success"
+            />
+            <StatCard
+              label="Last 30 Days"
+              value={isLoading ? "..." : invitations.length.toString()}
+              icon={Mail}
+              tone="info"
+            />
           </div>
         )}
 
         {/* Invitations Table */}
-        <Card title="Pending Invitations" subtitle={`${invitations.length} invitations found`}>
-          {isLoading ? (
-            <div className="space-y-3">
+        <Card
+          title={
+            selectedFederation ? `Invitations — ${selectedFederation.name}` : "Pending Invitations"
+          }
+          subtitle={
+            selectedFederationId
+              ? `${invitations.length} invitation${invitations.length !== 1 ? "s" : ""} found`
+              : "Select a federation above to view invitations"
+          }
+        >
+          {!selectedFederationId ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Mail className="mx-auto mb-3 size-12 opacity-30" />
+              <p className="font-medium">No federation selected</p>
+              <p className="text-sm">Choose a federation from the dropdown above</p>
+            </div>
+          ) : isLoading ? (
+            <div className="space-y-3 py-4">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
@@ -283,117 +464,172 @@ export const InvitationList: React.FC = () => {
           ) : error ? (
             <div className="py-8 text-center text-destructive">
               <AlertCircle className="mx-auto mb-2 h-8 w-8" />
-              <p>Failed to load invitations</p>
-              <p className="text-sm text-muted-foreground">{String(error)}</p>
-            </div>
-          ) : invitations.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              <Mail className="mx-auto mb-3 h-12 w-12 opacity-50" />
-              <p className="text-lg font-medium">No invitations found</p>
-              <p className="text-sm">Select a federation and send your first invitation</p>
+              <p className="font-medium">Failed to load invitations</p>
+              <p className="text-sm text-muted-foreground mt-1">{String(error)}</p>
             </div>
           ) : (
-            <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    <th className="px-5 py-3">Email</th>
-                    <th className="px-5 py-3">Name</th>
-                    <th className="px-5 py-3">Role</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Sent Date</th>
-                    <th className="px-5 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {invitations.map((inv: Invitation) => (
-                    <tr key={inv.id} className="hover:bg-muted/30 transition-colors duration-150">
-                      <td className="px-5 py-3.5 font-medium">{inv.email || "N/A"}</td>
-                      <td className="px-5 py-3.5 text-muted-foreground">—</td>
-                      <td className="px-5 py-3.5">
-                        <Badge variant={inv.email_sent ? "default" : "secondary"}>
-                          {inv.email_sent ? "Sent" : "Pending"}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-3.5">{formatDate(inv.created_at)}</td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex justify-end gap-2">
-                          {!inv.email_sent && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                setConfirmAction({
-                                  type: "resend",
-                                  invitationId: inv.id,
-                                  email: inv.email || "",
-                                })
-                              }
-                              className="h-8 w-8 p-0"
+            <>
+              {/* Search */}
+              <div className="flex items-center py-2">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by email..."
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              {/* Table */}
+              {table.getFilteredRowModel().rows.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <Mail className="mx-auto mb-3 h-12 w-12 opacity-30" />
+                  <p className="font-medium">No invitations yet</p>
+                  <p className="text-sm">
+                    Click "New Invitation" to invite someone to this federation
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <table className="w-full">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b bg-muted/50">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
                             >
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setConfirmAction({
-                                type: "cancel",
-                                invitationId: inv.id,
-                                email: inv.email || "",
-                              })
-                            }
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
+                          {row.getVisibleCells().map((cell) => (
+                            <td key={cell.id} className="px-4 py-3 align-middle">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {table.getFilteredRowModel().rows.length > 0 && (
+                <div className="flex items-center justify-between space-x-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {table.getFilteredRowModel().rows.length} of {invitations.length}{" "}
+                    invitations
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.setPageIndex(0)}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      First
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm">
+                      Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Next
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Last
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card>
-
-        {/* Confirmation Dialog */}
-        <AlertDialog
-          open={!!confirmAction}
-          onOpenChange={(open) => !open && setConfirmAction(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {confirmAction?.type === "resend" ? "Resend Invitation?" : "Cancel Invitation?"}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {confirmAction?.type === "resend"
-                  ? `This will resend the invitation email to ${confirmAction.email}. The previous invitation will remain valid.`
-                  : `This will cancel the invitation to ${confirmAction?.email}. This action cannot be undone.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (confirmAction?.type === "resend") {
-                    handleResendInvitation(confirmAction.invitationId);
-                  } else if (confirmAction?.type === "cancel") {
-                    handleCancelInvitation(confirmAction.invitationId);
-                  }
-                }}
-                className={
-                  confirmAction?.type === "cancel" ? "bg-destructive hover:bg-destructive/90" : ""
-                }
-              >
-                {confirmAction?.type === "resend" ? "Resend" : "Cancel Invitation"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
+
+      {/* Create Invitation Dialog */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="size-5 text-accent" />
+              Invite to {selectedFederation?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Send an invitation to join the selected federation.
+            </DialogDescription>
+          </DialogHeader>
+          <InvitationForm
+            federationName={selectedFederation?.name ?? ""}
+            onSubmit={handleInviteSubmit}
+            isPending={inviteMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm resend / cancel dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "resend" ? "Resend Invitation?" : "Cancel Invitation?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "resend"
+                ? `This will resend the invitation email to ${confirmAction?.email}.`
+                : `This will permanently cancel the invitation to ${confirmAction?.email}. This cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Dismiss</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmAction?.type === "resend") {
+                  handleResendConfirm();
+                } else {
+                  handleCancelConfirm();
+                }
+              }}
+              className={
+                confirmAction?.type === "cancel"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : ""
+              }
+            >
+              {confirmAction?.type === "resend" ? "Resend" : "Cancel Invitation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 };

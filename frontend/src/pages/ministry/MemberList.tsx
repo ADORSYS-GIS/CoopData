@@ -1,4 +1,14 @@
 import { useState } from "react";
+import {
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { useFederations, useFederationMembers } from "@/hooks/federations/useFederations";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -11,15 +21,72 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Users, UserCheck, UserX, Search } from "lucide-react";
 import type { components } from "@/openapi-client/api";
 
 type Member = components["schemas"]["MemberResponse"];
 
+// ─── Columns ──────────────────────────────────────────────────────────────
+
+function createColumns(): ColumnDef<Member>[] {
+  return [
+    {
+      accessorKey: "first_name",
+      header: "Name",
+      cell: ({ row }) => (
+        <div className="font-medium text-foreground">
+          {row.original.first_name} {row.original.last_name}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{row.getValue<string>("email") ?? "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "username",
+      header: "Username",
+      cell: ({ row }) => (
+        <span className="text-foreground">{row.getValue<string>("username") ?? "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "username",
+      header: "Status",
+      cell: ({ row }) => {
+        const isActive = !!row.getValue<string>("username");
+        return (
+          <Badge variant={isActive ? "default" : "secondary"}>
+            {isActive ? "Active" : "Pending"}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: () => (
+        <div className="flex items-center justify-end">
+          <Button variant="ghost" size="sm">
+            View Details
+          </Button>
+        </div>
+      ),
+    },
+  ];
+}
+
+// ─── Page Component ───────────────────────────────────────────────────────
+
 export const MemberList: React.FC = () => {
   const { data: federations = [], isLoading: federationsLoading } = useFederations();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const {
     data: members = [],
@@ -27,15 +94,26 @@ export const MemberList: React.FC = () => {
     error: membersError,
   } = useFederationMembers(selectedFederationId);
 
-  const filteredMembers = (members as Member[]).filter((m) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      (m.username ?? "").toLowerCase().includes(query) ||
-      (m.email ?? "").toLowerCase().includes(query) ||
-      (m.first_name ?? "").toLowerCase().includes(query) ||
-      (m.last_name ?? "").toLowerCase().includes(query)
-    );
+  const columns = createColumns();
+
+  const table = useReactTable({
+    data: (members as Member[]) ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    state: {
+      sorting,
+      globalFilter,
+    },
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
   });
 
   const activeMembers = (members as Member[]).filter((m) => m.username).length;
@@ -106,14 +184,14 @@ export const MemberList: React.FC = () => {
         {selectedFederationId && (
           <Card
             title="Federation Members"
-            subtitle={`${filteredMembers.length} members found`}
+            subtitle={`${table.getFilteredRowModel().rows.length} members found`}
             action={
               <div className="relative w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search members..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={globalFilter ?? ""}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -132,63 +210,95 @@ export const MemberList: React.FC = () => {
                   Retry
                 </Button>
               </div>
-            ) : filteredMembers.length === 0 ? (
+            ) : table.getFilteredRowModel().rows.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
                 <Users className="mx-auto mb-3 size-12 opacity-30" />
                 <p className="text-lg font-medium">No members found</p>
                 <p className="text-sm">
-                  {searchQuery
+                  {globalFilter
                     ? "Try adjusting your search query"
                     : "This federation has no members yet"}
                 </p>
               </div>
             ) : (
-              <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
-                <table className="w-full border-collapse text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      <th className="px-5 py-3.5">Name</th>
-                      <th className="px-5 py-3.5">Email</th>
-                      <th className="px-5 py-3.5">Username</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredMembers.map((member: Member) => (
-                      <tr
-                        key={member.id}
-                        className="hover:bg-muted/30 transition-colors duration-150"
-                      >
-                        <td className="px-5 py-3.5">
-                          <div className="font-medium text-foreground">
-                            {member.first_name} {member.last_name}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-muted-foreground">{member.email ?? "—"}</td>
-                        <td className="px-5 py-3.5 text-foreground">{member.username ?? "—"}</td>
-                        <td className="px-5 py-3.5">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
-                              member.username
-                                ? "bg-success/10 text-success ring-success/20"
-                                : "bg-warning/15 text-warning-foreground ring-warning/30"
-                            }`}
-                          >
-                            <span className="size-1.5 rounded-full bg-current opacity-70" />
-                            {member.username ? "Active" : "Pending"}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <Button variant="ghost" size="sm" className="h-7 text-xs">
-                            View Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="rounded-md border">
+                  <table className="w-full">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b bg-muted/50">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
+                          {row.getVisibleCells().map((cell) => (
+                            <td key={cell.id} className="px-4 py-3 align-middle">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between space-x-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {table.getFilteredRowModel().rows.length} of{" "}
+                    {(members as Member[]).length} members
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.setPageIndex(0)}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      First
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm">
+                      Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Next
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Last
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
           </Card>
         )}
