@@ -1006,6 +1006,10 @@ impl KeycloakService {
         // Step 1: Ensure the user exists in Keycloak with the correct role.
         // If they're new, create them. If they already exist, assign the role.
         // We do NOT block on existing org/group membership — ministry can invite anyone.
+        let mut attributes = HashMap::new();
+        attributes.insert("invited_to_org".to_string(), vec![org_id.to_string()]);
+        attributes.insert("invitation_status".to_string(), vec!["PENDING".to_string()]);
+
         let users = self.search_users_by_email(&token, email).await?;
         let keycloak_id = if let Some(existing_user) = users.first() {
             match role {
@@ -1014,6 +1018,13 @@ impl KeycloakService {
                 "cooperative" => self.assign_cooperative_roles(&existing_user.id).await?,
                 _ => self.assign_role(&existing_user.id, role).await?,
             }
+            
+            // Also update the existing user to have the invitation attributes
+            let mut attrs = HashMap::new();
+            attrs.insert("invited_to_org".to_string(), vec![org_id.to_string()]);
+            attrs.insert("invitation_status".to_string(), vec!["PENDING".to_string()]);
+            self.update_user_attributes(&existing_user.id, attrs).await?;
+            
             existing_user.id.clone()
         } else {
             let temp_password = format!("Temp{}!", Utc::now().timestamp());
@@ -1024,7 +1035,7 @@ impl KeycloakService {
                     last_name,
                     role,
                     &temp_password,
-                    None,
+                    Some(attributes),
                 )
                 .await?;
             new_user.id
@@ -1032,7 +1043,6 @@ impl KeycloakService {
 
         // Step 2: Send the invitation email via Keycloak's invite-user endpoint.
         // Uses form-encoding as required by Keycloak 26.
-        // This endpoint requires SMTP to be configured on the realm.
         let url = format!(
             "{}/organizations/{}/members/invite-user",
             self.realm_url(),
@@ -1095,7 +1105,10 @@ impl KeycloakService {
         org_id: &str,
     ) -> Result<Vec<KeycloakInvitation>, AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/organizations/{}/invitations", self.realm_url(), org_id);
+        
+        // Search users who were invited to this organization via the attribute we set
+        // Do NOT URL-encode the colon, as Keycloak's parser might expect a literal colon.
+        let url = format!("{}/users?q=invited_to_org:{}", self.realm_url(), org_id);
 
         let response = self
             .client
@@ -1105,39 +1118,68 @@ impl KeycloakService {
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        // A 404 here means the org has no invitations endpoint yet — return empty
-        if response.status().as_u16() == 404 {
-            return Ok(vec![]);
-        }
-
         check_response!(response, "Failed to list organization invitations");
 
-        // Keycloak 26 returns OrganizationInvitationRepresentation objects.
-        // Parse as raw JSON first so a shape mismatch doesn't cause a 500.
-        let raw: Vec<serde_json::Value> = response
+        let mut users: Vec<KeycloakUser> = response
             .json()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        let invitations = raw
+        // Fallback: If Keycloak `q` search returned empty (e.g., due to syntax or indexing issues),
+        // fetch recent users and resolve their details to ensure attributes are populated.
+        if users.is_empty() {
+            let fallback_url = format!("{}/users?max=500", self.realm_url());
+            if let Ok(res) = self.client.get(&fallback_url).bearer_auth(&token).send().await {
+                if res.status().is_success() {
+                    if let Ok(all_users) = res.json::<Vec<KeycloakUser>>().await {
+                        info!("Fallback: Fetched {} users from Keycloak list. Resolving details...", all_users.len());
+                        let mut detailed_users = Vec::new();
+                        for u in all_users {
+                            let detail_url = format!("{}/users/{}", self.realm_url(), u.id);
+                            if let Ok(detail_res) = self.client.get(&detail_url).bearer_auth(&token).send().await {
+                                if let Ok(detailed_user) = detail_res.json::<KeycloakUser>().await {
+                                    detailed_users.push(detailed_user);
+                                }
+                            }
+                        }
+                        
+                        users = detailed_users.into_iter().filter(|u| {
+                            if let Some(attrs) = &u.attributes {
+                                if let Some(orgs) = attrs.get("invited_to_org") {
+                                    info!("User {} attributes resolved: {:?}", u.username, u.attributes);
+                                    return orgs.contains(&org_id.to_string());
+                                }
+                            }
+                            false
+                        }).collect();
+                        info!("Filtered to {} invitations matching org {}", users.len(), org_id);
+                    }
+                }
+            }
+        }
+
+        // Determine if they accepted by checking if they are in the org members list
+        // Alternatively, if they are already in the organization, their status is ACCEPTED
+        let members = self.get_organization_members(org_id).await?;
+        let member_ids: std::collections::HashSet<String> = members.into_iter().map(|m| m.id).collect();
+
+        let invitations = users
             .into_iter()
-            .map(|v| {
-                let id = v["id"].as_str().unwrap_or("").to_string();
-                let email = v["email"].as_str().map(str::to_string);
-                let first_name = v["firstName"].as_str().map(str::to_string);
-                let last_name = v["lastName"].as_str().map(str::to_string);
-                // createdAt can come as epoch ms (i64) or epoch s
-                let created_at = v["createdAt"]
-                    .as_i64()
-                    .or_else(|| v["created_at"].as_i64());
-                let status = v["status"].as_str().map(str::to_string);
+            .map(|user| {
+                let status = if member_ids.contains(&user.id) {
+                    "ACCEPTED".to_string()
+                } else {
+                    "PENDING".to_string()
+                };
+
                 KeycloakInvitation {
-                    id,
-                    email,
-                    created_at,
-                    first_name,
-                    last_name,
-                    status,
+                    id: user.id.clone(),
+                    email: user.email.clone(),
+                    // Convert Keycloak user creation timestamp (epoch ms) to standard timestamp if available
+                    created_at: user.created_timestamp,
+                    first_name: user.first_name.clone(),
+                    last_name: user.last_name.clone(),
+                    status: Some(status),
                     email_sent: true,
                 }
             })
