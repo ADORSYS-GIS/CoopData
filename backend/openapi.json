@@ -1792,6 +1792,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1946,6 +1950,10 @@
           "domains"
         ],
         "properties": {
+          "created_at": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -1964,6 +1972,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

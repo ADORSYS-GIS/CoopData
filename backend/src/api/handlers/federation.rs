@@ -69,6 +69,12 @@ pub async fn create_federation(
     if let Some(ref desc) = body.description {
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
+    // Store region and created_at timestamp
+    if let Some(ref region) = body.region {
+        attrs.insert("region".to_string(), vec![region.clone()]);
+    }
+    let created_at = chrono::Utc::now().to_rfc3339();
+    attrs.insert("created_at".to_string(), vec![created_at]);
 
     let org = state
         .keycloak

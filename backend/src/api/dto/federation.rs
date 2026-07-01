@@ -9,6 +9,8 @@ pub struct CreateFederationRequest {
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
+    pub region: Option<String>,
+    #[serde(default)]
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
 
@@ -32,6 +34,8 @@ pub struct FederationResponse {
     pub enabled: bool,
     pub description: Option<String>,
     pub domains: Vec<DomainResponse>,
+    pub region: Option<String>,
+    pub created_at: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -58,6 +62,16 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
             .cloned()
             .or(org.description);
 
+        let region = attrs
+            .and_then(|a| a.get("region"))
+            .and_then(|v| v.first())
+            .cloned();
+
+        let created_at = attrs
+            .and_then(|a| a.get("created_at"))
+            .and_then(|v| v.first())
+            .cloned();
+
         Self {
             id: org.id,
             name: display_name,
@@ -71,6 +85,8 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
                     verified: d.verified,
                 })
                 .collect(),
+            region,
+            created_at,
         }
     }
 }
