@@ -257,20 +257,44 @@ pub async fn invite_user_to_federation(
     Path(id): Path<String>,
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if body.email.trim().is_empty() {
+    let email = body.email.trim().to_lowercase();
+
+    if email.is_empty() {
         return Err(crate::error::AppError::BadRequest(
             "Email is required".into(),
         ));
     }
 
-    let valid_roles = ["federation", "apex", "cooperative"];
-    if !valid_roles.contains(&body.role.as_str()) {
-        return Err(crate::error::AppError::BadRequest(format!(
-            "Invalid role '{}'. Valid roles: {}",
-            body.role,
-            valid_roles.join(", ")
+    // This endpoint is exclusively for inviting Federation Officers.
+    // The Ministry does not choose the role — it is always "federation".
+    // Reject any caller trying to inject a different role via the body.
+    if !body.role.is_empty() && body.role != "federation" {
+        return Err(crate::error::AppError::BadRequest(
+            "This endpoint only creates federation officer invitations. Role must be 'federation'.".into(),
+        ));
+    }
+    let role = "federation";
+
+    // ── Duplicate check ──────────────────────────────────────────────────────
+    // Check whether this email is already a member of THIS specific federation.
+    // Clean 409 at the handler level before touching role assignment.
+    let existing_members = state
+        .keycloak
+        .get_organization_members(&id)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let already_member = existing_members
+        .iter()
+        .any(|m| m.email.as_deref().map(|e| e.to_lowercase()).as_deref() == Some(&email));
+
+    if already_member {
+        return Err(crate::error::AppError::Conflict(format!(
+            "User '{}' is already a member of this federation.",
+            email
         )));
     }
+    // ─────────────────────────────────────────────────────────────────────────
 
     let redirect_url = body
         .redirect_url
@@ -281,16 +305,22 @@ pub async fn invite_user_to_federation(
         .keycloak
         .invite_user_to_organization(
             &id,
-            &body.email,
+            &email,
             &body.first_name,
             &body.last_name,
-            &body.role,
+            role,
             &redirect_url,
         )
         .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+        .map_err(|e| {
+            // Preserve Conflict errors as-is; wrap everything else
+            match &e {
+                crate::error::AppError::Conflict(_) => e,
+                _ => crate::error::AppError::ExternalServiceError(e.to_string()),
+            }
+        })?;
 
-    tracing::info!(org_id = %id, email = %body.email, role = %body.role, "User invited to federation");
+    tracing::info!(org_id = %id, email = %email, role = %role, "User invited to federation");
     Ok((
         StatusCode::CREATED,
         Json(InvitationResponse::from(invitation)),

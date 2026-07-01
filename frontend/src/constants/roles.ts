@@ -133,13 +133,19 @@ export const KEYCLOAK_ROLE_MAP: Record<string, Role> = {
   cooperative: "cooperative",
 };
 
-/** Get the primary Role from a list of Keycloak realm roles */
+/** Get the primary Role from a list of Keycloak realm roles, respecting hierarchy */
 export function mapKeycloakRolesToRole(realmRoles: string[]): Role | null {
-  for (const role of realmRoles) {
-    const mapped = KEYCLOAK_ROLE_MAP[role];
-    if (mapped) return mapped;
-  }
-  return null;
+  // Map all recognized roles from the token
+  const mapped = realmRoles
+    .map((r) => KEYCLOAK_ROLE_MAP[r])
+    .filter((r): r is Role => r !== undefined);
+
+  if (mapped.length === 0) return null;
+
+  // Return the highest-privilege role — ministry > federation > apex > cooperative
+  return mapped.reduce((best, current) =>
+    ROLE_HIERARCHY[current] > ROLE_HIERARCHY[best] ? current : best,
+  );
 }
 
 /** Role hierarchy for access control — higher roles can access lower routes */

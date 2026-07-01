@@ -1686,7 +1686,16 @@
     "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
-  "smtpServer": {},
+  "smtpServer": {
+    "starttls": "false",
+    "auth": "false",
+    "port": "1025",
+    "host": "mailhog",
+    "from": "coopdata@localhost",
+    "fromDisplayName": "CoopData",
+    "envelopeFrom": "",
+    "ssl": "false"
+  },
   "eventsEnabled": false,
   "eventsListeners": [
     "jboss-logging"

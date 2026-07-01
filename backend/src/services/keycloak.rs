@@ -694,8 +694,80 @@ impl KeycloakService {
         Ok(())
     }
 
+    /// Remove all application-level realm roles from a user before assigning a new one.
+    /// This enforces the invariant that a user has exactly ONE app role at a time.
+    /// Keycloak role assignment is additive — without this, roles accumulate silently.
+    async fn strip_app_roles(&self, access_token: &str, keycloak_id: &str) -> Result<(), AppError> {
+        const APP_ROLES: &[&str] = &["ministry", "federation", "apex", "cooperative"];
+
+        let url = format!(
+            "{}/users/{}/role-mappings/realm",
+            self.realm_url(),
+            keycloak_id
+        );
+
+        // Fetch all currently assigned realm roles
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            // Non-fatal: if we can't fetch roles, just proceed with assignment
+            warn!(keycloak_id = %keycloak_id, "Could not fetch current roles before stripping");
+            return Ok(());
+        }
+
+        let current_roles: Vec<serde_json::Value> = response
+            .json()
+            .await
+            .unwrap_or_default();
+
+        // Filter down to the app roles that are currently assigned
+        let roles_to_remove: Vec<serde_json::Value> = current_roles
+            .into_iter()
+            .filter(|r| {
+                r["name"]
+                    .as_str()
+                    .map(|name| APP_ROLES.contains(&name))
+                    .unwrap_or(false)
+            })
+            .collect();
+
+        if roles_to_remove.is_empty() {
+            return Ok(());
+        }
+
+        // DELETE with the roles body removes them
+        let response = self
+            .client
+            .delete(&url)
+            .bearer_auth(access_token)
+            .json(&roles_to_remove)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            warn!(keycloak_id = %keycloak_id, "Failed to strip old app roles (non-fatal)");
+        } else {
+            info!(
+                keycloak_id = %keycloak_id,
+                removed = ?roles_to_remove.iter().filter_map(|r| r["name"].as_str()).collect::<Vec<_>>(),
+                "Stripped previous app roles before assigning new one"
+            );
+        }
+
+        Ok(())
+    }
+
     pub async fn assign_federation_roles(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
+        // Enforce single-role invariant: remove any existing app roles first
+        self.strip_app_roles(&token, keycloak_id).await?;
         self.assign_realm_role(&token, keycloak_id, "federation")
             .await?;
 
@@ -722,6 +794,7 @@ impl KeycloakService {
 
     pub async fn assign_apex_roles(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
+        self.strip_app_roles(&token, keycloak_id).await?;
         self.assign_realm_role(&token, keycloak_id, "apex").await?;
 
         let rm_client_id = self.get_realm_management_client_id().await?;
@@ -746,6 +819,7 @@ impl KeycloakService {
 
     pub async fn assign_cooperative_roles(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
+        self.strip_app_roles(&token, keycloak_id).await?;
         self.assign_realm_role(&token, keycloak_id, "cooperative")
             .await?;
 
@@ -929,28 +1003,17 @@ impl KeycloakService {
     ) -> Result<KeycloakInvitation, AppError> {
         let token = self.get_cached_admin_token().await?;
 
+        // Step 1: Ensure the user exists in Keycloak with the correct role.
+        // If they're new, create them. If they already exist, assign the role.
+        // We do NOT block on existing org/group membership — ministry can invite anyone.
         let users = self.search_users_by_email(&token, email).await?;
         let keycloak_id = if let Some(existing_user) = users.first() {
-            let user_groups = self.get_user_groups(&existing_user.id).await?;
-            if !user_groups.is_empty() {
-                return Err(AppError::Conflict(
-                    "User is already a member of a group".into(),
-                ));
-            }
-            let user_orgs = self.get_user_organizations(&existing_user.id).await?;
-            if !user_orgs.is_empty() {
-                return Err(AppError::Conflict(
-                    "User is already a member of another organization".into(),
-                ));
-            }
-
             match role {
                 "federation" => self.assign_federation_roles(&existing_user.id).await?,
                 "apex" => self.assign_apex_roles(&existing_user.id).await?,
                 "cooperative" => self.assign_cooperative_roles(&existing_user.id).await?,
                 _ => self.assign_role(&existing_user.id, role).await?,
             }
-
             existing_user.id.clone()
         } else {
             let temp_password = format!("Temp{}!", Utc::now().timestamp());
@@ -967,30 +1030,54 @@ impl KeycloakService {
             new_user.id
         };
 
-        self.add_user_to_organization(&keycloak_id, org_id).await?;
-
+        // Step 2: Send the invitation email via Keycloak's invite-user endpoint.
+        // Uses form-encoding as required by Keycloak 26.
+        // This endpoint requires SMTP to be configured on the realm.
         let url = format!(
             "{}/organizations/{}/members/invite-user",
             self.realm_url(),
             org_id
         );
-        let body = json!({
-            "email": email,
-            "firstName": first_name,
-            "lastName": last_name,
-        });
+        let form_body = format!(
+            "email={}&firstName={}&lastName={}",
+            urlencoding::encode(email),
+            urlencoding::encode(first_name),
+            urlencoding::encode(last_name),
+        );
 
         let response = self
             .client
             .post(&url)
             .bearer_auth(&token)
-            .json(&body)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(form_body)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        check_response!(response, "Failed to create organization invitation");
-        info!(org_id = %org_id, email = %email, role = %role, "User invited to organization");
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            error!(
+                status = %status,
+                body = %body,
+                org_id = %org_id,
+                email = %email,
+                "Failed to send invitation email"
+            );
+            if body.contains("Failed to send invite email") || body.contains("smtp") {
+                return Err(AppError::ExternalServiceError(
+                    "Invitation email could not be sent — SMTP is not configured on the realm. \
+                     Go to Keycloak → Realm Settings → Email to configure it."
+                        .into(),
+                ));
+            }
+            return Err(AppError::ExternalServiceError(format!(
+                "Failed to send invitation: {status}"
+            )));
+        }
+
+        info!(org_id = %org_id, email = %email, role = %role, "Invitation email sent");
 
         Ok(KeycloakInvitation {
             id: keycloak_id,

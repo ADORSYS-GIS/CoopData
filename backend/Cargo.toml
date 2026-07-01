@@ -41,6 +41,7 @@ once_cell = "1"
 redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
 
 async-trait = "0.1"
+urlencoding = "2.1"
 
 [dev-dependencies]
 tokio-test = "0.4"

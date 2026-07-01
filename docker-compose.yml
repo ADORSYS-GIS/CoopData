@@ -38,6 +38,15 @@ services:
       timeout: 5s
       retries: 5
 
+  # MailHog — local SMTP server for development (invitation emails, password resets)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: coopdata-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    restart: unless-stopped
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.1
     container_name: coopdata-keycloak
@@ -70,6 +79,82 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+
+  # Configure SMTP for Keycloak after realm import (realm import doesn't overwrite existing settings)
+  keycloak-config:
+    image: alpine/curl:latest
+    container_name: coopdata-keycloak-config
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        apk add --no-cache jq
+
+        echo "Waiting for Keycloak to be ready..."
+        until curl -sf "http://keycloak:8180/realms/master" > /dev/null 2>&1; do
+          sleep 3
+        done
+        echo "Keycloak is ready! Configuring SMTP..."
+
+        # Get admin token
+        TOKEN=$$(curl -s -X POST "http://keycloak:8180/realms/master/protocol/openid-connect/token" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "username=$${KEYCLOAK_ADMIN}" \
+          -d "password=$${KEYCLOAK_ADMIN_PASSWORD}" \
+          -d "grant_type=password" \
+          -d "client_id=admin-cli" | jq -r '.access_token')
+
+        if [ -z "$$TOKEN" ] || [ "$$TOKEN" = "null" ]; then
+          echo "Failed to get admin token"
+          exit 1
+        fi
+
+        echo "Got admin token, fetching realm config..."
+
+        # Get current realm config
+        CURRENT=$$(curl -s "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
+          -H "Authorization: Bearer $$TOKEN")
+
+        # Update SMTP settings using jq for proper JSON manipulation
+        UPDATED=$$(echo "$$CURRENT" | jq '.smtpServer = {
+          "starttls": "false",
+          "auth": "false",
+          "port": "1025",
+          "host": "mailhog",
+          "from": "coopdata@localhost",
+          "fromDisplayName": "CoopData",
+          "envelopeFrom": "",
+          "ssl": "false"
+        }')
+
+        # Apply updated config
+        RESPONSE=$$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
+          -H "Authorization: Bearer $$TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "$$UPDATED")
+
+        if [ "$$RESPONSE" = "204" ] || [ "$$RESPONSE" = "200" ]; then
+          echo "SMTP configuration applied successfully!"
+          echo "  Host: mailhog:1025"
+          echo "  From: coopdata@localhost"
+        else
+          echo "Failed to apply SMTP config (HTTP $$RESPONSE)"
+          echo "Response body:"
+          curl -s -X PUT "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
+            -H "Authorization: Bearer $$TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$$UPDATED"
+          exit 1
+        fi
+    env_file:
+      - .env
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: "no"
 
   backend:
     build:

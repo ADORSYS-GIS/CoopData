@@ -23,14 +23,6 @@ import {
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,21 +50,29 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Plus, RefreshCw, Trash2, AlertCircle, Search } from "lucide-react";
+import { Mail, Plus, RefreshCw, Trash2, AlertCircle, Search, UserCog } from "lucide-react";
 import type { components } from "@/openapi-client/api";
 
 type Invitation = components["schemas"]["InvitationResponse"];
 type Federation = components["schemas"]["FederationResponse"];
 
 // ─── Zod Schema ───────────────────────────────────────────────────────────
+// Role is intentionally NOT part of the form — it is always "federation".
+// The Ministry's purpose here is to register federation officers only.
 
 const invitationFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
-  role: z.string().min(1, "Role is required"),
 });
 
 type InvitationFormValues = z.infer<typeof invitationFormSchema>;
@@ -172,7 +172,6 @@ function InvitationForm({
       email: "",
       first_name: "",
       last_name: "",
-      role: "federation",
     },
   });
 
@@ -207,7 +206,6 @@ function InvitationForm({
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="last_name"
@@ -223,28 +221,17 @@ function InvitationForm({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="federation">Federation Officer</SelectItem>
-                  <SelectItem value="apex">Apex Officer</SelectItem>
-                  <SelectItem value="cooperative">Cooperative Manager</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Role is fixed — not a user choice */}
+        <div className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 bg-muted/40">
+          <UserCog className="size-4 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-foreground">Role: Federation Officer</p>
+            <p className="text-xs text-muted-foreground">
+              This person will manage{" "}
+              <span className="font-medium">{federationName}</span> on behalf of the Ministry.
+            </p>
+          </div>
+        </div>
 
         <DialogFooter>
           <DialogClose asChild>
@@ -326,7 +313,7 @@ export const InvitationList: React.FC = () => {
         email: values.email,
         first_name: values.first_name,
         last_name: values.last_name,
-        role: values.role,
+        role: "federation", // always federation — Ministry invites federation officers only
       },
       {
         onSuccess: () => {
