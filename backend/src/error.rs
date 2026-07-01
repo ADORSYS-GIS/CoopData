@@ -154,13 +154,13 @@ impl IntoResponse for AppError {
                     },
                 )
             }
-            AppError::ExternalServiceError(_) => {
-                tracing::error!("External service error: {:?}", self);
+            AppError::ExternalServiceError(msg) => {
+                tracing::error!("External service error: {:?}", msg);
                 (
-                    StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::BAD_GATEWAY,
                     ErrorResponse {
                         error: "external_service_error".to_string(),
-                        message: Some("Failed to communicate with external service".to_string()),
+                        message: Some(msg.clone()),
                         required_roles: None,
                     },
                 )

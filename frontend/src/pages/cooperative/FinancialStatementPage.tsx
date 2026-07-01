@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell, Card } from "@/components/app-shell";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import {
   createEmptyBalanceSheet,
   calculateTotalLiquidAssets,
@@ -41,12 +41,12 @@ import {
   ExpensesSection,
 } from "@/components/financial-form";
 import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
-import { requireRole } from "@/lib/route-guards";
 
 type Tab = "assets" | "liabilities" | "equity" | "income" | "expenses" | "summary";
 
 export const FinancialStatementPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const [activeTab, setActiveTab] = useState<Tab>("assets");
   const [balanceSheet, setBalanceSheet] = useState(createEmptyBalanceSheet());
   const [isSubmitting, setIsSubmitting] = useState(false);

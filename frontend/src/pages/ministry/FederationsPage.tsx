@@ -17,7 +17,6 @@ import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { FEDERATIONS, formatCurrency, formatNumber } from "@/lib/mock-data";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { requireRole } from "@/lib/route-guards";
 
 export const FederationsPage: React.FC = () => {
   const [federations, setFederations] = useState(FEDERATIONS);

@@ -24,11 +24,15 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth/login" search={{ redirect: location.pathname }} />;
+if (!isAuthenticated) {
+     return <Navigate to="/auth/login" replace />;
+   }
+
+  if (!user) {
+    return <UnauthorizedPage />;
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && user) {
+  if (allowedRoles && allowedRoles.length > 0) {
     if (!allowedRoles.includes(user.role)) {
       return <UnauthorizedPage />;
     }
@@ -41,7 +45,7 @@ export function RoleRedirect() {
   const { user } = useAuth();
 
   if (!user) {
-    return <Navigate to="/auth/login" />;
+    return <UnauthorizedPage />;
   }
 
   const redirectPath = ROLE_DEFAULT_ROUTE[user.role];

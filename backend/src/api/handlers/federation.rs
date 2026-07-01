@@ -8,11 +8,12 @@ use axum::{
 use std::sync::Arc;
 
 use crate::api::dto::federation::{
-    CreateFederationRequest, FederationResponse, UpdateFederationRequest,
+    CreateFederationRequest, FederationResponse, FederationStatsResponse, UpdateFederationRequest,
 };
 use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
 use crate::auth::claims::Claims;
+use crate::auth::rbac::ScopeEnforcement;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -411,4 +412,138 @@ pub async fn list_federation_members(
 
     let responses: Vec<MemberResponse> = members.into_iter().map(MemberResponse::from).collect();
     Ok((StatusCode::OK, Json(responses)))
+}
+
+// ============================================================================
+// Federation Profile Handlers (Level 2 - self-service)
+// ============================================================================
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/federation/profile",
+    responses(
+        (status = 200, description = "Federation profile", body = FederationResponse),
+        (status = 403, description = "Forbidden - federation role required", body = ErrorResponse)
+    ),
+    tag = "Federation"
+)]
+pub async fn get_federation_profile(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
+
+    let org = state
+        .keycloak
+        .get_organization_by_id(&org_id)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    tracing::info!(org_id = %org_id, "Federation profile retrieved");
+    Ok((StatusCode::OK, Json(FederationResponse::from(org))))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v1/federation/profile",
+    request_body = UpdateFederationRequest,
+    responses(
+        (status = 200, description = "Federation profile updated", body = FederationResponse),
+        (status = 400, description = "Invalid input", body = ErrorResponse),
+        (status = 403, description = "Forbidden - federation role required", body = ErrorResponse)
+    ),
+    tag = "Federation"
+)]
+pub async fn update_federation_profile(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Json(body): Json<UpdateFederationRequest>,
+) -> AppResult<impl IntoResponse> {
+    let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
+
+    let domains = body.domains.map(|d| {
+        d.into_iter()
+            .map(|dr| crate::models::keycloak::KeycloakOrganizationDomain {
+                name: dr.name,
+                verified: false,
+            })
+            .collect::<Vec<_>>()
+    });
+
+    let updated_org = state
+        .keycloak
+        .update_organization(
+            &org_id,
+            body.name.as_deref(),
+            body.description.as_deref(),
+            domains,
+            body.attributes,
+        )
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    tracing::info!(org_id = %org_id, "Federation profile updated");
+    Ok((StatusCode::OK, Json(FederationResponse::from(updated_org))))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/federation/stats",
+    responses(
+        (status = 200, description = "Federation statistics", body = FederationStatsResponse),
+        (status = 403, description = "Forbidden - federation role required", body = ErrorResponse)
+    ),
+    tag = "Federation"
+)]
+pub async fn get_federation_stats(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    use crate::api::dto::apex::ApexResponse;
+
+    let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
+
+    let org = state
+        .keycloak
+        .get_organization_by_id(&org_id)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let all_groups = state
+        .keycloak
+        .get_groups(None)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let apexes: Vec<ApexResponse> = all_groups
+        .into_iter()
+        .filter(|g| {
+            g.attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first())
+                .map(|v| v.as_str())
+                .unwrap_or("")
+                == org_id
+        })
+        .map(ApexResponse::from)
+        .collect();
+
+    let total_apexes = apexes.len() as u64;
+
+    let mut total_members: u64 = 0;
+    for apex in &apexes {
+        if let Ok(members) = state.keycloak.get_group_members(&apex.id).await {
+            total_members += members.len() as u64;
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(FederationStatsResponse {
+            total_apexes,
+            total_members,
+            federation: FederationResponse::from(org),
+        }),
+    ))
 }

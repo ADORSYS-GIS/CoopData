@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from "react";
-import { requireAuth } from "@/lib/route-guards";
 import {
   ResponsiveContainer,
   LineChart,
@@ -32,7 +31,7 @@ import {
   COOPERATIVES,
   formatNumber,
 } from "@/lib/mock-data";
-import { useAuth, type Role } from "@/lib/auth";
+import { type Role, useUserRole } from "@/lib/auth";
 import {
   TrendingUp,
   TrendingDown,
@@ -731,7 +730,8 @@ const SPARKLINE_COMPLIANCE = [
 // Analytics Page Component
 // ─────────────────────────────────────────────────────────────────────
 export const AnalyticsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const filters = FILTERS_BY_ROLE[role];
   const [filterValues, setFilterValues] = useState<Record<string, string>>(
     Object.fromEntries(filters.map((f) => [f.id, f.options[0].value])),

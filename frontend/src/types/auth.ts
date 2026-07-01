@@ -24,7 +24,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserProfile | null;
-  role: Role;
+  role: Role | null;
   accessToken: string | null;
 }
 
@@ -39,17 +39,17 @@ export interface AuthContextValue extends AuthState {
 /** Keycloak token claims we care about */
 export interface CustomKeycloakToken {
   sub: string;
-  email: string;
-  preferred_username: string;
-  given_name: string;
-  family_name: string;
-  name: string;
+  email?: string;
+  preferred_username?: string;
+  given_name?: string;
+  family_name?: string;
+  name?: string;
   realm_access?: {
     roles: string[];
   };
-  organization?: string;
+  organization?: Record<string, { id: string }>;
   organization_id?: string;
-  cooperation?: string;
+  cooperation?: Record<string, { id: string }>;
   cooperation_id?: string;
   assigned_dimensions?: string[];
   is_member_of?: string[];

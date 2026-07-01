@@ -9,7 +9,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Card } from "@/components/app-shell";
-import { useAuth, type Role } from "@/lib/auth";
+import { type Role, useUserRole } from "@/lib/auth";
 import { toast } from "sonner";
 
 export type ExportFormat = "pdf" | "xlsx" | "csv";
@@ -117,7 +117,8 @@ interface ReportExportPanelProps {
 }
 
 export function ReportExportPanel({ className }: ReportExportPanelProps) {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("pdf");
   const [isExporting, setIsExporting] = useState(false);

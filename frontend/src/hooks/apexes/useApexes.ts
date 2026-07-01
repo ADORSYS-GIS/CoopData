@@ -2,12 +2,43 @@
  * React Query hooks for apex-related API endpoints.
  *
  * Federation role required for apex endpoints.
+ * Backend DTOs: CreateApexRequest { name, description? },
+ *   UpdateApexRequest { name?, description? },
+ *   AddMemberRequest { email, first_name, last_name, role, assigned_dimensions? },
+ *   ApexResponse { id, name, path?, description?, sub_groups? },
+ *   MemberResponse { id, username?, email?, first_name?, last_name? }
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import type { components } from "@/openapi-client/api";
 
 const APEXES_KEY = "apexes";
+
+type ApexResponse = components["schemas"]["ApexResponse"];
+type PaginatedApexesResponse = {
+  data?: ApexResponse[] | null;
+};
+
+const isPaginatedApexesResponse = (value: unknown): value is PaginatedApexesResponse => {
+  if (typeof value !== "object" || value === null || !("data" in value)) {
+    return false;
+  }
+
+  return Array.isArray((value as { data?: unknown }).data);
+};
+
+const normalizeApexesResponse = (value: unknown): ApexResponse[] => {
+  if (Array.isArray(value)) {
+    return value as ApexResponse[];
+  }
+
+  if (isPaginatedApexesResponse(value)) {
+    return value.data ?? [];
+  }
+
+  return [];
+};
 
 /** List all apexes (federation only) */
 export const useApexes = () =>
@@ -16,8 +47,9 @@ export const useApexes = () =>
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/federation/apexes");
       if (error) throw error;
-      return data;
+      return normalizeApexesResponse(data);
     },
+    retry: false,
   });
 
 /** Get a single apex by ID */
@@ -38,9 +70,9 @@ export const useApex = (id: string) =>
 export const useCreateApex = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; organization_id?: string; region?: string }) => {
+    mutationFn: async (body: { name: string; description?: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/federation/apexes", {
-        body: body as never,
+        body,
       });
       if (error) throw error;
       return data;
@@ -55,10 +87,10 @@ export const useCreateApex = () => {
 export const useUpdateApex = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...body }: { id: string; name?: string; region?: string }) => {
+    mutationFn: async ({ id, ...body }: { id: string; name?: string; description?: string }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/federation/apexes/{id}", {
         params: { path: { id } },
-        body: body as never,
+        body,
       });
       if (error) throw error;
       return data;
@@ -104,13 +136,22 @@ export const useApexMembers = (apexId: string) =>
 export const useAddApexMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ apexId, ...body }: { apexId: string; user_id: string; role?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/federation/apexes/{id}/members", {
+    mutationFn: async ({
+      apexId,
+      ...body
+    }: {
+      apexId: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+      role: string;
+      assigned_dimensions?: string[];
+    }) => {
+      const { error } = await apiClient.POST("/api/v1/federation/apexes/{id}/members", {
         params: { path: { id: apexId } },
-        body: body as never,
+        body,
       });
       if (error) throw error;
-      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [APEXES_KEY, variables.apexId, "members"] });
@@ -136,3 +177,61 @@ export const useRemoveApexMember = () => {
     },
   });
 };
+
+/** Update a member's name in an apex */
+export const useUpdateApexMember = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      apexId,
+      userId,
+      first_name,
+      last_name,
+    }: {
+      apexId: string;
+      userId: string;
+      first_name?: string;
+      last_name?: string;
+    }) => {
+      // Use raw fetch — the PATCH endpoint is new and not yet in the generated spec
+      const { getAccessToken } = await import("@/services/shared/authService");
+      const token = await getAccessToken();
+      const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
+      const res = await fetch(
+        `${API_BASE}/api/v1/federation/apexes/${apexId}/members/${userId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ first_name, last_name }),
+        },
+      );
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const e = json as { message?: string; error?: string };
+        throw new Error(e.message ?? e.error ?? `Failed to update member (${res.status})`);
+      }
+      return json;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [APEXES_KEY, variables.apexId, "members"] });
+    },
+  });
+};
+export const useResendVerification = () =>
+  useMutation({
+    mutationFn: async ({ apexId, userId }: { apexId: string; userId: string }) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/federation/apexes/{group_id}/members/{user_id}/resend-verification",
+        {
+          params: { path: { group_id: apexId, user_id: userId } },
+        },
+      );
+      if (error) throw error;
+      return data;
+    },
+  });

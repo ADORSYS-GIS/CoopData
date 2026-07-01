@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { ShieldX, ArrowLeft } from "lucide-react";
+import { login as keycloakLogin } from "@/services/shared/authService";
 
 export function UnauthorizedPage() {
   return (
@@ -12,23 +12,27 @@ export function UnauthorizedPage() {
           Access Denied
         </h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          You don't have the required permissions to access this page. Contact your administrator if
-          you believe this is an error.
+          You don't have the required permissions to access this page. If you believe this is an
+          error, please contact your administrator.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          Your account may not have been assigned a role yet. Reach out to your organization
+          administrator to get access.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/app/dashboard"
+          <a
+            href="/"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <ArrowLeft className="size-4" />
-            Back to Dashboard
-          </Link>
-          <Link
-            to="/auth/login"
+            Return Home
+          </a>
+          <button
+            onClick={() => keycloakLogin()}
             className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             Sign in with different account
-          </Link>
+          </button>
         </div>
       </div>
     </div>

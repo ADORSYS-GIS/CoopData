@@ -8,6 +8,9 @@ use coop_data_backend::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Load .env file if present (dev convenience — production uses real env vars)
+    dotenvy::dotenv().ok();
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info,tower_http=debug".into()),

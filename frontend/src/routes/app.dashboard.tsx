@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireAuth } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardPage } from "@/pages/shared/DashboardPage";
 
+function DashboardRoute() {
+  return (
+    <ProtectedRoute>
+      <DashboardPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/dashboard")({
-  beforeLoad: () => {
-    requireAuth();
-  },
-  component: DashboardPage,
+  component: DashboardRoute,
 });

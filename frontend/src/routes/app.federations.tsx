@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FederationsPage } from "@/pages/ministry/FederationsPage";
 
+function FederationsRoute() {
+  return (
+    <ProtectedRoute allowedRoles={["ministry"]}>
+      <FederationsPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/federations")({
-  beforeLoad: () => {
-    requireRole("ministry");
-  },
-  component: FederationsPage,
+  component: FederationsRoute,
 });

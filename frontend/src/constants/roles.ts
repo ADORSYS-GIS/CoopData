@@ -61,7 +61,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
   federation: {
     oversight: ["/app/dashboard", "/app/apexes", "/app/submissions"],
     intelligence: ["/app/reports", "/app/analytics"],
-    system: ["/app/users"],
+    system: ["/app/users", "/app/profile"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/data-collection", "/app/submissions"],
@@ -124,7 +124,9 @@ export const KEYCLOAK_ROLE_MAP: Record<string, Role> = {
   ministry: "ministry",
   federation: "federation",
   apex: "apex",
+  regional_officer: "apex",
   cooperative: "cooperative",
+  "default-roles-coop-data": "cooperative",
 };
 
 /** Get the primary Role from a list of Keycloak realm roles */

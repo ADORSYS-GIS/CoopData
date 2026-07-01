@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::apex::ApexResponse;
 use super::organization::OrganizationResponse;
 use super::user::UserResponse;
 
@@ -90,6 +91,27 @@ pub struct PaginatedUserResponse {
 
 impl From<PaginatedResponse<UserResponse>> for PaginatedUserResponse {
     fn from(p: PaginatedResponse<UserResponse>) -> Self {
+        Self {
+            data: p.data,
+            total: p.total,
+            page: p.page,
+            per_page: p.per_page,
+            total_pages: p.total_pages,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedApexResponse {
+    pub data: Vec<ApexResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub per_page: u64,
+    pub total_pages: u64,
+}
+
+impl From<PaginatedResponse<ApexResponse>> for PaginatedApexResponse {
+    fn from(p: PaginatedResponse<ApexResponse>) -> Self {
         Self {
             data: p.data,
             total: p.total,

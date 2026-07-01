@@ -74,3 +74,10 @@ impl From<crate::models::keycloak::KeycloakOrganizationDomain> for DomainRespons
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct FederationStatsResponse {
+    pub total_apexes: u64,
+    pub total_members: u64,
+    pub federation: FederationResponse,
+}

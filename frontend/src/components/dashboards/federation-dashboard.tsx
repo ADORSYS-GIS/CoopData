@@ -25,6 +25,7 @@ import {
   XCircle,
   BarChart3,
   Download,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,6 +74,13 @@ export function FederationDashboard({
       subtitle="Manzini Regional Federation · Review data declarations, resolve flags, and guide compliance"
       actions={
         <div className="flex items-center gap-2">
+          <Link
+            to="/app/profile"
+            className="press-feedback hidden items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors sm:inline-flex"
+          >
+            <Settings className="size-4 text-accent" />
+            Profile
+          </Link>
           <Link
             to="/app/analytics"
             className="press-feedback hidden items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors sm:inline-flex"

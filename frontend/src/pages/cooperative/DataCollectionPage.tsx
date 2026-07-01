@@ -28,16 +28,16 @@ import {
   Send,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
 import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
 import type { BalanceSheet } from "@/lib/financial-data";
 import { useState } from "react";
 import { toast } from "sonner";
-import { requireRole } from "@/lib/route-guards";
 
 export const DataCollectionPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const isCooperative = role === "cooperative";
   const isReadOnly = false;
 

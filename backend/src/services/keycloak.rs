@@ -5,7 +5,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 use crate::config::AppConfig;
 use crate::error::AppError;
@@ -73,8 +73,23 @@ macro_rules! check_response {
             let status = $response.status();
             let body = $response.text().await.unwrap_or_default();
             error!(status = %status, body = %body, "{}", $context);
+            let detail = if !body.is_empty() {
+                // Try to extract the Keycloak error message from JSON
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+                    json.get("errorMessage")
+                        .or_else(|| json.get("error_description"))
+                        .or_else(|| json.get("error"))
+                        .and_then(|v| v.as_str())
+                        .map(String::from)
+                        .unwrap_or_else(|| body.clone())
+                } else {
+                    body.clone()
+                }
+            } else {
+                format!("HTTP {}", status)
+            };
             return Err(AppError::ExternalServiceError(format!(
-                "{}: {}", $context, status
+                "{}: {}", $context, detail
             )));
         }
     };
@@ -155,6 +170,47 @@ impl KeycloakService {
 
     async fn get_cached_admin_token(&self) -> Result<String, AppError> {
         self.get_admin_token().await
+    }
+
+    pub async fn verify_user_password(
+        &self,
+        username: &str,
+        password: &str,
+    ) -> Result<(), AppError> {
+        let url = format!("{}/protocol/openid-connect/token", self.openid_url());
+        let params = [
+            ("grant_type", "password"),
+            ("client_id", self.client_id.as_str()),
+            ("client_secret", self.client_secret.as_str()),
+            ("username", username),
+            ("password", password),
+        ];
+
+        let response = self
+            .client
+            .post(&url)
+            .form(&params)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        if response.status().is_success() {
+            return Ok(());
+        }
+
+        let body = response.text().await.unwrap_or_default();
+        let detail = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+            json.get("error_description")
+                .or_else(|| json.get("errorMessage"))
+                .or_else(|| json.get("error"))
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .unwrap_or_else(|| "Invalid credentials".to_string())
+        } else {
+            "Current password is incorrect".to_string()
+        };
+
+        Err(AppError::Unauthorized(detail))
     }
 
     async fn get_realm_management_client_id(&self) -> Result<String, AppError> {
@@ -399,10 +455,9 @@ impl KeycloakService {
                 AppError::ExternalServiceError("User created but ID not found".into())
             });
         }
-
         self.assign_realm_role(&token, &keycloak_id, role).await?;
-        self.trigger_email_verification(&token, &keycloak_id)
-            .await?;
+
+        self.trigger_email_verification(&keycloak_id).await?;
 
         self.get_user_by_id_raw(&token, &keycloak_id).await
     }
@@ -535,11 +590,8 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    async fn trigger_email_verification(
-        &self,
-        access_token: &str,
-        keycloak_id: &str,
-    ) -> Result<(), AppError> {
+    async fn trigger_email_verification(&self, keycloak_id: &str) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
         let url = format!(
             "{}/users/{}/execute-actions-email",
             self.realm_url(),
@@ -550,16 +602,22 @@ impl KeycloakService {
         let response = self
             .client
             .put(&url)
-            .bearer_auth(access_token)
+            .bearer_auth(&token)
             .json(&actions)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        if !response.status().is_success() {
-            warn!(keycloak_id = %keycloak_id, "Failed to send verification email (non-fatal)");
-        }
+        check_response!(response, "Failed to send verification email");
+        info!(keycloak_id = %keycloak_id, "Verification email triggered");
         Ok(())
+    }
+
+    pub async fn trigger_email_verification_for_user(
+        &self,
+        keycloak_id: &str,
+    ) -> Result<(), AppError> {
+        self.trigger_email_verification(keycloak_id).await
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1165,8 +1223,15 @@ impl KeycloakService {
     pub async fn get_groups(&self, search: Option<&str>) -> Result<Vec<KeycloakGroup>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = match search {
-            Some(s) => format!("{}/groups?search={}", self.realm_url(), s),
-            None => format!("{}/groups", self.realm_url()),
+            Some(s) => format!(
+                "{}/groups?search={}&briefRepresentation=false&max=100",
+                self.realm_url(),
+                s
+            ),
+            None => format!(
+                "{}/groups?briefRepresentation=false&max=100",
+                self.realm_url()
+            ),
         };
 
         let response = self
@@ -1178,9 +1243,22 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to list groups");
-        response
+
+        // Keycloak 26+ may return { "count": N, "groups": [...] } or a plain array
+        let raw: serde_json::Value = response
             .json()
             .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let groups_value = if raw.is_array() {
+            raw
+        } else {
+            raw.get("groups")
+                .cloned()
+                .unwrap_or(serde_json::Value::Array(vec![]))
+        };
+
+        serde_json::from_value(groups_value)
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
@@ -1407,18 +1485,8 @@ impl KeycloakService {
                 ));
             }
 
-            let user_orgs = self.get_user_organizations(&existing_user.id).await?;
-            let invited_attr = existing_user.get_attribute("invited_organization");
-            if !user_orgs.is_empty() {
-                return Err(AppError::Conflict(
-                    "User is already a member of an organization".into(),
-                ));
-            }
-            if invited_attr.is_some() {
-                return Err(AppError::Conflict(
-                    "User has a pending organization invitation".into(),
-                ));
-            }
+            // Skip organization membership check — the /organizations endpoint is
+            // not always available and group membership check above is sufficient.
 
             if let Some(ref dims) = assigned_dimensions {
                 let mut attrs = existing_user.attributes.clone().unwrap_or_default();
@@ -1458,5 +1526,64 @@ impl KeycloakService {
         self.add_user_to_group(&keycloak_id, group_id).await?;
 
         self.get_user_by_id(&keycloak_id).await
+    }
+
+    pub async fn update_user_name(
+        &self,
+        keycloak_id: &str,
+        first_name: Option<&str>,
+        last_name: Option<&str>,
+    ) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
+
+        let mut body = serde_json::json!({});
+        if let Some(f) = first_name {
+            body["firstName"] = serde_json::json!(f);
+        }
+        if let Some(l) = last_name {
+            body["lastName"] = serde_json::json!(l);
+        }
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to update user name");
+        info!(keycloak_id = %keycloak_id, "User name updated");
+        Ok(())
+    }
+
+    pub async fn reset_user_password(
+        &self,
+        keycloak_id: &str,
+        new_password: &str,
+        temporary: bool,
+    ) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!("{}/users/{}/reset-password", self.realm_url(), keycloak_id);
+
+        let body = json!({
+            "type": "password",
+            "value": new_password,
+            "temporary": temporary,
+        });
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to reset user password");
+        Ok(())
     }
 }

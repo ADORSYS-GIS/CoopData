@@ -85,13 +85,6 @@ pub fn ministry_routes() -> Router<AppState> {
                 .patch(update_organization)
                 .delete(delete_organization),
         )
-        // User Management
-        .route("/users", get(list_users).post(create_user))
-        .route(
-            "/users/{id}",
-            get(get_user).patch(update_user).delete(delete_user),
-        )
-        .route("/users/{id}/assign-role", post(assign_role_to_user))
 }
 
 // ============================================================================
@@ -313,90 +306,5 @@ async fn delete_organization(
     Ok(Json(serde_json::json!({
         "message": "delete_organization - TODO",
         "id": id
-    })))
-}
-
-// ============================================================================
-// User Management Handlers (Skeleton)
-// ============================================================================
-
-/// List all users.
-/// Ministry-only endpoint.
-async fn list_users(
-    Extension(_claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-) -> AppResult<Json<serde_json::Value>> {
-    // Role enforcement handled by middleware
-    Ok(Json(serde_json::json!({
-        "message": "list_users - TODO",
-        "users": []
-    })))
-}
-
-/// Create a new user.
-/// Ministry-only endpoint.
-async fn create_user(
-    Extension(_claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-) -> AppResult<Json<serde_json::Value>> {
-    // Role enforcement handled by middleware
-    Ok(Json(serde_json::json!({
-        "message": "create_user - TODO"
-    })))
-}
-
-/// Get a user by ID.
-/// Ministry-only endpoint.
-async fn get_user(
-    Extension(_claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-    Path(id): Path<String>,
-) -> AppResult<Json<serde_json::Value>> {
-    // Role enforcement handled by middleware
-    Ok(Json(serde_json::json!({
-        "message": "get_user - TODO",
-        "id": id
-    })))
-}
-
-/// Update a user.
-/// Ministry-only endpoint.
-async fn update_user(
-    Extension(_claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-    Path(id): Path<String>,
-) -> AppResult<Json<serde_json::Value>> {
-    // Role enforcement handled by middleware
-    Ok(Json(serde_json::json!({
-        "message": "update_user - TODO",
-        "id": id
-    })))
-}
-
-/// Delete a user.
-/// Ministry-only endpoint.
-async fn delete_user(
-    Extension(_claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-    Path(id): Path<String>,
-) -> AppResult<Json<serde_json::Value>> {
-    // Role enforcement handled by middleware
-    Ok(Json(serde_json::json!({
-        "message": "delete_user - TODO",
-        "id": id
-    })))
-}
-
-/// Assign a role to a user.
-/// Ministry-only endpoint.
-async fn assign_role_to_user(
-    Extension(_claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-    Path(id): Path<String>,
-) -> AppResult<Json<serde_json::Value>> {
-    // Role enforcement handled by middleware
-    Ok(Json(serde_json::json!({
-        "message": "assign_role_to_user - TODO",
-        "user_id": id
     })))
 }

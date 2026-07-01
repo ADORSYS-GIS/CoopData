@@ -15,10 +15,9 @@ import {
 } from "lucide-react";
 import { AppShell, Card } from "@/components/app-shell";
 import { REPORTS } from "@/lib/mock-data";
-import { useAuth, type Role } from "@/lib/auth";
+import { type Role, useUserRole } from "@/lib/auth";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
 import { toast } from "sonner";
-import { requireAuth } from "@/lib/route-guards";
 
 const CATEGORIES_BY_ROLE: Record<
   Role,
@@ -126,7 +125,8 @@ const subtitleByRole: Record<Role, string> = {
 };
 
 export const ReportsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const categories = CATEGORIES_BY_ROLE[role];
 
   return (

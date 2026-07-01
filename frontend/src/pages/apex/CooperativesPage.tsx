@@ -15,13 +15,13 @@ import {
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { COOPERATIVES, KPI, formatCurrency, formatNumber } from "@/lib/mock-data";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { requireRole } from "@/lib/route-guards";
 
 export const CooperativesPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
+  if (!role) return null;
   const [coops, setCoops] = useState(COOPERATIVES);
   const [search, setSearch] = useState("");
   const [activeSector, setActiveSector] = useState("All sectors");
