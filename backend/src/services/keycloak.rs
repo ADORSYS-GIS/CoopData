@@ -518,7 +518,13 @@ impl KeycloakService {
         keycloak_id: &str,
     ) -> Result<Vec<KeycloakOrganization>, AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/users/{}/organizations", self.realm_url(), keycloak_id);
+        // Keycloak 26 does not expose GET /users/{id}/organizations.
+        // Query organizations filtering by memberId instead.
+        let url = format!(
+            "{}/organizations?memberId={}",
+            self.realm_url(),
+            keycloak_id
+        );
 
         let response = self
             .client
@@ -527,6 +533,11 @@ impl KeycloakService {
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        // A 404 means the endpoint or resource doesn't exist — treat as empty
+        if response.status().as_u16() == 404 {
+            return Ok(vec![]);
+        }
 
         check_response!(response, "Failed to get user organizations");
         response
@@ -802,7 +813,9 @@ impl KeycloakService {
 
     pub async fn get_organizations(&self) -> Result<Vec<KeycloakOrganization>, AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/organizations", self.realm_url());
+        // briefRepresentation=false ensures attributes are included in the list response.
+        // Without it, Keycloak strips the attributes map from every item.
+        let url = format!("{}/organizations?briefRepresentation=false", self.realm_url());
 
         let response = self
             .client
@@ -844,18 +857,22 @@ impl KeycloakService {
     pub async fn update_organization(
         &self,
         org_id: &str,
-        name: Option<&str>,
         description: Option<&str>,
         domains: Option<Vec<KeycloakOrganizationDomain>>,
         attributes: Option<HashMap<String, Vec<String>>>,
     ) -> Result<KeycloakOrganization, AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/organizations/{}", self.realm_url(), org_id);
 
-        let mut body = json!({});
-        if let Some(n) = name {
-            body["name"] = json!(n);
-        }
+        // Keycloak does not allow changing the organization alias (name) after creation.
+        // Fetch the current org so we can echo its name back in the PUT body (required field).
+        let current = self.get_organization_by_id(org_id).await?;
+
+        let mut body = json!({
+            // name/alias is immutable; always echo the existing value
+            "name": current.name,
+            "enabled": current.enabled,
+        });
+
         if let Some(d) = description {
             body["description"] = json!(d);
         }
@@ -866,6 +883,7 @@ impl KeycloakService {
             body["attributes"] = json!(attrs);
         }
 
+        let url = format!("{}/organizations/{}", self.realm_url(), org_id);
         let response = self
             .client
             .put(&url)

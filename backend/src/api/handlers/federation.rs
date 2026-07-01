@@ -176,10 +176,9 @@ pub async fn update_federation(
         attrs.extend(extra);
     }
 
-    // Update display_name if name is changing
+    // Update display_name in attributes (Keycloak alias/name is immutable after creation)
     if let Some(ref new_name) = body.name {
-        let display_name = new_name.trim().to_string();
-        attrs.insert("display_name".to_string(), vec![display_name]);
+        attrs.insert("display_name".to_string(), vec![new_name.trim().to_string()]);
     }
 
     // Update description attribute
@@ -191,19 +190,6 @@ pub async fn update_federation(
     if let Some(ref email) = body.contact_email {
         attrs.insert("contact_email".to_string(), vec![email.clone()]);
     }
-
-    // When name changes, re-slugify for Keycloak's internal name
-    let keycloak_name = body.name.as_ref().map(|n| {
-        n.trim()
-            .to_lowercase()
-            .chars()
-            .map(|c| if c.is_alphanumeric() { c } else { '-' })
-            .collect::<String>()
-            .split('-')
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join("-")
-    });
 
     let domains = body.domains.map(|d| {
         d.into_iter()
@@ -218,7 +204,6 @@ pub async fn update_federation(
         .keycloak
         .update_organization(
             &id,
-            keycloak_name.as_deref(),
             body.description.as_deref(),
             domains,
             Some(attrs),
