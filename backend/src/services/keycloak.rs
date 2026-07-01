@@ -978,6 +978,9 @@ impl KeycloakService {
             id: keycloak_id,
             email: Some(email.to_string()),
             created_at: Some(Utc::now().timestamp()),
+            first_name: Some(first_name.to_string()),
+            last_name: Some(last_name.to_string()),
+            status: Some("PENDING".to_string()),
             email_sent: true,
         })
     }
@@ -997,11 +1000,45 @@ impl KeycloakService {
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+        // A 404 here means the org has no invitations endpoint yet — return empty
+        if response.status().as_u16() == 404 {
+            return Ok(vec![]);
+        }
+
         check_response!(response, "Failed to list organization invitations");
-        response
+
+        // Keycloak 26 returns OrganizationInvitationRepresentation objects.
+        // Parse as raw JSON first so a shape mismatch doesn't cause a 500.
+        let raw: Vec<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| AppError::ExternalServiceError(e.to_string()))
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let invitations = raw
+            .into_iter()
+            .map(|v| {
+                let id = v["id"].as_str().unwrap_or("").to_string();
+                let email = v["email"].as_str().map(str::to_string);
+                let first_name = v["firstName"].as_str().map(str::to_string);
+                let last_name = v["lastName"].as_str().map(str::to_string);
+                // createdAt can come as epoch ms (i64) or epoch s
+                let created_at = v["createdAt"]
+                    .as_i64()
+                    .or_else(|| v["created_at"].as_i64());
+                let status = v["status"].as_str().map(str::to_string);
+                KeycloakInvitation {
+                    id,
+                    email,
+                    created_at,
+                    first_name,
+                    last_name,
+                    status,
+                    email_sent: true,
+                }
+            })
+            .collect();
+
+        Ok(invitations)
     }
 
     pub async fn delete_organization_invitation(
@@ -1035,22 +1072,41 @@ impl KeycloakService {
         invitation_id: &str,
     ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
+
+        // Keycloak 26 does not have a /resend path on invitations.
+        // The invitation_id is the user's Keycloak ID (we set it that way in invite_user_to_organization).
+        // Re-send by executing VERIFY_EMAIL + UPDATE_PASSWORD actions on the user.
         let url = format!(
-            "{}/organizations/{}/invitations/{}/resend",
+            "{}/users/{}/execute-actions-email",
             self.realm_url(),
-            org_id,
             invitation_id
         );
+        let actions = vec!["VERIFY_EMAIL", "UPDATE_PASSWORD"];
 
         let response = self
             .client
-            .post(&url)
+            .put(&url)
             .bearer_auth(&token)
+            .json(&actions)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        check_response!(response, "Failed to resend organization invitation");
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            warn!(
+                status = %status,
+                body = %body,
+                invitation_id = %invitation_id,
+                "Failed to resend invitation email"
+            );
+            return Err(AppError::ExternalServiceError(format!(
+                "Failed to resend invitation: {}", status
+            )));
+        }
+
+        info!(org_id = %org_id, invitation_id = %invitation_id, "Invitation email resent");
         Ok(())
     }
 

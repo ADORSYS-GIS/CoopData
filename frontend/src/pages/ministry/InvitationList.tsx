@@ -88,17 +88,29 @@ function createColumns(
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => (
-        <span className="font-medium">{row.getValue<string>("email") || "N/A"}</span>
+        <div>
+          <span className="font-medium">{row.getValue<string>("email") || "N/A"}</span>
+          {(row.original.first_name || row.original.last_name) && (
+            <p className="text-xs text-muted-foreground">
+              {[row.original.first_name, row.original.last_name].filter(Boolean).join(" ")}
+            </p>
+          )}
+        </div>
       ),
     },
     {
       accessorKey: "email_sent",
       header: "Status",
-      cell: ({ row }) => (
-        <Badge variant={row.getValue<boolean>("email_sent") ? "default" : "secondary"}>
-          {row.getValue<boolean>("email_sent") ? "Sent" : "Pending"}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const status = row.original.status ?? (row.getValue<boolean>("email_sent") ? "PENDING" : "PENDING");
+        const variant =
+          status === "ACCEPTED"
+            ? "default"
+            : status === "EXPIRED"
+              ? "destructive"
+              : "secondary";
+        return <Badge variant={variant}>{status}</Badge>;
+      },
     },
     {
       accessorKey: "created_at",

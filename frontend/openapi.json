@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "CoopData API",
-    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry → Federation → Apex → Cooperative)",
+    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry \u2192 Federation \u2192 Apex \u2192 Cooperative)",
     "contact": {
       "name": "CoopData Team",
       "email": "support@coopdata.org"
@@ -1767,7 +1767,8 @@
       "CreateFederationRequest": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "domains"
         ],
         "properties": {
           "attributes": {
@@ -1793,7 +1794,7 @@
           "name": {
             "type": "string"
           },
-          "region": {
+          "contact_email": {
             "type": "string",
             "nullable": true
           }
@@ -1973,7 +1974,7 @@
           "name": {
             "type": "string"
           },
-          "region": {
+          "contact_email": {
             "type": "string",
             "nullable": true
           }
@@ -2000,6 +2001,18 @@
           },
           "id": {
             "type": "string"
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -2249,6 +2262,10 @@
             "nullable": true
           },
           "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "contact_email": {
             "type": "string",
             "nullable": true
           }

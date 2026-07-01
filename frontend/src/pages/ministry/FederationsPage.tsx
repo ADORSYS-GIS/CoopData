@@ -2,7 +2,7 @@ import {
   Plus,
   Search,
   Download,
-  MapPin,
+  Globe,
   Landmark,
   ShieldAlert,
   Users,
@@ -11,7 +11,6 @@ import {
   Pencil,
   Trash2,
   Calendar,
-  Building2,
   FileCheck,
   TrendingUp,
 } from "lucide-react";
@@ -71,28 +70,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type Federation = components["schemas"]["FederationResponse"];
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-const REGIONS = ["Manzini", "Hhohho", "Shiselweni", "Lubombo"] as const;
-
 // ─── Zod Schemas ───────────────────────────────────────────────────────────
+
+const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
 
 const federationFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  region: z.enum(REGIONS, {
-    required_error: "Please select a jurisdiction region",
-  }),
+  domain: z
+    .string()
+    .min(1, "Domain is required")
+    .regex(domainRegex, "Enter a valid domain (e.g. myfederation.org)"),
   contact_email: z.string().email("Invalid email address").optional().or(z.literal("")),
 });
 
@@ -111,8 +103,8 @@ function createColumns(
       cell: ({ row }) => {
         const createdAt = row.original.created_at;
         const displayDate = createdAt
-          ? new Date(createdAt).toLocaleDateString("en-CA") // YYYY-MM-DD format
-          : "Unknown";
+          ? new Date(createdAt).toLocaleDateString("en-CA")
+          : "—";
         return (
           <span className="text-xs text-muted-foreground">
             <Calendar className="inline size-3 mr-1" />
@@ -136,15 +128,21 @@ function createColumns(
       ),
     },
     {
-      accessorKey: "region",
-      header: "Region",
+      accessorKey: "domains",
+      header: "Domain",
       cell: ({ row }) => {
-        const region = row.original.region;
-        return (
-          <Badge variant="outline" className="gap-1">
-            <MapPin className="size-3" />
-            {region ?? "Unknown"}
+        const domains = row.original.domains ?? [];
+        const primary = domains[0];
+        return primary ? (
+          <Badge variant="outline" className="gap-1 font-mono text-xs">
+            <Globe className="size-3" />
+            {primary.name}
+            {primary.verified && (
+              <span className="ml-1 text-emerald-500" title="Verified">✓</span>
+            )}
           </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
         );
       },
     },
@@ -226,14 +224,21 @@ function FederationForm({
   defaultValues,
   onSubmit,
   isPending,
+  isEdit,
 }: {
-  defaultValues?: FederationFormValues;
+  defaultValues?: Partial<FederationFormValues>;
   onSubmit: (values: FederationFormValues) => void;
   isPending: boolean;
+  isEdit?: boolean;
 }) {
   const form = useForm<FederationFormValues>({
     resolver: zodResolver(federationFormSchema),
-    defaultValues: defaultValues ?? { name: "", region: undefined, contact_email: "" },
+    defaultValues: {
+      name: "",
+      domain: "",
+      contact_email: "",
+      ...defaultValues,
+    },
   });
 
   return (
@@ -255,24 +260,17 @@ function FederationForm({
 
         <FormField
           control={form.control}
-          name="region"
+          name="domain"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Jurisdiction Region *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a region" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {REGIONS.map((region) => (
-                    <SelectItem key={region} value={region}>
-                      {region}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Domain *</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. manzini-federation.org" {...field} />
+              </FormControl>
+              <FormDescription className="text-xs">
+                Required by Keycloak. Use a real or organisation-owned domain (e.g.{" "}
+                <code>federation.org.sz</code>).
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -312,7 +310,7 @@ function FederationForm({
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save"}
+            {isPending ? "Saving..." : isEdit ? "Save Changes" : "Register"}
           </Button>
         </DialogFooter>
       </form>
@@ -332,7 +330,6 @@ export const FederationsPage: React.FC = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // Dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingFed, setEditingFed] = useState<Federation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -354,28 +351,18 @@ export const FederationsPage: React.FC = () => {
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    state: {
-      sorting,
-      columnFilters,
-      globalFilter,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
+    state: { sorting, columnFilters, globalFilter },
+    initialState: { pagination: { pageSize: 10 } },
   });
 
   const activeCount = federationsList.filter((f) => f.enabled).length;
-  const totalMembers = federationsList.length * 600; // Mock: ~600 members per federation
-
-  const [activeRegion, setActiveRegion] = useState("All regions");
+  const totalMembers = federationsList.length * 600;
 
   const handleCreateSubmit = (values: FederationFormValues) => {
     createMutation.mutate(
       {
         name: values.name,
-        region: values.region,
+        domain: values.domain,
         contact_email: values.contact_email || undefined,
       },
       {
@@ -385,9 +372,7 @@ export const FederationsPage: React.FC = () => {
           refetch();
         },
         onError: (err) => {
-          toast.error("Failed to register federation", {
-            description: String(err),
-          });
+          toast.error("Failed to register federation", { description: String(err) });
         },
       },
     );
@@ -399,7 +384,7 @@ export const FederationsPage: React.FC = () => {
       {
         id: editingFed.id,
         name: values.name,
-        region: values.region,
+        domain: values.domain,
         contact_email: values.contact_email || undefined,
       },
       {
@@ -409,9 +394,7 @@ export const FederationsPage: React.FC = () => {
           refetch();
         },
         onError: (err) => {
-          toast.error("Failed to update federation", {
-            description: String(err),
-          });
+          toast.error("Failed to update federation", { description: String(err) });
         },
       },
     );
@@ -428,9 +411,7 @@ export const FederationsPage: React.FC = () => {
         refetch();
       },
       onError: (err) => {
-        toast.error("Failed to delete federation", {
-          description: String(err),
-        });
+        toast.error("Failed to delete federation", { description: String(err) });
       },
     });
   };
@@ -492,32 +473,12 @@ export const FederationsPage: React.FC = () => {
             </Button>
           }
         >
-          {/* Region Filter Pills */}
-          <div className="flex flex-wrap gap-1.5 text-xs mb-4">
-            {["All regions", ...REGIONS].map((item) => {
-              const isActive = activeRegion === item;
-              return (
-                <button
-                  key={item}
-                  onClick={() => setActiveRegion(item)}
-                  className={`press-feedback rounded-lg border px-3 py-1.5 font-bold transition-all ${
-                    isActive
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-border text-muted-foreground hover:bg-muted/50 bg-surface"
-                  }`}
-                >
-                  {item}
-                </button>
-              );
-            })}
-          </div>
-
           {/* Search */}
           <div className="flex items-center py-2">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by name, region..."
+                placeholder="Search by name, domain..."
                 value={globalFilter ?? ""}
                 onChange={(e) => setGlobalFilter(e.target.value)}
                 className="pl-9"
@@ -540,13 +501,11 @@ export const FederationsPage: React.FC = () => {
             </div>
           ) : table.getFilteredRowModel().rows.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              <div className="flex flex-col items-center justify-center">
-                <Landmark className="size-8 text-muted-foreground/60 mb-2" />
-                <p className="font-semibold text-sm">No federations match query</p>
-                <p className="text-xs">
-                  Try adjusting search parameters or register a new federation.
-                </p>
-              </div>
+              <Landmark className="size-8 text-muted-foreground/60 mb-2 mx-auto" />
+              <p className="font-semibold text-sm">No federations match query</p>
+              <p className="text-xs">
+                Try adjusting search parameters or register a new federation.
+              </p>
             </div>
           ) : (
             <div className="rounded-md border">
@@ -641,10 +600,11 @@ export const FederationsPage: React.FC = () => {
           </DialogHeader>
           {editingFed && (
             <FederationForm
+              isEdit
               defaultValues={{
                 name: editingFed.name,
-                region: (editingFed.region as (typeof REGIONS)[number]) ?? undefined,
-                contact_email: editingFed.description || "",
+                domain: editingFed.domains?.[0]?.name ?? "",
+                contact_email: editingFed.contact_email ?? "",
               }}
               onSubmit={handleEditSubmit}
               isPending={updateMutation.isPending}
@@ -653,7 +613,7 @@ export const FederationsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation AlertDialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

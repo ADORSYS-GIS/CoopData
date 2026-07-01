@@ -39,9 +39,13 @@ export const useFederation = (id: string) =>
 export const useCreateFederation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; region?: string; contact_email?: string }) => {
+    mutationFn: async (body: { name: string; domain: string; contact_email?: string }) => {
       const { data, error } = await apiClient.POST("/api/v1/ministry/federations", {
-        body: body as never,
+        body: {
+          name: body.name,
+          domains: [{ name: body.domain }],
+          contact_email: body.contact_email,
+        } as never,
       });
       if (error) throw error;
       return data;
@@ -58,16 +62,26 @@ export const useUpdateFederation = () => {
   return useMutation({
     mutationFn: async ({
       id,
-      ...body
+      name,
+      domain,
+      contact_email,
+      description,
     }: {
       id: string;
       name?: string;
-      region?: string;
+      domain?: string;
       contact_email?: string;
+      description?: string;
     }) => {
       const { data, error } = await apiClient.PATCH("/api/v1/ministry/federations/{id}", {
         params: { path: { id } },
-        body: body as never,
+        body: {
+          name,
+          description,
+          contact_email,
+          // Only send domains array when the user has provided a domain
+          ...(domain ? { domains: [{ name: domain }] } : {}),
+        } as never,
       });
       if (error) throw error;
       return data;

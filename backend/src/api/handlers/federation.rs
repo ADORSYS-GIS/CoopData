@@ -34,6 +34,22 @@ pub async fn create_federation(
         ));
     }
 
+    // Require at least one domain — the caller must supply it
+    if body.domains.is_empty() {
+        return Err(crate::error::AppError::BadRequest(
+            "At least one domain is required (e.g. \"myfederation.org\")".into(),
+        ));
+    }
+
+    // Validate each domain is non-empty
+    for d in &body.domains {
+        if d.name.trim().is_empty() {
+            return Err(crate::error::AppError::BadRequest(
+                "Domain name cannot be empty".into(),
+            ));
+        }
+    }
+
     // Keycloak uses the org name as an alias — spaces and special chars are not allowed.
     // We store the display name in attributes and use a slugified version as the name.
     let display_name = body.name.trim().to_string();
@@ -47,21 +63,14 @@ pub async fn create_federation(
         .collect::<Vec<_>>()
         .join("-");
 
-    // Keycloak requires at least one domain — auto-derive from slug if not provided
-    let domains: Vec<crate::models::keycloak::KeycloakOrganizationDomain> = if body.domains.is_empty() {
-        vec![crate::models::keycloak::KeycloakOrganizationDomain {
-            name: format!("{}.federation.local", slug),
+    let domains: Vec<crate::models::keycloak::KeycloakOrganizationDomain> = body
+        .domains
+        .iter()
+        .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
+            name: d.name.trim().to_lowercase(),
             verified: false,
-        }]
-    } else {
-        body.domains
-            .iter()
-            .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
-                name: d.name.clone(),
-                verified: false,
-            })
-            .collect()
-    };
+        })
+        .collect();
 
     let mut attrs = body.attributes.clone().unwrap_or_default();
     // Store the original display name so we can show it in the UI
@@ -69,9 +78,8 @@ pub async fn create_federation(
     if let Some(ref desc) = body.description {
         attrs.insert("description".to_string(), vec![desc.clone()]);
     }
-    // Store region and created_at timestamp
-    if let Some(ref region) = body.region {
-        attrs.insert("region".to_string(), vec![region.clone()]);
+    if let Some(ref email) = body.contact_email {
+        attrs.insert("contact_email".to_string(), vec![email.clone()]);
     }
     let created_at = chrono::Utc::now().to_rfc3339();
     attrs.insert("created_at".to_string(), vec![created_at]);
@@ -154,28 +162,66 @@ pub async fn update_federation(
     Path(id): Path<String>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Fetch current org so we can preserve existing attributes (created_at, display_name, etc.)
+    let current = state
+        .keycloak
+        .get_organization_by_id(&id)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let mut attrs = current.attributes.clone().unwrap_or_default();
+
+    // Merge any caller-supplied extra attributes on top
+    if let Some(extra) = body.attributes.clone() {
+        attrs.extend(extra);
+    }
+
+    // Update display_name if name is changing
+    if let Some(ref new_name) = body.name {
+        let display_name = new_name.trim().to_string();
+        attrs.insert("display_name".to_string(), vec![display_name]);
+    }
+
+    // Update description attribute
+    if let Some(ref desc) = body.description {
+        attrs.insert("description".to_string(), vec![desc.clone()]);
+    }
+
+    // Update contact_email attribute
+    if let Some(ref email) = body.contact_email {
+        attrs.insert("contact_email".to_string(), vec![email.clone()]);
+    }
+
+    // When name changes, re-slugify for Keycloak's internal name
+    let keycloak_name = body.name.as_ref().map(|n| {
+        n.trim()
+            .to_lowercase()
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '-' })
+            .collect::<String>()
+            .split('-')
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join("-")
+    });
+
     let domains = body.domains.map(|d| {
         d.into_iter()
             .map(|d| crate::models::keycloak::KeycloakOrganizationDomain {
-                name: d.name,
+                name: d.name.trim().to_lowercase(),
                 verified: false,
             })
             .collect::<Vec<_>>()
     });
 
-    let mut attrs = body.attributes.clone().unwrap_or_default();
-    if let Some(ref desc) = body.description {
-        attrs.insert("description".to_string(), vec![desc.clone()]);
-    }
-
     let org = state
         .keycloak
         .update_organization(
             &id,
-            body.name.as_deref(),
+            keycloak_name.as_deref(),
             body.description.as_deref(),
             domains,
-            if attrs.is_empty() { None } else { Some(attrs) },
+            Some(attrs),
         )
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;

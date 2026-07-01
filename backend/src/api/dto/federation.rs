@@ -4,12 +4,12 @@ use utoipa::ToSchema;
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateFederationRequest {
     pub name: String,
-    #[serde(default)]
+    /// At least one domain is required by Keycloak (e.g. "myfederation.org")
     pub domains: Vec<DomainRequest>,
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
-    pub region: Option<String>,
+    pub contact_email: Option<String>,
     #[serde(default)]
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
@@ -23,6 +23,7 @@ pub struct DomainRequest {
 pub struct UpdateFederationRequest {
     pub name: Option<String>,
     pub description: Option<String>,
+    pub contact_email: Option<String>,
     pub domains: Option<Vec<DomainRequest>>,
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
@@ -34,7 +35,7 @@ pub struct FederationResponse {
     pub enabled: bool,
     pub description: Option<String>,
     pub domains: Vec<DomainResponse>,
-    pub region: Option<String>,
+    pub contact_email: Option<String>,
     pub created_at: Option<String>,
 }
 
@@ -62,8 +63,8 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
             .cloned()
             .or(org.description);
 
-        let region = attrs
-            .and_then(|a| a.get("region"))
+        let contact_email = attrs
+            .and_then(|a| a.get("contact_email"))
             .and_then(|v| v.first())
             .cloned();
 
@@ -85,7 +86,7 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
                     verified: d.verified,
                 })
                 .collect(),
-            region,
+            contact_email,
             created_at,
         }
     }
