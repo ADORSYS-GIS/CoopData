@@ -534,17 +534,18 @@ export const InvitationList: React.FC = () => {
 
               {/* Pagination */}
               {table.getFilteredRowModel().rows.length > 0 && (
-                <div className="flex items-center justify-between space-x-2 py-4">
-                  <div className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+                  <div className="text-sm text-muted-foreground text-center sm:text-left">
                     Showing {table.getFilteredRowModel().rows.length} of {invitations.length}{" "}
                     invitations
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-1 flex-wrap justify-center">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => table.setPageIndex(0)}
                       disabled={!table.getCanPreviousPage()}
+                      className="hidden sm:inline-flex"
                     >
                       First
                     </Button>
@@ -554,10 +555,10 @@ export const InvitationList: React.FC = () => {
                       onClick={() => table.previousPage()}
                       disabled={!table.getCanPreviousPage()}
                     >
-                      Previous
+                      Prev
                     </Button>
-                    <span className="text-sm">
-                      Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                    <span className="text-sm px-1 whitespace-nowrap">
+                      {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
                     </span>
                     <Button
                       variant="outline"
@@ -572,6 +573,7 @@ export const InvitationList: React.FC = () => {
                       size="sm"
                       onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                       disabled={!table.getCanNextPage()}
+                      className="hidden sm:inline-flex"
                     >
                       Last
                     </Button>
