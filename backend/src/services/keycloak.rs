@@ -460,8 +460,23 @@ impl KeycloakService {
         attributes: HashMap<String, Vec<String>>,
     ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
+
+        // Keycloak PUT /users/{id} is a full replace — we must fetch the current user
+        // first and merge the new attributes on top, otherwise we wipe email/name/etc.
+        let current = self.get_user_by_id_raw(&token, keycloak_id).await?;
+        let mut merged_attrs = current.attributes.unwrap_or_default();
+        merged_attrs.extend(attributes);
+
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
-        let body = json!({ "attributes": attributes });
+        let body = json!({
+            "username": current.username,
+            "email": current.email,
+            "firstName": current.first_name,
+            "lastName": current.last_name,
+            "enabled": current.enabled,
+            "emailVerified": current.email_verified,
+            "attributes": merged_attrs
+        });
 
         let response = self
             .client
@@ -1004,11 +1019,11 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
 
         // Step 1: Ensure the user exists in Keycloak with the correct role.
-        // If they're new, create them. If they already exist, assign the role.
-        // We do NOT block on existing org/group membership — ministry can invite anyone.
+        // We use `org.ro.active` as the tracking attribute — this is the attribute
+        // registered in Keycloak's User Profile schema and is searchable via the
+        // Admin API `q=org.ro.active:{org_id}` parameter.
         let mut attributes = HashMap::new();
-        attributes.insert("invited_to_org".to_string(), vec![org_id.to_string()]);
-        attributes.insert("invitation_status".to_string(), vec!["PENDING".to_string()]);
+        attributes.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
 
         let users = self.search_users_by_email(&token, email).await?;
         let keycloak_id = if let Some(existing_user) = users.first() {
@@ -1018,13 +1033,12 @@ impl KeycloakService {
                 "cooperative" => self.assign_cooperative_roles(&existing_user.id).await?,
                 _ => self.assign_role(&existing_user.id, role).await?,
             }
-            
-            // Also update the existing user to have the invitation attributes
-            let mut attrs = HashMap::new();
-            attrs.insert("invited_to_org".to_string(), vec![org_id.to_string()]);
-            attrs.insert("invitation_status".to_string(), vec!["PENDING".to_string()]);
+
+            // Set the tracking attribute so this user appears in pending queries
+            let mut attrs = existing_user.attributes.clone().unwrap_or_default();
+            attrs.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
             self.update_user_attributes(&existing_user.id, attrs).await?;
-            
+
             existing_user.id.clone()
         } else {
             let temp_password = format!("Temp{}!", Utc::now().timestamp());
@@ -1105,10 +1119,15 @@ impl KeycloakService {
         org_id: &str,
     ) -> Result<Vec<KeycloakInvitation>, AppError> {
         let token = self.get_cached_admin_token().await?;
-        
-        // Search users who were invited to this organization via the attribute we set
-        // Do NOT URL-encode the colon, as Keycloak's parser might expect a literal colon.
-        let url = format!("{}/users?q=invited_to_org:{}", self.realm_url(), org_id);
+
+        // Call 1: Find all users who have org.ro.active = org_id (ever invited to this org).
+        // The `q` parameter supports attribute search in the format `key:value`.
+        // briefRepresentation=false ensures the attributes map is included.
+        let url = format!(
+            "{}/users?q=org.ro.active:{}&briefRepresentation=false&max=1000",
+            self.realm_url(),
+            org_id
+        );
 
         let response = self
             .client
@@ -1118,56 +1137,35 @@ impl KeycloakService {
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        check_response!(response, "Failed to list organization invitations");
+        check_response!(response, "Failed to search invited users by org.ro.active attribute");
 
-        let mut users: Vec<KeycloakUser> = response
+        let invited_users: Vec<KeycloakUser> = response
             .json()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        // Fallback: If Keycloak `q` search returned empty (e.g., due to syntax or indexing issues),
-        // fetch recent users and resolve their details to ensure attributes are populated.
-        if users.is_empty() {
-            let fallback_url = format!("{}/users?max=500", self.realm_url());
-            if let Ok(res) = self.client.get(&fallback_url).bearer_auth(&token).send().await {
-                if res.status().is_success() {
-                    if let Ok(all_users) = res.json::<Vec<KeycloakUser>>().await {
-                        info!("Fallback: Fetched {} users from Keycloak list. Resolving details...", all_users.len());
-                        let mut detailed_users = Vec::new();
-                        for u in all_users {
-                            let detail_url = format!("{}/users/{}", self.realm_url(), u.id);
-                            if let Ok(detail_res) = self.client.get(&detail_url).bearer_auth(&token).send().await {
-                                if let Ok(detailed_user) = detail_res.json::<KeycloakUser>().await {
-                                    detailed_users.push(detailed_user);
-                                }
-                            }
-                        }
-                        
-                        users = detailed_users.into_iter().filter(|u| {
-                            if let Some(attrs) = &u.attributes {
-                                if let Some(orgs) = attrs.get("invited_to_org") {
-                                    info!("User {} attributes resolved: {:?}", u.username, u.attributes);
-                                    return orgs.contains(&org_id.to_string());
-                                }
-                            }
-                            false
-                        }).collect();
-                        info!("Filtered to {} invitations matching org {}", users.len(), org_id);
-                    }
-                }
-            }
-        }
+        info!(
+            org_id = %org_id,
+            count = invited_users.len(),
+            "Found users with org.ro.active attribute matching org"
+        );
 
-        // Determine if they accepted by checking if they are in the org members list
-        // Alternatively, if they are already in the organization, their status is ACCEPTED
+        // Call 2: Get current active org members so we can exclude them.
+        // pending = invited_users MINUS active_members
         let members = self.get_organization_members(org_id).await?;
-        let member_ids: std::collections::HashSet<String> = members.into_iter().map(|m| m.id).collect();
+        let member_ids: std::collections::HashSet<String> =
+            members.into_iter().map(|m| m.id).collect();
 
-        let invitations = users
+        // Build the pending invitation list — only users NOT yet active members.
+        // Derive per-user status from Keycloak's emailVerified field:
+        //   emailVerified = false → "Awaiting email verification"
+        //   emailVerified = true  → "Email verified, awaiting org acceptance"
+        let invitations = invited_users
             .into_iter()
+            .filter(|user| !member_ids.contains(&user.id))
             .map(|user| {
-                let status = if member_ids.contains(&user.id) {
-                    "ACCEPTED".to_string()
+                let status = if user.email_verified {
+                    "EMAIL_VERIFIED".to_string()
                 } else {
                     "PENDING".to_string()
                 };
@@ -1175,7 +1173,6 @@ impl KeycloakService {
                 KeycloakInvitation {
                     id: user.id.clone(),
                     email: user.email.clone(),
-                    // Convert Keycloak user creation timestamp (epoch ms) to standard timestamp if available
                     created_at: user.created_timestamp,
                     first_name: user.first_name.clone(),
                     last_name: user.last_name.clone(),
@@ -1190,70 +1187,94 @@ impl KeycloakService {
 
     pub async fn delete_organization_invitation(
         &self,
-        org_id: &str,
-        invitation_id: &str,
+        _org_id: &str,
+        user_id: &str,
     ) -> Result<(), AppError> {
-        let token = self.get_cached_admin_token().await?;
-        let url = format!(
-            "{}/organizations/{}/invitations/{}",
-            self.realm_url(),
-            org_id,
-            invitation_id
-        );
-
-        let response = self
-            .client
-            .delete(&url)
-            .bearer_auth(&token)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
-
-        check_response!(response, "Failed to delete organization invitation");
-        Ok(())
+        // Cancelling an invitation means deleting the pending user from Keycloak entirely.
+        // The invitation_id IS the user's Keycloak ID (set in invite_user_to_organization).
+        // This removes them from the system; they would need to be re-invited to get back in.
+        self.delete_user(user_id).await
     }
 
     pub async fn resend_organization_invitation(
         &self,
         org_id: &str,
-        invitation_id: &str,
+        user_id: &str,
     ) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
 
-        // Keycloak 26 does not have a /resend path on invitations.
-        // The invitation_id is the user's Keycloak ID (we set it that way in invite_user_to_organization).
-        // Re-send by executing VERIFY_EMAIL + UPDATE_PASSWORD actions on the user.
-        let url = format!(
+        // Step 1: Get the user's email so we can re-invite them
+        let user = self.get_user_by_id_raw(&token, user_id).await?;
+        let email = user.email.ok_or_else(|| {
+            AppError::ExternalServiceError("User has no email address".into())
+        })?;
+        let first_name = user.first_name.unwrap_or_default();
+        let last_name = user.last_name.unwrap_or_default();
+
+        // Step 2: Re-trigger email verification (in case they lost the first email)
+        let actions_url = format!(
             "{}/users/{}/execute-actions-email",
             self.realm_url(),
-            invitation_id
+            user_id
         );
         let actions = vec!["VERIFY_EMAIL", "UPDATE_PASSWORD"];
 
-        let response = self
+        let actions_res = self
             .client
-            .put(&url)
+            .put(&actions_url)
             .bearer_auth(&token)
             .json(&actions)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+        if !actions_res.status().is_success() {
+            let status = actions_res.status();
+            let body = actions_res.text().await.unwrap_or_default();
             warn!(
                 status = %status,
                 body = %body,
-                invitation_id = %invitation_id,
-                "Failed to resend invitation email"
+                user_id = %user_id,
+                "Failed to re-trigger email verification (non-fatal)"
             );
-            return Err(AppError::ExternalServiceError(format!(
-                "Failed to resend invitation: {}", status
-            )));
         }
 
-        info!(org_id = %org_id, invitation_id = %invitation_id, "Invitation email resent");
+        // Step 3: Re-call invite-user to resend the org invitation email
+        let invite_url = format!(
+            "{}/organizations/{}/members/invite-user",
+            self.realm_url(),
+            org_id
+        );
+        let form_body = format!(
+            "email={}&firstName={}&lastName={}",
+            urlencoding::encode(&email),
+            urlencoding::encode(&first_name),
+            urlencoding::encode(&last_name),
+        );
+
+        let invite_res = self
+            .client
+            .post(&invite_url)
+            .bearer_auth(&token)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(form_body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        if !invite_res.status().is_success() {
+            let status = invite_res.status();
+            let body = invite_res.text().await.unwrap_or_default();
+            warn!(
+                status = %status,
+                body = %body,
+                user_id = %user_id,
+                org_id = %org_id,
+                "Failed to resend org invitation email (non-fatal)"
+            );
+        }
+
+        info!(org_id = %org_id, user_id = %user_id, "Invitation resent");
         Ok(())
     }
 
@@ -1611,7 +1632,7 @@ impl KeycloakService {
             }
 
             let user_orgs = self.get_user_organizations(&existing_user.id).await?;
-            let invited_attr = existing_user.get_attribute("invited_organization");
+            let invited_attr = existing_user.get_attribute("org.ro.active");
             if !user_orgs.is_empty() {
                 return Err(AppError::Conflict(
                     "User is already a member of an organization".into(),

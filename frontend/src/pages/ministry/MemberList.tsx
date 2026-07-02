@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck, UserX, Search } from "lucide-react";
+import { Users, UserCheck, Search } from "lucide-react";
 import type { components } from "@/openapi-client/api";
 
 type Member = components["schemas"]["MemberResponse"];
@@ -55,16 +55,9 @@ function createColumns(): ColumnDef<Member>[] {
       ),
     },
     {
-      accessorKey: "username",
+      accessorKey: "email",
       header: "Status",
-      cell: ({ row }) => {
-        const isActive = !!row.getValue<string>("username");
-        return (
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "Active" : "Pending"}
-          </Badge>
-        );
-      },
+      cell: () => <Badge variant="default">Active</Badge>,
     },
     {
       id: "actions",
@@ -116,8 +109,7 @@ export const MemberList: React.FC = () => {
     },
   });
 
-  const activeMembers = (members as Member[]).filter((m) => m.username).length;
-  const pendingMembers = (members as Member[]).length - activeMembers;
+  const activeMembers = (members as Member[]).length;
 
   return (
     <AppShell title="Member Management" subtitle="View and manage federation members">
@@ -159,16 +151,9 @@ export const MemberList: React.FC = () => {
             <StatCard
               icon={UserCheck}
               label="Active Members"
-              value={String(activeMembers)}
-              subtitle="With usernames assigned"
+              value={String((members as Member[]).length)}
+              subtitle="Accepted invitation"
               tone="success"
-            />
-            <StatCard
-              icon={UserX}
-              label="Pending Members"
-              value={String(pendingMembers)}
-              subtitle="Awaiting activation"
-              tone="warning"
             />
             <StatCard
               icon={Users}

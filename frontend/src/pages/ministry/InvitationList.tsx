@@ -102,14 +102,18 @@ function createColumns(
       accessorKey: "email_sent",
       header: "Status",
       cell: ({ row }) => {
-        const status = row.original.status ?? (row.getValue<boolean>("email_sent") ? "PENDING" : "PENDING");
+        const status = row.original.status ?? "PENDING";
         const variant =
           status === "ACCEPTED"
             ? "default"
             : status === "EXPIRED"
               ? "destructive"
               : "secondary";
-        return <Badge variant={variant}>{status}</Badge>;
+        const label =
+          status === "EMAIL_VERIFIED" ? "Email Verified" :
+          status === "PENDING" ? "Awaiting Verification" :
+          status;
+        return <Badge variant={variant}>{label}</Badge>;
       },
     },
     {
@@ -413,7 +417,9 @@ export const InvitationList: React.FC = () => {
               value={
                 isLoading
                   ? "..."
-                  : invitations.filter((i: Invitation) => !i.email_sent).length.toString()
+                  : invitations
+                      .filter((i: Invitation) => i.status === "PENDING" || i.status === "EMAIL_VERIFIED")
+                      .length.toString()
               }
               icon={AlertCircle}
               tone="warning"
