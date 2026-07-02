@@ -1,5 +1,10 @@
 import { redirect } from "@tanstack/react-router";
-import { isAuthenticated, hasAnyRole, getUserProfile, keycloakReady } from "@/services/shared/authService";
+import {
+  isAuthenticated,
+  hasAnyRole,
+  getUserProfile,
+  keycloakReady,
+} from "@/services/shared/authService";
 import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 

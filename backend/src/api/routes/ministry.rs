@@ -16,7 +16,10 @@ use crate::api::handlers::federation::{
     invite_user_to_federation, list_federation_invitations, list_federation_members,
     list_federations, remove_federation_member, resend_federation_invitation, update_federation,
 };
-use crate::api::handlers::{create_organization, create_user, delete_organization, delete_user, get_organization, get_user, list_organizations, list_users, update_organization, update_user, assign_role_to_user};
+use crate::api::handlers::{
+    assign_role_to_user, create_organization, create_user, delete_organization, delete_user,
+    get_organization, get_user, list_organizations, list_users, update_organization, update_user,
+};
 use crate::AppState;
 
 /// Creates the Ministry routes router.

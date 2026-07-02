@@ -109,9 +109,7 @@ pub async fn create_federation(
     ),
     tag = "Ministry"
 )]
-pub async fn list_federations(
-    State(state): State<AppState>,
-) -> AppResult<impl IntoResponse> {
+pub async fn list_federations(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
     let orgs = state
         .keycloak
         .get_organizations()
@@ -179,7 +177,10 @@ pub async fn update_federation(
 
     // Update display_name in attributes (Keycloak alias/name is immutable after creation)
     if let Some(ref new_name) = body.name {
-        attrs.insert("display_name".to_string(), vec![new_name.trim().to_string()]);
+        attrs.insert(
+            "display_name".to_string(),
+            vec![new_name.trim().to_string()],
+        );
     }
 
     // Update description attribute
@@ -203,12 +204,7 @@ pub async fn update_federation(
 
     let org = state
         .keycloak
-        .update_organization(
-            &id,
-            body.description.as_deref(),
-            domains,
-            Some(attrs),
-        )
+        .update_organization(&id, body.description.as_deref(), domains, Some(attrs))
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
@@ -271,7 +267,8 @@ pub async fn invite_user_to_federation(
     // Reject any caller trying to inject a different role via the body.
     if !body.role.is_empty() && body.role != "federation" {
         return Err(crate::error::AppError::BadRequest(
-            "This endpoint only creates federation officer invitations. Role must be 'federation'.".into(),
+            "This endpoint only creates federation officer invitations. Role must be 'federation'."
+                .into(),
         ));
     }
     let role = "federation";

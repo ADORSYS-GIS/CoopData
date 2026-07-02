@@ -736,10 +736,7 @@ impl KeycloakService {
             return Ok(());
         }
 
-        let current_roles: Vec<serde_json::Value> = response
-            .json()
-            .await
-            .unwrap_or_default();
+        let current_roles: Vec<serde_json::Value> = response.json().await.unwrap_or_default();
 
         // Filter down to the app roles that are currently assigned
         let roles_to_remove: Vec<serde_json::Value> = current_roles
@@ -904,7 +901,10 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         // briefRepresentation=false ensures attributes are included in the list response.
         // Without it, Keycloak strips the attributes map from every item.
-        let url = format!("{}/organizations?briefRepresentation=false", self.realm_url());
+        let url = format!(
+            "{}/organizations?briefRepresentation=false",
+            self.realm_url()
+        );
 
         let response = self
             .client
@@ -1037,7 +1037,8 @@ impl KeycloakService {
             // Set the tracking attribute so this user appears in pending queries
             let mut attrs = existing_user.attributes.clone().unwrap_or_default();
             attrs.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
-            self.update_user_attributes(&existing_user.id, attrs).await?;
+            self.update_user_attributes(&existing_user.id, attrs)
+                .await?;
 
             existing_user.id.clone()
         } else {
@@ -1137,7 +1138,10 @@ impl KeycloakService {
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        check_response!(response, "Failed to search invited users by org.ro.active attribute");
+        check_response!(
+            response,
+            "Failed to search invited users by org.ro.active attribute"
+        );
 
         let invited_users: Vec<KeycloakUser> = response
             .json()
@@ -1205,9 +1209,9 @@ impl KeycloakService {
 
         // Step 1: Get the user's email so we can re-invite them
         let user = self.get_user_by_id_raw(&token, user_id).await?;
-        let email = user.email.ok_or_else(|| {
-            AppError::ExternalServiceError("User has no email address".into())
-        })?;
+        let email = user
+            .email
+            .ok_or_else(|| AppError::ExternalServiceError("User has no email address".into()))?;
         let first_name = user.first_name.unwrap_or_default();
         let last_name = user.last_name.unwrap_or_default();
 
