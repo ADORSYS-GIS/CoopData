@@ -44,9 +44,7 @@ type Member = components["schemas"]["MemberResponse"];
 
 // ─── Columns ──────────────────────────────────────────────────────────────
 
-function createColumns(
-  onRemove: (member: Member) => void,
-): ColumnDef<Member>[] {
+function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] {
   return [
     {
       accessorKey: "first_name",
@@ -253,36 +251,38 @@ export const MemberList: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
-                  <table className="w-full">
-                    <thead>
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b bg-muted/50">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                            >
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody>
-                      {table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
-                          {row.getVisibleCells().map((cell) => (
-                            <td key={cell.id} className="px-4 py-3 align-middle">
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="overflow-x-auto">
+                  <div className="rounded-md border">
+                    <table className="w-full">
+                      <thead>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <tr key={headerGroup.id} className="border-b bg-muted/50">
+                            {headerGroup.headers.map((header) => (
+                              <th
+                                key={header.id}
+                                className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                              >
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(header.column.columnDef.header, header.getContext())}
+                              </th>
+                            ))}
+                          </tr>
+                        ))}
+                      </thead>
+                      <tbody>
+                        {table.getRowModel().rows.map((row) => (
+                          <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
+                            {row.getVisibleCells().map((cell) => (
+                              <td key={cell.id} className="px-4 py-3 align-middle">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* Pagination */}

@@ -141,13 +141,26 @@
 
 > **Goal**: Verify all auth flows work end-to-end and update pages to use real data.
 
-- [ ] **5.1 Update frontend pages to use real data hooks**
-  - [ ] `app.federations.tsx` — replace mock data with `useFederations` hook
-  - [ ] `app.apexes.tsx` — replace mock data with `useApexes` hook
-  - [ ] `app.cooperatives.tsx` — replace mock data with `useCooperatives` hook
-  - [ ] `app.users.tsx` — replace mock data with `useUsers` hook
-  - [ ] `app.dashboard.tsx` — replace mock data with real API calls
-  - [ ] Other pages as needed
+- [x] **5.1a Ministry vertical slice (Issue #9) — Frontend pages use real API hooks**
+  - [x] `FederationsPage.tsx` — uses `useFederations` (CRUD), `useCreateFederation`, `useUpdateFederation`, `useDeleteFederation`
+  - [x] `InvitationList.tsx` — uses `useFederationInvitations`, `useInviteUserToFederation`, `useResendInvitation`, `useDeleteInvitation`
+  - [x] `MemberList.tsx` — uses `useFederationMembers`, `useRemoveFederationMember`
+  - [x] All tables use TanStack Table with sorting, pagination, search
+  - [x] All forms use React Hook Form + Zod with validation
+  - [x] All mutations show toast (sonner) on success/error
+  - [x] All destructive actions have AlertDialog confirmation
+  - [x] Loading skeletons during data fetch
+  - [x] Route guards enforce `requireRole("ministry")` on all 9 ministry routes
+- [x] **5.1b Member deletion (exceeded Issue #9 spec)**
+  - [x] Backend: `DELETE /api/v1/ministry/federations/{id}/members/{user_id}` via `keycloak.remove_user_from_organization()`
+  - [x] Frontend: Trash2 button + AlertDialog confirmation + toast on success/error
+- [x] **5.1c Bug fixes discovered during implementation**
+  - [x] `<Toaster />` was never mounted — added to `__root.tsx`, fixing all toast notifications
+  - [x] JWT expiry not checked in cached token fallback — added `isTokenExpired()` in `authService.ts`
+  - [x] `useFederations` had no `staleTime` — added `staleTime: 30_000`
+  - [x] Submissions, Reports, Analytics, Users routes had insufficient guards — hardened to `requireRole("ministry")`
+- [ ] **5.2 Backend: Add utoipa query param annotations for paginated endpoints**
+  - [ ] List endpoints need `page`, `per_page`, `search` query params in OpenAPI spec
 - [ ] **5.2 Backend: Add utoipa query param annotations for paginated endpoints**
   - [ ] List endpoints need `page`, `per_page`, `search` query params in OpenAPI spec
 - [ ] **5.3 Backend: Scope enforcement in handlers (claims-based data filtering)**

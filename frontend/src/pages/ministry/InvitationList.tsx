@@ -104,15 +104,13 @@ function createColumns(
       cell: ({ row }) => {
         const status = row.original.status ?? "PENDING";
         const variant =
-          status === "ACCEPTED"
-            ? "default"
-            : status === "EXPIRED"
-              ? "destructive"
-              : "secondary";
+          status === "ACCEPTED" ? "default" : status === "EXPIRED" ? "destructive" : "secondary";
         const label =
-          status === "EMAIL_VERIFIED" ? "Email Verified" :
-          status === "PENDING" ? "Awaiting Verification" :
-          status;
+          status === "EMAIL_VERIFIED"
+            ? "Email Verified"
+            : status === "PENDING"
+              ? "Awaiting Verification"
+              : status;
         return <Badge variant={variant}>{label}</Badge>;
       },
     },
@@ -231,8 +229,8 @@ function InvitationForm({
           <div>
             <p className="text-xs font-medium text-foreground">Role: Federation Officer</p>
             <p className="text-xs text-muted-foreground">
-              This person will manage{" "}
-              <span className="font-medium">{federationName}</span> on behalf of the Ministry.
+              This person will manage <span className="font-medium">{federationName}</span> on
+              behalf of the Ministry.
             </p>
           </div>
         </div>
@@ -418,7 +416,9 @@ export const InvitationList: React.FC = () => {
                 isLoading
                   ? "..."
                   : invitations
-                      .filter((i: Invitation) => i.status === "PENDING" || i.status === "EMAIL_VERIFIED")
+                      .filter(
+                        (i: Invitation) => i.status === "PENDING" || i.status === "EMAIL_VERIFIED",
+                      )
                       .length.toString()
               }
               icon={AlertCircle}
@@ -497,36 +497,38 @@ export const InvitationList: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <table className="w-full">
-                    <thead>
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b bg-muted/50">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                            >
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody>
-                      {table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
-                          {row.getVisibleCells().map((cell) => (
-                            <td key={cell.id} className="px-4 py-3 align-middle">
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="overflow-x-auto">
+                  <div className="rounded-md border">
+                    <table className="w-full">
+                      <thead>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <tr key={headerGroup.id} className="border-b bg-muted/50">
+                            {headerGroup.headers.map((header) => (
+                              <th
+                                key={header.id}
+                                className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                              >
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(header.column.columnDef.header, header.getContext())}
+                              </th>
+                            ))}
+                          </tr>
+                        ))}
+                      </thead>
+                      <tbody>
+                        {table.getRowModel().rows.map((row) => (
+                          <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
+                            {row.getVisibleCells().map((cell) => (
+                              <td key={cell.id} className="px-4 py-3 align-middle">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 

@@ -202,13 +202,7 @@ export const useResendInvitation = () => {
 export const useRemoveFederationMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      federationId,
-      userId,
-    }: {
-      federationId: string;
-      userId: string;
-    }) => {
+    mutationFn: async ({ federationId, userId }: { federationId: string; userId: string }) => {
       const { error } = await apiClient.DELETE(
         "/api/v1/ministry/federations/{id}/members/{user_id}",
         {

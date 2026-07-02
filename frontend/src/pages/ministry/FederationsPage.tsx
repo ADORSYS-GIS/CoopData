@@ -102,9 +102,7 @@ function createColumns(
       header: "Registration",
       cell: ({ row }) => {
         const createdAt = row.original.created_at;
-        const displayDate = createdAt
-          ? new Date(createdAt).toLocaleDateString("en-CA")
-          : "—";
+        const displayDate = createdAt ? new Date(createdAt).toLocaleDateString("en-CA") : "—";
         return (
           <span className="text-xs text-muted-foreground">
             <Calendar className="inline size-3 mr-1" />
@@ -138,7 +136,9 @@ function createColumns(
             <Globe className="size-3" />
             {primary.name}
             {primary.verified && (
-              <span className="ml-1 text-emerald-500" title="Verified">✓</span>
+              <span className="ml-1 text-emerald-500" title="Verified">
+                ✓
+              </span>
             )}
           </Badge>
         ) : (
@@ -508,36 +508,38 @@ export const FederationsPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <table className="w-full">
-                <thead>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id} className="border-b bg-muted/50">
-                      {headerGroup.headers.map((header) => (
-                        <th
-                          key={header.id}
-                          className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody>
-                  {table.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-4 py-3 align-middle">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="overflow-x-auto">
+              <div className="rounded-md border">
+                <table className="w-full">
+                  <thead>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id} className="border-b bg-muted/50">
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows.map((row) => (
+                      <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="px-4 py-3 align-middle">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
