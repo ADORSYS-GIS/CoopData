@@ -20,11 +20,12 @@ type FilterType = "all" | "verified" | "pending" | "rejected" | "forwarded";
 
 export const SubmissionsPage: React.FC = () => {
   const role = useUserRole();
-  if (!role) return null;
   const navigate = useNavigate();
   const [submissionsList] = useState<Submission[]>(INITIAL_SUBMISSIONS);
   const [filter, setFilter] = useState<FilterType>("all");
   const [search, setSearch] = useState("");
+
+  if (!role) return null;
 
   const canValidate = role === "federation" || role === "apex" || role === "ministry";
 

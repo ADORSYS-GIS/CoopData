@@ -46,12 +46,13 @@ type Tab = "assets" | "liabilities" | "equity" | "income" | "expenses" | "summar
 
 export const FinancialStatementPage: React.FC = () => {
   const role = useUserRole();
-  if (!role) return null;
   const [activeTab, setActiveTab] = useState<Tab>("assets");
   const [balanceSheet, setBalanceSheet] = useState(createEmptyBalanceSheet());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [dataPopulated, setDataPopulated] = useState(false);
+
+  if (!role) return null;
 
   const isReadOnly = role === "apex";
 

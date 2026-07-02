@@ -380,7 +380,6 @@ const confidenceLabel = (c: number) => {
 export const SubmissionDetailPage: React.FC = () => {
   const { id } = useParams({ from: "/app/submissions_/$id" });
   const role = useUserRole();
-  if (!role) return null;
   const [comment, setComment] = useState("");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     financials: true,
@@ -391,6 +390,8 @@ export const SubmissionDetailPage: React.FC = () => {
     multipurpose: true,
     trail: true,
   });
+
+  if (!role) return null;
 
   // Find submission from mock data
   const submission = SUBMISSIONS.find((s) => s.id === id);

@@ -95,7 +95,6 @@ const REGIONS = ["Manzini", "Hhohho", "Shiselweni", "Lubombo"];
 
 export const NonFinancialDataPage: React.FC = () => {
   const role = useUserRole();
-  if (!role) return null;
   const [activeTab, setActiveTab] = useState<Tab>("membership");
 
   const isReadOnly = role === "apex";
@@ -163,6 +162,8 @@ export const NonFinancialDataPage: React.FC = () => {
     interestRate: 6,
     balance: 0,
   });
+
+  if (!role) return null;
 
   const handleAddMembership = () => {
     if (!membershipForm.memberId || !membershipForm.joinDate) {

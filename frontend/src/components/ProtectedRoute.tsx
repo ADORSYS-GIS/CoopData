@@ -24,9 +24,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     );
   }
 
-if (!isAuthenticated) {
-     return <Navigate to="/auth/login" replace />;
-   }
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/login" replace />;
+  }
 
   if (!user) {
     return <UnauthorizedPage />;

@@ -1185,8 +1185,24 @@ impl KeycloakService {
         if response.status().as_u16() == 409 {
             return Err(AppError::Conflict("Group already exists".into()));
         }
+
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
         check_response!(response, "Failed to create group");
 
+        if let Some(group_id) = location
+            .as_deref()
+            .and_then(|loc| loc.split('/').next_back())
+            .filter(|s| !s.is_empty())
+        {
+            return self.get_group_by_id(group_id).await;
+        }
+
+        // Fallback: search by name (works for top-level groups)
         self.get_group_by_name(&token, name).await
     }
 
@@ -1215,9 +1231,37 @@ impl KeycloakService {
         if response.status().as_u16() == 409 {
             return Err(AppError::Conflict("Subgroup already exists".into()));
         }
+
+        // Extract the new subgroup ID from the Location header before consuming response
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
         check_response!(response, "Failed to create subgroup");
 
-        self.get_group_by_name(&token, name).await
+        // Prefer fetching by ID (from Location header) — more reliable than name search
+        // which only scans top-level groups and won't find subgroups.
+        if let Some(subgroup_id) = location
+            .as_deref()
+            .and_then(|loc| loc.split('/').next_back())
+            .filter(|s| !s.is_empty())
+        {
+            return self.get_group_by_id(subgroup_id).await;
+        }
+
+        // Fallback: fetch parent and find the subgroup by name within it
+        let parent = self.get_group_by_id(parent_group_id).await?;
+        parent
+            .sub_groups
+            .into_iter()
+            .find(|sg| sg.name == name)
+            .map(|sg| async move { self.get_group_by_id(&sg.id).await })
+            .ok_or_else(|| {
+                AppError::NotFound(format!("Subgroup '{}' not found after creation", name))
+            })?
+            .await
     }
 
     pub async fn get_groups(&self, search: Option<&str>) -> Result<Vec<KeycloakGroup>, AppError> {
@@ -1279,6 +1323,117 @@ impl KeycloakService {
             .json()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))
+    }
+
+    /// Fetch immediate children (subgroups) of a group.
+    /// Uses `GET /groups/{id}/children` which is reliable in Keycloak 23+.
+    pub async fn get_group_children(&self, group_id: &str) -> Result<Vec<KeycloakGroup>, AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!(
+            "{}/groups/{}/children?briefRepresentation=false",
+            self.realm_url(),
+            group_id
+        );
+
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to get group children");
+
+        let raw: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        // Keycloak may return array or { "groups": [...] }
+        let arr = if raw.is_array() {
+            raw
+        } else {
+            raw.get("groups")
+                .cloned()
+                .unwrap_or(serde_json::Value::Array(vec![]))
+        };
+
+        serde_json::from_value(arr).map_err(|e| AppError::ExternalServiceError(e.to_string()))
+    }
+
+    /// Resolve a group from either a UUID or a full path (e.g. "/apex-name" or "/apex/coop").
+    /// Keycloak's `cooperation` group membership mapper emits paths like "/group-name".
+    /// This method handles both forms transparently.
+    pub async fn resolve_group(&self, id_or_path: &str) -> Result<KeycloakGroup, AppError> {
+        // If it looks like a UUID (no slashes), try direct lookup first
+        let is_uuid = !id_or_path.contains('/') && id_or_path.len() == 36;
+        if is_uuid {
+            return self.get_group_by_id(id_or_path).await;
+        }
+
+        // It's a path — walk the tree to find the group by path
+        let token = self.get_cached_admin_token().await?;
+        let clean = id_or_path.trim_matches('/');
+        let segments: Vec<&str> = clean.split('/').filter(|s| !s.is_empty()).collect();
+
+        if segments.is_empty() {
+            return Err(AppError::BadRequest("Empty group path".into()));
+        }
+
+        // Search top-level groups for the first segment
+        let top_name = segments[0];
+        let url = format!(
+            "{}/groups?search={}&briefRepresentation=false",
+            self.realm_url(),
+            top_name
+        );
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to search groups by path");
+
+        let raw: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let groups: Vec<KeycloakGroup> = if raw.is_array() {
+            serde_json::from_value(raw)
+        } else {
+            serde_json::from_value(raw.get("groups").cloned().unwrap_or_default())
+        }
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let top = groups
+            .into_iter()
+            .find(|g| g.name == top_name)
+            .ok_or_else(|| {
+                AppError::NotFound(format!("Group not found for path segment: {}", top_name))
+            })?;
+
+        if segments.len() == 1 {
+            // Fetch full representation with subgroups
+            return self.get_group_by_id(&top.id).await;
+        }
+
+        // Walk into subgroups for deeper paths
+        let mut current = self.get_group_by_id(&top.id).await?;
+        for seg in &segments[1..] {
+            let child = current
+                .sub_groups
+                .iter()
+                .find(|sg| sg.name == *seg)
+                .ok_or_else(|| AppError::NotFound(format!("Subgroup not found: {}", seg)))?;
+            current = self.get_group_by_id(&child.id).await?;
+        }
+
+        Ok(current)
     }
 
     async fn get_group_by_name(

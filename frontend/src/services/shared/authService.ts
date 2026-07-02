@@ -198,17 +198,24 @@ export function getUserProfile(): UserProfile | null {
 
   const orgName = extractOrgName(token.organization);
   const orgId = extractOrgId(token.organization);
-  const coopName = extractOrgName(token.cooperation);
-  const coopId = extractOrgId(token.cooperation);
+
+  // cooperation is string[] of group paths: ["/apex-group-id/coop-name"]
+  // Extract the apex group id (first segment) and cooperative name (last segment)
+  const cooperationPaths = Array.isArray(token.cooperation) ? token.cooperation : [];
+  const firstCoopPath = cooperationPaths[0] ?? null;
+  const pathSegments = firstCoopPath ? firstCoopPath.split("/").filter(Boolean) : [];
+  const apexGroupId = pathSegments[0] ?? null;
+  const coopSegment = pathSegments[1] ?? pathSegments[0] ?? null;
+  // Use the last path segment as the readable coop name (may be UUID — that's OK)
+  const coopName = coopSegment;
+  const coopId = coopSegment;
 
   const region =
     role === "ministry"
       ? "National"
       : role === "federation"
         ? (orgName ?? "Unknown")
-        : role === "apex"
-          ? (coopName ?? "Unknown")
-          : (coopName ?? "Unknown");
+        : (apexGroupId ?? "Unknown");
 
   return {
     id: token.sub,

@@ -37,7 +37,6 @@ import { toast } from "sonner";
 
 export const DataCollectionPage: React.FC = () => {
   const role = useUserRole();
-  if (!role) return null;
   const isCooperative = role === "cooperative";
   const isReadOnly = false;
 
@@ -86,6 +85,8 @@ export const DataCollectionPage: React.FC = () => {
       category: "Audit",
     },
   ]);
+
+  if (!role) return null;
 
   // ── Cooperative View: Upload-first, no manual entry ──
   if (isCooperative) {

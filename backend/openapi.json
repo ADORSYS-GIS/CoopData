@@ -34,14 +34,7 @@
             }
           },
           "403": {
-            "description": "Forbidden - apex role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Forbidden - apex role required"
           }
         }
       },
@@ -72,24 +65,10 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "403": {
-            "description": "Forbidden - apex role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Forbidden - apex role required"
           }
         }
       }
@@ -122,7 +101,104 @@
         ],
         "responses": {
           "204": {
-            "description": "Member removed from cooperative"
+            "description": "Member removed"
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "update_cooperative_member",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Cooperative (Subgroup) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Member updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/cooperatives/{group_id}/members/{user_id}/resend-verification": {
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "resend_cooperative_member_verification",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Cooperative (Subgroup) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification email resent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
           }
         }
       }
@@ -155,15 +231,11 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
-            "description": "Cooperative not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Cooperative not found"
           }
         }
       },
@@ -188,14 +260,10 @@
             "description": "Cooperative deleted"
           },
           "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Forbidden - apex role required"
+          },
+          "404": {
+            "description": "Cooperative not found"
           }
         }
       },
@@ -236,15 +304,14 @@
               }
             }
           },
+          "400": {
+            "description": "No fields to update"
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
+          },
           "404": {
-            "description": "Cooperative not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Cooperative not found"
           }
         }
       }
@@ -279,6 +346,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       },
@@ -310,27 +380,46 @@
         },
         "responses": {
           "201": {
-            "description": "Member added to cooperative"
+            "description": "Member added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or wrong role"
           },
           "403": {
-            "description": "Forbidden",
+            "description": "Forbidden - apex role required or scope violation"
+          },
+          "409": {
+            "description": "User already in a group"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/profile": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "get_apex_profile",
+        "responses": {
+          "200": {
+            "description": "Apex group profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApexResponse"
                 }
               }
             }
           },
-          "409": {
-            "description": "User already in a group",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "403": {
+            "description": "Forbidden - apex role required"
           }
         }
       }
@@ -445,6 +534,64 @@
         "responses": {
           "204": {
             "description": "Member removed from apex"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "update_apex_member",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Apex (Group) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Member updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2526,6 +2673,19 @@
             "nullable": true
           },
           "name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_name": {
             "type": "string",
             "nullable": true
           }

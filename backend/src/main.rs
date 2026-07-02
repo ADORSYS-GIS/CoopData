@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     let config = AppConfig::from_env()?;
     tracing::info!("Configuration loaded");
 
-    let db = database::connect(&config.database_url).await?;
+    let db = connect_db_with_retry(&config.database_url).await?;
     tracing::info!("Database connected");
 
     let cache = CacheService::new(&config.redis_url).await?;
@@ -85,6 +85,35 @@ async fn init_jwt_validator_with_retry(
                     "Waiting for Keycloak JWKS endpoint... retrying in 2s",
                 );
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
+        }
+    }
+}
+
+async fn connect_db_with_retry(database_url: &str) -> anyhow::Result<coop_data_backend::Database> {
+    let max_retries = 20u32;
+    let mut attempt = 0;
+
+    loop {
+        attempt += 1;
+        match database::connect(database_url).await {
+            Ok(db) => return Ok(db),
+            Err(e) => {
+                if attempt >= max_retries {
+                    tracing::error!(
+                        "Failed to connect to database after {} attempts: {}",
+                        attempt,
+                        e
+                    );
+                    return Err(anyhow::anyhow!("Database connection failed: {}", e));
+                }
+                tracing::warn!(
+                    attempt,
+                    max_retries,
+                    error = %e,
+                    "Waiting for database... retrying in 3s",
+                );
+                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
             }
         }
     }

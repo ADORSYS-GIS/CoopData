@@ -10,7 +10,12 @@ function AuthLoginHandler() {
     if (isLoading) return;
 
     if (isAuthenticated && user) {
-      console.log("[auth-login] Already authenticated as", user.role, "→ redirecting to", ROLE_DEFAULT_ROUTE[user.role]);
+      console.log(
+        "[auth-login] Already authenticated as",
+        user.role,
+        "→ redirecting to",
+        ROLE_DEFAULT_ROUTE[user.role],
+      );
       window.location.href = ROLE_DEFAULT_ROUTE[user.role];
       return;
     }

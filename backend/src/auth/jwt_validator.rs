@@ -152,6 +152,31 @@ impl JwtValidator {
         Ok(token_data.claims)
     }
 
+    /// Constructs a permissive validator for unit/integration tests.
+    ///
+    /// Signature validation is disabled and issuer/audience checks are relaxed
+    /// so tests can mint tokens without a live Keycloak instance. This is only
+    /// available when the `test-utils` feature is enabled (e.g. via dev-deps).
+    #[cfg(any(test, feature = "test-utils"))]
+    pub fn new_for_testing() -> Self {
+        use jsonwebtoken::Algorithm;
+
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.insecure_disable_signature_validation();
+        validation.validate_exp = false;
+        validation.validate_nbf = false;
+        validation.validate_aud = false;
+
+        Self {
+            decoding_keys: HashMap::new(),
+            default_key: DecodingKey::from_secret(b"test-secret"),
+            validation,
+            issuer: String::new(),
+            issuer_aliases: vec![],
+            valid_audiences: HashSet::new(),
+        }
+    }
+
     fn is_valid_audience(&self, claims: &Claims) -> bool {
         match &claims.aud {
             Some(serde_json::Value::String(s)) => self.valid_audiences.contains(s),

@@ -9,11 +9,12 @@
 //! - `users` - User management routes (accessible by ministry, federation, apex)
 
 mod apex;
-mod api;
 mod cooperative;
 mod federation;
 mod ministry;
 mod shared;
 mod users;
+
+pub mod api;
 
 pub use api::create_app;

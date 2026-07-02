@@ -187,3 +187,116 @@ pub fn forbidden_with_roles(
         required_roles: required_roles.iter().map(|s| s.to_string()).collect(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bad_request_into_response() {
+        let error = AppError::BadRequest("test message".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_unauthorized_into_response() {
+        let error = AppError::Unauthorized("unauthorized".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn test_forbidden_into_response() {
+        let error = AppError::Forbidden("forbidden".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[test]
+    fn test_not_found_into_response() {
+        let error = AppError::NotFound("not found".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_conflict_into_response() {
+        let error = AppError::Conflict("conflict".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+    }
+
+    #[test]
+    fn test_internal_server_error_into_response() {
+        let error = AppError::InternalServerError("internal error".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_validation_error_into_response() {
+        let error = AppError::ValidationError("validation failed".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    #[test]
+    fn test_external_service_error_into_response() {
+        let error = AppError::ExternalServiceError("keycloak error".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[test]
+    fn test_missing_role_into_response() {
+        let error = AppError::MissingRole {
+            message: "Access denied".to_string(),
+            required_roles: vec!["ministry".to_string(), "federation".to_string()],
+        };
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[test]
+    fn test_forbidden_with_roles_helper() {
+        let error = forbidden_with_roles("Access denied", vec!["ministry", "federation"]);
+        match error {
+            AppError::MissingRole {
+                message,
+                required_roles,
+            } => {
+                assert_eq!(message, "Access denied");
+                assert_eq!(required_roles, vec!["ministry", "federation"]);
+            }
+            _ => panic!("Expected MissingRole error"),
+        }
+    }
+
+    #[test]
+    fn test_error_display() {
+        let error = AppError::BadRequest("test".to_string());
+        assert_eq!(format!("{}", error), "Bad request: test");
+
+        let error = AppError::NotFound("item".to_string());
+        assert_eq!(format!("{}", error), "Not found: item");
+
+        let error = AppError::Conflict("dup".to_string());
+        assert_eq!(format!("{}", error), "Conflict: dup");
+    }
+
+    #[test]
+    fn test_app_result_ok() {
+        let result: AppResult<String> = Ok("success".to_string());
+        match result {
+            Ok(s) => assert_eq!(s, "success"),
+            Err(e) => panic!("expected ok, got {e:?}"),
+        }
+    }
+
+    #[test]
+    fn test_app_result_err() {
+        let result: AppResult<String> = Err(AppError::BadRequest("bad".to_string()));
+        assert!(result.is_err());
+    }
+}

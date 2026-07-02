@@ -14,16 +14,14 @@ import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashbo
 export const DashboardPage: React.FC = () => {
   const role = useUserRole();
 
-  if (!role) return null;
-
-  // Shared state simulation so changes persist in memory
   const [usersList] = useState(INITIAL_USERS);
   const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
   const [activities, setActivities] = useState(INITIAL_ACTIVITY_FEED);
   const [cooperatives, setCooperatives] = useState(INITIAL_COOPERATIVES);
 
-  // Suppress unused variable warnings — usersList will be used in future entity management
   void usersList;
+
+  if (!role) return null;
 
   switch (role) {
     case "ministry":

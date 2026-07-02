@@ -70,3 +70,55 @@ impl From<crate::entities::organization::Model> for OrganizationResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_organization_request_deserialization_full() {
+        let json = r#"{
+            "name": "Test Org",
+            "organization_type": "federation",
+            "registration_number": "REG-123",
+            "sector": "Agriculture",
+            "region": "Hhohho",
+            "contact_email": "org@example.com",
+            "contact_phone": "+26812345678",
+            "address": "123 Main St"
+        }"#;
+        let req: CreateOrganizationRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, "Test Org");
+        assert_eq!(req.organization_type, "federation");
+        assert_eq!(req.registration_number, Some("REG-123".to_string()));
+        assert_eq!(req.sector, Some("Agriculture".to_string()));
+        assert_eq!(req.region, Some("Hhohho".to_string()));
+        assert_eq!(req.contact_email, Some("org@example.com".to_string()));
+    }
+
+    #[test]
+    fn test_create_organization_request_default_type() {
+        let json = r#"{"name": "Test Org"}"#;
+        let req: CreateOrganizationRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, "Test Org");
+        assert_eq!(req.organization_type, "cooperative"); // default
+    }
+
+    #[test]
+    fn test_update_organization_request_deserialization() {
+        let json = r#"{"name": "Updated Org", "is_active": false}"#;
+        let req: UpdateOrganizationRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, Some("Updated Org".to_string()));
+        assert_eq!(req.is_active, Some(false));
+        assert!(req.organization_type.is_none());
+    }
+
+    #[test]
+    fn test_update_organization_request_empty() {
+        let json = r#"{}"#;
+        let req: UpdateOrganizationRequest = serde_json::from_str(json).unwrap();
+        assert!(req.name.is_none());
+        assert!(req.organization_type.is_none());
+        assert!(req.is_active.is_none());
+    }
+}

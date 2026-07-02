@@ -152,3 +152,239 @@ pub struct KeycloakClientRole {
     #[serde(default)]
     pub description: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keycloak_user_first_name_str() {
+        let user = KeycloakUser {
+            id: "user-1".to_string(),
+            username: "johndoe".to_string(),
+            email: Some("john@example.com".to_string()),
+            email_verified: true,
+            first_name: Some("John".to_string()),
+            last_name: Some("Doe".to_string()),
+            enabled: true,
+            created_timestamp: Some(1234567890),
+            attributes: None,
+            required_actions: vec![],
+        };
+        assert_eq!(user.first_name_str(), "John");
+    }
+
+    #[test]
+    fn test_keycloak_user_first_name_str_none() {
+        let user = KeycloakUser {
+            id: "user-2".to_string(),
+            username: "janedoe".to_string(),
+            email: None,
+            email_verified: false,
+            first_name: None,
+            last_name: None,
+            enabled: true,
+            created_timestamp: None,
+            attributes: None,
+            required_actions: vec![],
+        };
+        assert_eq!(user.first_name_str(), "");
+    }
+
+    #[test]
+    fn test_keycloak_user_last_name_str() {
+        let user = KeycloakUser {
+            id: "user-3".to_string(),
+            username: "test".to_string(),
+            email: None,
+            email_verified: false,
+            first_name: Some("Jane".to_string()),
+            last_name: Some("Smith".to_string()),
+            enabled: true,
+            created_timestamp: None,
+            attributes: None,
+            required_actions: vec![],
+        };
+        assert_eq!(user.last_name_str(), "Smith");
+    }
+
+    #[test]
+    fn test_keycloak_user_last_name_str_none() {
+        let user = KeycloakUser {
+            id: "user-4".to_string(),
+            username: "test".to_string(),
+            email: None,
+            email_verified: false,
+            first_name: None,
+            last_name: None,
+            enabled: true,
+            created_timestamp: None,
+            attributes: None,
+            required_actions: vec![],
+        };
+        assert_eq!(user.last_name_str(), "");
+    }
+
+    #[test]
+    fn test_keycloak_user_get_attribute() {
+        let mut attrs = std::collections::HashMap::new();
+        attrs.insert("org_id".to_string(), vec!["123".to_string()]);
+        attrs.insert("type".to_string(), vec!["apex".to_string()]);
+
+        let user = KeycloakUser {
+            id: "user-5".to_string(),
+            username: "test".to_string(),
+            email: None,
+            email_verified: false,
+            first_name: None,
+            last_name: None,
+            enabled: true,
+            created_timestamp: None,
+            attributes: Some(attrs),
+            required_actions: vec![],
+        };
+
+        assert_eq!(user.get_attribute("org_id"), Some(&"123".to_string()));
+        assert_eq!(user.get_attribute("type"), Some(&"apex".to_string()));
+        assert_eq!(user.get_attribute("nonexistent"), None);
+    }
+
+    #[test]
+    fn test_keycloak_user_get_attribute_no_attributes() {
+        let user = KeycloakUser {
+            id: "user-6".to_string(),
+            username: "test".to_string(),
+            email: None,
+            email_verified: false,
+            first_name: None,
+            last_name: None,
+            enabled: true,
+            created_timestamp: None,
+            attributes: None,
+            required_actions: vec![],
+        };
+
+        assert!(user.get_attribute("org_id").is_none());
+    }
+
+    #[test]
+    fn test_keycloak_user_deserialization() {
+        let json = r#"{
+            "id": "user-7",
+            "username": "testuser",
+            "email": "test@example.com",
+            "email_verified": true,
+            "firstName": "Test",
+            "lastName": "User",
+            "enabled": true,
+            "required_actions": []
+        }"#;
+        let user: KeycloakUser = serde_json::from_str(json).unwrap();
+        assert_eq!(user.id, "user-7");
+        assert_eq!(user.username, "testuser");
+        assert_eq!(user.email, Some("test@example.com".to_string()));
+        assert!(user.email_verified);
+        assert_eq!(user.first_name, Some("Test".to_string()));
+        assert_eq!(user.last_name, Some("User".to_string()));
+        assert!(user.enabled);
+    }
+
+    #[test]
+    fn test_keycloak_group_deserialization() {
+        let json = r#"{
+            "id": "group-1",
+            "name": "Test Group",
+            "path": "/test-group",
+            "subGroups": []
+        }"#;
+        let group: KeycloakGroup = serde_json::from_str(json).unwrap();
+        assert_eq!(group.id, "group-1");
+        assert_eq!(group.name, "Test Group");
+        assert_eq!(group.path, Some("/test-group".to_string()));
+        assert!(group.sub_groups.is_empty());
+    }
+
+    #[test]
+    fn test_keycloak_group_with_subgroups() {
+        let json = r#"{
+            "id": "parent-1",
+            "name": "Parent",
+            "path": "/parent",
+            "subGroups": [
+                {
+                    "id": "child-1",
+                    "name": "Child",
+                    "path": "/parent/child",
+                    "subGroups": []
+                }
+            ]
+        }"#;
+        let group: KeycloakGroup = serde_json::from_str(json).unwrap();
+        assert_eq!(group.sub_groups.len(), 1);
+        assert_eq!(group.sub_groups[0].id, "child-1");
+        assert_eq!(group.sub_groups[0].name, "Child");
+    }
+
+    #[test]
+    fn test_keycloak_organization_deserialization() {
+        let json = r#"{
+            "id": "org-1",
+            "name": "Test Federation",
+            "enabled": true,
+            "domains": [{"name": "test.com", "verified": true}]
+        }"#;
+        let org: KeycloakOrganization = serde_json::from_str(json).unwrap();
+        assert_eq!(org.id, "org-1");
+        assert_eq!(org.name, "Test Federation");
+        assert!(org.enabled);
+        assert_eq!(org.domains.len(), 1);
+        assert_eq!(org.domains[0].name, "test.com");
+        assert!(org.domains[0].verified);
+    }
+
+    #[test]
+    fn test_keycloak_invitation_deserialization() {
+        let json = r#"{
+            "id": "inv-1",
+            "email": "invited@example.com",
+            "createdAt": 1234567890,
+            "email_sent": true
+        }"#;
+        let inv: KeycloakInvitation = serde_json::from_str(json).unwrap();
+        assert_eq!(inv.id, "inv-1");
+        assert_eq!(inv.email, Some("invited@example.com".to_string()));
+        assert!(inv.email_sent);
+    }
+
+    #[test]
+    fn test_keycloak_member_deserialization() {
+        let json = r#"{
+            "id": "member-1",
+            "username": "testmember",
+            "email": "member@example.com",
+            "firstName": "Test",
+            "lastName": "Member"
+        }"#;
+        let member: KeycloakMember = serde_json::from_str(json).unwrap();
+        assert_eq!(member.id, "member-1");
+        assert_eq!(member.username, Some("testmember".to_string()));
+        assert_eq!(member.email, Some("member@example.com".to_string()));
+        assert_eq!(member.first_name, Some("Test".to_string()));
+        assert_eq!(member.last_name, Some("Member".to_string()));
+    }
+
+    #[test]
+    fn test_keycloak_role_deserialization() {
+        let json = r#"{
+            "id": "role-1",
+            "name": "ministry",
+            "composite": false,
+            "clientRole": false
+        }"#;
+        let role: KeycloakRole = serde_json::from_str(json).unwrap();
+        assert_eq!(role.id, "role-1");
+        assert_eq!(role.name, "ministry");
+        assert!(!role.composite);
+        assert!(!role.client_role);
+    }
+}

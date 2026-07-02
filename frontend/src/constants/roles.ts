@@ -129,11 +129,19 @@ export const KEYCLOAK_ROLE_MAP: Record<string, Role> = {
   "default-roles-coop-data": "cooperative",
 };
 
-/** Get the primary Role from a list of Keycloak realm roles */
+/**
+ * Get the primary Role from a list of Keycloak realm roles.
+ * Priority order: ministry > federation > apex > cooperative.
+ * This ensures a user with both "apex" and "default-roles-coop-data" is treated as apex.
+ */
 export function mapKeycloakRolesToRole(realmRoles: string[]): Role | null {
-  for (const role of realmRoles) {
-    const mapped = KEYCLOAK_ROLE_MAP[role];
-    if (mapped) return mapped;
+  const priority: Role[] = ["ministry", "federation", "apex", "cooperative"];
+  for (const priorityRole of priority) {
+    for (const realmRole of realmRoles) {
+      if (KEYCLOAK_ROLE_MAP[realmRole] === priorityRole) {
+        return priorityRole;
+      }
+    }
   }
   return null;
 }

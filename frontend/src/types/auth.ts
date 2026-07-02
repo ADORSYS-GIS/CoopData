@@ -49,7 +49,8 @@ export interface CustomKeycloakToken {
   };
   organization?: Record<string, { id: string }>;
   organization_id?: string;
-  cooperation?: Record<string, { id: string }>;
+  /** Array of group paths, e.g. ["/apex-group-uuid/cooperative-subgroup-uuid"] */
+  cooperation?: string[];
   cooperation_id?: string;
   assigned_dimensions?: string[];
   is_member_of?: string[];

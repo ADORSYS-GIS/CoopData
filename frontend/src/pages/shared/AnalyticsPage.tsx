@@ -731,8 +731,7 @@ const SPARKLINE_COMPLIANCE = [
 // ─────────────────────────────────────────────────────────────────────
 export const AnalyticsPage: React.FC = () => {
   const role = useUserRole();
-  if (!role) return null;
-  const filters = FILTERS_BY_ROLE[role];
+  const filters = role ? FILTERS_BY_ROLE[role] : [];
   const [filterValues, setFilterValues] = useState<Record<string, string>>(
     Object.fromEntries(filters.map((f) => [f.id, f.options[0].value])),
   );
@@ -909,6 +908,7 @@ export const AnalyticsPage: React.FC = () => {
   );
 
   const filteredKPIs = useMemo(() => {
+    if (!role) return [];
     const baseKPIs = kpiMetricsByRole[role];
     if (multiplier >= 1.0) return baseKPIs;
     // Adjust KPI values based on multiplier
@@ -965,6 +965,8 @@ export const AnalyticsPage: React.FC = () => {
     youth: Math.round(25 + r.growth * 4 * (0.9 + multiplier * 0.1)),
     adult: Math.round(70 - r.growth * 2 * (0.9 + multiplier * 0.1)),
   }));
+
+  if (!role) return null;
 
   return (
     <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
   initKeycloak,
   login as keycloakLogin,
@@ -42,6 +43,24 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
             setAccessToken(token);
           } catch (e) {
             console.warn("[auth-context] Failed to get access token:", e);
+          }
+
+          // Welcome toast — fires once per session on first load
+          if (profile) {
+            const ctx =
+              profile.role === "ministry"
+                ? "National"
+                : profile.role === "federation"
+                  ? (profile.organizationName ?? profile.region ?? "your federation")
+                  : (profile.cooperationName ?? profile.region ?? "your organization");
+
+            // Delay slightly so the Toaster has time to mount
+            setTimeout(() => {
+              toast.success(`Welcome back, ${profile.firstName || profile.name}!`, {
+                description: `Signed in to ${ctx}`,
+                duration: 5000,
+              });
+            }, 800);
           }
         }
       } catch (error) {

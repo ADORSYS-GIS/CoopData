@@ -73,7 +73,7 @@ export function DebugAuth() {
                 }
               } catch (e) {
                 console.error("[DEBUG] API Error:", e);
-                alert(`❌ API Error: ${e.message}`);
+                alert(`❌ API Error: ${e instanceof Error ? e.message : String(e)}`);
               }
             }}
             className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"

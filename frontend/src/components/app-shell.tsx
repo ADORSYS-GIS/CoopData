@@ -230,6 +230,22 @@ function Sidebar({
                 <p className="text-[11px] text-sidebar-foreground/75 truncate">
                   {currentRole.label}
                 </p>
+                {!isCollapsed &&
+                  (() => {
+                    const ctx =
+                      effectiveRole === "ministry"
+                        ? "National"
+                        : effectiveRole === "federation"
+                          ? (user?.organizationName ?? user?.region ?? null)
+                          : effectiveRole === "apex" || effectiveRole === "cooperative"
+                            ? (user?.cooperationName ?? user?.region ?? null)
+                            : null;
+                    return ctx ? (
+                      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
+                        {ctx}
+                      </p>
+                    ) : null;
+                  })()}
               </div>
             )}
           </Link>
