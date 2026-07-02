@@ -11,7 +11,6 @@ authors = ["CoopData Team"]
 axum = { version = "0.7", features = ["macros", "multipart"] }
 axum-extra = { version = "0.9", features = ["cookie", "typed-header"] }
 tokio = { version = "1", features = ["full"] }
-tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace", "request-id", "timeout", "limit", "compression-br", "compression-gzip"] }
 
 serde = { version = "1", features = ["derive"] }
@@ -22,10 +21,10 @@ sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-native-
 sea-orm-migration = "1.1"
 
 utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "4", features = ["axum"] }
 
 anyhow = "1"
 thiserror = "1"
+dotenvy = "0.15"
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
@@ -43,9 +42,14 @@ redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
 
 async-trait = "0.1"
 
+[features]
+test-utils = []
+
 [dev-dependencies]
 tokio-test = "0.4"
 serde_test = "1"
+tower = { version = "0.5", features = ["util"] }
+coop-data-backend = { path = ".", features = ["test-utils"] }
 
 [profile.release]
 lto = true

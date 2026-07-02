@@ -1,0 +1,155 @@
+# Required: Copy .env.example to .env and set your own values before running:
+#   cp .env.example .env
+#
+# WARNING: The .env.example file contains weak default passwords.
+# NEVER use those defaults in production. Generate strong secrets for your .env file.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: coopdata-postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coopdata"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: coopdata-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak
+    command: start-dev --import-realm
+    env_file:
+      - .env
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: ${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: "8180"
+      COOPDATA_SUPER_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_SUPER_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
+      COOPDATA_SUPER_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
+    ports:
+      - "8180:8180"
+      - "9000:9000"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+      - ./keycloak/themes:/opt/keycloak/themes
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8180'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  keycloak-provision:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak-provision
+    env_file:
+      - .env
+    environment:
+      KEYCLOAK_SERVER: http://keycloak:8180
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      COOPDATA_DGRV_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_DGRV_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_DGRV_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
+      COOPDATA_DGRV_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
+      COOPDATA_MINISTRY_ADMIN_EMAIL: ${COOPDATA_MINISTRY_ADMIN_EMAIL:-admin@ministry.gov}
+      COOPDATA_MINISTRY_ADMIN_PASSWORD: ${COOPDATA_MINISTRY_ADMIN_PASSWORD:-Ministry@Admin2026!}
+      COOPDATA_MINISTRY_ADMIN_FIRSTNAME: ${COOPDATA_MINISTRY_ADMIN_FIRSTNAME:-Ministry}
+      COOPDATA_MINISTRY_ADMIN_LASTNAME: ${COOPDATA_MINISTRY_ADMIN_LASTNAME:-Administrator}
+    volumes:
+      - ./keycloak/provision.sh:/opt/keycloak/data/import/provision.sh:ro
+    entrypoint: ["/bin/bash", "/opt/keycloak/data/import/provision.sh"]
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: coopdata-backend
+    env_file:
+      - .env
+    environment:
+      HOST: ${HOST}
+      PORT: ${PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ENVIRONMENT: ${ENVIRONMENT}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
+    container_name: coopdata-frontend
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

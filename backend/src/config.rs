@@ -16,6 +16,7 @@ pub struct AppConfig {
     pub keycloak_client_secret: String,
     pub jwt_issuer: String,
     pub jwt_audience: String,
+    pub jwt_issuer_aliases: Vec<String>,
     pub frontend_url: String,
     pub environment: Environment,
 }
@@ -44,6 +45,12 @@ impl AppConfig {
                 .expect("KEYCLOAK_CLIENT_SECRET must be set"),
             jwt_issuer: env::var("JWT_ISSUER").unwrap_or_else(|_| "coopdata".into()),
             jwt_audience: env::var("JWT_AUDIENCE").unwrap_or_else(|_| "coopdata-api".into()),
+            jwt_issuer_aliases: env::var("JWT_ISSUER_ALIASES")
+                .unwrap_or_else(|_| String::new())
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
             frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
             environment: env::var("ENVIRONMENT")
                 .map(|s| match s.to_lowercase().as_str() {
@@ -67,7 +74,86 @@ impl AppConfig {
         self.environment == Environment::Production
     }
 
+    pub fn jwt_audiences(&self) -> Vec<String> {
+        vec![
+            self.keycloak_client_id.clone(),
+            "coopdata-frontend".to_string(),
+            "coopdata-backend".to_string(),
+        ]
+    }
+
     pub fn is_development(&self) -> bool {
         self.environment == Environment::Development
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_production_true() {
+        let config = AppConfig {
+            host: "0.0.0.0".into(),
+            port: 3000,
+            database_url: "x".into(),
+            redis_url: "x".into(),
+            keycloak_url: "x".into(),
+            keycloak_realm: "x".into(),
+            keycloak_client_id: "x".into(),
+            keycloak_client_secret: "x".into(),
+            jwt_issuer: "x".into(),
+            jwt_audience: "x".into(),
+            jwt_issuer_aliases: vec![],
+            frontend_url: "x".into(),
+            environment: Environment::Production,
+        };
+        assert!(config.is_production());
+        assert!(!config.is_development());
+    }
+
+    #[test]
+    fn test_is_development_true() {
+        let config = AppConfig {
+            host: "0.0.0.0".into(),
+            port: 3000,
+            database_url: "x".into(),
+            redis_url: "x".into(),
+            keycloak_url: "x".into(),
+            keycloak_realm: "x".into(),
+            keycloak_client_id: "x".into(),
+            keycloak_client_secret: "x".into(),
+            jwt_issuer: "x".into(),
+            jwt_audience: "x".into(),
+            jwt_issuer_aliases: vec![],
+            frontend_url: "x".into(),
+            environment: Environment::Development,
+        };
+        assert!(config.is_development());
+        assert!(!config.is_production());
+    }
+
+    #[test]
+    fn test_jwt_audiences_includes_defaults() {
+        let config = AppConfig {
+            host: "0.0.0.0".into(),
+            port: 3000,
+            database_url: "x".into(),
+            redis_url: "x".into(),
+            keycloak_url: "x".into(),
+            keycloak_realm: "x".into(),
+            keycloak_client_id: "my-client".into(),
+            keycloak_client_secret: "x".into(),
+            jwt_issuer: "x".into(),
+            jwt_audience: "x".into(),
+            jwt_issuer_aliases: vec![],
+            frontend_url: "x".into(),
+            environment: Environment::Development,
+        };
+        let audiences = config.jwt_audiences();
+        assert!(audiences.contains(&"my-client".to_string()));
+        assert!(audiences.contains(&"coopdata-frontend".to_string()));
+        assert!(audiences.contains(&"coopdata-backend".to_string()));
+        assert_eq!(audiences.len(), 3);
     }
 }

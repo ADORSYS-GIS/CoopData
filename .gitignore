@@ -7,7 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
 .output
@@ -30,4 +33,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend
+backend/target
+
+# Environment files (never commit real secrets)
+.env
+.env.*
+!.env.example
+backend/.env.development
+
+# Docs (generated)
 doc
+docs/progress.md
+docs/design.md
+
+# openapi-client/api.d.ts is generated — commit index.ts but ignore the generated types
+frontend/src/openapi-client/api.d.ts

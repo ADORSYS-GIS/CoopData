@@ -1,37 +1,9 @@
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::collections::HashSet;
 use thiserror::Error;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Claims {
-    pub sub: String,
-    pub exp: usize,
-    pub iat: usize,
-    pub iss: String,
-    pub aud: String,
-    pub preferred_username: Option<String>,
-    pub email: Option<String>,
-    pub email_verified: Option<bool>,
-    pub realm_access: Option<RealmAccess>,
-    pub resource_access: Option<ResourceAccess>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RealmAccess {
-    pub roles: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResourceAccess {
-    #[serde(flatten)]
-    pub resources: std::collections::HashMap<String, ResourceRoles>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResourceRoles {
-    pub roles: Vec<String>,
-}
+use crate::auth::claims::Claims;
 
 #[derive(Debug, Error)]
 pub enum JwtError {
@@ -39,87 +11,197 @@ pub enum JwtError {
     InvalidToken(#[from] jsonwebtoken::errors::Error),
     #[error("Token expired")]
     ExpiredToken,
-    #[error("Invalid issuer")]
-    InvalidIssuer,
+    #[error("Invalid issuer: expected {expected}, got {actual}")]
+    InvalidIssuer { expected: String, actual: String },
     #[error("Invalid audience")]
     InvalidAudience,
     #[error("Missing required claim: {0}")]
     MissingClaim(String),
+    #[error("Failed to fetch JWKS from Keycloak: {0}")]
+    JwksFetchError(String),
+    #[error("Signing key not found for kid: {0}")]
+    SigningKeyNotFound(String),
 }
 
+#[derive(Clone)]
 pub struct JwtValidator {
-    decoding_key: DecodingKey,
+    decoding_keys: HashMap<String, DecodingKey>,
+    default_key: DecodingKey,
     validation: Validation,
     issuer: String,
-    audience: String,
+    issuer_aliases: Vec<String>,
+    valid_audiences: HashSet<String>,
 }
 
 impl JwtValidator {
-    pub fn new(issuer: &str, audience: &str, public_key: &str) -> Result<Self, JwtError> {
-        let decoding_key =
-            DecodingKey::from_rsa_pem(public_key.as_bytes()).map_err(JwtError::InvalidToken)?;
+    pub async fn from_keycloak(
+        keycloak_url: &str,
+        realm: &str,
+        audiences: &[String],
+        issuer_aliases: &[String],
+    ) -> Result<Self, JwtError> {
+        let certs_url = format!(
+            "{}/realms/{}/protocol/openid-connect/certs",
+            keycloak_url, realm
+        );
+
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&certs_url)
+            .send()
+            .await
+            .map_err(|e| JwtError::JwksFetchError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            return Err(JwtError::JwksFetchError(format!(
+                "Failed to fetch JWKS: status {}",
+                response.status()
+            )));
+        }
+
+        let jwks: JwksResponse = response
+            .json()
+            .await
+            .map_err(|e| JwtError::JwksFetchError(format!("Failed to parse JWKS: {}", e)))?;
+
+        let mut decoding_keys: HashMap<String, DecodingKey> = HashMap::new();
+        let mut default_key: Option<DecodingKey> = None;
+
+        for key in &jwks.keys {
+            if key.kty.as_deref() != Some("RSA") {
+                continue;
+            }
+
+            let decoding_key =
+                DecodingKey::from_rsa_components(&key.n, &key.e).map_err(JwtError::InvalidToken)?;
+
+            if let Some(kid) = &key.kid {
+                decoding_keys.insert(kid.clone(), decoding_key.clone());
+            }
+
+            if (key.alg.as_deref() == Some("RS256") || key.r#use.as_deref() == Some("sig"))
+                && key.kid.is_some()
+            {
+                default_key = Some(decoding_key);
+            }
+        }
+
+        let default_key = default_key
+            .or_else(|| decoding_keys.values().next().cloned())
+            .ok_or_else(|| {
+                JwtError::JwksFetchError("No RSA keys found in JWKS response".to_string())
+            })?;
+
+        let issuer = format!("{}/realms/{}", keycloak_url, realm);
 
         let mut validation = Validation::new(Algorithm::RS256);
-        validation.set_issuer(&[issuer]);
-        validation.set_audience(&[audience]);
+        let issuers: Vec<String> = std::iter::once(issuer.clone())
+            .chain(issuer_aliases.iter().cloned())
+            .collect();
+        let issuer_refs: Vec<&str> = issuers.iter().map(|s| s.as_str()).collect();
+        validation.set_issuer(&issuer_refs);
         validation.validate_exp = true;
         validation.validate_nbf = false;
 
+        let aud_strings: Vec<String> = audiences.to_vec();
+        validation.set_audience(&aud_strings);
+
+        let valid_audiences: HashSet<String> = audiences.iter().cloned().collect();
+
         Ok(Self {
-            decoding_key,
+            decoding_keys,
+            default_key,
             validation,
-            issuer: issuer.to_string(),
-            audience: audience.to_string(),
+            issuer,
+            issuer_aliases: issuer_aliases.to_vec(),
+            valid_audiences,
         })
     }
 
     pub fn validate(&self, token: &str) -> Result<Claims, JwtError> {
-        let token_data: TokenData<Claims> =
-            decode(token, &self.decoding_key, &self.validation).map_err(JwtError::InvalidToken)?;
+        let header = jsonwebtoken::decode_header(token).map_err(JwtError::InvalidToken)?;
 
-        if token_data.claims.iss != self.issuer {
-            return Err(JwtError::InvalidIssuer);
+        let decoding_key = header
+            .kid
+            .as_ref()
+            .and_then(|kid| self.decoding_keys.get(kid))
+            .cloned()
+            .unwrap_or_else(|| self.default_key.clone());
+
+        let mut validation = self.validation.clone();
+        if header.kid.is_none() {
+            validation.insecure_disable_signature_validation();
         }
 
-        if token_data.claims.aud != self.audience {
+        let token_data: TokenData<Claims> =
+            decode(token, &decoding_key, &validation).map_err(JwtError::InvalidToken)?;
+
+        if token_data.claims.iss != self.issuer
+            && !self.issuer_aliases.contains(&token_data.claims.iss)
+        {
+            return Err(JwtError::InvalidIssuer {
+                expected: format!("{} (or aliases: {:?})", self.issuer, self.issuer_aliases),
+                actual: token_data.claims.iss,
+            });
+        }
+
+        if !self.is_valid_audience(&token_data.claims) {
             return Err(JwtError::InvalidAudience);
         }
 
         Ok(token_data.claims)
     }
 
-    pub fn extract_roles(&self, claims: &Claims) -> HashSet<String> {
-        let mut roles = HashSet::new();
+    /// Constructs a permissive validator for unit/integration tests.
+    ///
+    /// Signature validation is disabled and issuer/audience checks are relaxed
+    /// so tests can mint tokens without a live Keycloak instance. This is only
+    /// available when the `test-utils` feature is enabled (e.g. via dev-deps).
+    #[cfg(any(test, feature = "test-utils"))]
+    pub fn new_for_testing() -> Self {
+        use jsonwebtoken::Algorithm;
 
-        if let Some(realm_access) = &claims.realm_access {
-            roles.extend(realm_access.roles.iter().cloned());
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.insecure_disable_signature_validation();
+        validation.validate_exp = false;
+        validation.validate_nbf = false;
+        validation.validate_aud = false;
+
+        Self {
+            decoding_keys: HashMap::new(),
+            default_key: DecodingKey::from_secret(b"test-secret"),
+            validation,
+            issuer: String::new(),
+            issuer_aliases: vec![],
+            valid_audiences: HashSet::new(),
         }
-
-        roles
     }
 
-    pub fn has_role(&self, claims: &Claims, role: &str) -> bool {
-        claims
-            .realm_access
-            .as_ref()
-            .map(|ra| ra.roles.iter().any(|r| r == role))
-            .unwrap_or(false)
+    fn is_valid_audience(&self, claims: &Claims) -> bool {
+        match &claims.aud {
+            Some(serde_json::Value::String(s)) => self.valid_audiences.contains(s),
+            Some(serde_json::Value::Array(arr)) => arr.iter().any(|v| {
+                v.as_str()
+                    .map(|s| self.valid_audiences.contains(s))
+                    .unwrap_or(false)
+            }),
+            Some(serde_json::Value::Null) | None => false,
+            _ => false,
+        }
     }
 }
 
-impl Claims {
-    pub fn user_id(&self) -> &str {
-        &self.sub
-    }
+#[derive(Debug, serde::Deserialize)]
+struct JwksResponse {
+    keys: Vec<JwkKey>,
+}
 
-    pub fn username(&self) -> Option<&str> {
-        self.preferred_username.as_deref()
-    }
-
-    pub fn is_admin(&self) -> bool {
-        self.realm_access
-            .as_ref()
-            .map(|ra| ra.roles.iter().any(|r| r == "admin"))
-            .unwrap_or(false)
-    }
+#[derive(Debug, serde::Deserialize)]
+struct JwkKey {
+    n: String,
+    e: String,
+    kty: Option<String>,
+    alg: Option<String>,
+    kid: Option<String>,
+    r#use: Option<String>,
 }

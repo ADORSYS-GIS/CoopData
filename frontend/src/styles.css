@@ -1,0 +1,358 @@
+@import "tw-animate-css";
+@import "tailwindcss" source(none);
+
+@source "../src";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-heading: "DM Serif Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-elev-1: 0 1px 2px 0 oklch(0.15 0.02 250 / 0.06), 0 1px 3px 0 oklch(0.15 0.02 250 / 0.08);
+  --shadow-elev-2:
+    0 4px 12px -2px oklch(0.15 0.02 250 / 0.1), 0 2px 4px -2px oklch(0.15 0.02 250 / 0.05);
+  --shadow-elev-3:
+    0 12px 32px -4px oklch(0.15 0.02 250 / 0.14), 0 4px 8px -2px oklch(0.15 0.02 250 / 0.06);
+
+  /* Easing curves (Emil Kowalski principles) */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.13 0.04 258);
+  --surface: oklch(1 0 0);
+  --surface-elevated: oklch(1 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.13 0.04 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.13 0.04 258);
+
+  /* Deep authoritative navy */
+  --primary: oklch(0.22 0.06 258);
+  --primary-foreground: oklch(0.98 0.005 250);
+
+  /* Government sky blue */
+  --accent: oklch(0.5 0.17 240);
+  --accent-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.96 0.008 250);
+  --secondary-foreground: oklch(0.22 0.06 258);
+
+  --muted: oklch(0.96 0.006 250);
+  --muted-foreground: oklch(0.5 0.02 258);
+
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.56 0.15 155);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.7 0.15 75);
+  --warning-foreground: oklch(0.2 0.04 60);
+  --info: oklch(0.55 0.14 230);
+  --info-foreground: oklch(1 0 0);
+
+  --border: oklch(0.91 0.008 255);
+  --input: oklch(0.91 0.008 255);
+  --ring: oklch(0.5 0.17 240);
+
+  --chart-1: oklch(0.5 0.17 240);
+  --chart-2: oklch(0.56 0.15 155);
+  --chart-3: oklch(0.7 0.15 75);
+  --chart-4: oklch(0.55 0.18 305);
+  --chart-5: oklch(0.62 0.14 200);
+
+  /* Professional Light Sidebar */
+  --sidebar: oklch(0.96 0.005 250);
+  --sidebar-foreground: oklch(0.15 0.05 258);
+  --sidebar-primary: oklch(0.5 0.17 240);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.92 0.005 250);
+  --sidebar-accent-foreground: oklch(0.15 0.05 258);
+  --sidebar-border: oklch(0.9 0.01 250);
+  --sidebar-ring: oklch(0.5 0.17 240);
+}
+
+.dark {
+  /* Neutral dark palette — warm charcoal, NOT blue */
+  --background: oklch(0.13 0.005 260);
+  --foreground: oklch(0.94 0.005 260);
+  --surface: oklch(0.17 0.008 260);
+  --surface-elevated: oklch(0.21 0.01 260);
+  --card: oklch(0.17 0.008 260);
+  --card-foreground: oklch(0.94 0.005 260);
+  --popover: oklch(0.19 0.01 260);
+  --popover-foreground: oklch(0.94 0.005 260);
+
+  /* Primary — lighter for dark bg contrast, slightly cool neutral */
+  --primary: oklch(0.7 0.1 250);
+  --primary-foreground: oklch(0.1 0.01 260);
+
+  /* Accent — bright sky blue on dark */
+  --accent: oklch(0.68 0.16 240);
+  --accent-foreground: oklch(0.1 0.01 260);
+
+  --secondary: oklch(0.22 0.01 260);
+  --secondary-foreground: oklch(0.94 0.005 260);
+
+  --muted: oklch(0.22 0.01 260);
+  --muted-foreground: oklch(0.62 0.01 260);
+
+  /* Semantic colors — adjusted for dark backgrounds */
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.72 0.17 155);
+  --success-foreground: oklch(0.1 0.01 260);
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.15 0.02 60);
+  --info: oklch(0.68 0.14 230);
+  --info-foreground: oklch(0.1 0.01 260);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.68 0.16 240);
+
+  /* Chart colors — brighter for dark mode */
+  --chart-1: oklch(0.68 0.16 240);
+  --chart-2: oklch(0.72 0.17 155);
+  --chart-3: oklch(0.78 0.15 75);
+  --chart-4: oklch(0.68 0.18 305);
+  --chart-5: oklch(0.75 0.14 200);
+
+  /* Sidebar stays deep navy in both modes */
+  --sidebar: oklch(0.13 0.04 258);
+  --sidebar-foreground: oklch(0.9 0.01 250);
+  --sidebar-primary: oklch(0.68 0.16 240);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.2 0.05 258);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.25 0.04 258);
+  --sidebar-ring: oklch(0.68 0.16 240);
+
+  /* Shadows — subtler in dark mode */
+  --shadow-elev-1: 0 1px 2px 0 oklch(0 0 0 / 0.3), 0 1px 3px 0 oklch(0 0 0 / 0.2);
+  --shadow-elev-2: 0 4px 12px -2px oklch(0 0 0 / 0.4), 0 2px 4px -2px oklch(0 0 0 / 0.2);
+  --shadow-elev-3: 0 12px 32px -4px oklch(0 0 0 / 0.5), 0 4px 8px -2px oklch(0 0 0 / 0.3);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+  }
+  html {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+  .ring-soft {
+    box-shadow: 0 0 0 1px oklch(0.5 0.17 240 / 0.12);
+  }
+
+  /* ── Card colored side-edge ── */
+  .card-edge {
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-primary);
+  }
+  .card-edge-success {
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-success);
+  }
+  .card-edge-warning {
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-warning);
+  }
+  .card-edge-danger {
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-destructive);
+  }
+  .card-edge-info {
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-info);
+  }
+  .card-edge-primary {
+    box-shadow: var(--shadow-elev-1);
+    border-left: 4px solid var(--color-primary);
+  }
+
+  /* ── Hover lift ── */
+  .hover-lift {
+    transition:
+      transform 200ms var(--ease-out-expo),
+      box-shadow 200ms var(--ease-out-expo);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elev-2);
+  }
+
+  /* ── Button press feedback (Emil Kowalski) ── */
+  .press-feedback {
+    transition: transform 160ms var(--ease-out-expo);
+  }
+  .press-feedback:active {
+    transform: scale(0.97);
+  }
+
+  /* ── Scroll-reveal ── */
+  [data-animate] {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 550ms var(--ease-out-expo),
+      transform 550ms var(--ease-out-expo);
+  }
+  [data-animate].animate-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  [data-animate-delay="1"] {
+    transition-delay: 75ms;
+  }
+  [data-animate-delay="2"] {
+    transition-delay: 150ms;
+  }
+  [data-animate-delay="3"] {
+    transition-delay: 225ms;
+  }
+  [data-animate-delay="4"] {
+    transition-delay: 300ms;
+  }
+  [data-animate-delay="5"] {
+    transition-delay: 375ms;
+  }
+  [data-animate-delay="6"] {
+    transition-delay: 450ms;
+  }
+}
+
+/* ── Hero entrance animations ── */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes heroPanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.animate-hero {
+  opacity: 0;
+  animation: heroFadeUp 650ms var(--ease-out-expo) forwards;
+}
+.animate-hero-delay-1 {
+  animation-delay: 80ms;
+}
+.animate-hero-delay-2 {
+  animation-delay: 180ms;
+}
+.animate-hero-delay-3 {
+  animation-delay: 280ms;
+}
+.animate-hero-delay-4 {
+  animation-delay: 380ms;
+}
+.animate-panel {
+  opacity: 0;
+  animation: heroPanelIn 700ms var(--ease-out-expo) 200ms forwards;
+}

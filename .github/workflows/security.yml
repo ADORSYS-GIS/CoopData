@@ -3,8 +3,10 @@ name: Security Validation
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   security-scan:
@@ -28,20 +30,30 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: "./package-lock.json"
+          cache-dependency-path: "./frontend/package-lock.json"
 
       - name: Install frontend dependencies
+        working-directory: ./frontend
         run: npm ci
 
       - name: Run npm audit (frontend vulnerabilities)
+        working-directory: ./frontend
         run: npm audit --audit-level=critical
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Install Rust toolchain for backend audit
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache cargo-audit binary
+        id: cache-cargo-audit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: ${{ runner.os }}-cargo-audit-${{ hashFiles('backend/Cargo.lock') }}
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit
+        run: cargo install cargo-audit --locked
+        if: steps.cache-cargo-audit.outputs.cache-hit != 'true'
 
       - name: Run cargo audit (backend vulnerabilities)
         working-directory: ./backend

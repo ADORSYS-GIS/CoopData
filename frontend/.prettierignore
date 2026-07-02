@@ -1,0 +1,5 @@
+node_modules
+dist
+coverage
+src/routeTree.gen.ts
+src/openapi-client/api.d.ts

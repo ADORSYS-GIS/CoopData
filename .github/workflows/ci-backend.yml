@@ -3,140 +3,115 @@ name: Backend CI
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
-    paths:
-      - "backend/**"
-      - ".github/workflows/ci-backend.yml"
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  setup:
-    name: Setup
+  backend_setup:
+    name: Backend Setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt, clippy
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            backend/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/backend/Cargo.lock') }}
+          workspaces: ./backend
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-
+          cache-on-failure: true
 
-  build:
-    name: Build
+  backend_lint:
+    name: Backend Lint
+    needs: [backend_setup]
     runs-on: ubuntu-latest
-    needs: setup
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Restore Cache
-        uses: actions/cache/restore@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            backend/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/backend/Cargo.lock') }}
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./backend
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-
+
+      - name: Format check
+        working-directory: ./backend
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        working-directory: ./backend
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  backend_build:
+    name: Backend Build
+    needs: [backend_setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./backend
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-
 
       - name: Build
         working-directory: ./backend
         run: cargo build --workspace --all-targets --all-features
 
-  test:
-    name: Test
+  backend_test:
+    name: Backend Test
+    needs: [backend_setup]
     runs-on: ubuntu-latest
-    needs: setup
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Restore Cache
-        uses: actions/cache/restore@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            backend/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/backend/Cargo.lock') }}
+          workspaces: ./backend
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-
 
-      - name: Run Tests
+      - name: Run tests
         working-directory: ./backend
         run: cargo test --workspace --all-targets --all-features
 
-  lint:
-    name: Lint
+  backend_docs:
+    name: Backend Docs
+    needs: [backend_setup]
     runs-on: ubuntu-latest
-    needs: setup
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
         with:
-          components: rustfmt, clippy
+          workspaces: ./backend
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-
 
-      - name: Restore Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            backend/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/backend/Cargo.lock') }}
-
-      - name: Format Check
-        working-directory: ./backend
-        run: cargo fmt --all --check
-
-      - name: Clippy Check
-        working-directory: ./backend
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Restore Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            backend/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/backend/Cargo.lock') }}
-
-      - name: Generate Documentation
+      - name: Generate docs
         working-directory: ./backend
         run: cargo doc --workspace --all-features --no-deps

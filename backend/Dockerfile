@@ -1,24 +1,31 @@
-# Dockerfile for backend (Rust Axum)
 FROM rust:1.88-bookworm AS builder
-WORKDIR /app
-# Install build dependencies
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
-# Copy Cargo files for dependency caching
-COPY Cargo.toml Cargo.lock* ./
-# Create dummy main to compile dependencies first
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-# Build dependencies only (this layer is cached unless Cargo.toml changes)
-RUN cargo build --release
-# Remove dummy files
-RUN rm -rf src
-# Copy actual source code
-COPY src ./src
-# Build the application
-RUN cargo build --release
 
-FROM gcr.io/distroless/cc-debian12
 WORKDIR /app
-COPY --from=builder /app/target/release/coop-data-backend ./coop-data-backend
-ENV RUST_LOG=info
-EXPOSE 8080
-CMD ["./coop-data-backend"]
+
+COPY backend/Cargo.toml backend/Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src target/release/coop-data-backend target/release/.fingerprint/coop-data-backend-*
+
+COPY backend/src ./src
+RUN cargo build --release --bin coop-data-backend
+
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/target/release/coop-data-backend /app/coop-data-backend
+
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+USER appuser
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=10 --start-period=30s \
+  CMD curl -sf http://localhost:3000/api/v1/health || exit 1
+
+CMD ["/app/coop-data-backend"]
