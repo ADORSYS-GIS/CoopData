@@ -198,6 +198,33 @@ export const useResendInvitation = () => {
   });
 };
 
+/** Remove a member from a federation */
+export const useRemoveFederationMember = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      federationId,
+      userId,
+    }: {
+      federationId: string;
+      userId: string;
+    }) => {
+      const { error } = await apiClient.DELETE(
+        "/api/v1/ministry/federations/{id}/members/{user_id}",
+        {
+          params: { path: { id: federationId, user_id: userId } },
+        },
+      );
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [FEDERATIONS_KEY, variables.federationId, "members"],
+      });
+    },
+  });
+};
+
 /** Delete an invitation */
 export const useDeleteInvitation = () => {
   const queryClient = useQueryClient();

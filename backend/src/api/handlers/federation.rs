@@ -4,6 +4,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use serde_json::json;
 
 use crate::api::dto::federation::{
     CreateFederationRequest, FederationResponse, UpdateFederationRequest,
@@ -427,4 +428,35 @@ pub async fn list_federation_members(
 
     let responses: Vec<MemberResponse> = members.into_iter().map(MemberResponse::from).collect();
     Ok((StatusCode::OK, Json(responses)))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/ministry/federations/{id}/members/{user_id}",
+    params(
+        ("id" = String, Path, description = "Federation (Organization) ID"),
+        ("user_id" = String, Path, description = "User (Member) ID")
+    ),
+    responses(
+        (status = 200, description = "Member removed from federation"),
+        (status = 403, description = "Forbidden - ministry role required", body = ErrorResponse),
+        (status = 404, description = "Member or federation not found", body = ErrorResponse)
+    ),
+    tag = "Ministry"
+)]
+pub async fn remove_federation_member(
+    State(state): State<AppState>,
+    Path((id, user_id)): Path<(String, String)>,
+) -> AppResult<impl IntoResponse> {
+    tracing::info!(federation_id = %id, user_id = %user_id, "Removing member from federation");
+
+    state
+        .keycloak
+        .remove_user_from_organization(&user_id, &id)
+        .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(json!({ "message": "Member removed from federation" })),
+    ))
 }

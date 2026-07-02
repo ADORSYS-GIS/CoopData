@@ -14,7 +14,7 @@ use axum::Router;
 use crate::api::handlers::federation::{
     create_federation, delete_federation, delete_federation_invitation, get_federation,
     invite_user_to_federation, list_federation_invitations, list_federation_members,
-    list_federations, resend_federation_invitation, update_federation,
+    list_federations, remove_federation_member, resend_federation_invitation, update_federation,
 };
 use crate::api::handlers::{create_organization, create_user, delete_organization, delete_user, get_organization, get_user, list_organizations, list_users, update_organization, update_user, assign_role_to_user};
 use crate::AppState;
@@ -75,6 +75,10 @@ pub fn ministry_routes() -> Router<AppState> {
         )
         // Federation Members
         .route("/federations/{id}/members", get(list_federation_members))
+        .route(
+            "/federations/{id}/members/{user_id}",
+            delete(remove_federation_member),
+        )
         // Organization CRUD
         .route(
             "/organizations",

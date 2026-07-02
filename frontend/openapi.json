@@ -1131,6 +1131,57 @@
         }
       }
     },
+    "/api/v1/ministry/federations/{id}/members/{user_id}": {
+      "delete": {
+        "tags": ["Ministry"],
+        "operationId": "remove_federation_member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Federation (Organization) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User (Member) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed from federation"
+          },
+          "403": {
+            "description": "Forbidden - ministry role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Member or federation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations": {
       "get": {
         "tags": [
