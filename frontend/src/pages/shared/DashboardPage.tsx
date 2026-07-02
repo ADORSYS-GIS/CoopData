@@ -4,7 +4,7 @@ import {
   ACTIVITY_FEED as INITIAL_ACTIVITY_FEED,
   USERS as INITIAL_USERS,
 } from "@/lib/mock-data";
-import { useAuth } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { useState } from "react";
 import { MinistryDashboard } from "@/components/dashboards/ministry-dashboard";
 import { FederationDashboard } from "@/components/dashboards/federation-dashboard";
@@ -13,15 +13,13 @@ import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashbo
 import { Navigate } from "@tanstack/react-router";
 
 export const DashboardPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
 
-  // Shared state simulation so changes persist in memory
   const [usersList] = useState(INITIAL_USERS);
   const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
   const [activities, setActivities] = useState(INITIAL_ACTIVITY_FEED);
   const [cooperatives, setCooperatives] = useState(INITIAL_COOPERATIVES);
 
-  // Suppress unused variable warnings — usersList will be used in future entity management
   void usersList;
 
   // If no recognized role, redirect to unauthorized page

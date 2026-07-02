@@ -86,3 +86,74 @@ impl AppConfig {
         self.environment == Environment::Development
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_production_true() {
+        let config = AppConfig {
+            host: "0.0.0.0".into(),
+            port: 3000,
+            database_url: "x".into(),
+            redis_url: "x".into(),
+            keycloak_url: "x".into(),
+            keycloak_realm: "x".into(),
+            keycloak_client_id: "x".into(),
+            keycloak_client_secret: "x".into(),
+            jwt_issuer: "x".into(),
+            jwt_audience: "x".into(),
+            jwt_issuer_aliases: vec![],
+            frontend_url: "x".into(),
+            environment: Environment::Production,
+        };
+        assert!(config.is_production());
+        assert!(!config.is_development());
+    }
+
+    #[test]
+    fn test_is_development_true() {
+        let config = AppConfig {
+            host: "0.0.0.0".into(),
+            port: 3000,
+            database_url: "x".into(),
+            redis_url: "x".into(),
+            keycloak_url: "x".into(),
+            keycloak_realm: "x".into(),
+            keycloak_client_id: "x".into(),
+            keycloak_client_secret: "x".into(),
+            jwt_issuer: "x".into(),
+            jwt_audience: "x".into(),
+            jwt_issuer_aliases: vec![],
+            frontend_url: "x".into(),
+            environment: Environment::Development,
+        };
+        assert!(config.is_development());
+        assert!(!config.is_production());
+    }
+
+    #[test]
+    fn test_jwt_audiences_includes_defaults() {
+        let config = AppConfig {
+            host: "0.0.0.0".into(),
+            port: 3000,
+            database_url: "x".into(),
+            redis_url: "x".into(),
+            keycloak_url: "x".into(),
+            keycloak_realm: "x".into(),
+            keycloak_client_id: "my-client".into(),
+            keycloak_client_secret: "x".into(),
+            jwt_issuer: "x".into(),
+            jwt_audience: "x".into(),
+            jwt_issuer_aliases: vec![],
+            frontend_url: "x".into(),
+            environment: Environment::Development,
+        };
+        let audiences = config.jwt_audiences();
+        assert!(audiences.contains(&"my-client".to_string()));
+        assert!(audiences.contains(&"coopdata-frontend".to_string()));
+        assert!(audiences.contains(&"coopdata-backend".to_string()));
+        assert_eq!(audiences.len(), 3);
+    }
+}

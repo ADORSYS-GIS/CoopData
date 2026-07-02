@@ -16,7 +16,6 @@ import {
 import { AppShell, Card } from "@/components/app-shell";
 import { useState } from "react";
 import { toast } from "sonner";
-import { requireRole } from "@/lib/route-guards";
 
 const GROUPS = [
   {

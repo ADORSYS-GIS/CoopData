@@ -7,7 +7,7 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_API_BASE_URL=http://localhost:3000/api/v1
+ARG VITE_API_BASE_URL=http://localhost:3000
 ARG VITE_KEYCLOAK_URL=http://localhost:8180
 ARG VITE_KEYCLOAK_REALM=coop-data
 ARG VITE_KEYCLOAK_CLIENT_ID=coopdata-frontend

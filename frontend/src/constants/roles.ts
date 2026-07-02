@@ -67,7 +67,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
   federation: {
     oversight: ["/app/dashboard", "/app/apexes", "/app/submissions"],
     intelligence: ["/app/reports", "/app/analytics"],
-    system: ["/app/users"],
+    system: ["/app/users", "/app/profile"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/data-collection", "/app/submissions"],
@@ -130,22 +130,26 @@ export const KEYCLOAK_ROLE_MAP: Record<string, Role> = {
   ministry: "ministry",
   federation: "federation",
   apex: "apex",
+  regional_officer: "apex",
   cooperative: "cooperative",
+  "default-roles-coop-data": "cooperative",
 };
 
-/** Get the primary Role from a list of Keycloak realm roles, respecting hierarchy */
+/**
+ * Get the primary Role from a list of Keycloak realm roles.
+ * Priority order: ministry > federation > apex > cooperative.
+ * This ensures a user with both "apex" and "default-roles-coop-data" is treated as apex.
+ */
 export function mapKeycloakRolesToRole(realmRoles: string[]): Role | null {
-  // Map all recognized roles from the token
-  const mapped = realmRoles
-    .map((r) => KEYCLOAK_ROLE_MAP[r])
-    .filter((r): r is Role => r !== undefined);
-
-  if (mapped.length === 0) return null;
-
-  // Return the highest-privilege role — ministry > federation > apex > cooperative
-  return mapped.reduce((best, current) =>
-    ROLE_HIERARCHY[current] > ROLE_HIERARCHY[best] ? current : best,
-  );
+  const priority: Role[] = ["ministry", "federation", "apex", "cooperative"];
+  for (const priorityRole of priority) {
+    for (const realmRole of realmRoles) {
+      if (KEYCLOAK_ROLE_MAP[realmRole] === priorityRole) {
+        return priorityRole;
+      }
+    }
+  }
+  return null;
 }
 
 /** Role hierarchy for access control — higher roles can access lower routes */

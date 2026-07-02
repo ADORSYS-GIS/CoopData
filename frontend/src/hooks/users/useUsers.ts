@@ -43,8 +43,8 @@ export const useCreateUser = () => {
       full_name?: string;
       role: string;
       organization_id?: string;
+      group_id?: string;
       region?: string;
-      temporary_password: string;
     }) => {
       const { data, error } = await apiClient.POST("/api/v1/users", {
         body: body as never,

@@ -1,60 +1,128 @@
-import {
-  User,
-  Shield,
-  KeyRound,
-  History,
-  CheckCircle,
-  ToggleLeft,
-  ToggleRight,
-  BadgeAlert,
-  Fingerprint,
-  Mail,
-  Locate,
-  Lock,
-  Eye,
-  EyeOff,
-  ChevronRight,
-  Activity,
-  Clock,
-  Monitor,
-  Smartphone,
-  Globe,
-} from "lucide-react";
+import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Clock, Loader2 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
-import { useAuth, ROLES } from "@/lib/auth";
+import { useAuth, ROLES, useUserRole } from "@/lib/auth";
 import { useState } from "react";
 import { toast } from "sonner";
-import { requireAuth } from "@/lib/route-guards";
 
-export const ProfilePage: React.FC = () => {
-  const { role, user } = useAuth();
-  const [mfaActive, setMfaActive] = useState(true);
-  const [sessionTimeout, setSessionTimeout] = useState(60);
-  const [passwords, setPasswords] = useState({ current: "", newPassword: "", confirm: "" });
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-  if (!user) return null;
+function ChangePasswordCard() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showC, setShowC] = useState(false);
+  const [showN, setShowN] = useState(false);
+  const [showCo, setShowCo] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const currentRole = ROLES.find((r) => r.id === role) || {
-    label: "Workspace Member",
-    description: "Standard account",
-  };
-
-  const handlePasswordChange = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!passwords.current || !passwords.newPassword || !passwords.confirm) {
+  const handle = async () => {
+    if (!current || !next || !confirm) {
       toast.error("Please fill in all password fields.");
       return;
     }
-    if (passwords.newPassword !== passwords.confirm) {
+    if (next !== confirm) {
       toast.error("New passwords do not match.");
       return;
     }
-    toast.success("Password updated successfully!");
-    setPasswords({ current: "", newPassword: "", confirm: "" });
+    if (next.length < 8) {
+      toast.error("New password must be at least 8 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { getAccessToken } = await import("@/services/shared/authService");
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE}/api/v1/me/password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          current_password: current,
+          new_password: next,
+          logout_sessions: false,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!res.ok) {
+        toast.error(json.message ?? json.error ?? `Error ${res.status}`);
+        return;
+      }
+      toast.success(json.message ?? "Password updated successfully!");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Unexpected error.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const field = (
+    label: string,
+    value: string,
+    set: (v: string) => void,
+    show: boolean,
+    toggle: () => void,
+  ) => (
+    <div>
+      <label className="block text-xs font-semibold mb-1.5 text-foreground">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => set(e.target.value)}
+          placeholder="••••••••"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 pr-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
+        />
+        <button
+          type="button"
+          onClick={toggle}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {show ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <Card title="Change Account Password" subtitle="Rotate your credentials securely" edge="none">
+      <div className="space-y-4">
+        <div className="grid sm:grid-cols-3 gap-4">
+          {field("Current Password", current, setCurrent, showC, () => setShowC(!showC))}
+          {field("New Password", next, setNext, showN, () => setShowN(!showN))}
+          {field("Confirm Password", confirm, setConfirm, showCo, () => setShowCo(!showCo))}
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handle}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <KeyRound className="size-4" />
+            )}
+            Update password
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export const ProfilePage: React.FC = () => {
+  const { user } = useAuth();
+  const role = useUserRole();
+  const [mfaActive, setMfaActive] = useState(true);
+  const [sessionTimeout, setSessionTimeout] = useState(60);
+
+  if (!role || !user) return null;
+
+  const currentRole = ROLES.find((r) => r.id === role) || { label: "Workspace Member" };
 
   const getRoleCapabilities = () => {
     switch (role) {
@@ -114,76 +182,6 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const renderOrgDetails = () => {
-    switch (role) {
-      case "ministry":
-        return [
-          { label: "Department", value: "Directorate of Cooperative Societies" },
-          { label: "Ministry", value: "Ministry of Commerce, Industry & Trade" },
-          { label: "Office", value: "Government Headquarters, Mbabane" },
-          { label: "Authority Code", value: "MCT-COORD-001", mono: true },
-        ];
-      case "federation":
-        return [
-          { label: "Federation Division", value: "Manzini Regional Cooperative Federation" },
-          { label: "Primary Office", value: "Office 4, Central Union Building, Manzini" },
-          { label: "Cooperatives Under Management", value: "142 registered cooperatives" },
-          { label: "Federation License Code", value: "FED-MZN-2012", mono: true },
-        ];
-      case "apex":
-        return [
-          { label: "Apex Organization", value: "Hhohho & Lubombo Apex Cooperative Union" },
-          { label: "Primary Office", value: "Apex Building, Mbabane" },
-          { label: "Cooperatives Under Management", value: "28 registered cooperatives" },
-          { label: "Apex License Code", value: "APEX-HH-LB-001", mono: true },
-        ];
-      case "cooperative":
-        return [
-          { label: "Registered Cooperative", value: "Lubombo Dairy Cooperative" },
-          { label: "Registration Number", value: "COP-2015-00214", mono: true },
-          { label: "Sector", value: "Agricultural Unions" },
-          { label: "District Registry Office", value: "Siteki Hub" },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const sessionLogs = [
-    {
-      date: "Today, 10:02 AM",
-      ip: "197.104.22.84",
-      device: "Chrome 124.0 (Linux x86_64)",
-      deviceType: "desktop" as const,
-      region: user.region,
-      status: "active" as const,
-    },
-    {
-      date: "Yesterday, 02:40 PM",
-      ip: "197.104.22.84",
-      device: "Chrome 124.0 (Linux x86_64)",
-      deviceType: "desktop" as const,
-      region: user.region,
-      status: "closed" as const,
-    },
-    {
-      date: "June 14, 2026, 09:12 AM",
-      ip: "196.44.110.12",
-      device: "Firefox 120 (Android)",
-      deviceType: "mobile" as const,
-      region: "Manzini",
-      status: "closed" as const,
-    },
-    {
-      date: "June 10, 2026, 08:30 AM",
-      ip: "197.104.22.84",
-      device: "Safari 17 (macOS)",
-      deviceType: "desktop" as const,
-      region: user.region,
-      status: "closed" as const,
-    },
-  ];
-
   const capabilities = getRoleCapabilities();
   const allowedCount = capabilities.filter((c) => c.allowed).length;
 
@@ -193,7 +191,7 @@ export const ProfilePage: React.FC = () => {
       subtitle="Manage your identity settings and security configurations"
     >
       <div className="space-y-6 max-w-5xl mx-auto">
-        {/* ── Hero Profile Card ── */}
+        {/* Hero */}
         <Card edge="primary">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             <div className="relative">
@@ -225,28 +223,8 @@ export const ProfilePage: React.FC = () => {
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* ── Left Column ── */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Organization Details */}
-            <Card title="Organization Details" subtitle="Workspace association" edge="info">
-              <div className="space-y-0">
-                {renderOrgDetails().map((row, i) => (
-                  <div
-                    key={row.label}
-                    className={`flex justify-between items-start gap-3 py-3 ${i > 0 ? "border-t border-border" : ""}`}
-                  >
-                    <span className="text-xs text-muted-foreground shrink-0">{row.label}</span>
-                    <span
-                      className={`text-xs text-right ${row.mono ? "font-mono text-[11px]" : "font-semibold"} text-foreground`}
-                    >
-                      {row.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Security Preferences */}
+          {/* Left — Security only */}
+          <div className="lg:col-span-1">
             <Card
               title="Security Preferences"
               subtitle="Account protection settings"
@@ -268,20 +246,15 @@ export const ProfilePage: React.FC = () => {
                   <button
                     onClick={() => {
                       setMfaActive(!mfaActive);
-                      toast.success(`MFA security set to ${!mfaActive ? "ENABLED" : "DISABLED"}`);
+                      toast.success(`MFA ${!mfaActive ? "ENABLED" : "DISABLED"}`);
                     }}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                      mfaActive ? "bg-success border-success" : "bg-muted border-border"
-                    }`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${mfaActive ? "bg-success border-success" : "bg-muted border-border"}`}
                   >
                     <span
-                      className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform duration-200 ease-out ${
-                        mfaActive ? "translate-x-[18px]" : "translate-x-0"
-                      }`}
+                      className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform ${mfaActive ? "translate-x-[18px]" : "translate-x-0"}`}
                     />
                   </button>
                 </div>
-
                 <div className="p-3.5 rounded-xl border border-border bg-muted/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -312,9 +285,8 @@ export const ProfilePage: React.FC = () => {
             </Card>
           </div>
 
-          {/* ── Right Column ── */}
+          {/* Right — Permissions + Password */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Permissions Matrix */}
             <Card
               title="Role Scope & Ecosystem Permissions"
               subtitle="Your explicit security credentials matrix"
@@ -331,7 +303,7 @@ export const ProfilePage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {capabilities.map((cap, i) => (
-                      <tr key={i} className="hover:bg-muted/30 transition-colors group">
+                      <tr key={i} className="hover:bg-muted/30 transition-colors">
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2.5">
                             <div
@@ -353,149 +325,9 @@ export const ProfilePage: React.FC = () => {
               </div>
             </Card>
 
-            {/* Change Password */}
-            <Card
-              title="Change Account Password"
-              subtitle="Rotate your credentials securely"
-              edge="none"
-            >
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      Current Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPw ? "text" : "password"}
-                        required
-                        value={passwords.current}
-                        onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                        placeholder="••••••••"
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 pr-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPw(!showCurrentPw)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showCurrentPw ? (
-                          <EyeOff className="size-3.5" />
-                        ) : (
-                          <Eye className="size-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showNewPw ? "text" : "password"}
-                        required
-                        value={passwords.newPassword}
-                        onChange={(e) =>
-                          setPasswords({ ...passwords, newPassword: e.target.value })
-                        }
-                        placeholder="••••••••"
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 pr-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPw(!showNewPw)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showNewPw ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-foreground">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPw ? "text" : "password"}
-                        required
-                        value={passwords.confirm}
-                        onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                        placeholder="••••••••"
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 pr-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPw(!showConfirmPw)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showConfirmPw ? (
-                          <EyeOff className="size-3.5" />
-                        ) : (
-                          <Eye className="size-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm press-feedback"
-                  >
-                    <KeyRound className="size-4" /> Update password
-                  </button>
-                </div>
-              </form>
-            </Card>
+            <ChangePasswordCard />
           </div>
         </div>
-
-        {/* ── Session Access Logs ── */}
-        <Card
-          title="Recent Session Access Logs"
-          subtitle="Verify locations and devices utilized for account login"
-          edge="none"
-        >
-          <div className="-mx-5 -mb-5 overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-y border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3">Login Date</th>
-                  <th className="px-5 py-3">IP Address</th>
-                  <th className="px-5 py-3">Device Agent</th>
-                  <th className="px-5 py-3">Region</th>
-                  <th className="px-5 py-3 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sessionLogs.map((log, i) => (
-                  <tr key={i} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-3 font-semibold text-foreground">{log.date}</td>
-                    <td className="px-5 py-3 font-mono text-muted-foreground">{log.ip}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        {log.deviceType === "desktop" ? (
-                          <Monitor className="size-3.5 text-accent shrink-0" />
-                        ) : (
-                          <Smartphone className="size-3.5 text-accent shrink-0" />
-                        )}
-                        <span>{log.device}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-muted-foreground">{log.region} Region</td>
-                    <td className="px-5 py-3 text-center">
-                      <StatusPill tone={log.status === "active" ? "success" : "neutral"}>
-                        {log.status === "active" ? "Active" : "Closed"}
-                      </StatusPill>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       </div>
     </AppShell>
   );

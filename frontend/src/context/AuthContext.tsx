@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
   initKeycloak,
   login as keycloakLogin,
@@ -23,23 +24,47 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
 
     async function init() {
       try {
+        console.log("[auth-context] Starting Keycloak init...");
         const authenticated = await initKeycloak();
         if (!mounted) return;
 
+        console.log("[auth-context] Keycloak init result, authenticated:", authenticated);
         setIsAuthenticated(authenticated);
 
         if (authenticated) {
           const profile = getUserProfile();
+          console.log(
+            "[auth-context] User profile:",
+            profile ? { email: profile.email, role: profile.role } : null,
+          );
           setUser(profile);
           try {
             const token = await getAccessToken();
             setAccessToken(token);
-          } catch {
-            // Token unavailable — will retry on next API call
+          } catch (e) {
+            console.warn("[auth-context] Failed to get access token:", e);
+          }
+
+          // Welcome toast — fires once per session on first load
+          if (profile) {
+            const ctx =
+              profile.role === "ministry"
+                ? "National"
+                : profile.role === "federation"
+                  ? (profile.organizationName ?? profile.region ?? "your federation")
+                  : (profile.cooperationName ?? profile.region ?? "your organization");
+
+            // Delay slightly so the Toaster has time to mount
+            setTimeout(() => {
+              toast.success(`Welcome back, ${profile.firstName || profile.name}!`, {
+                description: `Signed in to ${ctx}`,
+                duration: 5000,
+              });
+            }, 800);
           }
         }
       } catch (error) {
-        console.error("Keycloak initialization failed:", error);
+        console.error("[auth-context] Keycloak initialization failed:", error);
         if (mounted) {
           setIsAuthenticated(false);
           setUser(null);
@@ -47,6 +72,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (mounted) {
           setIsLoading(false);
+          console.log("[auth-context] Loading complete");
         }
       }
     }
@@ -59,10 +85,12 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async () => {
+    console.log("[auth-context] login() called");
     await keycloakLogin();
   }, []);
 
   const logout = useCallback(async () => {
+    console.log("[auth-context] logout() called — redirecting");
     await keycloakLogout();
     setIsAuthenticated(false);
     setUser(null);
@@ -95,7 +123,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated,
     isLoading,
     user,
-    role: user?.role ?? "ministry",
+    role: user?.role ?? null,
     accessToken,
     login,
     logout,
@@ -120,13 +148,20 @@ export function useRole(): Role | null {
   return user?.role ?? null;
 }
 
+export function useUserRole(): Role | null {
+  const { isLoading, user } = useAuth();
+  if (isLoading) return null;
+  return user?.role ?? null;
+}
+
 export function useCanAccess(path: string): boolean {
   const { user } = useAuth();
   if (!user) return false;
 
-  const groups = ROLE_NAV[user.role];
-  for (const groupId of groups) {
-    const items = ROLE_NAV_ITEMS[user.role][groupId];
+  const navGroups = ROLE_NAV[user.role];
+  if (!navGroups) return false;
+  for (const groupId of navGroups) {
+    const items = ROLE_NAV_ITEMS[user.role]?.[groupId];
     if (items?.includes(path)) return true;
   }
   return false;

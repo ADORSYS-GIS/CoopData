@@ -1,10 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
-import { UsersPage } from "@/pages/shared/UsersPage";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+
+function UsersLayout() {
+  return (
+    <ProtectedRoute allowedRoles={["ministry", "federation", "apex"]}>
+      <Outlet />
+    </ProtectedRoute>
+  );
+}
 
 export const Route = createFileRoute("/app/users")({
-  beforeLoad: async () => {
-    await requireRole("ministry");
-  },
-  component: UsersPage,
+  component: UsersLayout,
 });

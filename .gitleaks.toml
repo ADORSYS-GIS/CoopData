@@ -1,0 +1,10 @@
+title = "CoopData Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist dev Keycloak realm export client secret"
+regexes = [
+    '''vR_NMIX8Al5SFswDBepZy_qXklvwyBC7srXzdOz8VP8''',
+]

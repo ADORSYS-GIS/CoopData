@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireAuth } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SubmissionDetailPage } from "@/pages/shared/SubmissionDetailPage";
 
+function SubmissionDetailRoute() {
+  return (
+    <ProtectedRoute>
+      <SubmissionDetailPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/submissions_/$id")({
-  beforeLoad: async () => {
-    await requireAuth();
-  },
-  component: SubmissionDetailPage,
+  component: SubmissionDetailRoute,
 });

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -10,6 +10,8 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+
+PROMPT_RESULT=""
 
 info()  { echo -e "${CYAN}[INFO]${NC}  $*"; }
 ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
@@ -69,7 +71,7 @@ prompt_choice() {
         read -r choice
     done
     echo ""
-    return $((choice - 1))
+    PROMPT_RESULT=$((choice - 1))
 }
 
 echo ""
@@ -108,9 +110,7 @@ if [[ "$RUNNING_CONTAINERS" -gt 0 ]]; then
         "Rebuild and start (keep data volumes)" \
         "Cancel — leave everything as is"
 
-    local_choice=$?
-
-    case $local_choice in
+    case $PROMPT_RESULT in
         0)
             info "Stopping all services..."
             $COMPOSE_CMD down
@@ -215,7 +215,7 @@ echo -e "  ${GREEN}►${NC}  Frontend:       ${CYAN}http://localhost:5174${NC}"
 echo -e "  ${GREEN}►${NC}  Backend API:    ${CYAN}http://localhost:3000/api/v1${NC}"
 echo -e "  ${GREEN}►${NC}  Swagger UI:     ${CYAN}http://localhost:3000/swagger-ui/${NC}"
 echo -e "  ${GREEN}►${NC}  Keycloak Admin: ${CYAN}http://localhost:8180${NC}"
-echo -e "                   Username: admin  Password: admin"
+echo -e "                   Username: admin  Password: (from .env)"
 echo -e "  ${GREEN}►${NC}  PostgreSQL:     ${CYAN}localhost:5432${NC} (coopdata / password)"
 echo -e "  ${GREEN}►${NC}  Redis:           ${CYAN}localhost:6379${NC}"
 echo ""

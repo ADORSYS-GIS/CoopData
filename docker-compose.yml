@@ -64,6 +64,10 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_PORT: "8180"
+      COOPDATA_SUPER_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_SUPER_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
+      COOPDATA_SUPER_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
     ports:
       - "8180:8180"
       - "9000:9000"
@@ -80,87 +84,29 @@ services:
       retries: 15
       start_period: 30s
 
-  # Configure SMTP for Keycloak after realm import (realm import doesn't overwrite existing settings)
-  keycloak-config:
-    image: alpine/curl:latest
-    container_name: coopdata-keycloak-config
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        apk add --no-cache jq
-
-        echo "Waiting for Keycloak to be ready..."
-        until curl -sf "http://keycloak:8180/realms/master" > /dev/null 2>&1; do
-          sleep 3
-        done
-        echo "Keycloak is ready! Configuring SMTP..."
-
-        # Get admin token
-        TOKEN=$$(curl -s -X POST "http://keycloak:8180/realms/master/protocol/openid-connect/token" \
-          -H "Content-Type: application/x-www-form-urlencoded" \
-          -d "username=$${KEYCLOAK_ADMIN}" \
-          -d "password=$${KEYCLOAK_ADMIN_PASSWORD}" \
-          -d "grant_type=password" \
-          -d "client_id=admin-cli" | jq -r '.access_token')
-
-        if [ -z "$$TOKEN" ] || [ "$$TOKEN" = "null" ]; then
-          echo "Failed to get admin token"
-          exit 1
-        fi
-
-        echo "Got admin token, fetching realm config..."
-
-        # Get current realm config
-        CURRENT=$$(curl -s "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
-          -H "Authorization: Bearer $$TOKEN")
-
-        # Update SMTP settings and frontendUrl using jq for proper JSON manipulation.
-        # frontendUrl tells Keycloak what public hostname to use in generated links
-        # (email verification, org invitation). Without it, Keycloak uses its internal
-        # Docker hostname (keycloak:8180) which browsers cannot resolve.
-        UPDATED=$$(echo "$$CURRENT" | jq \
-          --arg frontend_url "$${KEYCLOAK_FRONTEND_URL}" \
-          '.smtpServer = {
-            "starttls": "false",
-            "auth": "false",
-            "port": "1025",
-            "host": "mailhog",
-            "from": "coopdata@localhost",
-            "fromDisplayName": "CoopData",
-            "envelopeFrom": "",
-            "ssl": "false"
-          } | .attributes.frontendUrl = [$frontend_url]')
-
-        # Apply updated config
-        RESPONSE=$$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
-          -H "Authorization: Bearer $$TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "$$UPDATED")
-
-        if [ "$$RESPONSE" = "204" ] || [ "$$RESPONSE" = "200" ]; then
-          echo "SMTP configuration applied successfully!"
-          echo "  Host: mailhog:1025"
-          echo "  From: coopdata@localhost"
-        else
-          echo "Failed to apply SMTP config (HTTP $$RESPONSE)"
-          echo "Response body:"
-          curl -s -X PUT "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
-            -H "Authorization: Bearer $$TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$$UPDATED"
-          exit 1
-        fi
+  keycloak-provision:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak-provision
     env_file:
       - .env
     environment:
+      KEYCLOAK_SERVER: http://keycloak:8180
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      KEYCLOAK_FRONTEND_URL: ${KEYCLOAK_FRONTEND_URL}
+      COOPDATA_DGRV_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_DGRV_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_DGRV_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
+      COOPDATA_DGRV_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
+      COOPDATA_MINISTRY_ADMIN_EMAIL: ${COOPDATA_MINISTRY_ADMIN_EMAIL:-admin@ministry.gov}
+      COOPDATA_MINISTRY_ADMIN_PASSWORD: ${COOPDATA_MINISTRY_ADMIN_PASSWORD:-Ministry@Admin2026!}
+      COOPDATA_MINISTRY_ADMIN_FIRSTNAME: ${COOPDATA_MINISTRY_ADMIN_FIRSTNAME:-Ministry}
+      COOPDATA_MINISTRY_ADMIN_LASTNAME: ${COOPDATA_MINISTRY_ADMIN_LASTNAME:-Administrator}
+    volumes:
+      - ./keycloak/provision.sh:/opt/keycloak/data/import/provision.sh:ro
+    entrypoint: ["/bin/bash", "/opt/keycloak/data/import/provision.sh"]
     depends_on:
       keycloak:
         condition: service_healthy
-    restart: "no"
 
   backend:
     build:

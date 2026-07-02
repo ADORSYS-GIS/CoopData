@@ -9,8 +9,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
-use crate::api::dto::member::{AddMemberRequest, MemberResponse};
+use crate::api::dto::common::SuccessResponse;
+use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
 use crate::auth::claims::Claims;
+use crate::auth::rbac::ScopeEnforcement;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -246,8 +248,7 @@ pub async fn add_apex_member(
             &id,
             body.assigned_dimensions.clone(),
         )
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+        .await?;
 
     let first_name = user.first_name_str().to_string();
     let last_name = user.last_name_str().to_string();
@@ -263,6 +264,56 @@ pub async fn add_apex_member(
             email,
             first_name: Some(first_name).filter(|s| !s.is_empty()),
             last_name: Some(last_name).filter(|s| !s.is_empty()),
+        }),
+    ))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v1/federation/apexes/{group_id}/members/{user_id}",
+    params(
+        ("group_id" = String, Path, description = "Apex (Group) ID"),
+        ("user_id" = String, Path, description = "User ID to update")
+    ),
+    request_body = UpdateMemberRequest,
+    responses(
+        (status = 200, description = "Member updated", body = MemberResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse)
+    ),
+    tag = "Federation"
+)]
+pub async fn update_apex_member(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path((group_id, user_id)): Path<(String, String)>,
+    Json(body): Json<UpdateMemberRequest>,
+) -> AppResult<impl IntoResponse> {
+    if !claims.is_federation() {
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
+    }
+
+    state
+        .keycloak
+        .update_user_name(
+            &user_id,
+            body.first_name.as_deref(),
+            body.last_name.as_deref(),
+        )
+        .await?;
+
+    let updated = state.keycloak.get_user_by_id(&user_id).await?;
+
+    tracing::info!(group_id = %group_id, user_id = %user_id, "Apex member updated");
+    Ok((
+        StatusCode::OK,
+        Json(MemberResponse {
+            id: updated.id,
+            username: Some(updated.username),
+            email: updated.email,
+            first_name: updated.first_name,
+            last_name: updated.last_name,
         }),
     ))
 }
@@ -328,4 +379,65 @@ pub async fn remove_apex_member(
 
     tracing::info!(user_id = %user_id, group_id = %group_id, "Member removed from apex");
     Ok((StatusCode::NO_CONTENT, ()))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/federation/apexes/{group_id}/members/{user_id}/resend-verification",
+    params(
+        ("group_id" = String, Path, description = "Apex (Group) ID"),
+        ("user_id" = String, Path, description = "User ID")
+    ),
+    responses(
+        (status = 200, description = "Verification email resent", body = SuccessResponse)
+    ),
+    tag = "Federation"
+)]
+pub async fn resend_apex_member_verification(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path((group_id, user_id)): Path<(String, String)>,
+) -> AppResult<impl IntoResponse> {
+    let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
+
+    let group = state
+        .keycloak
+        .get_group_by_id(&group_id)
+        .await
+        .map_err(|e| {
+            tracing::error!(group_id = %group_id, error = %e, "Failed to get apex for resend verification");
+            e
+        })?;
+
+    let group_org_id = group
+        .attributes
+        .as_ref()
+        .and_then(|attrs| attrs.get("organization_id"))
+        .and_then(|vals| vals.first())
+        .cloned()
+        .unwrap_or_default();
+
+    if group_org_id != org_id {
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied: apex does not belong to your federation".into(),
+        ));
+    }
+
+    state
+        .keycloak
+        .trigger_email_verification_for_user(&user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!(group_id = %group_id, user_id = %user_id, error = %e, "Failed to resend verification email");
+            e
+        })?;
+
+    tracing::info!(group_id = %group_id, user_id = %user_id, "Verification email resent");
+    Ok((
+        StatusCode::OK,
+        Json(SuccessResponse {
+            message: "Verification email resent".to_string(),
+            id: None,
+        }),
+    ))
 }

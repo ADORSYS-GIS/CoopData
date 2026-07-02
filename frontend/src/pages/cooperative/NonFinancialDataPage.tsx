@@ -14,8 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
-import { useAuth } from "@/lib/auth";
-import { requireRole } from "@/lib/route-guards";
+import { useUserRole } from "@/lib/auth";
 
 type Tab = "membership" | "savings" | "loans" | "fixed-deposits";
 
@@ -95,7 +94,7 @@ interface FixedDepositRecord {
 const REGIONS = ["Manzini", "Hhohho", "Shiselweni", "Lubombo"];
 
 export const NonFinancialDataPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useUserRole();
   const [activeTab, setActiveTab] = useState<Tab>("membership");
 
   const isReadOnly = role === "apex";
@@ -163,6 +162,8 @@ export const NonFinancialDataPage: React.FC = () => {
     interestRate: 6,
     balance: 0,
   });
+
+  if (!role) return null;
 
   const handleAddMembership = () => {
     if (!membershipForm.memberId || !membershipForm.joinDate) {

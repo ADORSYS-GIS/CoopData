@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SettingsPage } from "@/pages/ministry/SettingsPage";
 
+function SettingsRoute() {
+  return (
+    <ProtectedRoute allowedRoles={["ministry"]}>
+      <SettingsPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/settings")({
-  beforeLoad: async () => {
-    await requireRole("ministry");
-  },
-  component: SettingsPage,
+  component: SettingsRoute,
 });

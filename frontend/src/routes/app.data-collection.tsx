@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DataCollectionPage } from "@/pages/cooperative/DataCollectionPage";
 
+function DataCollectionRoute() {
+  return (
+    <ProtectedRoute allowedRoles={["cooperative"]}>
+      <DataCollectionPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/data-collection")({
-  beforeLoad: async () => {
-    await requireRole("cooperative");
-  },
-  component: DataCollectionPage,
+  component: DataCollectionRoute,
 });

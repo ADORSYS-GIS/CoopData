@@ -23,12 +23,14 @@ import {
   Network,
   Mail,
   UserPlus,
+  UserCog,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
+import { UnauthorizedPage } from "@/components/UnauthorizedPage";
 import { Sun, Moon } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string };
@@ -62,6 +64,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     items: [
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
+      { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
   },
 ];
@@ -79,14 +82,16 @@ function Sidebar({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, role } = useAuth();
-  const navigate = useNavigate();
 
   const effectiveRole = role ?? "ministry";
   const currentRole = ROLES.find((r) => r.id === effectiveRole)!;
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     await logout();
-    navigate({ to: "/auth/login" });
   };
 
   const visibleGroups = ROLE_NAV[effectiveRole];
@@ -232,16 +237,37 @@ function Sidebar({
                 <p className="text-[11px] text-sidebar-foreground/75 truncate">
                   {currentRole.label}
                 </p>
+                {!isCollapsed &&
+                  (() => {
+                    const ctx =
+                      effectiveRole === "ministry"
+                        ? "National"
+                        : effectiveRole === "federation"
+                          ? (user?.organizationName ?? user?.region ?? null)
+                          : effectiveRole === "apex" || effectiveRole === "cooperative"
+                            ? (user?.cooperationName ?? user?.region ?? null)
+                            : null;
+                    return ctx ? (
+                      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
+                        {ctx}
+                      </p>
+                    ) : null;
+                  })()}
               </div>
             )}
           </Link>
           {!isCollapsed && (
             <button
               onClick={handleLogout}
-              className="rounded-md p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors"
+              disabled={isLoggingOut}
+              className="rounded-md p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Sign out"
             >
-              <LogOut className="size-3.5" />
+              {isLoggingOut ? (
+                <span className="size-3.5 block rounded-full border-2 border-current border-t-transparent animate-spin" />
+              ) : (
+                <LogOut className="size-3.5" />
+              )}
             </button>
           )}
         </div>
@@ -268,13 +294,14 @@ function Topbar({
   actions?: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     await logout();
-    navigate({ to: "/auth/login" });
   };
 
   const cycleTheme = () => {
@@ -356,7 +383,7 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 

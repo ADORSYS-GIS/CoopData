@@ -73,8 +73,23 @@ macro_rules! check_response {
             let status = $response.status();
             let body = $response.text().await.unwrap_or_default();
             error!(status = %status, body = %body, "{}", $context);
+            let detail = if !body.is_empty() {
+                // Try to extract the Keycloak error message from JSON
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+                    json.get("errorMessage")
+                        .or_else(|| json.get("error_description"))
+                        .or_else(|| json.get("error"))
+                        .and_then(|v| v.as_str())
+                        .map(String::from)
+                        .unwrap_or_else(|| body.clone())
+                } else {
+                    body.clone()
+                }
+            } else {
+                format!("HTTP {}", status)
+            };
             return Err(AppError::ExternalServiceError(format!(
-                "{}: {}", $context, status
+                "{}: {}", $context, detail
             )));
         }
     };
@@ -155,6 +170,47 @@ impl KeycloakService {
 
     async fn get_cached_admin_token(&self) -> Result<String, AppError> {
         self.get_admin_token().await
+    }
+
+    pub async fn verify_user_password(
+        &self,
+        username: &str,
+        password: &str,
+    ) -> Result<(), AppError> {
+        let url = format!("{}/protocol/openid-connect/token", self.openid_url());
+        let params = [
+            ("grant_type", "password"),
+            ("client_id", self.client_id.as_str()),
+            ("client_secret", self.client_secret.as_str()),
+            ("username", username),
+            ("password", password),
+        ];
+
+        let response = self
+            .client
+            .post(&url)
+            .form(&params)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        if response.status().is_success() {
+            return Ok(());
+        }
+
+        let body = response.text().await.unwrap_or_default();
+        let detail = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+            json.get("error_description")
+                .or_else(|| json.get("errorMessage"))
+                .or_else(|| json.get("error"))
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .unwrap_or_else(|| "Invalid credentials".to_string())
+        } else {
+            "Current password is incorrect".to_string()
+        };
+
+        Err(AppError::Unauthorized(detail))
     }
 
     async fn get_realm_management_client_id(&self) -> Result<String, AppError> {
@@ -399,10 +455,9 @@ impl KeycloakService {
                 AppError::ExternalServiceError("User created but ID not found".into())
             });
         }
-
         self.assign_realm_role(&token, &keycloak_id, role).await?;
-        self.trigger_email_verification(&token, &keycloak_id)
-            .await?;
+
+        self.trigger_email_verification(&keycloak_id).await?;
 
         self.get_user_by_id_raw(&token, &keycloak_id).await
     }
@@ -561,11 +616,8 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
-    async fn trigger_email_verification(
-        &self,
-        access_token: &str,
-        keycloak_id: &str,
-    ) -> Result<(), AppError> {
+    async fn trigger_email_verification(&self, keycloak_id: &str) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
         let url = format!(
             "{}/users/{}/execute-actions-email",
             self.realm_url(),
@@ -576,16 +628,22 @@ impl KeycloakService {
         let response = self
             .client
             .put(&url)
-            .bearer_auth(access_token)
+            .bearer_auth(&token)
             .json(&actions)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        if !response.status().is_success() {
-            warn!(keycloak_id = %keycloak_id, "Failed to send verification email (non-fatal)");
-        }
+        check_response!(response, "Failed to send verification email");
+        info!(keycloak_id = %keycloak_id, "Verification email triggered");
         Ok(())
+    }
+
+    pub async fn trigger_email_verification_for_user(
+        &self,
+        keycloak_id: &str,
+    ) -> Result<(), AppError> {
+        self.trigger_email_verification(keycloak_id).await
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1018,29 +1076,22 @@ impl KeycloakService {
     ) -> Result<KeycloakInvitation, AppError> {
         let token = self.get_cached_admin_token().await?;
 
-        // Step 1: Ensure the user exists in Keycloak with the correct role.
-        // We use `org.ro.active` as the tracking attribute — this is the attribute
-        // registered in Keycloak's User Profile schema and is searchable via the
-        // Admin API `q=org.ro.active:{org_id}` parameter.
         let mut attributes = HashMap::new();
         attributes.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
 
+        // Track whether we created a new user so we can roll back on failure
         let users = self.search_users_by_email(&token, email).await?;
-        let keycloak_id = if let Some(existing_user) = users.first() {
+        let (keycloak_id, user_was_new) = if let Some(existing_user) = users.first() {
             match role {
                 "federation" => self.assign_federation_roles(&existing_user.id).await?,
                 "apex" => self.assign_apex_roles(&existing_user.id).await?,
                 "cooperative" => self.assign_cooperative_roles(&existing_user.id).await?,
                 _ => self.assign_role(&existing_user.id, role).await?,
             }
-
-            // Set the tracking attribute so this user appears in pending queries
             let mut attrs = existing_user.attributes.clone().unwrap_or_default();
             attrs.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
-            self.update_user_attributes(&existing_user.id, attrs)
-                .await?;
-
-            existing_user.id.clone()
+            self.update_user_attributes(&existing_user.id, attrs).await?;
+            (existing_user.id.clone(), false)
         } else {
             let temp_password = format!("Temp{}!", Utc::now().timestamp());
             let new_user = self
@@ -1053,11 +1104,10 @@ impl KeycloakService {
                     Some(attributes),
                 )
                 .await?;
-            new_user.id
+            (new_user.id, true)
         };
 
-        // Step 2: Send the invitation email via Keycloak's invite-user endpoint.
-        // Uses form-encoding as required by Keycloak 26.
+        // Send the invitation email — if this fails, roll back the user creation
         let url = format!(
             "{}/organizations/{}/members/invite-user",
             self.realm_url(),
@@ -1088,21 +1138,31 @@ impl KeycloakService {
                 body = %body,
                 org_id = %org_id,
                 email = %email,
-                "Failed to send invitation email"
+                "Failed to send invitation email — rolling back user creation"
             );
+
+            // Rollback: delete the user we just created so the invite can be retried cleanly
+            if user_was_new {
+                if let Err(e) = self.delete_user(&keycloak_id).await {
+                    error!(user_id = %keycloak_id, error = %e, "Rollback failed: could not delete user after invitation email failure");
+                } else {
+                    info!(user_id = %keycloak_id, "Rolled back: user deleted after email failure");
+                }
+            }
+
             if body.contains("Failed to send invite email") || body.contains("smtp") {
                 return Err(AppError::ExternalServiceError(
                     "Invitation email could not be sent — SMTP is not configured on the realm. \
-                     Go to Keycloak → Realm Settings → Email to configure it."
+                     Go to Keycloak Admin → Realm Settings → Email to configure it."
                         .into(),
                 ));
             }
             return Err(AppError::ExternalServiceError(format!(
-                "Failed to send invitation: {status}"
+                "Failed to send invitation email (HTTP {status}). The user was not created."
             )));
         }
 
-        info!(org_id = %org_id, email = %email, role = %role, "Invitation email sent");
+        info!(org_id = %org_id, email = %email, role = %role, user_id = %keycloak_id, "Invitation sent successfully");
 
         Ok(KeycloakInvitation {
             id: keycloak_id,
@@ -1355,8 +1415,24 @@ impl KeycloakService {
         if response.status().as_u16() == 409 {
             return Err(AppError::Conflict("Group already exists".into()));
         }
+
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
         check_response!(response, "Failed to create group");
 
+        if let Some(group_id) = location
+            .as_deref()
+            .and_then(|loc| loc.split('/').next_back())
+            .filter(|s| !s.is_empty())
+        {
+            return self.get_group_by_id(group_id).await;
+        }
+
+        // Fallback: search by name (works for top-level groups)
         self.get_group_by_name(&token, name).await
     }
 
@@ -1385,16 +1461,51 @@ impl KeycloakService {
         if response.status().as_u16() == 409 {
             return Err(AppError::Conflict("Subgroup already exists".into()));
         }
+
+        // Extract the new subgroup ID from the Location header before consuming response
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
         check_response!(response, "Failed to create subgroup");
 
-        self.get_group_by_name(&token, name).await
+        // Prefer fetching by ID (from Location header) — more reliable than name search
+        // which only scans top-level groups and won't find subgroups.
+        if let Some(subgroup_id) = location
+            .as_deref()
+            .and_then(|loc| loc.split('/').next_back())
+            .filter(|s| !s.is_empty())
+        {
+            return self.get_group_by_id(subgroup_id).await;
+        }
+
+        // Fallback: fetch parent and find the subgroup by name within it
+        let parent = self.get_group_by_id(parent_group_id).await?;
+        parent
+            .sub_groups
+            .into_iter()
+            .find(|sg| sg.name == name)
+            .map(|sg| async move { self.get_group_by_id(&sg.id).await })
+            .ok_or_else(|| {
+                AppError::NotFound(format!("Subgroup '{}' not found after creation", name))
+            })?
+            .await
     }
 
     pub async fn get_groups(&self, search: Option<&str>) -> Result<Vec<KeycloakGroup>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = match search {
-            Some(s) => format!("{}/groups?search={}", self.realm_url(), s),
-            None => format!("{}/groups", self.realm_url()),
+            Some(s) => format!(
+                "{}/groups?search={}&briefRepresentation=false&max=100",
+                self.realm_url(),
+                s
+            ),
+            None => format!(
+                "{}/groups?briefRepresentation=false&max=100",
+                self.realm_url()
+            ),
         };
 
         let response = self
@@ -1406,9 +1517,22 @@ impl KeycloakService {
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
         check_response!(response, "Failed to list groups");
-        response
+
+        // Keycloak 26+ may return { "count": N, "groups": [...] } or a plain array
+        let raw: serde_json::Value = response
             .json()
             .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let groups_value = if raw.is_array() {
+            raw
+        } else {
+            raw.get("groups")
+                .cloned()
+                .unwrap_or(serde_json::Value::Array(vec![]))
+        };
+
+        serde_json::from_value(groups_value)
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))
     }
 
@@ -1429,6 +1553,117 @@ impl KeycloakService {
             .json()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))
+    }
+
+    /// Fetch immediate children (subgroups) of a group.
+    /// Uses `GET /groups/{id}/children` which is reliable in Keycloak 23+.
+    pub async fn get_group_children(&self, group_id: &str) -> Result<Vec<KeycloakGroup>, AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!(
+            "{}/groups/{}/children?briefRepresentation=false",
+            self.realm_url(),
+            group_id
+        );
+
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to get group children");
+
+        let raw: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        // Keycloak may return array or { "groups": [...] }
+        let arr = if raw.is_array() {
+            raw
+        } else {
+            raw.get("groups")
+                .cloned()
+                .unwrap_or(serde_json::Value::Array(vec![]))
+        };
+
+        serde_json::from_value(arr).map_err(|e| AppError::ExternalServiceError(e.to_string()))
+    }
+
+    /// Resolve a group from either a UUID or a full path (e.g. "/apex-name" or "/apex/coop").
+    /// Keycloak's `cooperation` group membership mapper emits paths like "/group-name".
+    /// This method handles both forms transparently.
+    pub async fn resolve_group(&self, id_or_path: &str) -> Result<KeycloakGroup, AppError> {
+        // If it looks like a UUID (no slashes), try direct lookup first
+        let is_uuid = !id_or_path.contains('/') && id_or_path.len() == 36;
+        if is_uuid {
+            return self.get_group_by_id(id_or_path).await;
+        }
+
+        // It's a path — walk the tree to find the group by path
+        let token = self.get_cached_admin_token().await?;
+        let clean = id_or_path.trim_matches('/');
+        let segments: Vec<&str> = clean.split('/').filter(|s| !s.is_empty()).collect();
+
+        if segments.is_empty() {
+            return Err(AppError::BadRequest("Empty group path".into()));
+        }
+
+        // Search top-level groups for the first segment
+        let top_name = segments[0];
+        let url = format!(
+            "{}/groups?search={}&briefRepresentation=false",
+            self.realm_url(),
+            top_name
+        );
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to search groups by path");
+
+        let raw: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let groups: Vec<KeycloakGroup> = if raw.is_array() {
+            serde_json::from_value(raw)
+        } else {
+            serde_json::from_value(raw.get("groups").cloned().unwrap_or_default())
+        }
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        let top = groups
+            .into_iter()
+            .find(|g| g.name == top_name)
+            .ok_or_else(|| {
+                AppError::NotFound(format!("Group not found for path segment: {}", top_name))
+            })?;
+
+        if segments.len() == 1 {
+            // Fetch full representation with subgroups
+            return self.get_group_by_id(&top.id).await;
+        }
+
+        // Walk into subgroups for deeper paths
+        let mut current = self.get_group_by_id(&top.id).await?;
+        for seg in &segments[1..] {
+            let child = current
+                .sub_groups
+                .iter()
+                .find(|sg| sg.name == *seg)
+                .ok_or_else(|| AppError::NotFound(format!("Subgroup not found: {}", seg)))?;
+            current = self.get_group_by_id(&child.id).await?;
+        }
+
+        Ok(current)
     }
 
     async fn get_group_by_name(
@@ -1686,5 +1921,64 @@ impl KeycloakService {
         self.add_user_to_group(&keycloak_id, group_id).await?;
 
         self.get_user_by_id(&keycloak_id).await
+    }
+
+    pub async fn update_user_name(
+        &self,
+        keycloak_id: &str,
+        first_name: Option<&str>,
+        last_name: Option<&str>,
+    ) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
+
+        let mut body = serde_json::json!({});
+        if let Some(f) = first_name {
+            body["firstName"] = serde_json::json!(f);
+        }
+        if let Some(l) = last_name {
+            body["lastName"] = serde_json::json!(l);
+        }
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to update user name");
+        info!(keycloak_id = %keycloak_id, "User name updated");
+        Ok(())
+    }
+
+    pub async fn reset_user_password(
+        &self,
+        keycloak_id: &str,
+        new_password: &str,
+        temporary: bool,
+    ) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!("{}/users/{}/reset-password", self.realm_url(), keycloak_id);
+
+        let body = json!({
+            "type": "password",
+            "value": new_password,
+            "temporary": temporary,
+        });
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to reset user password");
+        Ok(())
     }
 }

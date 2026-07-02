@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "CoopData API",
-    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry \u2192 Federation \u2192 Apex \u2192 Cooperative)",
+    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry → Federation → Apex → Cooperative)",
     "contact": {
       "name": "CoopData Team",
       "email": "support@coopdata.org"
@@ -34,14 +34,7 @@
             }
           },
           "403": {
-            "description": "Forbidden - apex role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Forbidden - apex role required"
           }
         }
       },
@@ -72,24 +65,10 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "403": {
-            "description": "Forbidden - apex role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Forbidden - apex role required"
           }
         }
       }
@@ -122,7 +101,104 @@
         ],
         "responses": {
           "204": {
-            "description": "Member removed from cooperative"
+            "description": "Member removed"
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "update_cooperative_member",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Cooperative (Subgroup) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Member updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/cooperatives/{group_id}/members/{user_id}/resend-verification": {
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "resend_cooperative_member_verification",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Cooperative (Subgroup) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification email resent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
           }
         }
       }
@@ -155,15 +231,11 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
-            "description": "Cooperative not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Cooperative not found"
           }
         }
       },
@@ -188,14 +260,10 @@
             "description": "Cooperative deleted"
           },
           "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Forbidden - apex role required"
+          },
+          "404": {
+            "description": "Cooperative not found"
           }
         }
       },
@@ -236,15 +304,14 @@
               }
             }
           },
+          "400": {
+            "description": "No fields to update"
+          },
+          "403": {
+            "description": "Forbidden - apex role required"
+          },
           "404": {
-            "description": "Cooperative not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Cooperative not found"
           }
         }
       }
@@ -279,6 +346,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       },
@@ -310,27 +380,46 @@
         },
         "responses": {
           "201": {
-            "description": "Member added to cooperative"
+            "description": "Member added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or wrong role"
           },
           "403": {
-            "description": "Forbidden",
+            "description": "Forbidden - apex role required or scope violation"
+          },
+          "409": {
+            "description": "User already in a group"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/profile": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "get_apex_profile",
+        "responses": {
+          "200": {
+            "description": "Apex group profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApexResponse"
                 }
               }
             }
           },
-          "409": {
-            "description": "User already in a group",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "403": {
+            "description": "Forbidden - apex role required"
           }
         }
       }
@@ -445,6 +534,104 @@
         "responses": {
           "204": {
             "description": "Member removed from apex"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "update_apex_member",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Apex (Group) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Member updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/apexes/{group_id}/members/{user_id}/resend-verification": {
+      "post": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "resend_apex_member_verification",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "description": "Apex (Group) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification email resent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -667,6 +854,114 @@
         }
       }
     },
+    "/api/v1/federation/profile": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "get_federation_profile",
+        "responses": {
+          "200": {
+            "description": "Federation profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - federation role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "update_federation_profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFederationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Federation profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - federation role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/stats": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "get_federation_stats",
+        "responses": {
+          "200": {
+            "description": "Federation statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - federation role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": [
@@ -698,6 +993,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1124,6 +1469,59 @@
                   "items": {
                     "$ref": "#/components/schemas/MemberResponse"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/federations/{id}/members/{user_id}": {
+      "delete": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "remove_federation_member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Federation (Organization) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User (Member) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed from federation"
+          },
+          "403": {
+            "description": "Forbidden - ministry role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Member or federation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1692,6 +2090,36 @@
           }
         }
       },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "logout_sessions": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "new_password": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangePasswordResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "CooperativeBriefResponse": {
         "type": "object",
         "required": [
@@ -1781,6 +2209,10 @@
             },
             "nullable": true
           },
+          "contact_email": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -1789,14 +2221,11 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DomainRequest"
-            }
+            },
+            "description": "At least one domain is required by Keycloak (e.g. \"myfederation.org\")"
           },
           "name": {
             "type": "string"
-          },
-          "contact_email": {
-            "type": "string",
-            "nullable": true
           }
         }
       },
@@ -1874,14 +2303,17 @@
         "type": "object",
         "required": [
           "email",
-          "role",
-          "temporary_password"
+          "role"
         ],
         "properties": {
           "email": {
             "type": "string"
           },
           "full_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "group_id": {
             "type": "string",
             "nullable": true
           },
@@ -1895,9 +2327,6 @@
             "nullable": true
           },
           "role": {
-            "type": "string"
-          },
-          "temporary_password": {
             "type": "string"
           }
         }
@@ -1951,6 +2380,10 @@
           "domains"
         ],
         "properties": {
+          "contact_email": {
+            "type": "string",
+            "nullable": true
+          },
           "created_at": {
             "type": "string",
             "nullable": true
@@ -1973,10 +2406,29 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "FederationStatsResponse": {
+        "type": "object",
+        "required": [
+          "total_apexes",
+          "total_members",
+          "federation"
+        ],
+        "properties": {
+          "federation": {
+            "$ref": "#/components/schemas/FederationResponse"
           },
-          "contact_email": {
-            "type": "string",
-            "nullable": true
+          "total_apexes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -1990,6 +2442,7 @@
           "created_at": {
             "type": "integer",
             "format": "int64",
+            "description": "Unix epoch seconds",
             "nullable": true
           },
           "email": {
@@ -1997,14 +2450,15 @@
             "nullable": true
           },
           "email_sent": {
-            "type": "boolean"
-          },
-          "id": {
-            "type": "string"
+            "type": "boolean",
+            "description": "true when the invitation email was dispatched"
           },
           "first_name": {
             "type": "string",
             "nullable": true
+          },
+          "id": {
+            "type": "string"
           },
           "last_name": {
             "type": "string",
@@ -2012,6 +2466,7 @@
           },
           "status": {
             "type": "string",
+            "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" — from Keycloak 26",
             "nullable": true
           }
         }
@@ -2101,6 +2556,44 @@
           },
           "updated_at": {
             "type": "string"
+          }
+        }
+      },
+      "PaginatedApexResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page",
+          "total_pages"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApexResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "per_page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -2250,6 +2743,10 @@
             },
             "nullable": true
           },
+          "contact_email": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -2264,8 +2761,17 @@
           "name": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "UpdateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "nullable": true
           },
-          "contact_email": {
+          "last_name": {
             "type": "string",
             "nullable": true
           }

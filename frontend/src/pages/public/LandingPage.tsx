@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   ShieldCheck,
@@ -17,7 +17,9 @@ import {
   UserCog,
   Landmark,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 
 export const LandingPage: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -44,7 +46,26 @@ export const LandingPage: React.FC = () => {
   );
 };
 
+function useLoginRedirect() {
+  const { login, isAuthenticated, isLoading, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = useCallback(async () => {
+    // If still loading, wait for auth check to complete first
+    if (isLoading) return;
+    if (isAuthenticated && user) {
+      navigate({ to: ROLE_DEFAULT_ROUTE[user.role] });
+    } else {
+      await login();
+    }
+  }, [login, isAuthenticated, isLoading, user, navigate]);
+
+  return handleLogin;
+}
+
 function PublicHeader() {
+  const handleLogin = useLoginRedirect();
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
@@ -76,18 +97,18 @@ function PublicHeader() {
           </a>
         </nav>
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/auth/login"
+          <button
+            onClick={handleLogin}
             className="rounded-lg px-3.5 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
             Sign in
-          </Link>
-          <Link
-            to="/app/dashboard"
+          </button>
+          <button
+            onClick={handleLogin}
             className="press-feedback hidden items-center gap-2 rounded-xl bg-primary px-4.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95 sm:inline-flex"
           >
             Enter platform <ArrowRight className="size-4" />
-          </Link>
+          </button>
         </div>
       </div>
     </header>
@@ -95,6 +116,8 @@ function PublicHeader() {
 }
 
 function Hero() {
+  const handleLogin = useLoginRedirect();
+
   return (
     <section className="relative overflow-hidden border-b border-border bg-surface/40">
       {/* Grid Pattern */}
@@ -126,18 +149,18 @@ function Hero() {
             accountable platform.
           </p>
           <div className="animate-hero animate-hero-delay-4 flex flex-wrap items-center gap-3.5 pt-2">
-            <Link
-              to="/app/dashboard"
+            <button
+              onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95"
             >
               Open the platform <ArrowRight className="size-4" />
-            </Link>
-            <Link
-              to="/auth/login"
+            </button>
+            <button
+              onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-foreground shadow-[var(--shadow-elev-1)] transition-colors hover:bg-muted/40"
             >
               Sign in with credentials
-            </Link>
+            </button>
           </div>
           <dl className="animate-hero animate-hero-delay-4 mt-12 grid max-w-lg grid-cols-3 gap-8 text-sm border-t border-border/80 pt-8">
             {[
@@ -651,6 +674,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 function CTA() {
+  const handleLogin = useLoginRedirect();
+
   return (
     <section className="py-24">
       <div className="mx-auto max-w-5xl px-6 lg:px-8">
@@ -667,18 +692,18 @@ function CTA() {
             contact your federation administrator.
           </p>
           <div className="mt-8 flex flex-wrap gap-3.5">
-            <Link
-              to="/auth/login"
+            <button
+              onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-accent/90"
             >
               Sign in
-            </Link>
-            <Link
-              to="/app/dashboard"
+            </button>
+            <button
+              onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl border border-primary-foreground/20 bg-primary-foreground/5 px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
             >
               Explore the platform <ArrowRight className="size-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </div>

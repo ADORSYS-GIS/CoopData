@@ -1,63 +1,98 @@
 import { redirect } from "@tanstack/react-router";
 import {
   isAuthenticated,
+  waitForKeycloakReady,
   hasAnyRole,
   getUserProfile,
-  keycloakReady,
 } from "@/services/shared/authService";
 import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 
-/**
- * Route guard for TanStack Router `beforeLoad`.
- *
- * Awaits `keycloakReady` before checking auth state. This is the key fix for
- * the flash-redirect bug: Keycloak initializes asynchronously at module load
- * time, and `keycloakReady` resolves once init is complete — ensuring guards
- * never evaluate auth state before it's known.
- */
 export async function requireAuth() {
-  await keycloakReady;
-
-  if (!isAuthenticated()) {
-    throw redirect({ to: "/auth/login" });
-  }
-}
-
-export async function requireRole(...roles: Role[]) {
-  console.log("[requireRole] Checking roles:", roles);
-
-  await keycloakReady;
-
-  if (!isAuthenticated()) {
-    console.warn("[requireRole] Not authenticated, redirecting to login");
+  const ready = await waitForKeycloakReady();
+  if (!ready) {
+    console.warn("[guard] requireAuth: Keycloak init timed out, redirecting to login");
     throw redirect({ to: "/auth/login" });
   }
 
-  if (!hasAnyRole(roles)) {
-    console.warn("[requireRole] Access denied, redirecting to /unauthorized");
+  if (!isAuthenticated()) {
+    console.log("[guard] requireAuth: Not authenticated, redirecting to Keycloak login");
+    throw redirect({ to: "/auth/login" });
+  }
+
+  const profile = getUserProfile();
+  if (!profile) {
+    console.warn(
+      "[guard] requireAuth: Authenticated but no profile/role, redirecting to /unauthorized",
+    );
     throw redirect({ to: "/unauthorized" });
   }
 
-  console.log("[requireRole] Access granted");
+  console.log("[guard] requireAuth: OK, role =", profile.role);
 }
 
-/**
- * Redirect authenticated users away from auth pages (e.g., login).
- * If already authenticated, redirect to the role-appropriate dashboard.
- */
+export async function requireRole(...roles: Role[]) {
+  const ready = await waitForKeycloakReady();
+  if (!ready) {
+    console.warn("[guard] requireRole: Keycloak init timed out, redirecting to login");
+    throw redirect({ to: "/auth/login" });
+  }
+
+  if (!isAuthenticated()) {
+    console.log("[guard] requireRole: Not authenticated, redirecting to Keycloak login");
+    throw redirect({ to: "/auth/login" });
+  }
+
+  const profile = getUserProfile();
+  if (!profile) {
+    console.warn(
+      "[guard] requireRole: Authenticated but no profile/role, redirecting to /unauthorized",
+    );
+    throw redirect({ to: "/unauthorized" });
+  }
+
+  if (!hasAnyRole(roles)) {
+    console.warn(
+      "[guard] requireRole: User role =",
+      profile.role,
+      "needs one of",
+      roles,
+      "→ redirecting to /unauthorized",
+    );
+    throw redirect({ to: "/unauthorized" });
+  }
+
+  console.log("[guard] requireRole: OK, role =", profile.role, "required =", roles);
+}
+
 export async function redirectIfAuthenticated() {
-  await keycloakReady;
+  const ready = await waitForKeycloakReady();
+  if (!ready) {
+    console.warn("[guard] redirectIfAuthenticated: Keycloak init timed out, allowing render");
+    return;
+  }
 
   if (isAuthenticated()) {
     const profile = getUserProfile();
-    const role: Role = profile?.role ?? "ministry";
-    const redirectPath = ROLE_DEFAULT_ROUTE[role];
+    if (!profile) {
+      console.warn(
+        "[guard] redirectIfAuthenticated: Authenticated but no profile, redirecting to /unauthorized",
+      );
+      throw redirect({ to: "/unauthorized" });
+    }
+    const redirectPath = ROLE_DEFAULT_ROUTE[profile.role];
+    console.log(
+      "[guard] redirectIfAuthenticated: Already authenticated as",
+      profile.role,
+      "→ redirecting to",
+      redirectPath,
+    );
     throw redirect({ to: redirectPath });
   }
+
+  console.log("[guard] redirectIfAuthenticated: Not authenticated, showing login redirect");
 }
 
-/** Role access map: route path → allowed roles */
 export const ROUTE_ACCESS: Record<string, Role[]> = {
   "/app/dashboard": ["ministry", "federation", "apex", "cooperative"],
   "/app/federations": ["ministry"],

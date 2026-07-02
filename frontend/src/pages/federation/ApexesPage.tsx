@@ -1,300 +1,272 @@
 import {
   Plus,
   Search,
-  Download,
-  MapPin,
-  X,
   Network,
-  ShieldAlert,
-  Building2,
   Users,
-  Wallet,
-  Activity,
   Pencil,
   Trash2,
+  X,
+  Building2,
+  Loader2,
+  AlertCircle,
+  ChevronRight,
+  UserCog,
 } from "lucide-react";
-import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
-import { APEXES, formatCurrency, formatNumber } from "@/lib/mock-data";
-import { useState, useTransition } from "react";
+import { AppShell, Card, StatCard } from "@/components/app-shell";
+import { useApexes, useCreateApex, useUpdateApex, useDeleteApex } from "@/hooks/apexes/useApexes";
+import type { components } from "@/openapi-client/api";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
-import { requireRole } from "@/lib/route-guards";
+
+type ApexResponse = components["schemas"]["ApexResponse"];
 
 export const ApexesPage: React.FC = () => {
-  const [apexes, setApexes] = useState(APEXES);
+  const { data: apexesData, isLoading, error } = useApexes();
+  const createApex = useCreateApex();
+  const updateApex = useUpdateApex();
+  const deleteApex = useDeleteApex();
+
+  const apexes = apexesData ?? [];
+
   const [search, setSearch] = useState("");
-  const [activeRegion, setActiveRegion] = useState("All regions");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [, startTransition] = useTransition();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingApex, setEditingApex] = useState<ApexResponse | null>(null);
+  const [deletingApex, setDeletingApex] = useState<ApexResponse | null>(null);
 
-  const [name, setName] = useState("");
-  const [region, setRegion] = useState("Manzini");
-  const [federationName, setFederationName] = useState("Manzini Regional Federation");
-
-  // Edit modal state
-  const [editingApex, setEditingApex] = useState<(typeof APEXES)[number] | null>(null);
+  const [createName, setCreateName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
   const [editName, setEditName] = useState("");
-  const [editRegion, setEditRegion] = useState("");
-  const [editFederation, setEditFederation] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    const name = createName.trim();
     if (!name) {
-      toast.error("Please fill in all required fields.");
+      toast.error("Apex name is required.");
       return;
     }
-
-    const regNo = "APX-" + new Date().getFullYear() + "-" + Math.floor(100 + Math.random() * 900);
-    const newApex = {
-      id: "a" + (apexes.length + 1),
-      regNo,
-      name,
-      region,
-      federationName,
-      coopCount: 0,
-      totalMembers: 0,
-      totalPortfolio: 0,
-      compliance: "Pending" as const,
-      status: "Active" as const,
-      registeredOn: new Date().toISOString().split("T")[0],
-    };
-
-    setApexes([newApex, ...apexes]);
-    setIsModalOpen(false);
-    toast.success(`Successfully registered "${name}" with ID ${regNo}!`);
-    setName("");
-    setRegion("Manzini");
-    setFederationName("Manzini Regional Federation");
+    createApex.mutate(
+      { name, description: createDescription.trim() || undefined },
+      {
+        onSuccess: () => {
+          toast.success(`Apex "${name}" created successfully.`);
+          setIsCreateOpen(false);
+          setCreateName("");
+          setCreateDescription("");
+        },
+        onError: (err) => toast.error("Failed to create apex", { description: String(err) }),
+      },
+    );
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    startTransition(() => {
-      setSearch(val);
-    });
-  };
-
-  const handleEdit = (id: string, name: string) => {
-    const apex = apexes.find((a) => a.id === id);
-    if (apex) {
-      setEditingApex(apex);
-      setEditName(apex.name);
-      setEditRegion(apex.region);
-      setEditFederation(apex.federationName);
-    }
+  const handleEdit = (apex: ApexResponse) => {
+    setEditingApex(apex);
+    setEditName(apex.name);
+    setEditDescription(apex.description ?? "");
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingApex || !editName) {
-      toast.error("Please fill in all required fields.");
+    if (!editingApex) return;
+    const name = editName.trim();
+    if (!name) {
+      toast.error("Apex name is required.");
       return;
     }
-    setApexes((prev) =>
-      prev.map((a) =>
-        a.id === editingApex.id
-          ? { ...a, name: editName, region: editRegion, federationName: editFederation }
-          : a,
-      ),
+    updateApex.mutate(
+      {
+        id: editingApex.id,
+        name,
+        description: editDescription.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Updated "${name}"`);
+          setEditingApex(null);
+        },
+        onError: (err) => toast.error("Failed to update apex", { description: String(err) }),
+      },
     );
-    toast.success(`Updated "${editName}"`);
-    setEditingApex(null);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    setApexes((prev) => prev.filter((a) => a.id !== id));
-    toast.success(`Deleted "${name}"`, { description: "Apex organization removed from registry." });
+  const handleDelete = () => {
+    if (!deletingApex) return;
+    deleteApex.mutate(deletingApex.id, {
+      onSuccess: () => {
+        toast.success(`Deleted "${deletingApex.name}"`);
+        setDeletingApex(null);
+      },
+      onError: (err) => toast.error("Failed to delete apex", { description: String(err) }),
+    });
   };
 
   const filteredApexes = apexes.filter((a) => {
-    const matchesSearch =
-      a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.regNo.toLowerCase().includes(search.toLowerCase()) ||
-      a.region.toLowerCase().includes(search.toLowerCase()) ||
-      a.federationName.toLowerCase().includes(search.toLowerCase());
-
-    const matchesRegion =
-      activeRegion === "All regions" || a.region.toLowerCase() === activeRegion.toLowerCase();
-
-    return matchesSearch && matchesRegion;
+    const q = search.toLowerCase();
+    return a.name.toLowerCase().includes(q) || (a.description ?? "").toLowerCase().includes(q);
   });
 
-  const activeCount = apexes.filter((a) => a.status === "Active").length;
-  const totalMembers = apexes.reduce((sum, a) => sum + a.totalMembers, 0);
-  const totalPortfolio = apexes.reduce((sum, a) => sum + a.totalPortfolio, 0);
+  const totalCoops = apexes.reduce((sum, a) => sum + (a.sub_groups?.length ?? 0), 0);
+
+  if (isLoading) {
+    return (
+      <AppShell title="Apex Organizations" subtitle="Manage apex bodies under your federation">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell title="Apex Organizations" subtitle="Manage apex bodies under your federation">
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <AlertCircle className="size-8 mb-2 text-destructive" />
+          <p className="font-semibold text-sm">Failed to load apexes</p>
+          <p className="text-xs mt-1">{String(error)}</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
       title="Apex Organizations"
-      subtitle="Manage apex bodies · create and oversee cooperatives under each apex"
+      subtitle="Manage apex bodies and their cooperatives under your federation"
       actions={
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateOpen(true)}
           className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[var(--shadow-elev-2)]"
         >
           <Plus className="size-4" /> Register apex
         </button>
       }
     >
-      <div className="space-y-6">
-        {/* Statistics Row */}
+      <div className="-m-2 space-y-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 shadow-inner">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={Network}
             label="Total Apexes"
-            value={formatNumber(apexes.length)}
+            value={String(apexes.length)}
             subtitle="Cooperative oversight bodies"
             tone="primary"
           />
           <StatCard
-            icon={Activity}
-            label="Active"
-            value={formatNumber(activeCount)}
-            subtitle="Operational apexes"
+            icon={Building2}
+            label="Cooperatives"
+            value={String(totalCoops)}
+            subtitle="Across all apexes"
             tone="success"
           />
           <StatCard
             icon={Users}
-            label="Total Members"
-            value={formatNumber(totalMembers)}
-            subtitle="Across all apexes"
+            label="Apexes Shown"
+            value={String(filteredApexes.length)}
+            subtitle="Matching current filter"
             tone="accent"
           />
           <StatCard
-            icon={Wallet}
-            label="Combined Portfolio"
-            value={formatCurrency(totalPortfolio)}
-            subtitle="Aggregate capital base"
+            icon={Building2}
+            label="With Description"
+            value={String(apexes.filter((a) => a.description).length)}
+            subtitle="Having a description set"
             tone="info"
           />
         </div>
 
-        {/* Registry Card */}
-        <Card
-          title="Apex Directory"
-          subtitle="Search, filter, and manage apex organizations"
-          action={
-            <div className="flex gap-2">
-              <button
-                onClick={() => toast.success("Exporting apex data as CSV...")}
-                className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors"
-              >
-                <Download className="size-3.5" /> Export CSV
-              </button>
-            </div>
-          }
-        >
-          {/* Filters Area */}
-          <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+        <Card title="Apex Directory" subtitle="Search, edit and manage member access">
+          <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
             <div className="relative min-w-[280px] max-w-md w-full">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
               <input
-                defaultValue={search}
-                onChange={handleSearchChange}
-                placeholder="Search by name, code, region, federation..."
-                className="w-full rounded-lg border border-input bg-surface py-2 pl-9 pr-3 text-sm transition-all focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or description..."
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
               />
             </div>
-            <Pills
-              items={["All regions", "Manzini", "Hhohho", "Shiselweni", "Lubombo"]}
-              active={activeRegion}
-              onChange={setActiveRegion}
-            />
           </div>
 
-          {/* Table */}
-          <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
+          <div className="-mx-5 -mb-5 overflow-x-auto border-t border-slate-200 bg-white">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3">Registration</th>
-                  <th className="px-5 py-3">Apex Organization</th>
-                  <th className="px-5 py-3">Region</th>
-                  <th className="px-5 py-3 hidden md:table-cell">Federation</th>
-                  <th className="px-5 py-3 text-right">Cooperatives</th>
-                  <th className="px-5 py-3 text-right">Members</th>
-                  <th className="px-5 py-3 text-right">Portfolio</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Compliance</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
+                  <th className="px-5 py-3.5">Apex Organization</th>
+                  <th className="px-5 py-3.5 hidden md:table-cell">Description</th>
+                  <th className="px-5 py-3.5 text-right">Cooperatives</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-slate-200">
                 {filteredApexes.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={4} className="py-12 text-center text-slate-600">
                       <div className="flex flex-col items-center justify-center">
-                        <Network className="size-8 text-muted-foreground/60 mb-2" />
-                        <p className="font-semibold text-sm">No apexes match query</p>
-                        <p className="text-xs">
-                          Try adjusting search parameters or register a new apex.
+                        <Network className="size-8 text-slate-400 mb-2" />
+                        <p className="font-bold text-sm text-slate-900">
+                          {apexes.length === 0
+                            ? "No apexes registered yet"
+                            : "No apexes match your search"}
+                        </p>
+                        <p className="text-xs mt-1">
+                          {apexes.length === 0
+                            ? "Register your first apex organization to get started."
+                            : "Try adjusting your search parameters."}
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   filteredApexes.map((a) => (
-                    <tr key={a.id} className="hover:bg-muted/30 transition-colors duration-150">
-                      <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
-                        {a.regNo}
+                    <tr
+                      key={a.id}
+                      className="group hover:bg-sky-50/60 transition-colors duration-150"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700">
+                            <Network className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-950 leading-tight">{a.name}</p>
+                            <p className="mt-1 max-w-[240px] truncate font-mono text-[10px] text-slate-500">
+                              {a.id}
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <p className="font-semibold text-foreground leading-tight">{a.name}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Registered {a.registeredOn}
-                        </p>
+                      <td className="px-5 py-4 text-slate-700 text-xs hidden md:table-cell max-w-[260px] truncate">
+                        {a.description ?? "—"}
                       </td>
-                      <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center gap-1 text-xs">
-                          <MapPin className="size-3 text-muted-foreground/75" /> {a.region}
+                      <td className="px-5 py-4 text-right num text-slate-950">
+                        <span className="inline-flex items-center justify-end gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                          <Building2 className="size-3.5" />
+                          {a.sub_groups?.length ?? 0}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-muted-foreground text-xs hidden md:table-cell">
-                        {a.federationName}
-                      </td>
-                      <td className="px-5 py-3.5 text-right num text-foreground">
-                        <span className="inline-flex items-center gap-1 justify-end">
-                          <Building2 className="size-3 text-muted-foreground" />
-                          {a.coopCount.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right num text-muted-foreground">
-                        {formatNumber(a.totalMembers)}
-                      </td>
-                      <td className="px-5 py-3.5 text-right font-semibold num text-foreground">
-                        {formatCurrency(a.totalPortfolio)}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusPill tone={a.status === "Active" ? "success" : "danger"}>
-                          {a.status}
-                        </StatusPill>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusPill
-                          tone={
-                            a.compliance === "Verified"
-                              ? "success"
-                              : a.compliance === "Pending"
-                                ? "warning"
-                                : a.compliance === "Under Review"
-                                  ? "info"
-                                  : "danger"
-                          }
-                        >
-                          {a.compliance}
-                        </StatusPill>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to="/app/users/$apexId"
+                            params={{ apexId: a.id }}
+                            title="Manage members"
+                            className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"
+                          >
+                            <Users className="size-3.5" />
+                            Members
+                            <ChevronRight className="size-3" />
+                          </Link>
                           <button
-                            onClick={() => handleEdit(a.id, a.name)}
-                            className="press-feedback inline-flex items-center justify-center size-7 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                            onClick={() => handleEdit(a)}
+                            className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-100"
                             title="Edit"
                           >
                             <Pencil className="size-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(a.id, a.name)}
-                            className="press-feedback inline-flex items-center justify-center size-7 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            onClick={() => setDeletingApex(a)}
+                            className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-red-200 bg-red-50 text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
                             title="Delete"
                           >
                             <Trash2 className="size-3.5" />
@@ -308,31 +280,18 @@ export const ApexesPage: React.FC = () => {
             </table>
           </div>
 
-          {/* Footer */}
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-600">
             <p>
               Showing {filteredApexes.length} of {apexes.length} apexes
             </p>
-            <div className="flex gap-1">
-              <button className="press-feedback rounded-lg border border-border px-2.5 py-1.5 transition-colors hover:bg-muted/50">
-                Previous
-              </button>
-              <button className="press-feedback rounded-lg bg-primary px-3 py-1.5 font-bold text-primary-foreground">
-                1
-              </button>
-              <button className="press-feedback rounded-lg border border-border px-2.5 py-1.5 transition-colors hover:bg-muted/50">
-                Next
-              </button>
-            </div>
           </div>
         </Card>
       </div>
 
-      {/* Creation Modal */}
-      {isModalOpen && (
+      {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            onClick={() => setIsModalOpen(false)}
+            onClick={() => setIsCreateOpen(false)}
             className="absolute inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
           />
           <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
@@ -344,14 +303,13 @@ export const ApexesPage: React.FC = () => {
                 </h3>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setIsCreateOpen(false)}
                 className="press-feedback rounded-lg p-1 hover:bg-muted text-muted-foreground"
               >
                 <X className="size-4" />
               </button>
             </div>
-
-            <form onSubmit={handleRegister} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Apex Name *
@@ -359,67 +317,38 @@ export const ApexesPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
                   placeholder="e.g. Manzini Agricultural Apex"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Region
-                  </label>
-                  <select
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
-                  >
-                    <option>Manzini</option>
-                    <option>Hhohho</option>
-                    <option>Shiselweni</option>
-                    <option>Lubombo</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Parent Federation
-                  </label>
-                  <select
-                    value={federationName}
-                    onChange={(e) => setFederationName(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
-                  >
-                    <option>Manzini Regional Federation</option>
-                    <option>Hhohho Regional Federation</option>
-                    <option>Shiselweni Regional Federation</option>
-                    <option>Lubombo Regional Federation</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={createDescription}
+                  onChange={(e) => setCreateDescription(e.target.value)}
+                  placeholder="Optional description of this apex organization"
+                  rows={3}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all resize-none"
+                />
               </div>
-
-              <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
-                <ShieldAlert className="size-4 shrink-0 text-amber-600 mt-0.5" />
-                <span>
-                  By registering, you certify this apex organization operates under the designated
-                  federation and has cleared the federation's validation process.
-                </span>
-              </div>
-
               <div className="flex justify-end gap-2 border-t border-border pt-3">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsCreateOpen(false)}
                   className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm"
+                  disabled={createApex.isPending}
+                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 >
+                  {createApex.isPending && <Loader2 className="size-3.5 animate-spin" />}
                   Register Apex
                 </button>
               </div>
@@ -428,7 +357,6 @@ export const ApexesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
       {editingApex && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -450,7 +378,6 @@ export const ApexesPage: React.FC = () => {
                 <X className="size-4" />
               </button>
             </div>
-
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
@@ -464,41 +391,18 @@ export const ApexesPage: React.FC = () => {
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Region
-                  </label>
-                  <select
-                    value={editRegion}
-                    onChange={(e) => setEditRegion(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
-                  >
-                    <option>Manzini</option>
-                    <option>Hhohho</option>
-                    <option>Shiselweni</option>
-                    <option>Lubombo</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Parent Federation
-                  </label>
-                  <select
-                    value={editFederation}
-                    onChange={(e) => setEditFederation(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
-                  >
-                    <option>Manzini Regional Federation</option>
-                    <option>Hhohho Regional Federation</option>
-                    <option>Shiselweni Regional Federation</option>
-                    <option>Lubombo Regional Federation</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Optional description"
+                  rows={3}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all resize-none"
+                />
               </div>
-
               <div className="flex justify-end gap-2 border-t border-border pt-3">
                 <button
                   type="button"
@@ -509,8 +413,10 @@ export const ApexesPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm"
+                  disabled={updateApex.isPending}
+                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 >
+                  {updateApex.isPending && <Loader2 className="size-3.5 animate-spin" />}
                   Save Changes
                 </button>
               </div>
@@ -518,37 +424,41 @@ export const ApexesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {deletingApex && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => setDeletingApex(null)}
+            className="absolute inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
+          />
+          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="size-5 text-destructive" />
+              <h3 className="font-heading text-lg font-bold text-foreground">Delete Apex</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete <strong>{deletingApex.name}</strong>? This action
+              cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeletingApex(null)}
+                className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteApex.isPending}
+                className="press-feedback px-4 py-2 rounded-lg bg-destructive text-xs font-semibold text-destructive-foreground hover:bg-destructive/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                {deleteApex.isPending && <Loader2 className="size-3.5 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 };
-
-function Pills({
-  items,
-  active,
-  onChange,
-}: {
-  items: string[];
-  active: string;
-  onChange: (s: string) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5 text-xs">
-      {items.map((i) => {
-        const isActive = active === i;
-        return (
-          <button
-            key={i}
-            onClick={() => onChange(i)}
-            className={`press-feedback rounded-lg border px-3 py-1.5 font-bold transition-all ${
-              isActive
-                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                : "border-border text-muted-foreground hover:bg-muted/50 bg-surface"
-            }`}
-          >
-            {i}
-          </button>
-        );
-      })}
-    </div>
-  );
-}

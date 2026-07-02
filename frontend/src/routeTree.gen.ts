@@ -8,471 +8,562 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as UnauthorizedRouteImport } from "./routes/unauthorized";
-import { Route as AuthRouteImport } from "./routes/auth";
-import { Route as AppRouteImport } from "./routes/app";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as AppIndexRouteImport } from "./routes/app.index";
-import { Route as AuthLoginRouteImport } from "./routes/auth.login";
-import { Route as AppUsersRouteImport } from "./routes/app.users";
-import { Route as AppSubmissionsRouteImport } from "./routes/app.submissions";
-import { Route as AppSettingsRouteImport } from "./routes/app.settings";
-import { Route as AppReportsRouteImport } from "./routes/app.reports";
-import { Route as AppProfileRouteImport } from "./routes/app.profile";
-import { Route as AppNonFinancialDataRouteImport } from "./routes/app.non-financial-data";
-import { Route as AppMembersRouteImport } from "./routes/app.members";
-import { Route as AppInvitationsRouteImport } from "./routes/app.invitations";
-import { Route as AppFinancialStatementRouteImport } from "./routes/app.financial-statement";
-import { Route as AppFederationsRouteImport } from "./routes/app.federations";
-import { Route as AppDataCollectionRouteImport } from "./routes/app.data-collection";
-import { Route as AppDashboardRouteImport } from "./routes/app.dashboard";
-import { Route as AppCooperativesRouteImport } from "./routes/app.cooperatives";
-import { Route as AppApexesRouteImport } from "./routes/app.apexes";
-import { Route as AppAnalyticsRouteImport } from "./routes/app.analytics";
-import { Route as AppSubmissionsIdRouteImport } from "./routes/app.submissions_.$id";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AppUsersRouteImport } from './routes/app.users'
+import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
+import { Route as AppMembersRouteImport } from './routes/app.members'
+import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
+import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
+import { Route as AppFederationsRouteImport } from './routes/app.federations'
+import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
+import { Route as AppDataCollectionRouteImport } from './routes/app.data-collection'
+import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
+import { Route as AppApexesRouteImport } from './routes/app.apexes'
+import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
+import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
+import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
+import { Route as AppCooperativeMembersCooperativeIdRouteImport } from './routes/app.cooperative-members.$cooperativeId'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
-  id: "/unauthorized",
-  path: "/unauthorized",
+  id: '/unauthorized',
+  path: '/unauthorized',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthRoute = AuthRouteImport.update({
-  id: "/auth",
-  path: "/auth",
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AppRoute = AppRouteImport.update({
-  id: "/app",
-  path: "/app",
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: "/login",
-  path: "/login",
+  id: '/login',
+  path: '/login',
   getParentRoute: () => AuthRoute,
-} as any);
+} as any)
 const AppUsersRoute = AppUsersRouteImport.update({
-  id: "/users",
-  path: "/users",
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppSubmissionsRoute = AppSubmissionsRouteImport.update({
-  id: "/submissions",
-  path: "/submissions",
+  id: '/submissions',
+  path: '/submissions',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppReportsRoute = AppReportsRouteImport.update({
-  id: "/reports",
-  path: "/reports",
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
-  id: "/profile",
-  path: "/profile",
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppNonFinancialDataRoute = AppNonFinancialDataRouteImport.update({
-  id: "/non-financial-data",
-  path: "/non-financial-data",
+  id: '/non-financial-data',
+  path: '/non-financial-data',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppMembersRoute = AppMembersRouteImport.update({
-  id: "/members",
-  path: "/members",
+  id: '/members',
+  path: '/members',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
-  id: "/invitations",
-  path: "/invitations",
+  id: '/invitations',
+  path: '/invitations',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
-  id: "/financial-statement",
-  path: "/financial-statement",
+  id: '/financial-statement',
+  path: '/financial-statement',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppFederationsRoute = AppFederationsRouteImport.update({
-  id: "/federations",
-  path: "/federations",
+  id: '/federations',
+  path: '/federations',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
+const AppDebugAuthRoute = AppDebugAuthRouteImport.update({
+  id: '/debug-auth',
+  path: '/debug-auth',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDataCollectionRoute = AppDataCollectionRouteImport.update({
-  id: "/data-collection",
-  path: "/data-collection",
+  id: '/data-collection',
+  path: '/data-collection',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: "/dashboard",
-  path: "/dashboard",
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppCooperativesRoute = AppCooperativesRouteImport.update({
-  id: "/cooperatives",
-  path: "/cooperatives",
+  id: '/cooperatives',
+  path: '/cooperatives',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppApexesRoute = AppApexesRouteImport.update({
-  id: "/apexes",
-  path: "/apexes",
+  id: '/apexes',
+  path: '/apexes',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
-  id: "/analytics",
-  path: "/analytics",
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
+const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppUsersRoute,
+} as any)
+const AppUsersApexIdRoute = AppUsersApexIdRouteImport.update({
+  id: '/$apexId',
+  path: '/$apexId',
+  getParentRoute: () => AppUsersRoute,
+} as any)
 const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
-  id: "/submissions_/$id",
-  path: "/submissions/$id",
+  id: '/submissions_/$id',
+  path: '/submissions/$id',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
+const AppCooperativeMembersCooperativeIdRoute =
+  AppCooperativeMembersCooperativeIdRouteImport.update({
+    id: '/cooperative-members/$cooperativeId',
+    path: '/cooperative-members/$cooperativeId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/app": typeof AppRouteWithChildren;
-  "/auth": typeof AuthRouteWithChildren;
-  "/unauthorized": typeof UnauthorizedRoute;
-  "/app/analytics": typeof AppAnalyticsRoute;
-  "/app/apexes": typeof AppApexesRoute;
-  "/app/cooperatives": typeof AppCooperativesRoute;
-  "/app/dashboard": typeof AppDashboardRoute;
-  "/app/data-collection": typeof AppDataCollectionRoute;
-  "/app/federations": typeof AppFederationsRoute;
-  "/app/financial-statement": typeof AppFinancialStatementRoute;
-  "/app/invitations": typeof AppInvitationsRoute;
-  "/app/members": typeof AppMembersRoute;
-  "/app/non-financial-data": typeof AppNonFinancialDataRoute;
-  "/app/profile": typeof AppProfileRoute;
-  "/app/reports": typeof AppReportsRoute;
-  "/app/settings": typeof AppSettingsRoute;
-  "/app/submissions": typeof AppSubmissionsRoute;
-  "/app/users": typeof AppUsersRoute;
-  "/auth/login": typeof AuthLoginRoute;
-  "/app/": typeof AppIndexRoute;
-  "/app/submissions/$id": typeof AppSubmissionsIdRoute;
+  '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/app/analytics': typeof AppAnalyticsRoute
+  '/app/apexes': typeof AppApexesRoute
+  '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/data-collection': typeof AppDataCollectionRoute
+  '/app/debug-auth': typeof AppDebugAuthRoute
+  '/app/federations': typeof AppFederationsRoute
+  '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
+  '/app/non-financial-data': typeof AppNonFinancialDataRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/submissions': typeof AppSubmissionsRoute
+  '/app/users': typeof AppUsersRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/app/': typeof AppIndexRoute
+  '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
+  '/app/submissions/$id': typeof AppSubmissionsIdRoute
+  '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/app/users/': typeof AppUsersIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/auth": typeof AuthRouteWithChildren;
-  "/unauthorized": typeof UnauthorizedRoute;
-  "/app/analytics": typeof AppAnalyticsRoute;
-  "/app/apexes": typeof AppApexesRoute;
-  "/app/cooperatives": typeof AppCooperativesRoute;
-  "/app/dashboard": typeof AppDashboardRoute;
-  "/app/data-collection": typeof AppDataCollectionRoute;
-  "/app/federations": typeof AppFederationsRoute;
-  "/app/financial-statement": typeof AppFinancialStatementRoute;
-  "/app/invitations": typeof AppInvitationsRoute;
-  "/app/members": typeof AppMembersRoute;
-  "/app/non-financial-data": typeof AppNonFinancialDataRoute;
-  "/app/profile": typeof AppProfileRoute;
-  "/app/reports": typeof AppReportsRoute;
-  "/app/settings": typeof AppSettingsRoute;
-  "/app/submissions": typeof AppSubmissionsRoute;
-  "/app/users": typeof AppUsersRoute;
-  "/auth/login": typeof AuthLoginRoute;
-  "/app": typeof AppIndexRoute;
-  "/app/submissions/$id": typeof AppSubmissionsIdRoute;
+  '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/app/analytics': typeof AppAnalyticsRoute
+  '/app/apexes': typeof AppApexesRoute
+  '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/data-collection': typeof AppDataCollectionRoute
+  '/app/debug-auth': typeof AppDebugAuthRoute
+  '/app/federations': typeof AppFederationsRoute
+  '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
+  '/app/non-financial-data': typeof AppNonFinancialDataRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/submissions': typeof AppSubmissionsRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/app': typeof AppIndexRoute
+  '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
+  '/app/submissions/$id': typeof AppSubmissionsIdRoute
+  '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/app/users': typeof AppUsersIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/app": typeof AppRouteWithChildren;
-  "/auth": typeof AuthRouteWithChildren;
-  "/unauthorized": typeof UnauthorizedRoute;
-  "/app/analytics": typeof AppAnalyticsRoute;
-  "/app/apexes": typeof AppApexesRoute;
-  "/app/cooperatives": typeof AppCooperativesRoute;
-  "/app/dashboard": typeof AppDashboardRoute;
-  "/app/data-collection": typeof AppDataCollectionRoute;
-  "/app/federations": typeof AppFederationsRoute;
-  "/app/financial-statement": typeof AppFinancialStatementRoute;
-  "/app/invitations": typeof AppInvitationsRoute;
-  "/app/members": typeof AppMembersRoute;
-  "/app/non-financial-data": typeof AppNonFinancialDataRoute;
-  "/app/profile": typeof AppProfileRoute;
-  "/app/reports": typeof AppReportsRoute;
-  "/app/settings": typeof AppSettingsRoute;
-  "/app/submissions": typeof AppSubmissionsRoute;
-  "/app/users": typeof AppUsersRoute;
-  "/auth/login": typeof AuthLoginRoute;
-  "/app/": typeof AppIndexRoute;
-  "/app/submissions_/$id": typeof AppSubmissionsIdRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/app/analytics': typeof AppAnalyticsRoute
+  '/app/apexes': typeof AppApexesRoute
+  '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/data-collection': typeof AppDataCollectionRoute
+  '/app/debug-auth': typeof AppDebugAuthRoute
+  '/app/federations': typeof AppFederationsRoute
+  '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/invitations': typeof AppInvitationsRoute
+  '/app/members': typeof AppMembersRoute
+  '/app/non-financial-data': typeof AppNonFinancialDataRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/submissions': typeof AppSubmissionsRoute
+  '/app/users': typeof AppUsersRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/app/': typeof AppIndexRoute
+  '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
+  '/app/submissions_/$id': typeof AppSubmissionsIdRoute
+  '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/app/users/': typeof AppUsersIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/app"
-    | "/auth"
-    | "/unauthorized"
-    | "/app/analytics"
-    | "/app/apexes"
-    | "/app/cooperatives"
-    | "/app/dashboard"
-    | "/app/data-collection"
-    | "/app/federations"
-    | "/app/financial-statement"
-    | "/app/invitations"
-    | "/app/members"
-    | "/app/non-financial-data"
-    | "/app/profile"
-    | "/app/reports"
-    | "/app/settings"
-    | "/app/submissions"
-    | "/app/users"
-    | "/auth/login"
-    | "/app/"
-    | "/app/submissions/$id";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/unauthorized'
+    | '/app/analytics'
+    | '/app/apexes'
+    | '/app/cooperatives'
+    | '/app/dashboard'
+    | '/app/data-collection'
+    | '/app/debug-auth'
+    | '/app/federations'
+    | '/app/financial-statement'
+    | '/app/invitations'
+    | '/app/members'
+    | '/app/non-financial-data'
+    | '/app/profile'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app/submissions'
+    | '/app/users'
+    | '/auth/login'
+    | '/app/'
+    | '/app/cooperative-members/$cooperativeId'
+    | '/app/submissions/$id'
+    | '/app/users/$apexId'
+    | '/app/users/'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/auth"
-    | "/unauthorized"
-    | "/app/analytics"
-    | "/app/apexes"
-    | "/app/cooperatives"
-    | "/app/dashboard"
-    | "/app/data-collection"
-    | "/app/federations"
-    | "/app/financial-statement"
-    | "/app/invitations"
-    | "/app/members"
-    | "/app/non-financial-data"
-    | "/app/profile"
-    | "/app/reports"
-    | "/app/settings"
-    | "/app/submissions"
-    | "/app/users"
-    | "/auth/login"
-    | "/app"
-    | "/app/submissions/$id";
+    | '/'
+    | '/auth'
+    | '/unauthorized'
+    | '/app/analytics'
+    | '/app/apexes'
+    | '/app/cooperatives'
+    | '/app/dashboard'
+    | '/app/data-collection'
+    | '/app/debug-auth'
+    | '/app/federations'
+    | '/app/financial-statement'
+    | '/app/invitations'
+    | '/app/members'
+    | '/app/non-financial-data'
+    | '/app/profile'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app/submissions'
+    | '/auth/login'
+    | '/app'
+    | '/app/cooperative-members/$cooperativeId'
+    | '/app/submissions/$id'
+    | '/app/users/$apexId'
+    | '/app/users'
   id:
-    | "__root__"
-    | "/"
-    | "/app"
-    | "/auth"
-    | "/unauthorized"
-    | "/app/analytics"
-    | "/app/apexes"
-    | "/app/cooperatives"
-    | "/app/dashboard"
-    | "/app/data-collection"
-    | "/app/federations"
-    | "/app/financial-statement"
-    | "/app/invitations"
-    | "/app/members"
-    | "/app/non-financial-data"
-    | "/app/profile"
-    | "/app/reports"
-    | "/app/settings"
-    | "/app/submissions"
-    | "/app/users"
-    | "/auth/login"
-    | "/app/"
-    | "/app/submissions_/$id";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/unauthorized'
+    | '/app/analytics'
+    | '/app/apexes'
+    | '/app/cooperatives'
+    | '/app/dashboard'
+    | '/app/data-collection'
+    | '/app/debug-auth'
+    | '/app/federations'
+    | '/app/financial-statement'
+    | '/app/invitations'
+    | '/app/members'
+    | '/app/non-financial-data'
+    | '/app/profile'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app/submissions'
+    | '/app/users'
+    | '/auth/login'
+    | '/app/'
+    | '/app/cooperative-members/$cooperativeId'
+    | '/app/submissions_/$id'
+    | '/app/users/$apexId'
+    | '/app/users/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AppRoute: typeof AppRouteWithChildren;
-  AuthRoute: typeof AuthRouteWithChildren;
-  UnauthorizedRoute: typeof UnauthorizedRoute;
+  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
+  UnauthorizedRoute: typeof UnauthorizedRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/unauthorized": {
-      id: "/unauthorized";
-      path: "/unauthorized";
-      fullPath: "/unauthorized";
-      preLoaderRoute: typeof UnauthorizedRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/auth": {
-      id: "/auth";
-      path: "/auth";
-      fullPath: "/auth";
-      preLoaderRoute: typeof AuthRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/app": {
-      id: "/app";
-      path: "/app";
-      fullPath: "/app";
-      preLoaderRoute: typeof AppRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/app/": {
-      id: "/app/";
-      path: "/";
-      fullPath: "/app/";
-      preLoaderRoute: typeof AppIndexRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/auth/login": {
-      id: "/auth/login";
-      path: "/login";
-      fullPath: "/auth/login";
-      preLoaderRoute: typeof AuthLoginRouteImport;
-      parentRoute: typeof AuthRoute;
-    };
-    "/app/users": {
-      id: "/app/users";
-      path: "/users";
-      fullPath: "/app/users";
-      preLoaderRoute: typeof AppUsersRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/submissions": {
-      id: "/app/submissions";
-      path: "/submissions";
-      fullPath: "/app/submissions";
-      preLoaderRoute: typeof AppSubmissionsRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/settings": {
-      id: "/app/settings";
-      path: "/settings";
-      fullPath: "/app/settings";
-      preLoaderRoute: typeof AppSettingsRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/reports": {
-      id: "/app/reports";
-      path: "/reports";
-      fullPath: "/app/reports";
-      preLoaderRoute: typeof AppReportsRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/profile": {
-      id: "/app/profile";
-      path: "/profile";
-      fullPath: "/app/profile";
-      preLoaderRoute: typeof AppProfileRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/non-financial-data": {
-      id: "/app/non-financial-data";
-      path: "/non-financial-data";
-      fullPath: "/app/non-financial-data";
-      preLoaderRoute: typeof AppNonFinancialDataRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/members": {
-      id: "/app/members";
-      path: "/members";
-      fullPath: "/app/members";
-      preLoaderRoute: typeof AppMembersRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/invitations": {
-      id: "/app/invitations";
-      path: "/invitations";
-      fullPath: "/app/invitations";
-      preLoaderRoute: typeof AppInvitationsRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/financial-statement": {
-      id: "/app/financial-statement";
-      path: "/financial-statement";
-      fullPath: "/app/financial-statement";
-      preLoaderRoute: typeof AppFinancialStatementRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/federations": {
-      id: "/app/federations";
-      path: "/federations";
-      fullPath: "/app/federations";
-      preLoaderRoute: typeof AppFederationsRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/data-collection": {
-      id: "/app/data-collection";
-      path: "/data-collection";
-      fullPath: "/app/data-collection";
-      preLoaderRoute: typeof AppDataCollectionRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/dashboard": {
-      id: "/app/dashboard";
-      path: "/dashboard";
-      fullPath: "/app/dashboard";
-      preLoaderRoute: typeof AppDashboardRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/cooperatives": {
-      id: "/app/cooperatives";
-      path: "/cooperatives";
-      fullPath: "/app/cooperatives";
-      preLoaderRoute: typeof AppCooperativesRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/apexes": {
-      id: "/app/apexes";
-      path: "/apexes";
-      fullPath: "/app/apexes";
-      preLoaderRoute: typeof AppApexesRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/analytics": {
-      id: "/app/analytics";
-      path: "/analytics";
-      fullPath: "/app/analytics";
-      preLoaderRoute: typeof AppAnalyticsRouteImport;
-      parentRoute: typeof AppRoute;
-    };
-    "/app/submissions_/$id": {
-      id: "/app/submissions_/$id";
-      path: "/submissions/$id";
-      fullPath: "/app/submissions/$id";
-      preLoaderRoute: typeof AppSubmissionsIdRouteImport;
-      parentRoute: typeof AppRoute;
-    };
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/app/users': {
+      id: '/app/users'
+      path: '/users'
+      fullPath: '/app/users'
+      preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/submissions': {
+      id: '/app/submissions'
+      path: '/submissions'
+      fullPath: '/app/submissions'
+      preLoaderRoute: typeof AppSubmissionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/non-financial-data': {
+      id: '/app/non-financial-data'
+      path: '/non-financial-data'
+      fullPath: '/app/non-financial-data'
+      preLoaderRoute: typeof AppNonFinancialDataRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/members': {
+      id: '/app/members'
+      path: '/members'
+      fullPath: '/app/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/invitations': {
+      id: '/app/invitations'
+      path: '/invitations'
+      fullPath: '/app/invitations'
+      preLoaderRoute: typeof AppInvitationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/financial-statement': {
+      id: '/app/financial-statement'
+      path: '/financial-statement'
+      fullPath: '/app/financial-statement'
+      preLoaderRoute: typeof AppFinancialStatementRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/federations': {
+      id: '/app/federations'
+      path: '/federations'
+      fullPath: '/app/federations'
+      preLoaderRoute: typeof AppFederationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/debug-auth': {
+      id: '/app/debug-auth'
+      path: '/debug-auth'
+      fullPath: '/app/debug-auth'
+      preLoaderRoute: typeof AppDebugAuthRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/data-collection': {
+      id: '/app/data-collection'
+      path: '/data-collection'
+      fullPath: '/app/data-collection'
+      preLoaderRoute: typeof AppDataCollectionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperatives': {
+      id: '/app/cooperatives'
+      path: '/cooperatives'
+      fullPath: '/app/cooperatives'
+      preLoaderRoute: typeof AppCooperativesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/apexes': {
+      id: '/app/apexes'
+      path: '/apexes'
+      fullPath: '/app/apexes'
+      preLoaderRoute: typeof AppApexesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/analytics': {
+      id: '/app/analytics'
+      path: '/analytics'
+      fullPath: '/app/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/users/': {
+      id: '/app/users/'
+      path: '/'
+      fullPath: '/app/users/'
+      preLoaderRoute: typeof AppUsersIndexRouteImport
+      parentRoute: typeof AppUsersRoute
+    }
+    '/app/users/$apexId': {
+      id: '/app/users/$apexId'
+      path: '/$apexId'
+      fullPath: '/app/users/$apexId'
+      preLoaderRoute: typeof AppUsersApexIdRouteImport
+      parentRoute: typeof AppUsersRoute
+    }
+    '/app/submissions_/$id': {
+      id: '/app/submissions_/$id'
+      path: '/submissions/$id'
+      fullPath: '/app/submissions/$id'
+      preLoaderRoute: typeof AppSubmissionsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperative-members/$cooperativeId': {
+      id: '/app/cooperative-members/$cooperativeId'
+      path: '/cooperative-members/$cooperativeId'
+      fullPath: '/app/cooperative-members/$cooperativeId'
+      preLoaderRoute: typeof AppCooperativeMembersCooperativeIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppUsersRouteChildren {
+  AppUsersApexIdRoute: typeof AppUsersApexIdRoute
+  AppUsersIndexRoute: typeof AppUsersIndexRoute
+}
+
+const AppUsersRouteChildren: AppUsersRouteChildren = {
+  AppUsersApexIdRoute: AppUsersApexIdRoute,
+  AppUsersIndexRoute: AppUsersIndexRoute,
+}
+
+const AppUsersRouteWithChildren = AppUsersRoute._addFileChildren(
+  AppUsersRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppAnalyticsRoute: typeof AppAnalyticsRoute;
-  AppApexesRoute: typeof AppApexesRoute;
-  AppCooperativesRoute: typeof AppCooperativesRoute;
-  AppDashboardRoute: typeof AppDashboardRoute;
-  AppDataCollectionRoute: typeof AppDataCollectionRoute;
-  AppFederationsRoute: typeof AppFederationsRoute;
-  AppFinancialStatementRoute: typeof AppFinancialStatementRoute;
-  AppInvitationsRoute: typeof AppInvitationsRoute;
-  AppMembersRoute: typeof AppMembersRoute;
-  AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute;
-  AppProfileRoute: typeof AppProfileRoute;
-  AppReportsRoute: typeof AppReportsRoute;
-  AppSettingsRoute: typeof AppSettingsRoute;
-  AppSubmissionsRoute: typeof AppSubmissionsRoute;
-  AppUsersRoute: typeof AppUsersRoute;
-  AppIndexRoute: typeof AppIndexRoute;
-  AppSubmissionsIdRoute: typeof AppSubmissionsIdRoute;
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppApexesRoute: typeof AppApexesRoute
+  AppCooperativesRoute: typeof AppCooperativesRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppDataCollectionRoute: typeof AppDataCollectionRoute
+  AppDebugAuthRoute: typeof AppDebugAuthRoute
+  AppFederationsRoute: typeof AppFederationsRoute
+  AppFinancialStatementRoute: typeof AppFinancialStatementRoute
+  AppInvitationsRoute: typeof AppInvitationsRoute
+  AppMembersRoute: typeof AppMembersRoute
+  AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppSubmissionsRoute: typeof AppSubmissionsRoute
+  AppUsersRoute: typeof AppUsersRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+  AppCooperativeMembersCooperativeIdRoute: typeof AppCooperativeMembersCooperativeIdRoute
+  AppSubmissionsIdRoute: typeof AppSubmissionsIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -481,6 +572,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCooperativesRoute: AppCooperativesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDataCollectionRoute: AppDataCollectionRoute,
+  AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
   AppInvitationsRoute: AppInvitationsRoute,
@@ -490,29 +582,31 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubmissionsRoute: AppSubmissionsRoute,
-  AppUsersRoute: AppUsersRoute,
+  AppUsersRoute: AppUsersRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
+  AppCooperativeMembersCooperativeIdRoute:
+    AppCooperativeMembersCooperativeIdRoute,
   AppSubmissionsIdRoute: AppSubmissionsIdRoute,
-};
+}
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren);
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AuthRouteChildren {
-  AuthLoginRoute: typeof AuthLoginRoute;
+  AuthLoginRoute: typeof AuthLoginRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
-};
+}
 
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren);
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   UnauthorizedRoute: UnauthorizedRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

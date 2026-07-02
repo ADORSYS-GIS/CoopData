@@ -32,14 +32,20 @@ apiClient.use({
       request.headers.set("Authorization", `Bearer ${token}`);
     } catch {
       // Not authenticated — let the request proceed without token
-      // The server will return 401 if auth is required
     }
     return request;
   },
   onResponse({ response }) {
-    // Do NOT redirect here — navigation is handled by route guards and components.
-    // A hard window.location redirect bypasses the router and causes flash/redirect
-    // bugs on pages that fire API calls immediately on mount.
+    // Only redirect to login on 401 if we're not already on an app page.
+    // When the backend is misconfigured (wrong JWT issuer, etc.) it returns 401
+    // even for authenticated users — we should NOT kick them out in that case.
+    // Let the individual hooks/pages handle the error instead.
+    if (response.status === 401) {
+      const isAppRoute = window.location.pathname.startsWith("/app");
+      if (!isAppRoute) {
+        window.location.href = "/auth/login";
+      }
+    }
     return response;
   },
 });

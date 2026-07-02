@@ -7,24 +7,48 @@ import { mapKeycloakRolesToRole } from "@/constants/roles";
 const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
 
-// ─── Module-level singleton init ─────────────────────────────────────────────
-//
-// Keycloak's JS adapter cannot be initialized more than once per page load.
-// We kick off initialization here at module import time so:
-//   1. It runs exactly once, even under React StrictMode (double-effect calls).
-//   2. `keycloakReady` is available immediately for `beforeLoad` guards to await.
-//   3. `KeycloakAuthProvider` just reads the result — it never calls init itself.
-//
-let _initPromise: Promise<boolean> | null = null;
+let keycloakInitialized = false;
+let keycloakReadyResolvers: ((value: boolean) => void)[] = [];
 
-function getInitPromise(): Promise<boolean> {
-  if (_initPromise) return _initPromise;
-  _initPromise = _runInit();
-  return _initPromise;
+function resolveKeycloakReady() {
+  keycloakInitialized = true;
+  const resolvers = keycloakReadyResolvers;
+  keycloakReadyResolvers = [];
+  for (const resolve of resolvers) {
+    resolve(true);
+  }
 }
 
-async function _runInit(): Promise<boolean> {
+export function waitForKeycloakReady(timeoutMs = 8000): Promise<boolean> {
+  if (keycloakInitialized) return Promise.resolve(true);
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.warn("[auth] waitForKeycloakReady timed out");
+        resolve(false);
+      }
+    }, timeoutMs);
+    keycloakReadyResolvers.push((value) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      }
+    });
+  });
+}
+
+export async function initKeycloak(): Promise<boolean> {
+  if (keycloakInitialized) {
+    console.log("[auth] Already initialized, authenticated:", keycloak.authenticated);
+    return keycloak.authenticated ?? false;
+  }
+
+  console.log("[auth] Initializing Keycloak...");
   const cachedTokens = await loadCachedTokens();
+  console.log("[auth] Cached tokens:", cachedTokens ? "found" : "none");
 
   try {
     const authenticated = await keycloak.init({
@@ -38,49 +62,45 @@ async function _runInit(): Promise<boolean> {
       idToken: cachedTokens?.idToken ?? undefined,
     });
 
+    resolveKeycloakReady();
+    console.log("[auth] Keycloak init complete, authenticated:", authenticated);
+
     if (authenticated) {
       await persistTokens();
       try {
         await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
         await persistTokens();
-      } catch {
-        // Token refresh failed — session expired
+        console.log("[auth] Token refreshed successfully");
+      } catch (e) {
+        console.warn("[auth] Token refresh failed, clearing cache:", e);
         await clearCachedTokens();
         return false;
       }
+
+      const profile = getUserProfile();
+      console.log(
+        "[auth] User profile:",
+        profile ? { email: profile.email, role: profile.role, name: profile.name } : null,
+      );
     }
 
     return authenticated;
   } catch (error) {
-    console.error("[authService] Keycloak init failed:", error);
+    console.error("[auth] Keycloak init failed:", error);
+    resolveKeycloakReady();
 
-    // Offline fallback: if cached tokens exist, treat as authenticated
     if (cachedTokens?.token) {
+      console.log("[auth] Falling back to cached token");
       return true;
     }
     return false;
   }
 }
 
-/**
- * A promise that resolves to `true` (authenticated) or `false` (not authenticated)
- * once Keycloak has finished initializing. Route guards await this before checking
- * auth state, so they never fire before the auth state is known.
- */
-export const keycloakReady: Promise<boolean> = getInitPromise();
-
-/**
- * Initialize Keycloak. Safe to call multiple times — returns the same promise.
- * Components (KeycloakAuthProvider) should call this to get the auth result
- * without triggering a second init.
- */
-export async function initKeycloak(): Promise<boolean> {
-  return getInitPromise();
-}
-
 // ─── Auth actions ─────────────────────────────────────────────────────────────
 
 export async function login(): Promise<void> {
+  console.log("[auth] login() called — redirecting to Keycloak");
   await keycloak.login({
     redirectUri: window.location.origin + "/app/dashboard",
     scope: "openid profile email",
@@ -88,9 +108,11 @@ export async function login(): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
+  console.log("[auth] logout() called");
   await clearCachedTokens();
+  keycloakInitialized = false;
   await keycloak.logout({
-    redirectUri: window.location.origin + "/auth/login",
+    redirectUri: window.location.origin + "/",
   });
 }
 
@@ -105,7 +127,6 @@ export async function getAccessToken(): Promise<string> {
       await persistTokens();
     }
   } catch {
-    // Refresh failed — try cached token as fallback
     const cached = await loadCachedTokens();
     if (cached?.token) {
       return cached.token;
@@ -116,23 +137,60 @@ export async function getAccessToken(): Promise<string> {
   return keycloak.token!;
 }
 
-// ─── Profile & role helpers ──────────────────────────────────────────────────
+function extractRealmRoles(token: CustomKeycloakToken): string[] {
+  const roles: string[] = [];
+
+  if (token.realm_access?.roles) {
+    roles.push(...token.realm_access.roles);
+  }
+
+  if (token.is_member_of && Array.isArray(token.is_member_of)) {
+    for (const member of token.is_member_of) {
+      if (typeof member === "string" && !roles.includes(member)) {
+        roles.push(member);
+      }
+    }
+  }
+
+  return [...new Set(roles)];
+}
+
+function extractOrgName(
+  org: Record<string, { id: string }> | string | string[] | undefined,
+): string | null {
+  if (!org) return null;
+  if (typeof org === "string") return org;
+  if (Array.isArray(org)) return org[0] ?? null;
+  if (typeof org === "object") return Object.keys(org)[0] ?? null;
+  return null;
+}
+
+function extractOrgId(
+  org: Record<string, { id: string }> | string | string[] | undefined,
+): string | null {
+  if (!org) return null;
+  if (typeof org === "string") return org;
+  if (Array.isArray(org)) return org[0] ?? null;
+  if (typeof org === "object") {
+    const firstKey = Object.keys(org)[0];
+    return firstKey ? (org[firstKey]?.id ?? firstKey) : null;
+  }
+  return null;
+}
 
 export function getUserProfile(): UserProfile | null {
   if (!keycloak.authenticated || !keycloak.tokenParsed) {
-    console.warn("[getUserProfile] Not authenticated or no token");
+    console.log("[auth] getUserProfile: not authenticated or no token");
     return null;
   }
 
   const token = keycloak.tokenParsed as CustomKeycloakToken;
-  const realmRoles = token.realm_access?.roles ?? [];
-  console.log("[getUserProfile] Token realm_roles:", realmRoles);
-
+  const realmRoles = extractRealmRoles(token);
   const role = mapKeycloakRolesToRole(realmRoles);
   console.log("[getUserProfile] Mapped role:", role);
 
   if (!role) {
-    console.warn("[getUserProfile] No recognized role in token:", realmRoles);
+    console.warn("[auth] getUserProfile: no recognized role in token. Roles found:", realmRoles);
     return null;
   }
 
@@ -140,14 +198,26 @@ export function getUserProfile(): UserProfile | null {
   const lastName = token.family_name ?? token.name?.split(" ").slice(1).join(" ") ?? "";
   const initials = (firstName[0] ?? "") + (lastName[0] ?? "");
 
+  const orgName = extractOrgName(token.organization);
+  const orgId = extractOrgId(token.organization);
+
+  // cooperation is string[] of group paths: ["/apex-group-id/coop-name"]
+  // Extract the apex group id (first segment) and cooperative name (last segment)
+  const cooperationPaths = Array.isArray(token.cooperation) ? token.cooperation : [];
+  const firstCoopPath = cooperationPaths[0] ?? null;
+  const pathSegments = firstCoopPath ? firstCoopPath.split("/").filter(Boolean) : [];
+  const apexGroupId = pathSegments[0] ?? null;
+  const coopSegment = pathSegments[1] ?? pathSegments[0] ?? null;
+  // Use the last path segment as the readable coop name (may be UUID — that's OK)
+  const coopName = coopSegment;
+  const coopId = coopSegment;
+
   const region =
     role === "ministry"
       ? "National"
       : role === "federation"
-        ? (token.organization ?? "Unknown")
-        : role === "apex"
-          ? (token.cooperation ?? "Unknown")
-          : (token.cooperation ?? "Unknown");
+        ? (orgName ?? "Unknown")
+        : (apexGroupId ?? "Unknown");
 
   return {
     id: token.sub,
@@ -158,10 +228,10 @@ export function getUserProfile(): UserProfile | null {
     initials: initials.toUpperCase() || "??",
     role,
     region,
-    organizationId: token.organization_id ?? token.organization ?? null,
-    organizationName: token.organization ?? null,
-    cooperationId: token.cooperation_id ?? token.cooperation ?? null,
-    cooperationName: token.cooperation ?? null,
+    organizationId: token.organization_id ?? orgId ?? null,
+    organizationName: orgName,
+    cooperationId: token.cooperation_id ?? coopId ?? null,
+    cooperationName: coopName,
     assignedDimensions: token.assigned_dimensions ?? [],
     realmRoles,
   };
@@ -183,16 +253,6 @@ export function isAuthenticated(): boolean {
   return keycloak.authenticated ?? false;
 }
 
-/** @deprecated Use `await keycloakReady` instead of polling isKeycloakReady() */
-export function isKeycloakReady(): boolean {
-  // A promise is "done" synchronously once resolved, but JS has no sync way to
-  // check a promise's state. This helper is kept for backward compat only.
-  // Route guards should use `await keycloakReady` instead.
-  return keycloak.authenticated !== undefined && _initPromise !== null;
-}
-
-// ─── Fetch helper ────────────────────────────────────────────────────────────
-
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
@@ -200,8 +260,6 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   headers.set("Content-Type", "application/json");
   return fetch(url, { ...options, headers });
 }
-
-// ─── Token persistence (offline support) ────────────────────────────────────
 
 interface CachedTokens {
   token: string;
@@ -221,7 +279,7 @@ async function persistTokens(): Promise<void> {
   try {
     await set(TOKEN_CACHE_KEY, tokens);
   } catch {
-    console.warn("[authService] Failed to persist tokens to IndexedDB");
+    console.warn("[auth] Failed to persist tokens to IndexedDB");
   }
 }
 

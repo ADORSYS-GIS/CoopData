@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireRole } from "@/lib/route-guards";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CooperativesPage } from "@/pages/apex/CooperativesPage";
 
+function CooperativesRoute() {
+  return (
+    <ProtectedRoute allowedRoles={["apex"]}>
+      <CooperativesPage />
+    </ProtectedRoute>
+  );
+}
+
 export const Route = createFileRoute("/app/cooperatives")({
-  beforeLoad: async () => {
-    await requireRole("apex");
-  },
-  component: CooperativesPage,
+  component: CooperativesRoute,
 });

@@ -17,4 +17,4 @@ export {
   type NavGroupId,
 } from "@/constants/roles";
 
-export { useAuth, useRole, useCanAccess } from "@/context/AuthContext";
+export { useAuth, useRole, useCanAccess, useUserRole } from "@/context/AuthContext";

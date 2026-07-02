@@ -2,7 +2,7 @@
 //!
 //! Ministry users are platform super-admins who can:
 //! - Create, read, update, delete federations
-//! - Invite users to federations
+//! - Invite users to federations and manage federation members
 //! - Manage organizations and users
 //!
 //! All routes require the `ministry` role.
@@ -24,32 +24,6 @@ use crate::AppState;
 
 /// Creates the Ministry routes router.
 /// All routes are prefixed with `/api/v1/ministry`.
-///
-/// # Required Role
-/// `ministry` (enforced by middleware)
-///
-/// # Routes
-/// - `POST /federations` - Create a new federation
-/// - `GET /federations` - List all federations
-/// - `GET /federations/:id` - Get a federation by ID
-/// - `PATCH /federations/:id` - Update a federation
-/// - `DELETE /federations/:id` - Delete a federation
-/// - `POST /federations/:id/invitations` - Invite user to federation
-/// - `GET /federations/:id/invitations` - List federation invitations
-/// - `DELETE /federations/:id/invitations/:invitation_id` - Cancel invitation
-/// - `POST /federations/:id/invitations/:invitation_id/resend` - Resend invitation
-/// - `GET /federations/:id/members` - List federation members
-/// - `GET /organizations` - List organizations
-/// - `POST /organizations` - Create organization
-/// - `GET /organizations/:id` - Get organization
-/// - `PATCH /organizations/:id` - Update organization
-/// - `DELETE /organizations/:id` - Delete organization
-/// - `GET /users` - List users
-/// - `POST /users` - Create user
-/// - `GET /users/:id` - Get user
-/// - `PATCH /users/:id` - Update user
-/// - `DELETE /users/:id` - Delete user
-/// - `POST /users/:id/assign-role` - Assign role to user
 pub fn ministry_routes() -> Router<AppState> {
     Router::new()
         // Federation CRUD
@@ -93,7 +67,7 @@ pub fn ministry_routes() -> Router<AppState> {
                 .patch(update_organization)
                 .delete(delete_organization),
         )
-        // User Management
+        // User management
         .route("/users", get(list_users).post(create_user))
         .route(
             "/users/{id}",
