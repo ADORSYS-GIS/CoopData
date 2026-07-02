@@ -114,17 +114,22 @@ services:
         CURRENT=$$(curl -s "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
           -H "Authorization: Bearer $$TOKEN")
 
-        # Update SMTP settings using jq for proper JSON manipulation
-        UPDATED=$$(echo "$$CURRENT" | jq '.smtpServer = {
-          "starttls": "false",
-          "auth": "false",
-          "port": "1025",
-          "host": "mailhog",
-          "from": "coopdata@localhost",
-          "fromDisplayName": "CoopData",
-          "envelopeFrom": "",
-          "ssl": "false"
-        }')
+        # Update SMTP settings and frontendUrl using jq for proper JSON manipulation.
+        # frontendUrl tells Keycloak what public hostname to use in generated links
+        # (email verification, org invitation). Without it, Keycloak uses its internal
+        # Docker hostname (keycloak:8180) which browsers cannot resolve.
+        UPDATED=$$(echo "$$CURRENT" | jq \
+          --arg frontend_url "$${KEYCLOAK_FRONTEND_URL}" \
+          '.smtpServer = {
+            "starttls": "false",
+            "auth": "false",
+            "port": "1025",
+            "host": "mailhog",
+            "from": "coopdata@localhost",
+            "fromDisplayName": "CoopData",
+            "envelopeFrom": "",
+            "ssl": "false"
+          } | .attributes.frontendUrl = [$frontend_url]')
 
         # Apply updated config
         RESPONSE=$$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://keycloak:8180/admin/realms/$${KEYCLOAK_REALM}" \
@@ -151,6 +156,7 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_FRONTEND_URL: ${KEYCLOAK_FRONTEND_URL}
     depends_on:
       keycloak:
         condition: service_healthy
