@@ -4,7 +4,7 @@ import { UsersPage } from "@/pages/shared/UsersPage";
 
 export const Route = createFileRoute("/app/users")({
   beforeLoad: async () => {
-    await requireRole("ministry", "federation", "apex");
+    await requireRole("ministry");
   },
   component: UsersPage,
 });

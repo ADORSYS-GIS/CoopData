@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireAuth } from "@/lib/route-guards";
+import { requireRole } from "@/lib/route-guards";
 import { ReportsPage } from "@/pages/shared/ReportsPage";
 
 export const Route = createFileRoute("/app/reports")({
   beforeLoad: async () => {
-    await requireAuth();
+    await requireRole("ministry");
   },
   component: ReportsPage,
 });
