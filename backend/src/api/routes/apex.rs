@@ -30,24 +30,24 @@ pub fn apex_routes() -> Router<AppState> {
                 .get(handlers::cooperative::list_cooperatives),
         )
         .route(
-            "/cooperatives/:id",
+            "/cooperatives/{id}",
             get(handlers::cooperative::get_cooperative)
                 .patch(handlers::cooperative::update_cooperative)
                 .delete(handlers::cooperative::delete_cooperative),
         )
         // Cooperative Members
         .route(
-            "/cooperatives/:id/members",
+            "/cooperatives/{id}/members",
             post(handlers::cooperative::add_cooperative_member)
                 .get(handlers::cooperative::list_cooperative_members),
         )
         .route(
-            "/cooperatives/:group_id/members/:user_id",
+            "/cooperatives/{group_id}/members/{user_id}",
             delete(handlers::cooperative::remove_cooperative_member)
                 .patch(handlers::cooperative::update_cooperative_member),
         )
         .route(
-            "/cooperatives/:group_id/members/:user_id/resend-verification",
+            "/cooperatives/{group_id}/members/{user_id}/resend-verification",
             post(handlers::cooperative::resend_cooperative_member_verification),
         )
 }

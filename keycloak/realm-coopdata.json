@@ -146,6 +146,14 @@
           "attributes": {}
         },
         {
+          "id": "a15349fe-3516-4c9e-b784-e829037cb4fd",
+          "name": "manage-groups",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "f48477e0-786e-4786-b7e7-009d3fb4c81b",
+          "attributes": {}
+        },
+        {
           "id": "89c290a2-e217-4633-81da-3b49ad657730",
           "name": "view-authorization",
           "description": "${role_view-authorization}",
@@ -245,6 +253,14 @@
           "id": "b4c73219-cb2e-4268-a077-207cd36c878d",
           "name": "view-events",
           "description": "${role_view-events}",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "f48477e0-786e-4786-b7e7-009d3fb4c81b",
+          "attributes": {}
+        },
+        {
+          "id": "e0b3905c-7f68-47b4-a0d3-5d3b7e596fba",
+          "name": "view-groups",
           "composite": false,
           "clientRole": true,
           "containerId": "f48477e0-786e-4786-b7e7-009d3fb4c81b",
@@ -453,7 +469,42 @@
       ]
     }
   },
-  "groups": [],
+  "groups": [
+    {
+      "id": "875245a2-4f6e-43ab-8435-d696a4ee4433",
+      "name": "test",
+      "path": "/test",
+      "subGroups": [
+        {
+          "id": "fb7fc245-2aa7-40ed-8bd2-862e62c10f86",
+          "name": "Adorsys",
+          "path": "/test/Adorsys",
+          "parentId": "875245a2-4f6e-43ab-8435-d696a4ee4433",
+          "subGroups": [],
+          "attributes": {
+            "type": [
+              "cooperative"
+            ],
+            "description": [
+              "adorsys"
+            ]
+          },
+          "realmRoles": [],
+          "clientRoles": {}
+        }
+      ],
+      "attributes": {
+        "description": [
+          "test"
+        ],
+        "organization_id": [
+          "5a5fe1b5-a84e-4c16-accf-660b0dca7bb6"
+        ]
+      },
+      "realmRoles": [],
+      "clientRoles": {}
+    }
+  ],
   "defaultRole": {
     "id": "19ce20aa-9472-4c3b-962e-defe3f2320db",
     "name": "default-roles-coop-data",
@@ -522,12 +573,40 @@
       ],
       "clientRoles": {
         "realm-management": [
-          "view-users",
-          "manage-users",
-          "query-groups",
-          "view-groups",
           "manage-groups",
-          "query-users"
+          "manage-clients",
+          "manage-identity-providers",
+          "manage-authorization",
+          "view-users",
+          "query-groups",
+          "query-clients",
+          "query-users",
+          "manage-realm",
+          "query-realms",
+          "view-authorization",
+          "manage-users",
+          "realm-admin",
+          "manage-events",
+          "impersonation",
+          "view-events",
+          "view-groups",
+          "view-clients",
+          "view-realm",
+          "create-client",
+          "view-identity-providers"
+        ],
+        "broker": [
+          "read-token"
+        ],
+        "account": [
+          "delete-account",
+          "manage-consent",
+          "manage-account-links",
+          "view-consent",
+          "manage-account",
+          "view-profile",
+          "view-applications",
+          "view-groups"
         ]
       },
       "notBefore": 0,
@@ -754,7 +833,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "vR_NMIX8Al5SFswDBepZy_qXklvwyBC7srXzdOz8VP8",
+      "secret": "**********",
       "redirectUris": [],
       "webOrigins": [],
       "notBefore": 0,
@@ -1769,7 +1848,16 @@
     "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
-  "smtpServer": {},
+  "smtpServer": {
+    "starttls": "false",
+    "auth": "false",
+    "port": "1025",
+    "host": "mailhog",
+    "from": "coopdata@localhost",
+    "fromDisplayName": "CoopData",
+    "envelopeFrom": "",
+    "ssl": "false"
+  },
   "loginTheme": "coopdata",
   "eventsEnabled": false,
   "eventsListeners": [
@@ -1817,14 +1905,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "saml-user-attribute-mapper",
-            "oidc-sha256-pairwise-sub-mapper",
-            "oidc-full-name-mapper",
-            "oidc-usermodel-attribute-mapper",
-            "saml-role-list-mapper",
             "oidc-address-mapper",
+            "oidc-full-name-mapper",
+            "saml-role-list-mapper",
             "oidc-usermodel-property-mapper",
-            "saml-user-property-mapper"
+            "oidc-usermodel-attribute-mapper",
+            "saml-user-property-mapper",
+            "saml-user-attribute-mapper",
+            "oidc-sha256-pairwise-sub-mapper"
           ]
         }
       },
@@ -1868,14 +1956,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "saml-role-list-mapper",
-            "oidc-address-mapper",
-            "oidc-full-name-mapper",
-            "oidc-sha256-pairwise-sub-mapper",
-            "saml-user-property-mapper",
             "oidc-usermodel-attribute-mapper",
             "saml-user-attribute-mapper",
-            "oidc-usermodel-property-mapper"
+            "saml-role-list-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
+            "saml-user-property-mapper",
+            "oidc-usermodel-property-mapper",
+            "oidc-address-mapper",
+            "oidc-full-name-mapper"
           ]
         }
       },
@@ -1886,6 +1974,18 @@
         "subType": "anonymous",
         "subComponents": {},
         "config": {}
+      }
+    ],
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "id": "a4a5ad96-5191-45d7-a920-aa6c3e8c960c",
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"org.ro.active\",\"displayName\":\"Invited org\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
       }
     ],
     "org.keycloak.keys.KeyProvider": [

@@ -113,7 +113,17 @@ pub struct KeycloakGroupCreate {
 pub struct KeycloakInvitation {
     pub id: String,
     pub email: Option<String>,
+    // Keycloak 26 returns this field as "createdAt" (camelCase epoch ms integer)
+    #[serde(rename = "createdAt", alias = "created_at", default)]
     pub created_at: Option<i64>,
+    #[serde(rename = "firstName", default)]
+    pub first_name: Option<String>,
+    #[serde(rename = "lastName", default)]
+    pub last_name: Option<String>,
+    // Keycloak 26 has a "status" field ("PENDING" | "ACCEPTED" | "EXPIRED")
+    #[serde(default)]
+    pub status: Option<String>,
+    // Not returned by Keycloak; we set this synthetically after sending
     #[serde(default)]
     pub email_sent: bool,
 }

@@ -185,7 +185,29 @@ pub async fn create_user(
         updated_at: Set(now),
     };
 
-    let user_model = user_repo.create(active_model).await?;
+    let user_model = match user_repo.create(active_model).await {
+        Ok(model) => model,
+        Err(e) => {
+            tracing::error!(
+                keycloak_id = %keycloak_response.id,
+                error = %e,
+                "DB insert failed after Keycloak user creation — rolling back"
+            );
+            if let Err(rollback_err) = state.keycloak.delete_user(&keycloak_response.id).await {
+                tracing::error!(
+                    keycloak_id = %keycloak_response.id,
+                    error = %rollback_err,
+                    "Rollback failed: could not delete Keycloak user after DB insert failure"
+                );
+            } else {
+                tracing::info!(
+                    keycloak_id = %keycloak_response.id,
+                    "Rolled back: Keycloak user deleted after DB insert failure"
+                );
+            }
+            return Err(e);
+        }
+    };
     tracing::info!(user_id = %user_model.id, keycloak_id = %keycloak_response.id, "User created in Keycloak and database");
 
     if let Err(e) = state.cache.delete("users:all").await {

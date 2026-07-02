@@ -4,10 +4,12 @@ use utoipa::ToSchema;
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateFederationRequest {
     pub name: String,
-    #[serde(default)]
+    /// At least one domain is required by Keycloak (e.g. "myfederation.org")
     pub domains: Vec<DomainRequest>,
     #[serde(default)]
     pub description: Option<String>,
+    #[serde(default)]
+    pub contact_email: Option<String>,
     #[serde(default)]
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
@@ -21,6 +23,7 @@ pub struct DomainRequest {
 pub struct UpdateFederationRequest {
     pub name: Option<String>,
     pub description: Option<String>,
+    pub contact_email: Option<String>,
     pub domains: Option<Vec<DomainRequest>>,
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
@@ -32,6 +35,8 @@ pub struct FederationResponse {
     pub enabled: bool,
     pub description: Option<String>,
     pub domains: Vec<DomainResponse>,
+    pub contact_email: Option<String>,
+    pub created_at: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -42,18 +47,37 @@ pub struct DomainResponse {
 
 impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse {
     fn from(org: crate::models::keycloak::KeycloakOrganization) -> Self {
-        let description = org
-            .attributes
-            .as_ref()
-            .and_then(|attrs| attrs.get("description"))
-            .and_then(|vals| vals.first())
+        let attrs = org.attributes.as_ref();
+
+        // Prefer the human-readable display_name stored in attributes,
+        // fall back to the slug name Keycloak stores internally
+        let display_name = attrs
+            .and_then(|a| a.get("display_name"))
+            .and_then(|v| v.first())
+            .cloned()
+            .unwrap_or_else(|| org.name.clone());
+
+        let description = attrs
+            .and_then(|a| a.get("description"))
+            .and_then(|v| v.first())
+            .cloned()
+            .or(org.description);
+
+        let contact_email = attrs
+            .and_then(|a| a.get("contact_email"))
+            .and_then(|v| v.first())
+            .cloned();
+
+        let created_at = attrs
+            .and_then(|a| a.get("created_at"))
+            .and_then(|v| v.first())
             .cloned();
 
         Self {
             id: org.id,
-            name: org.name,
+            name: display_name,
             enabled: org.enabled,
-            description: description.or(org.description),
+            description,
             domains: org
                 .domains
                 .into_iter()
@@ -62,6 +86,8 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
                     verified: d.verified,
                 })
                 .collect(),
+            contact_email,
+            created_at,
         }
     }
 }

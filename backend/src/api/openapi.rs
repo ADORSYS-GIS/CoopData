@@ -39,6 +39,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::federation::delete_federation_invitation,
         api_module::handlers::federation::resend_federation_invitation,
         api_module::handlers::federation::list_federation_members,
+        api_module::handlers::federation::remove_federation_member,
         api_module::handlers::apex::create_apex,
         api_module::handlers::apex::list_apexes,
         api_module::handlers::apex::get_apex,

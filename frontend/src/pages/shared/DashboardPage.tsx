@@ -10,6 +10,7 @@ import { MinistryDashboard } from "@/components/dashboards/ministry-dashboard";
 import { FederationDashboard } from "@/components/dashboards/federation-dashboard";
 import { ApexDashboard } from "@/components/dashboards/apex-dashboard";
 import { CooperativeDashboard } from "@/components/dashboards/cooperative-dashboard";
+import { Navigate } from "@tanstack/react-router";
 
 export const DashboardPage: React.FC = () => {
   const role = useUserRole();
@@ -21,7 +22,10 @@ export const DashboardPage: React.FC = () => {
 
   void usersList;
 
-  if (!role) return null;
+  // If no recognized role, redirect to unauthorized page
+  if (!role) {
+    return <Navigate to="/unauthorized" />;
+  }
 
   switch (role) {
     case "ministry":
@@ -53,7 +57,5 @@ export const DashboardPage: React.FC = () => {
           setActivities={setActivities}
         />
       );
-    default:
-      return <MinistryDashboard cooperatives={cooperatives} activities={activities} />;
   }
 };

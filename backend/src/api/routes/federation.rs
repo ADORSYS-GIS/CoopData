@@ -40,12 +40,12 @@ use crate::AppState;
 /// # Routes
 /// - `POST /apexes` - Create a new apex
 /// - `GET /apexes` - List apexes (scoped to user's federation)
-/// - `GET /apexes/:id` - Get an apex by ID
-/// - `PATCH /apexes/:id` - Update an apex
-/// - `DELETE /apexes/:id` - Delete an apex
-/// - `POST /apexes/:id/members` - Add member to apex
-/// - `GET /apexes/:id/members` - List apex members
-/// - `DELETE /apexes/:group_id/members/:user_id` - Remove member from apex
+/// - `GET /apexes/{id}` - Get an apex by ID
+/// - `PATCH /apexes/{id}` - Update an apex
+/// - `DELETE /apexes/{id}` - Delete an apex
+/// - `POST /apexes/{id}/members` - Add member to apex
+/// - `GET /apexes/{id}/members` - List apex members
+/// - `DELETE /apexes/{group_id}/members/{user_id}` - Remove member from apex
 /// - `GET /profile` - Get federation profile
 /// - `PATCH /profile` - Update federation profile
 pub fn federation_routes() -> Router<AppState> {
@@ -53,20 +53,20 @@ pub fn federation_routes() -> Router<AppState> {
         // Apex CRUD
         .route("/apexes", post(create_apex).get(list_apexes))
         .route(
-            "/apexes/:id",
+            "/apexes/{id}",
             get(get_apex).patch(update_apex).delete(delete_apex),
         )
         // Apex Members
         .route(
-            "/apexes/:id/members",
+            "/apexes/{id}/members",
             post(add_apex_member).get(list_apex_members),
         )
         .route(
-            "/apexes/:group_id/members/:user_id",
+            "/apexes/{group_id}/members/{user_id}",
             delete(remove_apex_member).patch(handlers::apex::update_apex_member),
         )
         .route(
-            "/apexes/:group_id/members/:user_id/resend-verification",
+            "/apexes/{group_id}/members/{user_id}/resend-verification",
             post(handlers::apex::resend_apex_member_verification),
         )
         // Federation Profile

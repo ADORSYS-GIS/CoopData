@@ -1,4 +1,3 @@
-import Keycloak from "keycloak-js";
 import { get, set, del } from "idb-keyval";
 import { keycloak } from "./keycloakConfig";
 import type { UserProfile, CustomKeycloakToken } from "@/types/auth";
@@ -98,6 +97,8 @@ export async function initKeycloak(): Promise<boolean> {
   }
 }
 
+// ─── Auth actions ─────────────────────────────────────────────────────────────
+
 export async function login(): Promise<void> {
   console.log("[auth] login() called — redirecting to Keycloak");
   await keycloak.login({
@@ -186,6 +187,7 @@ export function getUserProfile(): UserProfile | null {
   const token = keycloak.tokenParsed as CustomKeycloakToken;
   const realmRoles = extractRealmRoles(token);
   const role = mapKeycloakRolesToRole(realmRoles);
+  console.log("[getUserProfile] Mapped role:", role);
 
   if (!role) {
     console.warn("[auth] getUserProfile: no recognized role in token. Roles found:", realmRoles);
@@ -242,7 +244,9 @@ export function hasRole(role: Role): boolean {
 
 export function hasAnyRole(roles: Role[]): boolean {
   const profile = getUserProfile();
-  return profile ? roles.includes(profile.role) : false;
+  const hasAccess = profile ? roles.includes(profile.role) : false;
+  console.log("[hasAnyRole] Checking:", { required: roles, userRole: profile?.role, hasAccess });
+  return hasAccess;
 }
 
 export function isAuthenticated(): boolean {
@@ -254,11 +258,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   const headers = new Headers(options.headers);
   headers.set("Authorization", `Bearer ${token}`);
   headers.set("Content-Type", "application/json");
-
-  return fetch(url, {
-    ...options,
-    headers,
-  });
+  return fetch(url, { ...options, headers });
 }
 
 interface CachedTokens {
@@ -270,14 +270,12 @@ interface CachedTokens {
 
 async function persistTokens(): Promise<void> {
   if (!keycloak.token || !keycloak.refreshToken) return;
-
   const tokens: CachedTokens = {
     token: keycloak.token,
     refreshToken: keycloak.refreshToken,
     idToken: keycloak.idToken ?? "",
     timestamp: Date.now(),
   };
-
   try {
     await set(TOKEN_CACHE_KEY, tokens);
   } catch {

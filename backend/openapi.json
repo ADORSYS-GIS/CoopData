@@ -1476,6 +1476,59 @@
         }
       }
     },
+    "/api/v1/ministry/federations/{id}/members/{user_id}": {
+      "delete": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "remove_federation_member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Federation (Organization) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User (Member) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed from federation"
+          },
+          "403": {
+            "description": "Forbidden - ministry role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Member or federation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations": {
       "get": {
         "tags": [
@@ -2142,7 +2195,8 @@
       "CreateFederationRequest": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "domains"
         ],
         "properties": {
           "attributes": {
@@ -2155,6 +2209,10 @@
             },
             "nullable": true
           },
+          "contact_email": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -2163,7 +2221,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DomainRequest"
-            }
+            },
+            "description": "At least one domain is required by Keycloak (e.g. \"myfederation.org\")"
           },
           "name": {
             "type": "string"
@@ -2321,6 +2380,14 @@
           "domains"
         ],
         "properties": {
+          "contact_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -2375,6 +2442,7 @@
           "created_at": {
             "type": "integer",
             "format": "int64",
+            "description": "Unix epoch seconds",
             "nullable": true
           },
           "email": {
@@ -2382,10 +2450,24 @@
             "nullable": true
           },
           "email_sent": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "true when the invitation email was dispatched"
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true
           },
           "id": {
             "type": "string"
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" — from Keycloak 26",
+            "nullable": true
           }
         }
       },
@@ -2659,6 +2741,10 @@
                 "type": "string"
               }
             },
+            "nullable": true
+          },
+          "contact_email": {
+            "type": "string",
             "nullable": true
           },
           "description": {

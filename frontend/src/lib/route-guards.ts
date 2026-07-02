@@ -96,6 +96,8 @@ export async function redirectIfAuthenticated() {
 export const ROUTE_ACCESS: Record<string, Role[]> = {
   "/app/dashboard": ["ministry", "federation", "apex", "cooperative"],
   "/app/federations": ["ministry"],
+  "/app/invitations": ["ministry"],
+  "/app/members": ["ministry"],
   "/app/apexes": ["federation"],
   "/app/cooperatives": ["apex"],
   "/app/data-collection": ["cooperative"],

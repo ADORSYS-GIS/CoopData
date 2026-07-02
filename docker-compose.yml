@@ -38,6 +38,15 @@ services:
       timeout: 5s
       retries: 5
 
+  # MailHog — local SMTP server for development (invitation emails, password resets)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: coopdata-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    restart: unless-stopped
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.1
     container_name: coopdata-keycloak

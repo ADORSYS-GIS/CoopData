@@ -13,7 +13,9 @@ import createClient from "openapi-fetch";
 import type { paths } from "./api";
 import { getAccessToken } from "@/services/shared/authService";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
+// Development: VITE_API_BASE_URL should be set to http://localhost:3000
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export const apiClient = createClient<paths>({
   baseUrl: API_BASE_URL,

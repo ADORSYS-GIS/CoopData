@@ -54,7 +54,13 @@ export const ROLE_NAV: Record<Role, NavGroupId[]> = {
 
 export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>> = {
   ministry: {
-    oversight: ["/app/dashboard", "/app/federations", "/app/submissions"],
+    oversight: [
+      "/app/dashboard",
+      "/app/federations",
+      "/app/invitations",
+      "/app/members",
+      "/app/submissions",
+    ],
     intelligence: ["/app/reports", "/app/analytics"],
     system: ["/app/users", "/app/settings"],
   },
