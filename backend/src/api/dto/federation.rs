@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_create_federation_request_deserialization() {
-        let json = r#"{"name": "New Federation", "description": "A test federation"}"#;
+        let json = r#"{"name": "New Federation", "description": "A test federation", "domains": []}"#;
         let req: CreateFederationRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "New Federation");
         assert_eq!(req.description, Some("A test federation".to_string()));
