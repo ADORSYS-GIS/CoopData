@@ -181,6 +181,76 @@
 
 ---
 
+## Phase 6: Cascade Deletion + Audit Logging ✅
+
+> **Goal**: Implement cascading deletion across Federation → Apex → Cooperative hierarchy with PostgreSQL tracking and audit logging for all mutations.
+> **Issue**: [#12](https://github.com/ADORSYS-GIS/CoopData/issues/12)
+> **Branch**: `cascade-audit` (based on `develop` @ `757e731`)
+> **Documentation**: `docs/ticket-5-cascade-audit-implementation.md`
+
+- [x] **6.1 Database migration** (`backend/migrations/02_cascade_audit_tables.sql`)
+  - [x] Tables: `federations`, `apexes`, `cooperatives`, `audit_logs`
+  - [x] ALTER `users` to add `federation_id`, `apex_id`, `cooperative_id` FK columns
+  - [x] Indexes on audit_logs (action, resource_type, created_at) and FK columns
+- [x] **6.2 SeaORM entities** (4 new + 1 modified)
+  - [x] `entities/federation.rs`, `entities/apex.rs`, `entities/cooperative.rs`, `entities/audit_log.rs`
+  - [x] `entities/user.rs` — added 3 FK columns (federation_id, apex_id, cooperative_id)
+  - [x] All registered in `entities/mod.rs`
+- [x] **6.3 Repositories** (4 new + 1 modified)
+  - [x] `FederationRepository` — create, find_by_keycloak_id, delete
+  - [x] `ApexRepository` — create, find_by_keycloak_id, find_by_federation_id, delete
+  - [x] `CooperativeRepository` — create, find_by_keycloak_id, find_by_apex_id, delete
+  - [x] `AuditLogRepository` — create, find_by_filters (paginated+filtered query)
+  - [x] `UserRepository` — added `delete_by_keycloak_id()`
+  - [x] All have `#[derive(Clone)]`, registered in `repositories/mod.rs`
+- [x] **6.4 Audit DTOs** (`dto/audit.rs`)
+  - [x] `AuditLogResponse` with `From<audit_log::Model>`
+  - [x] `PaginatedAuditLogResponse` with pagination math (total_pages)
+  - [x] `AuditLogFilterParams` with serde defaults (page=1, per_page=20)
+  - [x] 7 unit tests in `#[cfg(test)]` module
+- [x] **6.5 Audit Service** (`services/audit.rs`)
+  - [x] `AuditService::log()` — looks up claims.sub in PG users, builds ActiveModel, calls repo.create
+  - [x] Non-fatal: handler continues if audit insert fails (tracing::error!)
+  - [x] `repo()` accessor for direct repository access from handlers
+  - [x] `extract_ip()` and `extract_user_agent()` helpers for future middleware integration
+- [x] **6.6 Audit Handler** (`handlers/audit.rs`)
+  - [x] `list_audit_logs` — GET /api/v1/ministry/audit-logs, ministry-only
+  - [x] Pagination + filtering (action, resource_type, actor_keycloak_id, resource_keycloak_id, date_from, date_to)
+  - [x] Returns `PaginatedAuditLogResponse`
+- [x] **6.7 Cascade Deletion** (in delete handlers)
+  - [x] `delete_federation` — cascades: org members → apexes → cooperatives → all their members (KC+PG)
+  - [x] `delete_apex` — cascades: apex members → cooperatives → coop members (KC+PG)
+  - [x] `delete_cooperative` — cascades: coop members (KC+PG)
+  - [x] Resilient: individual failures logged via tracing::warn!, cascade continues
+- [x] **6.8 PG Tracking in Create Handlers**
+  - [x] `create_federation` — inserts federation PG row after KC create
+  - [x] `create_apex` — looks up federation PG record by KC org ID, inserts apex with federation_id FK
+  - [x] `create_cooperative` — looks up apex PG record by KC group ID, inserts cooperative with apex_id FK
+  - [x] Auto-backfill: creates missing parent PG records for old data (pre-PG-tracking entities)
+- [x] **6.9 Audit Logging in ALL Mutation Handlers**
+  - [x] Federation: CREATE, UPDATE, DELETE, INVITE, DELETE_INVITATION, RESEND_INVITATION, REMOVE_MEMBER, UPDATE_PROFILE
+  - [x] Apex: CREATE, UPDATE, DELETE, UPDATE_MEMBER, REMOVE_MEMBER, RESEND_VERIFICATION
+  - [x] Cooperative: CREATE, UPDATE, DELETE, UPDATE_MEMBER, REMOVE_MEMBER, RESEND_VERIFICATION
+  - [x] Users: CREATE, UPDATE, ASSIGN_ROLE, DELETE
+  - [x] Organizations: CREATE, UPDATE, DELETE
+  - [x] Me: CHANGE_PASSWORD
+- [x] **6.10 Route Refactoring**
+  - [x] `routes/federation.rs` — replaced ~400 lines inline handlers with delegations to `handlers::apex::*`
+  - [x] `routes/ministry.rs` — added `/audit-logs` route
+  - [x] `openapi.rs` — registered audit handler + schemas
+- [x] **6.11 App Wiring**
+  - [x] `lib.rs` — AppState with federation_repo, apex_repo, cooperative_repo, audit: AuditService
+  - [x] `main.rs` — initializes all repos + AuditService
+- [x] **6.12 Apex List Fix**
+  - [x] `list_apexes` changed from name-prefix search to attribute-based filtering (organization_id)
+  - [x] Same pattern as `list_cooperatives`
+- [x] **6.13 Tests**
+  - [x] 7 unit tests in `dto/audit.rs` (DTO conversions, serde defaults, pagination math, serialization)
+  - [x] 15 integration tests in `tests/handlers_audit.rs` (RBAC, filter params, DTO conversion, pagination, route registration, OpenAPI spec, service init)
+  - [x] 185 tests pass total (149 unit + 15 audit + 16 cooperative + 5 users), 0 failures, 0 warnings
+
+---
+
 ## Architecture Summary
 
 ### Backend Auth Flow
