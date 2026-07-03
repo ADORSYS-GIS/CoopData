@@ -7,6 +7,7 @@ use axum::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::api::dto::apex::ApexResponse;
 use crate::api::dto::common::SuccessResponse;
@@ -16,6 +17,7 @@ use crate::api::dto::cooperative::{
 use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
+use crate::entities::cooperative;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
 
@@ -125,6 +127,33 @@ pub async fn create_cooperative(
         .create_subgroup(&apex_group_id, &body.name, Some(attrs))
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    // Track in PostgreSQL
+    let coop_model = cooperative::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(group.id.clone()),
+        apex_id: sea_orm::Set(Uuid::nil()),
+        display_name: sea_orm::Set(body.name.clone()),
+        created_at: sea_orm::Set(chrono::Utc::now()),
+        updated_at: sea_orm::Set(chrono::Utc::now()),
+    };
+    let _ = state.cooperative_repo.create(coop_model).await;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "cooperative",
+            Some(&group.id),
+            Some(serde_json::json!({"name": &body.name, "parent_id": &apex_group_id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(
         group_id = %group.id,
@@ -284,13 +313,36 @@ pub async fn delete_cooperative(
     // Scope: cooperative must belong to this apex
     assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
 
+    // Cascade: delete all cooperative members from Keycloak + PG
+    if let Ok(members) = state.keycloak.get_group_members(&id).await {
+        for member in &members {
+            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
+            }
+            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+        }
+    }
+
     state
         .keycloak
         .delete_group(&id)
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-    tracing::info!(group_id = %id, "Cooperative deleted");
+    // Delete PG record
+    if let Ok(Some(c)) = state.cooperative_repo.find_by_keycloak_id(&id).await {
+        let _ = state.cooperative_repo.delete(c.id).await;
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(&claims, "DELETE", "cooperative", Some(&id), None, None, None)
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(group_id = %id, "Cooperative cascade-deleted");
     Ok((StatusCode::NO_CONTENT, ()))
 }
 

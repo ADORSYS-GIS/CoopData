@@ -7,12 +7,14 @@ use axum::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
 use crate::api::dto::common::SuccessResponse;
 use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
+use crate::entities::apex;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -62,6 +64,34 @@ pub async fn create_apex(
         .create_group(&group_name, Some(attrs))
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    // Track in PostgreSQL
+    let apex_model = apex::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(group.id.clone()),
+        federation_id: sea_orm::Set(Uuid::nil()),
+        organization_keycloak_id: sea_orm::Set(org_id.clone()),
+        display_name: sea_orm::Set(body.name.clone()),
+        created_at: sea_orm::Set(chrono::Utc::now()),
+        updated_at: sea_orm::Set(chrono::Utc::now()),
+    };
+    let _ = state.apex_repo.create(apex_model).await;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "apex",
+            Some(&group.id),
+            Some(serde_json::json!({"name": &body.name, "org_id": &org_id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(group_id = %group.id, name = %group_name, "Apex created");
     Ok((StatusCode::CREATED, Json(ApexResponse::from(group))))
@@ -195,13 +225,51 @@ pub async fn delete_apex(
         ));
     }
 
+    // Cascade: delete all apex members
+    if let Ok(members) = state.keycloak.get_group_members(&id).await {
+        for member in &members {
+            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member");
+            }
+            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+        }
+    }
+
+    // Cascade: delete all subgroups (cooperatives) + their members
+    if let Ok(subgroups) = state.keycloak.get_group_children(&id).await {
+        for sub in &subgroups {
+            if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
+                for member in &sub_members {
+                    if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
+                    }
+                    let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+                }
+            }
+            let _ = state.keycloak.delete_group(&sub.id).await;
+        }
+    }
+
     state
         .keycloak
         .delete_group(&id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    tracing::info!(group_id = %id, "Apex deleted");
+    // Delete PG record
+    if let Ok(Some(a)) = state.apex_repo.find_by_keycloak_id(&id).await {
+        let _ = state.apex_repo.delete(a.id).await;
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(&claims, "DELETE", "apex", Some(&id), None, None, None)
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(group_id = %id, "Apex cascade-deleted");
     Ok((StatusCode::NO_CONTENT, ()))
 }
 

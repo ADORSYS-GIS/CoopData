@@ -66,6 +66,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::federation::get_federation_profile,
         api_module::handlers::federation::update_federation_profile,
         api_module::handlers::federation::get_federation_stats,
+        api_module::handlers::audit::list_audit_logs,
     ),
     components(schemas(
         api_module::dto::PaginationParams,
@@ -103,6 +104,9 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::member::ChangePasswordRequest,
         api_module::dto::member::ChangePasswordResponse,
         api_module::dto::common::PaginatedApexResponse,
+        api_module::dto::audit::AuditLogResponse,
+        api_module::dto::audit::PaginatedAuditLogResponse,
+        api_module::dto::audit::AuditLogFilterParams,
     ))
 )]
 pub struct ApiDoc;

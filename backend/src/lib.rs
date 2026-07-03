@@ -12,6 +12,12 @@ pub mod utils;
 pub use config::AppConfig;
 pub use database::Database;
 pub use error::{forbidden_with_roles, AppError, AppResult};
+pub use repositories::{
+    ApexRepository, CooperativeRepository, FederationRepository, OrganizationRepository,
+    UserRepository,
+};
+pub use repositories::audit_log::AuditLogRepository;
+pub use services::AuditService;
 pub use services::keycloak::KeycloakService;
 
 #[derive(Clone)]
@@ -21,4 +27,10 @@ pub struct AppState {
     pub cache: crate::services::cache::CacheService,
     pub keycloak: KeycloakService,
     pub jwt_validator: std::sync::Arc<auth::JwtValidator>,
+    pub federation_repo: FederationRepository,
+    pub apex_repo: ApexRepository,
+    pub cooperative_repo: CooperativeRepository,
+    pub organization_repo: OrganizationRepository,
+    pub user_repo: UserRepository,
+    pub audit: AuditService,
 }

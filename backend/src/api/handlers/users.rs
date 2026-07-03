@@ -181,6 +181,9 @@ pub async fn create_user(
         region: Set(body.region.clone()),
         is_active: Set(true),
         last_login_at: Set(None),
+        federation_id: Set(None),
+        apex_id: Set(None),
+        cooperative_id: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

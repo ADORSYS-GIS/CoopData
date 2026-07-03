@@ -6,6 +6,7 @@ use axum::{
 };
 use serde_json::json;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::api::dto::federation::{
     CreateFederationRequest, FederationResponse, FederationStatsResponse, UpdateFederationRequest,
@@ -14,6 +15,7 @@ use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
+use crate::entities::federation;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -30,6 +32,7 @@ use crate::AppState;
 )]
 pub async fn create_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -98,6 +101,33 @@ pub async fn create_federation(
         )
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    // Track in PostgreSQL
+    let fed_model = federation::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(org.id.clone()),
+        display_name: sea_orm::Set(display_name.clone()),
+        is_active: sea_orm::Set(true),
+        created_at: sea_orm::Set(chrono::Utc::now()),
+        updated_at: sea_orm::Set(chrono::Utc::now()),
+    };
+    let _ = state.federation_repo.create(fed_model).await;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "federation",
+            Some(&org.id),
+            Some(serde_json::json!({"name": &display_name, "slug": &slug})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(org_id = %org.id, name = %display_name, slug = %slug, "Federation created");
     Ok((StatusCode::CREATED, Json(FederationResponse::from(org))))
@@ -228,15 +258,84 @@ pub async fn update_federation(
 )]
 pub async fn delete_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    // Cascade: delete all org members from Keycloak + PG
+    if let Ok(members) = state.keycloak.get_organization_members(&id).await {
+        for member in &members {
+            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member");
+            }
+            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+        }
+    }
+
+    // Cascade: find all apexes with this org_id attribute
+    if let Ok(all_groups) = state.keycloak.get_groups(None).await {
+        let org_apexes: Vec<_> = all_groups
+            .iter()
+            .filter(|g| {
+                g.attributes
+                    .as_ref()
+                    .and_then(|a| a.get("organization_id"))
+                    .and_then(|v| v.first())
+                    .map(|v| v.as_str())
+                    == Some(&id)
+            })
+            .collect();
+
+        for apex in &org_apexes {
+            // Delete all apex members
+            if let Ok(apex_members) = state.keycloak.get_group_members(&apex.id).await {
+                for member in &apex_members {
+                    if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member");
+                    }
+                    let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+                }
+            }
+
+            // Delete all subgroups (cooperatives) + their members
+            if let Ok(subgroups) = state.keycloak.get_group_children(&apex.id).await {
+                for sub in &subgroups {
+                    if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
+                        for member in &sub_members {
+                            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
+                            }
+                            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+                        }
+                    }
+                    let _ = state.keycloak.delete_group(&sub.id).await;
+                }
+            }
+
+            let _ = state.keycloak.delete_group(&apex.id).await;
+        }
+    }
+
+    // Delete from Keycloak
     state
         .keycloak
         .delete_organization(&id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    tracing::info!(org_id = %id, "Federation deleted");
+    // Delete PG record
+    if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&id).await {
+        let _ = state.federation_repo.delete(fed.id).await;
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(&claims, "DELETE", "federation", Some(&id), None, None, None)
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(org_id = %id, "Federation cascade-deleted");
     Ok((StatusCode::NO_CONTENT, ()))
 }
 

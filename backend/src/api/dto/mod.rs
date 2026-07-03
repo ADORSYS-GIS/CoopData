@@ -1,4 +1,5 @@
 pub mod apex;
+pub mod audit;
 pub mod common;
 pub mod cooperative;
 pub mod federation;
@@ -8,6 +9,7 @@ pub mod organization;
 pub mod user;
 
 pub use apex::*;
+pub use audit::*;
 pub use common::*;
 pub use cooperative::*;
 pub use federation::*;

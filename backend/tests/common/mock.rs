@@ -3,7 +3,11 @@ use std::sync::Arc;
 use coop_data_backend::auth::JwtValidator;
 use coop_data_backend::config::Environment;
 use coop_data_backend::services::cache::CacheService;
-use coop_data_backend::{AppConfig, AppState, KeycloakService};
+use coop_data_backend::{
+    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService,
+    CooperativeRepository, FederationRepository, KeycloakService, OrganizationRepository,
+    UserRepository,
+};
 use sea_orm::DatabaseConnection;
 
 /// A test application with a disconnected database, an offline Redis client
@@ -23,12 +27,28 @@ impl TestApp {
         let keycloak = KeycloakService::new(&config);
         let jwt_validator = Arc::new(JwtValidator::new_for_testing());
 
+        let federation_repo = FederationRepository::new(db.clone());
+        let apex_repo = ApexRepository::new(db.clone());
+        let cooperative_repo = CooperativeRepository::new(db.clone());
+        let organization_repo = OrganizationRepository::new(db.clone());
+        let user_repo = UserRepository::new(db.clone());
+        let audit = AuditService::new(
+            AuditLogRepository::new(db.clone()),
+            user_repo.clone(),
+        );
+
         let state = AppState {
             db,
             config,
             cache,
             keycloak,
             jwt_validator,
+            federation_repo,
+            apex_repo,
+            cooperative_repo,
+            organization_repo,
+            user_repo,
+            audit,
         };
 
         TestApp { state }

@@ -6,6 +6,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct UserRepository {
     db: DatabaseConnection,
 }
@@ -145,6 +146,15 @@ impl UserRepository {
         active.last_login_at = Set(Some(chrono::Utc::now()));
         active
             .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+
+    pub async fn delete_by_keycloak_id(&self, keycloak_id: &str) -> AppResult<()> {
+        user::Entity::delete_many()
+            .filter(user::Column::KeycloakId.eq(keycloak_id))
+            .exec(&self.db)
             .await
             .map_err(AppError::DatabaseError)?;
         Ok(())
