@@ -50,7 +50,7 @@ pub async fn create_apex(
         crate::error::AppError::Forbidden("User is not associated with an organization".into())
     })?;
 
-    let group_name = format!("{}-{}", org_id, body.name);
+    let group_name = body.name.clone();
 
     let mut attrs = HashMap::new();
     if let Some(ref desc) = body.description {
@@ -66,14 +66,31 @@ pub async fn create_apex(
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     // Track in PostgreSQL — look up federation PG record by KC org ID
-    let federation_pg_id = state
-        .federation_repo
-        .find_by_keycloak_id(&org_id)
-        .await
-        .ok()
-        .flatten()
-        .map(|f| f.id)
-        .unwrap_or(Uuid::nil());
+    let federation_pg = state.federation_repo.find_by_keycloak_id(&org_id).await.ok().flatten();
+
+    let federation_pg_id = match federation_pg {
+        Some(f) => f.id,
+        None => {
+            tracing::warn!(org_id = %org_id, "Federation PG record not found, auto-backfilling");
+            let backfill_model = crate::entities::federation::ActiveModel {
+                id: sea_orm::Set(Uuid::new_v4()),
+                keycloak_id: sea_orm::Set(org_id.clone()),
+                display_name: sea_orm::Set(body.name.clone()),
+                is_active: sea_orm::Set(true),
+                created_at: sea_orm::Set(chrono::Utc::now()),
+                updated_at: sea_orm::Set(chrono::Utc::now()),
+            };
+            match state.federation_repo.create(backfill_model).await {
+                Ok(fed_row) => fed_row.id,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to backfill federation PG record");
+                    return Err(crate::error::AppError::InternalServerError(
+                        "Failed to create federation tracking record".into(),
+                    ));
+                }
+            }
+        }
+    };
 
     let apex_model = apex::ActiveModel {
         id: sea_orm::Set(Uuid::new_v4()),
@@ -131,14 +148,25 @@ pub async fn list_apexes(
         crate::error::AppError::Forbidden("User is not associated with an organization".into())
     })?;
 
-    let search_prefix = format!("{}-", org_id);
-    let groups = state
+    let all_groups = state
         .keycloak
-        .get_groups(Some(&search_prefix))
+        .get_groups(None)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let apexes: Vec<ApexResponse> = groups.into_iter().map(ApexResponse::from).collect();
+    let apexes: Vec<ApexResponse> = all_groups
+        .into_iter()
+        .filter(|g| {
+            g.attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first())
+                .map(|v| v.as_str())
+                .unwrap_or("")
+                == org_id
+        })
+        .map(ApexResponse::from)
+        .collect();
     Ok((StatusCode::OK, Json(apexes)))
 }
 

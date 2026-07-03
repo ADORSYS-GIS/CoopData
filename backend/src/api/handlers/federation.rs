@@ -111,7 +111,9 @@ pub async fn create_federation(
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
-    let _ = state.federation_repo.create(fed_model).await;
+    if let Err(e) = state.federation_repo.create(fed_model).await {
+        tracing::warn!(error = %e, "Failed to insert federation into PG");
+    }
 
     if let Err(e) = state
         .audit

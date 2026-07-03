@@ -129,14 +129,57 @@ pub async fn create_cooperative(
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
     // Track in PostgreSQL — look up apex PG record by KC group ID
-    let apex_pg_id = state
-        .apex_repo
-        .find_by_keycloak_id(&apex_group_id)
-        .await
-        .ok()
-        .flatten()
-        .map(|a| a.id)
-        .unwrap_or(Uuid::nil());
+    let apex_pg = state.apex_repo.find_by_keycloak_id(&apex_group_id).await.ok().flatten();
+
+    let apex_pg_id = match apex_pg {
+        Some(a) => a.id,
+        None => {
+            tracing::warn!(apex_kc_id = %apex_group_id, "Apex PG record not found, auto-backfilling");
+
+            let org_id = apex_resolved
+                .attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first())
+                .cloned()
+                .ok_or_else(|| {
+                    AppError::InternalServerError("Apex group has no organization_id attribute".into())
+                })?;
+
+            let federation_pg = state
+                .federation_repo
+                .find_by_keycloak_id(&org_id)
+                .await
+                .ok()
+                .flatten()
+                .ok_or_else(|| {
+                    AppError::InternalServerError(format!(
+                        "Federation PG record not found for org_id {}",
+                        org_id
+                    ))
+                })?;
+
+            let backfill_model = crate::entities::apex::ActiveModel {
+                id: sea_orm::Set(Uuid::new_v4()),
+                keycloak_id: sea_orm::Set(apex_group_id.clone()),
+                federation_id: sea_orm::Set(federation_pg.id),
+                organization_keycloak_id: sea_orm::Set(org_id.clone()),
+                display_name: sea_orm::Set(apex_resolved.name.clone()),
+                created_at: sea_orm::Set(chrono::Utc::now()),
+                updated_at: sea_orm::Set(chrono::Utc::now()),
+            };
+
+            match state.apex_repo.create(backfill_model).await {
+                Ok(apex_row) => apex_row.id,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to backfill apex PG record");
+                    return Err(AppError::InternalServerError(
+                        "Failed to create apex tracking record".into(),
+                    ));
+                }
+            }
+        }
+    };
 
     let coop_model = cooperative::ActiveModel {
         id: sea_orm::Set(Uuid::new_v4()),
