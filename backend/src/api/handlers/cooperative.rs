@@ -128,16 +128,27 @@ pub async fn create_cooperative(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-    // Track in PostgreSQL
+    // Track in PostgreSQL — look up apex PG record by KC group ID
+    let apex_pg_id = state
+        .apex_repo
+        .find_by_keycloak_id(&apex_group_id)
+        .await
+        .ok()
+        .flatten()
+        .map(|a| a.id)
+        .unwrap_or(Uuid::nil());
+
     let coop_model = cooperative::ActiveModel {
         id: sea_orm::Set(Uuid::new_v4()),
         keycloak_id: sea_orm::Set(group.id.clone()),
-        apex_id: sea_orm::Set(Uuid::nil()),
+        apex_id: sea_orm::Set(apex_pg_id),
         display_name: sea_orm::Set(body.name.clone()),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
-    let _ = state.cooperative_repo.create(coop_model).await;
+    if let Err(e) = state.cooperative_repo.create(coop_model).await {
+        tracing::warn!("Failed to track cooperative in PG: {}", e);
+    }
 
     if let Err(e) = state
         .audit
@@ -290,6 +301,22 @@ pub async fn update_cooperative(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "cooperative",
+            Some(&id),
+            Some(serde_json::json!({"name": body.name, "description": body.description})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(group_id = %id, "Cooperative updated");
     Ok((StatusCode::OK, Json(CooperativeResponse::from(group))))
 }
@@ -312,6 +339,15 @@ pub async fn delete_cooperative(
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
     assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+
+    // Audit BEFORE cascade so we have a record even if cascade partially fails
+    if let Err(e) = state
+        .audit
+        .log(&claims, "DELETE", "cooperative", Some(&id), None, None, None)
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     // Cascade: delete all cooperative members from Keycloak + PG
     if let Ok(members) = state.keycloak.get_group_members(&id).await {
@@ -500,6 +536,22 @@ pub async fn update_cooperative_member(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE_MEMBER",
+            "cooperative_member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id, "first_name": body.first_name, "last_name": body.last_name})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(group_id = %group_id, user_id = %user_id, "Cooperative member updated");
     Ok((
         StatusCode::OK,
@@ -539,6 +591,22 @@ pub async fn remove_cooperative_member(
         .remove_user_from_group(&user_id, &group_id)
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(
         user_id = %user_id,
@@ -582,6 +650,22 @@ pub async fn resend_cooperative_member_verification(
             );
             AppError::ExternalServiceError(e.to_string())
         })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "RESEND_VERIFICATION",
+            "cooperative_member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(
         group_id = %group_id,

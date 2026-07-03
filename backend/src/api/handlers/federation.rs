@@ -191,6 +191,7 @@ pub async fn get_federation(
 )]
 pub async fn update_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -240,6 +241,22 @@ pub async fn update_federation(
         .update_organization(&id, body.description.as_deref(), domains, Some(attrs))
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "federation",
+            Some(&id),
+            Some(serde_json::json!({"name": body.name, "description": body.description})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(org_id = %id, "Federation updated");
     Ok((StatusCode::OK, Json(FederationResponse::from(org))))
@@ -353,6 +370,7 @@ pub async fn delete_federation(
 )]
 pub async fn invite_user_to_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -420,6 +438,22 @@ pub async fn invite_user_to_federation(
             }
         })?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "INVITE",
+            "federation",
+            Some(&id),
+            Some(serde_json::json!({"email": &email, "role": &role})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(org_id = %id, email = %email, role = %role, "User invited to federation");
     Ok((
         StatusCode::CREATED,
@@ -467,6 +501,7 @@ pub async fn list_federation_invitations(
 )]
 pub async fn delete_federation_invitation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     state
@@ -474,6 +509,22 @@ pub async fn delete_federation_invitation(
         .delete_organization_invitation(&id, &invitation_id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE_INVITATION",
+            "federation_invitation",
+            Some(&invitation_id),
+            Some(serde_json::json!({"federation_id": &id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -492,6 +543,7 @@ pub async fn delete_federation_invitation(
 )]
 pub async fn resend_federation_invitation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     state
@@ -499,6 +551,22 @@ pub async fn resend_federation_invitation(
         .resend_organization_invitation(&id, &invitation_id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "RESEND_INVITATION",
+            "federation_invitation",
+            Some(&invitation_id),
+            Some(serde_json::json!({"federation_id": &id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((
         StatusCode::OK,
@@ -545,6 +613,7 @@ pub async fn list_federation_members(
 )]
 pub async fn remove_federation_member(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path((id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     tracing::info!(federation_id = %id, user_id = %user_id, "Removing member from federation");
@@ -553,6 +622,22 @@ pub async fn remove_federation_member(
         .keycloak
         .remove_user_from_organization(&user_id, &id)
         .await?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "member",
+            Some(&user_id),
+            Some(serde_json::json!({"federation_id": &id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((
         StatusCode::OK,
@@ -626,6 +711,22 @@ pub async fn update_federation_profile(
         )
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE_PROFILE",
+            "federation",
+            Some(&org_id),
+            Some(serde_json::json!({"description": body.description})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(org_id = %org_id, "Federation profile updated");
     Ok((StatusCode::OK, Json(FederationResponse::from(updated_org))))

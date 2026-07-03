@@ -65,17 +65,28 @@ pub async fn create_apex(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    // Track in PostgreSQL
+    // Track in PostgreSQL — look up federation PG record by KC org ID
+    let federation_pg_id = state
+        .federation_repo
+        .find_by_keycloak_id(&org_id)
+        .await
+        .ok()
+        .flatten()
+        .map(|f| f.id)
+        .unwrap_or(Uuid::nil());
+
     let apex_model = apex::ActiveModel {
         id: sea_orm::Set(Uuid::new_v4()),
         keycloak_id: sea_orm::Set(group.id.clone()),
-        federation_id: sea_orm::Set(Uuid::nil()),
+        federation_id: sea_orm::Set(federation_pg_id),
         organization_keycloak_id: sea_orm::Set(org_id.clone()),
         display_name: sea_orm::Set(body.name.clone()),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
-    let _ = state.apex_repo.create(apex_model).await;
+    if let Err(e) = state.apex_repo.create(apex_model).await {
+        tracing::warn!("Failed to track apex in PG: {}", e);
+    }
 
     if let Err(e) = state
         .audit
@@ -199,6 +210,22 @@ pub async fn update_apex(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "apex",
+            Some(&id),
+            Some(serde_json::json!({"name": body.name, "description": body.description})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(group_id = %id, "Apex updated");
     Ok((StatusCode::OK, Json(ApexResponse::from(group))))
 }
@@ -223,6 +250,15 @@ pub async fn delete_apex(
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
+    }
+
+    // Audit BEFORE cascade so we have a record even if cascade partially fails
+    if let Err(e) = state
+        .audit
+        .log(&claims, "DELETE", "apex", Some(&id), None, None, None)
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     // Cascade: delete all apex members
@@ -373,6 +409,22 @@ pub async fn update_apex_member(
 
     let updated = state.keycloak.get_user_by_id(&user_id).await?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE_MEMBER",
+            "apex_member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id, "first_name": body.first_name, "last_name": body.last_name})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(group_id = %group_id, user_id = %user_id, "Apex member updated");
     Ok((
         StatusCode::OK,
@@ -445,6 +497,22 @@ pub async fn remove_apex_member(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(user_id = %user_id, group_id = %group_id, "Member removed from apex");
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -499,6 +567,22 @@ pub async fn resend_apex_member_verification(
             tracing::error!(group_id = %group_id, user_id = %user_id, error = %e, "Failed to resend verification email");
             e
         })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "RESEND_VERIFICATION",
+            "apex_member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(group_id = %group_id, user_id = %user_id, "Verification email resent");
     Ok((

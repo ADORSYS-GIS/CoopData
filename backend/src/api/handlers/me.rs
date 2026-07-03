@@ -89,6 +89,22 @@ pub async fn change_password(
 
     tracing::info!(user_id = %claims.sub, "Password changed successfully");
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CHANGE_PASSWORD",
+            "user",
+            Some(&claims.sub),
+            None,
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     Ok((
         StatusCode::OK,
         Json(ChangePasswordResponse {

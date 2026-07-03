@@ -1,15 +1,17 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::{
     CreateOrganizationRequest, OrganizationResponse, PaginatedOrganizationResponse,
     PaginatedResponse, PaginationParams, UpdateOrganizationRequest,
 };
+use crate::auth::claims::Claims;
 use crate::entities::organization;
 use crate::error::{AppError, AppResult};
 use crate::repositories::OrganizationRepository;
@@ -84,6 +86,7 @@ pub async fn get_organization(
 )]
 pub async fn create_organization(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Json(body): Json<CreateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -116,6 +119,22 @@ pub async fn create_organization(
         tracing::warn!("Failed to invalidate organization cache: {}", e);
     }
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "organization",
+            Some(&org.id.to_string()),
+            Some(serde_json::json!({"name": &org.name})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     Ok((StatusCode::CREATED, Json(OrganizationResponse::from(org))))
 }
 
@@ -134,6 +153,7 @@ pub async fn create_organization(
 )]
 pub async fn update_organization(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -143,6 +163,22 @@ pub async fn update_organization(
 
     if let Err(e) = state.cache.delete("organizations:all").await {
         tracing::warn!("Failed to invalidate organization cache: {}", e);
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "organization",
+            Some(&id.to_string()),
+            Some(serde_json::json!({"name": &org.name})),
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((StatusCode::OK, Json(OrganizationResponse::from(org))))
@@ -162,6 +198,7 @@ pub async fn update_organization(
 )]
 pub async fn delete_organization(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let repo = OrganizationRepository::new(state.db.clone());
@@ -170,6 +207,22 @@ pub async fn delete_organization(
 
     if let Err(e) = state.cache.delete("organizations:all").await {
         tracing::warn!("Failed to invalidate organization cache: {}", e);
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "organization",
+            Some(&id.to_string()),
+            None,
+            None,
+            None,
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((StatusCode::NO_CONTENT, ()))
