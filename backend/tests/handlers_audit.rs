@@ -219,23 +219,24 @@ async fn test_audit_log_response_from_model_with_nulls() {
 #[tokio::test]
 async fn test_pagination_total_pages_calculation() {
     // total=0, per_page=20 → 0 pages
-    let total_pages = (0u64 + 20 - 1) / 20.max(1);
+    let per_page: u64 = 20;
+    let total_pages = 0u64.div_ceil(per_page);
     assert_eq!(total_pages, 0);
 
     // total=1, per_page=20 → 1 page
-    let total_pages = (1u64 + 20 - 1) / 20.max(1);
+    let total_pages = 1u64.div_ceil(per_page);
     assert_eq!(total_pages, 1);
 
     // total=20, per_page=20 → 1 page
-    let total_pages = (20u64 + 20 - 1) / 20.max(1);
+    let total_pages = 20u64.div_ceil(per_page);
     assert_eq!(total_pages, 1);
 
     // total=21, per_page=20 → 2 pages
-    let total_pages = (21u64 + 20 - 1) / 20.max(1);
+    let total_pages = 21u64.div_ceil(per_page);
     assert_eq!(total_pages, 2);
 
     // total=100, per_page=20 → 5 pages
-    let total_pages = (100u64 + 20 - 1) / 20.max(1);
+    let total_pages = 100u64.div_ceil(per_page);
     assert_eq!(total_pages, 5);
 }
 
