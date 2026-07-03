@@ -19,6 +19,7 @@ impl AuditService {
         &self.repo
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn log(
         &self,
         claims: &Claims,

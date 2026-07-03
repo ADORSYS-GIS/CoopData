@@ -22,6 +22,7 @@ impl AuditLogRepository {
             .map_err(AppError::DatabaseError)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn find_by_filters(
         &self,
         action: Option<&str>,
