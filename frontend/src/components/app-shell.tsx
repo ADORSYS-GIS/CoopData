@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Building2,
@@ -21,10 +21,12 @@ import {
   PanelLeftOpen,
   Landmark,
   Network,
+  Mail,
+  UserPlus,
   UserCog,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
@@ -40,6 +42,8 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     items: [
       { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/app/federations", label: "Federations", icon: Landmark },
+      { to: "/app/invitations", label: "Invitations", icon: Mail },
+      { to: "/app/members", label: "Members", icon: UserPlus },
       { to: "/app/apexes", label: "Apexes", icon: Network },
       { to: "/app/cooperatives", label: "Cooperatives", icon: Building2 },
       { to: "/app/data-collection", label: "Data Collection", icon: ClipboardList },
@@ -166,7 +170,10 @@ function Sidebar({
                   <li key={item.to}>
                     <Link
                       to={item.to}
-                      onClick={onClose}
+                      onClick={(e) => {
+                        console.log("[Sidebar] Clicking link:", item.to);
+                        onClose?.();
+                      }}
                       title={isCollapsed ? item.label : undefined}
                       className={[
                         "group flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",
@@ -376,8 +383,16 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Redirect to login if not authenticated — must be in useEffect, not render body
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate({ to: "/auth/login" });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
 
   if (isLoading) {
     return (
@@ -388,6 +403,10 @@ export function AppShell({
         </div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

@@ -8,8 +8,8 @@ license = "MIT"
 authors = ["CoopData Team"]
 
 [dependencies]
-axum = { version = "0.7", features = ["macros", "multipart"] }
-axum-extra = { version = "0.9", features = ["cookie", "typed-header"] }
+axum = { version = "0.8", features = ["macros", "multipart"] }
+axum-extra = { version = "0.10", features = ["cookie", "typed-header"] }
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "request-id", "timeout", "limit", "compression-br", "compression-gzip"] }
 
@@ -17,7 +17,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_repr = "0.1"
 
-sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-native-tls", "macros"] }
+sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
 sea-orm-migration = "1.1"
 
 utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }
@@ -41,6 +41,7 @@ once_cell = "1"
 redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
 
 async-trait = "0.1"
+urlencoding = "2"
 
 [features]
 test-utils = []
