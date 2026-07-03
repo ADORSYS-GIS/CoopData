@@ -1090,7 +1090,8 @@ impl KeycloakService {
             }
             let mut attrs = existing_user.attributes.clone().unwrap_or_default();
             attrs.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
-            self.update_user_attributes(&existing_user.id, attrs).await?;
+            self.update_user_attributes(&existing_user.id, attrs)
+                .await?;
             (existing_user.id.clone(), false)
         } else {
             let temp_password = format!("Temp{}!", Utc::now().timestamp());
