@@ -72,7 +72,7 @@ export const LoginPage: React.FC = () => {
           <img
             src="/coopdatalogo.png"
             alt="CoopData logo"
-            className="size-11 shrink-0 rounded-lg object-contain"
+            className="size-16 shrink-0 rounded-lg object-contain"
           />
         </Link>
 

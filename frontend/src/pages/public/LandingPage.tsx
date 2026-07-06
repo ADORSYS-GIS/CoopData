@@ -73,7 +73,7 @@ function PublicHeader() {
           <img
             src="/coopdatalogo.png"
             alt="CoopData logo"
-            className="size-11 shrink-0 rounded-lg object-contain"
+            className="size-16 shrink-0 rounded-lg object-contain"
           />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:flex">
@@ -714,7 +714,7 @@ function PublicFooter() {
             <img
               src="/coopdatalogo.png"
               alt="CoopData logo"
-              className="size-10 shrink-0 rounded-lg object-contain"
+              className="size-14 shrink-0 rounded-lg object-contain"
             />
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">

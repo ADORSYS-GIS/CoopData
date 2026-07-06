@@ -93,8 +93,9 @@ describe("roles constants", () => {
       expect(ministryItems).not.toContain("/app/data-collection");
     });
 
-    it("should include /app/users for ministry, federation, and apex but not cooperative", () => {
-      expect(ROLE_NAV_ITEMS.ministry.system).toContain("/app/users");
+    it("should include /app/users for federation and apex but not ministry (superadmin) or cooperative", () => {
+      const ministryItems = Object.values(ROLE_NAV_ITEMS.ministry).flat();
+      expect(ministryItems).not.toContain("/app/users");
       const fedItems = Object.values(ROLE_NAV_ITEMS.federation).flat();
       expect(fedItems).toContain("/app/users");
       expect(ROLE_NAV_ITEMS.apex.system).toContain("/app/users");

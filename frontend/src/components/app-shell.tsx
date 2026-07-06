@@ -23,6 +23,7 @@ import {
   UserPlus,
   UserCog,
   ScrollText,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
@@ -62,6 +63,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     label: "System",
     items: [
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
+      { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
@@ -111,12 +113,12 @@ function Sidebar({
     >
       {/* Logo */}
       <div
-        className={`flex items-center gap-3 px-5 py-5 border-b border-sidebar-border ${isCollapsed ? "justify-center px-0" : ""}`}
+        className={`flex items-center gap-3 px-5 py-6 border-b border-sidebar-border ${isCollapsed ? "justify-center px-0" : ""}`}
       >
         <img
           src="/coopdatalogo.png"
           alt="CoopData logo"
-          className="size-11 shrink-0 rounded-lg object-contain"
+          className={`shrink-0 rounded-lg object-contain ${isCollapsed ? "size-11" : "size-20 py-1"}`}
         />
         {/* Collapse toggle — desktop only */}
         {!mobile && onToggleCollapse && (
@@ -323,6 +325,11 @@ function Topbar({
           >
             <Menu className="size-4.5" />
           </button>
+          <img
+            src="/coopdatalogo.png"
+            alt="CoopData logo"
+            className="hidden size-9 shrink-0 rounded-lg object-contain lg:block"
+          />
           <div className="min-w-0">
             <h1 className="font-heading text-[15px] font-semibold tracking-tight text-foreground truncate">
               {title}
