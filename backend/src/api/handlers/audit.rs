@@ -28,8 +28,17 @@ use crate::AppState;
 )]
 pub async fn list_audit_logs(
     State(state): State<AppState>,
-    Query(params): Query<AuditLogFilterParams>,
+    Query(mut params): Query<AuditLogFilterParams>,
 ) -> AppResult<impl IntoResponse> {
+    // Clamp per_page to prevent excessive queries
+    const MAX_PER_PAGE: u64 = 100;
+    if params.per_page > MAX_PER_PAGE {
+        params.per_page = MAX_PER_PAGE;
+    }
+    if params.page == 0 {
+        params.page = 1;
+    }
+
     let (items, total) = state
         .audit
         .repo()
@@ -45,7 +54,7 @@ pub async fn list_audit_logs(
         )
         .await?;
 
-    let total_pages = (total + params.per_page - 1) / params.per_page.max(1);
+    let total_pages = total.div_ceil(params.per_page.max(1));
 
     Ok((
         StatusCode::OK,

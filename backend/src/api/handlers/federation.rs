@@ -286,7 +286,9 @@ pub async fn delete_federation(
             if let Err(e) = state.keycloak.delete_user(&member.id).await {
                 tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member");
             }
-            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member from PG");
+            }
         }
     }
 
@@ -311,7 +313,9 @@ pub async fn delete_federation(
                     if let Err(e) = state.keycloak.delete_user(&member.id).await {
                         tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member");
                     }
-                    let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+                    if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member from PG");
+                    }
                 }
             }
 
@@ -323,14 +327,20 @@ pub async fn delete_federation(
                             if let Err(e) = state.keycloak.delete_user(&member.id).await {
                                 tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
                             }
-                            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+                            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from PG");
+                            }
                         }
                     }
-                    let _ = state.keycloak.delete_group(&sub.id).await;
+                    if let Err(e) = state.keycloak.delete_group(&sub.id).await {
+                        tracing::warn!(group_id = %sub.id, error = %e, "Failed to delete cooperative group from KC");
+                    }
                 }
             }
 
-            let _ = state.keycloak.delete_group(&apex.id).await;
+            if let Err(e) = state.keycloak.delete_group(&apex.id).await {
+                tracing::warn!(group_id = %apex.id, error = %e, "Failed to delete apex group from KC");
+            }
         }
     }
 
@@ -343,7 +353,9 @@ pub async fn delete_federation(
 
     // Delete PG record
     if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&id).await {
-        let _ = state.federation_repo.delete(fed.id).await;
+        if let Err(e) = state.federation_repo.delete(fed.id).await {
+            tracing::warn!(error = %e, "Failed to delete federation PG record");
+        }
     }
 
     if let Err(e) = state

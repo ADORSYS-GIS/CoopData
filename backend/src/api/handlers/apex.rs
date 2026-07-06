@@ -289,13 +289,15 @@ pub async fn delete_apex(
         tracing::error!("Failed to log audit: {}", e);
     }
 
-    // Cascade: delete all apex members
+    // Cascade: delete all apex members from Keycloak + PG
     if let Ok(members) = state.keycloak.get_group_members(&id).await {
         for member in &members {
             if let Err(e) = state.keycloak.delete_user(&member.id).await {
-                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member");
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member from Keycloak");
             }
-            let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member from PG");
+            }
         }
     }
 
@@ -305,12 +307,16 @@ pub async fn delete_apex(
             if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
                 for member in &sub_members {
                     if let Err(e) = state.keycloak.delete_user(&member.id).await {
-                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from Keycloak");
                     }
-                    let _ = state.user_repo.delete_by_keycloak_id(&member.id).await;
+                    if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from PG");
+                    }
                 }
             }
-            let _ = state.keycloak.delete_group(&sub.id).await;
+            if let Err(e) = state.keycloak.delete_group(&sub.id).await {
+                tracing::warn!(group_id = %sub.id, error = %e, "Failed to delete cooperative group from Keycloak");
+            }
         }
     }
 
@@ -322,15 +328,9 @@ pub async fn delete_apex(
 
     // Delete PG record
     if let Ok(Some(a)) = state.apex_repo.find_by_keycloak_id(&id).await {
-        let _ = state.apex_repo.delete(a.id).await;
-    }
-
-    if let Err(e) = state
-        .audit
-        .log(&claims, "DELETE", "apex", Some(&id), None, None, None)
-        .await
-    {
-        tracing::error!("Failed to log audit: {}", e);
+        if let Err(e) = state.apex_repo.delete(a.id).await {
+            tracing::warn!(apex_id = %a.id, error = %e, "Failed to delete apex PG record");
+        }
     }
 
     tracing::info!(group_id = %id, "Apex cascade-deleted");
