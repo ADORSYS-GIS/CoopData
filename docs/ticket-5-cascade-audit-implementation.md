@@ -318,14 +318,30 @@ pub fn repo(&self) -> &AuditLogRepository { &self.repo }
 
 Used by the audit handler to call `find_by_filters()` directly.
 
-### Helper Methods (for future middleware integration)
+### IP Address & User Agent Extraction (Audit Context Middleware)
+
+The `AuditContext` middleware (`backend/src/api/middleware.rs`) automatically extracts the client IP address and user agent from every authenticated HTTP request and stores them in request extensions as `AuditContext`:
 
 ```rust
-pub fn extract_ip(parts: &Parts) -> Option<String>
-pub fn extract_user_agent(parts: &Parts) -> Option<String>
+#[derive(Clone, Debug, Default)]
+pub struct AuditContext {
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+}
+
+pub async fn audit_context_layer(mut req: Request<Body>, next: Next) -> Response
 ```
 
-These extract IP from `ConnectInfo<SocketAddr>` or `X-Forwarded-For` header, and user agent from `User-Agent` header. Currently audit logging in handlers passes `None` for IP and user agent; these helpers are available for future middleware-based audit enrichment.
+**IP resolution order:**
+1. `X-Forwarded-For` header (first IP in comma-separated chain — used when behind reverse proxy/load balancer)
+2. `X-Real-IP` header
+3. `ConnectInfo<SocketAddr>` extension (direct connection — requires `into_make_service_with_connect_info` in main.rs)
+
+**User agent** is read directly from the `User-Agent` HTTP header.
+
+**Wiring:** The middleware is applied in `create_app()` after `auth_layer`, so it runs on all protected routes. In `main.rs`, `axum::serve()` uses `into_make_service_with_connect_info::<SocketAddr>()` to make `ConnectInfo` available.
+
+**Handler integration:** All 28 `audit.log()` calls across 6 handler files now read `Extension(audit_ctx): Extension<AuditContext>` and pass `audit_ctx.ip_address.as_deref()` and `audit_ctx.user_agent.as_deref()` to the AuditService, instead of `None`.
 
 ---
 

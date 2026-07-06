@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
 use crate::api::dto::common::SuccessResponse;
 use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::apex;
@@ -32,6 +33,7 @@ use crate::AppState;
 pub async fn create_apex(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
@@ -118,8 +120,8 @@ pub async fn create_apex(
             "apex",
             Some(&group.id),
             Some(serde_json::json!({"name": &body.name, "org_id": &org_id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -219,6 +221,7 @@ pub async fn get_apex(
 pub async fn update_apex(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<UpdateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -251,8 +254,8 @@ pub async fn update_apex(
             "apex",
             Some(&id),
             Some(serde_json::json!({"name": body.name, "description": body.description})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -277,6 +280,7 @@ pub async fn update_apex(
 pub async fn delete_apex(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
@@ -288,7 +292,7 @@ pub async fn delete_apex(
     // Audit BEFORE cascade so we have a record even if cascade partially fails
     if let Err(e) = state
         .audit
-        .log(&claims, "DELETE", "apex", Some(&id), None, None, None)
+        .log(&claims, "DELETE", "apex", Some(&id), None, audit_ctx.ip_address.as_deref(), audit_ctx.user_agent.as_deref())
         .await
     {
         tracing::error!("Failed to log audit: {}", e);
@@ -422,6 +426,7 @@ pub async fn add_apex_member(
 pub async fn update_apex_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -450,8 +455,8 @@ pub async fn update_apex_member(
             "apex_member",
             Some(&user_id),
             Some(serde_json::json!({"group_id": &group_id, "first_name": body.first_name, "last_name": body.last_name})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -516,6 +521,7 @@ pub async fn list_apex_members(
 pub async fn remove_apex_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
@@ -538,8 +544,8 @@ pub async fn remove_apex_member(
             "member",
             Some(&user_id),
             Some(serde_json::json!({"group_id": &group_id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -565,6 +571,7 @@ pub async fn remove_apex_member(
 pub async fn resend_apex_member_verification(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
@@ -609,8 +616,8 @@ pub async fn resend_apex_member_verification(
             "apex_member",
             Some(&user_id),
             Some(serde_json::json!({"group_id": &group_id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {

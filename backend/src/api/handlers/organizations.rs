@@ -11,6 +11,7 @@ use crate::api::dto::{
     CreateOrganizationRequest, OrganizationResponse, PaginatedOrganizationResponse,
     PaginatedResponse, PaginationParams, UpdateOrganizationRequest,
 };
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::entities::organization;
 use crate::error::{AppError, AppResult};
@@ -87,6 +88,7 @@ pub async fn get_organization(
 pub async fn create_organization(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -127,8 +129,8 @@ pub async fn create_organization(
             "organization",
             Some(&org.id.to_string()),
             Some(serde_json::json!({"name": &org.name})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -154,6 +156,7 @@ pub async fn create_organization(
 pub async fn update_organization(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -173,8 +176,8 @@ pub async fn update_organization(
             "organization",
             Some(&id.to_string()),
             Some(serde_json::json!({"name": &org.name})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -199,6 +202,7 @@ pub async fn update_organization(
 pub async fn delete_organization(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let repo = OrganizationRepository::new(state.db.clone());
@@ -217,8 +221,8 @@ pub async fn delete_organization(
             "organization",
             Some(&id.to_string()),
             None,
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
