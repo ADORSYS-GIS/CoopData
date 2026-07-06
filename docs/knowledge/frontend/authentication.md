@@ -1,18 +1,35 @@
 # Authentication Implementation Guide
 
-> **Goal**: Implement Keycloak authentication.
-> **Rule**: Never store tokens in localStorage if avoidable. Use HttpOnly cookies.
+> **Goal**: Implement Keycloak authentication with RBAC role enforcement.
+> **Rule**: Never store tokens in localStorage. Use IndexedDB via `idb-keyval`.
+> **Stack**: `keycloak-js` v26.2.4, `idb-keyval`, TanStack Router, TanStack Query.
+
+---
 
 ## File Structure
 
 ```
 frontend/src/
 ├── services/shared/
-│   └── keycloakConfig.ts    # Keycloak configuration
+│   ├── keycloakConfig.ts          # Keycloak instance from env vars
+│   └── authService.ts             # Auth service (init, login, logout, token, profile)
 ├── context/
-│   └── AuthContext.tsx      # Auth state provider
-└── router/
-    └── ProtectedRoute.tsx   # Route guard
+│   └── AuthContext.tsx            # KeycloakAuthProvider + useAuth/useRole/useCanAccess hooks
+├── lib/
+│   ├── auth.tsx                   # Backward-compatible re-exports
+│   └── route-guards.ts            # requireAuth, requireRole, redirectIfAuthenticated
+├── components/
+│   ├── ProtectedRoute.tsx         # Component guard (allowedRoles prop)
+│   └── UnauthorizedPage.tsx       # 403 Access Denied page
+├── constants/
+│   └── roles.ts                   # Role definitions, nav config, Keycloak role mapping
+├── types/
+│   └── auth.ts                    # UserProfile, AuthContextValue, CustomKeycloakToken
+└── routes/
+    ├── __root.tsx                 # Wraps app in KeycloakAuthProvider
+    ├── auth.login.tsx             # Login handler (redirects to Keycloak)
+    ├── unauthorized.tsx           # /unauthorized route
+    └── app.tsx                    # /app layout guard (auth + org assignment check)
 ```
 
 ---
@@ -22,216 +39,324 @@ frontend/src/
 **File**: `frontend/src/services/shared/keycloakConfig.ts`
 
 ```typescript
-export const keycloakConfig = {
+import Keycloak from "keycloak-js";
+
+export const keycloak = new Keycloak({
   url: import.meta.env.VITE_KEYCLOAK_URL,
   realm: import.meta.env.VITE_KEYCLOAK_REALM,
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
-};
+});
 ```
 
 **Environment Variables** (`.env`):
 
 ```bash
-VITE_KEYCLOAK_URL=https://keycloak.example.com
-VITE_KEYCLOAK_REALM=my-realm
-VITE_KEYCLOAK_CLIENT_ID=my-client
+VITE_KEYCLOAK_URL=http://localhost:8180
+VITE_KEYCLOAK_REALM=coop-data
+VITE_KEYCLOAK_CLIENT_ID=coopdata-frontend
 ```
 
 ---
 
-## Step 2: Create Auth Context
+## Step 2: Auth Service
+
+**File**: `frontend/src/services/shared/authService.ts`
+
+The auth service wraps `keycloak-js` and provides:
+
+| Function | Purpose |
+| --- | --- |
+| `initKeycloak()` | Initialize Keycloak with `check-sso`, PKCE S256, token caching in IndexedDB |
+| `login()` | Redirect to Keycloak login page |
+| `logout()` | Clear cached tokens + redirect to Keycloak logout |
+| `getAccessToken()` | Get current token (auto-refresh if within 30s of expiry) |
+| `getUserProfile()` | Decode JWT, extract realm roles, map to app Role |
+| `hasRole(role)` | Check if current user has a specific Role |
+| `hasAnyRole(roles[])` | Check if current user has any of the specified Roles |
+| `isAuthenticated()` | Returns `keycloak.authenticated` |
+| `fetchWithAuth(url, options)` | Fetch wrapper that adds Bearer token |
+| `waitForKeycloakReady(timeoutMs)` | Promise that resolves when Keycloak init completes (8s timeout) |
+
+### Token Caching
+
+Tokens are cached in IndexedDB via `idb-keyval` under key `"coopdata_tokens"`:
+
+```typescript
+interface CachedTokens {
+  token: string;
+  refreshToken: string;
+  idToken: string;
+  timestamp: number;  // 24h TTL
+}
+```
+
+### JWT Token Claims (CustomKeycloakToken)
+
+```typescript
+interface CustomKeycloakToken {
+  sub: string;
+  email: string;
+  name: string;
+  given_name?: string;
+  family_name?: string;
+  realm_access: { roles: string[] };      // Keycloak realm roles
+  organization?: Record<string, { id: string }>;  // Federation org
+  cooperation?: string[];                  // Group paths: ["/apex-id/coop-id"]
+  organization_id?: string;
+  cooperation_id?: string;
+  assigned_dimensions?: string[];
+  is_member_of?: string[];
+}
+```
+
+---
+
+## Step 3: Role System
+
+**File**: `frontend/src/constants/roles.ts`
+
+### 4 Roles with Hierarchy
+
+```typescript
+type Role = "ministry" | "federation" | "apex" | "cooperative";
+
+// Hierarchy: ministry(4) > federation(3) > apex(2) > cooperative(1)
+const ROLE_HIERARCHY: Record<Role, number> = {
+  ministry: 4,
+  federation: 3,
+  apex: 2,
+  cooperative: 1,
+};
+```
+
+### Keycloak → App Role Mapping
+
+```typescript
+const KEYCLOAK_ROLE_MAP: Record<string, Role> = {
+  ministry: "ministry",
+  federation: "federation",
+  regional_officer: "apex",           // Keycloak uses "regional_officer" for apex
+  "default-roles-coop-data": "cooperative",  // Default role maps to cooperative
+};
+
+// Priority order: ministry > federation > apex > cooperative
+function mapKeycloakRolesToRole(realmRoles: string[]): Role | null {
+  // Returns highest-priority role found, or null if no recognized role
+}
+```
+
+### Navigation Config
+
+```typescript
+// Which nav groups each role sees
+const ROLE_NAV: Record<Role, NavGroupId[]> = {
+  ministry: ["oversight", "intelligence", "system"],
+  federation: ["oversight", "intelligence", "system"],
+  apex: ["oversight", "intelligence", "system"],
+  cooperative: ["oversight", "intelligence"],
+};
+
+// Which routes within each group
+const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>> = {
+  ministry: {
+    oversight: ["/app/dashboard", "/app/federations", "/app/invitations", "/app/members", "/app/submissions"],
+    intelligence: ["/app/reports", "/app/analytics"],
+    system: ["/app/users", "/app/settings"],
+  },
+  // ... other roles
+};
+
+// All roles redirect to /app/dashboard after login
+const ROLE_DEFAULT_ROUTE: Record<Role, string> = {
+  ministry: "/app/dashboard",
+  federation: "/app/dashboard",
+  apex: "/app/dashboard",
+  cooperative: "/app/dashboard",
+};
+```
+
+---
+
+## Step 4: Auth Context
 
 **File**: `frontend/src/context/AuthContext.tsx`
 
 ```typescript
-import { createContext, useContext, useEffect, useState } from 'react';
-import Keycloak from 'keycloak-js';
-import { keycloakConfig } from '@/services/shared/keycloakConfig';
-
-interface AuthContextType {
+interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: {
-    username?: string;
-    email?: string;
-    roles?: string[];
-  } | null;
-  login: () => void;
-  logout: () => void;
+  user: UserProfile | null;
+  role: Role | null;
+  accessToken: string | null;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
+  hasRole: (role: Role) => boolean;
+  hasAnyRole: (roles: Role[]) => boolean;
+  getAccessToken: () => Promise<string>;
 }
+```
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+### Provider Lifecycle
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [keycloak, setKeycloak] = useState<Keycloak | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+1. `KeycloakAuthProvider` mounts in `__root.tsx`
+2. Calls `initKeycloak()` on mount (check-sso, PKCE S256, token caching)
+3. Sets `isLoading=true` during init, then `false` when complete
+4. If authenticated, calls `getUserProfile()` to extract role from JWT
+5. Exposes `useAuth()`, `useRole()`, `useUserRole()`, `useCanAccess(path)` hooks
 
-  useEffect(() => {
-    const kc = new Keycloak(keycloakConfig);
+### Convenience Hooks
 
-    kc.init({ onLoad: 'check-sso' }).then((authenticated) => {
-      setKeycloak(kc);
-      setIsAuthenticated(authenticated);
-      setIsLoading(false);
-    });
-  }, []);
+```typescript
+// Get full auth context
+const { isAuthenticated, user, role, login, logout } = useAuth();
 
-  const login = () => keycloak?.login();
-  const logout = () => keycloak?.logout();
+// Get just the role
+const role = useRole();  // Role | null
 
-  const user = keycloak?.tokenParsed ? {
-    username: keycloak.tokenParsed.preferred_username,
-    email: keycloak.tokenParsed.email,
-    roles: keycloak.tokenParsed.realm_access?.roles || [],
-  } : null;
+// Get user + role together
+const { user, role } = useUserRole();
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
-};
+// Check if current user can access a path
+const canAccess = useCanAccess("/app/federations");  // boolean
 ```
 
 ---
 
-## Step 3: Wrap App with Provider
+## Step 5: Route Guards (Two Mechanisms)
 
-**File**: `frontend/src/main.tsx`
+### Component Guard: ProtectedRoute
+
+Used by most routes. Wraps page component.
 
 ```typescript
-import { AuthProvider } from './context/AuthContext';
+// File: frontend/src/components/ProtectedRoute.tsx
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <AuthProvider>
-    <App />
-  </AuthProvider>
-);
+<ProtectedRoute allowedRoles={["ministry"]}>
+  <FederationsPage />
+</ProtectedRoute>
 ```
+
+**Logic**:
+1. `isLoading` → spinner
+2. `!isAuthenticated` → `<Navigate to="/auth/login" />`
+3. `!user` → `<UnauthorizedPage />`
+4. `allowedRoles && !allowedRoles.includes(user.role)` → `<UnauthorizedPage />`
+5. Otherwise → render children
+
+### Function Guard: beforeLoad
+
+Used by `/app/invitations` and `/app/members` only.
+
+```typescript
+// File: frontend/src/routes/app.invitations.tsx
+
+export const Route = createFileRoute("/app/invitations")({
+  beforeLoad: async () => {
+    await requireRole("ministry");  // throws redirect to /unauthorized
+  },
+  component: InvitationList,
+});
+```
+
+### Route → Role Mapping
+
+| Route | Guard Type | Allowed Roles |
+| --- | --- | --- |
+| `/app/dashboard` | ProtectedRoute | all roles |
+| `/app/federations` | ProtectedRoute | ministry |
+| `/app/apexes` | ProtectedRoute | federation |
+| `/app/cooperatives` | ProtectedRoute | apex |
+| `/app/data-collection` | ProtectedRoute | cooperative |
+| `/app/financial-statement` | ProtectedRoute | cooperative |
+| `/app/non-financial-data` | ProtectedRoute | cooperative |
+| `/app/invitations` | beforeLoad | ministry |
+| `/app/members` | beforeLoad | ministry |
+| `/app/users` | ProtectedRoute | ministry, federation, apex |
+| `/app/settings` | ProtectedRoute | ministry |
+| `/app/submissions` | ProtectedRoute | all roles |
+| `/app/reports` | ProtectedRoute | all roles |
+| `/app/analytics` | ProtectedRoute | all roles |
+| `/app/profile` | ProtectedRoute | all roles |
+| `/app/debug-auth` | none | (no guard — known issue) |
 
 ---
 
-## Step 4: Use in Components
+## Step 6: App Layout Guard
 
-### Check Authentication
+**File**: `frontend/src/routes/app.tsx`
 
-```typescript
-import { useAuth } from '@/context/AuthContext';
-
-const MyComponent = () => {
-  const { isAuthenticated, user, login } = useAuth();
-
-  if (!isAuthenticated) {
-    return <button onClick={login}>Login</button>;
-  }
-
-  return <div>Welcome, {user?.username}</div>;
-};
-```
-
-### Check Roles
-
-```typescript
-const { user } = useAuth();
-const isAdmin = user?.roles?.includes('admin');
-
-{isAdmin && <AdminPanel />}
-```
+The `/app` layout checks:
+1. `isLoading` → spinner
+2. `!isAuthenticated` → `<Navigate to="/auth/login" />`
+3. If user is `federation` without `organizationId` → "not part of a federation" message
+4. If user is `apex` without `cooperationId` → "not part of an apex" message
+5. If user is `cooperative` without `cooperationId` → "not part of a cooperative" message
+6. Otherwise → render `<Outlet />`
 
 ---
 
-## Step 5: Protect Routes
+## Step 7: API Client Auth
 
-**File**: `frontend/src/router/ProtectedRoute.tsx`
-
-```typescript
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { Loader2 } from 'lucide-react';
-
-export const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin" />
-    </div>;
-  }
-
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
-};
-```
-
-**Usage in Router**:
+**File**: `frontend/src/openapi-client/index.ts`
 
 ```typescript
-<Route element={<ProtectedRoute />}>
-  <Route path="/dashboard" element={<DashboardPage />} />
-</Route>
-```
+import { createClient } from "openapi-fetch";
+import { getAccessToken } from "@/services/shared/authService";
 
----
+export const apiClient = createClient<paths>({
+  baseUrl: "http://localhost:3000",
+});
 
-## Step 6: Add Token to API Requests
-
-**File**: `frontend/src/main.tsx`
-
-```typescript
-import { OpenAPI } from "@/openapi-client";
-
-// Configure OpenAPI client
-OpenAPI.interceptors.request.use(async (request) => {
-  const token = keycloak?.token;
-  if (token) {
-    request.headers.set("Authorization", `Bearer ${token}`);
-  }
-  return request;
+// onRequest: add Bearer token
+apiClient.use({
+  onRequest: async (req) => {
+    try {
+      const token = await getAccessToken();
+      req.headers.set("Authorization", `Bearer ${token}`);
+    } catch {
+      // Token expired — let the response handler deal with 401
+    }
+    return req;
+  },
+  // onResponse: redirect to login on 401 (outside /app routes)
+  onResponse: async (res, ctx) => {
+    if (res.status === 401 && !window.location.pathname.startsWith("/app")) {
+      window.location.href = "/auth/login";
+    }
+  },
 });
 ```
 
 ---
 
-## Role-Based Access Control
+## Step 8: Unauthorized Page
 
-Define role constants:
+**File**: `frontend/src/components/UnauthorizedPage.tsx`
 
-**File**: `frontend/src/constants/roles.ts`
+Displayed when:
+- User is authenticated but has wrong role for the route
+- User has no recognized role in their JWT
 
-```typescript
-export const ROLES = {
-  ADMIN: "admin",
-  ORG_ADMIN: "org_admin",
-  USER: "user",
-} as const;
-```
-
-Check roles in components:
-
-```typescript
-import { useAuth } from '@/context/AuthContext';
-import { ROLES } from '@/constants/roles';
-
-const { user } = useAuth();
-const canDelete = user?.roles?.includes(ROLES.ADMIN);
-
-{canDelete && <Button onClick={handleDelete}>Delete</Button>}
-```
+Shows:
+- "Access Denied" heading
+- Explanation text
+- "Return Home" button (links to `/`)
+- "Sign in with different account" button (calls `login()`)
 
 ---
 
 ## Checklist
 
-- [ ] Keycloak config created
-- [ ] Auth context created
-- [ ] App wrapped with AuthProvider
-- [ ] Protected route guard created
-- [ ] Token added to API requests
-- [ ] Role constants defined
-- [ ] RBAC implemented in UI
+- [x] Keycloak config created (`keycloakConfig.ts`)
+- [x] Auth service created (`authService.ts`) with token caching
+- [x] Auth context created (`AuthContext.tsx`) with `KeycloakAuthProvider`
+- [x] App wrapped with `KeycloakAuthProvider` in `__root.tsx`
+- [x] Protected route guard created (`ProtectedRoute.tsx`)
+- [x] Function guards created (`route-guards.ts`)
+- [x] Token added to API requests via `openapi-fetch` interceptor
+- [x] Role constants defined (`roles.ts`) with Keycloak role mapping
+- [x] RBAC enforced via `allowedRoles` on `ProtectedRoute`
+- [x] RBAC enforced via `requireRole()` in `beforeLoad`
+- [x] Unauthorized page created (`UnauthorizedPage.tsx`)
+- [x] App layout guard checks org assignment (`app.tsx`)
+- [x] Silent SSO check configured (`silent-check-sso.html`)

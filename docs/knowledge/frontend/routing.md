@@ -1,226 +1,223 @@
 # Routing Implementation Guide
 
-> **Goal**: Configure routes using React Router v6+.
-> **Rule**: One route = One page component.
+> **Goal**: Configure routes using TanStack Router (file-based routing).
+> **Rule**: One route file = One page component. Guards via `ProtectedRoute` or `beforeLoad`.
+
+---
 
 ## File Structure
 
 ```
-frontend/src/router/
-├── index.tsx           # Main router configuration
-├── ProtectedRoute.tsx  # Auth guard
-└── routes.ts           # Route constants
+frontend/src/
+├── routes/
+│   ├── __root.tsx              # Root route: wraps app in ThemeProvider > KeycloakAuthProvider > QueryClientProvider
+│   ├── index.tsx               # / → LandingPage
+│   ├── app.tsx                 # /app layout guard (auth + org assignment check)
+│   ├── app.index.tsx           # /app → redirect to /app/dashboard
+│   ├── app.dashboard.tsx       # /app/dashboard (all roles)
+│   ├── app.federations.tsx     # /app/federations (ministry only)
+│   ├── app.apexes.tsx          # /app/apexes (federation only)
+│   ├── app.cooperatives.tsx    # /app/cooperatives (apex only)
+│   ├── app.data-collection.tsx # /app/data-collection (cooperative only)
+│   ├── app.financial-statement.tsx  # /app/financial-statement (cooperative only)
+│   ├── app.non-financial-data.tsx   # /app/non-financial-data (cooperative only)
+│   ├── app.invitations.tsx     # /app/invitations (ministry only, beforeLoad guard)
+│   ├── app.members.tsx         # /app/members (ministry only, beforeLoad guard)
+│   ├── app.users.tsx           # /app/users layout (ministry, federation, apex)
+│   ├── app.users.index.tsx     # /app/users/ → UsersPage
+│   ├── app.users.$apexId.tsx   # /app/users/:apexId → ApexUsersPage
+│   ├── app.settings.tsx        # /app/settings (ministry only)
+│   ├── app.submissions.tsx     # /app/submissions (all roles)
+│   ├── app.submissions_.$id.tsx # /app/submissions/:id
+│   ├── app.reports.tsx         # /app/reports (all roles)
+│   ├── app.analytics.tsx       # /app/analytics (all roles)
+│   ├── app.profile.tsx         # /app/profile (all roles)
+│   ├── app.debug-auth.tsx      # /app/debug-auth (no guard — known issue)
+│   ├── auth.tsx                # /auth layout
+│   ├── auth.login.tsx          # /auth/login → Keycloak login handler
+│   ├── unauthorized.tsx        # /unauthorized → UnauthorizedPage
+│   └── routeTree.gen.ts        # Auto-generated route tree (DO NOT EDIT)
+├── router.tsx                  # createRouter({ routeTree, context: { queryClient } })
+└── main.tsx                    # Entry point
 ```
 
 ---
 
-## Step 1: Define Route Constants
+## Step 1: File-Based Routing
 
-**File**: `frontend/src/router/routes.ts`
+TanStack Router uses file-based routing. Each `.tsx` file in `src/routes/` becomes a route:
+
+- `app.tsx` → `/app` (layout route)
+- `app.dashboard.tsx` → `/app/dashboard`
+- `app.users.$apexId.tsx` → `/app/users/:apexId`
+- `auth.login.tsx` → `/auth/login`
+
+The route tree is auto-generated in `routeTree.gen.ts` by `@tanstack/router-plugin`.
+
+---
+
+## Step 2: Route Guards
+
+### Component Guard: ProtectedRoute
+
+Most routes use `ProtectedRoute` with `allowedRoles`:
 
 ```typescript
-export const ROUTES = {
-  HOME: "/",
-  LOGIN: "/login",
-  DASHBOARD: "/dashboard",
-  USERS: {
-    LIST: "/users",
-    CREATE: "/users/new",
-    DETAIL: (id: string) => `/users/${id}`,
-    EDIT: (id: string) => `/users/${id}/edit`,
+// File: frontend/src/routes/app.federations.tsx
+import { createFileRoute } from "@tanstack/react-router";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FederationsPage } from "@/pages/ministry/FederationsPage";
+
+export const Route = createFileRoute("/app/federations")({
+  component: () => (
+    <ProtectedRoute allowedRoles={["ministry"]}>
+      <FederationsPage />
+    </ProtectedRoute>
+  ),
+});
+```
+
+### Function Guard: beforeLoad
+
+Some routes use `requireRole()` in `beforeLoad`:
+
+```typescript
+// File: frontend/src/routes/app.invitations.tsx
+import { createFileRoute } from "@tanstack/react-router";
+import { requireRole } from "@/lib/route-guards";
+import { InvitationList } from "@/pages/ministry/InvitationList";
+
+export const Route = createFileRoute("/app/invitations")({
+  beforeLoad: async () => {
+    await requireRole("ministry");
   },
-  SETTINGS: "/settings",
-} as const;
+  component: InvitationList,
+});
 ```
 
-**Why**: Centralized routes prevent typos and make refactoring easier
+### Layout Guard: app.tsx
 
----
-
-## Step 2: Create Protected Route Guard
-
-**File**: `frontend/src/router/ProtectedRoute.tsx`
+The `/app` layout checks auth and org assignment:
 
 ```typescript
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { Loader2 } from 'lucide-react';
+// File: frontend/src/routes/app.tsx
+function AppLayout() {
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-export const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <Navigate to="/auth/login" />;
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  // Check org assignment
+  if (user?.role === "federation" && !user.organizationId) {
+    return <NotPartOfOrg orgLabel="a federation" />;
   }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (user?.role === "apex" && !user.cooperationId) {
+    return <NotPartOfOrg orgLabel="an apex" />;
+  }
+  if (user?.role === "cooperative" && !user.cooperationId) {
+    return <NotPartOfOrg orgLabel="a cooperative" />;
   }
 
   return <Outlet />;
-};
+}
 ```
-
-**Why**: Prevents unauthenticated users from accessing protected pages
 
 ---
 
-## Step 3: Configure Router
+## Step 3: Route → Role Mapping
 
-**File**: `frontend/src/router/index.tsx`
+| Route | Guard Type | Allowed Roles |
+| --- | --- | --- |
+| `/app/dashboard` | ProtectedRoute | all roles |
+| `/app/federations` | ProtectedRoute | ministry |
+| `/app/apexes` | ProtectedRoute | federation |
+| `/app/cooperatives` | ProtectedRoute | apex |
+| `/app/data-collection` | ProtectedRoute | cooperative |
+| `/app/financial-statement` | ProtectedRoute | cooperative |
+| `/app/non-financial-data` | ProtectedRoute | cooperative |
+| `/app/invitations` | beforeLoad | ministry |
+| `/app/members` | beforeLoad | ministry |
+| `/app/users` | ProtectedRoute | ministry, federation, apex |
+| `/app/settings` | ProtectedRoute | ministry |
+| `/app/submissions` | ProtectedRoute | all roles |
+| `/app/reports` | ProtectedRoute | all roles |
+| `/app/analytics` | ProtectedRoute | all roles |
+| `/app/profile` | ProtectedRoute | all roles |
+| `/app/debug-auth` | none | (no guard — known issue) |
+| `/auth/login` | redirectIfAuthenticated | public |
+| `/unauthorized` | none | public |
+
+---
+
+## Step 4: Router Configuration
 
 ```typescript
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
-import { AuthLayout } from '@/layouts/AuthLayout';
-import { ProtectedRoute } from './ProtectedRoute';
-import { ROUTES } from './routes';
-import { Loader2 } from 'lucide-react';
+// File: frontend/src/router.tsx
+import { createRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
+import { queryClient } from "./lib/query-client";
 
-// Lazy load pages
-const LoginPage = lazy(() => import('@/pages/LoginPage'));
-const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
-const UsersPage = lazy(() => import('@/pages/UsersPage'));
-const UserDetailPage = lazy(() => import('@/pages/UserDetailPage'));
-
-const LoadingFallback = () => (
-  <div className="flex h-screen items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin" />
-  </div>
-);
-
-export const AppRoutes = () => {
-  return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        {/* Public Routes */}
-        <Route element={<AuthLayout />}>
-          <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-        </Route>
-
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
-            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-            <Route path={ROUTES.USERS.LIST} element={<UsersPage />} />
-            <Route path="/users/:id" element={<UserDetailPage />} />
-          </Route>
-        </Route>
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-      </Routes>
-    </Suspense>
-  );
-};
-```
-
-**Why**:
-
-- Lazy loading improves initial load time
-- Nested routes share layouts
-- Protected routes require authentication
-
----
-
-## Step 4: Use in App
-
-**File**: `frontend/src/App.tsx`
-
-```typescript
-import { BrowserRouter } from 'react-router-dom';
-import { AppRoutes } from './router';
-
-export const App = () => {
-  return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  );
-};
+export const router = createRouter({
+  routeTree,
+  context: { queryClient },
+  scrollRestoration: true,
+  defaultPreloadStaleTime: 0,
+});
 ```
 
 ---
 
-## Navigation
+## Step 5: Navigation
 
 ### Programmatic Navigation
 
 ```typescript
-import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '@/router/routes';
+import { useNavigate } from "@tanstack/react-router";
 
 const MyComponent = () => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(ROUTES.USERS.LIST);
+    navigate({ to: "/app/federations" });
   };
 
-  const handleUserClick = (userId: string) => {
-    navigate(ROUTES.USERS.DETAIL(userId));
-  };
-
-  return <button onClick={handleClick}>Go to Users</button>;
+  return <button onClick={handleClick}>Go to Federations</button>;
 };
 ```
 
 ### Link Navigation
 
 ```typescript
-import { Link } from 'react-router-dom';
-import { ROUTES } from '@/router/routes';
+import { Link } from "@tanstack/react-router";
 
-const Navbar = () => {
-  return (
-    <nav>
-      <Link to={ROUTES.DASHBOARD}>Dashboard</Link>
-      <Link to={ROUTES.USERS.LIST}>Users</Link>
-    </nav>
-  );
-};
+const Navbar = () => (
+  <nav>
+    <Link to="/app/dashboard">Dashboard</Link>
+    <Link to="/app/federations">Federations</Link>
+  </nav>
+);
 ```
 
----
-
-## Route Parameters
+### Route Parameters
 
 ```typescript
-import { useParams } from 'react-router-dom';
+import { useParams } from "@tanstack/react-router";
 
-const UserDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
-  const { data: user } = useUser(id!);
-
-  return <div>{user?.name}</div>;
+const ApexUsersPage = () => {
+  const { apexId } = useParams({ from: "/app/users/$apexId" });
+  // Use apexId...
 };
-```
-
----
-
-## Nested Routes
-
-```typescript
-<Route path="/settings" element={<SettingsLayout />}>
-  <Route index element={<SettingsOverview />} />
-  <Route path="profile" element={<ProfileSettings />} />
-  <Route path="security" element={<SecuritySettings />} />
-</Route>
 ```
 
 ---
 
 ## Checklist
 
-- [ ] Route constants defined in `routes.ts`
-- [ ] Protected route guard created
-- [ ] Router configured in `router/index.tsx`
-- [ ] Pages lazy loaded
-- [ ] Layouts applied to route groups
-- [ ] Fallback route configured
-- [ ] Navigation uses route constants
+- [x] File-based routing configured with TanStack Router
+- [x] Route tree auto-generated (`routeTree.gen.ts`)
+- [x] Protected routes use `ProtectedRoute` with `allowedRoles`
+- [x] `beforeLoad` guards for invitations/members routes
+- [x] App layout guard checks auth + org assignment
+- [x] Auth login route redirects authenticated users to dashboard
+- [x] Unauthorized route renders `UnauthorizedPage`
+- [x] Navigation uses TanStack Router `Link` and `useNavigate`
