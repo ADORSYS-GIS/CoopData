@@ -11,6 +11,7 @@ use crate::api::dto::{
     AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginatedUserResponse,
     PaginationParams, UpdateUserRequest, UserResponse,
 };
+use crate::api::middleware::AuditContext;
 
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
@@ -108,6 +109,7 @@ pub async fn get_user(
 pub async fn create_user(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.email.trim().is_empty() {
@@ -225,8 +227,8 @@ pub async fn create_user(
             "user",
             Some(&user_model.keycloak_id),
             Some(serde_json::json!({"email": &user_model.email, "role": &user_model.role})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -530,6 +532,7 @@ mod tests {
 pub async fn update_user(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -572,8 +575,8 @@ pub async fn update_user(
             "user",
             Some(&id.to_string()),
             Some(serde_json::json!({"role": audit_role, "region": audit_region})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -601,6 +604,7 @@ pub async fn update_user(
 pub async fn assign_role_to_user(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<AssignRoleRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -630,8 +634,8 @@ pub async fn assign_role_to_user(
             "user",
             Some(&id.to_string()),
             Some(serde_json::json!({"role": &role_str})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -656,6 +660,7 @@ pub async fn assign_role_to_user(
 pub async fn delete_user(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let user_repo = UserRepository::new(state.db.clone());
@@ -686,8 +691,8 @@ pub async fn delete_user(
             "user",
             Some(&id.to_string()),
             Some(serde_json::json!({"email": &user_model.email})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {

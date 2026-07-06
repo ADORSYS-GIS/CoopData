@@ -13,6 +13,7 @@ use crate::api::dto::federation::{
 };
 use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::federation;
@@ -33,6 +34,7 @@ use crate::AppState;
 pub async fn create_federation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -123,8 +125,8 @@ pub async fn create_federation(
             "federation",
             Some(&org.id),
             Some(serde_json::json!({"name": &display_name, "slug": &slug})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -194,6 +196,7 @@ pub async fn get_federation(
 pub async fn update_federation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -252,8 +255,8 @@ pub async fn update_federation(
             "federation",
             Some(&id),
             Some(serde_json::json!({"name": body.name, "description": body.description})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -278,6 +281,7 @@ pub async fn update_federation(
 pub async fn delete_federation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Cascade: delete all org members from Keycloak + PG
@@ -361,7 +365,7 @@ pub async fn delete_federation(
 
     if let Err(e) = state
         .audit
-        .log(&claims, "DELETE", "federation", Some(&id), None, None, None)
+        .log(&claims, "DELETE", "federation", Some(&id), None, audit_ctx.ip_address.as_deref(), audit_ctx.user_agent.as_deref())
         .await
     {
         tracing::error!("Failed to log audit: {}", e);
@@ -386,6 +390,7 @@ pub async fn delete_federation(
 pub async fn invite_user_to_federation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -461,8 +466,8 @@ pub async fn invite_user_to_federation(
             "federation",
             Some(&id),
             Some(serde_json::json!({"email": &email, "role": &role})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -517,6 +522,7 @@ pub async fn list_federation_invitations(
 pub async fn delete_federation_invitation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     state
@@ -533,8 +539,8 @@ pub async fn delete_federation_invitation(
             "federation_invitation",
             Some(&invitation_id),
             Some(serde_json::json!({"federation_id": &id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -559,6 +565,7 @@ pub async fn delete_federation_invitation(
 pub async fn resend_federation_invitation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     state
@@ -575,8 +582,8 @@ pub async fn resend_federation_invitation(
             "federation_invitation",
             Some(&invitation_id),
             Some(serde_json::json!({"federation_id": &id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -629,6 +636,7 @@ pub async fn list_federation_members(
 pub async fn remove_federation_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     tracing::info!(federation_id = %id, user_id = %user_id, "Removing member from federation");
@@ -646,8 +654,8 @@ pub async fn remove_federation_member(
             "member",
             Some(&user_id),
             Some(serde_json::json!({"federation_id": &id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -703,6 +711,7 @@ pub async fn get_federation_profile(
 pub async fn update_federation_profile(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
@@ -735,8 +744,8 @@ pub async fn update_federation_profile(
             "federation",
             Some(&org_id),
             Some(serde_json::json!({"description": body.description})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {

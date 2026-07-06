@@ -177,6 +177,9 @@ pub fn create_app(state: AppState) -> Router {
                 roles::APEX,
             ]))),
         )
+        .layer(axum::middleware::from_fn(
+            crate::api::middleware::audit_context_layer,
+        ))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_layer,

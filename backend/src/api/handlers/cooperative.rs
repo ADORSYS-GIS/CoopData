@@ -15,6 +15,7 @@ use crate::api::dto::cooperative::{
     CooperativeResponse, CreateCooperativeRequest, UpdateCooperativeRequest,
 };
 use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::cooperative;
@@ -95,6 +96,7 @@ async fn assert_cooperative_belongs_to_apex(
 pub async fn create_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -208,8 +210,8 @@ pub async fn create_cooperative(
             "cooperative",
             Some(&group.id),
             Some(serde_json::json!({"name": &body.name, "parent_id": &apex_group_id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -324,6 +326,7 @@ pub async fn get_cooperative(
 pub async fn update_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<UpdateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -359,8 +362,8 @@ pub async fn update_cooperative(
             "cooperative",
             Some(&id),
             Some(serde_json::json!({"name": body.name, "description": body.description})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -385,6 +388,7 @@ pub async fn update_cooperative(
 pub async fn delete_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
@@ -399,8 +403,8 @@ pub async fn delete_cooperative(
             "cooperative",
             Some(&id),
             None,
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -562,6 +566,7 @@ pub async fn list_cooperative_members(
 pub async fn update_cooperative_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -598,8 +603,8 @@ pub async fn update_cooperative_member(
             "cooperative_member",
             Some(&user_id),
             Some(serde_json::json!({"group_id": &group_id, "first_name": body.first_name, "last_name": body.last_name})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -635,6 +640,7 @@ pub async fn update_cooperative_member(
 pub async fn remove_cooperative_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
@@ -654,8 +660,8 @@ pub async fn remove_cooperative_member(
             "member",
             Some(&user_id),
             Some(serde_json::json!({"group_id": &group_id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
@@ -686,6 +692,7 @@ pub async fn remove_cooperative_member(
 pub async fn resend_cooperative_member_verification(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
@@ -713,8 +720,8 @@ pub async fn resend_cooperative_member_verification(
             "cooperative_member",
             Some(&user_id),
             Some(serde_json::json!({"group_id": &group_id})),
-            None,
-            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
         )
         .await
     {
