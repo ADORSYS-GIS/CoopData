@@ -1,8 +1,6 @@
 use crate::entities::{cooperative, CooperativeColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 #[derive(Clone)]

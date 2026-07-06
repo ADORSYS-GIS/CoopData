@@ -34,8 +34,7 @@ impl AuditLogRepository {
         page: u64,
         per_page: u64,
     ) -> AppResult<(Vec<audit_log::Model>, u64)> {
-        let mut query = audit_log::Entity::find()
-            .order_by_desc(AuditLogColumn::CreatedAt);
+        let mut query = audit_log::Entity::find().order_by_desc(AuditLogColumn::CreatedAt);
 
         if let Some(action) = action {
             query = query.filter(AuditLogColumn::Action.eq(action));

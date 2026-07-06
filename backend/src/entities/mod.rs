@@ -6,15 +6,11 @@ pub mod federation;
 pub mod organization;
 pub mod user;
 
-pub use apex::{
-    Column as ApexColumn, Entity as ApexEntity, Model as ApexModel,
-};
+pub use apex::{Column as ApexColumn, Entity as ApexEntity, Model as ApexModel};
 pub use assessment::{
     Column as AssessmentColumn, Entity as AssessmentEntity, Model as AssessmentModel,
 };
-pub use audit_log::{
-    Column as AuditLogColumn, Entity as AuditLogEntity, Model as AuditLogModel,
-};
+pub use audit_log::{Column as AuditLogColumn, Entity as AuditLogEntity, Model as AuditLogModel};
 pub use cooperative::{
     Column as CooperativeColumn, Entity as CooperativeEntity, Model as CooperativeModel,
 };

@@ -4,9 +4,8 @@ use coop_data_backend::auth::JwtValidator;
 use coop_data_backend::config::Environment;
 use coop_data_backend::services::cache::CacheService;
 use coop_data_backend::{
-    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService,
-    CooperativeRepository, FederationRepository, KeycloakService, OrganizationRepository,
-    UserRepository,
+    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService, CooperativeRepository,
+    FederationRepository, KeycloakService, OrganizationRepository, UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -32,10 +31,7 @@ impl TestApp {
         let cooperative_repo = CooperativeRepository::new(db.clone());
         let organization_repo = OrganizationRepository::new(db.clone());
         let user_repo = UserRepository::new(db.clone());
-        let audit = AuditService::new(
-            AuditLogRepository::new(db.clone()),
-            user_repo.clone(),
-        );
+        let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
         let state = AppState {
             db,

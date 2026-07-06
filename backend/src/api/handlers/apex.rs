@@ -66,7 +66,12 @@ pub async fn create_apex(
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
     // Track in PostgreSQL — look up federation PG record by KC org ID
-    let federation_pg = state.federation_repo.find_by_keycloak_id(&org_id).await.ok().flatten();
+    let federation_pg = state
+        .federation_repo
+        .find_by_keycloak_id(&org_id)
+        .await
+        .ok()
+        .flatten();
 
     let federation_pg_id = match federation_pg {
         Some(f) => f.id,

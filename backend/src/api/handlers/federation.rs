@@ -327,7 +327,8 @@ pub async fn delete_federation(
                             if let Err(e) = state.keycloak.delete_user(&member.id).await {
                                 tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
                             }
-                            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await
+                            {
                                 tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from PG");
                             }
                         }

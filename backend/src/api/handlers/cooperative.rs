@@ -129,7 +129,12 @@ pub async fn create_cooperative(
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
     // Track in PostgreSQL — look up apex PG record by KC group ID
-    let apex_pg = state.apex_repo.find_by_keycloak_id(&apex_group_id).await.ok().flatten();
+    let apex_pg = state
+        .apex_repo
+        .find_by_keycloak_id(&apex_group_id)
+        .await
+        .ok()
+        .flatten();
 
     let apex_pg_id = match apex_pg {
         Some(a) => a.id,
@@ -143,7 +148,9 @@ pub async fn create_cooperative(
                 .and_then(|vals| vals.first())
                 .cloned()
                 .ok_or_else(|| {
-                    AppError::InternalServerError("Apex group has no organization_id attribute".into())
+                    AppError::InternalServerError(
+                        "Apex group has no organization_id attribute".into(),
+                    )
                 })?;
 
             let federation_pg = state
@@ -386,7 +393,15 @@ pub async fn delete_cooperative(
     // Audit BEFORE cascade so we have a record even if cascade partially fails
     if let Err(e) = state
         .audit
-        .log(&claims, "DELETE", "cooperative", Some(&id), None, None, None)
+        .log(
+            &claims,
+            "DELETE",
+            "cooperative",
+            Some(&id),
+            None,
+            None,
+            None,
+        )
         .await
     {
         tracing::error!("Failed to log audit: {}", e);

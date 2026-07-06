@@ -12,13 +12,13 @@ pub mod utils;
 pub use config::AppConfig;
 pub use database::Database;
 pub use error::{forbidden_with_roles, AppError, AppResult};
+pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     ApexRepository, CooperativeRepository, FederationRepository, OrganizationRepository,
     UserRepository,
 };
-pub use repositories::audit_log::AuditLogRepository;
-pub use services::AuditService;
 pub use services::keycloak::KeycloakService;
+pub use services::AuditService;
 
 #[derive(Clone)]
 pub struct AppState {

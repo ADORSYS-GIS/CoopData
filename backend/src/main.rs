@@ -3,8 +3,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
     api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
-    services::cache::CacheService, services::keycloak::KeycloakService, ApexRepository,
-    AuditLogRepository, AuditService, AppState, CooperativeRepository, FederationRepository,
+    services::cache::CacheService, services::keycloak::KeycloakService, ApexRepository, AppState,
+    AuditLogRepository, AuditService, CooperativeRepository, FederationRepository,
     OrganizationRepository, UserRepository,
 };
 
@@ -40,10 +40,7 @@ async fn main() -> anyhow::Result<()> {
     let cooperative_repo = CooperativeRepository::new(db.clone());
     let organization_repo = OrganizationRepository::new(db.clone());
     let user_repo = UserRepository::new(db.clone());
-    let audit = AuditService::new(
-        AuditLogRepository::new(db.clone()),
-        user_repo.clone(),
-    );
+    let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
     tracing::info!("Repositories and services initialized");
 
