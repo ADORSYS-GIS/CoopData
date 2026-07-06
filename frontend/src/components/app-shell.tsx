@@ -6,7 +6,6 @@ import {
   Inbox,
   FileBarChart,
   PieChart,
-  Users,
   Settings,
   Search,
   Bell,
@@ -14,7 +13,6 @@ import {
   HelpCircle,
   Menu,
   X,
-  Shield,
   LogOut,
   ChevronRight,
   PanelLeftClose,
@@ -24,6 +22,7 @@ import {
   Mail,
   UserPlus,
   UserCog,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
@@ -62,7 +61,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     id: "system",
     label: "System",
     items: [
-      { to: "/app/users", label: "Users & Roles", icon: Users },
+      { to: "/app/audit", label: "Audit Log", icon: ScrollText },
       { to: "/app/settings", label: "Settings", icon: Settings },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
@@ -114,19 +113,11 @@ function Sidebar({
       <div
         className={`flex items-center gap-3 px-5 py-5 border-b border-sidebar-border ${isCollapsed ? "justify-center px-0" : ""}`}
       >
-        <div className="flex size-8 items-center justify-center rounded-lg bg-accent shadow-sm shrink-0">
-          <Shield className="size-4 text-white" />
-        </div>
-        {!isCollapsed && (
-          <div className="leading-tight min-w-0 flex-1">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/75">
-              Ministry Platform
-            </p>
-            <p className="font-heading text-[15px] font-bold tracking-tight text-sidebar-foreground">
-              CoopData
-            </p>
-          </div>
-        )}
+        <img
+          src="/coopdatalogo.png"
+          alt="CoopData logo"
+          className="size-11 shrink-0 rounded-lg object-contain"
+        />
         {/* Collapse toggle — desktop only */}
         {!mobile && onToggleCollapse && (
           <button

@@ -107,6 +107,9 @@ export const ApexesPage: React.FC = () => {
   });
 
   const totalCoops = apexes.reduce((sum, a) => sum + (a.sub_groups?.length ?? 0), 0);
+  const apexesWithCoops = apexes.filter((a) => (a.sub_groups?.length ?? 0) > 0).length;
+  const avgCoopsPerApex =
+    apexes.length > 0 ? Math.round((totalCoops / apexes.length) * 10) / 10 : 0;
 
   if (isLoading) {
     return (
@@ -149,7 +152,7 @@ export const ApexesPage: React.FC = () => {
             icon={Network}
             label="Total Apexes"
             value={String(apexes.length)}
-            subtitle="Cooperative oversight bodies"
+            subtitle="Oversight bodies"
             tone="primary"
           />
           <StatCard
@@ -160,17 +163,17 @@ export const ApexesPage: React.FC = () => {
             tone="success"
           />
           <StatCard
-            icon={Users}
-            label="Apexes Shown"
-            value={String(filteredApexes.length)}
-            subtitle="Matching current filter"
+            icon={Network}
+            label="Apexes With Co-ops"
+            value={String(apexesWithCoops)}
+            subtitle="Have ≥1 cooperative"
             tone="accent"
           />
           <StatCard
-            icon={Building2}
-            label="With Description"
-            value={String(apexes.filter((a) => a.description).length)}
-            subtitle="Having a description set"
+            icon={Users}
+            label="Avg Co-op / Apex"
+            value={String(avgCoopsPerApex)}
+            subtitle="Cooperatives per apex"
             tone="info"
           />
         </div>
