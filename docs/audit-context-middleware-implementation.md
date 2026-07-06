@@ -631,3 +631,44 @@ cargo test --manifest-path backend/Cargo.toml
   router, so it only processes authenticated requests
 - IP resolution prioritizes proxy headers (`X-Forwarded-For`, `X-Real-IP`) over
   direct connection info, which is correct for deployments behind a reverse proxy
+
+## 6. Security Considerations
+
+### X-Forwarded-For Spoofing
+
+The `X-Forwarded-For` and `X-Real-IP` headers are **client-supplied** and can be
+**spoofed** by malicious clients. An attacker can send an arbitrary IP address in
+these headers to falsify audit log entries.
+
+**Mitigations:**
+
+1. **Trusted reverse proxy only**: Only trust `X-Forwarded-For` / `X-Real-IP`
+   headers when the backend is behind a trusted reverse proxy (Nginx, Traefik,
+   Cloudflare, etc.) that sets or sanitizes these headers.
+
+2. **Strip incoming headers at the proxy**: Configure the reverse proxy to
+   **strip** any client-supplied `X-Forwarded-For` / `X-Real-IP` headers and
+   **rewrite** them with the real client IP. This prevents spoofing through
+   the proxy.
+
+   Nginx example:
+   ```nginx
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $remote_addr;
+   ```
+
+3. **Never expose backend directly**: If the backend is directly reachable
+   (bypassing the proxy), treat `X-Forwarded-For` as untrusted. In this
+   configuration, prefer `ConnectInfo<SocketAddr>` (TCP source IP) as the
+   authoritative source.
+
+4. **Audit log caveat**: Audit log entries that include `ip_address` should be
+   treated as **best-effort attribution**, not forensic evidence. Cross-reference
+   with reverse proxy access logs for authoritative IP attribution.
+
+### Future Enhancement
+
+Consider adding a configurable `trusted_proxy` setting that, when unset, causes
+the middleware to ignore proxy headers and rely solely on `ConnectInfo`. When set
+to a known proxy IP CIDR, only accept `X-Forwarded-For` from requests originating
+from that CIDR range.
