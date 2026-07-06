@@ -457,7 +457,27 @@ impl KeycloakService {
         }
         self.assign_realm_role(&token, &keycloak_id, role).await?;
 
-        self.trigger_email_verification(&keycloak_id).await?;
+        // Send the verification email. If this fails, roll back the user we just
+        // created so the request fails cleanly instead of leaving an orphaned
+        // account that can never log in.
+        if let Err(email_err) = self.trigger_email_verification(&keycloak_id).await {
+            error!(
+                keycloak_id = %keycloak_id,
+                error = %email_err,
+                "Verification email failed — rolling back Keycloak user"
+            );
+            if let Err(rollback_err) = self.delete_user(&keycloak_id).await {
+                error!(
+                    keycloak_id = %keycloak_id,
+                    error = %rollback_err,
+                    "Rollback failed: could not delete Keycloak user after email failure"
+                );
+            }
+            return Err(AppError::ExternalServiceError(format!(
+                "Failed to send verification email (user was not created). \
+                 Check Keycloak realm SMTP settings: {email_err}"
+            )));
+        }
 
         self.get_user_by_id_raw(&token, &keycloak_id).await
     }
@@ -1082,6 +1102,32 @@ impl KeycloakService {
         // Track whether we created a new user so we can roll back on failure
         let users = self.search_users_by_email(&token, email).await?;
         let (keycloak_id, user_was_new) = if let Some(existing_user) = users.first() {
+            // ── Single-entity membership guard ───────────────────────────────
+            // A user may belong to at most ONE entity type (federation, apex,
+            // or cooperative). Before adding them to this federation, reject if
+            // they are already attached to an apex/cooperative group, to another
+            // federation (organization), or have a pending federation invitation.
+            let user_groups = self.get_user_groups(&existing_user.id).await?;
+            if !user_groups.is_empty() {
+                return Err(AppError::Conflict(
+                    "Sorry, this user already belongs to an apex or cooperative.".into(),
+                ));
+            }
+
+            let user_orgs = self.get_user_organizations(&existing_user.id).await?;
+            if user_orgs.iter().any(|o| o.id != org_id) {
+                return Err(AppError::Conflict(
+                    "Sorry, this user already belongs to a federation.".into(),
+                ));
+            }
+            if let Some(active_org) = existing_user.get_attribute("org.ro.active") {
+                if active_org != org_id {
+                    return Err(AppError::Conflict(
+                        "Sorry, this user already belongs to a federation.".into(),
+                    ));
+                }
+            }
+
             match role {
                 "federation" => self.assign_federation_roles(&existing_user.id).await?,
                 "apex" => self.assign_apex_roles(&existing_user.id).await?,
@@ -1867,7 +1913,7 @@ impl KeycloakService {
                     ));
                 }
                 return Err(AppError::Conflict(
-                    "User is already a member of another group".into(),
+                    "Sorry, this user already belongs to an apex or cooperative.".into(),
                 ));
             }
 
@@ -1875,12 +1921,12 @@ impl KeycloakService {
             let invited_attr = existing_user.get_attribute("org.ro.active");
             if !user_orgs.is_empty() {
                 return Err(AppError::Conflict(
-                    "User is already a member of an organization".into(),
+                    "Sorry, this user already belongs to a federation.".into(),
                 ));
             }
             if invited_attr.is_some() {
                 return Err(AppError::Conflict(
-                    "User has a pending organization invitation".into(),
+                    "Sorry, this user already belongs to a federation.".into(),
                 ));
             }
 

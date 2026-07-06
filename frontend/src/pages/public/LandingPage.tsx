@@ -70,17 +70,11 @@ function PublicHeader() {
     <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-            <ShieldCheck className="size-4 text-white" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
-              Ministry Platform
-            </p>
-            <p className="font-heading text-lg font-bold tracking-tight text-foreground">
-              CoopData
-            </p>
-          </div>
+          <img
+            src="/coopdatalogo.png"
+            alt="CoopData logo"
+            className="size-11 shrink-0 rounded-lg object-contain"
+          />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:flex">
           <a href="#mission" className="transition-colors hover:text-primary">
@@ -717,12 +711,11 @@ function PublicFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 text-sm md:grid-cols-4 lg:px-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <ShieldCheck className="size-3.5 text-white" />
-            </div>
-            <span className="font-heading text-lg font-bold tracking-tight text-foreground">
-              CoopData
-            </span>
+            <img
+              src="/coopdatalogo.png"
+              alt="CoopData logo"
+              className="size-10 shrink-0 rounded-lg object-contain"
+            />
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
             A national digital service of the Ministry of Commerce & Cooperative Development.
