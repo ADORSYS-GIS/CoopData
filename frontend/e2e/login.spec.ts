@@ -17,7 +17,9 @@ test.describe("Login flow via Keycloak", () => {
 
     await page.goto("/");
 
-    await expect(page.getByRole("button", { name: /^Sign in$/ }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: /^Sign in$/ }).first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should call login when clicking Sign in button", async ({ page }) => {
@@ -26,9 +28,14 @@ test.describe("Login flow via Keycloak", () => {
 
     await page.goto("/");
 
-    await page.getByRole("button", { name: /^Sign in$/ }).first().click();
+    await page
+      .getByRole("button", { name: /^Sign in$/ })
+      .first()
+      .click();
 
-    await expect(page.evaluate(() => (window as any).__E2E_LOGIN_CALLED__)).resolves.toBe(true);
+    await expect(
+      page.evaluate(() => (window as unknown as Record<string, unknown>).__E2E_LOGIN_CALLED__),
+    ).resolves.toBe(true);
   });
 
   test("should reach dashboard when already authenticated", async ({ page }) => {

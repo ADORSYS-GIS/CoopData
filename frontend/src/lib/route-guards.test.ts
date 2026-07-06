@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import type { CustomKeycloakToken } from "@/types/auth";
 import type { UserProfile } from "@/types/auth";
 import type { Role } from "@/constants/roles";
@@ -7,7 +7,7 @@ const mockAuth = vi.hoisted(() => ({
   waitForKeycloakReady: vi.fn().mockResolvedValue(true),
   isAuthenticated: vi.fn().mockReturnValue(false),
   hasAnyRole: vi.fn().mockReturnValue(false),
-  getUserProfile: vi.fn().mockReturnValue(null) as vi.Mock<UserProfile | null>,
+  getUserProfile: vi.fn().mockReturnValue(null) as Mock<() => UserProfile | null>,
 }));
 
 vi.mock("@/services/shared/authService", () => ({

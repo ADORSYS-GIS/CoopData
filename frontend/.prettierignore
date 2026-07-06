@@ -4,3 +4,5 @@ coverage
 openapi.json
 src/routeTree.gen.ts
 src/openapi-client/api.d.ts
+playwright-report
+test-results

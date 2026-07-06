@@ -33,7 +33,9 @@ test.describe("Role-based redirect after login", () => {
     await expect(page.getByText("Redirecting to login")).toBeVisible({ timeout: 10000 });
   });
 
-  test("should redirect unauthenticated user from any /app/* route to /auth/login", async ({ page }) => {
+  test("should redirect unauthenticated user from any /app/* route to /auth/login", async ({
+    page,
+  }) => {
     await mockBackendApi(page);
 
     await page.goto("/app/federations");

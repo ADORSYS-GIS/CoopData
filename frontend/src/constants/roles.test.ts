@@ -194,9 +194,9 @@ describe("roles constants", () => {
     });
 
     it("should prioritize ministry over all other roles", () => {
-      expect(
-        mapKeycloakRolesToRole(["cooperative", "apex", "federation", "ministry"]),
-      ).toBe("ministry");
+      expect(mapKeycloakRolesToRole(["cooperative", "apex", "federation", "ministry"])).toBe(
+        "ministry",
+      );
     });
 
     it("should prioritize federation over apex and cooperative", () => {
@@ -220,15 +220,13 @@ describe("roles constants", () => {
     });
 
     it("should pick ministry even when mixed with built-in roles", () => {
-      expect(
-        mapKeycloakRolesToRole(["uma_authorization", "offline_access", "ministry"]),
-      ).toBe("ministry");
+      expect(mapKeycloakRolesToRole(["uma_authorization", "offline_access", "ministry"])).toBe(
+        "ministry",
+      );
     });
 
     it("should pick apex from regional_officer when no higher role present", () => {
-      expect(
-        mapKeycloakRolesToRole(["default-roles-coop-data", "regional_officer"]),
-      ).toBe("apex");
+      expect(mapKeycloakRolesToRole(["default-roles-coop-data", "regional_officer"])).toBe("apex");
     });
 
     it("should handle duplicate roles", () => {

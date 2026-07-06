@@ -16,8 +16,20 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import { initKeycloak, login, logout, getAccessToken, getUserProfile } from "@/services/shared/authService";
-import { KeycloakAuthProvider, useAuth, useRole, useUserRole, useCanAccess } from "@/context/AuthContext";
+import {
+  initKeycloak,
+  login,
+  logout,
+  getAccessToken,
+  getUserProfile,
+} from "@/services/shared/authService";
+import {
+  KeycloakAuthProvider,
+  useAuth,
+  useRole,
+  useUserRole,
+  useCanAccess,
+} from "@/context/AuthContext";
 
 const mockedInitKeycloak = vi.mocked(initKeycloak);
 const mockedLogin = vi.mocked(login);
@@ -63,7 +75,9 @@ describe("AuthContext", () => {
 
   describe("useAuth", () => {
     it("should throw when used outside provider", () => {
-      expect(() => renderHook(() => useAuth())).toThrow("useAuth must be used within a KeycloakAuthProvider");
+      expect(() => renderHook(() => useAuth())).toThrow(
+        "useAuth must be used within a KeycloakAuthProvider",
+      );
     });
 
     it("should provide initial loading state", () => {

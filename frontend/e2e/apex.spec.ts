@@ -39,7 +39,9 @@ test.describe("Apex user navigation", () => {
 
   test("should NOT see Federations in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /^Federations$/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /^Federations$/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Apexes in sidebar nav", async ({ page }) => {
@@ -49,22 +51,31 @@ test.describe("Apex user navigation", () => {
 
   test("should NOT see Settings in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /^Settings$/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /^Settings$/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Invitations in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Invitations/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /Invitations/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Data Collection in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Data Collection/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /Data Collection/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should navigate to cooperatives via sidebar", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await page.getByRole("link", { name: /Cooperatives/ }).first().click();
+    await page
+      .getByRole("link", { name: /Cooperatives/ })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/app\/cooperatives/);
   });
 

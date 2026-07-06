@@ -4,7 +4,7 @@ import type { CustomKeycloakToken } from "@/types/auth";
 const mockKeycloakInstance = vi.hoisted(() => ({
   authenticated: false,
   token: null as string | null,
-  tokenParsed: null as Record<string, unknown> | null,
+  tokenParsed: null as CustomKeycloakToken | null,
   refreshToken: null as string | null,
   idToken: null as string | null,
   init: vi.fn(),
@@ -21,7 +21,11 @@ vi.mock("idb-keyval", () => ({
 
 vi.mock("./keycloakConfig", () => ({
   keycloak: mockKeycloakInstance,
-  KEYCLOAK_CONFIG: { url: "http://localhost:8180", realm: "coop-data", clientId: "coopdata-frontend" },
+  KEYCLOAK_CONFIG: {
+    url: "http://localhost:8180",
+    realm: "coop-data",
+    clientId: "coopdata-frontend",
+  },
 }));
 
 import {
@@ -78,7 +82,7 @@ describe("authService", () => {
     });
 
     it("should return false when authenticated is undefined", () => {
-      mockKeycloakInstance.authenticated = undefined;
+      mockKeycloakInstance.authenticated = undefined as unknown as boolean;
       expect(isAuthenticated()).toBe(false);
     });
   });
@@ -96,9 +100,7 @@ describe("authService", () => {
     });
 
     it("should return null when no recognized role in token", () => {
-      setAuthenticated(
-        makeToken({ realm_access: { roles: ["unknown_role", "offline_access"] } }),
-      );
+      setAuthenticated(makeToken({ realm_access: { roles: ["unknown_role", "offline_access"] } }));
       expect(getUserProfile()).toBeNull();
     });
 
@@ -160,9 +162,7 @@ describe("authService", () => {
     });
 
     it("should extract initials from given_name and family_name", () => {
-      setAuthenticated(
-        makeToken({ given_name: "Alice", family_name: "Smith", name: undefined }),
-      );
+      setAuthenticated(makeToken({ given_name: "Alice", family_name: "Smith", name: undefined }));
       const profile = getUserProfile();
       expect(profile!.initials).toBe("AS");
     });
@@ -231,9 +231,7 @@ describe("authService", () => {
     });
 
     it("should include realmRoles in profile", () => {
-      setAuthenticated(
-        makeToken({ realm_access: { roles: ["ministry", "offline_access"] } }),
-      );
+      setAuthenticated(makeToken({ realm_access: { roles: ["ministry", "offline_access"] } }));
       const profile = getUserProfile();
       expect(profile!.realmRoles).toContain("ministry");
       expect(profile!.realmRoles).toContain("offline_access");
@@ -308,9 +306,7 @@ describe("authService", () => {
     });
 
     it("should return false when profile is null (no recognized role)", () => {
-      setAuthenticated(
-        makeToken({ realm_access: { roles: ["unknown_role"] } }),
-      );
+      setAuthenticated(makeToken({ realm_access: { roles: ["unknown_role"] } }));
       expect(hasAnyRole(["ministry"])).toBe(false);
     });
   });

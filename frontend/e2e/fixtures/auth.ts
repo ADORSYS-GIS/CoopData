@@ -204,7 +204,7 @@ export async function mockKeycloakAuthenticated(page: Page, role: TestRole) {
       const tokenParts = token.split(".");
       const payload = JSON.parse(atob(tokenParts[1]));
 
-      (window as any).__E2E_AUTH__ = {
+      (window as unknown as Record<string, unknown>).__E2E_AUTH__ = {
         token,
         tokenParsed: payload,
         user,

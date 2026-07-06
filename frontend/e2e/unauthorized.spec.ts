@@ -9,7 +9,9 @@ test.describe("Unauthorized route access", () => {
     await page.goto("/app/federations");
 
     await expect(page.getByText("Access Denied")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("You don't have the required permissions")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("You don't have the required permissions")).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("should show Access Denied when cooperative user visits settings", async ({ page }) => {
@@ -130,7 +132,9 @@ test.describe("Unauthorized route access", () => {
     await expect(page.getByText("Return Home")).toBeVisible({ timeout: 5000 });
   });
 
-  test("should show Sign in with different account button on unauthorized page", async ({ page }) => {
+  test("should show Sign in with different account button on unauthorized page", async ({
+    page,
+  }) => {
     await mockKeycloakAuthenticated(page, "cooperative");
     await mockBackendApi(page);
 

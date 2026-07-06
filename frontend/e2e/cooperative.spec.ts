@@ -34,7 +34,9 @@ test.describe("Cooperative user navigation", () => {
 
   test("should see Data Collection in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Data Collection/ })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /Data Collection/ })).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should see Reports in sidebar nav", async ({ page }) => {
@@ -49,7 +51,9 @@ test.describe("Cooperative user navigation", () => {
 
   test("should NOT see Federations in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /^Federations$/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /^Federations$/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Apexes in sidebar nav", async ({ page }) => {
@@ -59,22 +63,30 @@ test.describe("Cooperative user navigation", () => {
 
   test("should NOT see Cooperatives in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /^Cooperatives$/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /^Cooperatives$/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Settings in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /^Settings$/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /^Settings$/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Users & Roles in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Users & Roles/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /Users & Roles/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Invitations in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Invitations/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /Invitations/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Members in sidebar nav", async ({ page }) => {
@@ -84,7 +96,10 @@ test.describe("Cooperative user navigation", () => {
 
   test("should navigate to data collection via sidebar", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await page.getByRole("link", { name: /Data Collection/ }).first().click();
+    await page
+      .getByRole("link", { name: /Data Collection/ })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/app\/data-collection/);
   });
 

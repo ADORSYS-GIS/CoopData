@@ -14,7 +14,9 @@ test.describe("Ministry user navigation", () => {
 
   test("should see ministry dashboard title", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByText("National Cooperative Intelligence")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("National Cooperative Intelligence")).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should access federations management", async ({ page }) => {
@@ -69,23 +71,33 @@ test.describe("Ministry user navigation", () => {
 
   test("should NOT see Cooperatives in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /^Cooperatives$/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /^Cooperatives$/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Data Collection in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Data Collection/ })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: /Data Collection/ })).not.toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should navigate to federations via sidebar", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await page.getByRole("link", { name: /Federations/ }).first().click();
+    await page
+      .getByRole("link", { name: /Federations/ })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/app\/federations/);
   });
 
   test("should navigate to settings via sidebar", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await page.getByRole("link", { name: /Settings/ }).first().click();
+    await page
+      .getByRole("link", { name: /Settings/ })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/app\/settings/);
   });
 });
