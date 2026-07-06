@@ -1159,3 +1159,72 @@ After provisioning, the first `ministry` user (`360@dgrv.coop`) can:
 | `/apex/*` | `apex` | `ApexLayout` (sidebar with Cooperatives, Members, Assessments) |
 | `/cooperative/*` | `cooperative`, `apex` | `CooperativeLayout` (sidebar with Assessments, Submissions) |
 | `/onboarding` | `ministry`, `federation`, `apex`, `cooperative` | — |
+
+---
+
+## Appendix C: Testing
+
+### Unit Tests (129 tests — vitest)
+
+| File | Tests | What It Covers |
+|------|-------|----------------|
+| `roles.test.ts` | 39 | Role mapping (`mapKeycloakRolesToRole`), hierarchy, nav config, Keycloak role map |
+| `authService.test.ts` | 40 | `getUserProfile`, `hasRole`, `hasAnyRole`, `isAuthenticated`, token parsing, `initKeycloak`, `waitForKeycloakReady` |
+| `AuthContext.test.tsx` | 16 | `useAuth`, `useRole`, `useUserRole`, `useCanAccess`, context state transitions, login/logout |
+| `route-guards.test.ts` | 18 | `requireAuth`, `requireRole`, `redirectIfAuthenticated`, `ROUTE_ACCESS` map |
+| `ProtectedRoute.test.tsx` | 16 | Loading spinner, redirect to login, unauthorized page, children rendering, `RoleRedirect` for all 4 roles |
+
+### E2E Tests (99 tests — Playwright)
+
+| File | Tests | What It Covers |
+|------|-------|----------------|
+| `login.spec.ts` | 5 | Login flow, Sign in button, login call, authenticated dashboard, welcome toast |
+| `ministry.spec.ts` | 16 | Ministry user: dashboard, federations, invitations, members, settings, users, sidebar nav |
+| `federation.spec.ts` | 18 | Federation user: dashboard, apexes, users, sidebar nav, denied access |
+| `apex.spec.ts` | 16 | Apex user: dashboard, cooperatives, users, sidebar nav, denied access |
+| `cooperative.spec.ts` | 21 | Cooperative user: dashboard, data-collection, financial forms, sidebar nav, denied access |
+| `role-redirect.spec.ts` | 7 | Role-based redirect to dashboard, authenticated/unauthenticated redirect |
+| `unauthorized.spec.ts` | 20 | Access Denied for cross-role access, Return Home button, all-roles-allowed routes |
+
+### E2E Mock Auth
+
+E2E tests use a Vite plugin (`e2e-mock-auth.ts`) that replaces `keycloak-js` with a mock when `VITE_E2E_MOCK_AUTH=1`. See `docs/knowledge/frontend/e2e-mock-auth.md` for full architecture.
+
+### Keycloak Test Realm Seed
+
+**File**: `keycloak/seed-test-users.sh`
+
+Creates 4 test users in the `coop-data` realm:
+
+| User | Email | Password | Realm Role |
+|------|-------|----------|------------|
+| Ministry Officer | `ministry@test.coopdata` | `Test@Password2026!` | `ministry` |
+| Federation Officer | `federation@test.coopdata` | `Test@Password2026!` | `federation` |
+| Apex Officer | `apex@test.coopdata` | `Test@Password2026!` | `apex` |
+| Cooperative Manager | `cooperative@test.coopdata` | `Test@Password2026!` | `cooperative` |
+
+Idempotent — safe to re-run. Uses `kcadm.sh` CLI.
+
+### Running Tests
+
+```bash
+cd frontend
+
+# Unit tests
+npm run test:unit
+
+# E2E tests (starts dev server with mock auth)
+npm run test:e2e
+
+# E2E tests with visible browser
+npm run test:e2e:headed
+
+# E2E tests with Playwright UI
+npm run test:e2e:ui
+```
+
+### Test Documentation
+
+- `docs/knowledge/frontend/testing.md` — Full testing guide with patterns and config
+- `docs/knowledge/frontend/rbac-testing.md` — RBAC-specific test guide with route access matrix
+- `docs/knowledge/frontend/e2e-mock-auth.md` — E2E mock auth architecture deep-dive

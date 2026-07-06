@@ -169,15 +169,29 @@
   - [ ] Test middleware rejects requests without valid JWT
   - [ ] Test middleware rejects requests with wrong role
   - [ ] Test scope enforcement (federation can't see other federation's apexes)
-- [ ] **5.5 Frontend tests**
-  - [ ] Test ProtectedRoute redirects unauthenticated users
-  - [ ] Test ProtectedRoute redirects users with wrong role
-  - [ ] Test AuthContext provides correct user profile
-  - [ ] Test navigation filtering by role
-- [ ] **5.6 Integration tests**
-  - [ ] Test full login → dashboard → API call flow
-  - [ ] Test token refresh flow
-  - [ ] Test logout flow
+- [x] **5.5 Frontend tests**
+  - [x] Unit tests: `roles.test.ts` (39 tests) — ROLES, ROLE_NAV, ROLE_NAV_ITEMS, ROLE_DASHBOARD, ROLE_HIERARCHY, ROLE_DEFAULT_ROUTE, KEYCLOAK_ROLE_MAP, mapKeycloakRolesToRole
+  - [x] Unit tests: `authService.test.ts` — getUserProfile, hasRole, hasAnyRole, isAuthenticated, login, logout, getAccessToken, initKeycloak, waitForKeycloakReady
+  - [x] Unit tests: `AuthContext.test.tsx` (16 tests) — useAuth, useRole, useUserRole, useCanAccess, hasRole/hasAnyRole from context, login/logout, init error handling
+  - [x] Unit tests: `route-guards.test.ts` (18 tests) — requireAuth, requireRole, redirectIfAuthenticated, ROUTE_ACCESS map
+  - [x] Unit tests: `ProtectedRoute.test.tsx` (16 tests) — loading spinner, redirect to login, unauthorized page, children rendering, RoleRedirect for all 4 roles
+  - [x] Total: 129 unit tests passing (vitest + @testing-library/react + jsdom)
+- [x] **5.6 E2E tests (Playwright)**
+  - [x] `login.spec.ts` (5 tests) — login flow, Sign in button, login call verification, authenticated dashboard, welcome toast
+  - [x] `ministry.spec.ts` (16 tests) — dashboard, federations, invitations, members, settings, users, sidebar nav visibility, navigation
+  - [x] `federation.spec.ts` (18 tests) — dashboard, apexes, users, sidebar nav, denied access to federations/settings/invitations/members
+  - [x] `apex.spec.ts` (16 tests) — dashboard, cooperatives, users, sidebar nav, denied access to federations/apexes/settings
+  - [x] `cooperative.spec.ts` (21 tests) — dashboard, data-collection, financial-statement, non-financial-data, sidebar nav, denied access
+  - [x] `role-redirect.spec.ts` (7 tests) — role-based redirect to dashboard, authenticated/unauthenticated redirect
+  - [x] `unauthorized.spec.ts` (20 tests) — Access Denied for cross-role access, Return Home button, Sign in with different account, all-roles-allowed routes
+  - [x] Total: 99 E2E tests passing (Playwright + Chromium, Vite mock auth plugin)
+- [x] **5.7 Keycloak test realm seed script**
+  - [x] `keycloak/seed-test-users.sh` — creates 4 test users (ministry, federation, apex, cooperative) with roles and passwords
+- [x] **5.8 E2E mock auth infrastructure**
+  - [x] `frontend/e2e-mock-auth.ts` — Vite plugin that replaces keycloak-js with mock when `VITE_E2E_MOCK_AUTH=1`
+  - [x] Pre-authenticates mock Keycloak from `window.__E2E_AUTH__` (set by `addInitScript`)
+  - [x] Mocks `waitForKeycloakReady()` to resolve immediately (beforeLoad guard compatibility)
+  - [x] `frontend/e2e/fixtures/auth.ts` — TEST_USERS, createFakeJWT, mockKeycloak, mockKeycloakAuthenticated, mockBackendApi
 
 ---
 
@@ -273,6 +287,49 @@
 - **Frontend Types**: `src/types/auth.ts`, `src/constants/roles.ts`
 - **Frontend API**: `src/openapi-client/index.ts`, `src/openapi-client/api.d.ts`
 - **Frontend Hooks**: `src/hooks/{federations,apexes,cooperatives,organizations,users,auth}/`
+
+---
+
+## Data Subsystem Phases (see `docs/architecture.md` — the source of truth for DB + data flow)
+
+> The IAM phases (1–5) above are complete. The next work is the **data-collection + financial-statement + AI-extraction + 4-tier review** subsystem, designed in `docs/architecture.md`.
+
+### Phase 6: Database & Schema (NEXT)
+- [ ] Create `backend/src/migration/` (SeaORM-migration) files per `docs/architecture.md` §13
+- [ ] Seed `chart_of_accounts` (ADORSYS CoA 1000–6999) from `doc/COOPDATA ADORSYS.xlsx`
+- [ ] SeaORM entities for submissions, cooperatives bridge, financial_statements, balance_sheet_line_items
+- [ ] Entity, DTO, repo for all tables (bottom-up)
+
+### Phase 7: Financial Data Layer
+- [ ] DTOs + repository + handler for financial statements & line items
+- [ ] Routes under `/cooperative/financial-statements`
+
+### Phase 8: AI Extraction Pipeline
+- [ ] `object_storage.rs` (MinIO/S3 via reqwest + env config)
+- [ ] `ai_extraction.rs` + `FinancialStatementExtractor` trait + mock impl
+- [ ] Multipart upload handler → file + extraction job; poll endpoint
+- [ ] OpenAPI annotations
+
+### Phase 9: Submission & 4-Tier Review Workflow
+- [ ] `submission_workflow` service (state machine + authority matrix)
+- [ ] `submission_reviews` append; replace legacy `assessments` entity
+- [ ] Tier handlers (apex/federation/ministry approve/return/reject)
+
+### Phase 10: Non-Financial Data
+- [ ] Members / savings / loans / fixed deposits entities→routes
+- [ ] Offline sync push/pull endpoints
+
+### Phase 11: KPI Engine & Abnormality Detection
+- [ ] Port `frontend/src/lib/kpi-calculations.ts` → `kpi_engine.rs`
+- [ ] `abnormality_detector.rs` (rules in `docs/architecture.md` §9)
+- [ ] Compliance scoring + benchmark aggregation + nightly batch
+
+### Phase 12: Frontend Integration
+- [ ] Replace `lib/mock-data.ts` consumers with real hooks
+- [ ] Upload + AI-validation UI; per-tier review dashboards; offline sync queue
+
+### Phase 13: Testing & Polish
+- [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow
 
 ---
 

@@ -158,3 +158,32 @@ jobs:
       - name: Build
         working-directory: ./frontend
         run: npm run build
+
+  frontend_e2e_tests:
+    name: Frontend E2E Tests
+    needs: [frontend_install]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore cached node modules
+        uses: actions/cache/restore@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        working-directory: ./frontend
+        run: npm run test:e2e
+        env:
+          CI: "true"
