@@ -64,7 +64,7 @@ describe("useVerifyIdentity", () => {
       await result.current.verifyIdentity({ password: "pass", otp: "123456" });
     });
 
-    const callArg = mockedPost.mock.calls[0][1];
+    const callArg = (mockedPost.mock.calls[0] as unknown as [string, { body: unknown }])[1];
     expect(callArg?.body).toMatchObject({ password: "pass", otp: "123456" });
   });
 
@@ -75,7 +75,7 @@ describe("useVerifyIdentity", () => {
       await result.current.verifyIdentity({ password: "pass" });
     });
 
-    const callArg = mockedPost.mock.calls[0][1];
+    const callArg = (mockedPost.mock.calls[0] as unknown as [string, { body: unknown }])[1];
     expect(callArg?.body).toMatchObject({ password: "pass" });
     expect(callArg?.body).not.toHaveProperty("otp");
   });
