@@ -99,7 +99,12 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           setDeleting(false);
         }
       } else {
-        setVerifyError(result.message ?? "Verification failed");
+        if (result.requires_otp) {
+          setRequiresOtp(true);
+          setVerifyError(null);
+        } else {
+          setVerifyError(result.message ?? "Verification failed");
+        }
       }
     } catch (e) {
       setVerifyError(e instanceof Error ? e.message : String(e));

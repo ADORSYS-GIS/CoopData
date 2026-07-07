@@ -235,9 +235,19 @@ pub async fn update_apex(
         ));
     }
 
-    let mut attrs = HashMap::new();
+    let existing = state
+        .keycloak
+        .get_group_by_id(&id)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let mut attrs = existing.attributes.unwrap_or_default();
     if let Some(ref desc) = body.description {
-        attrs.insert("description".to_string(), vec![desc.clone()]);
+        if desc.is_empty() {
+            attrs.remove("description");
+        } else {
+            attrs.insert("description".to_string(), vec![desc.clone()]);
+        }
     }
 
     let group = state

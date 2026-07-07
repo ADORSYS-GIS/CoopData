@@ -52,6 +52,13 @@ export const useVerifyIdentity = (): UseVerifyIdentityReturn => {
         };
       }
 
+      if (body.requires_otp && !body.verification_token) {
+        return {
+          ok: false,
+          requires_otp: true,
+        };
+      }
+
       return {
         ok: true,
         verification_token: body.verification_token,

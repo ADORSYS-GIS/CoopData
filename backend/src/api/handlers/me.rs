@@ -150,13 +150,17 @@ pub async fn verify_identity(
 
     let has_otp = state.keycloak.get_user_otp_status(&claims.sub).await?;
 
-    let totp = if has_otp { body.otp.as_deref() } else { None };
-
     if has_otp && body.otp.is_none() {
-        return Err(AppError::BadRequest(
-            "OTP code is required for this account".to_string(),
+        return Ok((
+            StatusCode::OK,
+            Json(VerifyIdentityResponse {
+                verification_token: String::new(),
+                requires_otp: true,
+            }),
         ));
     }
+
+    let totp = if has_otp { body.otp.as_deref() } else { None };
 
     state
         .keycloak
