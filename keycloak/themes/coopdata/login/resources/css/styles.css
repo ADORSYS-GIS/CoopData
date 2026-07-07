@@ -714,3 +714,48 @@ body {
         color: black;
     }
 }
+
+/* ── OTP Login Page ───────────────────────────────────────────── */
+
+.otp-input {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.5rem;
+    padding: 0.875rem 1rem;
+    max-width: 16rem;
+    margin: 0 auto;
+    display: block;
+}
+
+.otp-credential-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.otp-credential-option:hover {
+    border-color: var(--primary);
+    background: var(--muted);
+}
+
+.otp-credential-option input[type="radio"] {
+    accent-color: var(--primary);
+    width: 1.125rem;
+    height: 1.125rem;
+    cursor: pointer;
+}
+
+.otp-credential-option label {
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+    flex: 1;
+}
