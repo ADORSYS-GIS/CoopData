@@ -369,10 +369,6 @@ export const ApexUsersPage: React.FC = () => {
                       {m.email ?? "—"}
                     </p>
                   </div>
-                  <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-700">
-                    <Shield className="size-3" />
-                    Apex Officer
-                  </span>
                   {m.status === "PENDING" && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                       <Clock className="size-3" />
@@ -385,6 +381,10 @@ export const ApexUsersPage: React.FC = () => {
                       Active
                     </span>
                   )}
+                  <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-700">
+                    <Shield className="size-3" />
+                    Apex Officer
+                  </span>
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     {/* Edit */}

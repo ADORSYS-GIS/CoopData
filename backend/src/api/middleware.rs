@@ -1,8 +1,5 @@
 use axum::{
-    body::Body,
-    extract::Request,
-    http::Request as HttpRequest,
-    middleware::Next,
+    body::Body, extract::Request, http::Request as HttpRequest, middleware::Next,
     response::Response,
 };
 

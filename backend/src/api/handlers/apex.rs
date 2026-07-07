@@ -11,7 +11,9 @@ use uuid::Uuid;
 
 use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
 use crate::api::dto::common::SuccessResponse;
-use crate::api::dto::member::{derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest};
+use crate::api::dto::member::{
+    derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest,
+};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
@@ -292,7 +294,15 @@ pub async fn delete_apex(
     // Audit BEFORE cascade so we have a record even if cascade partially fails
     if let Err(e) = state
         .audit
-        .log(&claims, "DELETE", "apex", Some(&id), None, audit_ctx.ip_address.as_deref(), audit_ctx.user_agent.as_deref())
+        .log(
+            &claims,
+            "DELETE",
+            "apex",
+            Some(&id),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
         .await
     {
         tracing::error!("Failed to log audit: {}", e);
@@ -466,7 +476,8 @@ pub async fn update_apex_member(
     }
 
     tracing::info!(group_id = %group_id, user_id = %user_id, "Apex member updated");
-    let status = derive_status_from_user(updated.email_verified, &updated.required_actions).to_string();
+    let status =
+        derive_status_from_user(updated.email_verified, &updated.required_actions).to_string();
     Ok((
         StatusCode::OK,
         Json(MemberResponse {

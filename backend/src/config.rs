@@ -136,5 +136,4 @@ mod tests {
         assert!(audiences.contains(&"coopdata-backend".to_string()));
         assert_eq!(audiences.len(), 3);
     }
-
-    }
+}

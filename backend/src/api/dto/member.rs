@@ -54,10 +54,7 @@ impl From<crate::models::keycloak::KeycloakMember> for MemberResponse {
     }
 }
 
-pub fn derive_status_from_user(
-    email_verified: bool,
-    required_actions: &[String],
-) -> &'static str {
+pub fn derive_status_from_user(email_verified: bool, required_actions: &[String]) -> &'static str {
     if email_verified && !required_actions.iter().any(|a| a == "VERIFY_EMAIL") {
         "ACTIVE"
     } else {
@@ -175,10 +172,7 @@ mod tests {
 
     #[test]
     fn test_derive_status_from_user_active() {
-        assert_eq!(
-            derive_status_from_user(true, &[]),
-            "ACTIVE"
-        );
+        assert_eq!(derive_status_from_user(true, &[]), "ACTIVE");
         assert_eq!(
             derive_status_from_user(true, &["UPDATE_PASSWORD".to_string()]),
             "ACTIVE"
@@ -187,10 +181,7 @@ mod tests {
 
     #[test]
     fn test_derive_status_from_user_pending() {
-        assert_eq!(
-            derive_status_from_user(false, &[]),
-            "PENDING"
-        );
+        assert_eq!(derive_status_from_user(false, &[]), "PENDING");
         assert_eq!(
             derive_status_from_user(false, &["VERIFY_EMAIL".to_string()]),
             "PENDING"

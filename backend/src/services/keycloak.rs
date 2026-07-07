@@ -10,9 +10,9 @@ use tracing::{error, info, warn};
 use crate::config::AppConfig;
 use crate::error::AppError;
 use crate::models::keycloak::{
-    KeycloakClientRole, KeycloakGroup, KeycloakGroupCreate, KeycloakInvitation,
-    KeycloakMember, KeycloakOrganization, KeycloakOrganizationCreate, KeycloakOrganizationDomain,
-    KeycloakRole, KeycloakToken, KeycloakUser,
+    KeycloakClientRole, KeycloakGroup, KeycloakGroupCreate, KeycloakInvitation, KeycloakMember,
+    KeycloakOrganization, KeycloakOrganizationCreate, KeycloakOrganizationDomain, KeycloakRole,
+    KeycloakToken, KeycloakUser,
 };
 
 #[derive(Clone)]

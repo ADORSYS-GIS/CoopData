@@ -365,7 +365,15 @@ pub async fn delete_federation(
 
     if let Err(e) = state
         .audit
-        .log(&claims, "DELETE", "federation", Some(&id), None, audit_ctx.ip_address.as_deref(), audit_ctx.user_agent.as_deref())
+        .log(
+            &claims,
+            "DELETE",
+            "federation",
+            Some(&id),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
         .await
     {
         tracing::error!("Failed to log audit: {}", e);

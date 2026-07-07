@@ -14,7 +14,9 @@ use crate::api::dto::common::SuccessResponse;
 use crate::api::dto::cooperative::{
     CooperativeResponse, CreateCooperativeRequest, UpdateCooperativeRequest,
 };
-use crate::api::dto::member::{derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest};
+use crate::api::dto::member::{
+    derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest,
+};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
@@ -614,7 +616,8 @@ pub async fn update_cooperative_member(
     }
 
     tracing::info!(group_id = %group_id, user_id = %user_id, "Cooperative member updated");
-    let status = derive_status_from_user(updated.email_verified, &updated.required_actions).to_string();
+    let status =
+        derive_status_from_user(updated.email_verified, &updated.required_actions).to_string();
     Ok((
         StatusCode::OK,
         Json(MemberResponse {
