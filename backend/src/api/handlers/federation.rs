@@ -6,14 +6,17 @@ use axum::{
 };
 use serde_json::json;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::api::dto::federation::{
     CreateFederationRequest, FederationResponse, FederationStatsResponse, UpdateFederationRequest,
 };
 use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
+use crate::entities::federation;
 use crate::error::AppResult;
 use crate::AppState;
 
@@ -30,6 +33,8 @@ use crate::AppState;
 )]
 pub async fn create_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -99,6 +104,35 @@ pub async fn create_federation(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    // Track in PostgreSQL
+    let fed_model = federation::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(org.id.clone()),
+        display_name: sea_orm::Set(display_name.clone()),
+        is_active: sea_orm::Set(true),
+        created_at: sea_orm::Set(chrono::Utc::now()),
+        updated_at: sea_orm::Set(chrono::Utc::now()),
+    };
+    if let Err(e) = state.federation_repo.create(fed_model).await {
+        tracing::warn!(error = %e, "Failed to insert federation into PG");
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "federation",
+            Some(&org.id),
+            Some(serde_json::json!({"name": &display_name, "slug": &slug})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(org_id = %org.id, name = %display_name, slug = %slug, "Federation created");
     Ok((StatusCode::CREATED, Json(FederationResponse::from(org))))
 }
@@ -161,6 +195,8 @@ pub async fn get_federation(
 )]
 pub async fn update_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -211,6 +247,22 @@ pub async fn update_federation(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "federation",
+            Some(&id),
+            Some(serde_json::json!({"name": body.name, "description": body.description})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(org_id = %id, "Federation updated");
     Ok((StatusCode::OK, Json(FederationResponse::from(org))))
 }
@@ -228,15 +280,106 @@ pub async fn update_federation(
 )]
 pub async fn delete_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    // Cascade: delete all org members from Keycloak + PG
+    if let Ok(members) = state.keycloak.get_organization_members(&id).await {
+        for member in &members {
+            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member");
+            }
+            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member from PG");
+            }
+        }
+    }
+
+    // Cascade: find all apexes with this org_id attribute
+    if let Ok(all_groups) = state.keycloak.get_groups(None).await {
+        let org_apexes: Vec<_> = all_groups
+            .iter()
+            .filter(|g| {
+                g.attributes
+                    .as_ref()
+                    .and_then(|a| a.get("organization_id"))
+                    .and_then(|v| v.first())
+                    .map(|v| v.as_str())
+                    == Some(&id)
+            })
+            .collect();
+
+        for apex in &org_apexes {
+            // Delete all apex members
+            if let Ok(apex_members) = state.keycloak.get_group_members(&apex.id).await {
+                for member in &apex_members {
+                    if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member");
+                    }
+                    if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member from PG");
+                    }
+                }
+            }
+
+            // Delete all subgroups (cooperatives) + their members
+            if let Ok(subgroups) = state.keycloak.get_group_children(&apex.id).await {
+                for sub in &subgroups {
+                    if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
+                        for member in &sub_members {
+                            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
+                            }
+                            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await
+                            {
+                                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from PG");
+                            }
+                        }
+                    }
+                    if let Err(e) = state.keycloak.delete_group(&sub.id).await {
+                        tracing::warn!(group_id = %sub.id, error = %e, "Failed to delete cooperative group from KC");
+                    }
+                }
+            }
+
+            if let Err(e) = state.keycloak.delete_group(&apex.id).await {
+                tracing::warn!(group_id = %apex.id, error = %e, "Failed to delete apex group from KC");
+            }
+        }
+    }
+
+    // Delete from Keycloak
     state
         .keycloak
         .delete_organization(&id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    tracing::info!(org_id = %id, "Federation deleted");
+    // Delete PG record
+    if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&id).await {
+        if let Err(e) = state.federation_repo.delete(fed.id).await {
+            tracing::warn!(error = %e, "Failed to delete federation PG record");
+        }
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "federation",
+            Some(&id),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(org_id = %id, "Federation cascade-deleted");
     Ok((StatusCode::NO_CONTENT, ()))
 }
 
@@ -254,6 +397,8 @@ pub async fn delete_federation(
 )]
 pub async fn invite_user_to_federation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -321,6 +466,22 @@ pub async fn invite_user_to_federation(
             }
         })?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "INVITE",
+            "federation",
+            Some(&id),
+            Some(serde_json::json!({"email": &email, "role": &role})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(org_id = %id, email = %email, role = %role, "User invited to federation");
     Ok((
         StatusCode::CREATED,
@@ -368,6 +529,8 @@ pub async fn list_federation_invitations(
 )]
 pub async fn delete_federation_invitation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     state
@@ -375,6 +538,22 @@ pub async fn delete_federation_invitation(
         .delete_organization_invitation(&id, &invitation_id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE_INVITATION",
+            "federation_invitation",
+            Some(&invitation_id),
+            Some(serde_json::json!({"federation_id": &id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -393,6 +572,8 @@ pub async fn delete_federation_invitation(
 )]
 pub async fn resend_federation_invitation(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, invitation_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     state
@@ -400,6 +581,22 @@ pub async fn resend_federation_invitation(
         .resend_organization_invitation(&id, &invitation_id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "RESEND_INVITATION",
+            "federation_invitation",
+            Some(&invitation_id),
+            Some(serde_json::json!({"federation_id": &id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((
         StatusCode::OK,
@@ -446,6 +643,8 @@ pub async fn list_federation_members(
 )]
 pub async fn remove_federation_member(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     tracing::info!(federation_id = %id, user_id = %user_id, "Removing member from federation");
@@ -454,6 +653,22 @@ pub async fn remove_federation_member(
         .keycloak
         .remove_user_from_organization(&user_id, &id)
         .await?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "member",
+            Some(&user_id),
+            Some(serde_json::json!({"federation_id": &id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((
         StatusCode::OK,
@@ -504,6 +719,7 @@ pub async fn get_federation_profile(
 pub async fn update_federation_profile(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
@@ -527,6 +743,22 @@ pub async fn update_federation_profile(
         )
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE_PROFILE",
+            "federation",
+            Some(&org_id),
+            Some(serde_json::json!({"description": body.description})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(org_id = %org_id, "Federation profile updated");
     Ok((StatusCode::OK, Json(FederationResponse::from(updated_org))))

@@ -29,6 +29,7 @@ import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
 import { Route as AppDataCollectionRouteImport } from './routes/app.data-collection'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
+import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
@@ -136,6 +137,11 @@ const AppCooperativesRoute = AppCooperativesRouteImport.update({
   path: '/cooperatives',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppApexesRoute = AppApexesRouteImport.update({
   id: '/apexes',
   path: '/apexes',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof UnauthorizedRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/data-collection': typeof AppDataCollectionRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/unauthorized': typeof UnauthorizedRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/data-collection': typeof AppDataCollectionRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/unauthorized': typeof UnauthorizedRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
+  '/app/audit': typeof AppAuditRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/data-collection': typeof AppDataCollectionRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/app/analytics'
     | '/app/apexes'
+    | '/app/audit'
     | '/app/cooperatives'
     | '/app/dashboard'
     | '/app/data-collection'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/app/analytics'
     | '/app/apexes'
+    | '/app/audit'
     | '/app/cooperatives'
     | '/app/dashboard'
     | '/app/data-collection'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/app/analytics'
     | '/app/apexes'
+    | '/app/audit'
     | '/app/cooperatives'
     | '/app/dashboard'
     | '/app/data-collection'
@@ -485,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCooperativesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/audit': {
+      id: '/app/audit'
+      path: '/audit'
+      fullPath: '/app/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/apexes': {
       id: '/app/apexes'
       path: '/apexes'
@@ -547,6 +566,7 @@ const AppUsersRouteWithChildren = AppUsersRoute._addFileChildren(
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
+  AppAuditRoute: typeof AppAuditRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataCollectionRoute: typeof AppDataCollectionRoute
@@ -569,6 +589,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
+  AppAuditRoute: AppAuditRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDataCollectionRoute: AppDataCollectionRoute,

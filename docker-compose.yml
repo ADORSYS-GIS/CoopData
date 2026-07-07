@@ -103,6 +103,16 @@ services:
       COOPDATA_MINISTRY_ADMIN_PASSWORD: ${COOPDATA_MINISTRY_ADMIN_PASSWORD:-Ministry@Admin2026!}
       COOPDATA_MINISTRY_ADMIN_FIRSTNAME: ${COOPDATA_MINISTRY_ADMIN_FIRSTNAME:-Ministry}
       COOPDATA_MINISTRY_ADMIN_LASTNAME: ${COOPDATA_MINISTRY_ADMIN_LASTNAME:-Administrator}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_FROM_DISPLAY: ${SMTP_FROM_DISPLAY:-CoopData}
+      SMTP_REPLY_TO: ${SMTP_REPLY_TO}
+      SMTP_ENVELOPE_FROM: ${SMTP_ENVELOPE_FROM}
     volumes:
       - ./keycloak/provision.sh:/opt/keycloak/data/import/provision.sh:ro
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/provision.sh"]

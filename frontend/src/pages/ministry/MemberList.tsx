@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Users, UserCheck, Search, Trash2 } from "lucide-react";
+import { Users, UserCheck, UserCog, Search, Trash2 } from "lucide-react";
 import type { components } from "@/openapi-client/api";
 
 type Member = components["schemas"]["MemberResponse"];
@@ -70,9 +70,23 @@ function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] 
       ),
     },
     {
-      accessorKey: "email",
+      accessorKey: "status",
       header: "Status",
-      cell: () => <Badge variant="default">Active</Badge>,
+      cell: ({ row }) => {
+        const status = row.original.status;
+        if (status === "ACTIVE") {
+          return (
+            <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+              Active
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+            Pending
+          </Badge>
+        );
+      },
     },
     {
       id: "actions",
@@ -99,6 +113,13 @@ function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] 
 export const MemberList: React.FC = () => {
   const { data: federations = [], isLoading: federationsLoading } = useFederations();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
+
+  // Auto-select the first federation once the list is loaded
+  useEffect(() => {
+    if (!federationsLoading && federations.length > 0 && !selectedFederationId) {
+      setSelectedFederationId(federations[0].id);
+    }
+  }, [federationsLoading, federations, selectedFederationId]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
@@ -153,7 +174,8 @@ export const MemberList: React.FC = () => {
     },
   });
 
-  const activeMembers = (members as Member[]).length;
+  const activeMembers = (members as Member[]).filter((m) => m.status === "ACTIVE").length;
+  const pendingMembers = (members as Member[]).filter((m) => m.status === "PENDING").length;
 
   return (
     <AppShell title="Member Management" subtitle="View and manage federation members">
@@ -195,9 +217,16 @@ export const MemberList: React.FC = () => {
             <StatCard
               icon={UserCheck}
               label="Active Members"
-              value={String((members as Member[]).length)}
+              value={String(activeMembers)}
               subtitle="Accepted invitation"
               tone="success"
+            />
+            <StatCard
+              icon={UserCog}
+              label="Pending Members"
+              value={String(pendingMembers)}
+              subtitle="Awaiting verification"
+              tone="warning"
             />
             <StatCard
               icon={Users}

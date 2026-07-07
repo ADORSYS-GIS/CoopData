@@ -7,15 +7,20 @@ use axum::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::api::dto::apex::ApexResponse;
 use crate::api::dto::common::SuccessResponse;
 use crate::api::dto::cooperative::{
     CooperativeResponse, CreateCooperativeRequest, UpdateCooperativeRequest,
 };
-use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
+use crate::api::dto::member::{
+    derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest,
+};
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
+use crate::entities::cooperative;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
 
@@ -93,6 +98,7 @@ async fn assert_cooperative_belongs_to_apex(
 pub async fn create_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.name.trim().is_empty() {
@@ -125,6 +131,94 @@ pub async fn create_cooperative(
         .create_subgroup(&apex_group_id, &body.name, Some(attrs))
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    // Track in PostgreSQL — look up apex PG record by KC group ID
+    let apex_pg = state
+        .apex_repo
+        .find_by_keycloak_id(&apex_group_id)
+        .await
+        .ok()
+        .flatten();
+
+    let apex_pg_id = match apex_pg {
+        Some(a) => a.id,
+        None => {
+            tracing::warn!(apex_kc_id = %apex_group_id, "Apex PG record not found, auto-backfilling");
+
+            let org_id = apex_resolved
+                .attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first())
+                .cloned()
+                .ok_or_else(|| {
+                    AppError::InternalServerError(
+                        "Apex group has no organization_id attribute".into(),
+                    )
+                })?;
+
+            let federation_pg = state
+                .federation_repo
+                .find_by_keycloak_id(&org_id)
+                .await
+                .ok()
+                .flatten()
+                .ok_or_else(|| {
+                    AppError::InternalServerError(format!(
+                        "Federation PG record not found for org_id {}",
+                        org_id
+                    ))
+                })?;
+
+            let backfill_model = crate::entities::apex::ActiveModel {
+                id: sea_orm::Set(Uuid::new_v4()),
+                keycloak_id: sea_orm::Set(apex_group_id.clone()),
+                federation_id: sea_orm::Set(federation_pg.id),
+                organization_keycloak_id: sea_orm::Set(org_id.clone()),
+                display_name: sea_orm::Set(apex_resolved.name.clone()),
+                created_at: sea_orm::Set(chrono::Utc::now()),
+                updated_at: sea_orm::Set(chrono::Utc::now()),
+            };
+
+            match state.apex_repo.create(backfill_model).await {
+                Ok(apex_row) => apex_row.id,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to backfill apex PG record");
+                    return Err(AppError::InternalServerError(
+                        "Failed to create apex tracking record".into(),
+                    ));
+                }
+            }
+        }
+    };
+
+    let coop_model = cooperative::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(group.id.clone()),
+        apex_id: sea_orm::Set(apex_pg_id),
+        display_name: sea_orm::Set(body.name.clone()),
+        created_at: sea_orm::Set(chrono::Utc::now()),
+        updated_at: sea_orm::Set(chrono::Utc::now()),
+    };
+    if let Err(e) = state.cooperative_repo.create(coop_model).await {
+        tracing::warn!("Failed to track cooperative in PG: {}", e);
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "cooperative",
+            Some(&group.id),
+            Some(serde_json::json!({"name": &body.name, "parent_id": &apex_group_id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(
         group_id = %group.id,
@@ -234,6 +328,7 @@ pub async fn get_cooperative(
 pub async fn update_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<UpdateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -261,6 +356,22 @@ pub async fn update_cooperative(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "cooperative",
+            Some(&id),
+            Some(serde_json::json!({"name": body.name, "description": body.description})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(group_id = %id, "Cooperative updated");
     Ok((StatusCode::OK, Json(CooperativeResponse::from(group))))
 }
@@ -279,10 +390,40 @@ pub async fn update_cooperative(
 pub async fn delete_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
     assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+
+    // Audit BEFORE cascade so we have a record even if cascade partially fails
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "cooperative",
+            Some(&id),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    // Cascade: delete all cooperative members from Keycloak + PG
+    if let Ok(members) = state.keycloak.get_group_members(&id).await {
+        for member in &members {
+            if let Err(e) = state.keycloak.delete_user(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
+            }
+            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
+                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from PG");
+            }
+        }
+    }
 
     state
         .keycloak
@@ -290,7 +431,14 @@ pub async fn delete_cooperative(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-    tracing::info!(group_id = %id, "Cooperative deleted");
+    // Delete PG record
+    if let Ok(Some(c)) = state.cooperative_repo.find_by_keycloak_id(&id).await {
+        if let Err(e) = state.cooperative_repo.delete(c.id).await {
+            tracing::warn!(error = %e, "Failed to delete cooperative PG record");
+        }
+    }
+
+    tracing::info!(group_id = %id, "Cooperative cascade-deleted");
     Ok((StatusCode::NO_CONTENT, ()))
 }
 
@@ -356,6 +504,7 @@ pub async fn add_cooperative_member(
         "Member added to cooperative"
     );
 
+    let status = derive_status_from_user(user.email_verified, &user.required_actions).to_string();
     Ok((
         StatusCode::CREATED,
         Json(MemberResponse {
@@ -364,6 +513,7 @@ pub async fn add_cooperative_member(
             email: user.email,
             first_name: Some(first_name).filter(|s| !s.is_empty()),
             last_name: Some(last_name).filter(|s| !s.is_empty()),
+            status,
         }),
     ))
 }
@@ -420,6 +570,7 @@ pub async fn list_cooperative_members(
 pub async fn update_cooperative_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -448,7 +599,25 @@ pub async fn update_cooperative_member(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE_MEMBER",
+            "cooperative_member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id, "first_name": body.first_name, "last_name": body.last_name})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     tracing::info!(group_id = %group_id, user_id = %user_id, "Cooperative member updated");
+    let status =
+        derive_status_from_user(updated.email_verified, &updated.required_actions).to_string();
     Ok((
         StatusCode::OK,
         Json(MemberResponse {
@@ -457,6 +626,7 @@ pub async fn update_cooperative_member(
             email: updated.email,
             first_name: updated.first_name,
             last_name: updated.last_name,
+            status,
         }),
     ))
 }
@@ -477,6 +647,7 @@ pub async fn update_cooperative_member(
 pub async fn remove_cooperative_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
@@ -487,6 +658,22 @@ pub async fn remove_cooperative_member(
         .remove_user_from_group(&user_id, &group_id)
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(
         user_id = %user_id,
@@ -512,6 +699,7 @@ pub async fn remove_cooperative_member(
 pub async fn resend_cooperative_member_verification(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
@@ -530,6 +718,22 @@ pub async fn resend_cooperative_member_verification(
             );
             AppError::ExternalServiceError(e.to_string())
         })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "RESEND_VERIFICATION",
+            "cooperative_member",
+            Some(&user_id),
+            Some(serde_json::json!({"group_id": &group_id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     tracing::info!(
         group_id = %group_id,

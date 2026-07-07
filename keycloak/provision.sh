@@ -181,6 +181,29 @@ echo "[provision] Setting login theme..."
   --server "${KEYCLOAK_SERVER}" \
   -s "loginTheme=coopdata" 2>&1 || echo "[provision] Note: Could not set theme"
 
+# ─── SMTP (email delivery for invitations, verification, password reset) ─────
+# Configured from environment so secrets never live in the committed realm JSON.
+# Defaults to Gmail via an app password. Override in .env for other providers.
+SMTP_HOST="${SMTP_HOST:-smtp.gmail.com}"
+SMTP_PORT="${SMTP_PORT:-587}"
+SMTP_STARTTLS="${SMTP_STARTTLS:-true}"
+SMTP_AUTH="${SMTP_AUTH:-true}"
+SMTP_USER="${SMTP_USER:-}"
+SMTP_PASSWORD="${SMTP_PASSWORD:-}"
+SMTP_FROM="${SMTP_FROM:-${SMTP_USER}}"
+SMTP_FROM_DISPLAY="${SMTP_FROM_DISPLAY:-CoopData}"
+SMTP_REPLY_TO="${SMTP_REPLY_TO:-${SMTP_USER}}"
+SMTP_ENVELOPE_FROM="${SMTP_ENVELOPE_FROM:-${SMTP_USER}}"
+
+echo "[provision] Configuring realm SMTP (${SMTP_HOST}:${SMTP_PORT})..."
+SMTP_JSON="{\"starttls\":\"${SMTP_STARTTLS}\",\"auth\":\"${SMTP_AUTH}\",\"host\":\"${SMTP_HOST}\",\"port\":\"${SMTP_PORT}\",\"user\":\"${SMTP_USER}\",\"password\":\"${SMTP_PASSWORD}\",\"from\":\"${SMTP_FROM}\",\"fromDisplayName\":\"${SMTP_FROM_DISPLAY}\",\"replyTo\":\"${SMTP_REPLY_TO}\",\"envelopeFrom\":\"${SMTP_ENVELOPE_FROM}\"}"
+./kcadm.sh update "realms/${REALM}" \
+  --server "${KEYCLOAK_SERVER}" \
+  -s "smtpServer=${SMTP_JSON}" 2>&1 || echo "[provision] Note: Could not set SMTP"
+
+# SMTP delivery is verified implicitly: creating a user triggers a verification
+# email, and the backend now rolls back + returns a failure if that email fails.
+
 # ─── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "[provision] ========================================"

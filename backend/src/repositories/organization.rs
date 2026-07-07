@@ -6,6 +6,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct OrganizationRepository {
     db: DatabaseConnection,
 }

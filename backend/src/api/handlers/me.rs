@@ -3,6 +3,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::api::dto::member::{ChangePasswordRequest, ChangePasswordResponse, UserProfileResponse};
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::error::AppResult;
 use crate::AppState;
@@ -49,6 +50,7 @@ pub async fn get_current_user_profile(
 pub async fn change_password(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<ChangePasswordRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.new_password.len() < 8 {
@@ -88,6 +90,22 @@ pub async fn change_password(
         })?;
 
     tracing::info!(user_id = %claims.sub, "Password changed successfully");
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CHANGE_PASSWORD",
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok((
         StatusCode::OK,

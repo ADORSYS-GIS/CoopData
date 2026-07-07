@@ -11,6 +11,7 @@
 use axum::routing::{delete, get, post};
 use axum::Router;
 
+use crate::api::handlers::audit::list_audit_logs;
 use crate::api::handlers::federation::{
     create_federation, delete_federation, delete_federation_invitation, get_federation,
     invite_user_to_federation, list_federation_invitations, list_federation_members,
@@ -74,4 +75,6 @@ pub fn ministry_routes() -> Router<AppState> {
             get(get_user).patch(update_user).delete(delete_user),
         )
         .route("/users/{id}/assign-role", post(assign_role_to_user))
+        // Audit logs
+        .route("/audit-logs", get(list_audit_logs))
 }

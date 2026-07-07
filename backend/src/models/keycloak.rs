@@ -137,6 +137,34 @@ pub struct KeycloakMember {
     pub first_name: Option<String>,
     #[serde(rename = "lastName")]
     pub last_name: Option<String>,
+    #[serde(rename = "emailVerified", default)]
+    pub email_verified: bool,
+    #[serde(rename = "requiredActions", default)]
+    pub required_actions: Vec<String>,
+    #[serde(default)]
+    pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
+}
+
+impl KeycloakMember {
+    pub fn get_attribute(&self, key: &str) -> Option<&str> {
+        self.attributes
+            .as_ref()
+            .and_then(|attrs| attrs.get(key))
+            .and_then(|vals| vals.first())
+            .map(|s| s.as_str())
+    }
+
+    pub fn has_required_action(&self, action: &str) -> bool {
+        self.required_actions.iter().any(|a| a == action)
+    }
+
+    pub fn derive_status(&self) -> &'static str {
+        if self.email_verified && !self.has_required_action("VERIFY_EMAIL") {
+            "ACTIVE"
+        } else {
+            "PENDING"
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -373,7 +401,10 @@ mod tests {
             "username": "testmember",
             "email": "member@example.com",
             "firstName": "Test",
-            "lastName": "Member"
+            "lastName": "Member",
+            "emailVerified": true,
+            "requiredActions": [],
+            "attributes": {}
         }"#;
         let member: KeycloakMember = serde_json::from_str(json).unwrap();
         assert_eq!(member.id, "member-1");
@@ -381,6 +412,39 @@ mod tests {
         assert_eq!(member.email, Some("member@example.com".to_string()));
         assert_eq!(member.first_name, Some("Test".to_string()));
         assert_eq!(member.last_name, Some("Member".to_string()));
+        assert!(member.email_verified);
+        assert!(member.required_actions.is_empty());
+        assert_eq!(member.derive_status(), "ACTIVE");
+    }
+
+    #[test]
+    fn test_keycloak_member_pending_status() {
+        let json = r#"{
+            "id": "member-2",
+            "username": "pending",
+            "email": "pending@example.com",
+            "firstName": "Pen",
+            "lastName": "Ding",
+            "emailVerified": false,
+            "requiredActions": ["VERIFY_EMAIL", "UPDATE_PASSWORD"]
+        }"#;
+        let member: KeycloakMember = serde_json::from_str(json).unwrap();
+        assert!(!member.email_verified);
+        assert!(member.has_required_action("VERIFY_EMAIL"));
+        assert_eq!(member.derive_status(), "PENDING");
+    }
+
+    #[test]
+    fn test_keycloak_member_no_attributes() {
+        let json = r#"{
+            "id": "member-4",
+            "email": "noattr@example.com",
+            "emailVerified": true,
+            "requiredActions": []
+        }"#;
+        let member: KeycloakMember = serde_json::from_str(json).unwrap();
+        assert!(member.attributes.is_none());
+        assert_eq!(member.derive_status(), "ACTIVE");
     }
 
     #[test]

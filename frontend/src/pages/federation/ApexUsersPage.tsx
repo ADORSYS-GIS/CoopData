@@ -12,6 +12,7 @@ import {
   Shield,
   AlertCircle,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
@@ -368,6 +369,18 @@ export const ApexUsersPage: React.FC = () => {
                       {m.email ?? "—"}
                     </p>
                   </div>
+                  {m.status === "PENDING" && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                      <Clock className="size-3" />
+                      Pending
+                    </span>
+                  )}
+                  {m.status === "ACTIVE" && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <CheckCircle2 className="size-3" />
+                      Active
+                    </span>
+                  )}
                   <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-700">
                     <Shield className="size-3" />
                     Apex Officer

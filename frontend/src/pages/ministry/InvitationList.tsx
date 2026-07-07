@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -266,6 +266,13 @@ export const InvitationList: React.FC = () => {
 
   // Load real federations from API
   const { data: federations = [], isLoading: federationsLoading } = useFederations();
+
+  // Auto-select the first federation once the list is loaded
+  useEffect(() => {
+    if (!federationsLoading && federations.length > 0 && !selectedFederationId) {
+      setSelectedFederationId((federations as Federation[])[0].id);
+    }
+  }, [federationsLoading, federations, selectedFederationId]);
 
   const {
     data: invitations = [],

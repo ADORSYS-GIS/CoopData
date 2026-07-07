@@ -1,0 +1,61 @@
+# docker-compose.override.yml — Development hot-reload overrides.
+# Automatically merged with docker-compose.yml when running `docker compose up`.
+# Set COOPDATA_DEV=false (or remove this file) to use production builds instead.
+
+services:
+  backend:
+    # Replace compiled-release binary with cargo-watch for live recompile.
+    build:
+      dockerfile: backend/Dockerfile.dev
+    container_name: coopdata-backend-dev
+    command: ["cargo", "watch", "-x", "run --bin coop-data-backend"]
+    environment:
+      CARGO_WATCH_BIN: cargo-watch
+      RUST_LOG: info,coop_data_backend=debug
+      RUST_BACKTRACE: "1"
+    volumes:
+      # Live source mount — file changes on host instantly trigger recompile.
+      - ./backend/src:/app/src
+      - ./backend/Cargo.toml:/app/Cargo.toml
+      - ./backend/Cargo.lock:/app/Cargo.lock
+      - ./backend/migrations:/app/migrations
+      # Persist compiled dependencies across restarts (huge speed-up).
+      - backend_cargo_registry:/usr/local/cargo/registry
+      - backend_cargo_git:/usr/local/cargo/git
+      - backend_target:/app/target
+    ports:
+      - "3000:3000"
+
+  frontend:
+    # Replace nginx-served build with Vite dev server (HMR).
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: coopdata-frontend-dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:3000
+      VITE_KEYCLOAK_URL: http://localhost:8180
+      VITE_KEYCLOAK_REALM: coop-data
+      VITE_KEYCLOAK_CLIENT_ID: coopdata-frontend
+      # Vite proxy target — the backend container name in Docker network.
+      VITE_PROXY_TARGET: http://backend:3000
+    volumes:
+      # Live source mount — file changes on host instantly trigger HMR.
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/e2e-mock-auth.ts:/app/e2e-mock-auth.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+      - ./frontend/openapi.json:/app/openapi.json
+      - ./frontend/components.json:/app/components.json
+      # node_modules stays in the container (faster, avoids host/arch mismatch).
+    ports:
+      - "5173:5173"
+
+volumes:
+  backend_cargo_registry:
+  backend_cargo_git:
+  backend_target:

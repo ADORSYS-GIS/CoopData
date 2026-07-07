@@ -8,6 +8,7 @@ const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
 
 let keycloakInitialized = false;
+let keycloakInitPromise: Promise<boolean> | null = null;
 let keycloakReadyResolvers: ((value: boolean) => void)[] = [];
 
 function resolveKeycloakReady() {
@@ -46,6 +47,22 @@ export async function initKeycloak(): Promise<boolean> {
     return keycloak.authenticated ?? false;
   }
 
+  // Dedupe concurrent calls (e.g. React 18 StrictMode double-mount in dev):
+  // the second caller must await the same in-flight keycloak.init() promise.
+  if (keycloakInitPromise) {
+    console.log("[auth] Init already in progress, awaiting existing promise");
+    return keycloakInitPromise;
+  }
+
+  keycloakInitPromise = doInitKeycloak();
+  try {
+    return await keycloakInitPromise;
+  } finally {
+    keycloakInitPromise = null;
+  }
+}
+
+async function doInitKeycloak(): Promise<boolean> {
   console.log("[auth] Initializing Keycloak...");
   const cachedTokens = await loadCachedTokens();
   console.log("[auth] Cached tokens:", cachedTokens ? "found" : "none");
@@ -88,6 +105,21 @@ export async function initKeycloak(): Promise<boolean> {
   } catch (error) {
     console.error("[auth] Keycloak init failed:", error);
     resolveKeycloakReady();
+
+    // The Keycloak JS SDK throws "A 'Keycloak' instance can only be initialized
+    // once." even though internally it has already initialised (and processed
+    // the redirect-back code/fragment). Treat that case as already-initialized
+    // rather than a fatal failure that triggers a login loop.
+    const alreadyInited =
+      error instanceof Error &&
+      /can only be initialized once/i.test(error.message) &&
+      keycloak.authenticated === true;
+
+    if (alreadyInited) {
+      console.log("[auth] Recovering from double-init — authenticated via existing instance");
+      await persistTokens();
+      return true;
+    }
 
     if (cachedTokens?.token) {
       console.log("[auth] Falling back to cached token");

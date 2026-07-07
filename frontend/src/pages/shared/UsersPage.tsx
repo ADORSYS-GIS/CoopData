@@ -1,4 +1,4 @@
-import { Users, Network, Building2, Loader2, AlertCircle, Shield, ArrowRight } from "lucide-react";
+import { Users, Network, Building2, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { AppShell, StatCard } from "@/components/app-shell";
 import { useApexes } from "@/hooks/apexes/useApexes";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
@@ -22,6 +22,9 @@ function ApexList() {
   if (error) return <ErrorBlock message={String(error)} label="Failed to load apexes" />;
 
   const list = apexes ?? [];
+  const totalCoops = list.reduce((s, a) => s + (a.sub_groups?.length ?? 0), 0);
+  const apexesWithCoops = list.filter((a) => (a.sub_groups?.length ?? 0) > 0).length;
+  const avgPerApex = list.length > 0 ? Math.round((totalCoops / list.length) * 10) / 10 : 0;
 
   return (
     <>
@@ -36,15 +39,15 @@ function ApexList() {
         <StatCard
           icon={Building2}
           label="Cooperatives"
-          value={String(list.reduce((s, a) => s + (a.sub_groups?.length ?? 0), 0))}
+          value={String(totalCoops)}
           subtitle="Across all apexes"
           tone="accent"
         />
         <StatCard
-          icon={Shield}
-          label="Your Role"
-          value="Federation"
-          subtitle="Access level"
+          icon={Users}
+          label="Avg Co-op / Apex"
+          value={String(avgPerApex)}
+          subtitle={`${apexesWithCoops} apexes have cooperatives`}
           tone="info"
         />
       </div>
@@ -109,7 +112,7 @@ function CooperativeList() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 mb-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         <StatCard
           icon={Building2}
           label="Cooperatives"
@@ -118,11 +121,11 @@ function CooperativeList() {
           tone="primary"
         />
         <StatCard
-          icon={Shield}
-          label="Your Role"
-          value="Apex"
-          subtitle="Access level"
-          tone="info"
+          icon={Network}
+          label="Named Co-ops"
+          value={String(coops.filter((c) => (c.name ?? "").trim().length > 0).length)}
+          subtitle="Ready for members"
+          tone="accent"
         />
       </div>
 

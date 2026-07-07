@@ -1,0 +1,22 @@
+FROM rust:1.88-bookworm
+
+WORKDIR /app
+
+# curl is needed by the backend healthcheck (docker-compose.yml).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install cargo-watch for live recompilation on file changes.
+RUN cargo install cargo-watch --locked
+
+# Pre-build dependencies so incremental compiles inside the container are fast.
+# The real source is bind-mounted at runtime, so we use a throwaway main.rs here.
+COPY backend/Cargo.toml backend/Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs && \
+    cargo build && \
+    rm -rf src target/debug/coop-data-backend target/debug/.fingerprint/coop-data-backend-*
+
+EXPOSE 3000
+
+CMD ["cargo", "watch", "-x", "run"]

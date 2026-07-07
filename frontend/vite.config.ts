@@ -14,9 +14,10 @@ export default defineConfig({
     e2eMockAuth(),
   ],
   server: {
+    host: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: process.env.VITE_PROXY_TARGET || "http://localhost:3000",
         changeOrigin: true,
         secure: false,
       },
