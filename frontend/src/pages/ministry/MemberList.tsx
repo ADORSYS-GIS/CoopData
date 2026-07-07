@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -113,6 +113,13 @@ function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] 
 export const MemberList: React.FC = () => {
   const { data: federations = [], isLoading: federationsLoading } = useFederations();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
+
+  // Auto-select the first federation once the list is loaded
+  useEffect(() => {
+    if (!federationsLoading && federations.length > 0 && !selectedFederationId) {
+      setSelectedFederationId(federations[0].id);
+    }
+  }, [federationsLoading, federations, selectedFederationId]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
