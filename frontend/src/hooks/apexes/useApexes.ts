@@ -90,12 +90,16 @@ export const useUpdateApex = () => {
   });
 };
 
+/** Delete an apex (requires verification token) */
 export const useDeleteApex = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       const { error } = await apiClient.DELETE("/api/v1/federation/apexes/{id}", {
-        params: { path: { id } },
+        params: {
+          path: { id },
+          header: { "x-verification-token": verificationToken } as never,
+        },
       });
       if (error) throw new Error(extractErrorMessage(error));
     },
@@ -104,6 +108,20 @@ export const useDeleteApex = () => {
     },
   });
 };
+
+/** Get cascade delete preview for an apex */
+export const useApexDeletePreview = (id: string) =>
+  useQuery({
+    queryKey: [APEXES_KEY, id, "delete-preview"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/federation/apexes/{id}/delete-preview", {
+        params: { path: { id } },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data;
+    },
+    enabled: !!id,
+  });
 
 // ─── Apex Members ─────────────────────────────────────────────────────────────
 

@@ -41,6 +41,9 @@ pub enum AppError {
     #[error("External service error: {0}")]
     ExternalServiceError(String),
 
+    #[error("Precondition required: {0}")]
+    PreconditionRequired(String),
+
     #[error("Forbidden: missing required role(s): {required_roles:?}")]
     MissingRole {
         message: String,
@@ -165,6 +168,14 @@ impl IntoResponse for AppError {
                     },
                 )
             }
+            AppError::PreconditionRequired(msg) => (
+                StatusCode::PRECONDITION_REQUIRED,
+                ErrorResponse {
+                    error: "precondition_required".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                },
+            ),
         };
 
         (status, Json(json!(error_response))).into_response()
@@ -292,6 +303,13 @@ mod tests {
             Ok(s) => assert_eq!(s, "success"),
             Err(e) => panic!("expected ok, got {e:?}"),
         }
+    }
+
+    #[test]
+    fn test_precondition_required_into_response() {
+        let error = AppError::PreconditionRequired("verification token required".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::PRECONDITION_REQUIRED);
     }
 
     #[test]

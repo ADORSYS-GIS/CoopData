@@ -1,7 +1,7 @@
 use axum::extract::Extension;
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -14,11 +14,13 @@ use crate::api::dto::common::SuccessResponse;
 use crate::api::dto::member::{
     derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest,
 };
+use crate::api::dto::verification::DeletePreviewResponse;
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::apex;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
+use crate::services::VerificationTokenService;
 use crate::AppState;
 
 #[utoipa::path(
@@ -269,13 +271,61 @@ pub async fn update_apex(
 }
 
 #[utoipa::path(
+    get,
+    path = "/api/v1/federation/apexes/{id}/delete-preview",
+    params(("id" = String, Path, description = "Apex (Group) ID")),
+    responses(
+        (status = 200, description = "Cascade delete preview", body = DeletePreviewResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse)
+    ),
+    tag = "Federation"
+)]
+pub async fn delete_apex_preview(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<String>,
+) -> AppResult<impl IntoResponse> {
+    if !claims.is_federation() {
+        return Err(AppError::Forbidden(
+            "Access denied. Federation role required".into(),
+        ));
+    }
+
+    let mut coop_count = 0u64;
+    let mut member_count = 0u64;
+
+    if let Ok(members) = state.keycloak.get_group_members(&id).await {
+        member_count += members.len() as u64;
+    }
+
+    if let Ok(subgroups) = state.keycloak.get_group_children(&id).await {
+        coop_count = subgroups.len() as u64;
+        for sub in &subgroups {
+            if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
+                member_count += sub_members.len() as u64;
+            }
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(DeletePreviewResponse {
+            apexes: 0,
+            cooperatives: coop_count,
+            members: member_count,
+        }),
+    ))
+}
+
+#[utoipa::path(
     delete,
     path = "/api/v1/federation/apexes/{id}",
     params(("id" = String, Path, description = "Apex (Group) ID")),
     responses(
         (status = 204, description = "Apex deleted"),
         (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 404, description = "Apex not found", body = ErrorResponse)
+        (status = 404, description = "Apex not found", body = ErrorResponse),
+        (status = 428, description = "Identity verification required", body = ErrorResponse)
     ),
     tag = "Federation"
 )]
@@ -283,6 +333,7 @@ pub async fn delete_apex(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.is_federation() {
@@ -290,6 +341,17 @@ pub async fn delete_apex(
             "Access denied. Federation role required".into(),
         ));
     }
+
+    let token = headers
+        .get("x-verification-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| {
+            AppError::PreconditionRequired(
+            "Identity verification is required for destructive actions. Please verify your identity and try again.".to_string(),
+        )
+        })?;
+
+    VerificationTokenService::validate_and_consume(&state.cache, &claims.sub, token).await?;
 
     // Audit BEFORE cascade so we have a record even if cascade partially fails
     if let Err(e) = state

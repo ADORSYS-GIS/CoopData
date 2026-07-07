@@ -37,6 +37,7 @@ import {
   useCreateFederation,
   useUpdateFederation,
   useDeleteFederation,
+  useFederationDeletePreview,
 } from "@/hooks/federations/useFederations";
 import type { components } from "@/openapi-client/api";
 
@@ -53,16 +54,8 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import {
   Form,
   FormControl,
@@ -325,6 +318,7 @@ export const FederationsPage: React.FC = () => {
   const createMutation = useCreateFederation();
   const updateMutation = useUpdateFederation();
   const deleteMutation = useDeleteFederation();
+  const { verifyIdentity } = useVerifyIdentity();
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -333,6 +327,10 @@ export const FederationsPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingFed, setEditingFed] = useState<Federation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const { data: previewData, isLoading: previewLoading } = useFederationDeletePreview(
+    deleteTarget?.id ?? "",
+  );
 
   const federationsList = (federations as Federation[]) ?? [];
 
@@ -400,19 +398,30 @@ export const FederationsPage: React.FC = () => {
     );
   };
 
-  const handleDeleteConfirm = () => {
+  const handleVerifyIdentity = async (password: string, otp?: string) => {
+    return verifyIdentity({ password, otp });
+  };
+
+  const handleConfirmDelete = async (verificationToken: string) => {
     if (!deleteTarget) return;
-    deleteMutation.mutate(deleteTarget.id, {
-      onSuccess: () => {
-        toast.success(`Deleted "${deleteTarget.name}"`, {
-          description: "Federation removed from registry.",
-        });
-        setDeleteTarget(null);
-        refetch();
-      },
-      onError: (err) => {
-        toast.error("Failed to delete federation", { description: String(err) });
-      },
+    return new Promise<void>((resolve, reject) => {
+      deleteMutation.mutate(
+        { id: deleteTarget.id, verificationToken },
+        {
+          onSuccess: () => {
+            toast.success(`Deleted "${deleteTarget.name}"`, {
+              description: "Federation removed from registry.",
+            });
+            setDeleteTarget(null);
+            refetch();
+            resolve();
+          },
+          onError: (err) => {
+            toast.error("Failed to delete federation", { description: String(err) });
+            reject(err);
+          },
+        },
+      );
     });
   };
 
@@ -616,26 +625,20 @@ export const FederationsPage: React.FC = () => {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the federation "{deleteTarget?.name}". This action cannot
-              be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        entityName={deleteTarget?.name ?? ""}
+        entityType="federation"
+        entityId={deleteTarget?.id ?? ""}
+        previewData={
+          previewData as unknown as
+            { apexes: number; cooperatives: number; members: number } | undefined
+        }
+        previewLoading={previewLoading}
+        onVerifyIdentity={handleVerifyIdentity}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </AppShell>
   );
 };

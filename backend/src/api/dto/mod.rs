@@ -7,6 +7,7 @@ pub mod invitation;
 pub mod member;
 pub mod organization;
 pub mod user;
+pub mod verification;
 
 pub use apex::*;
 pub use audit::*;
@@ -17,3 +18,4 @@ pub use invitation::*;
 pub use member::*;
 pub use organization::*;
 pub use user::*;
+pub use verification::*;

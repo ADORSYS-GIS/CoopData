@@ -3,9 +3,11 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::api::dto::member::{ChangePasswordRequest, ChangePasswordResponse, UserProfileResponse};
+use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
+use crate::services::VerificationTokenService;
 use crate::AppState;
 
 #[utoipa::path(
@@ -77,7 +79,7 @@ pub async fn change_password(
 
     state
         .keycloak
-        .verify_user_password(username, &body.current_password)
+        .verify_user_password(username, &body.current_password, None)
         .await?;
 
     state
@@ -115,6 +117,62 @@ pub async fn change_password(
             } else {
                 "Password changed successfully.".to_string()
             },
+        }),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/me/verify-identity",
+    request_body = VerifyIdentityRequest,
+    responses(
+        (status = 200, description = "Identity verified successfully", body = VerifyIdentityResponse),
+        (status = 400, description = "Invalid input", body = ErrorResponse),
+        (status = 401, description = "Invalid credentials", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn verify_identity(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Json(body): Json<VerifyIdentityRequest>,
+) -> AppResult<impl IntoResponse> {
+    if body.password.is_empty() {
+        return Err(AppError::BadRequest("Password is required".to_string()));
+    }
+
+    let username = claims
+        .username()
+        .or(claims.email.as_deref())
+        .ok_or_else(|| {
+            AppError::BadRequest("Unable to verify identity for this account".to_string())
+        })?;
+
+    let has_otp = state.keycloak.get_user_otp_status(&claims.sub).await?;
+
+    let totp = if has_otp { body.otp.as_deref() } else { None };
+
+    if has_otp && body.otp.is_none() {
+        return Err(AppError::BadRequest(
+            "OTP code is required for this account".to_string(),
+        ));
+    }
+
+    state
+        .keycloak
+        .verify_user_password(username, &body.password, totp)
+        .await?;
+
+    let token = VerificationTokenService::generate();
+    VerificationTokenService::store(&state.cache, &claims.sub, &token).await?;
+
+    tracing::info!(user_id = %claims.sub, requires_otp = has_otp, "Identity verified");
+
+    Ok((
+        StatusCode::OK,
+        Json(VerifyIdentityResponse {
+            verification_token: token,
+            requires_otp: has_otp,
         }),
     ))
 }
