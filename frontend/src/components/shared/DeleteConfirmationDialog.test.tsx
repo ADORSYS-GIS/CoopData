@@ -10,6 +10,8 @@ vi.mock("lucide-react", () => ({
   Shield: () => <span data-testid="shield" />,
   Fingerprint: () => <span data-testid="fingerprint" />,
   Loader2: () => <span data-testid="loader" />,
+  Eye: () => <span data-testid="eye" />,
+  EyeOff: () => <span data-testid="eye-off" />,
 }));
 
 vi.mock("@/components/ui/dialog", () => ({

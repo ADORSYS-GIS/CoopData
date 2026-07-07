@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Shield, Fingerprint } from "lucide-react";
+import { Loader2, AlertTriangle, Shield, Fingerprint, Eye, EyeOff } from "lucide-react";
 
 export interface DeletePreviewData {
   apexes: number;
@@ -59,6 +59,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -70,6 +71,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
       setRequiresOtp(false);
       setVerifyError(null);
       setDeleteError(null);
+      setShowPassword(false);
     }
   }, [open]);
 
@@ -220,13 +222,28 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                   <label className="block text-xs font-semibold text-muted-foreground">
                     Password
                   </label>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoFocus
-                    placeholder="Your account password"
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoFocus
+                      placeholder="Your account password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {requiresOtp && (
