@@ -325,6 +325,7 @@ erDiagram
 ---
 
 
+
 ## 2. Logical Grouping of Tables
 
 ### 2.1 Reference / Seed (immutable, system-managed)
