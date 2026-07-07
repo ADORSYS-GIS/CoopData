@@ -78,9 +78,7 @@ const defaultPreview: DeletePreviewData = {
 function makeOnVerifyIdentity(
   response: MockResponse = { ok: true, verification_token: "tok", requires_otp: false },
 ) {
-  return vi.fn().mockResolvedValue(response) as unknown as ReturnType<
-    typeof vi.fn
-  >;
+  return vi.fn().mockResolvedValue(response) as unknown as ReturnType<typeof vi.fn>;
 }
 
 function renderDialog(
