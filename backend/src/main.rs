@@ -3,7 +3,9 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
     api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
-    services::cache::CacheService, services::keycloak::KeycloakService, AppState,
+    services::cache::CacheService, services::keycloak::KeycloakService, ApexRepository, AppState,
+    AuditLogRepository, AuditService, CooperativeRepository, FederationRepository,
+    OrganizationRepository, UserRepository,
 };
 
 #[tokio::main]
@@ -33,6 +35,15 @@ async fn main() -> anyhow::Result<()> {
     let jwt_validator = init_jwt_validator_with_retry(&config).await?;
     tracing::info!("JWT validator initialized (issuer: {})", config.jwt_issuer);
 
+    let federation_repo = FederationRepository::new(db.clone());
+    let apex_repo = ApexRepository::new(db.clone());
+    let cooperative_repo = CooperativeRepository::new(db.clone());
+    let organization_repo = OrganizationRepository::new(db.clone());
+    let user_repo = UserRepository::new(db.clone());
+    let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
+
+    tracing::info!("Repositories and services initialized");
+
     let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
     tracing::info!("Server listening on {}", addr);
     tracing::info!("Swagger UI available at http://{}/swagger-ui/", addr);
@@ -43,11 +54,22 @@ async fn main() -> anyhow::Result<()> {
         cache,
         keycloak,
         jwt_validator,
+        federation_repo,
+        apex_repo,
+        cooperative_repo,
+        organization_repo,
+        user_repo,
+        audit,
     };
+
     let app = create_app(state);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }

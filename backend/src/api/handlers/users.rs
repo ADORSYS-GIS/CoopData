@@ -11,6 +11,7 @@ use crate::api::dto::{
     AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginatedUserResponse,
     PaginationParams, UpdateUserRequest, UserResponse,
 };
+use crate::api::middleware::AuditContext;
 
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
@@ -108,6 +109,7 @@ pub async fn get_user(
 pub async fn create_user(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.email.trim().is_empty() {
@@ -181,6 +183,9 @@ pub async fn create_user(
         region: Set(body.region.clone()),
         is_active: Set(true),
         last_login_at: Set(None),
+        federation_id: Set(None),
+        apex_id: Set(None),
+        cooperative_id: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };
@@ -212,6 +217,22 @@ pub async fn create_user(
 
     if let Err(e) = state.cache.delete("users:all").await {
         tracing::warn!("Failed to invalidate user cache: {}", e);
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "user",
+            Some(&user_model.keycloak_id),
+            Some(serde_json::json!({"email": &user_model.email, "role": &user_model.role})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((StatusCode::CREATED, Json(UserResponse::from(user_model))))
@@ -510,6 +531,8 @@ mod tests {
 )]
 pub async fn update_user(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -535,11 +558,29 @@ pub async fn update_user(
         }
     }
 
+    let audit_role = body.role.clone();
+    let audit_region = body.region.clone();
     let updated = user_repo.update(id, body).await?;
     tracing::info!(user_id = %id, "User updated");
 
     if let Err(e) = state.cache.delete("users:all").await {
         tracing::warn!("Failed to invalidate user cache: {}", e);
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "user",
+            Some(&id.to_string()),
+            Some(serde_json::json!({"role": audit_role, "region": audit_region})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((StatusCode::OK, Json(UserResponse::from(updated))))
@@ -562,6 +603,8 @@ pub async fn update_user(
 )]
 pub async fn assign_role_to_user(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<AssignRoleRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -583,6 +626,22 @@ pub async fn assign_role_to_user(
     let updated = user_repo.update_role(id, body.role).await?;
     tracing::info!(user_id = %id, role = %role_str, "Role assigned via Keycloak");
 
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "ASSIGN_ROLE",
+            "user",
+            Some(&id.to_string()),
+            Some(serde_json::json!({"role": &role_str})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     Ok((StatusCode::OK, Json(UserResponse::from(updated))))
 }
 
@@ -600,6 +659,8 @@ pub async fn assign_role_to_user(
 )]
 pub async fn delete_user(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let user_repo = UserRepository::new(state.db.clone());
@@ -620,6 +681,22 @@ pub async fn delete_user(
 
     if let Err(e) = state.cache.delete("users:all").await {
         tracing::warn!("Failed to invalidate user cache: {}", e);
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "user",
+            Some(&id.to_string()),
+            Some(serde_json::json!({"email": &user_model.email})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((StatusCode::NO_CONTENT, ()))

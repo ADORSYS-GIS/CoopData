@@ -18,6 +18,9 @@ pub struct Model {
     pub last_login_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub federation_id: Option<Uuid>,
+    pub apex_id: Option<Uuid>,
+    pub cooperative_id: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -30,12 +33,36 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     Organization,
+    #[sea_orm(
+        belongs_to = "super::federation::Entity",
+        from = "Column::FederationId",
+        to = "super::federation::Column::Id",
+        on_update = "Cascade",
+        on_delete = "SetNull"
+    )]
+    Federation,
+    #[sea_orm(
+        belongs_to = "super::apex::Entity",
+        from = "Column::ApexId",
+        to = "super::apex::Column::Id",
+        on_update = "Cascade",
+        on_delete = "SetNull"
+    )]
+    Apex,
+    #[sea_orm(
+        belongs_to = "super::cooperative::Entity",
+        from = "Column::CooperativeId",
+        to = "super::cooperative::Column::Id",
+        on_update = "Cascade",
+        on_delete = "SetNull"
+    )]
+    Cooperative,
 }
 
-impl ActiveModelBehavior for ActiveModel {}
-
 impl Related<super::organization::Entity> for Entity {
-    fn to() -> RelationDef {
+    fn to() -> sea_orm::RelationDef {
         Relation::Organization.def()
     }
 }
+
+impl ActiveModelBehavior for ActiveModel {}

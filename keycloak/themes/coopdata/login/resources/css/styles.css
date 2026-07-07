@@ -575,6 +575,120 @@ body {
     flex-shrink: 0;
 }
 
+.alert-success {
+    background: oklch(0.52 0.14 155 / 0.08);
+    border: 1px solid oklch(0.52 0.14 155 / 0.3);
+    color: oklch(0.4 0.14 155);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.alert-success::before {
+    content: '\2713';
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* ── Status Page Layouts (Message/Verification Pages) ─────────── */
+.status-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.status-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.status-icon-wrapper.success {
+    background: oklch(0.52 0.14 155 / 0.1);
+    color: oklch(0.4 0.14 155);
+}
+
+.status-icon-wrapper.error {
+    background: oklch(0.55 0.2 25 / 0.1);
+    color: var(--destructive);
+}
+
+.status-icon-wrapper.info {
+    background: oklch(0.5 0.17 240 / 0.1);
+    color: var(--accent);
+}
+
+.status-icon-wrapper svg {
+    width: 32px;
+    height: 32px;
+}
+
+.status-title {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 0.75rem;
+}
+
+.status-description {
+    font-size: 1rem;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.status-action-button {
+    width: 100%;
+    max-width: 280px;
+    text-decoration: none;
+}
+
+/* ── Email Verify Divider ───────────────────────────────────────── */
+.verify-email-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto 1.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+}
+
+.verify-email-divider::before,
+.verify-email-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* ── Invitation / Info Page ─────────────────────────────────────── */
+.info-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    background: oklch(0.5 0.17 240 / 0.1);
+    color: var(--accent);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
 /* ── Accessibility: focus-visible ──────────────────────────────── */
 *:focus-visible {
     outline: 2px solid var(--ring);

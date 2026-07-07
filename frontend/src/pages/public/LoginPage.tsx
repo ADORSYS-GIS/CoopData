@@ -69,15 +69,11 @@ export const LoginPage: React.FC = () => {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 relative z-10">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-accent shadow-lg">
-            <ShieldCheck className="size-4 text-white" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-primary-foreground/50">
-              Ministry Platform
-            </p>
-            <p className="font-heading text-[15px] font-bold tracking-tight">CoopData</p>
-          </div>
+          <img
+            src="/coopdatalogo.png"
+            alt="CoopData logo"
+            className="size-16 shrink-0 rounded-lg object-contain"
+          />
         </Link>
 
         {/* Main brand content */}

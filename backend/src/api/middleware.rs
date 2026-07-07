@@ -1,4 +1,67 @@
-use axum::{body::Body, http::Request, middleware::Next, response::Response};
+use axum::{
+    body::Body, extract::Request, http::Request as HttpRequest, middleware::Next,
+    response::Response,
+};
+
+/// Context extracted from the HTTP request for audit logging.
+/// Contains the client IP address and user agent string.
+#[derive(Clone, Debug, Default)]
+pub struct AuditContext {
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+}
+
+/// Middleware that extracts IP address and user agent from the request
+/// and stores them in request extensions as `AuditContext`.
+///
+/// IP resolution order:
+/// 1. `X-Forwarded-For` header (first IP in the chain)
+/// 2. `X-Real-IP` header
+/// 3. `ConnectInfo<SocketAddr>` extension (direct connection)
+pub async fn audit_context_layer(mut req: Request<Body>, next: Next) -> Response {
+    let ip_address = extract_ip(&req);
+    let user_agent = extract_user_agent(&req);
+
+    req.extensions_mut().insert(AuditContext {
+        ip_address,
+        user_agent,
+    });
+
+    next.run(req).await
+}
+
+fn extract_ip(req: &HttpRequest<Body>) -> Option<String> {
+    if let Some(xff) = req.headers().get("x-forwarded-for") {
+        if let Ok(val) = xff.to_str() {
+            if let Some(first) = val.split(',').next() {
+                let trimmed = first.trim();
+                if !trimmed.is_empty() {
+                    return Some(trimmed.to_string());
+                }
+            }
+        }
+    }
+
+    if let Some(xrip) = req.headers().get("x-real-ip") {
+        if let Ok(val) = xrip.to_str() {
+            let trimmed = val.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+
+    req.extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|ci| ci.0.ip().to_string())
+}
+
+fn extract_user_agent(req: &HttpRequest<Body>) -> Option<String> {
+    req.headers()
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+}
 
 pub async fn request_logging(req: Request<Body>, next: Next) -> Response {
     let method = req.method().to_string();
