@@ -73,7 +73,7 @@ pub async fn change_password(
         .or(claims.email.as_deref())
         .ok_or_else(|| {
             crate::error::AppError::BadRequest(
-                "Unable to verify current password for this account".to_string(),
+                "Unable to verify credentials for this account".to_string(),
             )
         })?;
 
@@ -145,7 +145,7 @@ pub async fn verify_identity(
         .username()
         .or(claims.email.as_deref())
         .ok_or_else(|| {
-            AppError::BadRequest("Unable to verify identity for this account".to_string())
+            AppError::BadRequest("Unable to verify credentials for this account".to_string())
         })?;
 
     let has_otp = state.keycloak.get_user_otp_status(&claims.sub).await?;

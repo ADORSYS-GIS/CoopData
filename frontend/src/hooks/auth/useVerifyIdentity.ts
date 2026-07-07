@@ -1,7 +1,5 @@
 import { useState, useCallback } from "react";
-import { getAccessToken } from "@/services/shared/authService";
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+import { apiClient } from "@/openapi-client";
 
 export interface VerifyIdentityResult {
   ok: boolean;
@@ -21,42 +19,22 @@ export const useVerifyIdentity = (): UseVerifyIdentityReturn => {
   const verifyIdentity = useCallback(async (args: { password: string; otp?: string }) => {
     setIsPending(true);
     try {
-      let token: string;
-      try {
-        token = await getAccessToken();
-      } catch {
-        return { ok: false, message: "Not authenticated. Please log in again." };
-      }
-
-      const res = await fetch(`${API_BASE}/api/v1/me/verify-identity`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(args),
+      const { data, error, response } = await apiClient.POST("/api/v1/me/verify-identity", {
+        body: args,
       });
 
-      const json = await res.json().catch(() => ({}));
-      const body = json as {
-        verification_token?: string;
-        requires_otp?: boolean;
-        message?: string;
-        error?: string;
-      };
-
-      if (!res.ok) {
+      if (error) {
+        const errBody = error as { message?: string; error?: string };
         return {
           ok: false,
-          message: body.message ?? body.error ?? `Error ${res.status}`,
+          message: errBody.message ?? errBody.error ?? `Error ${response.status}`,
         };
       }
 
+      const body = data as { verification_token?: string; requires_otp?: boolean };
+
       if (body.requires_otp && !body.verification_token) {
-        return {
-          ok: false,
-          requires_otp: true,
-        };
+        return { ok: false, requires_otp: true };
       }
 
       return {

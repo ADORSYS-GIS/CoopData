@@ -1,7 +1,5 @@
 import { useState, useCallback } from "react";
-import { getAccessToken } from "@/services/shared/authService";
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+import { apiClient } from "@/openapi-client";
 
 export interface PasswordChangeResult {
   ok: boolean;
@@ -23,32 +21,19 @@ export const useChangePassword = (): UseChangePasswordReturn => {
     async (args: { current_password: string; new_password: string }) => {
       setIsPending(true);
       try {
-        let token: string;
-        try {
-          token = await getAccessToken();
-        } catch {
-          return { ok: false, message: "Not authenticated. Please log in again." };
-        }
-
-        const res = await fetch(`${API_BASE}/api/v1/me/password`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ ...args, logout_sessions: false }),
+        const { data, error, response } = await apiClient.POST("/api/v1/me/password", {
+          body: { ...args, logout_sessions: false },
         });
 
-        const json = await res.json().catch(() => ({}));
-        const body = json as { message?: string; error?: string };
-
-        if (!res.ok) {
+        if (error) {
+          const errBody = error as { message?: string; error?: string };
           return {
             ok: false,
-            message: body.message ?? body.error ?? `Error ${res.status}`,
+            message: errBody.message ?? errBody.error ?? `Error ${response.status}`,
           };
         }
 
+        const body = data as { message?: string };
         return { ok: true, message: body.message ?? "Password updated successfully!" };
       } catch (e) {
         return {

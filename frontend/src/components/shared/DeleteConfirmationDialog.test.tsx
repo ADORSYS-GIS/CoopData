@@ -375,6 +375,44 @@ describe("DeleteConfirmationDialog", () => {
 
       expect(screen.getByPlaceholderText("Your account password")).toBeInTheDocument();
     });
+
+    it("should reveal OTP field when backend returns OTP challenge (ok=false, requires_otp=true)", async () => {
+      const onVerifyIdentity = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: false, requires_otp: true })
+        .mockResolvedValueOnce({ ok: true, verification_token: "tok-2", requires_otp: true });
+      const onConfirmDelete = vi.fn().mockResolvedValue(undefined);
+
+      renderDialog({ onVerifyIdentity, onConfirmDelete });
+
+      // Step 1: type name and continue
+      typeInInput(screen.getByTestId("input"), "Pilot Federation");
+      clickButton("destructive");
+
+      // Step 2: enter password and verify
+      const passwordInput = screen.getByPlaceholderText("Your account password");
+      typeInInput(passwordInput, "mypassword");
+      clickButton("destructive");
+
+      await waitFor(() => {
+        // OTP field should now be visible (challenge response received)
+        expect(screen.getByPlaceholderText("000000")).toBeInTheDocument();
+      });
+      // No error message should be shown
+      expect(screen.queryByText("Verification failed")).not.toBeInTheDocument();
+
+      // User enters OTP
+      const inputs = screen.getAllByTestId("input");
+      const otpInput = inputs.find((i) => (i as HTMLInputElement).placeholder === "000000")!;
+      typeInInput(otpInput, "123456");
+
+      // Click verify again — this time succeeds
+      clickButton("destructive");
+
+      await waitFor(() => {
+        expect(onConfirmDelete).toHaveBeenCalledWith("tok-2");
+      });
+    });
   });
 
   describe("State reset", () => {
