@@ -759,3 +759,146 @@ body {
     color: var(--foreground);
     flex: 1;
 }
+/* ── TOTP Setup — QR code + manual entry ────────────────────────── */
+.totp-setup-section {
+    margin-bottom: 1.5rem;
+}
+
+.totp-qr-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.totp-qr-wrapper {
+    padding: 1rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elev-2);
+    display: inline-block;
+}
+
+.totp-qr-wrapper img {
+    display: block;
+    width: 180px;
+    height: 180px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.totp-manual-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.totp-manual-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-xl);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    margin-bottom: 0.25rem;
+}
+
+.totp-manual-container h3 {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+    letter-spacing: 0.01em;
+}
+
+.totp-secret-display {
+    padding: 0.625rem 1rem;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    word-break: break-all;
+    text-align: center;
+}
+
+.totp-secret-display code {
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: 0.05em;
+}
+
+.totp-mode-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    margin-top: 0.25rem;
+}
+
+.totp-mode-switch:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+/* ── TOTP configuration info grid ───────────────────────────────── */
+.totp-config-info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+}
+
+.totp-config-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.totp-config-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.totp-config-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+/* ── TOTP secondary button (cancel AIA) ──────────────────────────── */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--foreground);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: background 0.2s var(--ease-out-expo), border-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--muted);
+    border-color: var(--muted-foreground);
+}
