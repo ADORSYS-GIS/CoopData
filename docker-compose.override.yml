@@ -8,6 +8,7 @@ services:
     build:
       dockerfile: backend/Dockerfile.dev
     container_name: coopdata-backend-dev
+    command: ["cargo", "watch", "-x", "run --bin coop-data-backend"]
     environment:
       CARGO_WATCH_BIN: cargo-watch
       RUST_LOG: info,coop_data_backend=debug

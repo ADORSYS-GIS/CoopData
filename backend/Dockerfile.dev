@@ -8,7 +8,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install cargo-watch for live recompilation on file changes.
-RUN cargo install cargo-watch
+RUN cargo install cargo-watch --locked
 
 # Pre-build dependencies so incremental compiles inside the container are fast.
 # The real source is bind-mounted at runtime, so we use a throwaway main.rs here.

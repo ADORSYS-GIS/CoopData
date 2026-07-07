@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
+  Clock,
   Loader2,
   Mail,
   Pencil,
@@ -32,6 +33,7 @@ type MemberItem = {
   email?: string | null;
   first_name?: string | null;
   last_name?: string | null;
+  status: string;
 };
 
 const Avatar = ({ name }: { name: string }) => {
@@ -355,6 +357,18 @@ export const CooperativeMembersPage: React.FC = () => {
                     <Shield className="size-3" />
                     Cooperative
                   </span>
+                  {m.status === "PENDING" && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                      <Clock className="size-3" />
+                      Pending
+                    </span>
+                  )}
+                  {m.status === "ACTIVE" && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <CheckCircle2 className="size-3" />
+                      Active
+                    </span>
+                  )}
                   <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => {

@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
 use crate::api::dto::common::SuccessResponse;
-use crate::api::dto::member::{AddMemberRequest, MemberResponse, UpdateMemberRequest};
+use crate::api::dto::member::{derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
@@ -397,6 +397,7 @@ pub async fn add_apex_member(
     let user_id = user.id.clone();
 
     tracing::info!(group_id = %id, email = %body.email, role = %body.role, "Member added to apex");
+    let status = derive_status_from_user(user.email_verified, &user.required_actions).to_string();
     Ok((
         StatusCode::CREATED,
         Json(MemberResponse {
@@ -405,6 +406,7 @@ pub async fn add_apex_member(
             email,
             first_name: Some(first_name).filter(|s| !s.is_empty()),
             last_name: Some(last_name).filter(|s| !s.is_empty()),
+            status,
         }),
     ))
 }
@@ -464,6 +466,7 @@ pub async fn update_apex_member(
     }
 
     tracing::info!(group_id = %group_id, user_id = %user_id, "Apex member updated");
+    let status = derive_status_from_user(updated.email_verified, &updated.required_actions).to_string();
     Ok((
         StatusCode::OK,
         Json(MemberResponse {
@@ -472,6 +475,7 @@ pub async fn update_apex_member(
             email: updated.email,
             first_name: updated.first_name,
             last_name: updated.last_name,
+            status,
         }),
     ))
 }

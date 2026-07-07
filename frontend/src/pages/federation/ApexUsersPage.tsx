@@ -12,6 +12,7 @@ import {
   Shield,
   AlertCircle,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
@@ -372,6 +373,18 @@ export const ApexUsersPage: React.FC = () => {
                     <Shield className="size-3" />
                     Apex Officer
                   </span>
+                  {m.status === "PENDING" && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                      <Clock className="size-3" />
+                      Pending
+                    </span>
+                  )}
+                  {m.status === "ACTIVE" && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <CheckCircle2 className="size-3" />
+                      Active
+                    </span>
+                  )}
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     {/* Edit */}

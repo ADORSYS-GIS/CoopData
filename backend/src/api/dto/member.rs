@@ -37,17 +37,31 @@ pub struct MemberResponse {
     pub email: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
+    pub status: String,
 }
 
 impl From<crate::models::keycloak::KeycloakMember> for MemberResponse {
     fn from(m: crate::models::keycloak::KeycloakMember) -> Self {
+        let status = m.derive_status().to_string();
         Self {
             id: m.id,
             username: m.username,
             email: m.email,
             first_name: m.first_name,
             last_name: m.last_name,
+            status,
         }
+    }
+}
+
+pub fn derive_status_from_user(
+    email_verified: bool,
+    required_actions: &[String],
+) -> &'static str {
+    if email_verified && !required_actions.iter().any(|a| a == "VERIFY_EMAIL") {
+        "ACTIVE"
+    } else {
+        "PENDING"
     }
 }
 
@@ -130,6 +144,9 @@ mod tests {
             email: Some("john@example.com".to_string()),
             first_name: Some("John".to_string()),
             last_name: Some("Doe".to_string()),
+            email_verified: true,
+            required_actions: vec![],
+            attributes: None,
         };
         let response = MemberResponse::from(member);
         assert_eq!(response.id, "user-1");
@@ -137,6 +154,51 @@ mod tests {
         assert_eq!(response.email, Some("john@example.com".to_string()));
         assert_eq!(response.first_name, Some("John".to_string()));
         assert_eq!(response.last_name, Some("Doe".to_string()));
+        assert_eq!(response.status, "ACTIVE");
+    }
+
+    #[test]
+    fn test_member_response_pending_status() {
+        let member = crate::models::keycloak::KeycloakMember {
+            id: "user-2".to_string(),
+            username: Some("pending".to_string()),
+            email: Some("pending@example.com".to_string()),
+            first_name: Some("Pen".to_string()),
+            last_name: Some("Ding".to_string()),
+            email_verified: false,
+            required_actions: vec!["VERIFY_EMAIL".to_string()],
+            attributes: None,
+        };
+        let response = MemberResponse::from(member);
+        assert_eq!(response.status, "PENDING");
+    }
+
+    #[test]
+    fn test_derive_status_from_user_active() {
+        assert_eq!(
+            derive_status_from_user(true, &[]),
+            "ACTIVE"
+        );
+        assert_eq!(
+            derive_status_from_user(true, &["UPDATE_PASSWORD".to_string()]),
+            "ACTIVE"
+        );
+    }
+
+    #[test]
+    fn test_derive_status_from_user_pending() {
+        assert_eq!(
+            derive_status_from_user(false, &[]),
+            "PENDING"
+        );
+        assert_eq!(
+            derive_status_from_user(false, &["VERIFY_EMAIL".to_string()]),
+            "PENDING"
+        );
+        assert_eq!(
+            derive_status_from_user(true, &["VERIFY_EMAIL".to_string()]),
+            "PENDING"
+        );
     }
 
     #[test]

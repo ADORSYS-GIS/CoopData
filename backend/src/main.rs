@@ -61,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
         user_repo,
         audit,
     };
+
     let app = create_app(state);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
