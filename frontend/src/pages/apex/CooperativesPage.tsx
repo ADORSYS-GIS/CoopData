@@ -9,29 +9,59 @@ import {
   Loader2,
   AlertCircle,
   ChevronRight,
+  Eye,
+  MapPin,
+  Phone,
+  Hash,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  PauseCircle,
 } from "lucide-react";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
-import { useCooperatives, useDeleteCooperative } from "@/hooks/cooperatives/useCooperatives";
+import { Badge } from "@/components/ui/badge";
+import { useDeleteCooperative } from "@/hooks/cooperatives/useCooperatives";
+import {
+  useCooperativeProfiles,
+  type CooperativeProfile,
+} from "@/hooks/cooperatives/useCooperativeProfile";
 import { CooperativeProfileForm } from "@/pages/apex/CooperativeProfile";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-type CoopItem = { id: string; name: string; description?: string | null; path?: string | null };
+const STATUS_TONE: Record<
+  string,
+  { variant: "default" | "secondary" | "destructive"; icon: typeof CheckCircle2 }
+> = {
+  Active: { variant: "default", icon: CheckCircle2 },
+  Inactive: { variant: "secondary", icon: PauseCircle },
+  Suspended: { variant: "destructive", icon: XCircle },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const tone = STATUS_TONE[status] ?? STATUS_TONE["Active"];
+  const Icon = tone.icon;
+  return (
+    <Badge variant={tone.variant} className="gap-1">
+      <Icon className="size-3" />
+      {status}
+    </Badge>
+  );
+}
 
 export const CooperativesPage: React.FC = () => {
-  const { data: rawData, isLoading, error } = useCooperatives();
+  const navigate = useNavigate();
+  const { data: cooperatives, isLoading, error } = useCooperativeProfiles();
   const deleteCoop = useDeleteCooperative();
-
-  const cooperatives: CoopItem[] = (rawData as CoopItem[]) ?? [];
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [deletingCoop, setDeletingCoop] = useState<CoopItem | null>(null);
+  const [deletingCoop, setDeletingCoop] = useState<CooperativeProfile | null>(null);
 
   const handleDelete = () => {
     if (!deletingCoop) return;
-    deleteCoop.mutate(deletingCoop.id, {
+    deleteCoop.mutate(deletingCoop.keycloak_id ?? deletingCoop.id, {
       onSuccess: () => {
         toast.success(`Deleted "${deletingCoop.name}"`);
         setDeletingCoop(null);
@@ -40,10 +70,23 @@ export const CooperativesPage: React.FC = () => {
     });
   };
 
-  const filtered = cooperatives.filter((c) => {
+  const allCoops = cooperatives ?? [];
+
+  const filtered = allCoops.filter((c) => {
     const q = search.toLowerCase();
-    return c.name.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q);
+    return (
+      c.name.toLowerCase().includes(q) ||
+      (c.reg_no ?? "").toLowerCase().includes(q) ||
+      (c.region ?? "").toLowerCase().includes(q) ||
+      (c.sector ?? "").toLowerCase().includes(q) ||
+      (c.institution_type ?? "").toLowerCase().includes(q)
+    );
   });
+
+  const activeCount = allCoops.filter((c) => c.status === "Active").length;
+  const suspendedCount = allCoops.filter((c) => c.status === "Suspended").length;
+  const inactiveCount = allCoops.filter((c) => c.status === "Inactive").length;
+  const saccoCount = allCoops.filter((c) => c.institution_type === "sacco").length;
 
   if (isLoading) {
     return (
@@ -81,38 +124,45 @@ export const CooperativesPage: React.FC = () => {
       }
     >
       <div className="-m-2 space-y-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 shadow-inner">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={Building2}
             label="Total Cooperatives"
-            value={String(cooperatives.length)}
+            value={String(allCoops.length)}
             subtitle="Under your apex"
             tone="primary"
           />
           <StatCard
-            icon={Building2}
-            label="Shown"
-            value={String(filtered.length)}
-            subtitle="Matching filter"
-            tone="accent"
+            icon={CheckCircle2}
+            label="Active"
+            value={String(activeCount)}
+            subtitle="Operational"
+            tone="success"
           />
           <StatCard
-            icon={Users}
-            label="With Description"
-            value={String(cooperatives.filter((c) => c.description).length)}
-            subtitle="Having a description"
-            tone="info"
+            icon={PauseCircle}
+            label="Inactive / Suspended"
+            value={String(inactiveCount + suspendedCount)}
+            subtitle={`${inactiveCount} inactive, ${suspendedCount} suspended`}
+            tone="warning"
+          />
+          <StatCard
+            icon={Building2}
+            label="SACCOs"
+            value={String(saccoCount)}
+            subtitle="Savings & credit coops"
+            tone="accent"
           />
         </div>
 
-        <Card title="Cooperative Directory" subtitle="Search, edit and manage cooperatives">
+        <Card title="Cooperative Directory" subtitle="Search, view, edit and manage cooperatives">
           <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
             <div className="relative min-w-[280px] max-w-md w-full">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or description..."
+                placeholder="Search by name, reg no, region, sector..."
                 className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
               />
             </div>
@@ -123,23 +173,27 @@ export const CooperativesPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
                   <th className="px-5 py-3.5">Cooperative</th>
-                  <th className="px-5 py-3.5 hidden md:table-cell">Description</th>
+                  <th className="px-5 py-3.5 hidden lg:table-cell">Reg No</th>
+                  <th className="px-5 py-3.5 hidden md:table-cell">Type</th>
+                  <th className="px-5 py-3.5 hidden lg:table-cell">Region</th>
+                  <th className="px-5 py-3.5 hidden xl:table-cell">Sector</th>
+                  <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="py-12 text-center text-slate-600">
+                    <td colSpan={7} className="py-12 text-center text-slate-600">
                       <div className="flex flex-col items-center justify-center">
                         <Building2 className="size-8 text-slate-400 mb-2" />
                         <p className="font-bold text-sm text-slate-900">
-                          {cooperatives.length === 0
+                          {allCoops.length === 0
                             ? "No cooperatives registered yet"
                             : "No cooperatives match your search"}
                         </p>
                         <p className="text-xs mt-1">
-                          {cooperatives.length === 0
+                          {allCoops.length === 0
                             ? "Register your first cooperative to get started."
                             : "Try adjusting your search."}
                         </p>
@@ -150,7 +204,13 @@ export const CooperativesPage: React.FC = () => {
                   filtered.map((c) => (
                     <tr
                       key={c.id}
-                      className="group hover:bg-sky-50/60 transition-colors duration-150"
+                      onClick={() =>
+                        navigate({
+                          to: "/app/cooperative/$cooperativeId",
+                          params: { cooperativeId: c.id },
+                        })
+                      }
+                      className="group cursor-pointer hover:bg-sky-50/60 transition-colors duration-150"
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -159,27 +219,54 @@ export const CooperativesPage: React.FC = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-slate-950 leading-tight">{c.name}</p>
-                            <p className="mt-1 max-w-[240px] truncate font-mono text-[10px] text-slate-500">
-                              {c.id}
+                            <p className="mt-0.5 text-xs text-slate-500 truncate max-w-[200px]">
+                              {c.phone ?? "—"}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-slate-700 text-xs hidden md:table-cell max-w-[260px] truncate">
-                        {c.description ?? "—"}
+                      <td className="px-5 py-4 hidden lg:table-cell">
+                        <span className="font-mono text-xs text-slate-700">{c.reg_no ?? "—"}</span>
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-4 hidden md:table-cell">
+                        <span className="text-xs font-medium text-slate-700 capitalize">
+                          {c.institution_type ?? "—"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 hidden lg:table-cell text-xs text-slate-700">
+                        {c.region ?? "—"}
+                      </td>
+                      <td className="px-5 py-4 hidden xl:table-cell text-xs text-slate-700">
+                        {c.sector ?? "—"}
+                      </td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={c.status} />
+                      </td>
+                      <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
-                          <Link
-                            to="/app/cooperative-members/$cooperativeId"
-                            params={{ cooperativeId: c.id }}
-                            title="Manage members"
-                            className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"
+                          <button
+                            onClick={() =>
+                              navigate({
+                                to: "/app/cooperative/$cooperativeId",
+                                params: { cooperativeId: c.id },
+                              })
+                            }
+                            title="View details"
+                            className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"
                           >
-                            <Users className="size-3.5" />
-                            Members
-                            <ChevronRight className="size-3" />
-                          </Link>
+                            <Eye className="size-3.5" />
+                          </button>
+                          {c.keycloak_id && (
+                            <Link
+                              to="/app/cooperative-members/$cooperativeId"
+                              params={{ cooperativeId: c.keycloak_id }}
+                              title="Manage members"
+                              className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-100"
+                            >
+                              <Users className="size-3.5" />
+                              <ChevronRight className="size-3" />
+                            </Link>
+                          )}
                           <Link
                             to="/app/cooperative-profile/$cooperativeId"
                             params={{ cooperativeId: c.id }}
@@ -206,13 +293,12 @@ export const CooperativesPage: React.FC = () => {
 
           <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-600">
             <p>
-              Showing {filtered.length} of {cooperatives.length} cooperatives
+              Showing {filtered.length} of {allCoops.length} cooperatives
             </p>
           </div>
         </Card>
       </div>
 
-      {/* Create Modal */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div
@@ -239,7 +325,6 @@ export const CooperativesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Confirm */}
       {deletingCoop && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div

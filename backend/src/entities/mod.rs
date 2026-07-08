@@ -2,6 +2,7 @@ pub mod apex;
 pub mod assessment;
 pub mod audit_log;
 pub mod cooperative;
+pub mod enums;
 pub mod federation;
 pub mod organization;
 pub mod user;

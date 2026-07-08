@@ -185,20 +185,20 @@ impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
             apex_group_id: m.apex_group_id,
             federation_org_id: m.federation_org_id,
             name: m.name,
-            institution_type: m.institution_type,
+            institution_type: m.institution_type.map(|t| t.as_str().to_string()),
             reg_no: m.reg_no,
             tin: m.tin,
             address: m.address,
             georeference: m.georeference,
             region: m.region,
-            geographic_classif: m.geographic_classif,
+            geographic_classif: m.geographic_classif.map(|g| g.as_str().to_string()),
             phone: m.phone,
             sector: m.sector,
             responsibe_financial: m.responsibe_financial,
             responsible_non_financial: m.responsible_non_financial,
-            status: m.status,
+            status: m.status.as_str().to_string(),
             registered_on: m.registered_on,
-            accounting_year: m.accounting_year,
+            accounting_year: m.accounting_year.as_str().to_string(),
             created_at: m.created_at,
             updated_at: m.updated_at,
         }
@@ -271,18 +271,39 @@ mod tests {
 
     #[test]
     fn test_create_cooperative_request_deserialization() {
-        let json = r#"{"name": "My Coop", "description": "A description"}"#;
+        let json = r#"{
+            "name": "My Coop",
+            "description": "A description",
+            "institution_type": "sacco",
+            "reg_no": "COOP001",
+            "region": "Hhohho",
+            "geographic_classif": "Urban",
+            "sector": "Finance",
+            "registered_on": "2020-01-15"
+        }"#;
         let req: CreateCooperativeRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "My Coop");
         assert_eq!(req.description, Some("A description".to_string()));
+        assert_eq!(req.institution_type, "sacco");
+        assert_eq!(req.reg_no, "COOP001");
     }
 
     #[test]
     fn test_create_cooperative_request_minimal() {
-        let json = r#"{"name": "My Coop"}"#;
+        let json = r#"{
+            "name": "My Coop",
+            "institution_type": "sacco",
+            "reg_no": "COOP001",
+            "region": "Hhohho",
+            "geographic_classif": "Urban",
+            "sector": "Finance",
+            "registered_on": "2020-01-15"
+        }"#;
         let req: CreateCooperativeRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "My Coop");
         assert!(req.description.is_none());
+        assert_eq!(req.status, "Active");
+        assert_eq!(req.accounting_year, "calendar");
     }
 
     #[test]

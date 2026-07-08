@@ -93,6 +93,7 @@ export const useCreateCooperative = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-profiles"] });
     },
   });
 };
@@ -126,6 +127,7 @@ export const useDeleteCooperative = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-profiles"] });
     },
   });
 };
