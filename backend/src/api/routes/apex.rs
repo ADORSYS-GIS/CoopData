@@ -35,6 +35,10 @@ pub fn apex_routes() -> Router<AppState> {
                 .patch(handlers::cooperative::update_cooperative)
                 .delete(handlers::cooperative::delete_cooperative),
         )
+        .route(
+            "/cooperatives/{id}/delete-preview",
+            get(handlers::cooperative::delete_cooperative_preview),
+        )
         // Cooperative Members
         .route(
             "/cooperatives/{id}/members",

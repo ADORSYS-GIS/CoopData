@@ -13,9 +13,10 @@ use axum::Router;
 
 use crate::api::handlers::audit::list_audit_logs;
 use crate::api::handlers::federation::{
-    create_federation, delete_federation, delete_federation_invitation, get_federation,
-    invite_user_to_federation, list_federation_invitations, list_federation_members,
-    list_federations, remove_federation_member, resend_federation_invitation, update_federation,
+    create_federation, delete_federation, delete_federation_invitation, delete_federation_preview,
+    get_federation, invite_user_to_federation, list_federation_invitations,
+    list_federation_members, list_federations, remove_federation_member,
+    resend_federation_invitation, update_federation,
 };
 use crate::api::handlers::{
     assign_role_to_user, create_organization, create_user, delete_organization, delete_user,
@@ -37,6 +38,10 @@ pub fn ministry_routes() -> Router<AppState> {
             get(get_federation)
                 .patch(update_federation)
                 .delete(delete_federation),
+        )
+        .route(
+            "/federations/{id}/delete-preview",
+            get(delete_federation_preview),
         )
         // Federation Invitations
         .route(

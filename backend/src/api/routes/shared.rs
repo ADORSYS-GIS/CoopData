@@ -20,6 +20,10 @@ pub fn shared_routes() -> Router<AppState> {
             "/me/password",
             post(crate::api::handlers::me::change_password),
         )
+        .route(
+            "/me/verify-identity",
+            post(crate::api::handlers::me::verify_identity),
+        )
 }
 
 async fn get_current_user_profile(

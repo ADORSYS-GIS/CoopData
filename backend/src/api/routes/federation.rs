@@ -50,6 +50,10 @@ pub fn federation_routes() -> Router<AppState> {
                 .patch(handlers::apex::update_apex)
                 .delete(handlers::apex::delete_apex),
         )
+        .route(
+            "/apexes/{id}/delete-preview",
+            get(handlers::apex::delete_apex_preview),
+        )
         // Apex Members
         .route(
             "/apexes/{id}/members",

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -13,11 +13,13 @@ use crate::api::dto::federation::{
 };
 use crate::api::dto::invitation::{CreateInvitationRequest, InvitationResponse};
 use crate::api::dto::member::MemberResponse;
+use crate::api::dto::verification::DeletePreviewResponse;
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::federation;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
+use crate::services::VerificationTokenService;
 use crate::AppState;
 
 #[utoipa::path(
@@ -268,13 +270,80 @@ pub async fn update_federation(
 }
 
 #[utoipa::path(
-    delete,
-    path = "/api/v1/ministry/federations/{id}",
+    get,
+    path = "/api/v1/ministry/federations/{id}/delete-preview",
     params(("id" = String, Path, description = "Federation (Organization) ID")),
     responses(
+        (status = 200, description = "Cascade delete preview", body = DeletePreviewResponse),
+        (status = 403, description = "Forbidden - ministry role required", body = ErrorResponse)
+    ),
+    tag = "Ministry"
+)]
+pub async fn delete_federation_preview(
+    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    Path(id): Path<String>,
+) -> AppResult<impl IntoResponse> {
+    let mut apex_count = 0u64;
+    let mut coop_count = 0u64;
+    let mut member_count = 0u64;
+
+    if let Ok(members) = state.keycloak.get_organization_members(&id).await {
+        member_count += members.len() as u64;
+    }
+
+    if let Ok(all_groups) = state.keycloak.get_groups(None).await {
+        let org_apexes: Vec<_> = all_groups
+            .iter()
+            .filter(|g| {
+                g.attributes
+                    .as_ref()
+                    .and_then(|a| a.get("organization_id"))
+                    .and_then(|v| v.first())
+                    .map(|v| v.as_str())
+                    == Some(&id)
+            })
+            .collect();
+
+        apex_count = org_apexes.len() as u64;
+
+        for apex in &org_apexes {
+            if let Ok(apex_members) = state.keycloak.get_group_members(&apex.id).await {
+                member_count += apex_members.len() as u64;
+            }
+            if let Ok(subgroups) = state.keycloak.get_group_children(&apex.id).await {
+                coop_count += subgroups.len() as u64;
+                for sub in &subgroups {
+                    if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
+                        member_count += sub_members.len() as u64;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(DeletePreviewResponse {
+            apexes: apex_count,
+            cooperatives: coop_count,
+            members: member_count,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/ministry/federations/{id}",
+    params((
+        "id" = String,
+        Path,
+        description = "Federation (Organization) ID",
+    )),
+    responses(
         (status = 204, description = "Federation deleted"),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 404, description = "Federation not found", body = ErrorResponse)
+        (status = 403, description = "Forbidden - ministry role required", body = ErrorResponse),
+        (status = 428, description = "Identity verification required", body = ErrorResponse)
     ),
     tag = "Ministry"
 )]
@@ -282,8 +351,20 @@ pub async fn delete_federation(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    let token = headers
+        .get("x-verification-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| {
+            AppError::PreconditionRequired(
+            "Identity verification is required for destructive actions. Please verify your identity and try again.".to_string(),
+        )
+        })?;
+
+    VerificationTokenService::validate_and_consume(&state.cache, &claims.sub, token).await?;
+
     // Cascade: delete all org members from Keycloak + PG
     if let Ok(members) = state.keycloak.get_organization_members(&id).await {
         for member in &members {
