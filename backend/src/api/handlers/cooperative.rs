@@ -23,7 +23,9 @@ use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::cooperative;
-use crate::entities::enums::{AccountingYear, CoopStatus, CooperativeType, EswatiniRegion, UrbanRural};
+use crate::entities::enums::{
+    AccountingYear, CoopStatus, CooperativeType, EswatiniRegion, UrbanRural,
+};
 use crate::error::{AppError, AppResult};
 use crate::services::VerificationTokenService;
 use crate::AppState;
@@ -110,7 +112,9 @@ pub async fn create_cooperative(
         return Err(AppError::BadRequest("Cooperative name is required".into()));
     }
     if body.reg_no.trim().is_empty() {
-        return Err(AppError::BadRequest("Registration number is required".into()));
+        return Err(AppError::BadRequest(
+            "Registration number is required".into(),
+        ));
     }
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
         return Err(AppError::BadRequest(format!(
@@ -289,9 +293,7 @@ pub async fn create_cooperative(
         sector: sea_orm::Set(Some(body.sector.clone())),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
-        status: sea_orm::Set(
-            CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active),
-        ),
+        status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
         registered_on: sea_orm::Set(Some(body.registered_on)),
         accounting_year: sea_orm::Set(
             AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar),
@@ -1034,7 +1036,9 @@ pub async fn create_cooperative_profile(
         return Err(AppError::BadRequest("Cooperative name is required".into()));
     }
     if body.reg_no.trim().is_empty() {
-        return Err(AppError::BadRequest("Registration number (reg_no) is required".into()));
+        return Err(AppError::BadRequest(
+            "Registration number (reg_no) is required".into(),
+        ));
     }
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
         return Err(AppError::BadRequest(format!(
@@ -1067,7 +1071,12 @@ pub async fn create_cooperative_profile(
         )));
     }
 
-    if state.cooperative_repo.find_by_reg_no(&body.reg_no).await?.is_some() {
+    if state
+        .cooperative_repo
+        .find_by_reg_no(&body.reg_no)
+        .await?
+        .is_some()
+    {
         return Err(AppError::Conflict(format!(
             "Cooperative with reg_no '{}' already exists",
             body.reg_no
@@ -1099,7 +1108,9 @@ pub async fn create_cooperative_profile(
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
         registered_on: sea_orm::Set(Some(body.registered_on)),
-        accounting_year: sea_orm::Set(AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar)),
+        accounting_year: sea_orm::Set(
+            AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar),
+        ),
         created_at: sea_orm::Set(now),
         updated_at: sea_orm::Set(now),
     };
@@ -1269,21 +1280,52 @@ pub async fn update_cooperative_profile(
     }
 
     let mut model: cooperative::ActiveModel = existing.into();
-    if let Some(ref v) = body.name { model.name = sea_orm::Set(v.clone()); }
-    if let Some(ref v) = body.institution_type { model.institution_type = sea_orm::Set(CooperativeType::parse(v)); }
-    if let Some(ref v) = body.reg_no { model.reg_no = sea_orm::Set(Some(v.clone())); }
-    if let Some(ref v) = body.tin { model.tin = sea_orm::Set(Some(v.clone())); }
-    if let Some(ref v) = body.address { model.address = sea_orm::Set(Some(v.clone())); }
-    if let Some(ref v) = body.georeference { model.georeference = sea_orm::Set(Some(v.clone())); }
-    if let Some(ref v) = body.region { model.region = sea_orm::Set(EswatiniRegion::parse(v)); }
-    if let Some(ref v) = body.geographic_classif { model.geographic_classif = sea_orm::Set(UrbanRural::parse(v)); }
-    if let Some(ref v) = body.phone { model.phone = sea_orm::Set(Some(v.clone())); }
-    if let Some(ref v) = body.sector { model.sector = sea_orm::Set(Some(v.clone())); }
-    if let Some(ref v) = body.responsible_financial { model.responsible_financial = sea_orm::Set(Some(*v)); }
-    if let Some(ref v) = body.responsible_non_financial { model.responsible_non_financial = sea_orm::Set(Some(*v)); }
-    if let Some(ref v) = body.status { model.status = sea_orm::Set(CoopStatus::parse(v).unwrap_or(CoopStatus::Active)); }
-    if let Some(ref v) = body.registered_on { model.registered_on = sea_orm::Set(Some(*v)); }
-    if let Some(ref v) = body.accounting_year { model.accounting_year = sea_orm::Set(AccountingYear::parse(v).unwrap_or(AccountingYear::Calendar)); }
+    if let Some(ref v) = body.name {
+        model.name = sea_orm::Set(v.clone());
+    }
+    if let Some(ref v) = body.institution_type {
+        model.institution_type = sea_orm::Set(CooperativeType::parse(v));
+    }
+    if let Some(ref v) = body.reg_no {
+        model.reg_no = sea_orm::Set(Some(v.clone()));
+    }
+    if let Some(ref v) = body.tin {
+        model.tin = sea_orm::Set(Some(v.clone()));
+    }
+    if let Some(ref v) = body.address {
+        model.address = sea_orm::Set(Some(v.clone()));
+    }
+    if let Some(ref v) = body.georeference {
+        model.georeference = sea_orm::Set(Some(v.clone()));
+    }
+    if let Some(ref v) = body.region {
+        model.region = sea_orm::Set(EswatiniRegion::parse(v));
+    }
+    if let Some(ref v) = body.geographic_classif {
+        model.geographic_classif = sea_orm::Set(UrbanRural::parse(v));
+    }
+    if let Some(ref v) = body.phone {
+        model.phone = sea_orm::Set(Some(v.clone()));
+    }
+    if let Some(ref v) = body.sector {
+        model.sector = sea_orm::Set(Some(v.clone()));
+    }
+    if let Some(ref v) = body.responsible_financial {
+        model.responsible_financial = sea_orm::Set(Some(*v));
+    }
+    if let Some(ref v) = body.responsible_non_financial {
+        model.responsible_non_financial = sea_orm::Set(Some(*v));
+    }
+    if let Some(ref v) = body.status {
+        model.status = sea_orm::Set(CoopStatus::parse(v).unwrap_or(CoopStatus::Active));
+    }
+    if let Some(ref v) = body.registered_on {
+        model.registered_on = sea_orm::Set(Some(*v));
+    }
+    if let Some(ref v) = body.accounting_year {
+        model.accounting_year =
+            sea_orm::Set(AccountingYear::parse(v).unwrap_or(AccountingYear::Calendar));
+    }
     model.updated_at = sea_orm::Set(chrono::Utc::now());
 
     let updated = state.cooperative_repo.update(model).await?;
