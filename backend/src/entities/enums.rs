@@ -2,6 +2,40 @@ use sea_orm::{DeriveActiveEnum, EnumIter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "eswatini_region")]
+pub enum EswatiniRegion {
+    #[sea_orm(string_value = "Hhohho")]
+    Hhohho,
+    #[sea_orm(string_value = "Lubombo")]
+    Lubombo,
+    #[sea_orm(string_value = "Manzini")]
+    Manzini,
+    #[sea_orm(string_value = "Shiselweni")]
+    Shiselweni,
+}
+
+impl EswatiniRegion {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "Hhohho" => Some(Self::Hhohho),
+            "Lubombo" => Some(Self::Lubombo),
+            "Manzini" => Some(Self::Manzini),
+            "Shiselweni" => Some(Self::Shiselweni),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Hhohho => "Hhohho",
+            Self::Lubombo => "Lubombo",
+            Self::Manzini => "Manzini",
+            Self::Shiselweni => "Shiselweni",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "cooperative_type")]
 pub enum CooperativeType {
     #[sea_orm(string_value = "sacco")]

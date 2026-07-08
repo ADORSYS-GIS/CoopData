@@ -3,7 +3,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::enums::{AccountingYear, CoopStatus, CooperativeType, UrbanRural};
+use super::enums::{AccountingYear, CoopStatus, CooperativeType, EswatiniRegion, UrbanRural};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "cooperatives")]
@@ -31,7 +31,7 @@ pub struct Model {
     #[sea_orm(nullable)]
     pub georeference: Option<String>,
     #[sea_orm(nullable)]
-    pub region: Option<String>,
+    pub region: Option<EswatiniRegion>,
     #[sea_orm(nullable)]
     pub geographic_classif: Option<UrbanRural>,
     #[sea_orm(nullable)]
@@ -39,7 +39,7 @@ pub struct Model {
     #[sea_orm(nullable)]
     pub sector: Option<String>,
     #[sea_orm(nullable)]
-    pub responsibe_financial: Option<Uuid>,
+    pub responsible_financial: Option<Uuid>,
     #[sea_orm(nullable)]
     pub responsible_non_financial: Option<Uuid>,
     pub status: CoopStatus,

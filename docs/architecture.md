@@ -412,7 +412,7 @@ CREATE TABLE cooperatives (
   phone              VARCHAR(30),                 -- "Phone number"
   sector             VARCHAR(50)  NOT NULL,       -- cached from apex/federation for fast filtering
   -- responsibility split (DATA sheet rows 12-14)
-  responsibe_financial       UUID,   -- keycloak user id responsible for financial info
+  responsible_financial       UUID,   -- keycloak user id responsible for financial info
   responsible_non_financial  UUID,   -- keycloak user id responsible for non-financial info
   status             coop_status NOT NULL DEFAULT 'Active',
   registered_on      DATE NOT NULL,

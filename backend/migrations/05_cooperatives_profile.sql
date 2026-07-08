@@ -14,11 +14,11 @@ ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS reg_no               VARCHAR(3
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS tin                  VARCHAR(20);
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS address              VARCHAR(255);
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS georeference         VARCHAR(100);
-ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS region              VARCHAR(50);
+ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS region              eswatini_region;
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS geographic_classif  urban_rural;
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS phone                VARCHAR(30);
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS sector              VARCHAR(50);
-ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS responsibe_financial       UUID;
+ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS responsible_financial       UUID;
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS responsible_non_financial  UUID;
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS status               coop_status NOT NULL DEFAULT 'Active';
 ALTER TABLE cooperatives ADD COLUMN IF NOT EXISTS registered_on        DATE;

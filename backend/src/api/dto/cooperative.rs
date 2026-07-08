@@ -22,7 +22,7 @@ pub struct CreateCooperativeRequest {
     pub phone: Option<String>,
     pub sector: String,
     #[serde(default)]
-    pub responsibe_financial: Option<Uuid>,
+    pub responsible_financial: Option<Uuid>,
     #[serde(default)]
     pub responsible_non_financial: Option<Uuid>,
     #[serde(default = "default_status")]
@@ -92,7 +92,7 @@ pub struct CreateCooperativeProfileRequest {
     pub phone: Option<String>,
     pub sector: String,
     #[serde(default)]
-    pub responsibe_financial: Option<Uuid>,
+    pub responsible_financial: Option<Uuid>,
     #[serde(default)]
     pub responsible_non_financial: Option<Uuid>,
     #[serde(default = "default_status")]
@@ -137,7 +137,7 @@ pub struct UpdateCooperativeProfileRequest {
     #[serde(default)]
     pub sector: Option<String>,
     #[serde(default)]
-    pub responsibe_financial: Option<Uuid>,
+    pub responsible_financial: Option<Uuid>,
     #[serde(default)]
     pub responsible_non_financial: Option<Uuid>,
     #[serde(default)]
@@ -166,7 +166,7 @@ pub struct CooperativeProfileResponse {
     pub geographic_classif: Option<String>,
     pub phone: Option<String>,
     pub sector: Option<String>,
-    pub responsibe_financial: Option<Uuid>,
+    pub responsible_financial: Option<Uuid>,
     pub responsible_non_financial: Option<Uuid>,
     pub status: String,
     pub registered_on: Option<NaiveDate>,
@@ -190,11 +190,11 @@ impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
             tin: m.tin,
             address: m.address,
             georeference: m.georeference,
-            region: m.region,
+            region: m.region.map(|r| r.as_str().to_string()),
             geographic_classif: m.geographic_classif.map(|g| g.as_str().to_string()),
             phone: m.phone,
             sector: m.sector,
-            responsibe_financial: m.responsibe_financial,
+            responsible_financial: m.responsible_financial,
             responsible_non_financial: m.responsible_non_financial,
             status: m.status.as_str().to_string(),
             registered_on: m.registered_on,

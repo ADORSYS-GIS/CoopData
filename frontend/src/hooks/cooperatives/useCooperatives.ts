@@ -70,7 +70,7 @@ export interface CreateCooperativeInput {
   geographic_classif: string;
   phone?: string;
   sector: string;
-  responsibe_financial?: string;
+  responsible_financial?: string;
   responsible_non_financial?: string;
   status?: string;
   registered_on: string;
@@ -81,15 +81,11 @@ export const useCreateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: CreateCooperativeInput) => {
-      const token = await getAccessToken();
-      const res = await fetch(`${API_BASE}/api/v1/apex/cooperatives`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives", {
+        body: body as never,
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(extractErrorMessage(json));
-      return json as CooperativeResponse;
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as unknown as CooperativeResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });

@@ -48,6 +48,7 @@ const COOP_TYPES = [
 const GEO_CLASSIF = ["Urban", "Rural"] as const;
 const COOP_STATUS = ["Active", "Inactive", "Suspended"] as const;
 const ACCOUNTING_YEAR = ["calendar", "fiscal"] as const;
+const ESWATINI_REGIONS = ["Hhohho", "Lubombo", "Manzini", "Shiselweni"] as const;
 
 const georeferenceRegex = /^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/;
 
@@ -65,7 +66,7 @@ const profileSchema = z.object({
     .regex(georeferenceRegex, "Format: lat,long (e.g. -26.3,31.1)")
     .optional()
     .or(z.literal("")),
-  region: z.string().min(1, "Region is required"),
+  region: z.enum(ESWATINI_REGIONS),
   geographic_classif: z.enum(GEO_CLASSIF),
   phone: z.string().max(30).optional().or(z.literal("")),
   sector: z.string().min(1, "Sector is required"),
@@ -100,7 +101,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
       tin: existing?.tin ?? "",
       address: existing?.address ?? "",
       georeference: existing?.georeference ?? "",
-      region: existing?.region ?? "",
+      region: (existing?.region as (typeof ESWATINI_REGIONS)[number]) ?? "Hhohho",
       geographic_classif: (existing?.geographic_classif as (typeof GEO_CLASSIF)[number]) ?? "Urban",
       phone: existing?.phone ?? "",
       sector: existing?.sector ?? "",
@@ -293,9 +294,20 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Region</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Hhohho" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ESWATINI_REGIONS.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

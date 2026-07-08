@@ -58,7 +58,7 @@ erDiagram
         urban_rural geographic_classif
         varchar phone
         varchar sector
-        uuid responsibe_financial
+        uuid responsible_financial
         uuid responsible_non_financial
         coop_status status
         date registered_on
@@ -409,7 +409,7 @@ erDiagram
 | `members` | `loans` | `member_id` | 1:N | |
 | `members` | `fixed_deposits` | `member_id` | 1:N | |
 
-> **Note on user UUIDs**: `submitted_by`, `reviewer_id`, `uploaded_by`, `responsibe_financial`, `responsible_non_financial`, and `audit_logs.user_id` are NOT FK-constrained — users live in Keycloak, not in this DB. They are stored as plain `UUID` columns validated only by JWT at the application layer.
+> **Note on user UUIDs**: `submitted_by`, `reviewer_id`, `uploaded_by`, `responsible_financial`, `responsible_non_financial`, and `audit_logs.user_id` are NOT FK-constrained — users live in Keycloak, not in this DB. They are stored as plain `UUID` columns validated only by JWT at the application layer.
 
 ---
 
@@ -516,7 +516,7 @@ erDiagram
 | `geographic_classif` (`urban_rural`) | Urban/Rural — `Urban`/`Rural` |
 | `phone` | Contact phone |
 | `sector` | Cached from apex/federation for fast filtering |
-| `responsibe_financial` / `responsible_non_financial` | Keycloak user UUIDs responsible for each data area (optional; typed in DATA sheet rows 12-14) |
+| `responsible_financial` / `responsible_non_financial` | Keycloak user UUIDs responsible for each data area (optional; typed in DATA sheet rows 12-14) |
 | `status` (`coop_status`) | `Active`/`Inactive`/`Suspended` — never hard-deleted; use status |
 | `registered_on` | Registration date |
 | `accounting_year` | `calendar` (Jan→Dec) or `fiscal` (Jun→Jul) — decides what `month=1` means on line items |
@@ -529,7 +529,7 @@ erDiagram
 
 **Relationships**
 - 1:N → `submissions`, `financial_statements`, `members`, `savings_accounts`, `loans`, `fixed_deposits`, `computed_kpis`, `abnormality_flags`
-- All user-UUID columns (`responsibe_*`, `submitted_by`, `reviewer_id`, `uploaded_by`) are **plain UUIDs**, NOT FK-constrained — users live in Keycloak.
+- All user-UUID columns (`responsible_*`, `submitted_by`, `reviewer_id`, `uploaded_by`) are **plain UUIDs**, NOT FK-constrained — users live in Keycloak.
 
 ---
 

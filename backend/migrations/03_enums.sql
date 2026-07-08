@@ -47,6 +47,10 @@ DO $$ BEGIN
     CREATE TYPE urban_rural AS ENUM ('Urban', 'Rural');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+DO $$ BEGIN
+    CREATE TYPE eswatini_region AS ENUM ('Hhohho', 'Lubombo', 'Manzini', 'Shiselweni');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ── Currency ──────────────────────────────────────────────────────────────────
 DO $$ BEGIN
     CREATE TYPE currency AS ENUM ('SZL', 'USD');
