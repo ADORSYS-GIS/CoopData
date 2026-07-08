@@ -1,7 +1,7 @@
 use axum::extract::Extension;
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -18,12 +18,14 @@ use crate::api::dto::cooperative::{
 use crate::api::dto::member::{
     derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest,
 };
+use crate::api::dto::verification::DeletePreviewResponse;
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::cooperative;
 use crate::entities::enums::{AccountingYear, CoopStatus, CooperativeType, UrbanRural};
 use crate::error::{AppError, AppResult};
+use crate::services::VerificationTokenService;
 use crate::AppState;
 
 // ─── Internal scope helper ──────────────────────────────────────────────────
@@ -448,9 +450,19 @@ pub async fn update_cooperative(
     // Scope: cooperative must belong to this apex
     assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
 
-    let mut attrs = HashMap::new();
+    let existing = state
+        .keycloak
+        .get_group_by_id(&id)
+        .await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    let mut attrs = existing.attributes.unwrap_or_default();
     if let Some(ref desc) = body.description {
-        attrs.insert("description".to_string(), vec![desc.clone()]);
+        if desc.is_empty() {
+            attrs.remove("description");
+        } else {
+            attrs.insert("description".to_string(), vec![desc.clone()]);
+        }
     }
 
     let group = state
@@ -484,13 +496,47 @@ pub async fn update_cooperative(
 }
 
 #[utoipa::path(
+    get,
+    path = "/api/v1/apex/cooperatives/{id}/delete-preview",
+    params(("id" = String, Path, description = "Cooperative (Subgroup) ID")),
+    responses(
+        (status = 200, description = "Cascade delete preview", body = DeletePreviewResponse),
+        (status = 403, description = "Forbidden - apex role required", body = ErrorResponse)
+    ),
+    tag = "Apex"
+)]
+pub async fn delete_cooperative_preview(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<String>,
+) -> AppResult<impl IntoResponse> {
+    assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+
+    let mut member_count = 0u64;
+
+    if let Ok(members) = state.keycloak.get_group_members(&id).await {
+        member_count += members.len() as u64;
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(DeletePreviewResponse {
+            apexes: 0,
+            cooperatives: 0,
+            members: member_count,
+        }),
+    ))
+}
+
+#[utoipa::path(
     delete,
     path = "/api/v1/apex/cooperatives/{id}",
     params(("id" = String, Path, description = "Cooperative (Subgroup) ID")),
     responses(
         (status = 204, description = "Cooperative deleted"),
-        (status = 403, description = "Forbidden - apex role required"),
-        (status = 404, description = "Cooperative not found")
+        (status = 403, description = "Forbidden - apex role required", body = ErrorResponse),
+        (status = 404, description = "Cooperative not found", body = ErrorResponse),
+        (status = 428, description = "Identity verification required", body = ErrorResponse)
     ),
     tag = "Apex"
 )]
@@ -498,10 +544,22 @@ pub async fn delete_cooperative(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
     assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+
+    let token = headers
+        .get("x-verification-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| {
+            AppError::PreconditionRequired(
+                "Identity verification is required for destructive actions. Please verify your identity and try again.".to_string(),
+            )
+        })?;
+
+    VerificationTokenService::validate_and_consume(&state.cache, &claims.sub, token).await?;
 
     // Audit BEFORE cascade so we have a record even if cascade partially fails
     if let Err(e) = state

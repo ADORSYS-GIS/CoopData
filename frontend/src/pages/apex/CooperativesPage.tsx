@@ -10,22 +10,23 @@ import {
   AlertCircle,
   ChevronRight,
   Eye,
-  MapPin,
-  Phone,
-  Hash,
-  Calendar,
   CheckCircle2,
   XCircle,
   PauseCircle,
 } from "lucide-react";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
-import { useDeleteCooperative } from "@/hooks/cooperatives/useCooperatives";
+import {
+  useDeleteCooperative,
+  useCooperativeDeletePreview,
+} from "@/hooks/cooperatives/useCooperatives";
 import {
   useCooperativeProfiles,
   type CooperativeProfile,
 } from "@/hooks/cooperatives/useCooperativeProfile";
 import { CooperativeProfileForm } from "@/pages/apex/CooperativeProfile";
+import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -54,19 +55,37 @@ export const CooperativesPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: cooperatives, isLoading, error } = useCooperativeProfiles();
   const deleteCoop = useDeleteCooperative();
+  const { verifyIdentity } = useVerifyIdentity();
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deletingCoop, setDeletingCoop] = useState<CooperativeProfile | null>(null);
 
-  const handleDelete = () => {
+  const { data: previewData, isLoading: previewLoading } = useCooperativeDeletePreview(
+    deletingCoop?.id ?? "",
+  );
+
+  const handleVerifyIdentity = async (password: string, otp?: string) => {
+    return verifyIdentity({ password, otp });
+  };
+
+  const handleConfirmDelete = async (verificationToken: string) => {
     if (!deletingCoop) return;
-    deleteCoop.mutate(deletingCoop.keycloak_id ?? deletingCoop.id, {
-      onSuccess: () => {
-        toast.success(`Deleted "${deletingCoop.name}"`);
-        setDeletingCoop(null);
-      },
-      onError: (err) => toast.error("Failed to delete", { description: String(err) }),
+    return new Promise<void>((resolve, reject) => {
+      deleteCoop.mutate(
+        { id: deletingCoop.id, verificationToken },
+        {
+          onSuccess: () => {
+            toast.success(`Deleted "${deletingCoop.name}"`);
+            setDeletingCoop(null);
+            resolve();
+          },
+          onError: (err) => {
+            toast.error("Failed to delete", { description: String(err) });
+            reject(err);
+          },
+        },
+      );
     });
   };
 
@@ -325,41 +344,20 @@ export const CooperativesPage: React.FC = () => {
         </div>
       )}
 
-      {deletingCoop && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            onClick={() => setDeletingCoop(null)}
-            className="absolute inset-0 bg-background/60 backdrop-blur-sm"
-          />
-          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertCircle className="size-5 text-destructive" />
-              <h3 className="font-heading text-lg font-bold text-foreground">Delete Cooperative</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Are you sure you want to delete{" "}
-              <strong className="text-foreground">{deletingCoop.name}</strong>? This cannot be
-              undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeletingCoop(null)}
-                className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleteCoop.isPending}
-                className="press-feedback px-4 py-2 rounded-lg bg-destructive text-xs font-semibold text-destructive-foreground hover:bg-destructive/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-              >
-                {deleteCoop.isPending && <Loader2 className="size-3.5 animate-spin" />}
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationDialog
+        open={!!deletingCoop}
+        onOpenChange={(open) => !open && setDeletingCoop(null)}
+        entityName={deletingCoop?.name ?? ""}
+        entityType="cooperative"
+        entityId={deletingCoop?.id ?? ""}
+        previewData={
+          previewData as unknown as
+            { apexes: number; cooperatives: number; members: number } | undefined
+        }
+        previewLoading={previewLoading}
+        onVerifyIdentity={handleVerifyIdentity}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </AppShell>
   );
 };

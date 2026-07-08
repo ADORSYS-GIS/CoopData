@@ -116,12 +116,16 @@ export const useUpdateCooperative = () => {
   });
 };
 
+/** Delete a cooperative (requires verification token) */
 export const useDeleteCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       const { error } = await apiClient.DELETE("/api/v1/apex/cooperatives/{id}", {
-        params: { path: { id } },
+        params: {
+          path: { id },
+          header: { "x-verification-token": verificationToken } as never,
+        },
       });
       if (error) throw new Error(extractErrorMessage(error));
     },
@@ -131,6 +135,20 @@ export const useDeleteCooperative = () => {
     },
   });
 };
+
+/** Get cascade delete preview for a cooperative */
+export const useCooperativeDeletePreview = (id: string) =>
+  useQuery({
+    queryKey: [COOPERATIVES_KEY, id, "delete-preview"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}/delete-preview", {
+        params: { path: { id } },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data;
+    },
+    enabled: !!id,
+  });
 
 // ─── Apex admin: Member management ──────────────────────────────────────────
 

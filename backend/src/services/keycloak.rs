@@ -176,20 +176,26 @@ impl KeycloakService {
         &self,
         username: &str,
         password: &str,
+        totp: Option<&str>,
     ) -> Result<(), AppError> {
         let url = format!("{}/protocol/openid-connect/token", self.openid_url());
-        let params = [
-            ("grant_type", "password"),
-            ("client_id", self.client_id.as_str()),
-            ("client_secret", self.client_secret.as_str()),
-            ("username", username),
-            ("password", password),
+        let mut params = vec![
+            ("grant_type".to_string(), "password".to_string()),
+            ("client_id".to_string(), self.client_id.clone()),
+            ("client_secret".to_string(), self.client_secret.clone()),
+            ("username".to_string(), username.to_string()),
+            ("password".to_string(), password.to_string()),
         ];
 
+        if let Some(code) = totp {
+            params.push(("totp".to_string(), code.to_string()));
+        }
+
+        let form_params: Vec<(String, String)> = params;
         let response = self
             .client
             .post(&url)
-            .form(&params)
+            .form(&form_params)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
@@ -211,6 +217,37 @@ impl KeycloakService {
         };
 
         Err(AppError::Unauthorized(detail))
+    }
+
+    /// Checks if a user has OTP (2FA) configured by listing their credentials
+    /// via the Keycloak Admin API and filtering for type "otp".
+    pub async fn get_user_otp_status(&self, user_id: &str) -> Result<bool, AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let url = format!("{}/users/{}/credentials", self.realm_url(), user_id);
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            warn!(status = %status, body = %body, "Failed to fetch user credentials");
+            return Err(AppError::ExternalServiceError(
+                "Failed to fetch user credentials".to_string(),
+            ));
+        }
+
+        let credentials: Vec<serde_json::Value> = response.json().await.map_err(|e| {
+            AppError::ExternalServiceError(format!("Failed to parse credentials: {e}"))
+        })?;
+
+        Ok(credentials
+            .iter()
+            .any(|c| c.get("type").and_then(|t| t.as_str()) == Some("otp")))
     }
 
     async fn get_realm_management_client_id(&self) -> Result<String, AppError> {

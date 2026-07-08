@@ -93,13 +93,16 @@ export const useUpdateFederation = () => {
   });
 };
 
-/** Delete a federation */
+/** Delete a federation (requires verification token) */
 export const useDeleteFederation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       const { error } = await apiClient.DELETE("/api/v1/ministry/federations/{id}", {
-        params: { path: { id } },
+        params: {
+          path: { id },
+          header: { "x-verification-token": verificationToken } as never,
+        },
       });
       if (error) throw error;
     },
@@ -108,6 +111,23 @@ export const useDeleteFederation = () => {
     },
   });
 };
+
+/** Get cascade delete preview for a federation */
+export const useFederationDeletePreview = (id: string) =>
+  useQuery({
+    queryKey: [FEDERATIONS_KEY, id, "delete-preview"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET(
+        "/api/v1/ministry/federations/{id}/delete-preview",
+        {
+          params: { path: { id } },
+        },
+      );
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
 
 /** List members of a federation */
 export const useFederationMembers = (federationId: string) =>

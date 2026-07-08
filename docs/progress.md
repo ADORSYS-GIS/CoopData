@@ -304,6 +304,43 @@
 - [ ] DTOs + repository + handler for financial statements & line items
 - [ ] Routes under `/cooperative/financial-statements`
 
+## Phase 6.5: High-Stakes Deletion ✅
+
+> **Goal**: Add multi-layered confirmation for cascade-deleting federations, apexes, and cooperatives. Type-to-confirm + re-authentication (password + optional OTP) + Redis-backed verification tokens.
+
+- [x] **6.5.1 Backend: Error variant + Keycloak OTP support**
+  - [x] `PreconditionRequired(String)` added to `AppError` enum → HTTP 428
+  - [x] `verify_user_password` updated with optional `totp` parameter
+  - [x] `get_user_otp_status(user_id)` method added to `KeycloakService` — checks Admin API credentials endpoint for `type: "otp"`
+- [x] **6.5.2 Backend: VerificationTokenService**
+  - [x] `backend/src/services/verification_token.rs` — Redis-backed tokens with 120s TTL, single-use (`validate_and_consume` deletes from Redis)
+  - [x] Key format: `verify:{user_id}:{token}`
+- [x] **6.5.3 Backend: VerifyIdentity endpoint**
+  - [x] `POST /api/v1/me/verify-identity` — accepts `{password, otp?}`, checks OTP if configured, calls ROPC with `totp`, generates + stores token, returns `{verification_token, requires_otp}`
+  - [x] DTOs in `backend/src/api/dto/verification.rs`: `VerifyIdentityRequest`, `VerifyIdentityResponse`, `DeletePreviewResponse`
+  - [x] Route added to `routes/shared.rs`
+- [x] **6.5.4 Backend: Delete-preview endpoints**
+  - [x] `GET /api/v1/ministry/federations/{id}/delete-preview` — counts apexes, cooperatives, members
+  - [x] `GET /api/v1/federation/apexes/{id}/delete-preview` — counts cooperatives, members
+  - [x] `GET /api/v1/apex/cooperatives/{id}/delete-preview` — counts members
+- [x] **6.5.5 Backend: Delete handlers updated**
+  - [x] All 3 delete handlers (`delete_federation`, `delete_apex`, `delete_cooperative`) require `X-Verification-Token` header
+  - [x] Missing/invalid/expired token → `428 Precondition Required`
+  - [x] Token consumed (single-use) after successful validation
+- [x] **6.5.6 Backend: OpenAPI registration**
+  - [x] All 4 new endpoints + 3 new DTOs registered in `openapi.rs`
+- [x] **6.5.7 Frontend: Hooks + Dialog**
+  - [x] `useVerifyIdentity` hook — POST /me/verify-identity via raw fetch
+  - [x] `useFederationDeletePreview`, `useApexDeletePreview`, `useCooperativeDeletePreview` hooks
+  - [x] `useDeleteFederation`, `useDeleteApex`, `useDeleteCooperative` updated to send `x-verification-token` header
+  - [x] `DeleteConfirmationDialog` component — 3-step dialog (type-to-confirm → password/OTP → deleting spinner)
+  - [x] Wired into `FederationsPage`, `ApexesPage`, `CooperativesPage` — replaced old AlertDialog/custom modals
+- [x] **6.5.8 Verification**
+  - [x] Backend: `cargo fmt` clean, `cargo clippy` clean, 162 unit + 36 integration tests pass
+  - [x] Frontend: `tsc --noEmit` clean, `npm run lint` 0 errors (16 pre-existing warnings)
+  - [x] OpenAPI spec verified: all 4 new endpoints present
+  - [x] Docker containers rebuilt + restarted, backend healthy on port 3000
+
 ### Phase 8: AI Extraction Pipeline
 - [ ] `object_storage.rs` (MinIO/S3 via reqwest + env config)
 - [ ] `ai_extraction.rs` + `FinancialStatementExtractor` trait + mock impl

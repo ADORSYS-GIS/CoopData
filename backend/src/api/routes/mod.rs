@@ -8,11 +8,11 @@
 //! - `shared` - Shared routes accessible by multiple roles
 //! - `users` - User management routes (accessible by ministry, federation, apex)
 
-mod apex;
+pub mod apex;
 mod cooperative;
-mod federation;
-mod ministry;
-mod shared;
+pub mod federation;
+pub mod ministry;
+pub mod shared;
 mod users;
 
 pub mod api;

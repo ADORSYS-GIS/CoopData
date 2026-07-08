@@ -20,7 +20,7 @@ impl TestApp {
     pub async fn new() -> Self {
         let config = test_config();
         let db = DatabaseConnection::default();
-        let cache = CacheService::new("redis://localhost:6379")
+        let cache = CacheService::new("memory://")
             .await
             .expect("Failed to create cache service");
         let keycloak = KeycloakService::new(&config);
