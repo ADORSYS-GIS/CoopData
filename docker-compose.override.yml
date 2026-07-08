@@ -8,11 +8,15 @@ services:
     build:
       dockerfile: backend/Dockerfile.dev
     container_name: coopdata-backend-dev
-    command: ["cargo", "watch", "-x", "run --bin coop-data-backend"]
+    command: ["cargo", "run", "--bin", "coop-data-backend"]
     environment:
       CARGO_WATCH_BIN: cargo-watch
       RUST_LOG: info,coop_data_backend=debug
       RUST_BACKTRACE: "1"
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     volumes:
       # Live source mount — file changes on host instantly trigger recompile.
       - ./backend/src:/app/src
@@ -39,6 +43,11 @@ services:
       VITE_KEYCLOAK_CLIENT_ID: coopdata-frontend
       # Vite proxy target — the backend container name in Docker network.
       VITE_PROXY_TARGET: http://backend:3000
+      CHOKIDAR_USEPOLLING: "true"
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     volumes:
       # Live source mount — file changes on host instantly trigger HMR.
       - ./frontend/src:/app/src

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -11,6 +11,39 @@ pub struct Model {
     pub keycloak_id: String,
     pub apex_id: Uuid,
     pub display_name: String,
+    #[sea_orm(nullable)]
+    pub keycloak_group_id: Option<Uuid>,
+    #[sea_orm(nullable)]
+    pub apex_group_id: Option<Uuid>,
+    #[sea_orm(nullable)]
+    pub federation_org_id: Option<Uuid>,
+    pub name: String,
+    #[sea_orm(nullable)]
+    pub institution_type: Option<String>,
+    #[sea_orm(nullable)]
+    pub reg_no: Option<String>,
+    #[sea_orm(nullable)]
+    pub tin: Option<String>,
+    #[sea_orm(nullable)]
+    pub address: Option<String>,
+    #[sea_orm(nullable)]
+    pub georeference: Option<String>,
+    #[sea_orm(nullable)]
+    pub region: Option<String>,
+    #[sea_orm(nullable)]
+    pub geographic_classif: Option<String>,
+    #[sea_orm(nullable)]
+    pub phone: Option<String>,
+    #[sea_orm(nullable)]
+    pub sector: Option<String>,
+    #[sea_orm(nullable)]
+    pub responsibe_financial: Option<Uuid>,
+    #[sea_orm(nullable)]
+    pub responsible_non_financial: Option<Uuid>,
+    pub status: String,
+    #[sea_orm(nullable)]
+    pub registered_on: Option<NaiveDate>,
+    pub accounting_year: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

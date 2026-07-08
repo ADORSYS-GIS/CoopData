@@ -23,7 +23,7 @@ pub fn apex_routes() -> Router<AppState> {
     Router::new()
         // Apex profile & dashboard
         .route("/profile", get(handlers::cooperative::get_apex_profile))
-        // Cooperative CRUD
+        // Cooperative CRUD (Keycloak-based)
         .route(
             "/cooperatives",
             post(handlers::cooperative::create_cooperative)
@@ -49,5 +49,17 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/cooperatives/{group_id}/members/{user_id}/resend-verification",
             post(handlers::cooperative::resend_cooperative_member_verification),
+        )
+        // Cooperative Profile CRUD (US2.1 - PG-based)
+        .route(
+            "/coop-profiles",
+            post(handlers::cooperative::create_cooperative_profile)
+                .get(handlers::cooperative::list_cooperative_profiles),
+        )
+        .route(
+            "/coop-profiles/{id}",
+            get(handlers::cooperative::get_cooperative_profile)
+                .patch(handlers::cooperative::update_cooperative_profile)
+                .delete(handlers::cooperative::delete_cooperative_profile),
         )
 }

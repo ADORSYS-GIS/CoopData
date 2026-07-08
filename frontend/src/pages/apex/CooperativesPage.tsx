@@ -11,12 +11,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
-import {
-  useCooperatives,
-  useCreateCooperative,
-  useUpdateCooperative,
-  useDeleteCooperative,
-} from "@/hooks/cooperatives/useCooperatives";
+import { useCooperatives, useDeleteCooperative } from "@/hooks/cooperatives/useCooperatives";
+import { CooperativeProfileForm } from "@/pages/apex/CooperativeProfile";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,68 +21,13 @@ type CoopItem = { id: string; name: string; description?: string | null; path?: 
 
 export const CooperativesPage: React.FC = () => {
   const { data: rawData, isLoading, error } = useCooperatives();
-  const createCoop = useCreateCooperative();
-  const updateCoop = useUpdateCooperative();
   const deleteCoop = useDeleteCooperative();
 
   const cooperatives: CoopItem[] = (rawData as CoopItem[]) ?? [];
 
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingCoop, setEditingCoop] = useState<CoopItem | null>(null);
   const [deletingCoop, setDeletingCoop] = useState<CoopItem | null>(null);
-
-  const [createName, setCreateName] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const name = createName.trim();
-    if (!name) {
-      toast.error("Cooperative name is required.");
-      return;
-    }
-    createCoop.mutate(
-      { name, description: createDescription.trim() || undefined },
-      {
-        onSuccess: () => {
-          toast.success(`Cooperative "${name}" created.`);
-          setIsCreateOpen(false);
-          setCreateName("");
-          setCreateDescription("");
-        },
-        onError: (err) => toast.error("Failed to create cooperative", { description: String(err) }),
-      },
-    );
-  };
-
-  const handleEdit = (coop: CoopItem) => {
-    setEditingCoop(coop);
-    setEditName(coop.name);
-    setEditDescription(coop.description ?? "");
-  };
-
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingCoop) return;
-    const name = editName.trim();
-    if (!name) {
-      toast.error("Cooperative name is required.");
-      return;
-    }
-    updateCoop.mutate(
-      { id: editingCoop.id, name, description: editDescription.trim() || undefined },
-      {
-        onSuccess: () => {
-          toast.success(`Updated "${name}"`);
-          setEditingCoop(null);
-        },
-        onError: (err) => toast.error("Failed to update", { description: String(err) }),
-      },
-    );
-  };
 
   const handleDelete = () => {
     if (!deletingCoop) return;
@@ -239,13 +180,14 @@ export const CooperativesPage: React.FC = () => {
                             Members
                             <ChevronRight className="size-3" />
                           </Link>
-                          <button
-                            onClick={() => handleEdit(c)}
+                          <Link
+                            to="/app/cooperative-profile/$cooperativeId"
+                            params={{ cooperativeId: c.id }}
+                            title="Edit profile"
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-100"
-                            title="Edit"
                           >
                             <Pencil className="size-3.5" />
-                          </button>
+                          </Link>
                           <button
                             onClick={() => setDeletingCoop(c)}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-red-200 bg-red-50 text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
@@ -272,17 +214,17 @@ export const CooperativesPage: React.FC = () => {
 
       {/* Create Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div
             onClick={() => setIsCreateOpen(false)}
             className="absolute inset-0 bg-background/60 backdrop-blur-sm"
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
-            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+          <div className="relative w-full max-w-2xl my-8 z-10">
+            <div className="flex items-center justify-between mb-2 px-2">
               <div className="flex items-center gap-2">
                 <Building2 className="size-5 text-accent" />
                 <h3 className="font-heading text-lg font-bold text-foreground">
-                  Register Cooperative
+                  Register New Cooperative
                 </h3>
               </div>
               <button
@@ -292,116 +234,7 @@ export const CooperativesPage: React.FC = () => {
                 <X className="size-4" />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Cooperative Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  placeholder="e.g. Manzini Dairy Cooperative"
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={createDescription}
-                  onChange={(e) => setCreateDescription(e.target.value)}
-                  placeholder="Optional description"
-                  rows={3}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all resize-none"
-                />
-              </div>
-              <div className="flex justify-end gap-2 border-t border-border pt-3">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createCoop.isPending}
-                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                >
-                  {createCoop.isPending && <Loader2 className="size-3.5 animate-spin" />}
-                  Register
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editingCoop && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            onClick={() => setEditingCoop(null)}
-            className="absolute inset-0 bg-background/60 backdrop-blur-sm"
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
-            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <Pencil className="size-5 text-accent" />
-                <h3 className="font-heading text-lg font-bold text-foreground">Edit Cooperative</h3>
-              </div>
-              <button
-                onClick={() => setEditingCoop(null)}
-                className="press-feedback rounded-lg p-1 hover:bg-muted text-muted-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all resize-none"
-                />
-              </div>
-              <div className="flex justify-end gap-2 border-t border-border pt-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingCoop(null)}
-                  className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateCoop.isPending}
-                  className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                >
-                  {updateCoop.isPending && <Loader2 className="size-3.5 animate-spin" />}
-                  Save Changes
-                </button>
-              </div>
-            </form>
+            <CooperativeProfileForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
         </div>
       )}

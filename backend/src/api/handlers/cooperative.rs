@@ -12,7 +12,8 @@ use uuid::Uuid;
 use crate::api::dto::apex::ApexResponse;
 use crate::api::dto::common::SuccessResponse;
 use crate::api::dto::cooperative::{
-    CooperativeResponse, CreateCooperativeRequest, UpdateCooperativeRequest,
+    CooperativeProfileResponse, CooperativeResponse, CreateCooperativeProfileRequest,
+    CreateCooperativeRequest, UpdateCooperativeProfileRequest, UpdateCooperativeRequest,
 };
 use crate::api::dto::member::{
     derive_status_from_user, AddMemberRequest, MemberResponse, UpdateMemberRequest,
@@ -89,9 +90,10 @@ async fn assert_cooperative_belongs_to_apex(
     path = "/api/v1/apex/cooperatives",
     request_body = CreateCooperativeRequest,
     responses(
-        (status = 201, description = "Cooperative created", body = CooperativeResponse),
+        (status = 201, description = "Cooperative created", body = CooperativeProfileResponse),
         (status = 400, description = "Invalid input"),
-        (status = 403, description = "Forbidden - apex role required")
+        (status = 403, description = "Forbidden - apex role required"),
+        (status = 409, description = "Registration number already in use")
     ),
     tag = "Apex"
 )]
@@ -104,12 +106,52 @@ pub async fn create_cooperative(
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("Cooperative name is required".into()));
     }
+    if body.reg_no.trim().is_empty() {
+        return Err(AppError::BadRequest("Registration number is required".into()));
+    }
+    if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid institution_type '{}'. Must be one of: {:?}",
+            body.institution_type, VALID_COOP_TYPES
+        )));
+    }
+    if !VALID_GEO_CLASSIF.contains(&body.geographic_classif.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid geographic_classif '{}'. Must be one of: {:?}",
+            body.geographic_classif, VALID_GEO_CLASSIF
+        )));
+    }
+    if !VALID_COOP_STATUS.contains(&body.status.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid status '{}'. Must be one of: {:?}",
+            body.status, VALID_COOP_STATUS
+        )));
+    }
+    if !VALID_ACCOUNTING_YEAR.contains(&body.accounting_year.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid accounting_year '{}'. Must be one of: {:?}",
+            body.accounting_year, VALID_ACCOUNTING_YEAR
+        )));
+    }
+
+    if let Some(existing) = state
+        .cooperative_repo
+        .find_by_reg_no(&body.reg_no)
+        .await
+        .ok()
+        .flatten()
+    {
+        tracing::warn!(reg_no = %body.reg_no, existing_id = %existing.id, "Duplicate reg_no");
+        return Err(AppError::Conflict(format!(
+            "Registration number '{}' is already in use",
+            body.reg_no
+        )));
+    }
 
     let apex_id_or_path = claims
         .get_apex_group_id()
         .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
 
-    // Resolve path (e.g. "/we") to the actual group with a UUID
     let apex_resolved = state
         .keycloak
         .resolve_group(&apex_id_or_path)
@@ -125,6 +167,32 @@ pub async fn create_cooperative(
         }
     }
     attrs.insert("type".to_string(), vec!["cooperative".to_string()]);
+    attrs.insert(
+        "institution_type".to_string(),
+        vec![body.institution_type.clone()],
+    );
+    attrs.insert("reg_no".to_string(), vec![body.reg_no.clone()]);
+    if let Some(ref tin) = body.tin {
+        attrs.insert("tin".to_string(), vec![tin.clone()]);
+    }
+    if let Some(ref phone) = body.phone {
+        attrs.insert("phone".to_string(), vec![phone.clone()]);
+    }
+    attrs.insert("region".to_string(), vec![body.region.clone()]);
+    attrs.insert("sector".to_string(), vec![body.sector.clone()]);
+    attrs.insert(
+        "geographic_classif".to_string(),
+        vec![body.geographic_classif.clone()],
+    );
+    attrs.insert("status".to_string(), vec![body.status.clone()]);
+    attrs.insert(
+        "registered_on".to_string(),
+        vec![body.registered_on.to_string()],
+    );
+    attrs.insert(
+        "accounting_year".to_string(),
+        vec![body.accounting_year.clone()],
+    );
 
     let group = state
         .keycloak
@@ -132,7 +200,6 @@ pub async fn create_cooperative(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-    // Track in PostgreSQL — look up apex PG record by KC group ID
     let apex_pg = state
         .apex_repo
         .find_by_keycloak_id(&apex_group_id)
@@ -192,17 +259,43 @@ pub async fn create_cooperative(
         }
     };
 
+    let coop_id = Uuid::new_v4();
     let coop_model = cooperative::ActiveModel {
-        id: sea_orm::Set(Uuid::new_v4()),
+        id: sea_orm::Set(coop_id),
         keycloak_id: sea_orm::Set(group.id.clone()),
         apex_id: sea_orm::Set(apex_pg_id),
         display_name: sea_orm::Set(body.name.clone()),
+        keycloak_group_id: sea_orm::Set(Some(Uuid::parse_str(&group.id).unwrap_or(coop_id))),
+        apex_group_id: sea_orm::Set(Some(Uuid::parse_str(&apex_group_id).unwrap_or(coop_id))),
+        federation_org_id: sea_orm::Set(None),
+        name: sea_orm::Set(body.name.clone()),
+        institution_type: sea_orm::Set(Some(body.institution_type.clone())),
+        reg_no: sea_orm::Set(Some(body.reg_no.clone())),
+        tin: sea_orm::Set(body.tin.clone()),
+        address: sea_orm::Set(body.address.clone()),
+        georeference: sea_orm::Set(body.georeference.clone()),
+        region: sea_orm::Set(Some(body.region.clone())),
+        geographic_classif: sea_orm::Set(Some(body.geographic_classif.clone())),
+        phone: sea_orm::Set(body.phone.clone()),
+        sector: sea_orm::Set(Some(body.sector.clone())),
+        responsibe_financial: sea_orm::Set(body.responsibe_financial),
+        responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
+        status: sea_orm::Set(body.status.clone()),
+        registered_on: sea_orm::Set(Some(body.registered_on)),
+        accounting_year: sea_orm::Set(body.accounting_year.clone()),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
-    if let Err(e) = state.cooperative_repo.create(coop_model).await {
-        tracing::warn!("Failed to track cooperative in PG: {}", e);
-    }
+
+    let created_coop = match state.cooperative_repo.create(coop_model).await {
+        Ok(model) => model,
+        Err(e) => {
+            tracing::error!(error = %e, "Failed to track cooperative in PG");
+            return Err(AppError::InternalServerError(
+                "Failed to create cooperative record".into(),
+            ));
+        }
+    };
 
     if let Err(e) = state
         .audit
@@ -211,7 +304,12 @@ pub async fn create_cooperative(
             "CREATE",
             "cooperative",
             Some(&group.id),
-            Some(serde_json::json!({"name": &body.name, "parent_id": &apex_group_id})),
+            Some(serde_json::json!({
+                "name": &body.name,
+                "reg_no": &body.reg_no,
+                "institution_type": &body.institution_type,
+                "parent_id": &apex_group_id
+            })),
             audit_ctx.ip_address.as_deref(),
             audit_ctx.user_agent.as_deref(),
         )
@@ -224,9 +322,13 @@ pub async fn create_cooperative(
         group_id = %group.id,
         parent_id = %apex_group_id,
         name = %body.name,
-        "Cooperative created"
+        reg_no = %body.reg_no,
+        "Cooperative created with full profile"
     );
-    Ok((StatusCode::CREATED, Json(CooperativeResponse::from(group))))
+    Ok((
+        StatusCode::CREATED,
+        Json(CooperativeProfileResponse::from(created_coop)),
+    ))
 }
 
 #[utoipa::path(
@@ -774,4 +876,380 @@ pub async fn get_apex_profile(
 
     tracing::info!(apex_path = %apex_id_or_path, group_id = %group.id, user_id = %claims.sub, "Apex profile fetched");
     Ok((StatusCode::OK, Json(ApexResponse::from(group))))
+}
+
+// ─── Cooperative Profile CRUD (US2.1) ─────────────────────────────────────────
+
+const VALID_COOP_TYPES: &[&str] = &[
+    "sacco",
+    "multipurpose",
+    "farm",
+    "housing",
+    "transport",
+    "finance",
+    "other",
+];
+const VALID_GEO_CLASSIF: &[&str] = &["Urban", "Rural"];
+const VALID_COOP_STATUS: &[&str] = &["Active", "Inactive", "Suspended"];
+const VALID_ACCOUNTING_YEAR: &[&str] = &["calendar", "fiscal"];
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperatives",
+    request_body = CreateCooperativeProfileRequest,
+    responses(
+        (status = 201, description = "Cooperative profile created", body = CooperativeProfileResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Cooperative with this reg_no already exists")
+    ),
+    tag = "Cooperatives"
+)]
+pub async fn create_cooperative_profile(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Json(body): Json<CreateCooperativeProfileRequest>,
+) -> AppResult<impl IntoResponse> {
+    if body.name.trim().is_empty() {
+        return Err(AppError::BadRequest("Cooperative name is required".into()));
+    }
+    if body.reg_no.trim().is_empty() {
+        return Err(AppError::BadRequest("Registration number (reg_no) is required".into()));
+    }
+    if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid institution_type. Must be one of: {}",
+            VALID_COOP_TYPES.join(", ")
+        )));
+    }
+    if !VALID_GEO_CLASSIF.contains(&body.geographic_classif.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid geographic_classif. Must be one of: {}",
+            VALID_GEO_CLASSIF.join(", ")
+        )));
+    }
+    if !VALID_COOP_STATUS.contains(&body.status.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid status. Must be one of: {}",
+            VALID_COOP_STATUS.join(", ")
+        )));
+    }
+    if !VALID_ACCOUNTING_YEAR.contains(&body.accounting_year.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid accounting_year. Must be one of: {}",
+            VALID_ACCOUNTING_YEAR.join(", ")
+        )));
+    }
+
+    if state.cooperative_repo.find_by_reg_no(&body.reg_no).await?.is_some() {
+        return Err(AppError::Conflict(format!(
+            "Cooperative with reg_no '{}' already exists",
+            body.reg_no
+        )));
+    }
+
+    let apex_id = if claims.is_apex() {
+        let apex_id_or_path = claims
+            .get_apex_group_id()
+            .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
+        let apex = state
+            .keycloak
+            .resolve_group(&apex_id_or_path)
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+        state
+            .apex_repo
+            .find_by_keycloak_id(&apex.id)
+            .await
+            .ok()
+            .flatten()
+            .map(|a| a.id)
+    } else {
+        None
+    };
+
+    let now = chrono::Utc::now();
+    let model = cooperative::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(String::new()),
+        apex_id: sea_orm::Set(apex_id.unwrap_or_else(Uuid::nil)),
+        display_name: sea_orm::Set(body.name.clone()),
+        keycloak_group_id: sea_orm::Set(None),
+        apex_group_id: sea_orm::Set(body.apex_group_id),
+        federation_org_id: sea_orm::Set(body.federation_org_id),
+        name: sea_orm::Set(body.name.clone()),
+        institution_type: sea_orm::Set(Some(body.institution_type.clone())),
+        reg_no: sea_orm::Set(Some(body.reg_no.clone())),
+        tin: sea_orm::Set(body.tin.clone()),
+        address: sea_orm::Set(body.address.clone()),
+        georeference: sea_orm::Set(body.georeference.clone()),
+        region: sea_orm::Set(Some(body.region.clone())),
+        geographic_classif: sea_orm::Set(Some(body.geographic_classif.clone())),
+        phone: sea_orm::Set(body.phone.clone()),
+        sector: sea_orm::Set(Some(body.sector.clone())),
+        responsibe_financial: sea_orm::Set(body.responsibe_financial),
+        responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
+        status: sea_orm::Set(body.status.clone()),
+        registered_on: sea_orm::Set(Some(body.registered_on)),
+        accounting_year: sea_orm::Set(body.accounting_year.clone()),
+        created_at: sea_orm::Set(now),
+        updated_at: sea_orm::Set(now),
+    };
+
+    let created = state.cooperative_repo.create(model).await?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "cooperative_profile",
+            Some(&created.id.to_string()),
+            Some(serde_json::json!({
+                "name": &body.name,
+                "reg_no": &body.reg_no,
+                "institution_type": &body.institution_type
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(
+        coop_id = %created.id,
+        reg_no = %body.reg_no,
+        "Cooperative profile created"
+    );
+    Ok((
+        StatusCode::CREATED,
+        Json(CooperativeProfileResponse::from(created)),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperatives",
+    responses(
+        (status = 200, description = "List of cooperatives", body = Vec<CooperativeProfileResponse>),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Cooperatives"
+)]
+pub async fn list_cooperative_profiles(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let coops = if claims.is_apex() {
+        let apex_id_or_path = claims
+            .get_apex_group_id()
+            .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
+        let apex = state
+            .keycloak
+            .resolve_group(&apex_id_or_path)
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+        match state.apex_repo.find_by_keycloak_id(&apex.id).await {
+            Ok(Some(apex_pg)) => state.cooperative_repo.find_by_apex_id(apex_pg.id).await?,
+            _ => state.cooperative_repo.list_all().await?,
+        }
+    } else {
+        state.cooperative_repo.list_all().await?
+    };
+
+    let responses: Vec<CooperativeProfileResponse> = coops.into_iter().map(Into::into).collect();
+    Ok((StatusCode::OK, Json(responses)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperatives/{id}",
+    params(("id" = Uuid, Path, description = "Cooperative ID")),
+    responses(
+        (status = 200, description = "Cooperative profile", body = CooperativeProfileResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Cooperative not found")
+    ),
+    tag = "Cooperatives"
+)]
+pub async fn get_cooperative_profile(
+    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop = state
+        .cooperative_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    Ok((StatusCode::OK, Json(CooperativeProfileResponse::from(coop))))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v1/cooperatives/{id}",
+    params(("id" = Uuid, Path, description = "Cooperative ID")),
+    request_body = UpdateCooperativeProfileRequest,
+    responses(
+        (status = 200, description = "Cooperative updated", body = CooperativeProfileResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Cooperative not found"),
+        (status = 409, description = "reg_no conflict")
+    ),
+    tag = "Cooperatives"
+)]
+pub async fn update_cooperative_profile(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<UpdateCooperativeProfileRequest>,
+) -> AppResult<impl IntoResponse> {
+    let existing = state
+        .cooperative_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    if let Some(ref reg_no) = body.reg_no {
+        if reg_no.trim().is_empty() {
+            return Err(AppError::BadRequest("reg_no cannot be empty".into()));
+        }
+        if let Some(conflict) = state.cooperative_repo.find_by_reg_no(reg_no).await? {
+            if conflict.id != id {
+                return Err(AppError::Conflict(format!(
+                    "Cooperative with reg_no '{}' already exists",
+                    reg_no
+                )));
+            }
+        }
+    }
+
+    if let Some(ref status) = body.status {
+        if !VALID_COOP_STATUS.contains(&status.as_str()) {
+            return Err(AppError::BadRequest(format!(
+                "Invalid status. Must be one of: {}",
+                VALID_COOP_STATUS.join(", ")
+            )));
+        }
+    }
+    if let Some(ref accounting_year) = body.accounting_year {
+        if !VALID_ACCOUNTING_YEAR.contains(&accounting_year.as_str()) {
+            return Err(AppError::BadRequest(format!(
+                "Invalid accounting_year. Must be one of: {}",
+                VALID_ACCOUNTING_YEAR.join(", ")
+            )));
+        }
+    }
+    if let Some(ref geo) = body.geographic_classif {
+        if !VALID_GEO_CLASSIF.contains(&geo.as_str()) {
+            return Err(AppError::BadRequest(format!(
+                "Invalid geographic_classif. Must be one of: {}",
+                VALID_GEO_CLASSIF.join(", ")
+            )));
+        }
+    }
+    if let Some(ref ct) = body.institution_type {
+        if !VALID_COOP_TYPES.contains(&ct.as_str()) {
+            return Err(AppError::BadRequest(format!(
+                "Invalid institution_type. Must be one of: {}",
+                VALID_COOP_TYPES.join(", ")
+            )));
+        }
+    }
+
+    let mut model: cooperative::ActiveModel = existing.into();
+    if let Some(ref v) = body.name { model.name = sea_orm::Set(v.clone()); }
+    if let Some(ref v) = body.institution_type { model.institution_type = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.reg_no { model.reg_no = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.tin { model.tin = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.address { model.address = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.georeference { model.georeference = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.region { model.region = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.geographic_classif { model.geographic_classif = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.phone { model.phone = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.sector { model.sector = sea_orm::Set(Some(v.clone())); }
+    if let Some(ref v) = body.responsibe_financial { model.responsibe_financial = sea_orm::Set(Some(*v)); }
+    if let Some(ref v) = body.responsible_non_financial { model.responsible_non_financial = sea_orm::Set(Some(*v)); }
+    if let Some(ref v) = body.status { model.status = sea_orm::Set(v.clone()); }
+    if let Some(ref v) = body.registered_on { model.registered_on = sea_orm::Set(Some(*v)); }
+    if let Some(ref v) = body.accounting_year { model.accounting_year = sea_orm::Set(v.clone()); }
+    model.updated_at = sea_orm::Set(chrono::Utc::now());
+
+    let updated = state.cooperative_repo.update(model).await?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "cooperative_profile",
+            Some(&id.to_string()),
+            Some(serde_json::json!({
+                "name": body.name,
+                "reg_no": body.reg_no,
+                "status": body.status
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(coop_id = %id, "Cooperative profile updated");
+    Ok((
+        StatusCode::OK,
+        Json(CooperativeProfileResponse::from(updated)),
+    ))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/cooperatives/{id}",
+    params(("id" = Uuid, Path, description = "Cooperative ID")),
+    responses(
+        (status = 204, description = "Cooperative deleted"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Cooperative not found")
+    ),
+    tag = "Cooperatives"
+)]
+pub async fn delete_cooperative_profile(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let existing = state
+        .cooperative_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "DELETE",
+            "cooperative_profile",
+            Some(&id.to_string()),
+            Some(serde_json::json!({"name": existing.name, "reg_no": existing.reg_no})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    state.cooperative_repo.delete(id).await?;
+    tracing::info!(coop_id = %id, "Cooperative profile deleted");
+    Ok((StatusCode::NO_CONTENT, ()))
 }

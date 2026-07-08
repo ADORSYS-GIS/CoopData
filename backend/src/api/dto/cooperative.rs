@@ -1,11 +1,35 @@
+use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateCooperativeRequest {
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
+    pub institution_type: String,
+    pub reg_no: String,
+    #[serde(default)]
+    pub tin: Option<String>,
+    #[serde(default)]
+    pub address: Option<String>,
+    #[serde(default)]
+    pub georeference: Option<String>,
+    pub region: String,
+    pub geographic_classif: String,
+    #[serde(default)]
+    pub phone: Option<String>,
+    pub sector: String,
+    #[serde(default)]
+    pub responsibe_financial: Option<Uuid>,
+    #[serde(default)]
+    pub responsible_non_financial: Option<Uuid>,
+    #[serde(default = "default_status")]
+    pub status: String,
+    pub registered_on: NaiveDate,
+    #[serde(default = "default_accounting_year")]
+    pub accounting_year: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -51,6 +75,136 @@ impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateCooperativeProfileRequest {
+    pub name: String,
+    pub institution_type: String,
+    pub reg_no: String,
+    #[serde(default)]
+    pub tin: Option<String>,
+    #[serde(default)]
+    pub address: Option<String>,
+    #[serde(default)]
+    pub georeference: Option<String>,
+    pub region: String,
+    pub geographic_classif: String,
+    #[serde(default)]
+    pub phone: Option<String>,
+    pub sector: String,
+    #[serde(default)]
+    pub responsibe_financial: Option<Uuid>,
+    #[serde(default)]
+    pub responsible_non_financial: Option<Uuid>,
+    #[serde(default = "default_status")]
+    pub status: String,
+    pub registered_on: NaiveDate,
+    #[serde(default = "default_accounting_year")]
+    pub accounting_year: String,
+    #[serde(default)]
+    pub apex_group_id: Option<Uuid>,
+    #[serde(default)]
+    pub federation_org_id: Option<Uuid>,
+}
+
+fn default_status() -> String {
+    "Active".to_string()
+}
+
+fn default_accounting_year() -> String {
+    "calendar".to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateCooperativeProfileRequest {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub institution_type: Option<String>,
+    #[serde(default)]
+    pub reg_no: Option<String>,
+    #[serde(default)]
+    pub tin: Option<String>,
+    #[serde(default)]
+    pub address: Option<String>,
+    #[serde(default)]
+    pub georeference: Option<String>,
+    #[serde(default)]
+    pub region: Option<String>,
+    #[serde(default)]
+    pub geographic_classif: Option<String>,
+    #[serde(default)]
+    pub phone: Option<String>,
+    #[serde(default)]
+    pub sector: Option<String>,
+    #[serde(default)]
+    pub responsibe_financial: Option<Uuid>,
+    #[serde(default)]
+    pub responsible_non_financial: Option<Uuid>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub registered_on: Option<NaiveDate>,
+    #[serde(default)]
+    pub accounting_year: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct CooperativeProfileResponse {
+    pub id: Uuid,
+    pub keycloak_id: Option<String>,
+    pub apex_id: Option<Uuid>,
+    pub keycloak_group_id: Option<Uuid>,
+    pub apex_group_id: Option<Uuid>,
+    pub federation_org_id: Option<Uuid>,
+    pub name: String,
+    pub institution_type: Option<String>,
+    pub reg_no: Option<String>,
+    pub tin: Option<String>,
+    pub address: Option<String>,
+    pub georeference: Option<String>,
+    pub region: Option<String>,
+    pub geographic_classif: Option<String>,
+    pub phone: Option<String>,
+    pub sector: Option<String>,
+    pub responsibe_financial: Option<Uuid>,
+    pub responsible_non_financial: Option<Uuid>,
+    pub status: String,
+    pub registered_on: Option<NaiveDate>,
+    pub accounting_year: String,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
+    fn from(m: crate::entities::cooperative::Model) -> Self {
+        Self {
+            id: m.id,
+            keycloak_id: Some(m.keycloak_id),
+            apex_id: Some(m.apex_id),
+            keycloak_group_id: m.keycloak_group_id,
+            apex_group_id: m.apex_group_id,
+            federation_org_id: m.federation_org_id,
+            name: m.name,
+            institution_type: m.institution_type,
+            reg_no: m.reg_no,
+            tin: m.tin,
+            address: m.address,
+            georeference: m.georeference,
+            region: m.region,
+            geographic_classif: m.geographic_classif,
+            phone: m.phone,
+            sector: m.sector,
+            responsibe_financial: m.responsibe_financial,
+            responsible_non_financial: m.responsible_non_financial,
+            status: m.status,
+            registered_on: m.registered_on,
+            accounting_year: m.accounting_year,
+            created_at: m.created_at,
+            updated_at: m.updated_at,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,8 +240,6 @@ mod tests {
         assert_eq!(response.name, "Test Cooperative");
         assert_eq!(response.path, Some("/apex-1/Test Cooperative".to_string()));
         assert!(response.description.is_none());
-        // parent_group_id is extracted from the path by removing "/{group_name}" suffix
-        // and taking the last segment, which is "apex-1"
         assert_eq!(response.parent_group_id, Some("apex-1".to_string()));
     }
 
@@ -147,5 +299,35 @@ mod tests {
         let req: UpdateCooperativeRequest = serde_json::from_str(json).unwrap();
         assert!(req.name.is_none());
         assert!(req.description.is_none());
+    }
+
+    #[test]
+    fn test_create_profile_request_deserialization() {
+        let json = r#"{
+            "name": "Test Coop",
+            "institution_type": "sacco",
+            "reg_no": "COOP001",
+            "region": "Hhohho",
+            "geographic_classif": "Urban",
+            "sector": "Finance",
+            "registered_on": "2020-01-15"
+        }"#;
+        let req: CreateCooperativeProfileRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, "Test Coop");
+        assert_eq!(req.institution_type, "sacco");
+        assert_eq!(req.reg_no, "COOP001");
+        assert_eq!(req.region, "Hhohho");
+        assert_eq!(req.geographic_classif, "Urban");
+        assert_eq!(req.sector, "Finance");
+        assert_eq!(req.status, "Active");
+        assert_eq!(req.accounting_year, "calendar");
+    }
+
+    #[test]
+    fn test_update_profile_request_empty() {
+        let json = r#"{}"#;
+        let req: UpdateCooperativeProfileRequest = serde_json::from_str(json).unwrap();
+        assert!(req.name.is_none());
+        assert!(req.reg_no.is_none());
     }
 }
