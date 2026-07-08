@@ -963,6 +963,55 @@ const VALID_COOP_STATUS: &[&str] = &["Active", "Inactive", "Suspended"];
 const VALID_ACCOUNTING_YEAR: &[&str] = &["calendar", "fiscal"];
 const VALID_REGIONS: &[&str] = &["Hhohho", "Lubombo", "Manzini", "Shiselweni"];
 
+/// Resolves the calling apex user's apex group to a database UUID.
+/// Used for scope enforcement in cooperative profile endpoints.
+/// Returns `AppError::Forbidden` if the user has no apex group or the
+/// apex group is not registered in the database.
+async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResult<Uuid> {
+    let apex_id_or_path = claims
+        .get_apex_group_id()
+        .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
+
+    let apex = state
+        .keycloak
+        .resolve_group(&apex_id_or_path)
+        .await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    let apex_pg = state
+        .apex_repo
+        .find_by_keycloak_id(&apex.id)
+        .await
+        .ok()
+        .flatten()
+        .ok_or_else(|| AppError::Forbidden("Apex group not found in database".into()))?;
+
+    Ok(apex_pg.id)
+}
+
+/// Verifies that a cooperative profile belongs to the calling apex user's group.
+/// Compares the cooperative's `apex_id` against the caller's resolved apex DB ID.
+async fn assert_profile_belongs_to_apex(
+    state: &AppState,
+    claims: &Claims,
+    coop: &cooperative::Model,
+) -> AppResult<()> {
+    let caller_apex_id = resolve_caller_apex_db_id(state, claims).await?;
+    if coop.apex_id != caller_apex_id {
+        tracing::warn!(
+            coop_id = %coop.id,
+            coop_apex_id = %coop.apex_id,
+            caller_apex_id = %caller_apex_id,
+            user_id = %claims.sub,
+            "Scope violation: attempted to access cooperative profile from another apex"
+        );
+        return Err(AppError::Forbidden(
+            "Access denied: this cooperative does not belong to your apex".into(),
+        ));
+    }
+    Ok(())
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/apex/coop-profiles",
@@ -1025,31 +1074,13 @@ pub async fn create_cooperative_profile(
         )));
     }
 
-    let apex_id = if claims.is_apex() {
-        let apex_id_or_path = claims
-            .get_apex_group_id()
-            .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
-        let apex = state
-            .keycloak
-            .resolve_group(&apex_id_or_path)
-            .await
-            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
-        state
-            .apex_repo
-            .find_by_keycloak_id(&apex.id)
-            .await
-            .ok()
-            .flatten()
-            .map(|a| a.id)
-    } else {
-        None
-    };
+    let apex_id = resolve_caller_apex_db_id(&state, &claims).await?;
 
     let now = chrono::Utc::now();
     let model = cooperative::ActiveModel {
         id: sea_orm::Set(Uuid::new_v4()),
         keycloak_id: sea_orm::Set(String::new()),
-        apex_id: sea_orm::Set(apex_id.unwrap_or_else(Uuid::nil)),
+        apex_id: sea_orm::Set(apex_id),
         display_name: sea_orm::Set(body.name.clone()),
         keycloak_group_id: sea_orm::Set(None),
         apex_group_id: sea_orm::Set(body.apex_group_id),
@@ -1119,22 +1150,8 @@ pub async fn list_cooperative_profiles(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    let coops = if claims.is_apex() {
-        let apex_id_or_path = claims
-            .get_apex_group_id()
-            .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
-        let apex = state
-            .keycloak
-            .resolve_group(&apex_id_or_path)
-            .await
-            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
-        match state.apex_repo.find_by_keycloak_id(&apex.id).await {
-            Ok(Some(apex_pg)) => state.cooperative_repo.find_by_apex_id(apex_pg.id).await?,
-            _ => state.cooperative_repo.list_all().await?,
-        }
-    } else {
-        state.cooperative_repo.list_all().await?
-    };
+    let apex_id = resolve_caller_apex_db_id(&state, &claims).await?;
+    let coops = state.cooperative_repo.find_by_apex_id(apex_id).await?;
 
     let responses: Vec<CooperativeProfileResponse> = coops.into_iter().map(Into::into).collect();
     Ok((StatusCode::OK, Json(responses)))
@@ -1153,7 +1170,7 @@ pub async fn list_cooperative_profiles(
 )]
 pub async fn get_cooperative_profile(
     State(state): State<AppState>,
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let coop = state
@@ -1161,6 +1178,8 @@ pub async fn get_cooperative_profile(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    assert_profile_belongs_to_apex(&state, &claims, &coop).await?;
 
     Ok((StatusCode::OK, Json(CooperativeProfileResponse::from(coop))))
 }
@@ -1191,6 +1210,8 @@ pub async fn update_cooperative_profile(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    assert_profile_belongs_to_apex(&state, &claims, &existing).await?;
 
     if let Some(ref reg_no) = body.reg_no {
         if reg_no.trim().is_empty() {
@@ -1316,6 +1337,8 @@ pub async fn delete_cooperative_profile(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    assert_profile_belongs_to_apex(&state, &claims, &existing).await?;
 
     if let Err(e) = state
         .audit
