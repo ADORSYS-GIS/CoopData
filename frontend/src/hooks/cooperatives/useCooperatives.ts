@@ -58,10 +58,29 @@ export const useCooperative = (id: string) =>
     enabled: !!id,
   });
 
+export interface CreateCooperativeInput {
+  name: string;
+  description?: string;
+  institution_type: string;
+  reg_no: string;
+  tin?: string;
+  address?: string;
+  georeference?: string;
+  region: string;
+  geographic_classif: string;
+  phone?: string;
+  sector: string;
+  responsible_financial?: string;
+  responsible_non_financial?: string;
+  status?: string;
+  registered_on: string;
+  accounting_year?: string;
+}
+
 export const useCreateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; description?: string }) => {
+    mutationFn: async (body: CreateCooperativeInput) => {
       const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives", {
         body: body as never,
       });
@@ -70,6 +89,7 @@ export const useCreateCooperative = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-profiles"] });
     },
   });
 };
@@ -107,6 +127,7 @@ export const useDeleteCooperative = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-profiles"] });
     },
   });
 };

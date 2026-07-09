@@ -13,6 +13,188 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/apex/coop-profiles": {
+      "get": {
+        "tags": [
+          "Cooperatives"
+        ],
+        "operationId": "list_cooperative_profiles",
+        "responses": {
+          "200": {
+            "description": "List of cooperatives",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CooperativeProfileResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cooperatives"
+        ],
+        "operationId": "create_cooperative_profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCooperativeProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Cooperative profile created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CooperativeProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Cooperative with this reg_no already exists"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/coop-profiles/{id}": {
+      "get": {
+        "tags": [
+          "Cooperatives"
+        ],
+        "operationId": "get_cooperative_profile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cooperative profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CooperativeProfileResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cooperatives"
+        ],
+        "operationId": "delete_cooperative_profile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cooperative deleted"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Cooperatives"
+        ],
+        "operationId": "update_cooperative_profile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCooperativeProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cooperative updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CooperativeProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative not found"
+          },
+          "409": {
+            "description": "reg_no conflict"
+          }
+        }
+      }
+    },
     "/api/v1/apex/cooperatives": {
       "get": {
         "tags": [
@@ -59,7 +241,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CooperativeResponse"
+                  "$ref": "#/components/schemas/CooperativeProfileResponse"
                 }
               }
             }
@@ -69,6 +251,9 @@
           },
           "403": {
             "description": "Forbidden - apex role required"
+          },
+          "409": {
+            "description": "Registration number already in use"
           }
         }
       }
@@ -260,10 +445,34 @@
             "description": "Cooperative deleted"
           },
           "403": {
-            "description": "Forbidden - apex role required"
+            "description": "Forbidden - apex role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Cooperative not found"
+            "description": "Cooperative not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Identity verification required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -312,6 +521,47 @@
           },
           "404": {
             "description": "Cooperative not found"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/cooperatives/{id}/delete-preview": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "delete_cooperative_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative (Subgroup) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cascade delete preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePreviewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - apex role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -715,6 +965,16 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "Identity verification required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -757,6 +1017,47 @@
           },
           "404": {
             "description": "Apex not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/apexes/{id}/delete-preview": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "delete_apex_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Apex (Group) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cascade delete preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePreviewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -1060,6 +1361,172 @@
         }
       }
     },
+    "/api/v1/me/verify-identity": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "verify_identity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Identity verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyIdentityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/audit-logs": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "list_audit_logs",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Filter by action",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "query",
+            "description": "Filter by resource type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "actor_keycloak_id",
+            "in": "query",
+            "description": "Filter by actor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "resource_keycloak_id",
+            "in": "query",
+            "description": "Filter by resource",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "description": "Filter from date (ISO 8601)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "description": "Filter to date (ISO 8601)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit logs retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAuditLogResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - ministry role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ministry/federations": {
       "get": {
         "tags": [
@@ -1202,7 +1669,7 @@
             "description": "Federation deleted"
           },
           "403": {
-            "description": "Forbidden",
+            "description": "Forbidden - ministry role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1211,8 +1678,8 @@
               }
             }
           },
-          "404": {
-            "description": "Federation not found",
+          "428": {
+            "description": "Identity verification required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1272,6 +1739,47 @@
           },
           "404": {
             "description": "Federation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/federations/{id}/delete-preview": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "delete_federation_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Federation (Organization) ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cascade delete preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePreviewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - ministry role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2090,6 +2598,94 @@
           }
         }
       },
+      "AuditLogFilterParams": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "actor_keycloak_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "date_from": {
+            "type": "string",
+            "nullable": true
+          },
+          "date_to": {
+            "type": "string",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "per_page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "resource_keycloak_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "resource_type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AuditLogResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "actor_keycloak_id",
+          "action",
+          "resource_type",
+          "created_at"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "actor_keycloak_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ip_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "resource_keycloak_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "resource_type": {
+            "type": "string"
+          },
+          "user_agent": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "required": [
@@ -2135,6 +2731,115 @@
           }
         }
       },
+      "CooperativeProfileResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "accounting_year",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "accounting_year": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "apex_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "federation_org_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "geographic_classif": {
+            "type": "string",
+            "nullable": true
+          },
+          "georeference": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institution_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "keycloak_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "keycloak_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "reg_no": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "registered_on": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "responsible_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "responsible_non_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "tin": {
+            "type": "string",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "CooperativeResponse": {
         "type": "object",
         "required": [
@@ -2177,18 +2882,153 @@
           }
         }
       },
+      "CreateCooperativeProfileRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "institution_type",
+          "reg_no",
+          "region",
+          "geographic_classif",
+          "sector",
+          "registered_on"
+        ],
+        "properties": {
+          "accounting_year": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "apex_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "federation_org_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "geographic_classif": {
+            "type": "string"
+          },
+          "georeference": {
+            "type": "string",
+            "nullable": true
+          },
+          "institution_type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "reg_no": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "registered_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "responsible_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "responsible_non_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tin": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "CreateCooperativeRequest": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "institution_type",
+          "reg_no",
+          "region",
+          "geographic_classif",
+          "sector",
+          "registered_on"
         ],
         "properties": {
+          "accounting_year": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
           },
+          "geographic_classif": {
+            "type": "string"
+          },
+          "georeference": {
+            "type": "string",
+            "nullable": true
+          },
+          "institution_type": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "reg_no": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "registered_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "responsible_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "responsible_non_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tin": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -2328,6 +3168,31 @@
           },
           "role": {
             "type": "string"
+          }
+        }
+      },
+      "DeletePreviewResponse": {
+        "type": "object",
+        "required": [
+          "apexes",
+          "cooperatives",
+          "members"
+        ],
+        "properties": {
+          "apexes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "cooperatives": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -2474,7 +3339,8 @@
       "MemberResponse": {
         "type": "object",
         "required": [
-          "id"
+          "id",
+          "status"
         ],
         "properties": {
           "email": {
@@ -2491,6 +3357,9 @@
           "last_name": {
             "type": "string",
             "nullable": true
+          },
+          "status": {
+            "type": "string"
           },
           "username": {
             "type": "string",
@@ -2573,6 +3442,44 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApexResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "per_page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PaginatedAuditLogResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page",
+          "total_pages"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogResponse"
             }
           },
           "page": {
@@ -2712,6 +3619,74 @@
             "nullable": true
           },
           "name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateCooperativeProfileRequest": {
+        "type": "object",
+        "properties": {
+          "accounting_year": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "geographic_classif": {
+            "type": "string",
+            "nullable": true
+          },
+          "georeference": {
+            "type": "string",
+            "nullable": true
+          },
+          "institution_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "reg_no": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "registered_on": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "responsible_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "responsible_non_financial": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "tin": {
             "type": "string",
             "nullable": true
           }
@@ -2950,6 +3925,36 @@
             "type": "string"
           },
           "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyIdentityRequest": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "otp": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyIdentityResponse": {
+        "type": "object",
+        "required": [
+          "verification_token",
+          "requires_otp"
+        ],
+        "properties": {
+          "requires_otp": {
+            "type": "boolean"
+          },
+          "verification_token": {
             "type": "string"
           }
         }

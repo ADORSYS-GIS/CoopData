@@ -1,0 +1,96 @@
+-- Migration 09: Non-Financial Data (Members, Savings, Loans, Fixed Deposits)
+-- Source: docs/architecture.md §6.8, docs/databse-shema.md §8.7
+
+CREATE TABLE IF NOT EXISTS members (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cooperative_id  UUID NOT NULL REFERENCES cooperatives(id),
+  submission_id   UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  member_id       VARCHAR(20) NOT NULL,
+  join_date       DATE NOT NULL,
+  status          member_status NOT NULL DEFAULT 'Active',
+  exit_date       DATE,
+  gender          gender NOT NULL,
+  age_group       age_group NOT NULL,
+  region          VARCHAR(50) NOT NULL,
+  urban_rural     urban_rural NOT NULL,
+  agm_attendance  BOOLEAN NOT NULL DEFAULT false,
+  leadership_role VARCHAR(100),
+  voting_exercised BOOLEAN NOT NULL DEFAULT false,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (cooperative_id, member_id)
+);
+
+CREATE TABLE IF NOT EXISTS savings_accounts (
+  id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cooperative_id              UUID NOT NULL REFERENCES cooperatives(id),
+  submission_id               UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  member_id                   UUID NOT NULL REFERENCES members(id),
+  savings_account_id          VARCHAR(20) NOT NULL,
+  account_type                account_type NOT NULL,
+  account_opening_date        DATE NOT NULL,
+  account_status              VARCHAR(20) NOT NULL DEFAULT 'Active',
+  contribution_frequency      VARCHAR(20) NOT NULL,
+  last_contribution_date     DATE NOT NULL,
+  number_of_contributions    INTEGER NOT NULL DEFAULT 0,
+  balance_trend               VARCHAR(20) NOT NULL,
+  zero_balance_flag           BOOLEAN NOT NULL DEFAULT false,
+  withdrawal_frequency_category VARCHAR(20) NOT NULL,
+  emergency_withdrawals_flag  BOOLEAN NOT NULL DEFAULT false,
+  interest_rate               NUMERIC(5,2) NOT NULL,
+  balance                     NUMERIC(15,2) NOT NULL DEFAULT 0,
+  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS loans (
+  id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cooperative_id              UUID NOT NULL REFERENCES cooperatives(id),
+  submission_id               UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  member_id                   UUID NOT NULL REFERENCES members(id),
+  loan_id                     VARCHAR(20) NOT NULL,
+  loan_product_type           VARCHAR(100) NOT NULL,
+  loan_start_date             DATE NOT NULL,
+  loan_maturity_date          DATE NOT NULL,
+  loan_status                 loan_status NOT NULL DEFAULT 'Performing',
+  borrower_type               VARCHAR(50) NOT NULL,
+  youth_borrower_flag         BOOLEAN NOT NULL DEFAULT false,
+  women_borrower_flag         BOOLEAN NOT NULL DEFAULT false,
+  rural_borrower_flag         BOOLEAN NOT NULL DEFAULT false,
+  repayment_regularity        VARCHAR(20) NOT NULL,
+  days_past_due_category      dpd_category NOT NULL DEFAULT '0',
+  missed_installments_count   INTEGER NOT NULL DEFAULT 0,
+  restructured_loan_flag       BOOLEAN NOT NULL DEFAULT false,
+  number_of_restructurings    INTEGER NOT NULL DEFAULT 0,
+  early_settlement_flag       BOOLEAN NOT NULL DEFAULT false,
+  multiple_loans_flag         BOOLEAN NOT NULL DEFAULT false,
+  large_borrower_flag          BOOLEAN NOT NULL DEFAULT false,
+  interest_rate               NUMERIC(5,2) NOT NULL,
+  balance                     NUMERIC(15,2) NOT NULL,
+  loan_amount                 NUMERIC(15,2) NOT NULL,
+  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS fixed_deposits (
+  id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cooperative_id              UUID NOT NULL REFERENCES cooperatives(id),
+  submission_id               UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  member_id                   UUID NOT NULL REFERENCES members(id),
+  fixed_deposit_id            VARCHAR(20) NOT NULL,
+  deposit_type                VARCHAR(20) NOT NULL,
+  start_date                  DATE NOT NULL,
+  maturity_date               DATE NOT NULL,
+  status                      fd_status NOT NULL DEFAULT 'Active',
+  tenure_category             VARCHAR(10) NOT NULL,
+  original_tenure_selected    VARCHAR(50) NOT NULL,
+  early_withdrawal_flag       BOOLEAN NOT NULL DEFAULT false,
+  rollover_at_maturity_flag  BOOLEAN NOT NULL DEFAULT false,
+  number_of_renewals          INTEGER NOT NULL DEFAULT 0,
+  change_in_tenure_at_renewal BOOLEAN NOT NULL DEFAULT false,
+  single_depositor_dependency_flag BOOLEAN NOT NULL DEFAULT false,
+  interest_rate               NUMERIC(5,2) NOT NULL,
+  balance                     NUMERIC(15,2) NOT NULL,
+  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+);

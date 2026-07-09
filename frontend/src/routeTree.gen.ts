@@ -35,6 +35,8 @@ import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
 import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
+import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.cooperative.$cooperativeId'
+import { Route as AppCooperativeProfileCooperativeIdRouteImport } from './routes/app.cooperative-profile.$cooperativeId'
 import { Route as AppCooperativeMembersCooperativeIdRouteImport } from './routes/app.cooperative-members.$cooperativeId'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
@@ -167,6 +169,18 @@ const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
   path: '/submissions/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCooperativeCooperativeIdRoute =
+  AppCooperativeCooperativeIdRouteImport.update({
+    id: '/cooperative/$cooperativeId',
+    path: '/cooperative/$cooperativeId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCooperativeProfileCooperativeIdRoute =
+  AppCooperativeProfileCooperativeIdRouteImport.update({
+    id: '/cooperative-profile/$cooperativeId',
+    path: '/cooperative-profile/$cooperativeId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppCooperativeMembersCooperativeIdRoute =
   AppCooperativeMembersCooperativeIdRouteImport.update({
     id: '/cooperative-members/$cooperativeId',
@@ -199,6 +213,8 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
+  '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
+  '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/app/users/': typeof AppUsersIndexRoute
@@ -226,6 +242,8 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/app': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
+  '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
+  '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/app/users': typeof AppUsersIndexRoute
@@ -256,6 +274,8 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
+  '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
+  '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
   '/app/submissions_/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/app/users/': typeof AppUsersIndexRoute
@@ -287,6 +307,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
+    | '/app/cooperative-profile/$cooperativeId'
+    | '/app/cooperative/$cooperativeId'
     | '/app/submissions/$id'
     | '/app/users/$apexId'
     | '/app/users/'
@@ -314,6 +336,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/app'
     | '/app/cooperative-members/$cooperativeId'
+    | '/app/cooperative-profile/$cooperativeId'
+    | '/app/cooperative/$cooperativeId'
     | '/app/submissions/$id'
     | '/app/users/$apexId'
     | '/app/users'
@@ -343,6 +367,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
+    | '/app/cooperative-profile/$cooperativeId'
+    | '/app/cooperative/$cooperativeId'
     | '/app/submissions_/$id'
     | '/app/users/$apexId'
     | '/app/users/'
@@ -539,6 +565,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSubmissionsIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/cooperative/$cooperativeId': {
+      id: '/app/cooperative/$cooperativeId'
+      path: '/cooperative/$cooperativeId'
+      fullPath: '/app/cooperative/$cooperativeId'
+      preLoaderRoute: typeof AppCooperativeCooperativeIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperative-profile/$cooperativeId': {
+      id: '/app/cooperative-profile/$cooperativeId'
+      path: '/cooperative-profile/$cooperativeId'
+      fullPath: '/app/cooperative-profile/$cooperativeId'
+      preLoaderRoute: typeof AppCooperativeProfileCooperativeIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/cooperative-members/$cooperativeId': {
       id: '/app/cooperative-members/$cooperativeId'
       path: '/cooperative-members/$cooperativeId'
@@ -583,6 +623,8 @@ interface AppRouteChildren {
   AppUsersRoute: typeof AppUsersRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppCooperativeMembersCooperativeIdRoute: typeof AppCooperativeMembersCooperativeIdRoute
+  AppCooperativeProfileCooperativeIdRoute: typeof AppCooperativeProfileCooperativeIdRoute
+  AppCooperativeCooperativeIdRoute: typeof AppCooperativeCooperativeIdRoute
   AppSubmissionsIdRoute: typeof AppSubmissionsIdRoute
 }
 
@@ -607,6 +649,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppCooperativeMembersCooperativeIdRoute:
     AppCooperativeMembersCooperativeIdRoute,
+  AppCooperativeProfileCooperativeIdRoute:
+    AppCooperativeProfileCooperativeIdRoute,
+  AppCooperativeCooperativeIdRoute: AppCooperativeCooperativeIdRoute,
   AppSubmissionsIdRoute: AppSubmissionsIdRoute,
 }
 

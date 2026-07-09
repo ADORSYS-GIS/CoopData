@@ -299,7 +299,7 @@ backend/src/
 │   ├── balance_sheet_line_item.rs ← NEW
 │   ├── chart_of_accounts.rs     ← NEW (reference seed)
 │   ├── member.rs, savings.rs, loan.rs, fixed_deposit.rs ← NEW
-│   ├── kpi.rs, compliance_score.rs, benchmark.rs ← NEW
+│   ├── kpi.rs, benchmark.rs ← NEW
 │   ├── uploaded_file.rs, extraction_job.rs, submission_review.rs ← NEW
 │   └── cooperative.rs           ← NEW (links to Keycloak group id)
 ├── repositories/
@@ -355,7 +355,6 @@ cooperatives ──◄── submissions ──► uploaded_files ──► extr
                      │           ──► fixed_deposits
                      │
                      ├─► computed_kpis
-                     ├─► compliance_scores
                      └─► abnormality_flags
 
 cooperatives ──► benchmark_data (regional/sector/national)
@@ -391,7 +390,6 @@ loan_status:       Performing, Arrears, Restructured, WrittenOff
 dpd_category:      0, '1-30', '31-60', '61-90', '91+'
 fd_status:         Active, Matured, Withdrawn, RolledOver
 coop_status:       Active, Inactive, Suspended
-compliance_status: green, amber, red
 ```
 
 ### 6.3 cooperatives (bridge + identity, per `DATA` sheet)
@@ -414,7 +412,7 @@ CREATE TABLE cooperatives (
   phone              VARCHAR(30),                 -- "Phone number"
   sector             VARCHAR(50)  NOT NULL,       -- cached from apex/federation for fast filtering
   -- responsibility split (DATA sheet rows 12-14)
-  responsibe_financial       UUID,   -- keycloak user id responsible for financial info
+  responsible_financial       UUID,   -- keycloak user id responsible for financial info
   responsible_non_financial  UUID,   -- keycloak user id responsible for non-financial info
   status             coop_status NOT NULL DEFAULT 'Active',
   registered_on      DATE NOT NULL,
@@ -433,7 +431,6 @@ CREATE TABLE submissions (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reference       VARCHAR(20)  NOT NULL UNIQUE,    -- SUB-2026-00001
   cooperative_id  UUID         NOT NULL REFERENCES cooperatives(id),
-  type            VARCHAR(50)  NOT NULL,           -- 'financial', 'membership', 'savings', 'loans', 'fixed_deposits'
   reporting_year  INTEGER      NOT NULL,            -- e.g. 2025 (the fiscal/calendar year covered by the ADORSYS 12-month grid)
   status          submission_status NOT NULL DEFAULT 'draft',
   current_tier    review_tier  NOT NULL DEFAULT 'cooperative',
@@ -447,11 +444,11 @@ CREATE TABLE submissions (
   metadata        JSONB        NOT NULL DEFAULT '{}',
   created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  UNIQUE (cooperative_id, type, reporting_year)
+  UNIQUE (cooperative_id, reporting_year)
 );
 ```
 
-**Reason**: Per the ADORSYS Excel, the balance sheet (BALANCE SHEET + TENDENCE sheets) is a **full-year grid of 12 monthly columns** (Dec→Dec / Jan→Dec), not a single snapshot. So a financial submission represents one **reporting_year**, and its line items carry a `month` 1-12 (see §6.6). For non-financial types the year is still the reporting year of the roster. `UNIQUE(cooperative_id, type, reporting_year)` prevents duplicate statements per year. `current_tier` + `status` encode workflow state (§7). User UUIDs are not FK-constrained since users live in Keycloak.
+**Reason**: A submission is the annual reporting envelope for a cooperative. The balance sheet (BALANCE SHEET + TENDENCE sheets) is a **full-year grid of 12 monthly columns** (Dec→Dec / Jan→Dec), so the financial statement carries a `reporting_year` and its line items carry a `month` 1-12 (see §6.6). Non-financial tables (`members`, `savings_accounts`, `loans`, `fixed_deposits`) also link to the same submission via `submission_id`. `UNIQUE(cooperative_id, reporting_year)` enforces one submission per cooperative per year. `current_tier` + `status` encode workflow state (§7). User UUIDs are not FK-constrained since users live in Keycloak.
 
 ### 6.5 uploaded_files & extraction_jobs
 
@@ -680,7 +677,7 @@ CREATE TABLE fixed_deposits (
 
 **Reason**: `submission_id` (nullable, cascade) ties non-financial records to a reporting submission so historical snapshots are preserved per period. Members use soft-delete (`status=Exited`) instead of hard delete to keep exit-rate KPI history (decision D4 legacy). `member_id` is a display string; the UUID PK is the relational anchor for savings/loans/fixed deposits.
 
-### 6.9 KPI & compliance tables
+### 6.9 KPI & abnormality tables
 
 ```sql
 CREATE TABLE computed_kpis (
@@ -698,21 +695,6 @@ CREATE TABLE computed_kpis (
   description     TEXT,
   computed_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (cooperative_id, kpi_name, reporting_period)
-);
-
-CREATE TABLE compliance_scores (
-  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  cooperative_id           UUID NOT NULL REFERENCES cooperatives(id),
-  reporting_period         VARCHAR(7) NOT NULL,
-  overall_score            NUMERIC(5,1) NOT NULL,    -- 0-100
-  status                   compliance_status NOT NULL,
-  timely_submission_score  NUMERIC(5,1) NOT NULL,
-  data_quality_score       NUMERIC(5,1) NOT NULL,
-  financial_ratios_score   NUMERIC(5,1) NOT NULL,
-  documentation_score      NUMERIC(5,1) NOT NULL,
-  summary                  TEXT,
-  computed_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (cooperative_id, reporting_period)
 );
 
 CREATE TABLE benchmark_data (
@@ -835,7 +817,7 @@ stateDiagram-v2
 | apex_review → apex_returned | apex | append review(apex, returned) |
 | federation_review → ministry_review | federation | append review(federation, approved), `current_tier=ministry` |
 | federation_review → federation_returned | federation | append review(federation, returned) |
-| ministry_review → approved | ministry | **trigger KPI finalize** + compliance score |
+| ministry_review → approved | ministry | **trigger KPI finalize** |
 | ministry_review → rejected | ministry | append review(ministry, rejected) |
 
 ### 7.3 Implementation
@@ -899,16 +881,7 @@ where `netSurplus = 6999`, `totalIncome = 4999`, `totalExpenses = 5999`.
 
 **Fixed deposits** — fdPenetration (≥20 red≥), longTermFdRatio, fdRolloverRate (≥60), earlyWithdrawalRate (≤15), concentrationRisk.
 
-### 8.4 Compliance score (weighted)
 
-```
-overall =
-  timely_submission   (30%)  — on-time vs due date
-+ data_quality         (25%)  — 1 − (abnormality_flags errors / account codes)
-+ financial_ratios     (25%)  — count of green KPIs / total financial KPIs
-+ documentation        (20%)  — uploaded file present & validated
-```
-Thresholds: ≥80 green, 50–79 amber, <50 red.
 
 ### 8.5 When KPIs compute
 
@@ -1015,7 +988,6 @@ All under `/api/v1/`. RBAC enforced by `role_guard_layer` per existing pattern. 
 | Method | Path | Role | Action |
 |---|---|---|---|
 | GET | `/kpis/{coopId}` | any (scoped) | computed KPIs |
-| GET | `/compliance/{coopId}` | any (scoped) | compliance score |
 | GET | `/benchmarks` | any | regional/sector/national |
 | GET | `/submissions/{id}` | any (scoped) | full detail incl. reviews + flags |
 
@@ -1058,7 +1030,7 @@ SeaORM-migration files in `backend/src/migration/` (new dir; currently absent). 
 3. `m20260703_000003_submissions.sql` (+ replaces the stub `assessments` table)
 4. `m20260703_000004_financial.sql` (financial_statements + line items)
 5. `m20260703_000005_non_financial.sql` (members, savings, loans, fixed deposits)
-6. `m20260703_000006_kpi.sql` (computed_kpis, compliance_scores, benchmark_data, abnormality_flags)
+6. `m20260703_000006_kpi.sql` (computed_kpis, benchmark_data, abnormality_flags)
 7. `m20260703_000007_extraction.sql` (uploaded_files, extraction_jobs, submission_reviews)
 8. `m20260703_000008_audit.sql` (audit_logs)
 9. `m20260703_000009_indexes.sql`
@@ -1132,7 +1104,6 @@ Phases map onto `docs/progress.md` (to be extended). Build bottom-up per `AGENTS
 ### Phase 11 — KPI Engine & Abnormality Detection
 - [ ] Port `kpi-calculations.ts` → `kpi_engine.rs`
 - [ ] `abnormality_detector.rs` (rules §9)
-- [ ] Compliance scoring
 - [ ] KPI read handlers + benchmark aggregation
 - [ ] Nightly batch (tokio task)
 

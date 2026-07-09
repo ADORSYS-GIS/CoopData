@@ -38,6 +38,16 @@ services:
       timeout: 5s
       retries: 5
 
+  adminer:
+    image: adminer:latest
+    container_name: coopdata-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   # MailHog — local SMTP server for development (invitation emails, password resets)
   mailhog:
     image: mailhog/mailhog:latest
@@ -57,7 +67,7 @@ services:
       KC_DB: postgres
       KC_DB_URL_HOST: postgres
       KC_DB_URL_PORT: "5432"
-      KC_DB_URL_DATABASE: ${POSTGRES_DB}
+      KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
