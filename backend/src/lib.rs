@@ -14,11 +14,12 @@ pub use database::Database;
 pub use error::{forbidden_with_roles, AppError, AppResult};
 pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
-    ApexRepository, CooperativeRepository, FederationRepository, OrganizationRepository,
-    UserRepository,
+    ApexRepository, CooperativeRepository, FederationRepository, FixedDepositRepository,
+    LoanRepository, MemberRepository, OrganizationRepository, SavingsAccountRepository,
+    UploadedFileRepository, UserRepository,
 };
 pub use services::keycloak::KeycloakService;
-pub use services::AuditService;
+pub use services::{AuditService, CalamineNfParser, ObjectStorageService};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -33,4 +34,11 @@ pub struct AppState {
     pub organization_repo: OrganizationRepository,
     pub user_repo: UserRepository,
     pub audit: AuditService,
+    pub member_repo: MemberRepository,
+    pub savings_account_repo: SavingsAccountRepository,
+    pub loan_repo: LoanRepository,
+    pub fixed_deposit_repo: FixedDepositRepository,
+    pub uploaded_file_repo: UploadedFileRepository,
+    pub storage: ObjectStorageService,
+    pub nf_excel_parser: CalamineNfParser,
 }

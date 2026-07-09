@@ -4,8 +4,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use coop_data_backend::{
     api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
     services::cache::CacheService, services::keycloak::KeycloakService, ApexRepository, AppState,
-    AuditLogRepository, AuditService, CooperativeRepository, FederationRepository,
-    OrganizationRepository, UserRepository,
+    AuditLogRepository, AuditService, CalamineNfParser, CooperativeRepository,
+    FederationRepository, FixedDepositRepository, LoanRepository, MemberRepository,
+    ObjectStorageService, OrganizationRepository, SavingsAccountRepository, UploadedFileRepository,
+    UserRepository,
 };
 
 #[tokio::main]
@@ -40,7 +42,14 @@ async fn main() -> anyhow::Result<()> {
     let cooperative_repo = CooperativeRepository::new(db.clone());
     let organization_repo = OrganizationRepository::new(db.clone());
     let user_repo = UserRepository::new(db.clone());
+    let member_repo = MemberRepository::new(db.clone());
+    let savings_account_repo = SavingsAccountRepository::new(db.clone());
+    let loan_repo = LoanRepository::new(db.clone());
+    let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
+    let uploaded_file_repo = UploadedFileRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
+    let storage = ObjectStorageService::new(&config)?;
+    let nf_excel_parser = CalamineNfParser::new();
 
     tracing::info!("Repositories and services initialized");
 
@@ -60,6 +69,13 @@ async fn main() -> anyhow::Result<()> {
         organization_repo,
         user_repo,
         audit,
+        member_repo,
+        savings_account_repo,
+        loan_repo,
+        fixed_deposit_repo,
+        uploaded_file_repo,
+        storage,
+        nf_excel_parser,
     };
 
     let app = create_app(state);

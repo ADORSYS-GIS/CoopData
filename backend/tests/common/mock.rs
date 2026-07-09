@@ -4,8 +4,10 @@ use coop_data_backend::auth::JwtValidator;
 use coop_data_backend::config::Environment;
 use coop_data_backend::services::cache::CacheService;
 use coop_data_backend::{
-    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService, CooperativeRepository,
-    FederationRepository, KeycloakService, OrganizationRepository, UserRepository,
+    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService, CalamineNfParser,
+    CooperativeRepository, FederationRepository, FixedDepositRepository, KeycloakService,
+    LoanRepository, MemberRepository, ObjectStorageService, OrganizationRepository,
+    SavingsAccountRepository, UploadedFileRepository, UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -33,6 +35,15 @@ impl TestApp {
         let user_repo = UserRepository::new(db.clone());
         let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
+        let member_repo = MemberRepository::new(db.clone());
+        let savings_account_repo = SavingsAccountRepository::new(db.clone());
+        let loan_repo = LoanRepository::new(db.clone());
+        let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
+        let uploaded_file_repo = UploadedFileRepository::new(db.clone());
+        let storage =
+            ObjectStorageService::new(&config).expect("Failed to create object storage service");
+        let nf_excel_parser = CalamineNfParser::new();
+
         let state = AppState {
             db,
             config,
@@ -45,6 +56,13 @@ impl TestApp {
             organization_repo,
             user_repo,
             audit,
+            member_repo,
+            savings_account_repo,
+            loan_repo,
+            fixed_deposit_repo,
+            uploaded_file_repo,
+            storage,
+            nf_excel_parser,
         };
 
         TestApp { state }
@@ -68,5 +86,12 @@ pub fn test_config() -> AppConfig {
         jwt_issuer_aliases: vec![],
         frontend_url: "http://localhost:5173".to_string(),
         environment: Environment::Development,
+        storage_type: "local".to_string(),
+        storage_path: "/tmp/coopdata-test-uploads".to_string(),
+        s3_endpoint: "http://localhost:9000".to_string(),
+        s3_bucket: "test-bucket".to_string(),
+        s3_access_key: "minioadmin".to_string(),
+        s3_secret_key: "minioadmin".to_string(),
+        s3_region: "us-east-1".to_string(),
     }
 }
