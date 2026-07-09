@@ -1,4 +1,4 @@
-import { Trash2, Plus, Loader2, Pencil } from "lucide-react";
+import { Trash2, Loader2, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,6 @@ interface SavingsGridProps {
   savings: SavingsAccountResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
-  onAdd?: () => void;
   onEdit?: (savings: SavingsAccountResponse) => void;
   onDelete?: (id: string) => void;
 }
@@ -29,25 +28,16 @@ export function SavingsGrid({
   savings,
   isLoading,
   isReadOnly,
-  onAdd,
   onEdit,
   onDelete,
 }: SavingsGridProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            Savings Accounts
-            <Badge variant="secondary">{savings.length}</Badge>
-          </CardTitle>
-          {!isReadOnly && (
-            <Button size="sm" onClick={onAdd}>
-              <Plus className="size-4" />
-              Add Savings Account
-            </Button>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          Savings Accounts
+          <Badge variant="secondary">{savings.length}</Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (

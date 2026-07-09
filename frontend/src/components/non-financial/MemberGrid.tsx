@@ -1,4 +1,4 @@
-import { Trash2, Plus, Loader2, Pencil } from "lucide-react";
+import { Trash2, Loader2, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,6 @@ interface MemberGridProps {
   members: MemberResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
-  onAdd?: () => void;
   onEdit?: (member: MemberResponse) => void;
   onDelete?: (id: string) => void;
 }
@@ -25,25 +24,16 @@ export function MemberGrid({
   members,
   isLoading,
   isReadOnly,
-  onAdd,
   onEdit,
   onDelete,
 }: MemberGridProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            Members
-            <Badge variant="secondary">{members.length}</Badge>
-          </CardTitle>
-          {!isReadOnly && (
-            <Button size="sm" onClick={onAdd}>
-              <Plus className="size-4" />
-              Add Member
-            </Button>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          Members
+          <Badge variant="secondary">{members.length}</Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (

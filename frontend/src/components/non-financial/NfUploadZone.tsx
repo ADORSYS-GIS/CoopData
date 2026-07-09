@@ -2,8 +2,6 @@ import { useState, useRef, useCallback } from "react";
 import { Upload, FileSpreadsheet, X, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useNfUpload } from "@/hooks/non-financial/useNfUpload";
 import { toast } from "sonner";
 import type { NfUploadResponse } from "@/types/non-financial";
@@ -14,7 +12,6 @@ interface NfUploadZoneProps {
 
 export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [submissionId, setSubmissionId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadMutation = useNfUpload();
@@ -39,12 +36,9 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
       toast.error("Please select an Excel file to upload.");
       return;
     }
-    if (!submissionId) {
-      toast.error("Please enter a submission ID.");
-      return;
-    }
 
     try {
+      const submissionId = crypto.randomUUID();
       const result = await uploadMutation.mutateAsync({
         file,
         submissionId,
@@ -52,7 +46,6 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
       toast.success(`Upload complete: ${result.rows_imported.members} members imported.`);
       onUploadComplete?.(result);
       setFile(null);
-      setSubmissionId("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
     }
@@ -60,7 +53,6 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
 
   const handleReset = () => {
     setFile(null);
-    setSubmissionId("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -73,18 +65,6 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="submission-id" className="text-xs font-semibold">
-            Submission ID *
-          </Label>
-          <Input
-            id="submission-id"
-            value={submissionId}
-            onChange={(e) => setSubmissionId(e.target.value)}
-            placeholder="Enter submission UUID"
-            className="mt-1.5"
-          />
-        </div>
 
         <div
           onClick={() => fileInputRef.current?.click()}

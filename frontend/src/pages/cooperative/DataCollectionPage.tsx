@@ -26,12 +26,26 @@ import {
   Zap,
   Clock,
   Send,
+  PiggyBank,
+  HandCoins,
+  Landmark,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
 import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
-import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
 import type { BalanceSheet } from "@/lib/financial-data";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NfUploadZone } from "@/components/non-financial/NfUploadZone";
+import { NfParseResults } from "@/components/non-financial/NfParseResults";
+import { MemberGrid } from "@/components/non-financial/MemberGrid";
+import { SavingsGrid } from "@/components/non-financial/SavingsGrid";
+import { LoanGrid } from "@/components/non-financial/LoanGrid";
+import { FixedDepositGrid } from "@/components/non-financial/FixedDepositGrid";
+import { useMembers, useDeleteMember } from "@/hooks/non-financial/useMembers";
+import { useSavings, useDeleteSavings } from "@/hooks/non-financial/useSavings";
+import { useLoans, useDeleteLoan } from "@/hooks/non-financial/useLoans";
+import { useFixedDeposits, useDeleteFixedDeposit } from "@/hooks/non-financial/useFixedDeposits";
+import type { NfUploadResponse } from "@/types/non-financial";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -42,6 +56,67 @@ export const DataCollectionPage: React.FC = () => {
 
   const [showFinancialUpload, setShowFinancialUpload] = useState(false);
   const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
+
+  const [nfUploadResult, setNfUploadResult] = useState<NfUploadResponse | null>(null);
+
+  const membersQuery = useMembers({ page: 1, page_size: 100 });
+  const savingsQuery = useSavings({ page: 1, page_size: 100 });
+  const loansQuery = useLoans({ page: 1, page_size: 100 });
+  const fdQuery = useFixedDeposits({ page: 1, page_size: 100 });
+
+  const deleteMember = useDeleteMember();
+  const deleteSavings = useDeleteSavings();
+  const deleteLoan = useDeleteLoan();
+  const deleteFd = useDeleteFixedDeposit();
+
+  const members = membersQuery.data?.data ?? [];
+  const savings = savingsQuery.data?.data ?? [];
+  const loans = loansQuery.data?.data ?? [];
+  const fds = fdQuery.data?.data ?? [];
+
+  const handleDeleteMember = async (id: string) => {
+    try {
+      await deleteMember.mutateAsync(id);
+      toast.success("Member deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete member");
+    }
+  };
+
+  const handleDeleteSavings = async (id: string) => {
+    try {
+      await deleteSavings.mutateAsync(id);
+      toast.success("Savings account deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete savings account");
+    }
+  };
+
+  const handleDeleteLoan = async (id: string) => {
+    try {
+      await deleteLoan.mutateAsync(id);
+      toast.success("Loan deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete loan");
+    }
+  };
+
+  const handleDeleteFd = async (id: string) => {
+    try {
+      await deleteFd.mutateAsync(id);
+      toast.success("Fixed deposit deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete fixed deposit");
+    }
+  };
+
+  const notifyAddEdit = () => toast.info("Use the Excel upload to add or update records in bulk.");
+
+  function formatCurrency(n: number): string {
+    if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
+    return `$${n.toFixed(0)}`;
+  }
 
   const [activeQuestionnaires] = useState([
     {
@@ -192,16 +267,176 @@ export const DataCollectionPage: React.FC = () => {
             )}
           </Card>
 
-          {/* Excel Database Uploads */}
+          {/* Non-Financial Data Upload + Grids */}
           <Card
-            title="Database Excel Sheets"
-            subtitle="Upload Excel/CSV files for each of the 5 cooperative databases"
+            title="Non-Financial Data"
+            subtitle="Upload membership, savings, loans, and fixed deposit records from Excel"
           >
-            <ExcelDatabaseUpload
-              onUploadComplete={(dbType, result) => {
-                toast.success(`${dbType} database: ${result.validRows} records validated`);
-              }}
-            />
+            <div className="space-y-6">
+              <div className="grid lg:grid-cols-2 gap-6">
+                <NfUploadZone onUploadComplete={(result) => setNfUploadResult(result)} />
+                {nfUploadResult && <NfParseResults result={nfUploadResult} />}
+              </div>
+
+              <Tabs defaultValue="membership">
+                <TabsList>
+                  <TabsTrigger value="membership" className="flex items-center gap-2">
+                    <Users className="size-4" />
+                    Membership
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{members.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="savings" className="flex items-center gap-2">
+                    <PiggyBank className="size-4" />
+                    Savings
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{savings.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="loans" className="flex items-center gap-2">
+                    <HandCoins className="size-4" />
+                    Loans
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{loans.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="fixed-deposits" className="flex items-center gap-2">
+                    <Landmark className="size-4" />
+                    Fixed Deposits
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{fds.length}</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="membership" className="space-y-4">
+                  <div className="grid lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                      <MemberGrid
+                        members={members}
+                        isLoading={membersQuery.isLoading}
+                        onDelete={handleDeleteMember}
+                        onAdd={notifyAddEdit}
+                        onEdit={notifyAddEdit}
+                      />
+                    </div>
+                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total Members</span>
+                        <span className="font-bold text-foreground">{members.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Active</span>
+                        <span className="font-bold text-success">
+                          {members.filter((m) => m.status === "Active").length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Women</span>
+                        <span className="font-bold text-foreground">
+                          {members.filter((m) => m.gender === "Female").length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Youth (&lt;35)</span>
+                        <span className="font-bold text-foreground">
+                          {members.filter((m) => m.age_group === "18-35").length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="savings" className="space-y-4">
+                  <div className="grid lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                      <SavingsGrid
+                        savings={savings}
+                        isLoading={savingsQuery.isLoading}
+                        onDelete={handleDeleteSavings}
+                        onAdd={notifyAddEdit}
+                        onEdit={notifyAddEdit}
+                      />
+                    </div>
+                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total Accounts</span>
+                        <span className="font-bold text-foreground">{savings.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Active</span>
+                        <span className="font-bold text-success">
+                          {savings.filter((s) => s.account_status === "Active").length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total Balance</span>
+                        <span className="font-bold text-foreground">
+                          {formatCurrency(savings.reduce((sum, s) => sum + s.balance, 0))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="loans" className="space-y-4">
+                  <div className="grid lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                      <LoanGrid
+                        loans={loans}
+                        isLoading={loansQuery.isLoading}
+                        onDelete={handleDeleteLoan}
+                        onAdd={notifyAddEdit}
+                        onEdit={notifyAddEdit}
+                      />
+                    </div>
+                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total Loans</span>
+                        <span className="font-bold text-foreground">{loans.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Performing</span>
+                        <span className="font-bold text-success">
+                          {loans.filter((l) => l.loan_status === "Performing").length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total Balance</span>
+                        <span className="font-bold text-foreground">
+                          {formatCurrency(loans.reduce((sum, l) => sum + l.balance, 0))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="fixed-deposits" className="space-y-4">
+                  <div className="grid lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                      <FixedDepositGrid
+                        fixedDeposits={fds}
+                        isLoading={fdQuery.isLoading}
+                        onDelete={handleDeleteFd}
+                        onAdd={notifyAddEdit}
+                        onEdit={notifyAddEdit}
+                      />
+                    </div>
+                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total FDs</span>
+                        <span className="font-bold text-foreground">{fds.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Active</span>
+                        <span className="font-bold text-success">
+                          {fds.filter((f) => f.status === "Active").length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground">Total Balance</span>
+                        <span className="font-bold text-foreground">
+                          {formatCurrency(fds.reduce((sum, f) => sum + f.balance, 0))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
           </Card>
 
           {/* Filing Instructions */}
@@ -211,9 +446,10 @@ export const DataCollectionPage: React.FC = () => {
           >
             <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
               <p>
-                As a cooperative manager, you are required to submit your financial data through the
-                upload process above. Simply upload your audited financial statement and Excel
-                database sheets — the system will extract and validate all data automatically.
+                As a cooperative manager, you are required to submit your financial and operational
+                data through the upload process above. Simply upload your audited financial statement
+                and Excel sheets for membership, savings, loans, and fixed deposits — the system
+                will extract and validate all data automatically.
               </p>
               <div className="p-4 rounded-xl bg-accent/5 border border-accent/15">
                 <div className="flex items-center gap-2 mb-2">
@@ -228,7 +464,7 @@ export const DataCollectionPage: React.FC = () => {
               <ul className="space-y-2">
                 {[
                   "Upload your audited financial statement (PDF or image)",
-                  "Upload Excel sheets for all 5 databases",
+                  "Upload Excel sheets for membership, savings, loans, and fixed deposits",
                   "Review extracted data for accuracy",
                   "Submit validated data to your Apex for review",
                 ].map((item) => (

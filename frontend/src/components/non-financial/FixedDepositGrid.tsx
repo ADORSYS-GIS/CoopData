@@ -1,4 +1,4 @@
-import { Trash2, Plus, Loader2, Pencil } from "lucide-react";
+import { Trash2, Loader2, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,6 @@ interface FixedDepositGridProps {
   fixedDeposits: FixedDepositResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
-  onAdd?: () => void;
   onEdit?: (fd: FixedDepositResponse) => void;
   onDelete?: (id: string) => void;
 }
@@ -29,25 +28,16 @@ export function FixedDepositGrid({
   fixedDeposits,
   isLoading,
   isReadOnly,
-  onAdd,
   onEdit,
   onDelete,
 }: FixedDepositGridProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            Fixed Deposits
-            <Badge variant="secondary">{fixedDeposits.length}</Badge>
-          </CardTitle>
-          {!isReadOnly && (
-            <Button size="sm" onClick={onAdd}>
-              <Plus className="size-4" />
-              Add Fixed Deposit
-            </Button>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          Fixed Deposits
+          <Badge variant="secondary">{fixedDeposits.length}</Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
