@@ -10,10 +10,12 @@ import { MemberGrid } from "@/components/non-financial/MemberGrid";
 import { SavingsGrid } from "@/components/non-financial/SavingsGrid";
 import { LoanGrid } from "@/components/non-financial/LoanGrid";
 import { FixedDepositGrid } from "@/components/non-financial/FixedDepositGrid";
+import { FarmCoopGrid } from "@/components/non-financial/FarmCoopGrid";
 import { useMembers, useDeleteMember } from "@/hooks/non-financial/useMembers";
 import { useSavings, useDeleteSavings } from "@/hooks/non-financial/useSavings";
 import { useLoans, useDeleteLoan } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits, useDeleteFixedDeposit } from "@/hooks/non-financial/useFixedDeposits";
+import { useFarmCoops, useDeleteFarmCoop } from "@/hooks/non-financial/useFarmCoop";
 import type { NfUploadResponse } from "@/types/non-financial";
 
 function formatCurrency(n: number): string {
@@ -31,11 +33,13 @@ export const NonFinancialDataPage: React.FC = () => {
   const savingsQuery = useSavings({ page: 1, page_size: 100 });
   const loansQuery = useLoans({ page: 1, page_size: 100 });
   const fdQuery = useFixedDeposits({ page: 1, page_size: 100 });
+  const farmCoopQuery = useFarmCoops({ page: 1, page_size: 100 });
 
   const deleteMember = useDeleteMember();
   const deleteSavings = useDeleteSavings();
   const deleteLoan = useDeleteLoan();
   const deleteFd = useDeleteFixedDeposit();
+  const deleteFarmCoop = useDeleteFarmCoop();
 
   if (!role) return null;
 
@@ -43,6 +47,7 @@ export const NonFinancialDataPage: React.FC = () => {
   const savings = savingsQuery.data?.data ?? [];
   const loans = loansQuery.data?.data ?? [];
   const fds = fdQuery.data?.data ?? [];
+  const farmCoops = farmCoopQuery.data?.data ?? [];
 
   const handleDeleteMember = async (id: string) => {
     try {
@@ -77,6 +82,15 @@ export const NonFinancialDataPage: React.FC = () => {
       toast.success("Fixed deposit deleted");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete fixed deposit");
+    }
+  };
+
+  const handleDeleteFarmCoop = async (id: string) => {
+    try {
+      await deleteFarmCoop.mutateAsync(id);
+      toast.success("Farm cooperative deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete farm cooperative");
     }
   };
 
@@ -116,6 +130,11 @@ export const NonFinancialDataPage: React.FC = () => {
               <Landmark className="size-4" />
               Fixed Deposits
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{fds.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="farm-coop" className="flex items-center gap-2">
+              <HandCoins className="size-4" />
+              Farm Coops
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{farmCoops.length}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -254,6 +273,34 @@ export const NonFinancialDataPage: React.FC = () => {
                     <span className="text-sm text-muted-foreground">Total Balance</span>
                     <span className="font-bold text-foreground">
                       {formatCurrency(fds.reduce((sum, f) => sum + f.balance, 0))}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="farm-coop" className="space-y-4">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <FarmCoopGrid
+                  farmCoops={farmCoops}
+                  isLoading={farmCoopQuery.isLoading}
+                  isReadOnly={isReadOnly}
+                  onDelete={handleDeleteFarmCoop}
+                  onEdit={notifyAddEdit}
+                />
+              </div>
+              <Card title="Farm Coop Statistics" subtitle="Farm cooperative summary">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm text-muted-foreground">Total Coops</span>
+                    <span className="font-bold text-foreground">{farmCoops.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm text-muted-foreground">Active</span>
+                    <span className="font-bold text-success">
+                      {farmCoops.filter((f) => f.operational_status === "Active").length}
                     </span>
                   </div>
                 </div>

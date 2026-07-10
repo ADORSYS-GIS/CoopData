@@ -8,7 +8,7 @@ export type FdStatus = "Active" | "Matured" | "Withdrawn" | "RolledOver";
 export type EswatiniRegion = "Hhohho" | "Manzini" | "Shiselweni" | "Lubombo";
 export type UrbanRural = "Urban" | "Rural";
 
-export interface MemberResponse {
+export interface NfMemberResponse {
   id: string;
   cooperative_id: string;
   submission_id: string | null;
@@ -27,7 +27,7 @@ export interface MemberResponse {
   updated_at: string;
 }
 
-export interface CreateMemberRequest {
+export interface NfCreateMemberRequest {
   member_id: string;
   join_date: string;
   status: MemberStatus;
@@ -41,7 +41,7 @@ export interface CreateMemberRequest {
   voting_exercised: boolean;
 }
 
-export type UpdateMemberRequest = Partial<CreateMemberRequest>;
+export type NfUpdateMemberRequest = Partial<NfCreateMemberRequest>;
 
 export interface SavingsAccountResponse {
   id: string;
@@ -182,6 +182,64 @@ export interface CreateFixedDepositRequest {
 
 export type UpdateFixedDepositRequest = Partial<CreateFixedDepositRequest>;
 
+export interface FarmCoopResponse {
+  id: string;
+  cooperative_id: string;
+  submission_id: string | null;
+  cooperative_type: string;
+  primary_activities: string;
+  year_of_establishment: number | null;
+  operational_status: string;
+  active_producer_flag: boolean;
+  production_type: string;
+  participation_frequency: string;
+  delivery_compliance: string;
+  production_cycle_type: string;
+  use_of_production_planning: boolean;
+  use_of_shared_inputs: boolean;
+  quality_compliance_flag: boolean;
+  market_channel_type: string;
+  formal_offtake_agreement: boolean;
+  buyer_concentration_flag: boolean;
+  price_predictability_category: string;
+  access_to_storage: boolean;
+  access_to_processing_facilities: boolean;
+  transport_coordination: string;
+  climate_exposure_type: string;
+  irrigation_access: boolean;
+  climate_mitigation_practices: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateFarmCoopRequest {
+  submission_id?: string | null;
+  cooperative_type: string;
+  primary_activities: string;
+  year_of_establishment?: number | null;
+  operational_status: string;
+  active_producer_flag?: boolean;
+  production_type: string;
+  participation_frequency: string;
+  delivery_compliance: string;
+  production_cycle_type: string;
+  use_of_production_planning?: boolean;
+  use_of_shared_inputs?: boolean;
+  quality_compliance_flag?: boolean;
+  market_channel_type: string;
+  formal_offtake_agreement?: boolean;
+  buyer_concentration_flag?: boolean;
+  price_predictability_category: string;
+  access_to_storage?: boolean;
+  access_to_processing_facilities?: boolean;
+  transport_coordination: string;
+  climate_exposure_type: string;
+  irrigation_access?: boolean;
+  climate_mitigation_practices: string;
+}
+
+export type UpdateFarmCoopRequest = Partial<CreateFarmCoopRequest>;
+
 export interface NfParseError {
   sheet: string;
   row: number;
@@ -204,6 +262,7 @@ export interface RowsCount {
   savings_accounts: number;
   loans: number;
   fixed_deposits: number;
+  farm_coop: number;
 }
 
 export interface NfUploadResponse {

@@ -3,6 +3,7 @@ pub mod assessment;
 pub mod audit_log;
 pub mod cooperative;
 pub mod enums;
+pub mod farm_coop;
 pub mod federation;
 pub mod fixed_deposit;
 pub mod loan;
@@ -19,6 +20,9 @@ pub use assessment::{
 pub use audit_log::{Column as AuditLogColumn, Entity as AuditLogEntity, Model as AuditLogModel};
 pub use cooperative::{
     Column as CooperativeColumn, Entity as CooperativeEntity, Model as CooperativeModel,
+};
+pub use farm_coop::{
+    Column as FarmCoopColumn, Entity as FarmCoopEntity, Model as FarmCoopModel,
 };
 pub use federation::{
     Column as FederationColumn, Entity as FederationEntity, Model as FederationModel,

@@ -3,21 +3,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SortableHeader } from "@/components/ui/data-table";
 import { Pencil, Trash2 } from "lucide-react";
-import type { MemberResponse } from "@/types/non-financial";
+import type { NfMemberResponse } from "@/types/non-financial";
 
 interface MemberActions {
-  onEdit?: (member: MemberResponse) => void;
+  onEdit?: (member: NfMemberResponse) => void;
   onDelete?: (id: string) => void;
 }
 
-export function createMemberColumns(actions?: MemberActions): ColumnDef<MemberResponse>[] {
+export function createMemberColumns(actions?: MemberActions): ColumnDef<NfMemberResponse>[] {
   return [
     {
       accessorKey: "member_id",
       header: ({ column }) => <SortableHeader column={column}>Member ID</SortableHeader>,
-      cell: ({ row }) => (
-        <span className="text-xs font-mono">{row.getValue("member_id")}</span>
-      ),
+      cell: ({ row }) => <span className="text-xs font-mono">{row.getValue("member_id")}</span>,
     },
     {
       accessorKey: "join_date",
@@ -31,7 +29,9 @@ export function createMemberColumns(actions?: MemberActions): ColumnDef<MemberRe
         const status = row.getValue("status") as string;
         return (
           <Badge
-            variant={status === "Active" ? "default" : status === "Exited" ? "destructive" : "secondary"}
+            variant={
+              status === "Active" ? "default" : status === "Exited" ? "destructive" : "secondary"
+            }
           >
             {status}
           </Badge>
@@ -77,7 +77,7 @@ export function createMemberColumns(actions?: MemberActions): ColumnDef<MemberRe
           {
             id: "actions",
             header: "Actions",
-            cell: ({ row }: { row: { original: MemberResponse } }) => (
+            cell: ({ row }: { row: { original: NfMemberResponse } }) => (
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
@@ -100,5 +100,5 @@ export function createMemberColumns(actions?: MemberActions): ColumnDef<MemberRe
           },
         ]
       : []),
-  ] as ColumnDef<MemberResponse>[];
+  ] as ColumnDef<NfMemberResponse>[];
 }

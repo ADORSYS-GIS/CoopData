@@ -14,7 +14,9 @@ interface FixedDepositActions {
   onDelete?: (id: string) => void;
 }
 
-export function createFixedDepositColumns(actions?: FixedDepositActions): ColumnDef<FixedDepositResponse>[] {
+export function createFixedDepositColumns(
+  actions?: FixedDepositActions,
+): ColumnDef<FixedDepositResponse>[] {
   return [
     {
       accessorKey: "fixed_deposit_id",
@@ -48,9 +50,7 @@ export function createFixedDepositColumns(actions?: FixedDepositActions): Column
       header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
-        return (
-          <Badge variant={status === "Active" ? "default" : "secondary"}>{status}</Badge>
-        );
+        return <Badge variant={status === "Active" ? "default" : "secondary"}>{status}</Badge>;
       },
     },
     {

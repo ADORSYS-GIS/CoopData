@@ -1,3 +1,4 @@
+use crate::api::dto::ErrorResponse;
 use axum::extract::{Extension, Multipart, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -12,7 +13,7 @@ use crate::api::dto::non_financial::*;
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 
-use crate::entities::{fixed_deposit, loan, member, savings_account, uploaded_file};
+use crate::entities::{farm_coop, fixed_deposit, loan, member, savings_account, uploaded_file};
 use crate::error::{AppError, AppResult};
 use crate::services::nf_excel_parser::{NfExcelParser, NfParseWarning};
 use crate::AppState;
@@ -25,6 +26,7 @@ fn empty_rows_imported() -> RowsImported {
         savings_accounts: 0,
         loans: 0,
         fixed_deposits: 0,
+        farm_coop: 0,
     }
 }
 
@@ -37,7 +39,7 @@ fn parse_uploaded_by(claims: &Claims) -> Option<Uuid> {
     path = "/api/v1/cooperative/non-financial/upload",
     responses(
         (status = 201, description = "Upload processed successfully", body = NfUploadResponse),
-        (status = 400, description = "Bad request - missing file, submission_id, or no valid sheets", body = crate::api::dto::ErrorResponse),
+        (status = 400, description = "Bad request - missing file, submission_id, or no valid sheets", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -180,6 +182,7 @@ pub async fn upload_non_financial(
         savings_accounts: parse_result.savings_accounts.len(),
         loans: parse_result.loans.len(),
         fixed_deposits: parse_result.fixed_deposits.len(),
+        farm_coop: parse_result.farm_coop.len(),
     };
 
     if !parse_result.errors.is_empty() {
@@ -222,6 +225,7 @@ pub async fn upload_non_financial(
     state.loan_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
     state.fixed_deposit_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
     state.member_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state.farm_coop_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
 
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     for record in &parse_result.members {
@@ -384,6 +388,40 @@ pub async fn upload_non_financial(
             .await?
     };
 
+    let mut farm_coop_active_models: Vec<farm_coop::ActiveModel> = Vec::new();
+    for record in &parse_result.farm_coop {
+        farm_coop_active_models.push(farm_coop::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            cooperative_id: Set(coop_id),
+            submission_id: Set(Some(submission_id)),
+            cooperative_type: Set(record.cooperative_type.clone()),
+            primary_activities: Set(record.primary_activities.clone()),
+            year_of_establishment: Set(record.year_of_establishment),
+            operational_status: Set(record.operational_status.clone()),
+            active_producer_flag: Set(record.active_producer_flag),
+            production_type: Set(record.production_type.clone()),
+            participation_frequency: Set(record.participation_frequency.clone()),
+            delivery_compliance: Set(record.delivery_compliance.clone()),
+            production_cycle_type: Set(record.production_cycle_type.clone()),
+            use_of_production_planning: Set(record.use_of_production_planning),
+            use_of_shared_inputs: Set(record.use_of_shared_inputs),
+            quality_compliance_flag: Set(record.quality_compliance_flag),
+            market_channel_type: Set(record.market_channel_type.clone()),
+            formal_offtake_agreement: Set(record.formal_offtake_agreement),
+            buyer_concentration_flag: Set(record.buyer_concentration_flag),
+            price_predictability_category: Set(record.price_predictability_category.clone()),
+            access_to_storage: Set(record.access_to_storage),
+            access_to_processing_facilities: Set(record.access_to_processing_facilities),
+            transport_coordination: Set(record.transport_coordination.clone()),
+            climate_exposure_type: Set(record.climate_exposure_type.clone()),
+            irrigation_access: Set(record.irrigation_access),
+            climate_mitigation_practices: Set(record.climate_mitigation_practices.clone()),
+            created_at: Set(now),
+            updated_at: Set(now),
+        });
+    }
+    let farm_coop_imported = state.farm_coop_repo.bulk_insert(farm_coop_active_models).await?;
+
     if let Err(e) = state
         .audit
         .log(
@@ -397,6 +435,7 @@ pub async fn upload_non_financial(
                 "savings_imported": savings_imported,
                 "loans_imported": loans_imported,
                 "fixed_deposits_imported": fd_imported,
+                "farm_coop_imported": farm_coop_imported,
             })),
             audit_ctx.ip_address.as_deref(),
             audit_ctx.user_agent.as_deref(),
@@ -420,6 +459,7 @@ pub async fn upload_non_financial(
                 savings_accounts: savings_imported,
                 loans: loans_imported,
                 fixed_deposits: fd_imported,
+                farm_coop: farm_coop_imported,
             },
         }),
     ))
@@ -430,7 +470,7 @@ pub async fn upload_non_financial(
     path = "/api/v1/cooperative/non-financial/members",
     params(NfListQueryParams),
     responses(
-        (status = 200, description = "List members", body = PaginatedMembersResponse),
+        (status = 200, description = "List members", body = NfPaginatedMembersResponse),
     ),
     tag = NF_TAG,
 )]
@@ -445,10 +485,10 @@ pub async fn list_members(
         .member_repo
         .find_by_cooperative_id(coop_id, params.submission_id, params.page, page_size)
         .await?;
-    let data: Vec<MemberResponse> = rows.into_iter().map(Into::into).collect();
+    let data: Vec<NfMemberResponse> = rows.into_iter().map(Into::into).collect();
     Ok((
         StatusCode::OK,
-        Json(PaginatedMembersResponse {
+        Json(NfPaginatedMembersResponse {
             data,
             page: params.page,
             page_size,
@@ -462,8 +502,8 @@ pub async fn list_members(
     path = "/api/v1/cooperative/non-financial/members/{id}",
     params(("id" = Uuid, Path, description = "Member ID")),
     responses(
-        (status = 200, description = "Member found", body = MemberResponse),
-        (status = 404, description = "Member not found", body = crate::api::dto::ErrorResponse),
+        (status = 200, description = "Member found", body = NfMemberResponse),
+        (status = 404, description = "Member not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -481,17 +521,17 @@ pub async fn get_member(
     if m.cooperative_id != coop_id {
         return Err(AppError::NotFound("Member not found".into()));
     }
-    Ok((StatusCode::OK, Json(MemberResponse::from(m))))
+    Ok((StatusCode::OK, Json(NfMemberResponse::from(m))))
 }
 
 #[utoipa::path(
     post,
     path = "/api/v1/cooperative/non-financial/members",
-    request_body = CreateMemberRequest,
+    request_body = NfCreateMemberRequest,
     responses(
-        (status = 201, description = "Member created", body = MemberResponse),
-        (status = 400, description = "Validation error", body = crate::api::dto::ErrorResponse),
-        (status = 409, description = "Conflict - member_id already exists", body = crate::api::dto::ErrorResponse),
+        (status = 201, description = "Member created", body = NfMemberResponse),
+        (status = 400, description = "Validation error", body = ErrorResponse),
+        (status = 409, description = "Conflict - member_id already exists", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -499,7 +539,7 @@ pub async fn create_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
-    Json(body): Json<CreateMemberRequest>,
+    Json(body): Json<NfCreateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let now = chrono::Utc::now();
@@ -537,17 +577,17 @@ pub async fn create_member(
     {
         tracing::error!("Failed to log audit: {}", e);
     }
-    Ok((StatusCode::CREATED, Json(MemberResponse::from(m))))
+    Ok((StatusCode::CREATED, Json(NfMemberResponse::from(m))))
 }
 
 #[utoipa::path(
     put,
     path = "/api/v1/cooperative/non-financial/members/{id}",
     params(("id" = Uuid, Path, description = "Member ID")),
-    request_body = UpdateMemberRequest,
+    request_body = NfUpdateMemberRequest,
     responses(
-        (status = 200, description = "Member updated", body = MemberResponse),
-        (status = 404, description = "Member not found", body = crate::api::dto::ErrorResponse),
+        (status = 200, description = "Member updated", body = NfMemberResponse),
+        (status = 404, description = "Member not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -556,7 +596,7 @@ pub async fn update_member(
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
-    Json(body): Json<UpdateMemberRequest>,
+    Json(body): Json<NfUpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
@@ -618,7 +658,7 @@ pub async fn update_member(
     {
         tracing::error!("Failed to log audit: {}", e);
     }
-    Ok((StatusCode::OK, Json(MemberResponse::from(m))))
+    Ok((StatusCode::OK, Json(NfMemberResponse::from(m))))
 }
 
 #[utoipa::path(
@@ -627,7 +667,7 @@ pub async fn update_member(
     params(("id" = Uuid, Path, description = "Member ID")),
     responses(
         (status = 204, description = "Member deleted"),
-        (status = 404, description = "Member not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Member not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -703,7 +743,7 @@ pub async fn list_savings_accounts(
     params(("id" = Uuid, Path, description = "Savings Account ID")),
     responses(
         (status = 200, description = "Savings account found", body = SavingsAccountResponse),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -730,7 +770,7 @@ pub async fn get_savings_account(
     request_body = CreateSavingsAccountRequest,
     responses(
         (status = 201, description = "Savings account created", body = SavingsAccountResponse),
-        (status = 400, description = "Validation error", body = crate::api::dto::ErrorResponse),
+        (status = 400, description = "Validation error", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -799,7 +839,7 @@ pub async fn create_savings_account(
     request_body = UpdateSavingsAccountRequest,
     responses(
         (status = 200, description = "Savings account updated", body = SavingsAccountResponse),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -882,7 +922,7 @@ pub async fn update_savings_account(
     params(("id" = Uuid, Path, description = "Savings Account ID")),
     responses(
         (status = 204, description = "Savings account deleted"),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -958,7 +998,7 @@ pub async fn list_loans(
     params(("id" = Uuid, Path, description = "Loan ID")),
     responses(
         (status = 200, description = "Loan found", body = LoanResponse),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -985,7 +1025,7 @@ pub async fn get_loan(
     request_body = CreateLoanRequest,
     responses(
         (status = 201, description = "Loan created", body = LoanResponse),
-        (status = 400, description = "Validation error", body = crate::api::dto::ErrorResponse),
+        (status = 400, description = "Validation error", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1061,7 +1101,7 @@ pub async fn create_loan(
     request_body = UpdateLoanRequest,
     responses(
         (status = 200, description = "Loan updated", body = LoanResponse),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1168,7 +1208,7 @@ pub async fn update_loan(
     params(("id" = Uuid, Path, description = "Loan ID")),
     responses(
         (status = 204, description = "Loan deleted"),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1244,7 +1284,7 @@ pub async fn list_fixed_deposits(
     params(("id" = Uuid, Path, description = "Fixed Deposit ID")),
     responses(
         (status = 200, description = "Fixed deposit found", body = FixedDepositResponse),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1271,7 +1311,7 @@ pub async fn get_fixed_deposit(
     request_body = CreateFixedDepositRequest,
     responses(
         (status = 201, description = "Fixed deposit created", body = FixedDepositResponse),
-        (status = 400, description = "Validation error", body = crate::api::dto::ErrorResponse),
+        (status = 400, description = "Validation error", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1341,7 +1381,7 @@ pub async fn create_fixed_deposit(
     request_body = UpdateFixedDepositRequest,
     responses(
         (status = 200, description = "Fixed deposit updated", body = FixedDepositResponse),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1430,7 +1470,7 @@ pub async fn update_fixed_deposit(
     params(("id" = Uuid, Path, description = "Fixed Deposit ID")),
     responses(
         (status = 204, description = "Fixed deposit deleted"),
-        (status = 404, description = "Not found", body = crate::api::dto::ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
     ),
     tag = NF_TAG,
 )]
@@ -1523,4 +1563,197 @@ mod tests {
         };
         assert_eq!(parse_uploaded_by(&claims), Some(uuid));
     }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/non-financial/farm-coop",
+    params(NfListQueryParams),
+    responses(
+        (status = 200, description = "List farm coop records", body = PaginatedFarmCoopResponse),
+    ),
+    tag = NF_TAG,
+)]
+pub async fn list_farm_coop(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<NfListQueryParams>,
+) -> AppResult<impl IntoResponse> {
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let (rows, total) = state
+        .farm_coop_repo
+        .find_by_cooperative_id(coop_id, params.submission_id, params.page, params.page_size)
+        .await?;
+    let data: Vec<FarmCoopResponse> = rows.into_iter().map(FarmCoopResponse::from).collect();
+    Ok((
+        StatusCode::OK,
+        Json(PaginatedFarmCoopResponse {
+            data,
+            page: params.page,
+            page_size: params.page_size,
+            total,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/non-financial/farm-coop/{id}",
+    params(("id" = Uuid, Path, description = "Farm coop record ID")),
+    responses(
+        (status = 200, description = "Farm coop record", body = FarmCoopResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+    ),
+    tag = NF_TAG,
+)]
+pub async fn get_farm_coop(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let record = state
+        .farm_coop_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Farm coop record not found".into()))?;
+    if record.cooperative_id != coop_id {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+    Ok((StatusCode::OK, Json(FarmCoopResponse::from(record))))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/non-financial/farm-coop",
+    request_body = CreateFarmCoopRequest,
+    responses(
+        (status = 201, description = "Farm coop record created", body = FarmCoopResponse),
+    ),
+    tag = NF_TAG,
+)]
+pub async fn create_farm_coop(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Json(body): Json<CreateFarmCoopRequest>,
+) -> AppResult<impl IntoResponse> {
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let now = chrono::Utc::now();
+    let active = farm_coop::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        cooperative_id: Set(coop_id),
+        submission_id: Set(body.submission_id),
+        cooperative_type: Set(body.cooperative_type),
+        primary_activities: Set(body.primary_activities),
+        year_of_establishment: Set(body.year_of_establishment),
+        operational_status: Set(body.operational_status),
+        active_producer_flag: Set(body.active_producer_flag),
+        production_type: Set(body.production_type),
+        participation_frequency: Set(body.participation_frequency),
+        delivery_compliance: Set(body.delivery_compliance),
+        production_cycle_type: Set(body.production_cycle_type),
+        use_of_production_planning: Set(body.use_of_production_planning),
+        use_of_shared_inputs: Set(body.use_of_shared_inputs),
+        quality_compliance_flag: Set(body.quality_compliance_flag),
+        market_channel_type: Set(body.market_channel_type),
+        formal_offtake_agreement: Set(body.formal_offtake_agreement),
+        buyer_concentration_flag: Set(body.buyer_concentration_flag),
+        price_predictability_category: Set(body.price_predictability_category),
+        access_to_storage: Set(body.access_to_storage),
+        access_to_processing_facilities: Set(body.access_to_processing_facilities),
+        transport_coordination: Set(body.transport_coordination),
+        climate_exposure_type: Set(body.climate_exposure_type),
+        irrigation_access: Set(body.irrigation_access),
+        climate_mitigation_practices: Set(body.climate_mitigation_practices),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
+    let m = state.farm_coop_repo.create(active).await?;
+    tracing::info!(cooperative_id = %coop_id, "Farm coop record created");
+    Ok((StatusCode::CREATED, Json(FarmCoopResponse::from(m))))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/cooperative/non-financial/farm-coop/{id}",
+    params(("id" = Uuid, Path, description = "Farm coop record ID")),
+    request_body = UpdateFarmCoopRequest,
+    responses(
+        (status = 200, description = "Farm coop record updated", body = FarmCoopResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+    ),
+    tag = NF_TAG,
+)]
+pub async fn update_farm_coop(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<UpdateFarmCoopRequest>,
+) -> AppResult<impl IntoResponse> {
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let existing = state
+        .farm_coop_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Farm coop record not found".into()))?;
+    if existing.cooperative_id != coop_id {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+    let mut active: farm_coop::ActiveModel = existing.into();
+    if let Some(v) = body.cooperative_type { active.cooperative_type = Set(v); }
+    if let Some(v) = body.primary_activities { active.primary_activities = Set(v); }
+    if let Some(v) = body.year_of_establishment { active.year_of_establishment = Set(Some(v)); }
+    if let Some(v) = body.operational_status { active.operational_status = Set(v); }
+    if let Some(v) = body.active_producer_flag { active.active_producer_flag = Set(v); }
+    if let Some(v) = body.production_type { active.production_type = Set(v); }
+    if let Some(v) = body.participation_frequency { active.participation_frequency = Set(v); }
+    if let Some(v) = body.delivery_compliance { active.delivery_compliance = Set(v); }
+    if let Some(v) = body.production_cycle_type { active.production_cycle_type = Set(v); }
+    if let Some(v) = body.use_of_production_planning { active.use_of_production_planning = Set(v); }
+    if let Some(v) = body.use_of_shared_inputs { active.use_of_shared_inputs = Set(v); }
+    if let Some(v) = body.quality_compliance_flag { active.quality_compliance_flag = Set(v); }
+    if let Some(v) = body.market_channel_type { active.market_channel_type = Set(v); }
+    if let Some(v) = body.formal_offtake_agreement { active.formal_offtake_agreement = Set(v); }
+    if let Some(v) = body.buyer_concentration_flag { active.buyer_concentration_flag = Set(v); }
+    if let Some(v) = body.price_predictability_category { active.price_predictability_category = Set(v); }
+    if let Some(v) = body.access_to_storage { active.access_to_storage = Set(v); }
+    if let Some(v) = body.access_to_processing_facilities { active.access_to_processing_facilities = Set(v); }
+    if let Some(v) = body.transport_coordination { active.transport_coordination = Set(v); }
+    if let Some(v) = body.climate_exposure_type { active.climate_exposure_type = Set(v); }
+    if let Some(v) = body.irrigation_access { active.irrigation_access = Set(v); }
+    if let Some(v) = body.climate_mitigation_practices { active.climate_mitigation_practices = Set(v); }
+    if let Some(v) = body.submission_id { active.submission_id = Set(v); }
+    active.updated_at = Set(chrono::Utc::now());
+    let m = state.farm_coop_repo.update(active).await?;
+    tracing::info!(cooperative_id = %coop_id, id = %id, "Farm coop record updated");
+    Ok((StatusCode::OK, Json(FarmCoopResponse::from(m))))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/cooperative/non-financial/farm-coop/{id}",
+    params(("id" = Uuid, Path, description = "Farm coop record ID")),
+    responses(
+        (status = 204, description = "Farm coop record deleted"),
+        (status = 404, description = "Not found", body = ErrorResponse),
+    ),
+    tag = NF_TAG,
+)]
+pub async fn delete_farm_coop(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let existing = state
+        .farm_coop_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Farm coop record not found".into()))?;
+    if existing.cooperative_id != coop_id {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+    state.farm_coop_repo.delete(id).await?;
+    tracing::info!(cooperative_id = %coop_id, id = %id, "Farm coop record deleted");
+    Ok(StatusCode::NO_CONTENT)
 }

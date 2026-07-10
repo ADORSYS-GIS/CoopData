@@ -20,7 +20,7 @@ serde_repr = "0.1"
 sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-rust_decimal"] }
 sea-orm-migration = "1.1"
 
-utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid"] }
+utoipa = { version = "4", features = ["axum_extras", "chrono", "uuid", "decimal"] }
 
 anyhow = "1"
 thiserror = "1"

@@ -1,15 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
 import type {
-  NfMemberResponse,
-  NfCreateMemberRequest,
-  NfUpdateMemberRequest,
+  FarmCoopResponse,
+  CreateFarmCoopRequest,
+  UpdateFarmCoopRequest,
   PaginatedResponse,
   NfListParams,
 } from "@/types/non-financial";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
-const NF_MEMBERS_KEY = "non-financial-members";
+const NF_FARM_KEY = "non-financial-farm-coop";
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -20,64 +20,54 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-async function fetchMembers(params?: NfListParams): Promise<PaginatedResponse<NfMemberResponse>> {
+async function fetchFarmCoop(params?: NfListParams): Promise<PaginatedResponse<FarmCoopResponse>> {
   const token = await getAccessToken();
   const query = new URLSearchParams();
   if (params?.submission_id) query.set("submission_id", params.submission_id);
   query.set("page", String(params?.page ?? 1));
   query.set("page_size", String(params?.page_size ?? 50));
 
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/members?${query}`, {
+  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/farm-coop?${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(extractErrorMessage(json));
-  return json as PaginatedResponse<NfMemberResponse>;
+  return json as PaginatedResponse<FarmCoopResponse>;
 }
 
-async function fetchMember(id: string): Promise<NfMemberResponse> {
+async function createFarmCoop(body: CreateFarmCoopRequest): Promise<FarmCoopResponse> {
   const token = await getAccessToken();
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/members/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(extractErrorMessage(json));
-  return json as NfMemberResponse;
-}
-
-async function createMember(body: NfCreateMemberRequest): Promise<NfMemberResponse> {
-  const token = await getAccessToken();
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/members`, {
+  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/farm-coop`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(extractErrorMessage(json));
-  return json as NfMemberResponse;
+  return json as FarmCoopResponse;
 }
 
-async function updateMember({
+async function updateFarmCoop({
   id,
   body,
 }: {
   id: string;
-  body: NfUpdateMemberRequest;
-}): Promise<NfMemberResponse> {
+  body: UpdateFarmCoopRequest;
+}): Promise<FarmCoopResponse> {
   const token = await getAccessToken();
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/members/${id}`, {
+  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/farm-coop/${id}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(extractErrorMessage(json));
-  return json as NfMemberResponse;
+  return json as FarmCoopResponse;
 }
 
-async function deleteMember(id: string): Promise<void> {
+async function deleteFarmCoop(id: string): Promise<void> {
   const token = await getAccessToken();
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/members/${id}`, {
+  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/farm-coop/${id}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -87,45 +77,53 @@ async function deleteMember(id: string): Promise<void> {
   }
 }
 
-export const useMembers = (params?: NfListParams) =>
+export const useFarmCoops = (params?: NfListParams) =>
   useQuery({
-    queryKey: [NF_MEMBERS_KEY, params],
-    queryFn: () => fetchMembers(params),
+    queryKey: [NF_FARM_KEY, params],
+    queryFn: () => fetchFarmCoop(params),
   });
 
-export const useMember = (id: string) =>
+export const useFarmCoop = (id: string) =>
   useQuery({
-    queryKey: [NF_MEMBERS_KEY, id],
-    queryFn: () => fetchMember(id),
+    queryKey: [NF_FARM_KEY, id],
+    queryFn: async () => {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/farm-coop/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractErrorMessage(json));
+      return json as FarmCoopResponse;
+    },
     enabled: !!id,
   });
 
-export const useCreateMember = () => {
+export const useCreateFarmCoop = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createMember,
+    mutationFn: createFarmCoop,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [NF_MEMBERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NF_FARM_KEY] });
     },
   });
 };
 
-export const useUpdateMember = () => {
+export const useUpdateFarmCoop = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateMember,
+    mutationFn: updateFarmCoop,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [NF_MEMBERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NF_FARM_KEY] });
     },
   });
 };
 
-export const useDeleteMember = () => {
+export const useDeleteFarmCoop = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteMember,
+    mutationFn: deleteFarmCoop,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [NF_MEMBERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NF_FARM_KEY] });
     },
   });
 };

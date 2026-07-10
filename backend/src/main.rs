@@ -4,7 +4,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use coop_data_backend::{
     api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
     services::cache::CacheService, services::keycloak::KeycloakService, ApexRepository, AppState,
-    AuditLogRepository, AuditService, CalamineNfParser, CooperativeRepository,
+    AuditLogRepository, AuditService, CalamineNfParser, CooperativeRepository, FarmCoopRepository,
     FederationRepository, FixedDepositRepository, LoanRepository, MemberRepository,
     ObjectStorageService, OrganizationRepository, SavingsAccountRepository, UploadedFileRepository,
     UserRepository,
@@ -46,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
     let savings_account_repo = SavingsAccountRepository::new(db.clone());
     let loan_repo = LoanRepository::new(db.clone());
     let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
+    let farm_coop_repo = FarmCoopRepository::new(db.clone());
     let uploaded_file_repo = UploadedFileRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
     let storage = ObjectStorageService::new(&config)?;
@@ -73,6 +74,7 @@ async fn main() -> anyhow::Result<()> {
         savings_account_repo,
         loan_repo,
         fixed_deposit_repo,
+        farm_coop_repo,
         uploaded_file_repo,
         storage,
         nf_excel_parser,

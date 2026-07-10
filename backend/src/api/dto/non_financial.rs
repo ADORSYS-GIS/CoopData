@@ -31,7 +31,7 @@ fn default_zero_dpd() -> DpdCategory {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreateMemberRequest {
+pub struct NfCreateMemberRequest {
     pub member_id: String,
     pub join_date: NaiveDate,
     #[serde(default = "default_active")]
@@ -53,7 +53,7 @@ pub struct CreateMemberRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct UpdateMemberRequest {
+pub struct NfUpdateMemberRequest {
     #[serde(default)]
     pub join_date: Option<NaiveDate>,
     #[serde(default)]
@@ -79,7 +79,7 @@ pub struct UpdateMemberRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MemberResponse {
+pub struct NfMemberResponse {
     pub id: Uuid,
     pub cooperative_id: Uuid,
     pub submission_id: Option<Uuid>,
@@ -98,7 +98,7 @@ pub struct MemberResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<crate::entities::member::Model> for MemberResponse {
+impl From<crate::entities::member::Model> for NfMemberResponse {
     fn from(m: crate::entities::member::Model) -> Self {
         Self {
             id: m.id,
@@ -498,6 +498,7 @@ pub struct RowsParsed {
     pub savings_accounts: usize,
     pub loans: usize,
     pub fixed_deposits: usize,
+    pub farm_coop: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -506,6 +507,7 @@ pub struct RowsImported {
     pub savings_accounts: u64,
     pub loans: u64,
     pub fixed_deposits: u64,
+    pub farm_coop: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -538,8 +540,8 @@ fn default_page_size() -> u64 {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct PaginatedMembersResponse {
-    pub data: Vec<MemberResponse>,
+pub struct NfPaginatedMembersResponse {
+    pub data: Vec<NfMemberResponse>,
     pub page: u64,
     pub page_size: u64,
     pub total: u64,
@@ -564,6 +566,179 @@ pub struct PaginatedLoansResponse {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaginatedFixedDepositsResponse {
     pub data: Vec<FixedDepositResponse>,
+    pub page: u64,
+    pub page_size: u64,
+    pub total: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateFarmCoopRequest {
+    #[serde(default)]
+    pub submission_id: Option<Uuid>,
+    #[serde(default)]
+    pub cooperative_type: String,
+    #[serde(default)]
+    pub primary_activities: String,
+    #[serde(default)]
+    pub year_of_establishment: Option<i32>,
+    #[serde(default)]
+    pub operational_status: String,
+    #[serde(default)]
+    pub active_producer_flag: bool,
+    #[serde(default)]
+    pub production_type: String,
+    #[serde(default)]
+    pub participation_frequency: String,
+    #[serde(default)]
+    pub delivery_compliance: String,
+    #[serde(default)]
+    pub production_cycle_type: String,
+    #[serde(default)]
+    pub use_of_production_planning: bool,
+    #[serde(default)]
+    pub use_of_shared_inputs: bool,
+    #[serde(default)]
+    pub quality_compliance_flag: bool,
+    #[serde(default)]
+    pub market_channel_type: String,
+    #[serde(default)]
+    pub formal_offtake_agreement: bool,
+    #[serde(default)]
+    pub buyer_concentration_flag: bool,
+    #[serde(default)]
+    pub price_predictability_category: String,
+    #[serde(default)]
+    pub access_to_storage: bool,
+    #[serde(default)]
+    pub access_to_processing_facilities: bool,
+    #[serde(default)]
+    pub transport_coordination: String,
+    #[serde(default)]
+    pub climate_exposure_type: String,
+    #[serde(default)]
+    pub irrigation_access: bool,
+    #[serde(default)]
+    pub climate_mitigation_practices: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateFarmCoopRequest {
+    #[serde(default)]
+    pub cooperative_type: Option<String>,
+    #[serde(default)]
+    pub primary_activities: Option<String>,
+    #[serde(default)]
+    pub year_of_establishment: Option<i32>,
+    #[serde(default)]
+    pub operational_status: Option<String>,
+    #[serde(default)]
+    pub active_producer_flag: Option<bool>,
+    #[serde(default)]
+    pub production_type: Option<String>,
+    #[serde(default)]
+    pub participation_frequency: Option<String>,
+    #[serde(default)]
+    pub delivery_compliance: Option<String>,
+    #[serde(default)]
+    pub production_cycle_type: Option<String>,
+    #[serde(default)]
+    pub use_of_production_planning: Option<bool>,
+    #[serde(default)]
+    pub use_of_shared_inputs: Option<bool>,
+    #[serde(default)]
+    pub quality_compliance_flag: Option<bool>,
+    #[serde(default)]
+    pub market_channel_type: Option<String>,
+    #[serde(default)]
+    pub formal_offtake_agreement: Option<bool>,
+    #[serde(default)]
+    pub buyer_concentration_flag: Option<bool>,
+    #[serde(default)]
+    pub price_predictability_category: Option<String>,
+    #[serde(default)]
+    pub access_to_storage: Option<bool>,
+    #[serde(default)]
+    pub access_to_processing_facilities: Option<bool>,
+    #[serde(default)]
+    pub transport_coordination: Option<String>,
+    #[serde(default)]
+    pub climate_exposure_type: Option<String>,
+    #[serde(default)]
+    pub irrigation_access: Option<bool>,
+    #[serde(default)]
+    pub climate_mitigation_practices: Option<String>,
+    #[serde(default)]
+    pub submission_id: Option<Option<Uuid>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct FarmCoopResponse {
+    pub id: Uuid,
+    pub cooperative_id: Uuid,
+    pub submission_id: Option<Uuid>,
+    pub cooperative_type: String,
+    pub primary_activities: String,
+    pub year_of_establishment: Option<i32>,
+    pub operational_status: String,
+    pub active_producer_flag: bool,
+    pub production_type: String,
+    pub participation_frequency: String,
+    pub delivery_compliance: String,
+    pub production_cycle_type: String,
+    pub use_of_production_planning: bool,
+    pub use_of_shared_inputs: bool,
+    pub quality_compliance_flag: bool,
+    pub market_channel_type: String,
+    pub formal_offtake_agreement: bool,
+    pub buyer_concentration_flag: bool,
+    pub price_predictability_category: String,
+    pub access_to_storage: bool,
+    pub access_to_processing_facilities: bool,
+    pub transport_coordination: String,
+    pub climate_exposure_type: String,
+    pub irrigation_access: bool,
+    pub climate_mitigation_practices: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<crate::entities::farm_coop::Model> for FarmCoopResponse {
+    fn from(m: crate::entities::farm_coop::Model) -> Self {
+        Self {
+            id: m.id,
+            cooperative_id: m.cooperative_id,
+            submission_id: m.submission_id,
+            cooperative_type: m.cooperative_type,
+            primary_activities: m.primary_activities,
+            year_of_establishment: m.year_of_establishment,
+            operational_status: m.operational_status,
+            active_producer_flag: m.active_producer_flag,
+            production_type: m.production_type,
+            participation_frequency: m.participation_frequency,
+            delivery_compliance: m.delivery_compliance,
+            production_cycle_type: m.production_cycle_type,
+            use_of_production_planning: m.use_of_production_planning,
+            use_of_shared_inputs: m.use_of_shared_inputs,
+            quality_compliance_flag: m.quality_compliance_flag,
+            market_channel_type: m.market_channel_type,
+            formal_offtake_agreement: m.formal_offtake_agreement,
+            buyer_concentration_flag: m.buyer_concentration_flag,
+            price_predictability_category: m.price_predictability_category,
+            access_to_storage: m.access_to_storage,
+            access_to_processing_facilities: m.access_to_processing_facilities,
+            transport_coordination: m.transport_coordination,
+            climate_exposure_type: m.climate_exposure_type,
+            irrigation_access: m.irrigation_access,
+            climate_mitigation_practices: m.climate_mitigation_practices,
+            created_at: m.created_at,
+            updated_at: m.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedFarmCoopResponse {
+    pub data: Vec<FarmCoopResponse>,
     pub page: u64,
     pub page_size: u64,
     pub total: u64,

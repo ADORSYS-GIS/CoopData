@@ -16,9 +16,9 @@ pub use database::Database;
 pub use error::{forbidden_with_roles, AppError, AppResult};
 pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
-    ApexRepository, CooperativeRepository, FederationRepository, FixedDepositRepository,
-    LoanRepository, MemberRepository, OrganizationRepository, SavingsAccountRepository,
-    UploadedFileRepository, UserRepository,
+    ApexRepository, CooperativeRepository, FarmCoopRepository, FederationRepository,
+    FixedDepositRepository, LoanRepository, MemberRepository, OrganizationRepository,
+    SavingsAccountRepository, UploadedFileRepository, UserRepository,
 };
 pub use services::keycloak::KeycloakService;
 pub use services::{AuditService, CalamineNfParser, ObjectStorageService};
@@ -40,6 +40,7 @@ pub struct AppState {
     pub savings_account_repo: SavingsAccountRepository,
     pub loan_repo: LoanRepository,
     pub fixed_deposit_repo: FixedDepositRepository,
+    pub farm_coop_repo: FarmCoopRepository,
     pub uploaded_file_repo: UploadedFileRepository,
     pub storage: ObjectStorageService,
     pub nf_excel_parser: CalamineNfParser,

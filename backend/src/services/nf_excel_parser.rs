@@ -39,6 +39,7 @@ const SHEET_MEMBERS: &str = "NF MSHIP";
 const SHEET_SAVINGS: &str = "NF S";
 const SHEET_LOANS: &str = "NF LOANS";
 const SHEET_FIXED_DEPOSITS: &str = "NF FS";
+const SHEET_FARM_COOP: &str = "NF FARM";
 
 const MEMBERS_HEADERS: &[&str] = &[
     "member_id",
@@ -111,6 +112,30 @@ const FD_HEADERS: &[&str] = &[
     "single_depositor_dependency_flag",
     "interest_rate",
     "balance",
+];
+
+const FARM_COOP_HEADERS: &[&str] = &[
+    "cooperative_type",
+    "primary_activities",
+    "operational_status",
+    "active_producer_flag",
+    "production_type",
+    "participation_frequency",
+    "delivery_compliance",
+    "production_cycle_type",
+    "use_of_production_planning",
+    "use_of_shared_inputs",
+    "quality_compliance_flag",
+    "market_channel_type",
+    "formal_offtake_agreement",
+    "buyer_concentration_flag",
+    "price_predictability_category",
+    "access_to_storage",
+    "access_to_processing_facilities",
+    "transport_coordination",
+    "climate_exposure_type",
+    "irrigation_access",
+    "climate_mitigation_practices",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -191,11 +216,38 @@ pub struct FixedDepositRecord {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ToSchema)]
+pub struct FarmCoopRecord {
+    pub cooperative_type: String,
+    pub primary_activities: String,
+    pub year_of_establishment: Option<i32>,
+    pub operational_status: String,
+    pub active_producer_flag: bool,
+    pub production_type: String,
+    pub participation_frequency: String,
+    pub delivery_compliance: String,
+    pub production_cycle_type: String,
+    pub use_of_production_planning: bool,
+    pub use_of_shared_inputs: bool,
+    pub quality_compliance_flag: bool,
+    pub market_channel_type: String,
+    pub formal_offtake_agreement: bool,
+    pub buyer_concentration_flag: bool,
+    pub price_predictability_category: String,
+    pub access_to_storage: bool,
+    pub access_to_processing_facilities: bool,
+    pub transport_coordination: String,
+    pub climate_exposure_type: String,
+    pub irrigation_access: bool,
+    pub climate_mitigation_practices: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ToSchema)]
 pub struct NfParseResult {
     pub members: Vec<MemberRecord>,
     pub savings_accounts: Vec<SavingsAccountRecord>,
     pub loans: Vec<LoanRecord>,
     pub fixed_deposits: Vec<FixedDepositRecord>,
+    pub farm_coop: Vec<FarmCoopRecord>,
     pub errors: Vec<NfParseError>,
     pub warnings: Vec<NfParseWarning>,
     pub sheets_found: Vec<String>,
@@ -255,13 +307,19 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
                     parse_fixed_deposits_sheet(&range, &mut result);
                 }
             }
+            SHEET_FARM_COOP => {
+                result.sheets_found.push(SHEET_FARM_COOP.to_string());
+                if let Ok(range) = workbook.worksheet_range(SHEET_FARM_COOP) {
+                    parse_farm_coop_sheet(&range, &mut result);
+                }
+            }
             _ => {}
         }
     }
 
     if result.sheets_found.is_empty() {
         return Err(AppError::BadRequest(
-            "No recognized sheets found. Expected at least one of: NF MSHIP, NF S, NF LOANS, NF FS"
+            "No recognized sheets found. Expected at least one of: NF MSHIP, NF S, NF LOANS, NF FS, NF FARM"
                 .to_string(),
         ));
     }
@@ -951,6 +1009,108 @@ fn get_decimal_cell(row: &[Data], col: usize) -> Option<Decimal> {
         Data::Empty => None,
         _ => None,
     })
+}
+
+fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
+    let mut rows = range.rows();
+    let header_row = match rows.next() {
+        Some(h) => h,
+        None => return,
+    };
+
+    let map = match build_column_map(header_row, FARM_COOP_HEADERS, SHEET_FARM_COOP, result) {
+        Some(m) => m,
+        None => return,
+    };
+
+    let mut row_index = 0usize;
+    for row in rows {
+        row_index += 1;
+
+        let cooperative_type = get_string_cell(row, *map.get("cooperative_type").unwrap())
+            .unwrap_or_default();
+        let primary_activities = get_string_cell(row, *map.get("primary_activities").unwrap())
+            .unwrap_or_default();
+        let year_of_establishment =
+            get_int_cell(row, *map.get("year_of_establishment").unwrap_or(&usize::MAX));
+        let operational_status = get_string_cell(row, *map.get("operational_status").unwrap())
+            .unwrap_or_default();
+        let active_producer_flag =
+            get_bool_cell(row, *map.get("active_producer_flag").unwrap()).unwrap_or(false);
+        let production_type = get_string_cell(row, *map.get("production_type").unwrap())
+            .unwrap_or_default();
+        let participation_frequency =
+            get_string_cell(row, *map.get("participation_frequency").unwrap()).unwrap_or_default();
+        let delivery_compliance =
+            get_string_cell(row, *map.get("delivery_compliance").unwrap()).unwrap_or_default();
+        let production_cycle_type =
+            get_string_cell(row, *map.get("production_cycle_type").unwrap()).unwrap_or_default();
+        let use_of_production_planning =
+            get_bool_cell(row, *map.get("use_of_production_planning").unwrap()).unwrap_or(false);
+        let use_of_shared_inputs =
+            get_bool_cell(row, *map.get("use_of_shared_inputs").unwrap()).unwrap_or(false);
+        let quality_compliance_flag =
+            get_bool_cell(row, *map.get("quality_compliance_flag").unwrap()).unwrap_or(false);
+        let market_channel_type =
+            get_string_cell(row, *map.get("market_channel_type").unwrap()).unwrap_or_default();
+        let formal_offtake_agreement =
+            get_bool_cell(row, *map.get("formal_offtake_agreement").unwrap()).unwrap_or(false);
+        let buyer_concentration_flag =
+            get_bool_cell(row, *map.get("buyer_concentration_flag").unwrap()).unwrap_or(false);
+        let price_predictability_category =
+            get_string_cell(row, *map.get("price_predictability_category").unwrap())
+                .unwrap_or_default();
+        let access_to_storage =
+            get_bool_cell(row, *map.get("access_to_storage").unwrap()).unwrap_or(false);
+        let access_to_processing_facilities =
+            get_bool_cell(row, *map.get("access_to_processing_facilities").unwrap())
+                .unwrap_or(false);
+        let transport_coordination =
+            get_string_cell(row, *map.get("transport_coordination").unwrap()).unwrap_or_default();
+        let climate_exposure_type =
+            get_string_cell(row, *map.get("climate_exposure_type").unwrap()).unwrap_or_default();
+        let irrigation_access =
+            get_bool_cell(row, *map.get("irrigation_access").unwrap()).unwrap_or(false);
+        let climate_mitigation_practices =
+            get_string_cell(row, *map.get("climate_mitigation_practices").unwrap())
+                .unwrap_or_default();
+
+        if cooperative_type.is_empty() && primary_activities.is_empty() && operational_status.is_empty() {
+            result.warnings.push(NfParseWarning {
+                sheet: SHEET_FARM_COOP.to_string(),
+                row: row_index,
+                column: "cooperative_type".to_string(),
+                rule: "EMPTY_ROW".to_string(),
+                message: "Skipping empty row".to_string(),
+            });
+            continue;
+        }
+
+        result.farm_coop.push(FarmCoopRecord {
+            cooperative_type,
+            primary_activities,
+            year_of_establishment,
+            operational_status,
+            active_producer_flag,
+            production_type,
+            participation_frequency,
+            delivery_compliance,
+            production_cycle_type,
+            use_of_production_planning,
+            use_of_shared_inputs,
+            quality_compliance_flag,
+            market_channel_type,
+            formal_offtake_agreement,
+            buyer_concentration_flag,
+            price_predictability_category,
+            access_to_storage,
+            access_to_processing_facilities,
+            transport_coordination,
+            climate_exposure_type,
+            irrigation_access,
+            climate_mitigation_practices,
+        });
+    }
 }
 
 #[cfg(test)]

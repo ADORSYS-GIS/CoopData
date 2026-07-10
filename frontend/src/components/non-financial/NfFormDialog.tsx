@@ -2,12 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -88,16 +83,11 @@ export function NfFormDialog({
                   <FormItem>
                     <FormLabel className="text-xs">
                       {field.label}
-                      {field.required && (
-                        <span className="text-destructive ml-0.5">*</span>
-                      )}
+                      {field.required && <span className="text-destructive ml-0.5">*</span>}
                     </FormLabel>
                     <FormControl>
                       {field.type === "select" && field.options ? (
-                        <Select
-                          value={rf.value}
-                          onValueChange={rf.onChange}
-                        >
+                        <Select value={rf.value} onValueChange={rf.onChange}>
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder={`Select ${field.label}`} />
                           </SelectTrigger>
@@ -111,7 +101,13 @@ export function NfFormDialog({
                         </Select>
                       ) : (
                         <Input
-                          type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"}
+                          type={
+                            field.type === "date"
+                              ? "date"
+                              : field.type === "number"
+                                ? "number"
+                                : "text"
+                          }
                           step={field.type === "number" ? "0.01" : undefined}
                           className="h-8 text-xs"
                           {...rf}
@@ -125,18 +121,11 @@ export function NfFormDialog({
               />
             ))}
             <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" size="sm" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && (
-                  <Loader2 className="size-3.5 animate-spin mr-1" />
-                )}
+                {form.formState.isSubmitting && <Loader2 className="size-3.5 animate-spin mr-1" />}
                 Save
               </Button>
             </div>

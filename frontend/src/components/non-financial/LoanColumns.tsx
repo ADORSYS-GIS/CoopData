@@ -82,7 +82,9 @@ export function createLoanColumns(actions?: LoanActions): ColumnDef<LoanResponse
       accessorKey: "loan_amount",
       header: ({ column }) => <SortableHeader column={column}>Loan Amount</SortableHeader>,
       cell: ({ row }) => (
-        <span className="text-xs font-mono">{formatCurrency(Number(row.getValue("loan_amount")))}</span>
+        <span className="text-xs font-mono">
+          {formatCurrency(Number(row.getValue("loan_amount")))}
+        </span>
       ),
     },
     ...(actions

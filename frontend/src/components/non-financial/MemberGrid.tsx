@@ -2,14 +2,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { createMemberColumns } from "./MemberColumns";
-import type { MemberResponse } from "@/types/non-financial";
+import type { NfMemberResponse } from "@/types/non-financial";
 
 interface MemberGridProps {
-  members: MemberResponse[];
+  members: NfMemberResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
   errorRowIds?: string[];
-  onEdit?: (member: MemberResponse) => void;
+  onEdit?: (member: NfMemberResponse) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -22,9 +22,7 @@ export function MemberGrid({
   onDelete,
 }: MemberGridProps) {
   const columns = createMemberColumns(
-    isReadOnly
-      ? undefined
-      : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
+    isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
   );
 
   const errorSet = new Set(errorRowIds ?? []);
@@ -45,9 +43,7 @@ export function MemberGrid({
           emptyMessage="No members found. Upload an Excel file or add members manually."
           pageSize={10}
           getRowClassName={(row) =>
-            errorSet.has((row as MemberResponse).id)
-              ? "bg-destructive/5"
-              : undefined
+            errorSet.has((row as NfMemberResponse).id) ? "bg-destructive/5" : undefined
           }
         />
       </CardContent>

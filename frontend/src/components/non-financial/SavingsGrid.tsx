@@ -22,9 +22,7 @@ export function SavingsGrid({
   onDelete,
 }: SavingsGridProps) {
   const columns = createSavingsColumns(
-    isReadOnly
-      ? undefined
-      : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
+    isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
   );
 
   const errorSet = new Set(errorRowIds ?? []);
@@ -45,9 +43,7 @@ export function SavingsGrid({
           emptyMessage="No savings accounts found. Upload an Excel file or add one manually."
           pageSize={10}
           getRowClassName={(row) =>
-            errorSet.has((row as SavingsAccountResponse).id)
-              ? "bg-destructive/5"
-              : undefined
+            errorSet.has((row as SavingsAccountResponse).id) ? "bg-destructive/5" : undefined
           }
         />
       </CardContent>

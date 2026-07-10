@@ -14,7 +14,9 @@ interface SavingsActions {
   onDelete?: (id: string) => void;
 }
 
-export function createSavingsColumns(actions?: SavingsActions): ColumnDef<SavingsAccountResponse>[] {
+export function createSavingsColumns(
+  actions?: SavingsActions,
+): ColumnDef<SavingsAccountResponse>[] {
   return [
     {
       accessorKey: "savings_account_id",
@@ -43,9 +45,7 @@ export function createSavingsColumns(actions?: SavingsActions): ColumnDef<Saving
       header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
       cell: ({ row }) => {
         const status = row.getValue("account_status") as string;
-        return (
-          <Badge variant={status === "Active" ? "default" : "secondary"}>{status}</Badge>
-        );
+        return <Badge variant={status === "Active" ? "default" : "secondary"}>{status}</Badge>;
       },
     },
     {

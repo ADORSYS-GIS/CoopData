@@ -50,13 +50,16 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile) handleFileSelect(droppedFile);
-  }, [handleFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      const droppedFile = e.dataTransfer.files?.[0];
+      if (droppedFile) handleFileSelect(droppedFile);
+    },
+    [handleFileSelect],
+  );
 
   const handleUpload = async () => {
     if (!file) {
@@ -92,7 +95,6 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-
         <div
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}

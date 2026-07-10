@@ -42,25 +42,13 @@ import { MemberGrid } from "@/components/non-financial/MemberGrid";
 import { SavingsGrid } from "@/components/non-financial/SavingsGrid";
 import { LoanGrid } from "@/components/non-financial/LoanGrid";
 import { FixedDepositGrid } from "@/components/non-financial/FixedDepositGrid";
-import {
-  useMembers,
-  useDeleteMember,
-} from "@/hooks/non-financial/useMembers";
-import {
-  useSavings,
-  useDeleteSavings,
-} from "@/hooks/non-financial/useSavings";
-import {
-  useLoans,
-  useDeleteLoan,
-} from "@/hooks/non-financial/useLoans";
-import {
-  useFixedDeposits,
-  useDeleteFixedDeposit,
-} from "@/hooks/non-financial/useFixedDeposits";
-import type {
-  NfUploadResponse,
-} from "@/types/non-financial";
+import { FarmCoopGrid } from "@/components/non-financial/FarmCoopGrid";
+import { useMembers, useDeleteMember } from "@/hooks/non-financial/useMembers";
+import { useSavings, useDeleteSavings } from "@/hooks/non-financial/useSavings";
+import { useLoans, useDeleteLoan } from "@/hooks/non-financial/useLoans";
+import { useFixedDeposits, useDeleteFixedDeposit } from "@/hooks/non-financial/useFixedDeposits";
+import { useFarmCoops, useDeleteFarmCoop } from "@/hooks/non-financial/useFarmCoop";
+import type { NfUploadResponse } from "@/types/non-financial";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -75,22 +63,23 @@ export const DataCollectionPage: React.FC = () => {
   const [nfUploadResult, setNfUploadResult] = useState<NfUploadResponse | null>(null);
   const [activeTab, setActiveTab] = useState<string>("membership");
 
-
-
   const membersQuery = useMembers({ page: 1, page_size: 100 });
   const savingsQuery = useSavings({ page: 1, page_size: 100 });
   const loansQuery = useLoans({ page: 1, page_size: 100 });
   const fdQuery = useFixedDeposits({ page: 1, page_size: 100 });
+  const farmCoopQuery = useFarmCoops({ page: 1, page_size: 100 });
 
   const deleteMember = useDeleteMember();
   const deleteSavings = useDeleteSavings();
   const deleteLoan = useDeleteLoan();
   const deleteFd = useDeleteFixedDeposit();
+  const deleteFarmCoop = useDeleteFarmCoop();
 
   const members = membersQuery.data?.data ?? [];
   const savings = savingsQuery.data?.data ?? [];
   const loans = loansQuery.data?.data ?? [];
   const fds = fdQuery.data?.data ?? [];
+  const farmCoops = farmCoopQuery.data?.data ?? [];
 
   const handleDeleteMember = async (id: string) => {
     try {
@@ -128,12 +117,20 @@ export const DataCollectionPage: React.FC = () => {
     }
   };
 
+  const handleDeleteFarmCoop = async (id: string) => {
+    try {
+      await deleteFarmCoop.mutateAsync(id);
+      toast.success("Farm cooperative deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete farm cooperative");
+    }
+  };
+
   const handleEditMember = () => toast.info("Edit records in your Excel file, then re-upload.");
   const handleEditSavings = () => toast.info("Edit records in your Excel file, then re-upload.");
   const handleEditLoan = () => toast.info("Edit records in your Excel file, then re-upload.");
   const handleEditFd = () => toast.info("Edit records in your Excel file, then re-upload.");
-
-
+  const handleEditFarmCoop = () => toast.info("Edit records in your Excel file, then re-upload.");
 
   const [activeQuestionnaires] = useState([
     {
@@ -306,22 +303,35 @@ export const DataCollectionPage: React.FC = () => {
                   <TabsTrigger value="membership" className="flex items-center gap-2">
                     <Users className="size-4" />
                     Membership
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{members.length}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {members.length}
+                    </span>
                   </TabsTrigger>
                   <TabsTrigger value="savings" className="flex items-center gap-2">
                     <PiggyBank className="size-4" />
                     Savings
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{savings.length}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {savings.length}
+                    </span>
                   </TabsTrigger>
                   <TabsTrigger value="loans" className="flex items-center gap-2">
                     <HandCoins className="size-4" />
                     Loans
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{loans.length}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {loans.length}
+                    </span>
                   </TabsTrigger>
                   <TabsTrigger value="fixed-deposits" className="flex items-center gap-2">
                     <Landmark className="size-4" />
                     Fixed Deposits
                     <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{fds.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="farm-coop" className="flex items-center gap-2">
+                    <CheckSquare className="size-4" />
+                    Farm Coops
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {farmCoops.length}
+                    </span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -404,6 +414,24 @@ export const DataCollectionPage: React.FC = () => {
                     />
                   </div>
                 </TabsContent>
+
+                <TabsContent value="farm-coop" className="space-y-4">
+                  <div className="space-y-4">
+                    <FarmCoopGrid
+                      farmCoops={farmCoops}
+                      isLoading={farmCoopQuery.isLoading}
+                      onDelete={handleDeleteFarmCoop}
+                      onEdit={handleEditFarmCoop}
+                    />
+                    <FilingGuideline
+                      tab="farm-coop"
+                      points={[
+                        "Include all cooperative level records",
+                        "Ensure activity type is well specified",
+                      ]}
+                    />
+                  </div>
+                </TabsContent>
               </Tabs>
             </div>
           </Card>
@@ -416,9 +444,9 @@ export const DataCollectionPage: React.FC = () => {
             <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
               <p>
                 As a cooperative manager, you are required to submit your financial and operational
-                data through the upload process above. Simply upload your audited financial statement
-                and Excel sheets for membership, savings, loans, and fixed deposits — the system
-                will extract and validate all data automatically.
+                data through the upload process above. Simply upload your audited financial
+                statement and Excel sheets for membership, savings, loans, and fixed deposits — the
+                system will extract and validate all data automatically.
               </p>
               <div className="p-4 rounded-xl bg-accent/5 border border-accent/15">
                 <div className="flex items-center gap-2 mb-2">
@@ -667,7 +695,8 @@ function FilingGuideline({ tab, points }: { tab: string; points: string[] }) {
       <div className="flex items-center gap-2 mb-3">
         <BookOpen className="size-4 text-accent" />
         <span className="text-xs font-bold uppercase tracking-wider text-accent">
-          Filing guidelines — {tab.charAt(0).toUpperCase() + tab.slice(1).replace("-deposits", " Deposits")}
+          Filing guidelines —{" "}
+          {tab.charAt(0).toUpperCase() + tab.slice(1).replace("-deposits", " Deposits")}
           <span className="ml-2 opacity-60">({points.length} items)</span>
         </span>
       </div>

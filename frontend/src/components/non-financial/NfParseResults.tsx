@@ -63,6 +63,11 @@ export function NfParseResults({ result }: NfParseResultsProps) {
             parsed={result.rows_parsed.fixed_deposits}
             imported={result.rows_imported.fixed_deposits}
           />
+          <StatBox
+            label="Farm Coops"
+            parsed={result.rows_parsed.farm_coop}
+            imported={result.rows_imported.farm_coop}
+          />
         </div>
 
         {hasErrors && (

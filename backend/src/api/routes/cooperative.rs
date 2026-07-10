@@ -75,6 +75,16 @@ pub fn cooperative_routes() -> Router<AppState> {
                 .put(non_financial::update_fixed_deposit)
                 .delete(non_financial::delete_fixed_deposit),
         )
+        .route(
+            "/non-financial/farm-coop",
+            get(non_financial::list_farm_coop).post(non_financial::create_farm_coop),
+        )
+        .route(
+            "/non-financial/farm-coop/{id}",
+            get(non_financial::get_farm_coop)
+                .put(non_financial::update_farm_coop)
+                .delete(non_financial::delete_farm_coop),
+        )
 }
 
 /// Get the cooperative's own profile (read-only).
