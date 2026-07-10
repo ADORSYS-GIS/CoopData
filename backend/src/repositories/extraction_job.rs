@@ -15,7 +15,10 @@ impl ExtractionJobRepository {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<extraction_job::Model>> {
-        Entity::find_by_id(id).one(&self.db).await.map_err(Into::into)
+        Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn find_by_submission(

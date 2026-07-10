@@ -15,10 +15,16 @@ impl UploadedFileRepository {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<uploaded_file::Model>> {
-        Entity::find_by_id(id).one(&self.db).await.map_err(Into::into)
+        Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(Into::into)
     }
 
-    pub async fn find_by_submission(&self, submission_id: Uuid) -> AppResult<Vec<uploaded_file::Model>> {
+    pub async fn find_by_submission(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Vec<uploaded_file::Model>> {
         Entity::find()
             .filter(Column::SubmissionId.eq(submission_id))
             .all(&self.db)

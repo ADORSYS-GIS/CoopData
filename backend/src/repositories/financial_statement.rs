@@ -32,10 +32,7 @@ impl FinancialStatementRepository {
             .map_err(Into::into)
     }
 
-    pub async fn create(
-        &self,
-        model: ActiveModel,
-    ) -> AppResult<financial_statement::Model> {
+    pub async fn create(&self, model: ActiveModel) -> AppResult<financial_statement::Model> {
         model.insert(&self.db).await.map_err(Into::into)
     }
 

@@ -50,15 +50,14 @@ impl AbnormalityFlagRepository {
         model.insert(&self.db).await.map_err(Into::into)
     }
 
-    pub async fn bulk_create(
-        &self,
-        models: Vec<ActiveModel>,
-    ) -> AppResult<()> {
+    pub async fn bulk_create(&self, models: Vec<ActiveModel>) -> AppResult<()> {
         if models.is_empty() {
             return Ok(());
         }
         for m in models {
-            m.insert(&self.db).await.map_err(crate::error::AppError::from)?;
+            m.insert(&self.db)
+                .await
+                .map_err(crate::error::AppError::from)?;
         }
         Ok(())
     }

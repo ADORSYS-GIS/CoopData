@@ -20,11 +20,11 @@ pub struct AppConfig {
     pub frontend_url: String,
     pub environment: Environment,
     // AI extraction
-    pub extraction_backend: String,   // "mock" | "llm"
-    pub ai_provider_url: String,      // e.g. https://api.openai.com/v1
+    pub extraction_backend: String, // "mock" | "llm"
+    pub ai_provider_url: String,    // e.g. https://api.openai.com/v1
     pub ai_api_key: String,
-    pub ai_model: String,             // e.g. gpt-4o, claude-sonnet-4-5
-    pub ai_vision_model: String,      // model used for image capture (may differ)
+    pub ai_model: String,        // e.g. gpt-4o, claude-sonnet-4-5
+    pub ai_vision_model: String, // model used for image capture (may differ)
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -65,15 +65,12 @@ impl AppConfig {
                     _ => Environment::Development,
                 })
                 .unwrap_or(Environment::Development),
-            extraction_backend: env::var("EXTRACTION_BACKEND")
-                .unwrap_or_else(|_| "mock".into()),
+            extraction_backend: env::var("EXTRACTION_BACKEND").unwrap_or_else(|_| "mock".into()),
             ai_provider_url: env::var("AI_PROVIDER_URL")
                 .unwrap_or_else(|_| "https://api.openai.com/v1".into()),
             ai_api_key: env::var("AI_API_KEY").unwrap_or_default(),
-            ai_model: env::var("AI_MODEL")
-                .unwrap_or_else(|_| "gpt-4o".into()),
-            ai_vision_model: env::var("AI_VISION_MODEL")
-                .unwrap_or_else(|_| "gpt-4o".into()),
+            ai_model: env::var("AI_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
+            ai_vision_model: env::var("AI_VISION_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
         })
     }
 
@@ -125,6 +122,11 @@ mod tests {
             jwt_issuer_aliases: vec![],
             frontend_url: "x".into(),
             environment: env,
+            extraction_backend: "mock".into(),
+            ai_provider_url: "https://api.openai.com/v1".into(),
+            ai_api_key: String::new(),
+            ai_model: "gpt-4o".into(),
+            ai_vision_model: "gpt-4o".into(),
         }
     }
 

@@ -305,19 +305,16 @@ impl AccountingYear {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Default,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "currency")]
 pub enum Currency {
+    #[default]
     #[sea_orm(string_value = "SZL")]
     Szl,
     #[sea_orm(string_value = "USD")]
     Usd,
-}
-
-impl Default for Currency {
-    fn default() -> Self {
-        Self::Szl
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]

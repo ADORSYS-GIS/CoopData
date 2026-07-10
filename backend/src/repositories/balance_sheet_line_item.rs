@@ -30,10 +30,7 @@ impl BalanceSheetLineItemRepository {
             .map_err(Into::into)
     }
 
-    pub async fn find_by_id(
-        &self,
-        id: Uuid,
-    ) -> AppResult<Option<balance_sheet_line_item::Model>> {
+    pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<balance_sheet_line_item::Model>> {
         Entity::find_by_id(id)
             .one(&self.db)
             .await
@@ -44,7 +41,10 @@ impl BalanceSheetLineItemRepository {
         model.insert(&self.db).await.map_err(Into::into)
     }
 
-    pub async fn delete_by_financial_statement(&self, financial_statement_id: Uuid) -> AppResult<()> {
+    pub async fn delete_by_financial_statement(
+        &self,
+        financial_statement_id: Uuid,
+    ) -> AppResult<()> {
         Entity::delete_many()
             .filter(Column::FinancialStatementId.eq(financial_statement_id))
             .exec(&self.db)

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Extension, State},
+    extract::{DefaultBodyLimit, Extension, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
@@ -32,18 +32,24 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/submissions",
             get(list_cooperative_submissions).post(create_submission),
         )
-        .route("/submissions/{id}", get(get_submission).delete(delete_submission))
+        .route(
+            "/submissions/{id}",
+            get(get_submission).delete(delete_submission),
+        )
         .route("/submissions/{id}/submit", post(submit_submission))
         .route("/submissions/{id}/sections", get(list_submission_sections))
-        .route("/submissions/{id}/sections/{section}", axum::routing::patch(update_submission_section))
+        .route(
+            "/submissions/{id}/sections/{section}",
+            axum::routing::patch(update_submission_section),
+        )
         .route(
             "/submissions/{id}/validate-extraction",
             post(validate_extraction),
         )
-        // Upload + extraction
+        // Upload + extraction (20 MB body limit for multipart file uploads)
         .route(
             "/financial-statement/upload",
-            post(upload_financial_statement),
+            post(upload_financial_statement).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
         )
         .route("/financial-statements/{id}", get(get_financial_statement))
         .route(

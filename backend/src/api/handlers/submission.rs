@@ -5,8 +5,13 @@ use axum::{
     Extension, Json,
 };
 use sea_orm::Set;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+};
 use uuid::Uuid;
+
+static SEQ_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 use crate::api::dto::submission::{
     CreateSubmissionRequest, SubmissionResponse, SubmissionSectionResponse,
@@ -118,7 +123,10 @@ pub async fn create_submission(
     );
 
     let mut resp = SubmissionResponse::from(submission);
-    resp.sections = sections.into_iter().map(SubmissionSectionResponse::from).collect();
+    resp.sections = sections
+        .into_iter()
+        .map(SubmissionSectionResponse::from)
+        .collect();
     Ok((StatusCode::CREATED, Json(resp)))
 }
 
@@ -144,7 +152,11 @@ pub async fn list_cooperative_submissions(
         let sub_id = sub.id;
         let mut resp = SubmissionResponse::from(sub);
         // Enrich with financial statement + extraction job ids
-        if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(sub_id).await {
+        if let Ok(Some(fs)) = state
+            .financial_statement_repo
+            .find_by_submission(sub_id)
+            .await
+        {
             let job_id = state
                 .extraction_job_repo
                 .find_by_submission(sub_id)
@@ -156,8 +168,10 @@ pub async fn list_cooperative_submissions(
         }
         // Enrich with section statuses
         if let Ok(sections) = state.section_repo.find_by_submission(sub_id).await {
-            let section_resps: Vec<SubmissionSectionResponse> =
-                sections.into_iter().map(SubmissionSectionResponse::from).collect();
+            let section_resps: Vec<SubmissionSectionResponse> = sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect();
             resp = resp.with_sections(section_resps);
         }
         responses.push(resp);
@@ -209,8 +223,10 @@ pub async fn get_submission(
         resp = resp.with_fs(Some(fs.id), job_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
-        let section_resps: Vec<SubmissionSectionResponse> =
-            sections.into_iter().map(SubmissionSectionResponse::from).collect();
+        let section_resps: Vec<SubmissionSectionResponse> = sections
+            .into_iter()
+            .map(SubmissionSectionResponse::from)
+            .collect();
         resp = resp.with_sections(section_resps);
     }
 
@@ -218,12 +234,7 @@ pub async fn get_submission(
 }
 
 fn rand_seq() -> u32 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(0);
-    nanos % 100_000
+    SEQ_COUNTER.fetch_add(1, Ordering::Relaxed) % 100_000
 }
 
 trait YearExt {
@@ -286,10 +297,7 @@ pub async fn validate_extraction(
     }
 
     let coa = state.coa_repo.find_all().await?;
-    let detector = AbnormalityDetector::new(
-        state.line_item_repo.clone(),
-        state.flag_repo.clone(),
-    );
+    let detector = AbnormalityDetector::new(state.line_item_repo.clone(), state.flag_repo.clone());
     let (errors, warnings) = detector.run(id, coop.id, fs.id, &coa).await?;
 
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
@@ -397,9 +405,7 @@ pub async fn get_submission_flags(
     ),
     tag = "Apex"
 )]
-pub async fn list_apex_submissions(
-    State(state): State<AppState>,
-) -> AppResult<impl IntoResponse> {
+pub async fn list_apex_submissions(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
     // Apex sees submissions that have been submitted (tier=apex, status=submitted)
     let subs = state
         .submission_repo
@@ -436,7 +442,11 @@ pub async fn apex_approve_submission(
         state.section_repo.clone(),
     );
     workflow.apex_approve(id, &claims, body.comment).await?;
-    let updated = state.submission_repo.find_by_id(id).await?.ok_or_else(|| AppError::NotFound("Not found".into()))?;
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Not found".into()))?;
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -465,7 +475,11 @@ pub async fn apex_return_submission(
         state.section_repo.clone(),
     );
     workflow.apex_return(id, &claims, body.comment).await?;
-    let updated = state.submission_repo.find_by_id(id).await?.ok_or_else(|| AppError::NotFound("Not found".into()))?;
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Not found".into()))?;
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -518,8 +532,14 @@ pub async fn federation_approve_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
     );
-    workflow.federation_approve(id, &claims, body.comment).await?;
-    let updated = state.submission_repo.find_by_id(id).await?.ok_or_else(|| AppError::NotFound("Not found".into()))?;
+    workflow
+        .federation_approve(id, &claims, body.comment)
+        .await?;
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Not found".into()))?;
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -547,8 +567,14 @@ pub async fn federation_return_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
     );
-    workflow.federation_return(id, &claims, body.comment).await?;
-    let updated = state.submission_repo.find_by_id(id).await?.ok_or_else(|| AppError::NotFound("Not found".into()))?;
+    workflow
+        .federation_return(id, &claims, body.comment)
+        .await?;
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Not found".into()))?;
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -602,7 +628,11 @@ pub async fn ministry_approve_submission(
         state.section_repo.clone(),
     );
     workflow.ministry_approve(id, &claims, body.comment).await?;
-    let updated = state.submission_repo.find_by_id(id).await?.ok_or_else(|| AppError::NotFound("Not found".into()))?;
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Not found".into()))?;
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -631,7 +661,11 @@ pub async fn ministry_reject_submission(
         state.section_repo.clone(),
     );
     workflow.ministry_reject(id, &claims, body.comment).await?;
-    let updated = state.submission_repo.find_by_id(id).await?.ok_or_else(|| AppError::NotFound("Not found".into()))?;
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Not found".into()))?;
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -667,8 +701,10 @@ pub async fn list_submission_sections(
     }
 
     let sections = state.section_repo.find_by_submission(id).await?;
-    let resps: Vec<SubmissionSectionResponse> =
-        sections.into_iter().map(SubmissionSectionResponse::from).collect();
+    let resps: Vec<SubmissionSectionResponse> = sections
+        .into_iter()
+        .map(SubmissionSectionResponse::from)
+        .collect();
 
     Ok((StatusCode::OK, Json(resps)))
 }
@@ -747,7 +783,10 @@ pub async fn update_submission_section(
         "Section status updated"
     );
 
-    Ok((StatusCode::OK, Json(SubmissionSectionResponse::from(updated))))
+    Ok((
+        StatusCode::OK,
+        Json(SubmissionSectionResponse::from(updated)),
+    ))
 }
 
 #[utoipa::path(

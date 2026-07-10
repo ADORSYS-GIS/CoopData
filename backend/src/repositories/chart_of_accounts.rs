@@ -22,7 +22,10 @@ impl ChartOfAccountsRepository {
     }
 
     pub async fn find_by_code(&self, code: i32) -> AppResult<Option<Model>> {
-        Entity::find_by_id(code).one(&self.db).await.map_err(Into::into)
+        Entity::find_by_id(code)
+            .one(&self.db)
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn find_with_formula(&self) -> AppResult<Vec<Model>> {

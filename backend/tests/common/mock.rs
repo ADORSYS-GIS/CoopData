@@ -2,10 +2,14 @@ use std::sync::Arc;
 
 use coop_data_backend::auth::JwtValidator;
 use coop_data_backend::config::Environment;
-use coop_data_backend::services::cache::CacheService;
+use coop_data_backend::services::{cache::CacheService, object_storage::create_storage};
 use coop_data_backend::{
-    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService, CooperativeRepository,
-    FederationRepository, KeycloakService, OrganizationRepository, UserRepository,
+    AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppConfig, AppState,
+    AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
+    CooperativeRepository, ExtractionJobRepository, FederationRepository,
+    FinancialStatementRepository, KeycloakService, OrganizationRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -33,6 +37,20 @@ impl TestApp {
         let user_repo = UserRepository::new(db.clone());
         let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
+        let submission_repo = SubmissionRepository::new(db.clone());
+        let uploaded_file_repo = UploadedFileRepository::new(db.clone());
+        let extraction_job_repo = ExtractionJobRepository::new(db.clone());
+        let financial_statement_repo = FinancialStatementRepository::new(db.clone());
+        let line_item_repo = BalanceSheetLineItemRepository::new(db.clone());
+        let coa_repo = ChartOfAccountsRepository::new(db.clone());
+        let account_alias_repo = AccountAliasRepository::new(db.clone());
+        let flag_repo = AbnormalityFlagRepository::new(db.clone());
+        let review_repo = SubmissionReviewRepository::new(db.clone());
+        let section_repo = SubmissionSectionRepository::new(db.clone());
+
+        let storage = create_storage("local", "/tmp/test-uploads");
+        let extractor = coop_data_backend::services::ai_extraction::create_extractor(&config);
+
         let state = AppState {
             db,
             config,
@@ -45,6 +63,18 @@ impl TestApp {
             organization_repo,
             user_repo,
             audit,
+            submission_repo,
+            uploaded_file_repo,
+            extraction_job_repo,
+            financial_statement_repo,
+            line_item_repo,
+            coa_repo,
+            account_alias_repo,
+            flag_repo,
+            review_repo,
+            section_repo,
+            storage,
+            extractor,
         };
 
         TestApp { state }
@@ -68,5 +98,10 @@ pub fn test_config() -> AppConfig {
         jwt_issuer_aliases: vec![],
         frontend_url: "http://localhost:5173".to_string(),
         environment: Environment::Development,
+        extraction_backend: "mock".to_string(),
+        ai_provider_url: "https://api.openai.com/v1".to_string(),
+        ai_api_key: String::new(),
+        ai_model: "gpt-4o".to_string(),
+        ai_vision_model: "gpt-4o".to_string(),
     }
 }

@@ -14,11 +14,6 @@ services:
       CARGO_WATCH_BIN: cargo-watch
       RUST_LOG: info,coop_data_backend=debug
       RUST_BACKTRACE: "1"
-      EXTRACTION_BACKEND: llm
-      AI_API_KEY: 
-      AI_PROVIDER_URL: https://generativelanguage.googleapis.com/v1beta
-      AI_MODEL: gemini-2.5-flash
-      AI_VISION_MODEL: gemini-2.5-flash
     ulimits:
       nofile:
         soft: 1048576

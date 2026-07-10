@@ -7,16 +7,15 @@ use coop_data_backend::{
     config::AppConfig,
     database,
     services::{
-        ai_extraction::create_extractor,
-        cache::CacheService,
-        keycloak::KeycloakService,
+        ai_extraction::create_extractor, cache::CacheService, keycloak::KeycloakService,
         object_storage::create_storage,
     },
-    AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState, AuditLogRepository,
-    AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    ExtractionJobRepository, FederationRepository, FinancialStatementRepository,
-    OrganizationRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState,
+    AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
+    CooperativeRepository, ExtractionJobRepository, FederationRepository,
+    FinancialStatementRepository, OrganizationRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 
 #[tokio::main]
@@ -64,7 +63,8 @@ async fn main() -> anyhow::Result<()> {
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
     let storage_backend = std::env::var("STORAGE_BACKEND").unwrap_or_else(|_| "local".to_string());
-    let storage_path = std::env::var("STORAGE_LOCAL_PATH").unwrap_or_else(|_| "./data/uploads".to_string());
+    let storage_path =
+        std::env::var("STORAGE_LOCAL_PATH").unwrap_or_else(|_| "./data/uploads".to_string());
     let storage = create_storage(&storage_backend, &storage_path);
     let extractor = create_extractor(&config);
 

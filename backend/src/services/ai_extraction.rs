@@ -149,7 +149,12 @@ fn build_mapping_prompt(
     } else {
         aliases
             .iter()
-            .map(|a| format!("| {} | {} | {} |", a.account_code, a.alias_label, a.language))
+            .map(|a| {
+                format!(
+                    "| {} | {} | {} |",
+                    a.account_code, a.alias_label, a.language
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n")
     };
@@ -313,9 +318,7 @@ fn repair_truncated_json(raw: &str) -> Option<String> {
         }
     }
 
-    let Some(end) = last_complete_obj_end else {
-        return None;
-    };
+    let end = last_complete_obj_end?;
 
     // Reconstruct: everything up to the last complete line item, close array,
     // add empty totals_reconciliation, close outer object
@@ -338,12 +341,7 @@ pub struct LlmExtractor {
 }
 
 impl LlmExtractor {
-    pub fn new(
-        api_key: &str,
-        provider_url: &str,
-        model: &str,
-        vision_model: &str,
-    ) -> Self {
+    pub fn new(api_key: &str, provider_url: &str, model: &str, vision_model: &str) -> Self {
         Self {
             client: reqwest::Client::new(),
             api_key: api_key.to_string(),
@@ -395,9 +393,7 @@ impl LlmExtractor {
             .await
             .map_err(|e| AppError::ExternalServiceError(format!("LLM parse error: {e}")))?;
 
-        let finish_reason = json["choices"][0]["finish_reason"]
-            .as_str()
-            .unwrap_or("");
+        let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== LLM FINISH REASON ===");
 
         if finish_reason == "max_tokens" || finish_reason == "length" {
@@ -505,9 +501,7 @@ impl LlmExtractor {
             .await
             .map_err(|e| AppError::ExternalServiceError(format!("Vision parse error: {e}")))?;
 
-        let finish_reason = json["choices"][0]["finish_reason"]
-            .as_str()
-            .unwrap_or("");
+        let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== VISION FINISH REASON ===");
 
         if finish_reason == "max_tokens" || finish_reason == "length" {
@@ -547,8 +541,16 @@ impl LlmExtractor {
             Ok(output) => {
                 tracing::info!(
                     items = output.line_items.len(),
-                    mapped = output.line_items.iter().filter(|i| i.account_code.is_some()).count(),
-                    unmapped = output.line_items.iter().filter(|i| i.account_code.is_none()).count(),
+                    mapped = output
+                        .line_items
+                        .iter()
+                        .filter(|i| i.account_code.is_some())
+                        .count(),
+                    unmapped = output
+                        .line_items
+                        .iter()
+                        .filter(|i| i.account_code.is_none())
+                        .count(),
                     "=== EXTRACTION PARSED SUCCESSFULLY ==="
                 );
                 for (i, item) in output.line_items.iter().enumerate() {
@@ -638,7 +640,10 @@ impl FinancialStatementExtractor for LlmExtractor {
                 Ok(text)
             }
             other => {
-                tracing::warn!(mime = other, "=== UNKNOWN MIME, ATTEMPTING PDF EXTRACTION ===");
+                tracing::warn!(
+                    mime = other,
+                    "=== UNKNOWN MIME, ATTEMPTING PDF EXTRACTION ==="
+                );
                 extract_pdf_text(file_bytes)
             }
         }
@@ -658,14 +663,23 @@ impl FinancialStatementExtractor for LlmExtractor {
             cooperative_type = cooperative_type,
             "=== MAP_TO_COA START ==="
         );
-        tracing::info!("=== RAW TEXT FROM VISION/EXTRACTION START ===\n{raw_text}\n=== RAW TEXT END ===");
+        tracing::info!(
+            "=== RAW TEXT FROM VISION/EXTRACTION START ===\n{raw_text}\n=== RAW TEXT END ==="
+        );
 
-        let prompt =
-            build_mapping_prompt(raw_text, chart_of_accounts, account_aliases, cooperative_type);
+        let prompt = build_mapping_prompt(
+            raw_text,
+            chart_of_accounts,
+            account_aliases,
+            cooperative_type,
+        );
 
         let raw_output = self.chat(&self.model, &prompt).await?;
 
-        tracing::info!(output_chars = raw_output.len(), "=== MAP_TO_COA RESPONSE ===");
+        tracing::info!(
+            output_chars = raw_output.len(),
+            "=== MAP_TO_COA RESPONSE ==="
+        );
 
         Self::parse_llm_output(&raw_output)
     }
@@ -738,38 +752,194 @@ Miscellaneous Fund               12,000
         Ok(ExtractionOutput {
             line_items: vec![
                 item(1101, "Cash on Hand", 50000.0, 0.95, "Cash on Hand"),
-                item(1102, "Cash at Bank (Current)", 120000.0, 0.92, "Cash at Bank (Current)"),
-                item(1103, "Cash at Bank (Savings)", 30000.0, 0.90, "Cash at Bank (Savings)"),
-                item(1104, "Short Term Investments", 10000.0, 0.85, "Short Term Investments"),
+                item(
+                    1102,
+                    "Cash at Bank (Current)",
+                    120000.0,
+                    0.92,
+                    "Cash at Bank (Current)",
+                ),
+                item(
+                    1103,
+                    "Cash at Bank (Savings)",
+                    30000.0,
+                    0.90,
+                    "Cash at Bank (Savings)",
+                ),
+                item(
+                    1104,
+                    "Short Term Investments",
+                    10000.0,
+                    0.85,
+                    "Short Term Investments",
+                ),
                 item(1201, "Performing Loans", 200000.0, 0.93, "Performing Loans"),
-                item(1202, "Loans in Arrears 1-30", 5000.0, 0.80, "Loans in Arrears 1-30"),
-                item(1205, "Non-Performing Loans", 3000.0, 0.75, "Non-Performing Loans"),
-                item(1251, "General Loan Loss Provision", -8000.0, 0.55, "General Loan Loss Provision"),
-                item(1301, "Accounts Receivable", 15000.0, 0.88, "Accounts Receivable"),
-                item(1303, "Fixed Assets (Cost)", 80000.0, 0.82, "Fixed Assets (Cost)"),
-                item(1304, "Accumulated Depreciation", -20000.0, 0.78, "Accumulated Depreciation"),
-                item(2101, "Voluntary Savings", 180000.0, 0.91, "Voluntary Savings"),
-                item(2102, "Mandatory Savings", 90000.0, 0.89, "Mandatory Savings"),
-                item(2103, "Fixed Term Deposits", 40000.0, 0.86, "Fixed Term Deposits"),
-                item(2201, "Short Term Borrowings", 25000.0, 0.84, "Short Term Borrowings"),
+                item(
+                    1202,
+                    "Loans in Arrears 1-30",
+                    5000.0,
+                    0.80,
+                    "Loans in Arrears 1-30",
+                ),
+                item(
+                    1205,
+                    "Non-Performing Loans",
+                    3000.0,
+                    0.75,
+                    "Non-Performing Loans",
+                ),
+                item(
+                    1251,
+                    "General Loan Loss Provision",
+                    -8000.0,
+                    0.55,
+                    "General Loan Loss Provision",
+                ),
+                item(
+                    1301,
+                    "Accounts Receivable",
+                    15000.0,
+                    0.88,
+                    "Accounts Receivable",
+                ),
+                item(
+                    1303,
+                    "Fixed Assets (Cost)",
+                    80000.0,
+                    0.82,
+                    "Fixed Assets (Cost)",
+                ),
+                item(
+                    1304,
+                    "Accumulated Depreciation",
+                    -20000.0,
+                    0.78,
+                    "Accumulated Depreciation",
+                ),
+                item(
+                    2101,
+                    "Voluntary Savings",
+                    180000.0,
+                    0.91,
+                    "Voluntary Savings",
+                ),
+                item(
+                    2102,
+                    "Mandatory Savings",
+                    90000.0,
+                    0.89,
+                    "Mandatory Savings",
+                ),
+                item(
+                    2103,
+                    "Fixed Term Deposits",
+                    40000.0,
+                    0.86,
+                    "Fixed Term Deposits",
+                ),
+                item(
+                    2201,
+                    "Short Term Borrowings",
+                    25000.0,
+                    0.84,
+                    "Short Term Borrowings",
+                ),
                 item(2301, "Accounts Payable", 8000.0, 0.82, "Accounts Payable"),
                 item(2302, "Accrued Expenses", 2000.0, 0.79, "Accrued Expenses"),
-                item(3101, "Permanent Share Capital", 50000.0, 0.90, "Permanent Share Capital"),
-                item(3102, "Withdrawable Shares", 20000.0, 0.87, "Withdrawable Shares"),
-                item(3201, "Statutory Reserve", 15000.0, 0.85, "Statutory Reserve"),
+                item(
+                    3101,
+                    "Permanent Share Capital",
+                    50000.0,
+                    0.90,
+                    "Permanent Share Capital",
+                ),
+                item(
+                    3102,
+                    "Withdrawable Shares",
+                    20000.0,
+                    0.87,
+                    "Withdrawable Shares",
+                ),
+                item(
+                    3201,
+                    "Statutory Reserve",
+                    15000.0,
+                    0.85,
+                    "Statutory Reserve",
+                ),
                 item(3202, "General Reserve", 10000.0, 0.83, "General Reserve"),
-                item(3301, "Accumulated Surplus", 5000.0, 0.80, "Accumulated Surplus"),
-                item(3302, "Current Year Surplus", 12000.0, 0.77, "Current Year Surplus"),
-                item(4101, "Interest Income from Loans", 45000.0, 0.91, "Interest Income from Loans"),
-                item(4102, "Fees and Commissions", 5000.0, 0.85, "Fees and Commissions"),
-                item(4201, "Other Operating Income", 3000.0, 0.80, "Other Operating Income"),
-                item(5101, "Interest Expense on Deposits", 18000.0, 0.88, "Interest Expense on Deposits"),
-                item(5102, "Interest Expense on Borrowings", 6000.0, 0.85, "Interest Expense on Borrowings"),
+                item(
+                    3301,
+                    "Accumulated Surplus",
+                    5000.0,
+                    0.80,
+                    "Accumulated Surplus",
+                ),
+                item(
+                    3302,
+                    "Current Year Surplus",
+                    12000.0,
+                    0.77,
+                    "Current Year Surplus",
+                ),
+                item(
+                    4101,
+                    "Interest Income from Loans",
+                    45000.0,
+                    0.91,
+                    "Interest Income from Loans",
+                ),
+                item(
+                    4102,
+                    "Fees and Commissions",
+                    5000.0,
+                    0.85,
+                    "Fees and Commissions",
+                ),
+                item(
+                    4201,
+                    "Other Operating Income",
+                    3000.0,
+                    0.80,
+                    "Other Operating Income",
+                ),
+                item(
+                    5101,
+                    "Interest Expense on Deposits",
+                    18000.0,
+                    0.88,
+                    "Interest Expense on Deposits",
+                ),
+                item(
+                    5102,
+                    "Interest Expense on Borrowings",
+                    6000.0,
+                    0.85,
+                    "Interest Expense on Borrowings",
+                ),
                 item(5201, "Personnel Costs", 12000.0, 0.86, "Personnel Costs"),
-                item(5202, "Administrative Expenses", 8000.0, 0.83, "Administrative Expenses"),
-                item(5203, "Governance Expenses", 3000.0, 0.78, "Governance Expenses"),
+                item(
+                    5202,
+                    "Administrative Expenses",
+                    8000.0,
+                    0.83,
+                    "Administrative Expenses",
+                ),
+                item(
+                    5203,
+                    "Governance Expenses",
+                    3000.0,
+                    0.78,
+                    "Governance Expenses",
+                ),
                 item(5204, "Depreciation", 4000.0, 0.75, "Depreciation"),
-                item(5301, "Loan Loss Provision Expense", 5000.0, 0.72, "Loan Loss Provision Expense"),
+                item(
+                    5301,
+                    "Loan Loss Provision Expense",
+                    5000.0,
+                    0.72,
+                    "Loan Loss Provision Expense",
+                ),
                 ExtractedLineItem {
                     account_code: None,
                     account_name: Some("Miscellaneous Fund".into()),
@@ -802,7 +972,9 @@ fn item(code: i32, name: &str, value: f64, confidence: f64, raw_label: &str) -> 
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn FinancialStatementExtractor> {
+pub fn create_extractor(
+    config: &crate::config::AppConfig,
+) -> std::sync::Arc<dyn FinancialStatementExtractor> {
     if config.extraction_backend == "llm" {
         if config.ai_api_key.is_empty() {
             tracing::warn!(

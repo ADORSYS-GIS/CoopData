@@ -23,6 +23,7 @@ import {
   Clock,
   Send,
   Loader2,
+  SquareCheck,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -422,7 +423,7 @@ function FormBuilder({ isReadOnly }: { isReadOnly: boolean }) {
     { type: "Currency", label: "Total member savings", icon: DollarSign, required: true },
     { type: "Currency", label: "Total loan portfolio", icon: DollarSign, required: true },
     { type: "Number", label: "Active members at period end", icon: Type, required: true },
-    { type: "Checkbox", label: "External audit completed?", icon: CheckSquare },
+    { type: "Checkbox", label: "External audit completed?", icon: SquareCheck },
     { type: "File", label: "Audited financial statements", icon: FileUp },
   ];
   return (
@@ -467,7 +468,7 @@ function Palette({ isReadOnly }: { isReadOnly: boolean }) {
     { label: "Number", icon: Hash },
     { label: "Currency", icon: DollarSign },
     { label: "Date", icon: Calendar },
-    { label: "Checkbox", icon: CheckSquare },
+    { label: "Checkbox", icon: SquareCheck },
     { label: "File", icon: FileUp },
   ];
   return (

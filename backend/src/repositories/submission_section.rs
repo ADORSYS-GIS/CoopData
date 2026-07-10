@@ -73,10 +73,7 @@ impl SubmissionSectionRepository {
         active.update(&self.db).await.map_err(Into::into)
     }
 
-    pub async fn reset_to_in_progress(
-        &self,
-        submission_id: Uuid,
-    ) -> AppResult<()> {
+    pub async fn reset_to_in_progress(&self, submission_id: Uuid) -> AppResult<()> {
         // Only reset the financial section; non-financial sections stay ready
         let sections = Entity::find()
             .filter(Column::SubmissionId.eq(submission_id))
@@ -102,7 +99,11 @@ impl SubmissionSectionRepository {
                 // Non-financial sections (members, savings, loans, fixed_deposits) default to
                 // "ready" so cooperative can submit after uploading only the financial statement.
                 // They can be updated to "in_progress" when non-financial data upload begins.
-                let initial_status = if *s == "financial" { "pending" } else { "ready" };
+                let initial_status = if *s == "financial" {
+                    "pending"
+                } else {
+                    "ready"
+                };
                 ActiveModel {
                     id: Set(Uuid::new_v4()),
                     submission_id: Set(submission_id),

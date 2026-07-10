@@ -122,8 +122,8 @@ pub async fn update_line_items(
     for update in body.updates {
         if let Some(value) = update.value {
             use rust_decimal::prelude::FromPrimitive;
-            let decimal = rust_decimal::Decimal::from_f64(value)
-                .unwrap_or(rust_decimal::Decimal::ZERO);
+            let decimal =
+                rust_decimal::Decimal::from_f64(value).unwrap_or(rust_decimal::Decimal::ZERO);
             let item = state
                 .line_item_repo
                 .update_value(update.id, decimal, update.account_code)

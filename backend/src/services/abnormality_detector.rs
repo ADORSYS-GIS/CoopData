@@ -18,7 +18,10 @@ impl AbnormalityDetector {
         line_item_repo: BalanceSheetLineItemRepository,
         flag_repo: AbnormalityFlagRepository,
     ) -> Self {
-        Self { line_item_repo, flag_repo }
+        Self {
+            line_item_repo,
+            flag_repo,
+        }
     }
 
     pub async fn run(
@@ -55,12 +58,22 @@ impl AbnormalityDetector {
         let liabilities = val_of(2999);
         let equity = val_of(3999);
         let diff = (assets - liabilities - equity).abs();
-        if diff > tolerance && (assets != Decimal::ZERO || liabilities != Decimal::ZERO || equity != Decimal::ZERO) {
-            let msg = format!(
-                "Assets ({assets}) ≠ Liabilities ({liabilities}) + Equity ({equity})"
+        if diff > tolerance
+            && (assets != Decimal::ZERO || liabilities != Decimal::ZERO || equity != Decimal::ZERO)
+        {
+            let msg =
+                format!("Assets ({assets}) ≠ Liabilities ({liabilities}) + Equity ({equity})");
+            errors.push(
+                serde_json::json!({"rule":"BALANCE_UNBALANCED","message":msg,"severity":"error"}),
             );
-            errors.push(serde_json::json!({"rule":"BALANCE_UNBALANCED","message":msg,"severity":"error"}));
-            flag_models.push(make_flag(submission_id, cooperative_id, "BALANCE_UNBALANCED", "error", &msg, None));
+            flag_models.push(make_flag(
+                submission_id,
+                cooperative_id,
+                "BALANCE_UNBALANCED",
+                "error",
+                &msg,
+                None,
+            ));
         }
 
         // ── 2. Roll-up reconciliation for formula accounts ──────────────────
@@ -74,7 +87,9 @@ impl AbnormalityDetector {
             // If any code is missing from the extracted items, the formula can't be
             // reliably checked — it's a missing-extraction issue, not a real mismatch.
             let all_codes_present = formula_codes.iter().all(|&c| {
-                line_items.iter().any(|li| li.account_code == Some(c) && li.month == 0)
+                line_items
+                    .iter()
+                    .any(|li| li.account_code == Some(c) && li.month == 0)
             });
 
             if !all_codes_present {
@@ -83,15 +98,20 @@ impl AbnormalityDetector {
 
             if let Some(expected) = compute_formula(formula, &line_items) {
                 let stored = val_of(coa_entry.account_code);
-                if stored != Decimal::ZERO
-                    && (stored - expected).abs() > tolerance
-                {
+                if stored != Decimal::ZERO && (stored - expected).abs() > tolerance {
                     let msg = format!(
                         "Account {} ({}) stored={stored} but formula {formula} computes {expected}",
                         coa_entry.account_code, coa_entry.account_name
                     );
                     errors.push(serde_json::json!({"rule":"TOTAL_MISMATCH","message":msg,"severity":"error","field_ref":coa_entry.account_code.to_string()}));
-                    flag_models.push(make_flag(submission_id, cooperative_id, "TOTAL_MISMATCH", "error", &msg, Some(&coa_entry.account_code.to_string())));
+                    flag_models.push(make_flag(
+                        submission_id,
+                        cooperative_id,
+                        "TOTAL_MISMATCH",
+                        "error",
+                        &msg,
+                        Some(&coa_entry.account_code.to_string()),
+                    ));
                 }
             }
         }
@@ -99,12 +119,26 @@ impl AbnormalityDetector {
         // ── 3. Low extraction confidence ────────────────────────────────────
         let low_conf: Vec<&LineItem> = line_items
             .iter()
-            .filter(|li| li.ai_confidence.map(|c| c < Decimal::new(6, 1)).unwrap_or(false))
+            .filter(|li| {
+                li.ai_confidence
+                    .map(|c| c < Decimal::new(6, 1))
+                    .unwrap_or(false)
+            })
             .collect();
         if !low_conf.is_empty() {
-            let msg = format!("{} line item(s) have AI confidence below 0.6", low_conf.len());
+            let msg = format!(
+                "{} line item(s) have AI confidence below 0.6",
+                low_conf.len()
+            );
             warnings.push(serde_json::json!({"rule":"LOW_EXTRACTION_CONFIDENCE","message":msg,"severity":"warning"}));
-            flag_models.push(make_flag(submission_id, cooperative_id, "LOW_EXTRACTION_CONFIDENCE", "warning", &msg, None));
+            flag_models.push(make_flag(
+                submission_id,
+                cooperative_id,
+                "LOW_EXTRACTION_CONFIDENCE",
+                "warning",
+                &msg,
+                None,
+            ));
         }
 
         // ── 5. Portfolio sanity: loans ≤ total assets ───────────────────────
@@ -114,8 +148,17 @@ impl AbnormalityDetector {
             .fold(Decimal::ZERO, |a, v| a + v);
         if assets > Decimal::ZERO && loans > assets {
             let msg = format!("Total loans ({loans}) exceed total assets ({assets})");
-            warnings.push(serde_json::json!({"rule":"PORTFOLIO_OVER_100","message":msg,"severity":"warning"}));
-            flag_models.push(make_flag(submission_id, cooperative_id, "PORTFOLIO_OVER_100", "warning", &msg, None));
+            warnings.push(
+                serde_json::json!({"rule":"PORTFOLIO_OVER_100","message":msg,"severity":"warning"}),
+            );
+            flag_models.push(make_flag(
+                submission_id,
+                cooperative_id,
+                "PORTFOLIO_OVER_100",
+                "warning",
+                &msg,
+                None,
+            ));
         }
 
         self.flag_repo.bulk_create(flag_models).await?;

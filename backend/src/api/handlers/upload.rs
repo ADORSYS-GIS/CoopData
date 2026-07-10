@@ -5,8 +5,15 @@ use axum::{
     Extension, Json,
 };
 use sea_orm::Set;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+};
 use uuid::Uuid;
+
+const MAX_UPLOAD_BYTES: usize = 20 * 1024 * 1024; // 20 MB
+
+static SEQ_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 use crate::api::dto::upload::UploadResponse;
 use crate::auth::claims::Claims;
@@ -47,27 +54,30 @@ pub async fn upload_financial_statement(
     let mut accounting_year_str = String::from("calendar");
     let mut currency_str = String::from("SZL");
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        AppError::BadRequest(format!("Multipart error: {e}"))
-    })? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Multipart error: {e}")))?
+    {
         let name = field.name().unwrap_or("").to_string();
         match name.as_str() {
             "file" => {
-                original_name = field
-                    .file_name()
-                    .unwrap_or("upload")
-                    .to_string();
+                original_name = field.file_name().unwrap_or("upload").to_string();
                 mime_type = field
                     .content_type()
                     .unwrap_or("application/octet-stream")
                     .to_string();
-                file_bytes = Some(
-                    field
-                        .bytes()
-                        .await
-                        .map_err(|e| AppError::BadRequest(format!("Failed to read file: {e}")))?
-                        .to_vec(),
-                );
+                let bytes = field
+                    .bytes()
+                    .await
+                    .map_err(|e| AppError::BadRequest(format!("Failed to read file: {e}")))?;
+                if bytes.len() > MAX_UPLOAD_BYTES {
+                    return Err(AppError::BadRequest(format!(
+                        "File exceeds maximum allowed size of {} MB",
+                        MAX_UPLOAD_BYTES / (1024 * 1024)
+                    )));
+                }
+                file_bytes = Some(bytes.to_vec());
             }
             "reporting_year" => {
                 let text = field
@@ -161,12 +171,7 @@ pub async fn upload_financial_statement(
     let reference = format!("SUB-{}-{:05}", current_year, rand_seq());
 
     // Storage key
-    let storage_key = format!(
-        "{}/{}/{}.bin",
-        coop.id,
-        submission_id,
-        file_id
-    );
+    let storage_key = format!("{}/{}/{}.bin", coop.id, submission_id, file_id);
 
     // 1. Store file
     state
@@ -195,7 +200,8 @@ pub async fn upload_financial_statement(
     state.submission_repo.create(submission_model).await?;
 
     // Create submission sections (5 sections: financial, members, savings, loans, fixed_deposits)
-    let section_models = crate::repositories::SubmissionSectionRepository::new_section_models(submission_id);
+    let section_models =
+        crate::repositories::SubmissionSectionRepository::new_section_models(submission_id);
     state.section_repo.create_many(section_models).await?;
 
     // 3. Create uploaded_file
@@ -296,12 +302,7 @@ pub async fn upload_financial_statement(
 }
 
 fn rand_seq() -> u32 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(0);
-    nanos % 100_000
+    SEQ_COUNTER.fetch_add(1, Ordering::Relaxed) % 100_000
 }
 
 trait YearExt {

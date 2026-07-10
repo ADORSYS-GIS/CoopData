@@ -120,10 +120,7 @@ export const FinancialStatementEditor: React.FC<{ fsId: string; submissionId: st
     (fs?.validation_errors as { warnings?: typeof validationWarnings } | null)?.warnings ?? [];
 
   const hasErrors = validationErrors.length > 0;
-  const canSubmit =
-    !hasErrors &&
-    allReady &&
-    (submission?.status === "awaiting_coop_validation" || submission?.status === "draft");
+  const canSubmit = !hasErrors && allReady && isDraft;
 
   const handleMarkFinancialReady = async () => {
     try {

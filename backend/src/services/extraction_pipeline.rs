@@ -49,11 +49,18 @@ pub async fn run_extraction_pipeline(
     {
         tracing::error!(job_id = %job_id, error = %e, "Extraction pipeline failed");
         let _ = job_repo
-            .update_status(job_id, "failed", None, Some(chrono::Utc::now()), Some(e.to_string()))
+            .update_status(
+                job_id,
+                "failed",
+                None,
+                Some(chrono::Utc::now()),
+                Some(e.to_string()),
+            )
             .await;
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_pipeline_inner(
     job_id: Uuid,
     submission_id: Uuid,
@@ -172,11 +179,10 @@ async fn run_pipeline_inner(
             id: Set(Uuid::new_v4()),
             financial_statement_id: Set(fs.id),
             account_code: Set(item.account_code),
-            account_name: Set(
-                item.account_name
-                    .clone()
-                    .unwrap_or_else(|| item.raw_label.clone()),
-            ),
+            account_name: Set(item
+                .account_name
+                .clone()
+                .unwrap_or_else(|| item.raw_label.clone())),
             account_category: Set(category),
             account_subcategory: Set(subcategory),
             month: Set(item.month),
@@ -214,17 +220,25 @@ async fn run_pipeline_inner(
 
     // Determine extractor engine name from config
     let engine_name = std::env::var("EXTRACTION_BACKEND")
-        .map(|b| if b == "llm" {
-            std::env::var("AI_MODEL").unwrap_or_else(|_| "llm".into())
-        } else {
-            "mock-extractor".into()
+        .map(|b| {
+            if b == "llm" {
+                std::env::var("AI_MODEL").unwrap_or_else(|_| "llm".into())
+            } else {
+                "mock-extractor".into()
+            }
         })
         .unwrap_or_else(|_| "mock-extractor".into());
 
     // Store raw extraction results in job record
     let extracted_json = serde_json::to_value(&output).unwrap_or(serde_json::Value::Null);
     job_repo
-        .update_result(job_id, &raw_text, extracted_json, avg_confidence, &engine_name)
+        .update_result(
+            job_id,
+            &raw_text,
+            extracted_json,
+            avg_confidence,
+            &engine_name,
+        )
         .await?;
 
     job_repo
@@ -242,11 +256,15 @@ async fn run_pipeline_inner(
 
     // Stage 4 — validation: run abnormality detection
     let detector = AbnormalityDetector::new(line_item_repo.clone(), flag_repo.clone());
-    let (errors, warnings) = detector.run(submission_id, cooperative_id, fs.id, &coa).await?;
+    let (errors, warnings) = detector
+        .run(submission_id, cooperative_id, fs.id, &coa)
+        .await?;
 
     // Persist validation result on financial statement
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
-    fs_repo.set_validation_errors(fs.id, validation_json).await?;
+    fs_repo
+        .set_validation_errors(fs.id, validation_json)
+        .await?;
 
     tracing::info!(
         job_id = %job_id,
