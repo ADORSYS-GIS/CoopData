@@ -40,6 +40,79 @@ const SHEET_SAVINGS: &str = "NF S";
 const SHEET_LOANS: &str = "NF LOANS";
 const SHEET_FIXED_DEPOSITS: &str = "NF FS";
 
+const MEMBERS_HEADERS: &[&str] = &[
+    "member_id",
+    "join_date",
+    "status",
+    "exit_date",
+    "gender",
+    "age_group",
+    "region",
+    "urban_rural",
+    "agm_attendance",
+    "leadership_role",
+    "voting_exercised",
+];
+
+const SAVINGS_HEADERS: &[&str] = &[
+    "member_id",
+    "savings_account_id",
+    "account_type",
+    "account_opening_date",
+    "account_status",
+    "contribution_frequency",
+    "last_contribution_date",
+    "number_of_contributions",
+    "balance_trend",
+    "zero_balance_flag",
+    "withdrawal_frequency_category",
+    "emergency_withdrawals_flag",
+    "interest_rate",
+    "balance",
+];
+
+const LOANS_HEADERS: &[&str] = &[
+    "member_id",
+    "loan_id",
+    "loan_product_type",
+    "loan_start_date",
+    "loan_maturity_date",
+    "loan_status",
+    "borrower_type",
+    "youth_borrower_flag",
+    "women_borrower_flag",
+    "rural_borrower_flag",
+    "repayment_regularity",
+    "days_past_due_category",
+    "missed_installments_count",
+    "restructured_loan_flag",
+    "number_of_restructurings",
+    "early_settlement_flag",
+    "multiple_loans_flag",
+    "large_borrower_flag",
+    "interest_rate",
+    "balance",
+    "loan_amount",
+];
+
+const FD_HEADERS: &[&str] = &[
+    "member_id",
+    "fixed_deposit_id",
+    "deposit_type",
+    "start_date",
+    "maturity_date",
+    "status",
+    "tenure_category",
+    "original_tenure_selected",
+    "early_withdrawal_flag",
+    "rollover_at_maturity_flag",
+    "number_of_renewals",
+    "change_in_tenure_at_renewal",
+    "single_depositor_dependency_flag",
+    "interest_rate",
+    "balance",
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct MemberRecord {
     pub member_id: String,
@@ -200,23 +273,71 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
 
 use calamine::{Data, Range};
 
+fn build_column_map(
+    header_row: &[Data],
+    expected_headers: &[&str],
+    sheet_name: &str,
+    result: &mut NfParseResult,
+) -> Option<HashMap<String, usize>> {
+    let mut map = HashMap::new();
+    let mut missing = Vec::new();
+
+    for (col_idx, header) in header_row.iter().enumerate() {
+        let name = match header {
+            Data::String(s) => s.trim().to_lowercase(),
+            Data::Int(i) => i.to_string(),
+            _ => continue,
+        };
+        map.insert(name, col_idx);
+    }
+
+    for &expected in expected_headers {
+        if !map.contains_key(expected) {
+            missing.push(expected.to_string());
+        }
+    }
+
+    if !missing.is_empty() {
+        result.errors.push(NfParseError {
+            sheet: sheet_name.to_string(),
+            row: 0,
+            column: "headers".to_string(),
+            value: missing.join(", "),
+            rule: "MISSING_HEADERS".to_string(),
+            message: format!(
+                "Missing required columns: {}",
+                missing.join(", ")
+            ),
+        });
+        return None;
+    }
+
+    Some(map)
+}
+
 fn parse_members_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     let mut rows = range.rows();
-    if rows.next().is_none() {
-        return;
-    }
+    let header_row = match rows.next() {
+        Some(h) => h,
+        None => return,
+    };
+
+    let map = match build_column_map(header_row, MEMBERS_HEADERS, SHEET_MEMBERS, result) {
+        Some(m) => m,
+        None => return,
+    };
 
     let mut row_index = 0usize;
     for row in rows {
         row_index += 1;
-        let member_id = get_string_cell(row, 0);
-        let join_date = get_date_cell(row, 1);
-        let status = get_string_cell(row, 2);
-        let exit_date = get_optional_date_cell(row, 3);
-        let gender = get_string_cell(row, 4);
-        let age_group = get_string_cell(row, 5);
-        let region = get_string_cell(row, 6);
-        let urban_rural = get_string_cell(row, 7);
+        let member_id = get_string_cell(row, *map.get("member_id").unwrap());
+        let join_date = get_date_cell(row, *map.get("join_date").unwrap());
+        let status = get_string_cell(row, *map.get("status").unwrap());
+        let exit_date = get_optional_date_cell(row, *map.get("exit_date").unwrap());
+        let gender = get_string_cell(row, *map.get("gender").unwrap());
+        let age_group = get_string_cell(row, *map.get("age_group").unwrap());
+        let region = get_string_cell(row, *map.get("region").unwrap());
+        let urban_rural = get_string_cell(row, *map.get("urban_rural").unwrap());
 
         match (
             member_id,
@@ -315,9 +436,13 @@ fn parse_members_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     }
                 }
 
-                let agm_attendance = get_bool_cell(row, 8).unwrap_or(false);
-                let leadership_role = get_optional_string_cell(row, 9);
-                let voting_exercised = get_bool_cell(row, 10).unwrap_or(false);
+                let agm_attendance = get_bool_cell(row, *map.get("agm_attendance").unwrap_or(&0))
+                    .unwrap_or(false);
+                let leadership_role =
+                    get_optional_string_cell(row, *map.get("leadership_role").unwrap_or(&0));
+                let voting_exercised =
+                    get_bool_cell(row, *map.get("voting_exercised").unwrap_or(&0))
+                        .unwrap_or(false);
 
                 result.members.push(MemberRecord {
                     member_id: mid,
@@ -349,17 +474,23 @@ fn parse_members_sheet(range: &Range<Data>, result: &mut NfParseResult) {
 
 fn parse_savings_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     let mut rows = range.rows();
-    if rows.next().is_none() {
-        return;
-    }
+    let header_row = match rows.next() {
+        Some(h) => h,
+        None => return,
+    };
+
+    let map = match build_column_map(header_row, SAVINGS_HEADERS, SHEET_SAVINGS, result) {
+        Some(m) => m,
+        None => return,
+    };
 
     let mut row_index = 0usize;
     for row in rows {
         row_index += 1;
-        let member_business_id = get_string_cell(row, 0);
-        let savings_account_id = get_string_cell(row, 1);
-        let account_type = get_string_cell(row, 2);
-        let account_opening_date = get_date_cell(row, 3);
+        let member_business_id = get_string_cell(row, *map.get("member_id").unwrap());
+        let savings_account_id = get_string_cell(row, *map.get("savings_account_id").unwrap());
+        let account_type = get_string_cell(row, *map.get("account_type").unwrap());
+        let account_opening_date = get_date_cell(row, *map.get("account_opening_date").unwrap());
 
         match (
             member_business_id,
@@ -388,16 +519,26 @@ fn parse_savings_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     savings_account_id: sid,
                     account_type: account_type_enum,
                     account_opening_date: aod,
-                    account_status: get_string_cell(row, 4).unwrap_or_else(|| "Active".to_string()),
-                    contribution_frequency: get_string_cell(row, 5).unwrap_or_default(),
-                    last_contribution_date: get_optional_date_cell(row, 6).flatten(),
-                    number_of_contributions: get_int_cell(row, 7).unwrap_or(0),
-                    balance_trend: get_string_cell(row, 8).unwrap_or_default(),
-                    zero_balance_flag: get_bool_cell(row, 9).unwrap_or(false),
-                    withdrawal_frequency_category: get_string_cell(row, 10).unwrap_or_default(),
-                    emergency_withdrawals_flag: get_bool_cell(row, 11).unwrap_or(false),
-                    interest_rate: get_decimal_cell(row, 12).unwrap_or_default(),
-                    balance: get_decimal_cell(row, 13).unwrap_or_default(),
+                    account_status: get_string_cell(row, *map.get("account_status").unwrap_or(&0))
+                        .unwrap_or_else(|| "Active".to_string()),
+                    contribution_frequency: get_string_cell(row, *map.get("contribution_frequency").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    last_contribution_date: get_optional_date_cell(row, *map.get("last_contribution_date").unwrap_or(&0))
+                        .flatten(),
+                    number_of_contributions: get_int_cell(row, *map.get("number_of_contributions").unwrap_or(&0))
+                        .unwrap_or(0),
+                    balance_trend: get_string_cell(row, *map.get("balance_trend").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    zero_balance_flag: get_bool_cell(row, *map.get("zero_balance_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    withdrawal_frequency_category: get_string_cell(row, *map.get("withdrawal_frequency_category").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    emergency_withdrawals_flag: get_bool_cell(row, *map.get("emergency_withdrawals_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    interest_rate: get_decimal_cell(row, *map.get("interest_rate").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    balance: get_decimal_cell(row, *map.get("balance").unwrap_or(&0))
+                        .unwrap_or_default(),
                 });
             }
             _ => {
@@ -416,19 +557,25 @@ fn parse_savings_sheet(range: &Range<Data>, result: &mut NfParseResult) {
 
 fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     let mut rows = range.rows();
-    if rows.next().is_none() {
-        return;
-    }
+    let header_row = match rows.next() {
+        Some(h) => h,
+        None => return,
+    };
+
+    let map = match build_column_map(header_row, LOANS_HEADERS, SHEET_LOANS, result) {
+        Some(m) => m,
+        None => return,
+    };
 
     let mut row_index = 0usize;
     for row in rows {
         row_index += 1;
-        let member_business_id = get_string_cell(row, 0);
-        let loan_id = get_string_cell(row, 1);
-        let loan_product_type = get_string_cell(row, 2);
-        let loan_start_date = get_date_cell(row, 3);
-        let loan_maturity_date = get_date_cell(row, 4);
-        let loan_status = get_string_cell(row, 5);
+        let member_business_id = get_string_cell(row, *map.get("member_id").unwrap());
+        let loan_id = get_string_cell(row, *map.get("loan_id").unwrap());
+        let loan_product_type = get_string_cell(row, *map.get("loan_product_type").unwrap());
+        let loan_start_date = get_date_cell(row, *map.get("loan_start_date").unwrap());
+        let loan_maturity_date = get_date_cell(row, *map.get("loan_maturity_date").unwrap());
+        let loan_status = get_string_cell(row, *map.get("loan_status").unwrap());
 
         match (
             member_business_id,
@@ -466,7 +613,8 @@ fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     continue;
                 }
 
-                let dpd_raw = get_string_cell(row, 11).unwrap_or_else(|| "0".to_string());
+                let dpd_raw = get_string_cell(row, *map.get("days_past_due_category").unwrap_or(&0))
+                    .unwrap_or_else(|| "0".to_string());
                 let dpd_category = match DpdCategory::parse(&dpd_raw) {
                     Some(v) => v,
                     None => DpdCategory::Zero,
@@ -491,21 +639,35 @@ fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     loan_start_date: lsd,
                     loan_maturity_date: lmd,
                     loan_status: loan_status_enum,
-                    borrower_type: get_string_cell(row, 6).unwrap_or_default(),
-                    youth_borrower_flag: get_bool_cell(row, 7).unwrap_or(false),
-                    women_borrower_flag: get_bool_cell(row, 8).unwrap_or(false),
-                    rural_borrower_flag: get_bool_cell(row, 9).unwrap_or(false),
-                    repayment_regularity: get_string_cell(row, 10).unwrap_or_default(),
+                    borrower_type: get_string_cell(row, *map.get("borrower_type").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    youth_borrower_flag: get_bool_cell(row, *map.get("youth_borrower_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    women_borrower_flag: get_bool_cell(row, *map.get("women_borrower_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    rural_borrower_flag: get_bool_cell(row, *map.get("rural_borrower_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    repayment_regularity: get_string_cell(row, *map.get("repayment_regularity").unwrap_or(&0))
+                        .unwrap_or_default(),
                     days_past_due_category: dpd_category,
-                    missed_installments_count: get_int_cell(row, 12).unwrap_or(0),
-                    restructured_loan_flag: get_bool_cell(row, 13).unwrap_or(false),
-                    number_of_restructurings: get_int_cell(row, 14).unwrap_or(0),
-                    early_settlement_flag: get_bool_cell(row, 15).unwrap_or(false),
-                    multiple_loans_flag: get_bool_cell(row, 16).unwrap_or(false),
-                    large_borrower_flag: get_bool_cell(row, 17).unwrap_or(false),
-                    interest_rate: get_decimal_cell(row, 18).unwrap_or_default(),
-                    balance: get_decimal_cell(row, 19).unwrap_or_default(),
-                    loan_amount: get_decimal_cell(row, 20).unwrap_or_default(),
+                    missed_installments_count: get_int_cell(row, *map.get("missed_installments_count").unwrap_or(&0))
+                        .unwrap_or(0),
+                    restructured_loan_flag: get_bool_cell(row, *map.get("restructured_loan_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    number_of_restructurings: get_int_cell(row, *map.get("number_of_restructurings").unwrap_or(&0))
+                        .unwrap_or(0),
+                    early_settlement_flag: get_bool_cell(row, *map.get("early_settlement_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    multiple_loans_flag: get_bool_cell(row, *map.get("multiple_loans_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    large_borrower_flag: get_bool_cell(row, *map.get("large_borrower_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    interest_rate: get_decimal_cell(row, *map.get("interest_rate").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    balance: get_decimal_cell(row, *map.get("balance").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    loan_amount: get_decimal_cell(row, *map.get("loan_amount").unwrap_or(&0))
+                        .unwrap_or_default(),
                 });
             }
             _ => {
@@ -524,19 +686,25 @@ fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
 
 fn parse_fixed_deposits_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     let mut rows = range.rows();
-    if rows.next().is_none() {
-        return;
-    }
+    let header_row = match rows.next() {
+        Some(h) => h,
+        None => return,
+    };
+
+    let map = match build_column_map(header_row, FD_HEADERS, SHEET_FIXED_DEPOSITS, result) {
+        Some(m) => m,
+        None => return,
+    };
 
     let mut row_index = 0usize;
     for row in rows {
         row_index += 1;
-        let member_business_id = get_string_cell(row, 0);
-        let fixed_deposit_id = get_string_cell(row, 1);
-        let deposit_type = get_string_cell(row, 2);
-        let start_date = get_date_cell(row, 3);
-        let maturity_date = get_date_cell(row, 4);
-        let status = get_string_cell(row, 5);
+        let member_business_id = get_string_cell(row, *map.get("member_id").unwrap());
+        let fixed_deposit_id = get_string_cell(row, *map.get("fixed_deposit_id").unwrap());
+        let deposit_type = get_string_cell(row, *map.get("deposit_type").unwrap());
+        let start_date = get_date_cell(row, *map.get("start_date").unwrap());
+        let maturity_date = get_date_cell(row, *map.get("maturity_date").unwrap());
+        let status = get_string_cell(row, *map.get("status").unwrap());
 
         match (
             member_business_id,
@@ -581,15 +749,24 @@ fn parse_fixed_deposits_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     start_date: sd,
                     maturity_date: md,
                     status: status_enum,
-                    tenure_category: get_string_cell(row, 6).unwrap_or_default(),
-                    original_tenure_selected: get_string_cell(row, 7).unwrap_or_default(),
-                    early_withdrawal_flag: get_bool_cell(row, 8).unwrap_or(false),
-                    rollover_at_maturity_flag: get_bool_cell(row, 9).unwrap_or(false),
-                    number_of_renewals: get_int_cell(row, 10).unwrap_or(0),
-                    change_in_tenure_at_renewal: get_bool_cell(row, 11).unwrap_or(false),
-                    single_depositor_dependency_flag: get_bool_cell(row, 12).unwrap_or(false),
-                    interest_rate: get_decimal_cell(row, 13).unwrap_or_default(),
-                    balance: get_decimal_cell(row, 14).unwrap_or_default(),
+                    tenure_category: get_string_cell(row, *map.get("tenure_category").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    original_tenure_selected: get_string_cell(row, *map.get("original_tenure_selected").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    early_withdrawal_flag: get_bool_cell(row, *map.get("early_withdrawal_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    rollover_at_maturity_flag: get_bool_cell(row, *map.get("rollover_at_maturity_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    number_of_renewals: get_int_cell(row, *map.get("number_of_renewals").unwrap_or(&0))
+                        .unwrap_or(0),
+                    change_in_tenure_at_renewal: get_bool_cell(row, *map.get("change_in_tenure_at_renewal").unwrap_or(&0))
+                        .unwrap_or(false),
+                    single_depositor_dependency_flag: get_bool_cell(row, *map.get("single_depositor_dependency_flag").unwrap_or(&0))
+                        .unwrap_or(false),
+                    interest_rate: get_decimal_cell(row, *map.get("interest_rate").unwrap_or(&0))
+                        .unwrap_or_default(),
+                    balance: get_decimal_cell(row, *map.get("balance").unwrap_or(&0))
+                        .unwrap_or_default(),
                 });
             }
             _ => {
@@ -816,5 +993,46 @@ mod tests {
         let date = get_date_cell(&row, 0);
         assert!(date.is_some());
         assert_eq!(date.unwrap().to_string(), "2024-01-15");
+    }
+
+    #[test]
+    fn test_build_column_map_success() {
+        let header_row = vec![
+            Data::String("member_id".to_string()),
+            Data::String("join_date".to_string()),
+            Data::String("status".to_string()),
+        ];
+        let mut result = NfParseResult::default();
+        let map = build_column_map(&header_row, &["member_id", "join_date", "status"], "TEST", &mut result);
+        assert!(map.is_some());
+        assert!(result.errors.is_empty());
+        let map = map.unwrap();
+        assert_eq!(map.get("member_id"), Some(&0));
+        assert_eq!(map.get("status"), Some(&2));
+    }
+
+    #[test]
+    fn test_build_column_map_missing_header() {
+        let header_row = vec![
+            Data::String("member_id".to_string()),
+            Data::String("join_date".to_string()),
+        ];
+        let mut result = NfParseResult::default();
+        let map = build_column_map(&header_row, &["member_id", "join_date", "status"], "TEST", &mut result);
+        assert!(map.is_none());
+        assert_eq!(result.errors.len(), 1);
+        assert_eq!(result.errors[0].rule, "MISSING_HEADERS");
+    }
+
+    #[test]
+    fn test_build_column_map_case_insensitive() {
+        let header_row = vec![
+            Data::String("Member_ID".to_string()),
+            Data::String("JOIN_DATE".to_string()),
+        ];
+        let mut result = NfParseResult::default();
+        let map = build_column_map(&header_row, &["member_id", "join_date"], "TEST", &mut result);
+        assert!(map.is_some());
+        assert!(result.errors.is_empty());
     }
 }

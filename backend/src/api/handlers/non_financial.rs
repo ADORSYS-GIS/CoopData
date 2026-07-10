@@ -216,8 +216,14 @@ pub async fn upload_non_financial(
         ));
     }
 
-    let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     let now = chrono::Utc::now();
+
+    state.savings_account_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state.loan_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state.fixed_deposit_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state.member_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+
+    let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     for record in &parse_result.members {
         let new_id = Uuid::new_v4();
         member_active_models.push(member::ActiveModel {

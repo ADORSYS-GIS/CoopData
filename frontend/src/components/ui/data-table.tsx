@@ -33,6 +33,7 @@ interface DataTableProps<TData, TValue> {
   searchColumnId?: string;
   emptyMessage?: string;
   pageSize?: number;
+  getRowClassName?: (row: TData) => string | undefined;
 }
 
 export function DataTable<TData, TValue>({
@@ -44,6 +45,7 @@ export function DataTable<TData, TValue>({
   searchColumnId,
   emptyMessage = "No results found.",
   pageSize = 10,
+  getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -131,7 +133,10 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                  className={cn(
+                    "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+                    getRowClassName?.(row.original),
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-3 align-middle">

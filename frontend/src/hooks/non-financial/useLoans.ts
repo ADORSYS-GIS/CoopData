@@ -83,6 +83,21 @@ export const useLoans = (params?: NfListParams) =>
     queryFn: () => fetchLoans(params),
   });
 
+export const useLoan = (id: string) =>
+  useQuery({
+    queryKey: [NF_LOANS_KEY, id],
+    queryFn: async () => {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/loans/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractErrorMessage(json));
+      return json as LoanResponse;
+    },
+    enabled: !!id,
+  });
+
 export const useCreateLoan = () => {
   const queryClient = useQueryClient();
   return useMutation({

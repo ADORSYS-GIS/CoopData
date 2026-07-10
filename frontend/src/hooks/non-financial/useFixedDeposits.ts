@@ -85,6 +85,21 @@ export const useFixedDeposits = (params?: NfListParams) =>
     queryFn: () => fetchFixedDeposits(params),
   });
 
+export const useFixedDeposit = (id: string) =>
+  useQuery({
+    queryKey: [NF_FD_KEY, id],
+    queryFn: async () => {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/fixed-deposits/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractErrorMessage(json));
+      return json as FixedDepositResponse;
+    },
+    enabled: !!id,
+  });
+
 export const useCreateFixedDeposit = () => {
   const queryClient = useQueryClient();
   return useMutation({

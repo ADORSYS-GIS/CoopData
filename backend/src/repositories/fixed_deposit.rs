@@ -84,6 +84,20 @@ impl FixedDepositRepository {
         Ok(())
     }
 
+    pub async fn delete_by_cooperative_and_submission(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Uuid,
+    ) -> AppResult<u64> {
+        let result = fixed_deposit::Entity::delete_many()
+            .filter(FixedDepositColumn::CooperativeId.eq(cooperative_id))
+            .filter(FixedDepositColumn::SubmissionId.eq(submission_id))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(result.rows_affected)
+    }
+
     pub async fn bulk_upsert(&self, models: Vec<fixed_deposit::ActiveModel>) -> AppResult<u64> {
         if models.is_empty() {
             return Ok(0);

@@ -42,11 +42,25 @@ import { MemberGrid } from "@/components/non-financial/MemberGrid";
 import { SavingsGrid } from "@/components/non-financial/SavingsGrid";
 import { LoanGrid } from "@/components/non-financial/LoanGrid";
 import { FixedDepositGrid } from "@/components/non-financial/FixedDepositGrid";
-import { useMembers, useDeleteMember } from "@/hooks/non-financial/useMembers";
-import { useSavings, useDeleteSavings } from "@/hooks/non-financial/useSavings";
-import { useLoans, useDeleteLoan } from "@/hooks/non-financial/useLoans";
-import { useFixedDeposits, useDeleteFixedDeposit } from "@/hooks/non-financial/useFixedDeposits";
-import type { NfUploadResponse } from "@/types/non-financial";
+import {
+  useMembers,
+  useDeleteMember,
+} from "@/hooks/non-financial/useMembers";
+import {
+  useSavings,
+  useDeleteSavings,
+} from "@/hooks/non-financial/useSavings";
+import {
+  useLoans,
+  useDeleteLoan,
+} from "@/hooks/non-financial/useLoans";
+import {
+  useFixedDeposits,
+  useDeleteFixedDeposit,
+} from "@/hooks/non-financial/useFixedDeposits";
+import type {
+  NfUploadResponse,
+} from "@/types/non-financial";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -114,7 +128,10 @@ export const DataCollectionPage: React.FC = () => {
     }
   };
 
-  const notifyAddEdit = () => toast.info("Use the Excel upload to add or update records in bulk.");
+  const handleEditMember = () => toast.info("Edit records in your Excel file, then re-upload.");
+  const handleEditSavings = () => toast.info("Edit records in your Excel file, then re-upload.");
+  const handleEditLoan = () => toast.info("Edit records in your Excel file, then re-upload.");
+  const handleEditFd = () => toast.info("Edit records in your Excel file, then re-upload.");
 
 
 
@@ -314,7 +331,7 @@ export const DataCollectionPage: React.FC = () => {
                       members={members}
                       isLoading={membersQuery.isLoading}
                       onDelete={handleDeleteMember}
-                      onEdit={notifyAddEdit}
+                      onEdit={handleEditMember}
                     />
                     <FilingGuideline
                       tab="membership"
@@ -334,7 +351,7 @@ export const DataCollectionPage: React.FC = () => {
                       savings={savings}
                       isLoading={savingsQuery.isLoading}
                       onDelete={handleDeleteSavings}
-                      onEdit={notifyAddEdit}
+                      onEdit={handleEditSavings}
                     />
                     <FilingGuideline
                       tab="savings"
@@ -354,7 +371,7 @@ export const DataCollectionPage: React.FC = () => {
                       loans={loans}
                       isLoading={loansQuery.isLoading}
                       onDelete={handleDeleteLoan}
-                      onEdit={notifyAddEdit}
+                      onEdit={handleEditLoan}
                     />
                     <FilingGuideline
                       tab="loans"
@@ -374,7 +391,7 @@ export const DataCollectionPage: React.FC = () => {
                       fixedDeposits={fds}
                       isLoading={fdQuery.isLoading}
                       onDelete={handleDeleteFd}
-                      onEdit={notifyAddEdit}
+                      onEdit={handleEditFd}
                     />
                     <FilingGuideline
                       tab="fixed-deposits"

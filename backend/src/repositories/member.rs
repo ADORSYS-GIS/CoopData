@@ -121,6 +121,20 @@ impl MemberRepository {
             })
     }
 
+    pub async fn delete_by_cooperative_and_submission(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Uuid,
+    ) -> AppResult<u64> {
+        let result = member::Entity::delete_many()
+            .filter(MemberColumn::CooperativeId.eq(cooperative_id))
+            .filter(MemberColumn::SubmissionId.eq(submission_id))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(result.rows_affected)
+    }
+
     pub async fn find_by_cooperative_and_member_id(
         &self,
         cooperative_id: Uuid,

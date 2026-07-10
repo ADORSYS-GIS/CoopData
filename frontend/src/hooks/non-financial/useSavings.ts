@@ -85,6 +85,21 @@ export const useSavings = (params?: NfListParams) =>
     queryFn: () => fetchSavings(params),
   });
 
+export const useSaving = (id: string) =>
+  useQuery({
+    queryKey: [NF_SAVINGS_KEY, id],
+    queryFn: async () => {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/savings/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractErrorMessage(json));
+      return json as SavingsAccountResponse;
+    },
+    enabled: !!id,
+  });
+
 export const useCreateSavings = () => {
   const queryClient = useQueryClient();
   return useMutation({

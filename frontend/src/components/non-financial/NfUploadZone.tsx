@@ -12,6 +12,7 @@ interface NfUploadZoneProps {
 
 export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadMutation = useNfUpload();
@@ -29,7 +30,33 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
       return;
     }
     setFile(selectedFile);
+    setIsDragging(false);
   }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) handleFileSelect(droppedFile);
+  }, [handleFileSelect]);
 
   const handleUpload = async () => {
     if (!file) {
@@ -68,7 +95,15 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
 
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 hover:bg-muted/20 transition-all cursor-pointer"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer ${
+            isDragging
+              ? "border-primary bg-primary/10 scale-[1.02]"
+              : "border-border hover:border-primary/50 hover:bg-muted/20"
+          }`}
         >
           <input
             ref={fileInputRef}

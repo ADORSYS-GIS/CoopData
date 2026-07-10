@@ -84,6 +84,20 @@ impl SavingsAccountRepository {
         Ok(())
     }
 
+    pub async fn delete_by_cooperative_and_submission(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Uuid,
+    ) -> AppResult<u64> {
+        let result = savings_account::Entity::delete_many()
+            .filter(SavingsAccountColumn::CooperativeId.eq(cooperative_id))
+            .filter(SavingsAccountColumn::SubmissionId.eq(submission_id))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(result.rows_affected)
+    }
+
     pub async fn bulk_upsert(&self, models: Vec<savings_account::ActiveModel>) -> AppResult<u64> {
         if models.is_empty() {
             return Ok(0);
