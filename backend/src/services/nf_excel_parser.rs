@@ -642,7 +642,7 @@ fn run_cross_table_validations(result: &mut NfParseResult) {
                 row: idx + 1,
                 column: "member_id".to_string(),
                 value: sa.savings_account_id.clone(),
-                rule: "LOAN_WITHOUT_MEMBER".to_string(),
+                rule: "SAVINGS_WITHOUT_MEMBER".to_string(),
                 message: format!(
                     "Savings account {} references member {} who is not in the members sheet",
                     sa.savings_account_id, sa.member_business_id
@@ -663,7 +663,7 @@ fn run_cross_table_validations(result: &mut NfParseResult) {
                 row: idx + 1,
                 column: "member_id".to_string(),
                 value: fd.fixed_deposit_id.clone(),
-                rule: "LOAN_WITHOUT_MEMBER".to_string(),
+                rule: "FIXED_DEPOSIT_WITHOUT_MEMBER".to_string(),
                 message: format!(
                     "Fixed deposit {} references member {} who is not in the members sheet",
                     fd.fixed_deposit_id, fd.member_business_id

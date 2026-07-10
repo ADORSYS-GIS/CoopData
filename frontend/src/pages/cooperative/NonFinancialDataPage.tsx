@@ -127,7 +127,6 @@ export const NonFinancialDataPage: React.FC = () => {
                   isLoading={membersQuery.isLoading}
                   isReadOnly={isReadOnly}
                   onDelete={handleDeleteMember}
-                  onAdd={notifyAddEdit}
                   onEdit={notifyAddEdit}
                 />
               </div>
@@ -168,7 +167,6 @@ export const NonFinancialDataPage: React.FC = () => {
                   isLoading={savingsQuery.isLoading}
                   isReadOnly={isReadOnly}
                   onDelete={handleDeleteSavings}
-                  onAdd={notifyAddEdit}
                   onEdit={notifyAddEdit}
                 />
               </div>
@@ -203,7 +201,6 @@ export const NonFinancialDataPage: React.FC = () => {
                   isLoading={loansQuery.isLoading}
                   isReadOnly={isReadOnly}
                   onDelete={handleDeleteLoan}
-                  onAdd={notifyAddEdit}
                   onEdit={notifyAddEdit}
                 />
               </div>
@@ -238,7 +235,6 @@ export const NonFinancialDataPage: React.FC = () => {
                   isLoading={fdQuery.isLoading}
                   isReadOnly={isReadOnly}
                   onDelete={handleDeleteFd}
-                  onAdd={notifyAddEdit}
                   onEdit={notifyAddEdit}
                 />
               </div>

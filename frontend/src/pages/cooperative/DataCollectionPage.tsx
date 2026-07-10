@@ -29,6 +29,7 @@ import {
   PiggyBank,
   HandCoins,
   Landmark,
+  BookOpen,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -58,6 +59,9 @@ export const DataCollectionPage: React.FC = () => {
   const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
 
   const [nfUploadResult, setNfUploadResult] = useState<NfUploadResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("membership");
+
+
 
   const membersQuery = useMembers({ page: 1, page_size: 100 });
   const savingsQuery = useSavings({ page: 1, page_size: 100 });
@@ -112,11 +116,7 @@ export const DataCollectionPage: React.FC = () => {
 
   const notifyAddEdit = () => toast.info("Use the Excel upload to add or update records in bulk.");
 
-  function formatCurrency(n: number): string {
-    if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-    if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-    return `$${n.toFixed(0)}`;
-  }
+
 
   const [activeQuestionnaires] = useState([
     {
@@ -274,11 +274,17 @@ export const DataCollectionPage: React.FC = () => {
           >
             <div className="space-y-6">
               <div className="grid lg:grid-cols-2 gap-6">
-                <NfUploadZone onUploadComplete={(result) => setNfUploadResult(result)} />
-                {nfUploadResult && <NfParseResults result={nfUploadResult} />}
+                <div className={nfUploadResult ? "lg:col-span-1" : "lg:col-span-2"}>
+                  <NfUploadZone onUploadComplete={(result) => setNfUploadResult(result)} />
+                </div>
+                {nfUploadResult && (
+                  <div className="lg:col-span-1">
+                    <NfParseResults result={nfUploadResult} />
+                  </div>
+                )}
               </div>
 
-              <Tabs defaultValue="membership">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                   <TabsTrigger value="membership" className="flex items-center gap-2">
                     <Users className="size-4" />
@@ -303,136 +309,82 @@ export const DataCollectionPage: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="membership" className="space-y-4">
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                      <MemberGrid
-                        members={members}
-                        isLoading={membersQuery.isLoading}
-                        onDelete={handleDeleteMember}
-                        onAdd={notifyAddEdit}
-                        onEdit={notifyAddEdit}
-                      />
-                    </div>
-                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total Members</span>
-                        <span className="font-bold text-foreground">{members.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Active</span>
-                        <span className="font-bold text-success">
-                          {members.filter((m) => m.status === "Active").length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Women</span>
-                        <span className="font-bold text-foreground">
-                          {members.filter((m) => m.gender === "Female").length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Youth (&lt;35)</span>
-                        <span className="font-bold text-foreground">
-                          {members.filter((m) => m.age_group === "18-35").length}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="space-y-4">
+                    <MemberGrid
+                      members={members}
+                      isLoading={membersQuery.isLoading}
+                      onDelete={handleDeleteMember}
+                      onEdit={notifyAddEdit}
+                    />
+                    <FilingGuideline
+                      tab="membership"
+                      points={[
+                        "Include all active, inactive, and dormant members",
+                        "Ensure each member has a unique member ID",
+                        "Gender, age group, and region fields are required",
+                        "Verify that member counts match your register",
+                      ]}
+                    />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="savings" className="space-y-4">
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                      <SavingsGrid
-                        savings={savings}
-                        isLoading={savingsQuery.isLoading}
-                        onDelete={handleDeleteSavings}
-                        onAdd={notifyAddEdit}
-                        onEdit={notifyAddEdit}
-                      />
-                    </div>
-                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total Accounts</span>
-                        <span className="font-bold text-foreground">{savings.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Active</span>
-                        <span className="font-bold text-success">
-                          {savings.filter((s) => s.account_status === "Active").length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total Balance</span>
-                        <span className="font-bold text-foreground">
-                          {formatCurrency(savings.reduce((sum, s) => sum + s.balance, 0))}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="space-y-4">
+                    <SavingsGrid
+                      savings={savings}
+                      isLoading={savingsQuery.isLoading}
+                      onDelete={handleDeleteSavings}
+                      onEdit={notifyAddEdit}
+                    />
+                    <FilingGuideline
+                      tab="savings"
+                      points={[
+                        "Include all savings accounts, including zero-balance accounts",
+                        "Account status (Active/Dormant/Closed) must be accurate",
+                        "Balance field must reflect end-of-period figures",
+                        "Ensure member IDs match those in the Membership sheet",
+                      ]}
+                    />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="loans" className="space-y-4">
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                      <LoanGrid
-                        loans={loans}
-                        isLoading={loansQuery.isLoading}
-                        onDelete={handleDeleteLoan}
-                        onAdd={notifyAddEdit}
-                        onEdit={notifyAddEdit}
-                      />
-                    </div>
-                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total Loans</span>
-                        <span className="font-bold text-foreground">{loans.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Performing</span>
-                        <span className="font-bold text-success">
-                          {loans.filter((l) => l.loan_status === "Performing").length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total Balance</span>
-                        <span className="font-bold text-foreground">
-                          {formatCurrency(loans.reduce((sum, l) => sum + l.balance, 0))}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="space-y-4">
+                    <LoanGrid
+                      loans={loans}
+                      isLoading={loansQuery.isLoading}
+                      onDelete={handleDeleteLoan}
+                      onEdit={notifyAddEdit}
+                    />
+                    <FilingGuideline
+                      tab="loans"
+                      points={[
+                        "Classify each loan correctly (Performing / Non-Performing / Restructured)",
+                        "Days past due (DPD) must reflect actual arrears",
+                        "Flag youth, women, and rural loans for policy tracking",
+                        "Ensure member IDs match those in the Membership sheet",
+                      ]}
+                    />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="fixed-deposits" className="space-y-4">
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                      <FixedDepositGrid
-                        fixedDeposits={fds}
-                        isLoading={fdQuery.isLoading}
-                        onDelete={handleDeleteFd}
-                        onAdd={notifyAddEdit}
-                        onEdit={notifyAddEdit}
-                      />
-                    </div>
-                    <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total FDs</span>
-                        <span className="font-bold text-foreground">{fds.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Active</span>
-                        <span className="font-bold text-success">
-                          {fds.filter((f) => f.status === "Active").length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground">Total Balance</span>
-                        <span className="font-bold text-foreground">
-                          {formatCurrency(fds.reduce((sum, f) => sum + f.balance, 0))}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="space-y-4">
+                    <FixedDepositGrid
+                      fixedDeposits={fds}
+                      isLoading={fdQuery.isLoading}
+                      onDelete={handleDeleteFd}
+                      onEdit={notifyAddEdit}
+                    />
+                    <FilingGuideline
+                      tab="fixed-deposits"
+                      points={[
+                        "Include all fixed deposit accounts regardless of maturity status",
+                        "Tenure and interest rate must match the contract terms",
+                        "Indicate rollover status (Auto-renew / Matured / Active)",
+                        "Ensure member IDs match those in the Membership sheet",
+                      ]}
+                    />
                   </div>
                 </TabsContent>
               </Tabs>
@@ -683,6 +635,34 @@ function FormBuilder({ isReadOnly }: { isReadOnly: boolean }) {
         </li>
       )}
     </ol>
+  );
+}
+
+function FilingGuideline({ tab, points }: { tab: string; points: string[] }) {
+  const tabIcons: Record<string, React.ReactNode> = {
+    membership: <Users className="size-4" />,
+    savings: <PiggyBank className="size-4" />,
+    loans: <HandCoins className="size-4" />,
+    "fixed-deposits": <Landmark className="size-4" />,
+  };
+  return (
+    <div className="rounded-xl border border-accent/15 bg-accent/5 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <BookOpen className="size-4 text-accent" />
+        <span className="text-xs font-bold uppercase tracking-wider text-accent">
+          Filing guidelines — {tab.charAt(0).toUpperCase() + tab.slice(1).replace("-deposits", " Deposits")}
+          <span className="ml-2 opacity-60">({points.length} items)</span>
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {points.map((point) => (
+          <li key={point} className="flex items-start gap-2 text-xs text-muted-foreground">
+            <span className="size-1.5 rounded-full bg-accent/40 shrink-0 mt-1.5" />
+            <span>{point}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

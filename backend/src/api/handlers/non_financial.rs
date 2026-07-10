@@ -3,7 +3,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 
-use sea_orm::Set;
+use sea_orm::{ActiveModelTrait, ConnectionTrait, DbBackend, Set};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -11,7 +11,6 @@ use uuid::Uuid;
 use crate::api::dto::non_financial::*;
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
-use crate::auth::rbac::ScopeEnforcement;
 
 use crate::entities::{fixed_deposit, loan, member, savings_account, uploaded_file};
 use crate::error::{AppError, AppResult};
@@ -19,12 +18,6 @@ use crate::services::nf_excel_parser::{NfExcelParser, NfParseWarning};
 use crate::AppState;
 
 const NF_TAG: &str = "Non-Financial";
-
-fn parse_cooperative_id(claims: &Claims) -> AppResult<Uuid> {
-    let coop_id_str = ScopeEnforcement::get_cooperative_id(claims)?;
-    Uuid::parse_str(&coop_id_str)
-        .map_err(|e| AppError::BadRequest(format!("Invalid cooperative_id: {}", e)))
-}
 
 fn empty_rows_imported() -> RowsImported {
     RowsImported {
@@ -54,7 +47,7 @@ pub async fn upload_non_financial(
     Extension(audit_ctx): Extension<AuditContext>,
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
 
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut file_name = String::new();
@@ -102,23 +95,60 @@ pub async fn upload_non_financial(
         ));
     }
 
+    let reporting_year = chrono::Utc::now().format("%Y").to_string().parse::<i32>().unwrap_or(2026);
+
+    let stmt = sea_orm::Statement::from_string(
+        DbBackend::Postgres,
+        format!(
+            "INSERT INTO submissions (id, cooperative_id, reporting_year, status, current_tier) VALUES ('{}', '{}', {}, 'draft', 'cooperative') ON CONFLICT (cooperative_id, reporting_year) DO NOTHING",
+            submission_id, coop_id, reporting_year
+        ),
+    );
+    state.db.execute(stmt).await.map_err(AppError::DatabaseError)?;
+
+    let submission_id = state.db
+        .query_one(sea_orm::Statement::from_string(
+            DbBackend::Postgres,
+            format!("SELECT id FROM submissions WHERE cooperative_id = '{}' AND reporting_year = {}", coop_id, reporting_year),
+        ))
+        .await
+        .map_err(AppError::DatabaseError)?
+        .and_then(|row| row.try_get::<Uuid>("", "id").ok())
+        .ok_or_else(|| AppError::InternalServerError("Failed to resolve submission ID".into()))?;
+
+    let existing_files = state.uploaded_file_repo.find_by_submission_id(submission_id).await?;
+    let existing = existing_files.iter().find(|f| f.original_name == file_name);
+
+    if let Some(old) = existing {
+        let _ = state.storage.delete_object(&old.storage_key).await;
+    }
+
     let storage_key = format!("nf-uploads/{}/{}", submission_id, file_name);
     state
         .storage
         .put_object(&storage_key, &file_bytes, Some(&content_type))
         .await?;
 
-    let uploaded_file_model = uploaded_file::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        submission_id: Set(submission_id),
-        original_name: Set(file_name.clone()),
-        mime_type: Set(Some(content_type)),
-        storage_key: Set(storage_key.clone()),
-        size_bytes: Set(Some(file_bytes.len() as i64)),
-        uploaded_by: Set(parse_uploaded_by(&claims)),
-        created_at: Set(chrono::Utc::now()),
+    let upload_record = if let Some(old) = existing {
+        let mut active: uploaded_file::ActiveModel = old.clone().into();
+        active.storage_key = Set(storage_key.clone());
+        active.size_bytes = Set(Some(file_bytes.len() as i64));
+        active.mime_type = Set(Some(content_type.clone()));
+        active.created_at = Set(chrono::Utc::now());
+        active.update(&state.db).await.map_err(AppError::DatabaseError)?
+    } else {
+        let model = uploaded_file::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            submission_id: Set(submission_id),
+            original_name: Set(file_name.clone()),
+            mime_type: Set(Some(content_type)),
+            storage_key: Set(storage_key.clone()),
+            size_bytes: Set(Some(file_bytes.len() as i64)),
+            uploaded_by: Set(parse_uploaded_by(&claims)),
+            created_at: Set(chrono::Utc::now()),
+        };
+        state.uploaded_file_repo.create(model).await?
     };
-    let upload_record = state.uploaded_file_repo.create(uploaded_file_model).await?;
 
     let parse_result = state.nf_excel_parser.parse(&file_bytes)?;
 
@@ -186,24 +216,10 @@ pub async fn upload_non_financial(
         ));
     }
 
-    let mut member_map: HashMap<String, Uuid> = HashMap::new();
-
-    let existing_members: Vec<member::Model> = {
-        let (rows, _) = state
-            .member_repo
-            .find_by_cooperative_id(coop_id, None, 1, 100000)
-            .await?;
-        rows
-    };
-    for m in &existing_members {
-        member_map.insert(m.member_id.clone(), m.id);
-    }
-
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     let now = chrono::Utc::now();
     for record in &parse_result.members {
         let new_id = Uuid::new_v4();
-        member_map.insert(record.member_id.clone(), new_id);
         member_active_models.push(member::ActiveModel {
             id: Set(new_id),
             cooperative_id: Set(coop_id),
@@ -228,6 +244,17 @@ pub async fn upload_non_financial(
     } else {
         state.member_repo.bulk_upsert(member_active_models).await?
     };
+
+    let mut member_map: HashMap<String, Uuid> = HashMap::new();
+    {
+        let (rows, _) = state
+            .member_repo
+            .find_by_cooperative_id(coop_id, None, 1, 100000)
+            .await?;
+        for m in &rows {
+            member_map.insert(m.member_id.clone(), m.id);
+        }
+    }
 
     let mut savings_active_models: Vec<savings_account::ActiveModel> = Vec::new();
     for record in &parse_result.savings_accounts {
@@ -406,7 +433,7 @@ pub async fn list_members(
     Extension(claims): Extension<Arc<Claims>>,
     Query(params): Query<NfListQueryParams>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let page_size = params.page_size.min(200);
     let (rows, total) = state
         .member_repo
@@ -439,7 +466,7 @@ pub async fn get_member(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let m = state
         .member_repo
         .find_by_id(id)
@@ -468,7 +495,7 @@ pub async fn create_member(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let now = chrono::Utc::now();
     let active_model = member::ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -525,7 +552,7 @@ pub async fn update_member(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .member_repo
         .find_by_id(id)
@@ -604,7 +631,7 @@ pub async fn delete_member(
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .member_repo
         .find_by_id(id)
@@ -646,7 +673,7 @@ pub async fn list_savings_accounts(
     Extension(claims): Extension<Arc<Claims>>,
     Query(params): Query<NfListQueryParams>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let page_size = params.page_size.min(200);
     let (rows, total) = state
         .savings_account_repo
@@ -679,7 +706,7 @@ pub async fn get_savings_account(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let m = state
         .savings_account_repo
         .find_by_id(id)
@@ -707,7 +734,7 @@ pub async fn create_savings_account(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateSavingsAccountRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let member = state
         .member_repo
         .find_by_id(body.member_id)
@@ -777,7 +804,7 @@ pub async fn update_savings_account(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateSavingsAccountRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .savings_account_repo
         .find_by_id(id)
@@ -859,7 +886,7 @@ pub async fn delete_savings_account(
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .savings_account_repo
         .find_by_id(id)
@@ -901,7 +928,7 @@ pub async fn list_loans(
     Extension(claims): Extension<Arc<Claims>>,
     Query(params): Query<NfListQueryParams>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let page_size = params.page_size.min(200);
     let (rows, total) = state
         .loan_repo
@@ -934,7 +961,7 @@ pub async fn get_loan(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let m = state
         .loan_repo
         .find_by_id(id)
@@ -962,7 +989,7 @@ pub async fn create_loan(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateLoanRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let member = state
         .member_repo
         .find_by_id(body.member_id)
@@ -1039,7 +1066,7 @@ pub async fn update_loan(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateLoanRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .loan_repo
         .find_by_id(id)
@@ -1145,7 +1172,7 @@ pub async fn delete_loan(
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .loan_repo
         .find_by_id(id)
@@ -1187,7 +1214,7 @@ pub async fn list_fixed_deposits(
     Extension(claims): Extension<Arc<Claims>>,
     Query(params): Query<NfListQueryParams>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let page_size = params.page_size.min(200);
     let (rows, total) = state
         .fixed_deposit_repo
@@ -1220,7 +1247,7 @@ pub async fn get_fixed_deposit(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let m = state
         .fixed_deposit_repo
         .find_by_id(id)
@@ -1248,7 +1275,7 @@ pub async fn create_fixed_deposit(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateFixedDepositRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let member = state
         .member_repo
         .find_by_id(body.member_id)
@@ -1319,7 +1346,7 @@ pub async fn update_fixed_deposit(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateFixedDepositRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .fixed_deposit_repo
         .find_by_id(id)
@@ -1407,7 +1434,7 @@ pub async fn delete_fixed_deposit(
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_id = parse_cooperative_id(&claims)?;
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let existing = state
         .fixed_deposit_repo
         .find_by_id(id)

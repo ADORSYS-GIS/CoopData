@@ -104,7 +104,7 @@ export function NfUploadZone({ onUploadComplete }: NfUploadZoneProps) {
 
         <Button
           onClick={handleUpload}
-          disabled={!file || !submissionId || uploadMutation.isPending}
+          disabled={!file || uploadMutation.isPending}
           className="w-full"
         >
           {uploadMutation.isPending ? (

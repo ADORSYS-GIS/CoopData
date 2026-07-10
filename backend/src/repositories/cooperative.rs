@@ -30,6 +30,25 @@ impl CooperativeRepository {
             .map_err(AppError::DatabaseError)
     }
 
+    pub async fn find_by_keycloak_group_id(
+        &self,
+        group_id: Uuid,
+    ) -> AppResult<Option<cooperative::Model>> {
+        cooperative::Entity::find()
+            .filter(CooperativeColumn::KeycloakGroupId.eq(group_id))
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
+    pub async fn find_by_name(&self, name: &str) -> AppResult<Option<cooperative::Model>> {
+        cooperative::Entity::find()
+            .filter(CooperativeColumn::Name.eq(name))
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
     pub async fn find_by_reg_no(&self, reg_no: &str) -> AppResult<Option<cooperative::Model>> {
         cooperative::Entity::find()
             .filter(CooperativeColumn::RegNo.eq(reg_no))

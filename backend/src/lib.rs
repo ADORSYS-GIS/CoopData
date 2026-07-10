@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 pub mod api;
 pub mod auth;
 pub mod config;
@@ -41,4 +43,32 @@ pub struct AppState {
     pub uploaded_file_repo: UploadedFileRepository,
     pub storage: ObjectStorageService,
     pub nf_excel_parser: CalamineNfParser,
+}
+
+impl AppState {
+    pub async fn cooperative_id_from_claims(&self, claims: &auth::Claims) -> AppResult<Uuid> {
+        let coop_id_str = auth::rbac::ScopeEnforcement::get_cooperative_id(claims)?;
+
+        if let Ok(group_uuid) = Uuid::parse_str(&coop_id_str) {
+            if let Some(coop) = self
+                .cooperative_repo
+                .find_by_keycloak_group_id(group_uuid)
+                .await?
+            {
+                return Ok(coop.id);
+            }
+        }
+
+        let coop = self
+            .cooperative_repo
+            .find_by_name(&coop_id_str)
+            .await?
+            .ok_or_else(|| {
+                AppError::BadRequest(format!(
+                    "Cooperative not found by name or keycloak_group_id: {}",
+                    coop_id_str
+                ))
+            })?;
+        Ok(coop.id)
+    }
 }
