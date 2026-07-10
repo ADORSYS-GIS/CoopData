@@ -5,9 +5,9 @@ use coop_data_backend::config::Environment;
 use coop_data_backend::services::cache::CacheService;
 use coop_data_backend::{
     ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService, CalamineNfParser,
-    CooperativeRepository, FederationRepository, FixedDepositRepository, KeycloakService,
-    LoanRepository, MemberRepository, ObjectStorageService, OrganizationRepository,
-    SavingsAccountRepository, UploadedFileRepository, UserRepository,
+    CooperativeRepository, FarmCoopRepository, FederationRepository, FixedDepositRepository,
+    KeycloakService, LoanRepository, MemberRepository, ObjectStorageService,
+    OrganizationRepository, SavingsAccountRepository, UploadedFileRepository, UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -39,6 +39,7 @@ impl TestApp {
         let savings_account_repo = SavingsAccountRepository::new(db.clone());
         let loan_repo = LoanRepository::new(db.clone());
         let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
+        let farm_coop_repo = FarmCoopRepository::new(db.clone());
         let uploaded_file_repo = UploadedFileRepository::new(db.clone());
         let storage =
             ObjectStorageService::new(&config).expect("Failed to create object storage service");
@@ -60,6 +61,7 @@ impl TestApp {
             savings_account_repo,
             loan_repo,
             fixed_deposit_repo,
+            farm_coop_repo,
             uploaded_file_repo,
             storage,
             nf_excel_parser,

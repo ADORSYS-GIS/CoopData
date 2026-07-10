@@ -99,19 +99,18 @@ pub async fn upload_non_financial(
 
     let reporting_year = chrono::Utc::now().format("%Y").to_string().parse::<i32>().unwrap_or(2026);
 
-    let stmt = sea_orm::Statement::from_string(
+    let stmt = sea_orm::Statement::from_sql_and_values(
         DbBackend::Postgres,
-        format!(
-            "INSERT INTO submissions (id, cooperative_id, reporting_year, status, current_tier) VALUES ('{}', '{}', {}, 'draft', 'cooperative') ON CONFLICT (cooperative_id, reporting_year) DO NOTHING",
-            submission_id, coop_id, reporting_year
-        ),
+        "INSERT INTO submissions (id, cooperative_id, reporting_year, status, current_tier) VALUES ($1, $2, $3, 'draft', 'cooperative') ON CONFLICT (cooperative_id, reporting_year) DO NOTHING",
+        [submission_id.into(), coop_id.into(), reporting_year.into()],
     );
     state.db.execute(stmt).await.map_err(AppError::DatabaseError)?;
 
     let submission_id = state.db
-        .query_one(sea_orm::Statement::from_string(
+        .query_one(sea_orm::Statement::from_sql_and_values(
             DbBackend::Postgres,
-            format!("SELECT id FROM submissions WHERE cooperative_id = '{}' AND reporting_year = {}", coop_id, reporting_year),
+            "SELECT id FROM submissions WHERE cooperative_id = $1 AND reporting_year = $2",
+            [coop_id.into(), reporting_year.into()],
         ))
         .await
         .map_err(AppError::DatabaseError)?
@@ -1519,6 +1518,7 @@ mod tests {
         assert_eq!(r.savings_accounts, 0);
         assert_eq!(r.loans, 0);
         assert_eq!(r.fixed_deposits, 0);
+        assert_eq!(r.farm_coop, 0);
     }
 
     #[test]
@@ -1580,9 +1580,10 @@ pub async fn list_farm_coop(
     Query(params): Query<NfListQueryParams>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let page_size = params.page_size.min(200);
     let (rows, total) = state
         .farm_coop_repo
-        .find_by_cooperative_id(coop_id, params.submission_id, params.page, params.page_size)
+        .find_by_cooperative_id(coop_id, params.submission_id, params.page, page_size)
         .await?;
     let data: Vec<FarmCoopResponse> = rows.into_iter().map(FarmCoopResponse::from).collect();
     Ok((
@@ -1590,7 +1591,7 @@ pub async fn list_farm_coop(
         Json(PaginatedFarmCoopResponse {
             data,
             page: params.page,
-            page_size: params.page_size,
+            page_size,
             total,
         }),
     ))
@@ -1618,7 +1619,7 @@ pub async fn get_farm_coop(
         .await?
         .ok_or_else(|| AppError::NotFound("Farm coop record not found".into()))?;
     if record.cooperative_id != coop_id {
-        return Err(AppError::Forbidden("Access denied".into()));
+        return Err(AppError::NotFound("Farm coop record not found".into()));
     }
     Ok((StatusCode::OK, Json(FarmCoopResponse::from(record))))
 }
@@ -1635,6 +1636,7 @@ pub async fn get_farm_coop(
 pub async fn create_farm_coop(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateFarmCoopRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = state.cooperative_id_from_claims(&claims).await?;
@@ -1669,6 +1671,21 @@ pub async fn create_farm_coop(
         updated_at: Set(now),
     };
     let m = state.farm_coop_repo.create(active).await?;
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "farm_coop",
+            Some(&m.id.to_string()),
+            Some(serde_json::json!({"cooperative_id": &coop_id})),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
     tracing::info!(cooperative_id = %coop_id, "Farm coop record created");
     Ok((StatusCode::CREATED, Json(FarmCoopResponse::from(m))))
 }
@@ -1697,7 +1714,7 @@ pub async fn update_farm_coop(
         .await?
         .ok_or_else(|| AppError::NotFound("Farm coop record not found".into()))?;
     if existing.cooperative_id != coop_id {
-        return Err(AppError::Forbidden("Access denied".into()));
+        return Err(AppError::NotFound("Farm coop record not found".into()));
     }
     let mut active: farm_coop::ActiveModel = existing.into();
     if let Some(v) = body.cooperative_type { active.cooperative_type = Set(v); }
@@ -1751,7 +1768,7 @@ pub async fn delete_farm_coop(
         .await?
         .ok_or_else(|| AppError::NotFound("Farm coop record not found".into()))?;
     if existing.cooperative_id != coop_id {
-        return Err(AppError::Forbidden("Access denied".into()));
+        return Err(AppError::NotFound("Farm coop record not found".into()));
     }
     state.farm_coop_repo.delete(id).await?;
     tracing::info!(cooperative_id = %coop_id, id = %id, "Farm coop record deleted");
