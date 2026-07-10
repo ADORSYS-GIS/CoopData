@@ -2,10 +2,21 @@ use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use coop_data_backend::{
-    api::routes::create_app, auth::JwtValidator, config::AppConfig, database,
-    services::cache::CacheService, services::keycloak::KeycloakService, ApexRepository, AppState,
-    AuditLogRepository, AuditService, CooperativeRepository, FederationRepository,
-    OrganizationRepository, UserRepository,
+    api::routes::create_app,
+    auth::JwtValidator,
+    config::AppConfig,
+    database,
+    services::{
+        ai_extraction::create_extractor,
+        cache::CacheService,
+        keycloak::KeycloakService,
+        object_storage::create_storage,
+    },
+    AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState, AuditLogRepository,
+    AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
+    ExtractionJobRepository, FederationRepository, FinancialStatementRepository,
+    OrganizationRepository, SubmissionRepository, SubmissionReviewRepository,
+    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
 };
 
 #[tokio::main]
@@ -40,7 +51,22 @@ async fn main() -> anyhow::Result<()> {
     let cooperative_repo = CooperativeRepository::new(db.clone());
     let organization_repo = OrganizationRepository::new(db.clone());
     let user_repo = UserRepository::new(db.clone());
+    let submission_repo = SubmissionRepository::new(db.clone());
+    let uploaded_file_repo = UploadedFileRepository::new(db.clone());
+    let extraction_job_repo = ExtractionJobRepository::new(db.clone());
+    let financial_statement_repo = FinancialStatementRepository::new(db.clone());
+    let line_item_repo = BalanceSheetLineItemRepository::new(db.clone());
+    let coa_repo = ChartOfAccountsRepository::new(db.clone());
+    let account_alias_repo = AccountAliasRepository::new(db.clone());
+    let flag_repo = AbnormalityFlagRepository::new(db.clone());
+    let review_repo = SubmissionReviewRepository::new(db.clone());
+    let section_repo = SubmissionSectionRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
+
+    let storage_backend = std::env::var("STORAGE_BACKEND").unwrap_or_else(|_| "local".to_string());
+    let storage_path = std::env::var("STORAGE_LOCAL_PATH").unwrap_or_else(|_| "./data/uploads".to_string());
+    let storage = create_storage(&storage_backend, &storage_path);
+    let extractor = create_extractor(&config);
 
     tracing::info!("Repositories and services initialized");
 
@@ -60,6 +86,18 @@ async fn main() -> anyhow::Result<()> {
         organization_repo,
         user_repo,
         audit,
+        submission_repo,
+        uploaded_file_repo,
+        extraction_job_repo,
+        financial_statement_repo,
+        line_item_repo,
+        coa_repo,
+        account_alias_repo,
+        flag_repo,
+        review_repo,
+        section_repo,
+        storage,
+        extractor,
     };
 
     let app = create_app(state);

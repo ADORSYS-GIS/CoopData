@@ -82,4 +82,17 @@ pub fn ministry_routes() -> Router<AppState> {
         .route("/users/{id}/assign-role", post(assign_role_to_user))
         // Audit logs
         .route("/audit-logs", get(list_audit_logs))
+        // Submission review
+        .route(
+            "/submissions",
+            get(crate::api::handlers::submission::list_ministry_submissions),
+        )
+        .route(
+            "/submissions/{id}/approve",
+            post(crate::api::handlers::submission::ministry_approve_submission),
+        )
+        .route(
+            "/submissions/{id}/reject",
+            post(crate::api::handlers::submission::ministry_reject_submission),
+        )
 }

@@ -8,14 +8,10 @@ import {
   CheckCircle2,
   ArrowUpRight,
   Database,
-  Users,
-  Wallet,
-  TrendingUp,
   AlertTriangle,
   Eye,
   Settings2,
   Plus,
-  CheckSquare,
   Hash,
   DollarSign,
   Type,
@@ -26,22 +22,40 @@ import {
   Zap,
   Clock,
   Send,
+  Loader2,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
-import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
 import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
-import type { BalanceSheet } from "@/lib/financial-data";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
+import { useCreateSubmission } from "@/hooks/submissions/useSubmissions";
+import { UploadFinancialStatementWidget } from "@/pages/cooperative/UploadFinancialStatement";
 
 export const DataCollectionPage: React.FC = () => {
   const role = useUserRole();
+  const navigate = useNavigate();
   const isCooperative = role === "cooperative";
   const isReadOnly = false;
 
   const [showFinancialUpload, setShowFinancialUpload] = useState(false);
-  const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
+
+  const createSubmission = useCreateSubmission();
+
+  const handleSubmitToApex = async () => {
+    const currentYear = new Date().getFullYear();
+    try {
+      await createSubmission.mutateAsync({ reporting_year: currentYear });
+      toast.success(
+        "Submission created! Your data is now in draft — navigate to Submissions to track it.",
+      );
+      navigate({ to: "/app/submissions" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to create submission";
+      toast.error(msg);
+    }
+  };
 
   const [activeQuestionnaires] = useState([
     {
@@ -144,32 +158,7 @@ export const DataCollectionPage: React.FC = () => {
             }
           >
             {showFinancialUpload ? (
-              <FinancialStatementUpload
-                onDataExtracted={(data) => {
-                  setExtractedFinancialData(data);
-                  toast.success("Financial data extracted! Review your data below.");
-                }}
-                onClose={() => setShowFinancialUpload(false)}
-              />
-            ) : extractedFinancialData ? (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
-                <CheckCircle2 className="size-5 text-success shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    Financial statement processed
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    All account codes and figures have been extracted. Your financial data is ready
-                    for submission.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-                >
-                  <Upload className="size-3.5" /> Upload New
-                </button>
-              </div>
+              <UploadFinancialStatementWidget onClose={() => setShowFinancialUpload(false)} />
             ) : (
               <div className="p-8 text-center">
                 <div className="size-14 rounded-2xl bg-accent/10 grid place-items-center mx-auto mb-4">
@@ -179,8 +168,8 @@ export const DataCollectionPage: React.FC = () => {
                   Upload your financial statement
                 </p>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  Upload a PDF or image of your audited balance sheet. We'll extract all financial
-                  data automatically — no manual entry needed.
+                  Upload a PDF or image of your audited balance sheet. AI extracts and maps all
+                  figures to the standard Chart of Accounts automatically.
                 </p>
                 <button
                   onClick={() => setShowFinancialUpload(true)}
@@ -238,6 +227,28 @@ export const DataCollectionPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
+
+              {/* Submit to Apex */}
+              <div className="mt-6 pt-5 border-t border-border">
+                <button
+                  onClick={handleSubmitToApex}
+                  disabled={createSubmission.isPending}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  {createSubmission.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                  {createSubmission.isPending
+                    ? "Creating submission…"
+                    : "Create Submission for This Year"}
+                </button>
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  Creates a draft submission for {new Date().getFullYear()} — you can track it under
+                  Submissions.
+                </p>
+              </div>
             </div>
           </Card>
         </div>

@@ -1,10 +1,20 @@
+pub mod abnormality_flag;
+pub mod account_alias;
 pub mod apex;
 pub mod assessment;
 pub mod audit_log;
+pub mod balance_sheet_line_item;
+pub mod chart_of_account;
 pub mod cooperative;
 pub mod enums;
+pub mod extraction_job;
 pub mod federation;
+pub mod financial_statement;
 pub mod organization;
+pub mod submission;
+pub mod submission_review;
+pub mod submission_section;
+pub mod uploaded_file;
 pub mod user;
 
 pub use apex::{Column as ApexColumn, Entity as ApexEntity, Model as ApexModel};

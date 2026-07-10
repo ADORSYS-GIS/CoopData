@@ -2,10 +2,14 @@ pub mod apex;
 pub mod audit;
 pub mod common;
 pub mod cooperative;
+pub mod extraction;
 pub mod federation;
+pub mod financial;
 pub mod invitation;
 pub mod member;
 pub mod organization;
+pub mod submission;
+pub mod upload;
 pub mod user;
 pub mod verification;
 

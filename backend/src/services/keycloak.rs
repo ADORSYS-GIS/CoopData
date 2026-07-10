@@ -1737,17 +1737,17 @@ impl KeycloakService {
         }
 
         // Walk into subgroups for deeper paths
-        let mut current = self.get_group_by_id(&top.id).await?;
+        let mut current_id = top.id;
         for seg in &segments[1..] {
-            let child = current
-                .sub_groups
-                .iter()
-                .find(|sg| sg.name == *seg)
+            let children = self.get_group_children(&current_id).await?;
+            let child = children
+                .into_iter()
+                .find(|g| g.name == *seg)
                 .ok_or_else(|| AppError::NotFound(format!("Subgroup not found: {}", seg)))?;
-            current = self.get_group_by_id(&child.id).await?;
+            current_id = child.id;
         }
 
-        Ok(current)
+        self.get_group_by_id(&current_id).await
     }
 
     async fn get_group_by_name(

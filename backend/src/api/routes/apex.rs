@@ -14,16 +14,9 @@ use axum::Router;
 use crate::api::handlers;
 use crate::AppState;
 
-/// Creates the Apex routes router.
-/// All routes are prefixed with `/api/v1/apex`.
-///
-/// # Required Role
-/// `apex` (enforced by `role_guard_layer` in `api.rs`)
 pub fn apex_routes() -> Router<AppState> {
     Router::new()
-        // Apex profile & dashboard
         .route("/profile", get(handlers::cooperative::get_apex_profile))
-        // Cooperative CRUD (Keycloak-based)
         .route(
             "/cooperatives",
             post(handlers::cooperative::create_cooperative)
@@ -39,7 +32,6 @@ pub fn apex_routes() -> Router<AppState> {
             "/cooperatives/{id}/delete-preview",
             get(handlers::cooperative::delete_cooperative_preview),
         )
-        // Cooperative Members
         .route(
             "/cooperatives/{id}/members",
             post(handlers::cooperative::add_cooperative_member)
@@ -54,7 +46,6 @@ pub fn apex_routes() -> Router<AppState> {
             "/cooperatives/{group_id}/members/{user_id}/resend-verification",
             post(handlers::cooperative::resend_cooperative_member_verification),
         )
-        // Cooperative Profile CRUD (US2.1 - PG-based)
         .route(
             "/coop-profiles",
             post(handlers::cooperative::create_cooperative_profile)
@@ -65,5 +56,22 @@ pub fn apex_routes() -> Router<AppState> {
             get(handlers::cooperative::get_cooperative_profile)
                 .patch(handlers::cooperative::update_cooperative_profile)
                 .delete(handlers::cooperative::delete_cooperative_profile),
+        )
+        // Submission review
+        .route(
+            "/submissions",
+            get(handlers::submission::list_apex_submissions),
+        )
+        .route(
+            "/submissions/{id}/approve",
+            post(handlers::submission::apex_approve_submission),
+        )
+        .route(
+            "/submissions/{id}/return",
+            post(handlers::submission::apex_return_submission),
+        )
+        .route(
+            "/submissions/{id}/flags",
+            get(handlers::submission::get_submission_flags),
         )
 }

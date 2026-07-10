@@ -42,6 +42,10 @@ redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
 
 async-trait = "0.1"
 urlencoding = "2"
+rust_decimal = { version = "1", features = ["serde-with-float"] }
+pdf_oxide = "0.3"
+calamine = { version = "0.26", features = ["dates"] }
+base64 = "0.22"
 
 [features]
 test-utils = []

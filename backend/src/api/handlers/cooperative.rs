@@ -412,8 +412,8 @@ pub async fn get_cooperative(
 ) -> AppResult<impl IntoResponse> {
     // Cooperative users can only fetch their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
-        let own_coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-        if own_coop_id != id {
+        let coop = resolve_caller_cooperative(&state, &claims).await?;
+        if coop.keycloak_id != id {
             return Err(AppError::Forbidden(
                 "Access denied: you can only view your own cooperative".into(),
             ));
@@ -708,8 +708,8 @@ pub async fn list_cooperative_members(
 ) -> AppResult<impl IntoResponse> {
     // Cooperative users may only list members of their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
-        let own_coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-        if own_coop_id != id {
+        let coop = resolve_caller_cooperative(&state, &claims).await?;
+        if coop.keycloak_id != id {
             return Err(AppError::Forbidden(
                 "Access denied: you can only view members of your own cooperative".into(),
             ));
@@ -989,6 +989,41 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
         .ok_or_else(|| AppError::Forbidden("Apex group not found in database".into()))?;
 
     Ok(apex_pg.id)
+}
+
+/// Resolves the calling cooperative user's DB record from JWT claims.
+/// The JWT `cooperation` claim contains Keycloak group paths using names
+/// (e.g. "/apex-name/coop-name"), but the DB stores the Keycloak group UUID.
+/// This function resolves the full path via the Keycloak API to get the UUID,
+/// then looks up the cooperative in the database.
+pub(crate) async fn resolve_caller_cooperative(
+    state: &AppState,
+    claims: &Claims,
+) -> AppResult<cooperative::Model> {
+    let paths = claims.get_cooperation_paths();
+    let path = paths.first().ok_or_else(|| {
+        AppError::Forbidden("Cooperative user has no cooperation group associated".into())
+    })?;
+
+    let group = state
+        .keycloak
+        .resolve_group(path)
+        .await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    let coop = state
+        .cooperative_repo
+        .find_by_keycloak_id(&group.id)
+        .await
+        .ok()
+        .flatten()
+        .ok_or_else(|| {
+            AppError::NotFound(
+                "Cooperative profile not found. Contact your Apex to set up your profile.".into(),
+            )
+        })?;
+
+    Ok(coop)
 }
 
 /// Verifies that a cooperative profile belongs to the calling apex user's group.

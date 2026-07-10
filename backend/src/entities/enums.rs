@@ -2,6 +2,148 @@ use sea_orm::{DeriveActiveEnum, EnumIter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "submission_status")]
+pub enum SubmissionStatus {
+    #[sea_orm(string_value = "draft")]
+    Draft,
+    #[sea_orm(string_value = "submitted")]
+    Submitted,
+    #[sea_orm(string_value = "in_review")]
+    InReview,
+    #[sea_orm(string_value = "approved")]
+    Approved,
+    #[sea_orm(string_value = "rejected")]
+    Rejected,
+    #[sea_orm(string_value = "returned")]
+    Returned,
+    #[sea_orm(string_value = "escalated")]
+    Escalated,
+    #[sea_orm(string_value = "withdrawn")]
+    Withdrawn,
+    #[sea_orm(string_value = "archived")]
+    Archived,
+    #[sea_orm(string_value = "synced")]
+    Synced,
+    #[sea_orm(string_value = "sync_failed")]
+    SyncFailed,
+    #[sea_orm(string_value = "needs_correction")]
+    NeedsCorrection,
+}
+
+impl SubmissionStatus {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "draft" => Some(Self::Draft),
+            "submitted" => Some(Self::Submitted),
+            "in_review" => Some(Self::InReview),
+            "approved" => Some(Self::Approved),
+            "rejected" => Some(Self::Rejected),
+            "returned" => Some(Self::Returned),
+            "escalated" => Some(Self::Escalated),
+            "withdrawn" => Some(Self::Withdrawn),
+            "archived" => Some(Self::Archived),
+            "synced" => Some(Self::Synced),
+            "sync_failed" => Some(Self::SyncFailed),
+            "needs_correction" => Some(Self::NeedsCorrection),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Submitted => "submitted",
+            Self::InReview => "in_review",
+            Self::Approved => "approved",
+            Self::Rejected => "rejected",
+            Self::Returned => "returned",
+            Self::Escalated => "escalated",
+            Self::Withdrawn => "withdrawn",
+            Self::Archived => "archived",
+            Self::Synced => "synced",
+            Self::SyncFailed => "sync_failed",
+            Self::NeedsCorrection => "needs_correction",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "review_tier")]
+pub enum ReviewTier {
+    #[sea_orm(string_value = "cooperative")]
+    Cooperative,
+    #[sea_orm(string_value = "apex")]
+    Apex,
+    #[sea_orm(string_value = "federation")]
+    Federation,
+    #[sea_orm(string_value = "ministry")]
+    Ministry,
+}
+
+impl ReviewTier {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "cooperative" => Some(Self::Cooperative),
+            "apex" => Some(Self::Apex),
+            "federation" => Some(Self::Federation),
+            "ministry" => Some(Self::Ministry),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Cooperative => "cooperative",
+            Self::Apex => "apex",
+            Self::Federation => "federation",
+            Self::Ministry => "ministry",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "review_action")]
+pub enum ReviewAction {
+    #[sea_orm(string_value = "approve")]
+    Approve,
+    #[sea_orm(string_value = "reject")]
+    Reject,
+    #[sea_orm(string_value = "return")]
+    Return,
+    #[sea_orm(string_value = "escalate")]
+    Escalate,
+    #[sea_orm(string_value = "comment")]
+    Comment,
+    #[sea_orm(string_value = "request_info")]
+    RequestInfo,
+}
+
+impl ReviewAction {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "approve" => Some(Self::Approve),
+            "reject" => Some(Self::Reject),
+            "return" => Some(Self::Return),
+            "escalate" => Some(Self::Escalate),
+            "comment" => Some(Self::Comment),
+            "request_info" => Some(Self::RequestInfo),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Approve => "approve",
+            Self::Reject => "reject",
+            Self::Return => "return",
+            Self::Escalate => "escalate",
+            Self::Comment => "comment",
+            Self::RequestInfo => "request_info",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "eswatini_region")]
 pub enum EswatiniRegion {
     #[sea_orm(string_value = "Hhohho")]
@@ -159,6 +301,63 @@ impl AccountingYear {
         match self {
             Self::Calendar => "calendar",
             Self::Fiscal => "fiscal",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "currency")]
+pub enum Currency {
+    #[sea_orm(string_value = "SZL")]
+    Szl,
+    #[sea_orm(string_value = "USD")]
+    Usd,
+}
+
+impl Default for Currency {
+    fn default() -> Self {
+        Self::Szl
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "account_category")]
+pub enum AccountCategory {
+    #[sea_orm(string_value = "assets")]
+    Assets,
+    #[sea_orm(string_value = "liabilities")]
+    Liabilities,
+    #[sea_orm(string_value = "equity")]
+    Equity,
+    #[sea_orm(string_value = "income")]
+    Income,
+    #[sea_orm(string_value = "expenses")]
+    Expenses,
+    #[sea_orm(string_value = "surplus")]
+    Surplus,
+}
+
+impl AccountCategory {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Assets => "assets",
+            Self::Liabilities => "liabilities",
+            Self::Equity => "equity",
+            Self::Income => "income",
+            Self::Expenses => "expenses",
+            Self::Surplus => "surplus",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "assets" => Some(Self::Assets),
+            "liabilities" => Some(Self::Liabilities),
+            "equity" => Some(Self::Equity),
+            "income" => Some(Self::Income),
+            "expenses" => Some(Self::Expenses),
+            "surplus" => Some(Self::Surplus),
+            _ => None,
         }
     }
 }
