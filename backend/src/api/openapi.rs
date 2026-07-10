@@ -99,6 +99,13 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::financial_statement::get_financial_statement,
         api_module::handlers::financial_statement::list_line_items,
         api_module::handlers::financial_statement::update_line_items,
+        api_module::handlers::non_financial_indicator::list_catalog,
+        api_module::handlers::non_financial_indicator::create_catalog_item,
+        api_module::handlers::non_financial_indicator::update_catalog_item,
+        api_module::handlers::non_financial_indicator::delete_catalog_item,
+        api_module::handlers::non_financial_indicator::get_submission_entries,
+        api_module::handlers::non_financial_indicator::save_submission_entries,
+        api_module::handlers::non_financial_indicator::consolidate_indicator,
     ),
     components(schemas(
         api_module::dto::PaginationParams,
@@ -157,6 +164,16 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::financial::LineItemResponse,
         api_module::dto::financial::LineItemUpdateRequest,
         api_module::dto::financial::LineItemBulkUpdateRequest,
+        api_module::dto::non_financial_indicator::CreateIndicatorRequest,
+        api_module::dto::non_financial_indicator::UpdateIndicatorRequest,
+        api_module::dto::non_financial_indicator::IndicatorCatalogResponse,
+        api_module::dto::non_financial_indicator::SaveEntriesRequest,
+        api_module::dto::non_financial_indicator::SaveIndicatorEntry,
+        api_module::dto::non_financial_indicator::IndicatorEntryResponse,
+        api_module::dto::non_financial_indicator::ConsolidationResponse,
+        api_module::dto::non_financial_indicator::ConsolidationRegionRowResponse,
+        api_module::dto::non_financial_indicator::ConsolidationCoopTypeRowResponse,
+        crate::entities::enums::IndicatorDataType,
     ))
 )]
 pub struct ApiDoc;

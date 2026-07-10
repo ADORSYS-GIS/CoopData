@@ -46,6 +46,17 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/submissions/{id}/validate-extraction",
             post(validate_extraction),
         )
+        // Non-Financial Indicator entries (per submission)
+        .route(
+            "/submissions/{id}/non-financial-indicators",
+            get(crate::api::handlers::non_financial_indicator::get_submission_entries)
+                .post(crate::api::handlers::non_financial_indicator::save_submission_entries),
+        )
+        // Catalog read-only for cooperatives
+        .route(
+            "/non-financial-indicators/catalog",
+            get(crate::api::handlers::non_financial_indicator::list_catalog),
+        )
         // Upload + extraction (20 MB body limit for multipart file uploads)
         .route(
             "/financial-statement/upload",
@@ -71,7 +82,12 @@ async fn get_cooperative_profile(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
     tracing::info!(cooperative_id = %coop.keycloak_id, user_id = %claims.sub, "Cooperative profile viewed");
-    Ok(Json(CooperativeResponse::from(group)))
+    
+    let mut resp = CooperativeResponse::from(group);
+    resp.institution_type = coop.institution_type.map(|t| t.as_str().to_string());
+    resp.region = coop.region.map(|r| r.as_str().to_string());
+    
+    Ok(Json(resp))
 }
 
 async fn list_cooperative_members(

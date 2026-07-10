@@ -17,6 +17,7 @@ pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
     ExtractionJobRepository, FederationRepository, FinancialStatementRepository,
+    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationRepository, SubmissionRepository, SubmissionReviewRepository,
     SubmissionSectionRepository, UploadedFileRepository, UserRepository,
 };
@@ -49,6 +50,9 @@ pub struct AppState {
     pub flag_repo: AbnormalityFlagRepository,
     pub review_repo: SubmissionReviewRepository,
     pub section_repo: SubmissionSectionRepository,
+    // non-financial indicators
+    pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
+    pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,
     // services
     pub storage: std::sync::Arc<dyn crate::services::object_storage::ObjectStorage>,
     pub extractor: std::sync::Arc<dyn FinancialStatementExtractor>,

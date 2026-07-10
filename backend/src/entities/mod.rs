@@ -10,6 +10,8 @@ pub mod enums;
 pub mod extraction_job;
 pub mod federation;
 pub mod financial_statement;
+pub mod non_financial_indicator_catalog;
+pub mod non_financial_indicator_entry;
 pub mod organization;
 pub mod submission;
 pub mod submission_review;
@@ -27,6 +29,14 @@ pub use cooperative::{
 };
 pub use federation::{
     Column as FederationColumn, Entity as FederationEntity, Model as FederationModel,
+};
+pub use non_financial_indicator_catalog::{
+    Column as NonFinancialIndicatorCatalogColumn, Entity as NonFinancialIndicatorCatalogEntity,
+    Model as NonFinancialIndicatorCatalogModel,
+};
+pub use non_financial_indicator_entry::{
+    Column as NonFinancialIndicatorEntryColumn, Entity as NonFinancialIndicatorEntryEntity,
+    Model as NonFinancialIndicatorEntryModel,
 };
 pub use organization::{
     Column as OrganizationColumn, Entity as OrganizationEntity, Model as OrganizationModel,

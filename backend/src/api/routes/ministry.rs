@@ -95,4 +95,20 @@ pub fn ministry_routes() -> Router<AppState> {
             "/submissions/{id}/reject",
             post(crate::api::handlers::submission::ministry_reject_submission),
         )
+        // Non-Financial Indicator catalog management (ministry-only)
+        .route(
+            "/non-financial-indicators/catalog",
+            post(crate::api::handlers::non_financial_indicator::create_catalog_item)
+                .get(crate::api::handlers::non_financial_indicator::list_catalog),
+        )
+        .route(
+            "/non-financial-indicators/catalog/{id}",
+            axum::routing::put(crate::api::handlers::non_financial_indicator::update_catalog_item)
+                .delete(crate::api::handlers::non_financial_indicator::delete_catalog_item),
+        )
+        // Consolidation analytics (ministry-only)
+        .route(
+            "/non-financial-indicators/consolidate",
+            get(crate::api::handlers::non_financial_indicator::consolidate_indicator),
+        )
 }

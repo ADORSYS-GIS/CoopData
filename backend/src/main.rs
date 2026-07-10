@@ -13,7 +13,8 @@ use coop_data_backend::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, ExtractionJobRepository, FederationRepository,
-    FinancialStatementRepository, OrganizationRepository, SubmissionRepository,
+    FinancialStatementRepository, NonFinancialIndicatorCatalogRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
     UserRepository,
 };
@@ -60,6 +61,8 @@ async fn main() -> anyhow::Result<()> {
     let flag_repo = AbnormalityFlagRepository::new(db.clone());
     let review_repo = SubmissionReviewRepository::new(db.clone());
     let section_repo = SubmissionSectionRepository::new(db.clone());
+    let non_financial_indicator_catalog_repo = NonFinancialIndicatorCatalogRepository::new(db.clone());
+    let non_financial_indicator_entry_repo = NonFinancialIndicatorEntryRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
     let storage_backend = std::env::var("STORAGE_BACKEND").unwrap_or_else(|_| "local".to_string());
@@ -96,6 +99,8 @@ async fn main() -> anyhow::Result<()> {
         flag_repo,
         review_repo,
         section_repo,
+        non_financial_indicator_catalog_repo,
+        non_financial_indicator_entry_repo,
         storage,
         extractor,
     };

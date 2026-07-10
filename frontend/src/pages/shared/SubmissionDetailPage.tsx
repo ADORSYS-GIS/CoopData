@@ -1,10 +1,12 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Clock, FileText, Calendar, Hash, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Clock, FileText, Calendar, Hash, Loader2, AlertCircle, BarChart3 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
 import { FinancialStatementEditor } from "@/pages/cooperative/FinancialStatementEditor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
 
 function statusTone(status: string): "success" | "warning" | "danger" | "info" | "neutral" {
   const map: Record<string, "success" | "warning" | "danger" | "info" | "neutral"> = {
@@ -49,6 +51,8 @@ export const SubmissionDetailPage: React.FC = () => {
     extractionJob && !["succeeded", "failed", "partial"].includes(extractionJob.status);
 
   if (!role) return null;
+
+  const isReadOnly = submission ? (submission.status !== "draft" || role !== "cooperative") : true;
 
   return (
     <AppShell
@@ -131,33 +135,47 @@ export const SubmissionDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Grid editor — shown when FS is attached and role is cooperative */}
-          {submission.financial_statement_id && role === "cooperative" && (
-            <FinancialStatementEditor
-              fsId={submission.financial_statement_id}
-              submissionId={submission.id}
-            />
-          )}
+          <Tabs defaultValue="financial" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md mb-4">
+              <TabsTrigger value="financial" className="flex items-center gap-2">
+                <FileText className="size-4" />
+                Financial Statement
+              </TabsTrigger>
+              <TabsTrigger value="non-financial" className="flex items-center gap-2">
+                <BarChart3 className="size-4" />
+                Non-Financial Indicators
+              </TabsTrigger>
+            </TabsList>
 
-          {/* No financial statement yet */}
-          {!submission.financial_statement_id && !isExtracting && role === "cooperative" && (
-            <Card title="Financial Statement" subtitle="No document uploaded yet">
-              <div className="py-10 text-center text-muted-foreground">
-                <FileText className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">
-                  Upload a financial statement from the Data Collection page to begin AI extraction.
-                </p>
-              </div>
-            </Card>
-          )}
+            <TabsContent value="financial" className="space-y-4">
+              {/* Grid editor — shown when FS is attached */}
+              {submission.financial_statement_id && (
+                <FinancialStatementEditor
+                  fsId={submission.financial_statement_id}
+                  submissionId={submission.id}
+                />
+              )}
 
-          {/* Review roles — read-only view */}
-          {submission.financial_statement_id && role !== "cooperative" && (
-            <FinancialStatementEditor
-              fsId={submission.financial_statement_id}
-              submissionId={submission.id}
-            />
-          )}
+              {/* No financial statement yet */}
+              {!submission.financial_statement_id && !isExtracting && role === "cooperative" && (
+                <Card title="Financial Statement" subtitle="No document uploaded yet">
+                  <div className="py-10 text-center text-muted-foreground">
+                    <FileText className="size-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">
+                      Upload a financial statement from the Data Collection page to begin AI extraction.
+                    </p>
+                  </div>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="non-financial" className="space-y-4">
+              <NonFinancialIndicatorsForm
+                submissionId={submission.id}
+                isReadOnly={isReadOnly}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </AppShell>

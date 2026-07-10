@@ -1170,6 +1170,96 @@
         ]
       }
     },
+    "/api/v1/cooperative/submissions/{id}/non-financial-indicators": {
+      "get": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "get_submission_entries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicator entries for submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorEntryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "save_submission_entries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEntriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entries saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorEntryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid submission state or bad values"
+          },
+          "403": {
+            "description": "Scope violation"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/submissions/{id}/sections": {
       "get": {
         "tags": [
@@ -2838,6 +2928,162 @@
         }
       }
     },
+    "/api/v1/ministry/non-financial-indicators/catalog": {
+      "post": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "create_catalog_item",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIndicatorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Catalog indicator created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden - Ministry only"
+          },
+          "409": {
+            "description": "Indicator name already exists"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/non-financial-indicators/catalog/{id}": {
+      "put": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "update_catalog_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Catalog indicator ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIndicatorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Catalog indicator updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Ministry only"
+          },
+          "404": {
+            "description": "Indicator not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "delete_catalog_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Catalog indicator ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Forbidden - Ministry only"
+          },
+          "404": {
+            "description": "Indicator not found"
+          },
+          "409": {
+            "description": "Cannot delete: reported entries exist"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/non-financial-indicators/consolidate": {
+      "get": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "consolidate_indicator",
+        "parameters": [
+          {
+            "name": "indicator_name",
+            "in": "query",
+            "description": "Indicator to aggregate across all cooperatives",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consolidation metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsolidationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing indicator_name"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/ministry/submissions": {
       "get": {
         "tags": [
@@ -2956,6 +3202,44 @@
           },
           "404": {
             "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/non-financial-indicators/catalog": {
+      "get": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "list_catalog",
+        "parameters": [
+          {
+            "name": "coop_type",
+            "in": "query",
+            "description": "Filter by cooperative type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicator catalog list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -3672,6 +3956,98 @@
           }
         }
       },
+      "ConsolidationCoopTypeRowResponse": {
+        "type": "object",
+        "required": [
+          "coop_type",
+          "total_sum",
+          "average",
+          "count"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "coop_type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ConsolidationRegionRowResponse": {
+        "type": "object",
+        "required": [
+          "region",
+          "total_sum",
+          "average",
+          "count"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "region": {
+            "type": "string"
+          },
+          "total_sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ConsolidationResponse": {
+        "type": "object",
+        "required": [
+          "indicator_name",
+          "total_sum",
+          "average",
+          "count",
+          "by_region",
+          "by_coop_type"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "by_coop_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsolidationCoopTypeRowResponse"
+            }
+          },
+          "by_region": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsolidationRegionRowResponse"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "indicator_name": {
+            "type": "string"
+          },
+          "total_sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "CooperativeBriefResponse": {
         "type": "object",
         "required": [
@@ -3810,6 +4186,10 @@
           "id": {
             "type": "string"
           },
+          "institution_type": {
+            "type": "string",
+            "nullable": true
+          },
           "name": {
             "type": "string"
           },
@@ -3818,6 +4198,10 @@
             "nullable": true
           },
           "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
             "type": "string",
             "nullable": true
           }
@@ -4022,6 +4406,36 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "CreateIndicatorRequest": {
+        "type": "object",
+        "required": [
+          "indicator_name",
+          "display_name",
+          "data_type"
+        ],
+        "properties": {
+          "coop_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/IndicatorDataType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "indicator_name": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean"
           }
         }
       },
@@ -4371,6 +4785,105 @@
             "format": "date-time"
           },
           "validation_errors": {
+            "nullable": true
+          }
+        }
+      },
+      "IndicatorCatalogResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "indicator_name",
+          "display_name",
+          "data_type",
+          "is_required",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "coop_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/IndicatorDataType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "indicator_name": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IndicatorDataType": {
+        "type": "string",
+        "enum": [
+          "Number",
+          "Text",
+          "Boolean"
+        ]
+      },
+      "IndicatorEntryResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "catalog_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value_boolean": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "value_numeric": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
             "nullable": true
           }
         }
@@ -4792,6 +5305,45 @@
           }
         }
       },
+      "SaveEntriesRequest": {
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SaveIndicatorEntry"
+            }
+          }
+        }
+      },
+      "SaveIndicatorEntry": {
+        "type": "object",
+        "required": [
+          "catalog_id"
+        ],
+        "properties": {
+          "catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value_boolean": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "value_numeric": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "SubmissionResponse": {
         "type": "object",
         "required": [
@@ -5046,6 +5598,33 @@
           "name": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "UpdateIndicatorRequest": {
+        "type": "object",
+        "required": [
+          "display_name",
+          "data_type",
+          "is_required"
+        ],
+        "properties": {
+          "coop_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/IndicatorDataType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean"
           }
         }
       },

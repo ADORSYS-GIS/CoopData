@@ -358,3 +358,34 @@ impl AccountCategory {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, utoipa::ToSchema)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indicator_data_type")]
+pub enum IndicatorDataType {
+    #[sea_orm(string_value = "number")]
+    Number,
+    #[sea_orm(string_value = "text")]
+    Text,
+    #[sea_orm(string_value = "boolean")]
+    Boolean,
+}
+
+impl IndicatorDataType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Number => "number",
+            Self::Text => "text",
+            Self::Boolean => "boolean",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "number" => Some(Self::Number),
+            "text" => Some(Self::Text),
+            "boolean" => Some(Self::Boolean),
+            _ => None,
+        }
+    }
+}
+

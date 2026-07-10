@@ -208,7 +208,6 @@ impl SubmissionWorkflow {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    #[allow(clippy::too_many_arguments)]
     async fn transition(
         &self,
         submission_id: Uuid,
