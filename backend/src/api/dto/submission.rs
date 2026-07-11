@@ -64,6 +64,15 @@ pub struct SubmissionResponse {
     pub extraction_job_id: Option<Uuid>,
     /// Per-section readiness statuses
     pub sections: Vec<SubmissionSectionResponse>,
+    /// Cooperative display name (populated by list handlers for apex/federation/ministry)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cooperative_name: Option<String>,
+    /// Apex display name (populated by list handlers for federation/ministry)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apex_name: Option<String>,
+    /// Federation display name (populated by list handlers for ministry)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub federation_name: Option<String>,
 }
 
 impl From<SubmissionModel> for SubmissionResponse {
@@ -83,6 +92,9 @@ impl From<SubmissionModel> for SubmissionResponse {
             financial_statement_id: None,
             extraction_job_id: None,
             sections: Vec::new(),
+            cooperative_name: None,
+            apex_name: None,
+            federation_name: None,
         }
     }
 }
@@ -97,5 +109,54 @@ impl SubmissionResponse {
     pub fn with_sections(mut self, sections: Vec<SubmissionSectionResponse>) -> Self {
         self.sections = sections;
         self
+    }
+
+    pub fn with_cooperative_name(mut self, name: Option<String>) -> Self {
+        self.cooperative_name = name;
+        self
+    }
+
+    pub fn with_apex_name(mut self, name: Option<String>) -> Self {
+        self.apex_name = name;
+        self
+    }
+
+    pub fn with_federation_name(mut self, name: Option<String>) -> Self {
+        self.federation_name = name;
+        self
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CooperativeStatsResponse {
+    pub total_submissions: u64,
+    pub draft_submissions: u64,
+    pub pending_submissions: u64,
+    pub approved_submissions: u64,
+    pub rejected_submissions: u64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SubmissionReviewResponse {
+    pub id: Uuid,
+    pub submission_id: Uuid,
+    pub tier: String,
+    pub reviewer_id: Option<Uuid>,
+    pub action: String,
+    pub comment: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl From<crate::entities::submission_review::Model> for SubmissionReviewResponse {
+    fn from(m: crate::entities::submission_review::Model) -> Self {
+        Self {
+            id: m.id,
+            submission_id: m.submission_id,
+            tier: m.tier.as_str().to_string(),
+            reviewer_id: m.reviewer_id,
+            action: m.action.as_str().to_string(),
+            comment: m.comment,
+            created_at: m.created_at,
+        }
     }
 }

@@ -67,7 +67,12 @@ export const useSaveSubmissionEntries = (submissionId: string) => {
       return data as IndicatorEntryResponse[];
     },
     onSuccess: () => {
+      // Invalidate entries
       queryClient.invalidateQueries({ queryKey: [SUBMISSION_ENTRIES_KEY, submissionId] });
+      // Invalidate sections so the status pills update immediately
+      queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId, "sections"] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
     },
   });
 };

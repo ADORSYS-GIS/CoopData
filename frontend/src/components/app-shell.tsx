@@ -24,6 +24,7 @@ import {
   UserCog,
   ScrollText,
   Users,
+  Database,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
@@ -47,7 +48,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/apexes", label: "Apexes", icon: Network },
       { to: "/app/cooperatives", label: "Cooperatives", icon: Building2 },
       { to: "/app/data-collection", label: "Data Collection", icon: ClipboardList },
-      { to: "/app/submissions", label: "Submissions", icon: Inbox, badge: "3" },
+      { to: "/app/submissions", label: "Submissions", icon: Inbox },
     ],
   },
   {
@@ -63,6 +64,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     label: "System",
     items: [
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
+      { to: "/app/indicators", label: "Indicators", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
       { to: "/app/profile", label: "Profile", icon: UserCog },

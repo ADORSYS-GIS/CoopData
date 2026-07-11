@@ -14,9 +14,11 @@ use crate::api::handlers::financial_statement::{
 };
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
-    list_submission_sections, submit_submission, update_submission_section, validate_extraction,
+    list_submission_reviews, list_submission_sections, submit_submission,
+    update_submission_section, validate_extraction,
 };
 use crate::api::handlers::upload::upload_financial_statement;
+use crate::api::handlers::non_financial;
 use crate::auth::claims::Claims;
 
 use crate::error::AppResult;
@@ -25,8 +27,63 @@ use crate::AppState;
 pub fn cooperative_routes() -> Router<AppState> {
     Router::new()
         .route("/profile", get(get_cooperative_profile))
+        .route("/stats", get(crate::api::handlers::submission::get_cooperative_stats))
         .route("/members", get(list_cooperative_members))
         .route("/dimensions", get(get_assigned_dimensions))
+        .route(
+            "/non-financial/upload",
+            post(non_financial::upload_non_financial),
+        )
+        .route(
+            "/non-financial/members",
+            get(non_financial::list_members).post(non_financial::create_member),
+        )
+        .route(
+            "/non-financial/members/{id}",
+            get(non_financial::get_member)
+                .put(non_financial::update_member)
+                .delete(non_financial::delete_member),
+        )
+        .route(
+            "/non-financial/savings",
+            get(non_financial::list_savings_accounts).post(non_financial::create_savings_account),
+        )
+        .route(
+            "/non-financial/savings/{id}",
+            get(non_financial::get_savings_account)
+                .put(non_financial::update_savings_account)
+                .delete(non_financial::delete_savings_account),
+        )
+        .route(
+            "/non-financial/loans",
+            get(non_financial::list_loans).post(non_financial::create_loan),
+        )
+        .route(
+            "/non-financial/loans/{id}",
+            get(non_financial::get_loan)
+                .put(non_financial::update_loan)
+                .delete(non_financial::delete_loan),
+        )
+        .route(
+            "/non-financial/fixed-deposits",
+            get(non_financial::list_fixed_deposits).post(non_financial::create_fixed_deposit),
+        )
+        .route(
+            "/non-financial/fixed-deposits/{id}",
+            get(non_financial::get_fixed_deposit)
+                .put(non_financial::update_fixed_deposit)
+                .delete(non_financial::delete_fixed_deposit),
+        )
+        .route(
+            "/non-financial/farm-coop",
+            get(non_financial::list_farm_coop).post(non_financial::create_farm_coop),
+        )
+        .route(
+            "/non-financial/farm-coop/{id}",
+            get(non_financial::get_farm_coop)
+                .put(non_financial::update_farm_coop)
+                .delete(non_financial::delete_farm_coop),
+        )
         // Submissions
         .route(
             "/submissions",
@@ -38,6 +95,7 @@ pub fn cooperative_routes() -> Router<AppState> {
         )
         .route("/submissions/{id}/submit", post(submit_submission))
         .route("/submissions/{id}/sections", get(list_submission_sections))
+        .route("/submissions/{id}/reviews", get(list_submission_reviews))
         .route(
             "/submissions/{id}/sections/{section}",
             axum::routing::patch(update_submission_section),

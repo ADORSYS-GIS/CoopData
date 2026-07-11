@@ -70,6 +70,48 @@ impl SubmissionRepository {
             .map_err(Into::into)
     }
 
+    pub async fn count_by_reporting_year(&self, reporting_year: i32) -> AppResult<i64> {
+        use sea_orm::PaginatorTrait;
+        let count = Entity::find()
+            .filter(Column::ReportingYear.eq(reporting_year))
+            .count(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?;
+        Ok(count as i64)
+    }
+
+    pub async fn find_by_cooperative_ids(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<submission::Model>> {
+        if cooperative_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        Entity::find()
+            .filter(Column::CooperativeId.is_in(cooperative_ids))
+            .order_by_desc(Column::CreatedAt)
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn find_by_cooperative_ids_and_tier(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+        tier: ReviewTier,
+    ) -> AppResult<Vec<submission::Model>> {
+        if cooperative_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        Entity::find()
+            .filter(Column::CooperativeId.is_in(cooperative_ids))
+            .filter(Column::CurrentTier.eq(tier))
+            .order_by_desc(Column::CreatedAt)
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn create(&self, model: ActiveModel) -> AppResult<submission::Model> {
         model.insert(&self.db).await.map_err(Into::into)
     }

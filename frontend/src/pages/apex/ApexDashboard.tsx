@@ -1,17 +1,30 @@
-import { Building2, Users, Loader2, AlertCircle, Network, ChevronRight } from "lucide-react";
+import {
+  Building2,
+  Users,
+  Loader2,
+  AlertCircle,
+  Network,
+  ChevronRight,
+  Inbox,
+  CheckCircle2,
+  Clock,
+  XCircle,
+} from "lucide-react";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
+import { useApexStats } from "@/hooks/submissions/useSubmissions";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 
 export const ApexDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { data: cooperativesData, isLoading, error } = useCooperatives();
+  const { data: cooperativesData, isLoading: coopLoading, error } = useCooperatives();
+  const { data: stats, isLoading: statsLoading } = useApexStats();
 
   const cooperatives =
     (cooperativesData as Array<{ id: string; name: string; description?: string }>) ?? [];
 
-  const totalMembers = 0; // Members counted per cooperative on demand
+  const isLoading = coopLoading || statsLoading;
 
   if (isLoading) {
     return (
@@ -41,27 +54,34 @@ export const ApexDashboard: React.FC = () => {
       subtitle="Overview of cooperatives and members under your apex"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={Building2}
             label="Cooperatives"
-            value={String(cooperatives.length)}
+            value={String(stats?.total_cooperatives ?? cooperatives.length)}
             subtitle="Under your apex"
             tone="primary"
           />
           <StatCard
-            icon={Users}
-            label="Total Members"
-            value={String(totalMembers)}
-            subtitle="Across all cooperatives"
+            icon={Inbox}
+            label="Pending"
+            value={String(stats?.pending_submissions ?? 0)}
+            subtitle="Awaiting review"
+            tone="warning"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="Approved"
+            value={String(stats?.approved_submissions ?? 0)}
+            subtitle="Finalized"
             tone="success"
           />
           <StatCard
-            icon={Network}
-            label="Apex Profile"
-            value={user?.name ?? "—"}
-            subtitle={user?.email ?? "Apex administrator"}
-            tone="accent"
+            icon={XCircle}
+            label="Rejected"
+            value={String(stats?.rejected_submissions ?? 0)}
+            subtitle="Needs correction"
+            tone="danger"
           />
         </div>
 

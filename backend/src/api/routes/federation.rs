@@ -81,6 +81,10 @@ pub fn federation_routes() -> Router<AppState> {
             get(handlers::submission::list_federation_submissions),
         )
         .route(
+            "/submissions/{id}",
+            get(handlers::submission::get_submission_as_federation),
+        )
+        .route(
             "/submissions/{id}/approve",
             post(handlers::submission::federation_approve_submission),
         )

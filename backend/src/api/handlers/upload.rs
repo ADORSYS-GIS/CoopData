@@ -5,15 +5,10 @@ use axum::{
     Extension, Json,
 };
 use sea_orm::Set;
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 use uuid::Uuid;
 
 const MAX_UPLOAD_BYTES: usize = 20 * 1024 * 1024; // 20 MB
-
-static SEQ_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 use crate::api::dto::upload::UploadResponse;
 use crate::auth::claims::Claims;
@@ -21,7 +16,6 @@ use crate::auth::claims::Claims;
 use crate::entities::enums::{AccountingYear, Currency};
 use crate::entities::extraction_job::ActiveModel as ExtractionJobModel;
 use crate::entities::financial_statement::ActiveModel as FsModel;
-use crate::entities::submission::ActiveModel as SubmissionModel;
 use crate::entities::uploaded_file::ActiveModel as UploadedFileModel;
 use crate::error::{AppError, AppResult};
 use crate::services::extraction_pipeline::run_extraction_pipeline;
@@ -33,9 +27,9 @@ use crate::AppState;
     responses(
         (status = 202, description = "Upload accepted, extraction queued", body = UploadResponse),
         (status = 400, description = "Invalid input or unsupported file type"),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Cooperative profile not found"),
-        (status = 409, description = "Submission already exists for this year")
+        (status = 403, description = "Forbidden or submission not owned by cooperative"),
+        (status = 404, description = "Cooperative profile or submission not found"),
+        (status = 409, description = "Submission already exists for this year or not in draft")
     ),
     tag = "Cooperative"
 )]
@@ -50,9 +44,9 @@ pub async fn upload_financial_statement(
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut original_name = String::from("upload");
     let mut mime_type = String::from("application/octet-stream");
-    let mut reporting_year: i32 = chrono::Utc::now().year();
     let mut accounting_year_str = String::from("calendar");
     let mut currency_str = String::from("SZL");
+    let mut submission_id_opt: Option<String> = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -79,15 +73,6 @@ pub async fn upload_financial_statement(
                 }
                 file_bytes = Some(bytes.to_vec());
             }
-            "reporting_year" => {
-                let text = field
-                    .text()
-                    .await
-                    .map_err(|e| AppError::BadRequest(format!("Bad reporting_year: {e}")))?;
-                reporting_year = text.trim().parse::<i32>().map_err(|_| {
-                    AppError::BadRequest("reporting_year must be an integer".into())
-                })?;
-            }
             "accounting_year" => {
                 accounting_year_str = field
                     .text()
@@ -96,6 +81,16 @@ pub async fn upload_financial_statement(
             }
             "currency" => {
                 currency_str = field.text().await.unwrap_or_else(|_| "SZL".to_string());
+            }
+            "submission_id" => {
+                submission_id_opt = Some(
+                    field
+                        .text()
+                        .await
+                        .unwrap_or_default()
+                        .trim()
+                        .to_string(),
+                );
             }
             _ => {}
         }
@@ -106,15 +101,6 @@ pub async fn upload_financial_statement(
 
     if file_bytes.is_empty() {
         return Err(AppError::BadRequest("Uploaded file is empty".into()));
-    }
-
-    // Validate year
-    let current_year = chrono::Utc::now().year();
-    if reporting_year < current_year - 5 || reporting_year > current_year {
-        return Err(AppError::BadRequest(format!(
-            "reporting_year must be between {} and {current_year}",
-            current_year - 5
-        )));
     }
 
     // Validate MIME type
@@ -134,26 +120,6 @@ pub async fn upload_financial_statement(
         )));
     }
 
-    // Check duplicate submission — allow re-upload if existing is still in draft
-    if let Some(existing) = state
-        .submission_repo
-        .find_by_cooperative_and_year(coop.id, reporting_year)
-        .await?
-    {
-        if existing.status == crate::entities::enums::SubmissionStatus::Draft {
-            tracing::info!(
-                submission_id = %existing.id,
-                "Deleting existing draft submission to allow re-upload"
-            );
-            state.submission_repo.delete(existing.id).await?;
-        } else {
-            return Err(AppError::Conflict(format!(
-                "A submission already exists for {reporting_year} (status: {}). Delete it first or use a different year.",
-                existing.status.as_str()
-            )));
-        }
-    }
-
     let accounting_year =
         AccountingYear::parse(&accounting_year_str).unwrap_or(AccountingYear::Calendar);
     let currency = if currency_str == "USD" {
@@ -162,13 +128,36 @@ pub async fn upload_financial_statement(
         Currency::Szl
     };
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
-    let submission_id = Uuid::new_v4();
     let fs_id = Uuid::new_v4();
     let file_id = Uuid::new_v4();
     let job_id = Uuid::new_v4();
 
-    // Generate reference
-    let reference = format!("SUB-{}-{:05}", current_year, rand_seq());
+    // submission_id is now required — uploads must target an existing draft submission
+    let sub_id_str = submission_id_opt
+        .ok_or_else(|| AppError::BadRequest("submission_id is required".into()))?;
+    let submission_id = Uuid::parse_str(&sub_id_str)
+        .map_err(|_| AppError::BadRequest("Invalid submission_id format".into()))?;
+
+    let existing = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if existing.cooperative_id != coop.id {
+        return Err(AppError::Forbidden(
+            "Submission does not belong to your cooperative".into(),
+        ));
+    }
+    if existing.status != crate::entities::enums::SubmissionStatus::Draft {
+        return Err(AppError::Conflict(
+            "Can only upload to a draft submission".into(),
+        ));
+    }
+
+    tracing::info!(submission_id = %submission_id, "Attaching financial statement to submission");
+
+    let reporting_year = existing.reporting_year;
 
     // Storage key
     let storage_key = format!("{}/{}/{}.bin", coop.id, submission_id, file_id);
@@ -178,31 +167,6 @@ pub async fn upload_financial_statement(
         .storage
         .store(&storage_key, &file_bytes, &mime_type)
         .await?;
-
-    // 2. Create submission
-    let submission_model = SubmissionModel {
-        id: Set(submission_id),
-        reference: Set(Some(reference)),
-        cooperative_id: Set(coop.id),
-        reporting_year: Set(reporting_year),
-        status: Set(crate::entities::enums::SubmissionStatus::Draft),
-        current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
-        submitted_by: Set(submitted_by),
-        submitted_at: Set(None),
-        last_reviewed_by: Set(None),
-        last_reviewed_at: Set(None),
-        rejection_reason: Set(None),
-        priority: Set("Routine".to_string()),
-        metadata: Set(serde_json::json!({})),
-        created_at: Set(chrono::Utc::now()),
-        updated_at: Set(chrono::Utc::now()),
-    };
-    state.submission_repo.create(submission_model).await?;
-
-    // Create submission sections (5 sections: financial, members, savings, loans, fixed_deposits)
-    let section_models =
-        crate::repositories::SubmissionSectionRepository::new_section_models(submission_id);
-    state.section_repo.create_many(section_models).await?;
 
     // 3. Create uploaded_file
     let file_model = UploadedFileModel {
@@ -263,6 +227,7 @@ pub async fn upload_financial_statement(
     let line_item_repo = state.line_item_repo.clone();
     let coa_repo = state.coa_repo.clone();
     let flag_repo = state.flag_repo.clone();
+    let section_repo = state.section_repo.clone();
 
     tokio::spawn(async move {
         run_extraction_pipeline(
@@ -279,6 +244,7 @@ pub async fn upload_financial_statement(
             line_item_repo,
             coa_repo,
             flag_repo,
+            section_repo,
         )
         .await;
     });
@@ -299,17 +265,4 @@ pub async fn upload_financial_statement(
             extraction_job_id: job_id,
         }),
     ))
-}
-
-fn rand_seq() -> u32 {
-    SEQ_COUNTER.fetch_add(1, Ordering::Relaxed) % 100_000
-}
-
-trait YearExt {
-    fn year(&self) -> i32;
-}
-impl YearExt for chrono::DateTime<chrono::Utc> {
-    fn year(&self) -> i32 {
-        chrono::Datelike::year(self)
-    }
 }

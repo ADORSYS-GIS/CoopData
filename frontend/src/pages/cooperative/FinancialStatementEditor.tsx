@@ -23,7 +23,7 @@ import {
   useSubmitSubmission,
   type LineItemResponse,
 } from "@/hooks/submissions/useFinancialStatement";
-import { useCooperativeSubmissions, useDeleteSubmission } from "@/hooks/submissions/useSubmissions";
+import { useDeleteSubmission } from "@/hooks/submissions/useSubmissions";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -52,6 +52,8 @@ const SECTION_LABELS: Record<string, string> = {
   savings: "Savings Accounts",
   loans: "Loans",
   fixed_deposits: "Fixed Deposits",
+  farm_coop: "Farm Coops",
+  indicators: "Non-Financial Indicators",
 };
 
 function SectionIcon({ status }: { status: string }) {
@@ -86,9 +88,11 @@ function ConfidenceBadge({ confidence }: { confidence: number | null }) {
 
 // ── Editor ────────────────────────────────────────────────────────────────────
 
-export const FinancialStatementEditor: React.FC<{ fsId: string; submissionId: string }> = ({
+export const FinancialStatementEditor: React.FC<{ fsId: string; submissionId: string; isDraft: boolean; isCooperative: boolean }> = ({
   fsId,
   submissionId,
+  isDraft,
+  isCooperative,
 }) => {
   const navigate = useNavigate();
   const { data: fs } = useFinancialStatement(fsId);
@@ -96,7 +100,6 @@ export const FinancialStatementEditor: React.FC<{ fsId: string; submissionId: st
   const updateItems = useUpdateLineItems(fsId);
   const validate = useValidateExtraction();
   const submit = useSubmitSubmission();
-  const { data: submissions = [] } = useCooperativeSubmissions();
   const { data: sections = [] } = useSubmissionSections(submissionId);
   const updateSection = useUpdateSubmissionSection(submissionId);
   const deleteSubmission = useDeleteSubmission();
@@ -109,8 +112,6 @@ export const FinancialStatementEditor: React.FC<{ fsId: string; submissionId: st
   const [editingCodeId, setEditingCodeId] = useState<string | null>(null);
   const [codeSearch, setCodeSearch] = useState("");
 
-  const submission = submissions.find((s) => s.id === submissionId);
-  const isDraft = submission?.status === "draft";
   const financialSection = sections.find((s) => s.section === "financial");
   const allReady = sections.length > 0 && sections.every((s) => s.status === "ready");
 

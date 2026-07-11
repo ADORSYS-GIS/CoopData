@@ -30,6 +30,7 @@ import { Route as AppDataCollectionRouteImport } from './routes/app.data-collect
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
+import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
@@ -144,6 +145,11 @@ const AppAuditRoute = AppAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
+  id: '/indicators',
+  path: '/indicators',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppApexesRoute = AppApexesRouteImport.update({
   id: '/apexes',
   path: '/apexes',
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/app/financial-statement': typeof AppFinancialStatementRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
+  '/app/indicators': typeof AppIndicatorsRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -234,6 +241,7 @@ export interface FileRoutesByTo {
   '/app/financial-statement': typeof AppFinancialStatementRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
+  '/app/indicators': typeof AppIndicatorsRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/app/financial-statement': typeof AppFinancialStatementRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
+  '/app/indicators': typeof AppIndicatorsRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/app/financial-statement'
     | '/app/invitations'
     | '/app/members'
+    | '/app/indicators'
     | '/app/non-financial-data'
     | '/app/profile'
     | '/app/reports'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/app/financial-statement'
     | '/app/invitations'
     | '/app/members'
+    | '/app/indicators'
     | '/app/non-financial-data'
     | '/app/profile'
     | '/app/reports'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/app/financial-statement'
     | '/app/invitations'
     | '/app/members'
+    | '/app/indicators'
     | '/app/non-financial-data'
     | '/app/profile'
     | '/app/reports'
@@ -530,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/indicators': {
+      id: '/app/indicators'
+      path: '/indicators'
+      fullPath: '/app/indicators'
+      preLoaderRoute: typeof AppIndicatorsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/apexes': {
       id: '/app/apexes'
       path: '/apexes'
@@ -607,6 +626,7 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppIndicatorsRoute: typeof AppIndicatorsRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataCollectionRoute: typeof AppDataCollectionRoute
@@ -632,6 +652,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
+  AppIndicatorsRoute: AppIndicatorsRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDataCollectionRoute: AppDataCollectionRoute,

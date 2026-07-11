@@ -1,10 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
+import {
+  useApexSubmissions,
+  useFederationSubmissions,
+  useMinistrySubmissions,
+} from "@/hooks/submissions/useSubmissions";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
 export type ReviewActionRequest = components["schemas"]["ReviewActionRequest"];
 export type AbnormalityFlagResponse = components["schemas"]["AbnormalityFlagResponse"];
+
+export { useApexSubmissions, useFederationSubmissions, useMinistrySubmissions };
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -16,16 +23,6 @@ function extractErrorMessage(err: unknown): string {
 }
 
 // ── Apex ──────────────────────────────────────────────────────────────────────
-
-export const useApexSubmissions = () =>
-  useQuery({
-    queryKey: ["apex-submissions"],
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/apex/submissions");
-      if (error) throw new Error(extractErrorMessage(error));
-      return (data as SubmissionResponse[]) ?? [];
-    },
-  });
 
 export const useSubmissionFlags = (submissionId: string | null) =>
   useQuery({
@@ -76,16 +73,6 @@ export const useApexReturn = () => {
 
 // ── Federation ────────────────────────────────────────────────────────────────
 
-export const useFederationSubmissions = () =>
-  useQuery({
-    queryKey: ["federation-submissions"],
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/federation/submissions");
-      if (error) throw new Error(extractErrorMessage(error));
-      return (data as SubmissionResponse[]) ?? [];
-    },
-  });
-
 export const useFederationApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -121,16 +108,6 @@ export const useFederationReturn = () => {
 };
 
 // ── Ministry ──────────────────────────────────────────────────────────────────
-
-export const useMinistrySubmissions = () =>
-  useQuery({
-    queryKey: ["ministry-submissions"],
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/ministry/submissions");
-      if (error) throw new Error(extractErrorMessage(error));
-      return (data as SubmissionResponse[]) ?? [];
-    },
-  });
 
 export const useMinistryApprove = () => {
   const queryClient = useQueryClient();

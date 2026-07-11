@@ -5,8 +5,8 @@ use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionStatus};
 use crate::entities::submission_review::ActiveModel as ReviewModel;
 use crate::error::{AppError, AppResult};
 use crate::repositories::{
-    AbnormalityFlagRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository,
+    AbnormalityFlagRepository, FinancialStatementRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository,
 };
 use sea_orm::Set;
 
@@ -15,6 +15,7 @@ pub struct SubmissionWorkflow {
     pub review_repo: SubmissionReviewRepository,
     pub flag_repo: AbnormalityFlagRepository,
     pub section_repo: SubmissionSectionRepository,
+    pub fs_repo: FinancialStatementRepository,
 }
 
 impl SubmissionWorkflow {
@@ -23,12 +24,14 @@ impl SubmissionWorkflow {
         review_repo: SubmissionReviewRepository,
         flag_repo: AbnormalityFlagRepository,
         section_repo: SubmissionSectionRepository,
+        fs_repo: FinancialStatementRepository,
     ) -> Self {
         Self {
             submission_repo,
             review_repo,
             flag_repo,
             section_repo,
+            fs_repo,
         }
     }
 
@@ -71,6 +74,14 @@ impl SubmissionWorkflow {
                 "All sections must be ready before submitting. Incomplete: {}",
                 not_ready.join(", ")
             )));
+        }
+
+        // Verify financial statement exists
+        let fs = self.fs_repo.find_by_submission(submission_id).await?;
+        if fs.is_none() {
+            return Err(AppError::BadRequest(
+                "A financial statement must be uploaded before submitting".into(),
+            ));
         }
 
         self.submission_repo

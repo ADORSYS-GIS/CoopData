@@ -17,6 +17,7 @@ use crate::AppState;
 pub fn apex_routes() -> Router<AppState> {
     Router::new()
         .route("/profile", get(handlers::cooperative::get_apex_profile))
+        .route("/stats", get(handlers::submission::get_apex_stats))
         .route(
             "/cooperatives",
             post(handlers::cooperative::create_cooperative)
@@ -61,6 +62,10 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/submissions",
             get(handlers::submission::list_apex_submissions),
+        )
+        .route(
+            "/submissions/{id}",
+            get(handlers::submission::get_submission_as_apex),
         )
         .route(
             "/submissions/{id}/approve",

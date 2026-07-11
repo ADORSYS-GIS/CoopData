@@ -160,17 +160,15 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
             return (
               <Card
                 key={item.id}
-                title={
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{item.display_name}</span>
-                    {isFieldRequired && (
-                      <span className="text-xs font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
-                        Required
-                      </span>
-                    )}
-                  </div>
-                }
+                title={item.display_name}
                 subtitle={item.description || "No description provided"}
+                action={
+                  isFieldRequired ? (
+                    <span className="text-xs font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
+                      Required
+                    </span>
+                  ) : undefined
+                }
                 className="hover:shadow-md transition-shadow duration-200 border-l-4 border-l-primary/40"
               >
                 <div className="mt-3">

@@ -24,6 +24,11 @@ pub fn shared_routes() -> Router<AppState> {
             "/me/verify-identity",
             post(crate::api::handlers::me::verify_identity),
         )
+        // Non-financial indicator catalog — readable by all authenticated roles
+        .route(
+            "/non-financial-indicators/catalog",
+            get(crate::api::handlers::non_financial_indicator::list_catalog),
+        )
 }
 
 async fn get_current_user_profile(

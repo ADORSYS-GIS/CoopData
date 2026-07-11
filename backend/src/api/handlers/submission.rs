@@ -4,19 +4,16 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
+use chrono::Datelike;
 use sea_orm::Set;
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 use uuid::Uuid;
 
-static SEQ_COUNTER: AtomicU32 = AtomicU32::new(0);
-
 use crate::api::dto::submission::{
-    CreateSubmissionRequest, SubmissionResponse, SubmissionSectionResponse,
-    UpdateSectionStatusRequest,
+    CooperativeStatsResponse, CreateSubmissionRequest, SubmissionResponse,
+    SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
 };
+use crate::api::dto::apex::ApexStatsResponse;
 use crate::auth::claims::Claims;
 
 use crate::entities::enums::SubmissionStatus;
@@ -75,9 +72,12 @@ pub async fn create_submission(
         }
     }
 
-    let year = chrono::Utc::now().year();
-    let seq: u32 = rand_seq();
-    let reference = format!("SUB-{}-{:05}", year, seq);
+    let seq = state
+        .submission_repo
+        .count_by_reporting_year(body.reporting_year)
+        .await? as u32
+        + 1;
+    let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
@@ -144,11 +144,11 @@ pub async fn list_cooperative_submissions(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let mut responses = vec![];
-    for sub in state.submission_repo.find_by_cooperative(coop.id).await? {
+    for sub in state.submission_repo.find_by_cooperative_ids(coop_ids).await? {
         let sub_id = sub.id;
         let mut resp = SubmissionResponse::from(sub);
         // Enrich with financial statement + extraction job ids
@@ -196,8 +196,8 @@ pub async fn get_submission(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let submission = state
         .submission_repo
@@ -205,7 +205,7 @@ pub async fn get_submission(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
+    if !coop_ids.contains(&submission.cooperative_id) {
         return Err(AppError::Forbidden(
             "Access denied: this submission does not belong to your cooperative".into(),
         ));
@@ -231,20 +231,6 @@ pub async fn get_submission(
     }
 
     Ok((StatusCode::OK, Json(resp)))
-}
-
-fn rand_seq() -> u32 {
-    SEQ_COUNTER.fetch_add(1, Ordering::Relaxed) % 100_000
-}
-
-trait YearExt {
-    fn year(&self) -> i32;
-}
-
-impl YearExt for chrono::DateTime<chrono::Utc> {
-    fn year(&self) -> i32 {
-        chrono::Datelike::year(self)
-    }
 }
 
 use crate::api::dto::upload::{AbnormalityFlagResponse, ReviewActionRequest};
@@ -354,6 +340,7 @@ pub async fn submit_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow.submit(id, &claims).await?;
 
@@ -405,16 +392,199 @@ pub async fn get_submission_flags(
     ),
     tag = "Apex"
 )]
-pub async fn list_apex_submissions(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
-    // Apex sees submissions that have been submitted (tier=apex, status=submitted)
+pub async fn list_apex_submissions(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let cooperatives = state
+        .cooperative_repo
+        .find_by_apex_id(apex_db_id)
+        .await?;
+    let coop_map: std::collections::HashMap<Uuid, String> = cooperatives
+        .iter()
+        .map(|c| {
+            let name = if c.display_name.is_empty() {
+                c.name.clone()
+            } else {
+                c.display_name.clone()
+            };
+            (c.id, name)
+        })
+        .collect();
+    let coop_ids: Vec<Uuid> = cooperatives.iter().map(|c| c.id).collect();
+
     let subs = state
         .submission_repo
-        .find_by_status(SubmissionStatus::Submitted)
+        .find_by_cooperative_ids(coop_ids)
         .await?
         .into_iter()
-        .map(SubmissionResponse::from)
+        .filter(|s| s.status != SubmissionStatus::Draft)
+        .map(|s| {
+            let name = coop_map.get(&s.cooperative_id).cloned();
+            SubmissionResponse::from(s).with_cooperative_name(name)
+        })
         .collect::<Vec<_>>();
+
     Ok((StatusCode::OK, Json(subs)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/submissions/{id}",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Submission found", body = SubmissionResponse),
+        (status = 403, description = "Forbidden — submission does not belong to your apex"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Apex"
+)]
+pub async fn get_submission_as_apex(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    // Verify the submission belongs to one of this apex's cooperatives
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let belongs = cooperatives.iter().any(|c| c.id == submission.cooperative_id);
+    if !belongs {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your apex".into(),
+        ));
+    }
+
+    let mut resp = SubmissionResponse::from(submission);
+    if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
+        let job_id = state
+            .extraction_job_repo
+            .find_by_submission(id)
+            .await
+            .ok()
+            .flatten()
+            .map(|j| j.id);
+        resp = resp.with_fs(Some(fs.id), job_id);
+    }
+    if let Ok(sections) = state.section_repo.find_by_submission(id).await {
+        resp = resp.with_sections(
+            sections.into_iter().map(SubmissionSectionResponse::from).collect(),
+        );
+    }
+    Ok((StatusCode::OK, Json(resp)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/federation/submissions/{id}",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Submission found", body = SubmissionResponse),
+        (status = 403, description = "Forbidden — submission does not belong to your federation"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Federation"
+)]
+pub async fn get_submission_as_federation(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let org_id = claims
+        .get_organization_id()
+        .ok_or_else(|| AppError::Forbidden("Federation user has no organization associated".into()))?;
+
+    let federation = state
+        .federation_repo
+        .find_by_keycloak_id(&org_id)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("Federation not found in database".into()))?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
+    let mut coop_ids: Vec<Uuid> = vec![];
+    for apex in &apexes {
+        let coops = state.cooperative_repo.find_by_apex_id(apex.id).await?;
+        coop_ids.extend(coops.iter().map(|c| c.id));
+    }
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your federation".into(),
+        ));
+    }
+
+    let mut resp = SubmissionResponse::from(submission);
+    if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
+        let job_id = state
+            .extraction_job_repo
+            .find_by_submission(id)
+            .await
+            .ok()
+            .flatten()
+            .map(|j| j.id);
+        resp = resp.with_fs(Some(fs.id), job_id);
+    }
+    if let Ok(sections) = state.section_repo.find_by_submission(id).await {
+        resp = resp.with_sections(
+            sections.into_iter().map(SubmissionSectionResponse::from).collect(),
+        );
+    }
+    Ok((StatusCode::OK, Json(resp)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/ministry/submissions/{id}",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Submission found", body = SubmissionResponse),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Ministry"
+)]
+pub async fn get_submission_as_ministry(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    let mut resp = SubmissionResponse::from(submission);
+    if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
+        let job_id = state
+            .extraction_job_repo
+            .find_by_submission(id)
+            .await
+            .ok()
+            .flatten()
+            .map(|j| j.id);
+        resp = resp.with_fs(Some(fs.id), job_id);
+    }
+    if let Ok(sections) = state.section_repo.find_by_submission(id).await {
+        resp = resp.with_sections(
+            sections.into_iter().map(SubmissionSectionResponse::from).collect(),
+        );
+    }
+    Ok((StatusCode::OK, Json(resp)))
 }
 
 #[utoipa::path(
@@ -440,6 +610,7 @@ pub async fn apex_approve_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow.apex_approve(id, &claims, body.comment).await?;
     let updated = state
@@ -473,6 +644,7 @@ pub async fn apex_return_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow.apex_return(id, &claims, body.comment).await?;
     let updated = state
@@ -496,15 +668,62 @@ pub async fn apex_return_submission(
 )]
 pub async fn list_federation_submissions(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    // Federation sees submissions that apex has approved (tier=federation, status=in_review)
+    let org_id = claims
+        .get_organization_id()
+        .ok_or_else(|| AppError::Forbidden("Federation user has no organization associated".into()))?;
+
+    let federation = state
+        .federation_repo
+        .find_by_keycloak_id(&org_id)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("Federation not found in database".into()))?;
+
+    let apexes = state
+        .apex_repo
+        .find_by_federation_id(federation.id)
+        .await?;
+
+    let mut coop_ids: Vec<Uuid> = vec![];
+    let mut coop_map: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
+    let mut apex_map: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
+    for apex in &apexes {
+        let apex_name = if apex.display_name.is_empty() {
+            apex.organization_keycloak_id.clone()
+        } else {
+            apex.display_name.clone()
+        };
+        let coops = state.cooperative_repo.find_by_apex_id(apex.id).await?;
+        for c in coops {
+            let coop_name = if c.display_name.is_empty() {
+                c.name.clone()
+            } else {
+                c.display_name.clone()
+            };
+            coop_map.insert(c.id, coop_name);
+            apex_map.insert(c.id, apex_name.clone());
+            coop_ids.push(c.id);
+        }
+    }
+
     let subs = state
         .submission_repo
-        .find_by_tier(crate::entities::enums::ReviewTier::Federation)
+        .find_by_cooperative_ids_and_tier(
+            coop_ids,
+            crate::entities::enums::ReviewTier::Federation,
+        )
         .await?
         .into_iter()
-        .map(SubmissionResponse::from)
+        .map(|s| {
+            let name = coop_map.get(&s.cooperative_id).cloned();
+            let apex = apex_map.get(&s.cooperative_id).cloned();
+            SubmissionResponse::from(s)
+                .with_cooperative_name(name)
+                .with_apex_name(apex)
+        })
         .collect::<Vec<_>>();
+
     Ok((StatusCode::OK, Json(subs)))
 }
 
@@ -531,6 +750,7 @@ pub async fn federation_approve_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow
         .federation_approve(id, &claims, body.comment)
@@ -566,6 +786,7 @@ pub async fn federation_return_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow
         .federation_return(id, &claims, body.comment)
@@ -592,15 +813,71 @@ pub async fn federation_return_submission(
 pub async fn list_ministry_submissions(
     State(state): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
-    // Ministry sees submissions that federation has approved (tier=ministry, status=in_review)
     let subs = state
         .submission_repo
         .find_by_tier(crate::entities::enums::ReviewTier::Ministry)
-        .await?
+        .await?;
+
+    let coop_ids: Vec<Uuid> = subs.iter().map(|s| s.cooperative_id).collect();
+    let coops = state
+        .cooperative_repo
+        .find_by_ids(coop_ids)
+        .await
+        .unwrap_or_default();
+    let coop_map: std::collections::HashMap<Uuid, String> = coops
+        .iter()
+        .map(|c| {
+            let name = if c.display_name.is_empty() { c.name.clone() } else { c.display_name.clone() };
+            (c.id, name)
+        })
+        .collect();
+
+    let apex_ids: Vec<Uuid> = coops.iter().map(|c| c.apex_id).collect();
+    let apexes = state.apex_repo.find_by_ids(apex_ids).await.unwrap_or_default();
+    let apex_name_map: std::collections::HashMap<Uuid, String> = apexes
+        .iter()
+        .map(|a| {
+            let name = if a.display_name.is_empty() { a.organization_keycloak_id.clone() } else { a.display_name.clone() };
+            (a.id, name)
+        })
+        .collect();
+
+    let federation_ids: Vec<Uuid> = apexes.iter().map(|a| a.federation_id).collect();
+    let federations = state.federation_repo.find_by_ids(federation_ids).await.unwrap_or_default();
+    let fed_name_map: std::collections::HashMap<Uuid, String> = federations
+        .iter()
+        .map(|f| {
+            let name = if f.display_name.is_empty() { f.keycloak_id.clone() } else { f.display_name.clone() };
+            (f.id, name)
+        })
+        .collect();
+
+    let coop_to_apex: std::collections::HashMap<Uuid, String> = coops
+        .iter()
+        .filter_map(|c| apex_name_map.get(&c.apex_id).map(|name| (c.id, name.clone())))
+        .collect();
+    let coop_to_federation: std::collections::HashMap<Uuid, String> = coops
+        .iter()
+        .filter_map(|c| {
+            let apex = apexes.iter().find(|a| a.id == c.apex_id)?;
+            fed_name_map.get(&apex.federation_id).map(|name| (c.id, name.clone()))
+        })
+        .collect();
+
+    let responses = subs
         .into_iter()
-        .map(SubmissionResponse::from)
+        .map(|s| {
+            let name = coop_map.get(&s.cooperative_id).cloned();
+            let apex = coop_to_apex.get(&s.cooperative_id).cloned();
+            let federation = coop_to_federation.get(&s.cooperative_id).cloned();
+            SubmissionResponse::from(s)
+                .with_cooperative_name(name)
+                .with_apex_name(apex)
+                .with_federation_name(federation)
+        })
         .collect::<Vec<_>>();
-    Ok((StatusCode::OK, Json(subs)))
+
+    Ok((StatusCode::OK, Json(responses)))
 }
 
 #[utoipa::path(
@@ -626,6 +903,7 @@ pub async fn ministry_approve_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow.ministry_approve(id, &claims, body.comment).await?;
     let updated = state
@@ -659,6 +937,7 @@ pub async fn ministry_reject_submission(
         state.review_repo.clone(),
         state.flag_repo.clone(),
         state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
     );
     workflow.ministry_reject(id, &claims, body.comment).await?;
     let updated = state
@@ -687,8 +966,8 @@ pub async fn list_submission_sections(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let submission = state
         .submission_repo
@@ -696,7 +975,7 @@ pub async fn list_submission_sections(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
+    if !coop_ids.contains(&submission.cooperative_id) {
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
@@ -753,8 +1032,9 @@ pub async fn update_submission_section(
 
     if !crate::repositories::submission_section::SECTIONS.contains(&section.as_str()) {
         return Err(AppError::BadRequest(format!(
-            "Invalid section '{}'. Valid sections: financial, members, savings, loans, fixed_deposits",
-            section
+            "Invalid section '{}'. Valid sections: {}",
+            section,
+            crate::repositories::submission_section::SECTIONS.join(", ")
         )));
     }
 
@@ -795,7 +1075,7 @@ pub async fn update_submission_section(
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
         (status = 204, description = "Submission deleted"),
-        (status = 403, description = "Forbidden — not your cooperative or submission not in draft"),
+        (status = 403, description = "Forbidden — not your cooperative"),
         (status = 404, description = "Submission not found"),
     ),
     security(("bearer" = []))
@@ -820,15 +1100,142 @@ pub async fn delete_submission(
         ));
     }
 
-    if submission.status != SubmissionStatus::Draft {
-        return Err(AppError::Forbidden(
-            "Only draft submissions can be deleted".into(),
-        ));
-    }
-
     state.submission_repo.delete(id).await?;
 
-    tracing::info!(submission_id = %id, "Draft submission deleted");
+    tracing::info!(submission_id = %id, status = %submission.status.as_str(), "Submission deleted");
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+// ── Stats handlers ────────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/stats",
+    responses(
+        (status = 200, description = "Apex dashboard stats", body = ApexStatsResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Apex"
+)]
+pub async fn get_apex_stats(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let total_cooperatives = cooperatives.len() as u64;
+
+    let coop_ids: Vec<Uuid> = cooperatives.iter().map(|c| c.id).collect();
+    let subs = state.submission_repo.find_by_cooperative_ids(coop_ids).await?;
+
+    let pending_submissions = subs
+        .iter()
+        .filter(|s| s.status != SubmissionStatus::Draft && s.status != SubmissionStatus::Approved && s.status != SubmissionStatus::Rejected)
+        .count() as u64;
+    let approved_submissions = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .count() as u64;
+    let rejected_submissions = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Rejected)
+        .count() as u64;
+
+    Ok((
+        StatusCode::OK,
+        Json(ApexStatsResponse {
+            total_cooperatives,
+            pending_submissions,
+            approved_submissions,
+            rejected_submissions,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/stats",
+    responses(
+        (status = 200, description = "Cooperative dashboard stats", body = CooperativeStatsResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_cooperative_stats(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let subs = state.submission_repo.find_by_cooperative_ids(coop_ids).await?;
+
+    let total_submissions = subs.len() as u64;
+    let draft_submissions = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Draft)
+        .count() as u64;
+    let pending_submissions = subs
+        .iter()
+        .filter(|s| s.status != SubmissionStatus::Draft && s.status != SubmissionStatus::Approved && s.status != SubmissionStatus::Rejected)
+        .count() as u64;
+    let approved_submissions = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .count() as u64;
+    let rejected_submissions = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Rejected)
+        .count() as u64;
+
+    Ok((
+        StatusCode::OK,
+        Json(CooperativeStatsResponse {
+            total_submissions,
+            draft_submissions,
+            pending_submissions,
+            approved_submissions,
+            rejected_submissions,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/reviews",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+    ),
+    responses(
+        (status = 200, description = "List of review actions for the submission", body = [SubmissionReviewResponse]),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 404, description = "Submission not found", body = ErrorResponse),
+    ),
+    tag = "Submissions"
+)]
+pub async fn list_submission_reviews(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(crate::error::AppError::Forbidden(
+            "Submission does not belong to your cooperatives".into(),
+        ));
+    }
+    let reviews = state.review_repo.find_by_submission(id).await?;
+    let responses: Vec<SubmissionReviewResponse> = reviews
+        .into_iter()
+        .map(SubmissionReviewResponse::from)
+        .collect();
+    Ok((StatusCode::OK, Json(responses)))
 }

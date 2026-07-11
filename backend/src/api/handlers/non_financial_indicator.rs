@@ -308,29 +308,29 @@ pub async fn save_submission_entries(
                 ))
             })?;
 
-        match catalog.data_type {
-            IndicatorDataType::Number => {
-                if catalog.is_required && entry.value_numeric.is_none() {
-                    return Err(AppError::BadRequest(format!(
-                        "Indicator '{}' requires a numeric value",
-                        catalog.indicator_name
-                    )));
+        if catalog.is_required {
+            match catalog.data_type {
+                IndicatorDataType::Number => {
+                    if entry.value_numeric.is_none() {
+                        return Err(AppError::BadRequest(format!(
+                            "Indicator '{}' requires a numeric value",
+                            catalog.indicator_name
+                        )));
+                    }
                 }
-            }
-            IndicatorDataType::Text => {
-                if catalog.is_required && entry.value_text.is_none() {
-                    return Err(AppError::BadRequest(format!(
-                        "Indicator '{}' requires a text value",
-                        catalog.indicator_name
-                    )));
+                IndicatorDataType::Text => {
+                    let empty = entry.value_text.as_deref()
+                        .map(|t| t.trim().is_empty())
+                        .unwrap_or(true);
+                    if empty {
+                        return Err(AppError::BadRequest(format!(
+                            "Indicator '{}' requires a text value",
+                            catalog.indicator_name
+                        )));
+                    }
                 }
-            }
-            IndicatorDataType::Boolean => {
-                if catalog.is_required && entry.value_boolean.is_none() {
-                    return Err(AppError::BadRequest(format!(
-                        "Indicator '{}' requires a boolean value",
-                        catalog.indicator_name
-                    )));
+                IndicatorDataType::Boolean => {
+                    // Boolean defaults to false — always has a value
                 }
             }
         }
@@ -353,6 +353,68 @@ pub async fn save_submission_entries(
         .save_batch(id, active_entries)
         .await?;
 
+    // Determine section completeness: check if all required catalog items for this
+    // cooperative type have a non-null value in the current saved entries.
+    let coop_profile = state.cooperative_repo.find_by_id(sub.cooperative_id).await?;
+    let coop_type_str = coop_profile
+        .and_then(|c| c.institution_type)
+        .map(|t| t.as_str().to_string());
+
+    let required_catalog = if let Some(ref ct) = coop_type_str {
+        state
+            .non_financial_indicator_catalog_repo
+            .find_by_coop_type(ct)
+            .await?
+    } else {
+        state
+            .non_financial_indicator_catalog_repo
+            .find_all()
+            .await?
+    };
+
+    // Use all current entries (includes previously saved ones too)
+    let current_entries = state
+        .non_financial_indicator_entry_repo
+        .find_by_submission_id(id)
+        .await?;
+
+    let required_items: Vec<_> = required_catalog.iter().filter(|i| i.is_required).collect();
+
+    let all_required_filled = if required_items.is_empty() {
+        // No required indicators defined — mark ready if anything was saved
+        !current_entries.is_empty()
+    } else {
+        required_items.iter().all(|item| {
+            current_entries
+                .iter()
+                .find(|e| e.catalog_id == item.id)
+                .map(|e| match item.data_type {
+                    IndicatorDataType::Number => e.value_numeric.is_some(),
+                    IndicatorDataType::Text => e
+                        .value_text
+                        .as_ref()
+                        .map(|t| !t.trim().is_empty())
+                        .unwrap_or(false),
+                    IndicatorDataType::Boolean => e.value_boolean.is_some(),
+                })
+                .unwrap_or(false)
+        })
+    };
+
+    let indicators_status = if all_required_filled { "ready" } else { "in_progress" };
+    if let Some(sec) = state
+        .section_repo
+        .find_by_submission_and_section(id, "indicators")
+        .await?
+    {
+        state.section_repo.update_status(sec.id, indicators_status).await?;
+    }
+    tracing::info!(
+        submission_id = %id,
+        indicators_status,
+        "Indicators section status updated"
+    );
+
     let _ = state
         .audit
         .log(
@@ -360,7 +422,7 @@ pub async fn save_submission_entries(
             "SAVE_INDICATOR_ENTRIES",
             "submission",
             Some(&id.to_string()),
-            Some(serde_json::json!({ "entry_count": saved.len() })),
+            Some(serde_json::json!({ "entry_count": saved.len(), "indicators_status": indicators_status })),
             audit_ctx.ip_address.as_deref(),
             audit_ctx.user_agent.as_deref(),
         )

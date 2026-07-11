@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 pub mod api;
 pub mod auth;
 pub mod config;
@@ -16,14 +18,14 @@ pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    ExtractionJobRepository, FederationRepository, FinancialStatementRepository,
+    ExtractionJobRepository, FarmCoopRepository, FederationRepository, FinancialStatementRepository,
     NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    OrganizationRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    FixedDepositRepository, LoanRepository, MemberRepository, OrganizationRepository, SubmissionRepository, SubmissionReviewRepository,
+    SubmissionSectionRepository, UploadedFileRepository, SavingsAccountRepository, UserRepository,
 };
 pub use services::ai_extraction::FinancialStatementExtractor;
 pub use services::keycloak::KeycloakService;
-pub use services::AuditService;
+pub use services::{AuditService, CalamineNfParser, ObjectStorageService};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -54,6 +56,40 @@ pub struct AppState {
     pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
     pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,
     // services
-    pub storage: std::sync::Arc<dyn crate::services::object_storage::ObjectStorage>,
     pub extractor: std::sync::Arc<dyn FinancialStatementExtractor>,
+    pub member_repo: MemberRepository,
+    pub savings_account_repo: SavingsAccountRepository,
+    pub loan_repo: LoanRepository,
+    pub fixed_deposit_repo: FixedDepositRepository,
+    pub farm_coop_repo: FarmCoopRepository,
+    pub storage: ObjectStorageService,
+    pub nf_excel_parser: CalamineNfParser,
+}
+
+impl AppState {
+    pub async fn cooperative_id_from_claims(&self, claims: &auth::Claims) -> AppResult<Uuid> {
+        let coop_id_str = auth::rbac::ScopeEnforcement::get_cooperative_id(claims)?;
+
+        if let Ok(group_uuid) = Uuid::parse_str(&coop_id_str) {
+            if let Some(coop) = self
+                .cooperative_repo
+                .find_by_keycloak_group_id(group_uuid)
+                .await?
+            {
+                return Ok(coop.id);
+            }
+        }
+
+        let coop = self
+            .cooperative_repo
+            .find_by_name(&coop_id_str)
+            .await?
+            .ok_or_else(|| {
+                AppError::BadRequest(format!(
+                    "Cooperative not found by name or keycloak_group_id: {}",
+                    coop_id_str
+                ))
+            })?;
+        Ok(coop.id)
+    }
 }

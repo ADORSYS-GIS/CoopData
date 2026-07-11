@@ -175,6 +175,8 @@ pub fn create_app(state: AppState) -> Router {
             cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
                 roles::COOPERATIVE,
                 roles::APEX,
+                roles::FEDERATION,
+                roles::MINISTRY,
             ]))),
         )
         .layer(axum::middleware::from_fn(

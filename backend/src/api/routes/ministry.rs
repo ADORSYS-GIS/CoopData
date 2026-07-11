@@ -88,6 +88,10 @@ pub fn ministry_routes() -> Router<AppState> {
             get(crate::api::handlers::submission::list_ministry_submissions),
         )
         .route(
+            "/submissions/{id}",
+            get(crate::api::handlers::submission::get_submission_as_ministry),
+        )
+        .route(
             "/submissions/{id}/approve",
             post(crate::api::handlers::submission::ministry_approve_submission),
         )

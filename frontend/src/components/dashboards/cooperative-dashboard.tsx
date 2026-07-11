@@ -3,11 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   SUBMISSIONS as INITIAL_SUBMISSIONS,
   ACTIVITY_FEED as INITIAL_ACTIVITY_FEED,
-  formatCurrency,
 } from "@/lib/mock-data";
-import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
-import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
-import type { BalanceSheet } from "@/lib/financial-data";
 import {
   ResponsiveContainer,
   BarChart,
@@ -28,18 +24,15 @@ import {
   Users,
   Wallet,
   CheckCircle2,
-  FileSpreadsheet,
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
-  Upload,
   Database,
-  PieChart as PieChartIcon,
   BarChart3,
+  Loader2,
 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useCooperativeStats, useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
 
 // ─────────────────────────────────────────────────────────────────────
 // COOPERATIVE DASHBOARD — Upload-first, no manual entry
@@ -116,7 +109,7 @@ const databaseStatus = [
 ];
 
 export function CooperativeDashboard({
-  submissions,
+  submissions: _mockSubmissions,
   setSubmissions,
   activities,
   setActivities,
@@ -126,14 +119,42 @@ export function CooperativeDashboard({
   activities: typeof INITIAL_ACTIVITY_FEED;
   setActivities: React.Dispatch<React.SetStateAction<typeof INITIAL_ACTIVITY_FEED>>;
 }) {
-  const [showFinancialUpload, setShowFinancialUpload] = useState(false);
-  const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
+  void setSubmissions;
+  void activities;
+  void setActivities;
+
+  const { data: stats, isLoading: statsLoading } = useCooperativeStats();
+  const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
 
   const profile = {
-    name: "Lubombo Dairy Cooperative",
-    regNo: "COP-2015-00214",
-    region: "Lubombo",
-    sector: "Agricultural Unions",
+    name: "My Cooperative",
+    regNo: "—",
+    region: "—",
+    sector: "—",
+  };
+
+  const totalSubs = stats?.total_submissions ?? 0;
+  const pendingSubs = stats?.pending_submissions ?? 0;
+  const approvedSubs = stats?.approved_submissions ?? 0;
+  const rejectedSubs = stats?.rejected_submissions ?? 0;
+
+  const statusTone = (status: string): "success" | "warning" | "danger" | "info" | "neutral" => {
+    if (status === "approved") return "success";
+    if (["submitted", "in_review"].includes(status)) return "warning";
+    if (["rejected", "returned"].includes(status)) return "danger";
+    return "neutral";
+  };
+
+  const statusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      draft: "Draft",
+      submitted: "Submitted",
+      in_review: "In Review",
+      approved: "Approved",
+      rejected: "Rejected",
+      returned: "Returned",
+    };
+    return labels[status] ?? status;
   };
 
   return (
@@ -155,112 +176,42 @@ export function CooperativeDashboard({
       <div className="space-y-6">
         {/* ── KPI Stats Row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Compliance Score"
-            value="96.4%"
-            subtitle="In good standing"
-            icon={ShieldCheck}
-            tone="success"
-          />
-          <StatCard
-            label="Members"
-            value="8,910"
-            subtitle="54% women · 38% youth"
-            icon={Users}
-            tone="primary"
-          />
-          <StatCard
-            label="Total Capital"
-            value="$6.4M"
-            subtitle="Savings + deposits"
-            icon={Wallet}
-            tone="accent"
-          />
-          <StatCard
-            label="Returns Filed"
-            value="4"
-            subtitle="All approved"
-            icon={CheckCircle2}
-            tone="success"
-          />
-        </div>
-
-        {/* ── Upload Section ── */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Financial Statement Upload */}
-          <Card
-            title="Financial Statement"
-            subtitle="Upload PDF or image — we extract the data"
-            action={
-              showFinancialUpload ? undefined : (
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  <Upload className="size-4" /> Upload Statement
-                </button>
-              )
-            }
-          >
-            {showFinancialUpload ? (
-              <FinancialStatementUpload
-                onDataExtracted={(data) => {
-                  setExtractedFinancialData(data);
-                  toast.success("Financial data extracted! Review your analytics below.");
-                }}
-                onClose={() => setShowFinancialUpload(false)}
+          {statsLoading ? (
+            <div className="col-span-2 lg:col-span-4 flex items-center justify-center py-6">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <StatCard
+                label="Total Submissions"
+                value={totalSubs.toString()}
+                subtitle="All data returns"
+                icon={Database}
+                tone="primary"
               />
-            ) : extractedFinancialData ? (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
-                <CheckCircle2 className="size-5 text-success shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    Financial statement processed
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Data extracted and applied. Charts below reflect your latest figures.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-                >
-                  <Upload className="size-3.5" /> Upload New
-                </button>
-              </div>
-            ) : (
-              <div className="p-8 text-center">
-                <div className="size-14 rounded-2xl bg-accent/10 grid place-items-center mx-auto mb-4">
-                  <FileSpreadsheet className="size-7 text-accent" />
-                </div>
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Upload your financial statement
-                </p>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Upload a PDF or image of your audited balance sheet. We'll extract all account
-                  codes and figures automatically — no manual entry needed.
-                </p>
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  <Upload className="size-4" /> Upload Statement
-                </button>
-              </div>
-            )}
-          </Card>
-
-          {/* Excel Database Upload */}
-          <Card
-            title="Database Excel Sheets"
-            subtitle="Upload Excel files for each database — we validate automatically"
-          >
-            <ExcelDatabaseUpload
-              onUploadComplete={(dbType, result) => {
-                toast.success(`${dbType} database: ${result.validRows} records validated`);
-              }}
-            />
-          </Card>
+              <StatCard
+                label="Pending"
+                value={pendingSubs.toString()}
+                subtitle="Awaiting review"
+                icon={ShieldCheck}
+                tone="warning"
+              />
+              <StatCard
+                label="Approved"
+                value={approvedSubs.toString()}
+                subtitle="Finalized declarations"
+                icon={CheckCircle2}
+                tone="success"
+              />
+              <StatCard
+                label="Rejected"
+                value={rejectedSubs.toString()}
+                subtitle="Requires correction"
+                icon={TrendingDown}
+                tone="danger"
+              />
+            </>
+          )}
         </div>
 
         {/* ── Database Status Grid ── */}
@@ -574,41 +525,59 @@ export function CooperativeDashboard({
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                   <th className="px-5 py-3">Reference</th>
-                  <th className="px-5 py-3">Type</th>
+                  <th className="px-5 py-3">Year</th>
                   <th className="px-5 py-3">Filed On</th>
                   <th className="px-5 py-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {submissions
-                  .filter((s) => s.coopName === profile.name)
-                  .slice(0, 5)
-                  .map((sub) => (
-                    <tr key={sub.id} className="hover:bg-muted/25 transition-colors duration-150">
+                {subsLoading ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                      <Loader2 className="size-5 mx-auto mb-2 animate-spin" />
+                      <p className="text-xs">Loading submissions…</p>
+                    </td>
+                  </tr>
+                ) : realSubmissions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                      <p className="text-sm font-semibold">No submissions yet</p>
+                      <p className="text-xs mt-1">Create a new submission to get started.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  realSubmissions.slice(0, 5).map((sub) => (
+                    <tr
+                      key={sub.id}
+                      className="hover:bg-muted/25 transition-colors duration-150 cursor-pointer"
+                    >
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
-                        {sub.reference}
+                        {sub.reference ?? sub.id.slice(0, 8).toUpperCase()}
                       </td>
-                      <td className="px-5 py-3.5 font-semibold text-foreground">{sub.type}</td>
+                      <td className="px-5 py-3.5 font-semibold text-foreground">
+                        {sub.reporting_year}
+                      </td>
                       <td className="px-5 py-3.5 text-xs text-muted-foreground">
-                        {sub.submittedOn}
+                        {sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "—"}
                       </td>
                       <td className="px-5 py-3.5">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                            sub.status === "Verified"
+                            statusTone(sub.status) === "success"
                               ? "bg-success/10 text-success"
-                              : sub.status === "Pending Review"
+                              : statusTone(sub.status) === "warning"
                                 ? "bg-warning/10 text-warning-foreground"
-                                : sub.status === "Rejected"
+                                : statusTone(sub.status) === "danger"
                                   ? "bg-destructive/10 text-destructive"
-                                  : "bg-info/10 text-info"
+                                  : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {sub.status}
+                          {statusLabel(sub.status)}
                         </span>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -14,11 +14,13 @@ export const useUploadFinancialStatement = () => {
       reportingYear,
       accountingYear = "calendar",
       currency = "SZL",
+      submissionId,
     }: {
       file: File;
       reportingYear: number;
       accountingYear?: string;
       currency?: string;
+      submissionId?: string;
     }): Promise<UploadResponse> => {
       const token = await getAccessToken();
       const form = new FormData();
@@ -26,6 +28,9 @@ export const useUploadFinancialStatement = () => {
       form.append("reporting_year", String(reportingYear));
       form.append("accounting_year", accountingYear);
       form.append("currency", currency);
+      if (submissionId) {
+        form.append("submission_id", submissionId);
+      }
 
       const res = await fetch(`${API_BASE}/api/v1/cooperative/financial-statement/upload`, {
         method: "POST",

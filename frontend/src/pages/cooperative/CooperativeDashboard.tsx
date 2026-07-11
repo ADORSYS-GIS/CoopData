@@ -1,10 +1,22 @@
-import { Building2, Users, Layers, Loader2, AlertCircle, CheckCircle2, Tag } from "lucide-react";
+import {
+  Building2,
+  Users,
+  Layers,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Tag,
+  Inbox,
+  Clock,
+  XCircle,
+} from "lucide-react";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import {
   useMyCooperativeProfile,
   useMyCooperativeMembers,
   useMyAssignedDimensions,
 } from "@/hooks/cooperatives/useCooperatives";
+import { useCooperativeStats } from "@/hooks/submissions/useSubmissions";
 import { useAuth } from "@/context/AuthContext";
 
 type CoopProfile = { id: string; name?: string; description?: string };
@@ -20,13 +32,14 @@ export const CooperativeDashboard: React.FC = () => {
   } = useMyCooperativeProfile();
   const { data: membersRaw, isLoading: membersLoading } = useMyCooperativeMembers();
   const { data: dimRaw, isLoading: dimLoading } = useMyAssignedDimensions();
+  const { data: stats, isLoading: statsLoading } = useCooperativeStats();
 
   const profile = profileRaw as CoopProfile | undefined;
   const members = (membersRaw as MemberItem[]) ?? [];
   const dimData = dimRaw as DimensionsResponse | undefined;
   const dimensions = dimData?.assigned_dimensions ?? [];
 
-  const isLoading = profileLoading || membersLoading || dimLoading;
+  const isLoading = profileLoading || membersLoading || dimLoading || statsLoading;
 
   if (isLoading) {
     return (
@@ -56,27 +69,34 @@ export const CooperativeDashboard: React.FC = () => {
       subtitle={profile?.description ?? "Your cooperative overview"}
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
-            icon={Users}
-            label="Members"
-            value={String(members.length)}
-            subtitle="In your cooperative"
+            icon={Inbox}
+            label="Total Submissions"
+            value={String(stats?.total_submissions ?? 0)}
+            subtitle="All data returns"
             tone="primary"
           />
           <StatCard
-            icon={Layers}
-            label="Assigned Dimensions"
-            value={String(dimensions.length)}
-            subtitle="Data dimensions you can assess"
+            icon={Clock}
+            label="Pending"
+            value={String(stats?.pending_submissions ?? 0)}
+            subtitle="In review pipeline"
+            tone="warning"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="Approved"
+            value={String(stats?.approved_submissions ?? 0)}
+            subtitle="Finalized"
             tone="success"
           />
           <StatCard
-            icon={Building2}
-            label="Your Role"
-            value="Cooperative"
-            subtitle={user?.name ?? "Member"}
-            tone="accent"
+            icon={XCircle}
+            label="Rejected"
+            value={String(stats?.rejected_submissions ?? 0)}
+            subtitle="Needs correction"
+            tone="danger"
           />
         </div>
 

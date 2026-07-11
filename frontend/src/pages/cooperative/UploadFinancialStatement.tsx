@@ -18,7 +18,8 @@ const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif,.xlsx,.xls";
 
 export const UploadFinancialStatementWidget: React.FC<{
   onClose?: () => void;
-}> = ({ onClose }) => {
+  submissionId?: string;
+}> = ({ onClose, submissionId }) => {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -57,6 +58,7 @@ export const UploadFinancialStatementWidget: React.FC<{
         file,
         reportingYear,
         currency,
+        submissionId,
       });
       setJobId(result.extraction_job_id);
       toast.success("Upload accepted — AI extraction started");
@@ -67,8 +69,9 @@ export const UploadFinancialStatementWidget: React.FC<{
 
   // Navigate to submission detail when extraction done
   if (isTerminal && job?.status === "succeeded") {
-    const submissionId = job.submission_id;
-    navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
+    if (!submissionId) {
+      navigate({ to: "/app/submissions/$id", params: { id: job.submission_id } });
+    }
     return null;
   }
 

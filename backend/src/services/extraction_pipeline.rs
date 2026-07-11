@@ -9,6 +9,7 @@ use crate::error::AppResult;
 use crate::repositories::{
     AbnormalityFlagRepository, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     ExtractionJobRepository, FinancialStatementRepository, SubmissionRepository,
+    SubmissionSectionRepository,
 };
 use crate::services::abnormality_detector::AbnormalityDetector;
 use crate::services::ai_extraction::FinancialStatementExtractor;
@@ -29,6 +30,7 @@ pub async fn run_extraction_pipeline(
     line_item_repo: BalanceSheetLineItemRepository,
     coa_repo: ChartOfAccountsRepository,
     flag_repo: AbnormalityFlagRepository,
+    section_repo: SubmissionSectionRepository,
 ) {
     if let Err(e) = run_pipeline_inner(
         job_id,
@@ -44,6 +46,7 @@ pub async fn run_extraction_pipeline(
         &line_item_repo,
         &coa_repo,
         &flag_repo,
+        &section_repo,
     )
     .await
     {
@@ -75,6 +78,7 @@ async fn run_pipeline_inner(
     line_item_repo: &BalanceSheetLineItemRepository,
     coa_repo: &ChartOfAccountsRepository,
     flag_repo: &AbnormalityFlagRepository,
+    section_repo: &SubmissionSectionRepository,
 ) -> AppResult<()> {
     let now = chrono::Utc::now();
 
@@ -265,6 +269,14 @@ async fn run_pipeline_inner(
     fs_repo
         .set_validation_errors(fs.id, validation_json)
         .await?;
+
+    // Mark financial section as in_progress — user reviews extracted data then confirms ready
+    if let Ok(Some(sec)) = section_repo
+        .find_by_submission_and_section(submission_id, "financial")
+        .await
+    {
+        let _ = section_repo.update_status(sec.id, "in_progress").await;
+    }
 
     tracing::info!(
         job_id = %job_id,

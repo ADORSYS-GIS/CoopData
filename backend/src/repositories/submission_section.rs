@@ -6,7 +6,15 @@ use uuid::Uuid;
 use crate::entities::submission_section::{self, ActiveModel, Column, Entity};
 use crate::error::{AppError, AppResult};
 
-pub const SECTIONS: &[&str] = &["financial", "members", "savings", "loans", "fixed_deposits"];
+pub const SECTIONS: &[&str] = &[
+    "financial",
+    "members",
+    "savings",
+    "loans",
+    "fixed_deposits",
+    "farm_coop",
+    "indicators",
+];
 pub const VALID_STATUSES: &[&str] = &["pending", "in_progress", "ready"];
 
 #[derive(Clone)]
@@ -99,11 +107,7 @@ impl SubmissionSectionRepository {
                 // Non-financial sections (members, savings, loans, fixed_deposits) default to
                 // "ready" so cooperative can submit after uploading only the financial statement.
                 // They can be updated to "in_progress" when non-financial data upload begins.
-                let initial_status = if *s == "financial" {
-                    "pending"
-                } else {
-                    "ready"
-                };
+                let initial_status = "pending";
                 ActiveModel {
                     id: Set(Uuid::new_v4()),
                     submission_id: Set(submission_id),

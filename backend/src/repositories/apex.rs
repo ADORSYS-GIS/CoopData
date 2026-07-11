@@ -1,6 +1,6 @@
 use crate::entities::{apex, ApexColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -31,6 +31,17 @@ impl ApexRepository {
     pub async fn find_by_federation_id(&self, federation_id: Uuid) -> AppResult<Vec<apex::Model>> {
         apex::Entity::find()
             .filter(ApexColumn::FederationId.eq(federation_id))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
+    pub async fn find_by_ids(&self, ids: Vec<Uuid>) -> AppResult<Vec<apex::Model>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+        apex::Entity::find()
+            .filter(ApexColumn::Id.is_in(ids))
             .all(&self.db)
             .await
             .map_err(AppError::DatabaseError)

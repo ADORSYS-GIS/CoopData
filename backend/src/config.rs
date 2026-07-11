@@ -25,6 +25,13 @@ pub struct AppConfig {
     pub ai_api_key: String,
     pub ai_model: String,        // e.g. gpt-4o, claude-sonnet-4-5
     pub ai_vision_model: String, // model used for image capture (may differ)
+    pub storage_type: String,
+    pub storage_path: String,
+    pub s3_endpoint: String,
+    pub s3_bucket: String,
+    pub s3_access_key: String,
+    pub s3_secret_key: String,
+    pub s3_region: String,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -71,6 +78,13 @@ impl AppConfig {
             ai_api_key: env::var("AI_API_KEY").unwrap_or_default(),
             ai_model: env::var("AI_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
             ai_vision_model: env::var("AI_VISION_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
+            storage_type: env::var("STORAGE_TYPE").unwrap_or_else(|_| "local".into()),
+            storage_path: env::var("STORAGE_PATH").unwrap_or_else(|_| "./uploads".into()),
+            s3_endpoint: env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".into()),
+            s3_bucket: env::var("S3_BUCKET").unwrap_or_else(|_| "coopdata".into()),
+            s3_access_key: env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".into()),
+            s3_secret_key: env::var("S3_SECRET_KEY").unwrap_or_else(|_| "minioadmin".into()),
+            s3_region: env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".into()),
         })
     }
 
@@ -127,6 +141,13 @@ mod tests {
             ai_api_key: String::new(),
             ai_model: "gpt-4o".into(),
             ai_vision_model: "gpt-4o".into(),
+            storage_type: "local".into(),
+            storage_path: "/tmp/coopdata-uploads".into(),
+            s3_endpoint: "http://localhost:9000".into(),
+            s3_bucket: "test-bucket".into(),
+            s3_access_key: "minioadmin".into(),
+            s3_secret_key: "minioadmin".into(),
+            s3_region: "us-east-1".into(),
         }
     }
 

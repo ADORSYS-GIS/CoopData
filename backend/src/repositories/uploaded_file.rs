@@ -2,7 +2,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 use uuid::Uuid;
 
 use crate::entities::uploaded_file::{self, ActiveModel, Column, Entity};
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 
 #[derive(Clone)]
 pub struct UploadedFileRepository {
@@ -30,6 +30,13 @@ impl UploadedFileRepository {
             .all(&self.db)
             .await
             .map_err(Into::into)
+    }
+
+    pub async fn find_by_submission_id(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Vec<uploaded_file::Model>> {
+        self.find_by_submission(submission_id).await
     }
 
     pub async fn create(&self, model: ActiveModel) -> AppResult<uploaded_file::Model> {

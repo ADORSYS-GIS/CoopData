@@ -31,8 +31,8 @@ pub async fn get_financial_statement(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let fs = state
         .financial_statement_repo
@@ -40,7 +40,7 @@ pub async fn get_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("Financial statement not found".into()))?;
 
-    if fs.cooperative_id != coop.id {
+    if !coop_ids.contains(&fs.cooperative_id) {
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
@@ -63,8 +63,8 @@ pub async fn list_line_items(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let fs = state
         .financial_statement_repo
@@ -72,7 +72,7 @@ pub async fn list_line_items(
         .await?
         .ok_or_else(|| AppError::NotFound("Financial statement not found".into()))?;
 
-    if fs.cooperative_id != coop.id {
+    if !coop_ids.contains(&fs.cooperative_id) {
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
@@ -105,8 +105,8 @@ pub async fn update_line_items(
     Path(id): Path<Uuid>,
     Json(body): Json<LineItemBulkUpdateRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let fs = state
         .financial_statement_repo
@@ -114,7 +114,7 @@ pub async fn update_line_items(
         .await?
         .ok_or_else(|| AppError::NotFound("Financial statement not found".into()))?;
 
-    if fs.cooperative_id != coop.id {
+    if !coop_ids.contains(&fs.cooperative_id) {
         return Err(AppError::Forbidden("Access denied".into()));
     }
 

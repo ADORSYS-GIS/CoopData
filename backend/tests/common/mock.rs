@@ -2,14 +2,15 @@ use std::sync::Arc;
 
 use coop_data_backend::auth::JwtValidator;
 use coop_data_backend::config::Environment;
-use coop_data_backend::services::{cache::CacheService, object_storage::create_storage};
+use coop_data_backend::services::{cache::CacheService, CalamineNfParser, ObjectStorageService};
 use coop_data_backend::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppConfig, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, ExtractionJobRepository, FederationRepository,
     FinancialStatementRepository, KeycloakService, OrganizationRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    UserRepository, FarmCoopRepository, FixedDepositRepository, LoanRepository, MemberRepository,
+    SavingsAccountRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -48,8 +49,19 @@ impl TestApp {
         let review_repo = SubmissionReviewRepository::new(db.clone());
         let section_repo = SubmissionSectionRepository::new(db.clone());
 
-        let storage = create_storage("local", "/tmp/test-uploads");
         let extractor = coop_data_backend::services::ai_extraction::create_extractor(&config);
+
+        let member_repo = MemberRepository::new(db.clone());
+        let savings_account_repo = SavingsAccountRepository::new(db.clone());
+        let loan_repo = LoanRepository::new(db.clone());
+        let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
+        let farm_coop_repo = FarmCoopRepository::new(db.clone());
+        let storage =
+            ObjectStorageService::new(&config).expect("Failed to create object storage service");
+        let nf_excel_parser = CalamineNfParser::new();
+
+        let non_financial_indicator_catalog_repo = NonFinancialIndicatorCatalogRepository::new(db.clone());
+        let non_financial_indicator_entry_repo = NonFinancialIndicatorEntryRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -73,8 +85,16 @@ impl TestApp {
             flag_repo,
             review_repo,
             section_repo,
-            storage,
+            non_financial_indicator_catalog_repo,
+            non_financial_indicator_entry_repo,
             extractor,
+            member_repo,
+            savings_account_repo,
+            loan_repo,
+            fixed_deposit_repo,
+            farm_coop_repo,
+            storage,
+            nf_excel_parser,
         };
 
         TestApp { state }
@@ -103,5 +123,12 @@ pub fn test_config() -> AppConfig {
         ai_api_key: String::new(),
         ai_model: "gpt-4o".to_string(),
         ai_vision_model: "gpt-4o".to_string(),
+        storage_type: "local".to_string(),
+        storage_path: "/tmp/coopdata-test-uploads".to_string(),
+        s3_endpoint: "http://localhost:9000".to_string(),
+        s3_bucket: "test-bucket".to_string(),
+        s3_access_key: "minioadmin".to_string(),
+        s3_secret_key: "minioadmin".to_string(),
+        s3_region: "us-east-1".to_string(),
     }
 }
