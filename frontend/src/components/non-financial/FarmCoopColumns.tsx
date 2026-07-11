@@ -104,7 +104,9 @@ export function createFarmCoopColumns(actions?: FarmCoopActions): ColumnDef<Farm
     {
       accessorKey: "price_predictability_category",
       header: ({ column }) => <SortableHeader column={column}>Price Pred.</SortableHeader>,
-      cell: ({ row }) => <span className="text-xs">{row.getValue("price_predictability_category")}</span>,
+      cell: ({ row }) => (
+        <span className="text-xs">{row.getValue("price_predictability_category")}</span>
+      ),
     },
     {
       accessorKey: "access_to_storage",
@@ -114,7 +116,9 @@ export function createFarmCoopColumns(actions?: FarmCoopActions): ColumnDef<Farm
     {
       accessorKey: "access_to_processing_facilities",
       header: ({ column }) => <SortableHeader column={column}>Processing</SortableHeader>,
-      cell: ({ row }) => <BoolIcon value={row.getValue("access_to_processing_facilities") as boolean} />,
+      cell: ({ row }) => (
+        <BoolIcon value={row.getValue("access_to_processing_facilities") as boolean} />
+      ),
     },
     {
       accessorKey: "transport_coordination",
@@ -134,7 +138,9 @@ export function createFarmCoopColumns(actions?: FarmCoopActions): ColumnDef<Farm
     {
       accessorKey: "climate_mitigation_practices",
       header: ({ column }) => <SortableHeader column={column}>Climate Mitigation</SortableHeader>,
-      cell: ({ row }) => <span className="text-xs">{row.getValue("climate_mitigation_practices")}</span>,
+      cell: ({ row }) => (
+        <span className="text-xs">{row.getValue("climate_mitigation_practices")}</span>
+      ),
     },
     ...(actions
       ? [
@@ -143,7 +149,12 @@ export function createFarmCoopColumns(actions?: FarmCoopActions): ColumnDef<Farm
             header: "Actions",
             cell: ({ row }: { row: { original: FarmCoopResponse } }) => (
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="size-7" onClick={() => actions.onEdit?.(row.original)}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  onClick={() => actions.onEdit?.(row.original)}
+                >
                   <Pencil className="size-3.5" />
                 </Button>
                 <Button

@@ -1023,9 +1023,8 @@ fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
         None => return,
     };
 
-    let mut row_index = 0usize;
-    for row in rows {
-        row_index += 1;
+    for (row_index, row) in rows.enumerate() {
+        let row_index = row_index + 1;
 
         let cooperative_type = get_string_cell(row, *map.get("cooperative_type").unwrap())
             .unwrap_or_default();

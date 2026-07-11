@@ -1,4 +1,3 @@
-use crate::api::dto::ErrorResponse;
 use axum::extract::{Extension, Multipart, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
