@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
+import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
 import {
   GROWTH_TREND,
   REGIONS,
@@ -2979,6 +2980,12 @@ export const AnalyticsPage: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {role === "ministry" && (
+          <div className="mt-6">
+            <NonFinancialConsolidation />
           </div>
         )}
       </div>

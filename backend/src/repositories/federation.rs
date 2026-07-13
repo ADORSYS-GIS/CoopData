@@ -1,6 +1,8 @@
 use crate::entities::{federation, FederationColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -24,6 +26,18 @@ impl FederationRepository {
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<federation::Model>> {
         federation::Entity::find_by_id(id)
             .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
+    pub async fn find_by_ids(&self, ids: Vec<Uuid>) -> AppResult<Vec<federation::Model>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+        federation::Entity::find()
+            .filter(FederationColumn::Id.is_in(ids))
+            .order_by_desc(FederationColumn::CreatedAt)
+            .all(&self.db)
             .await
             .map_err(AppError::DatabaseError)
     }

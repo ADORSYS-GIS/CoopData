@@ -3,6 +3,7 @@
 # Set COOPDATA_DEV=false (or remove this file) to use production builds instead.
 
 services:
+
   backend:
     # Replace compiled-release binary with cargo-watch for live recompile.
     build:

@@ -45,6 +45,8 @@ pub struct CooperativeResponse {
     pub path: Option<String>,
     pub parent_group_id: Option<String>,
     pub description: Option<String>,
+    pub institution_type: Option<String>,
+    pub region: Option<String>,
 }
 
 impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
@@ -71,6 +73,8 @@ impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
             path: group.path,
             parent_group_id,
             description,
+            institution_type: None,
+            region: None,
         }
     }
 }

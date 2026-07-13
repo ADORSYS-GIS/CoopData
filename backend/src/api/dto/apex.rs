@@ -56,6 +56,14 @@ impl From<crate::models::keycloak::KeycloakGroup> for ApexResponse {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ApexStatsResponse {
+    pub total_cooperatives: u64,
+    pub pending_submissions: u64,
+    pub approved_submissions: u64,
+    pub rejected_submissions: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

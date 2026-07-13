@@ -18,16 +18,15 @@ CREATE TABLE IF NOT EXISTS financial_statements (
 CREATE TABLE IF NOT EXISTS balance_sheet_line_items (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   financial_statement_id  UUID NOT NULL REFERENCES financial_statements(id) ON DELETE CASCADE,
-  account_code            INTEGER NOT NULL,
+  account_code            INTEGER,
   account_name            VARCHAR(255) NOT NULL,
   account_category        account_category NOT NULL,
-  account_subcategory     VARCHAR(100) NOT NULL,
+  account_subcategory     VARCHAR(100),
   month                   SMALLINT NOT NULL,
   value                   NUMERIC(15,2),
   ai_confidence           NUMERIC(4,3),
   ai_flagged              BOOLEAN NOT NULL DEFAULT false,
   manually_edited         BOOLEAN NOT NULL DEFAULT false,
   created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (financial_statement_id, account_code, month)
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );

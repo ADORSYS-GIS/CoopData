@@ -3,19 +3,10 @@ import {
   Wifi,
   WifiOff,
   BarChart3,
-  Upload,
-  FileSpreadsheet,
-  CheckCircle2,
-  ArrowUpRight,
-  Database,
-  Users,
-  Wallet,
-  TrendingUp,
   AlertTriangle,
   Eye,
   Settings2,
   Plus,
-  CheckSquare,
   Hash,
   DollarSign,
   Type,
@@ -24,24 +15,20 @@ import {
   GripVertical,
   ToggleRight,
   Zap,
-  Clock,
-  Send,
+  ArrowUpRight,
+  SquareCheck,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
-import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
-import { ExcelDatabaseUpload } from "@/components/upload/excel-database-upload";
-import type { BalanceSheet } from "@/lib/financial-data";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 
 export const DataCollectionPage: React.FC = () => {
   const role = useUserRole();
+  const navigate = useNavigate();
   const isCooperative = role === "cooperative";
   const isReadOnly = false;
-
-  const [showFinancialUpload, setShowFinancialUpload] = useState(false);
-  const [extractedFinancialData, setExtractedFinancialData] = useState<BalanceSheet | null>(null);
 
   const [activeQuestionnaires] = useState([
     {
@@ -88,164 +75,31 @@ export const DataCollectionPage: React.FC = () => {
 
   if (!role) return null;
 
-  // ── Cooperative View: Upload-first, no manual entry ──
+  // Cooperatives go straight to Submissions
   if (isCooperative) {
     return (
       <AppShell
         title="Data Upload Center"
-        subtitle="Upload your financial statement and database sheets — we handle the rest"
+        subtitle="Create a submission to upload your financial statement and database sheets"
       >
-        <div className="space-y-6">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={CheckCircle2}
-              label="Databases Ready"
-              value="4/5"
-              subtitle="Almost complete"
-              tone="success"
-            />
-            <StatCard
-              icon={FileSpreadsheet}
-              label="Financial Statement"
-              value="Extracted"
-              subtitle="Data populated"
-              tone="primary"
-            />
-            <StatCard
-              icon={Database}
-              label="Total Records"
-              value="24,810"
-              subtitle="Across all databases"
-              tone="accent"
-            />
-            <StatCard
-              icon={Clock}
-              label="Next Deadline"
-              value="Jul 15"
-              subtitle="Q4 filing closes"
-              tone="warning"
-            />
-          </div>
-
-          {/* Financial Statement Upload */}
-          <Card
-            title="Financial Statement"
-            subtitle="Upload your audited balance sheet (PDF or image) — data is extracted automatically"
-            action={
-              showFinancialUpload ? undefined : (
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  <Upload className="size-4" /> Upload Statement
-                </button>
-              )
-            }
+        <div className="py-16 flex flex-col items-center gap-4 text-center">
+          <p className="text-sm text-muted-foreground max-w-md">
+            Use the <strong>Submissions</strong> page to create a new submission, then upload your
+            financial statement, the 5 database Excel sheets, and the Non-Financial Indicators
+            Ledger — all in one place.
+          </p>
+          <button
+            onClick={() => navigate({ to: "/app/submissions" })}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
           >
-            {showFinancialUpload ? (
-              <FinancialStatementUpload
-                onDataExtracted={(data) => {
-                  setExtractedFinancialData(data);
-                  toast.success("Financial data extracted! Review your data below.");
-                }}
-                onClose={() => setShowFinancialUpload(false)}
-              />
-            ) : extractedFinancialData ? (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
-                <CheckCircle2 className="size-5 text-success shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    Financial statement processed
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    All account codes and figures have been extracted. Your financial data is ready
-                    for submission.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-                >
-                  <Upload className="size-3.5" /> Upload New
-                </button>
-              </div>
-            ) : (
-              <div className="p-8 text-center">
-                <div className="size-14 rounded-2xl bg-accent/10 grid place-items-center mx-auto mb-4">
-                  <FileSpreadsheet className="size-7 text-accent" />
-                </div>
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Upload your financial statement
-                </p>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  Upload a PDF or image of your audited balance sheet. We'll extract all financial
-                  data automatically — no manual entry needed.
-                </p>
-                <button
-                  onClick={() => setShowFinancialUpload(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  <Upload className="size-4" /> Upload Statement
-                </button>
-              </div>
-            )}
-          </Card>
-
-          {/* Excel Database Uploads */}
-          <Card
-            title="Database Excel Sheets"
-            subtitle="Upload Excel/CSV files for each of the 5 cooperative databases"
-          >
-            <ExcelDatabaseUpload
-              onUploadComplete={(dbType, result) => {
-                toast.success(`${dbType} database: ${result.validRows} records validated`);
-              }}
-            />
-          </Card>
-
-          {/* Filing Instructions */}
-          <Card
-            title="Filing Guidelines"
-            subtitle="Important information about your data submissions"
-          >
-            <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-              <p>
-                As a cooperative manager, you are required to submit your financial data through the
-                upload process above. Simply upload your audited financial statement and Excel
-                database sheets — the system will extract and validate all data automatically.
-              </p>
-              <div className="p-4 rounded-xl bg-accent/5 border border-accent/15">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="size-4 text-accent" />
-                  <span className="font-semibold text-foreground">Next Deadline</span>
-                </div>
-                <p className="text-xs text-foreground/80">
-                  Q4 reporting cycle closes on <strong>July 1, 2026</strong>. Avoid penalties by
-                  filing before July 15.
-                </p>
-              </div>
-              <ul className="space-y-2">
-                {[
-                  "Upload your audited financial statement (PDF or image)",
-                  "Upload Excel sheets for all 5 databases",
-                  "Review extracted data for accuracy",
-                  "Submit validated data to your Apex for review",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-xs">
-                    <CheckCircle2 className="size-3.5 text-success shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Card>
+            Go to Submissions
+          </button>
         </div>
       </AppShell>
     );
   }
 
-  // ── Admin / Ministry / Federation / Apex View: Form Builder ──
+  // Admin / Ministry / Federation / Apex View
   return (
     <AppShell
       title="Data Collection Center"
@@ -278,7 +132,6 @@ export const DataCollectionPage: React.FC = () => {
           </div>
         )}
 
-        {/* KPI Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={Wifi}
@@ -310,7 +163,6 @@ export const DataCollectionPage: React.FC = () => {
           />
         </div>
 
-        {/* Form Builder + Palette */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             className="lg:col-span-2"
@@ -370,7 +222,6 @@ export const DataCollectionPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Active Templates List */}
         <Card
           title="Active templates"
           subtitle="Currently distributed across the national data grid"
@@ -382,9 +233,7 @@ export const DataCollectionPage: React.FC = () => {
                 className="py-3.5 flex items-center gap-4 group hover:bg-muted/20 -mx-5 px-5 transition-colors cursor-pointer"
                 onClick={() => toast.info(`Opening configuration console for ${q.name}`)}
               >
-                <div
-                  className={`size-10 rounded-xl grid place-items-center shrink-0 bg-muted text-muted-foreground`}
-                >
+                <div className="size-10 rounded-xl grid place-items-center shrink-0 bg-muted text-muted-foreground">
                   <ClipboardList className="size-5" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -411,7 +260,7 @@ function FormBuilder({ isReadOnly }: { isReadOnly: boolean }) {
     { type: "Currency", label: "Total member savings", icon: DollarSign, required: true },
     { type: "Currency", label: "Total loan portfolio", icon: DollarSign, required: true },
     { type: "Number", label: "Active members at period end", icon: Type, required: true },
-    { type: "Checkbox", label: "External audit completed?", icon: CheckSquare },
+    { type: "Checkbox", label: "External audit completed?", icon: SquareCheck },
     { type: "File", label: "Audited financial statements", icon: FileUp },
   ];
   return (
@@ -456,7 +305,7 @@ function Palette({ isReadOnly }: { isReadOnly: boolean }) {
     { label: "Number", icon: Hash },
     { label: "Currency", icon: DollarSign },
     { label: "Date", icon: Calendar },
-    { label: "Checkbox", icon: CheckSquare },
+    { label: "Checkbox", icon: SquareCheck },
     { label: "File", icon: FileUp },
   ];
   return (
@@ -464,18 +313,14 @@ function Palette({ isReadOnly }: { isReadOnly: boolean }) {
       {types.map((t) => (
         <button
           key={t.label}
+          onClick={() =>
+            !isReadOnly && toast.success(`Simulation: "${t.label}" field dragged to canvas.`)
+          }
           disabled={isReadOnly}
-          onClick={() => {
-            if (isReadOnly) return;
-            toast.success(`Simulation: Dragged new ${t.label} type element onto canvas layout.`);
-          }}
-          className={`flex items-center gap-2.5 rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-medium transition-all press-feedback ${
-            isReadOnly
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:border-accent hover:bg-accent/5 hover:shadow-sm"
-          }`}
+          className="flex items-center gap-2 rounded-xl border border-border p-2.5 text-xs font-semibold hover:border-accent hover:bg-accent/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <t.icon className="size-4 text-accent" /> {t.label}
+          <t.icon className="size-3.5 text-muted-foreground" />
+          {t.label}
         </button>
       ))}
     </div>

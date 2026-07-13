@@ -1,10 +1,16 @@
 pub mod apex;
 pub mod audit;
 pub mod cooperative;
+pub mod extraction;
 pub mod federation;
+pub mod financial_statement;
 pub mod health;
 pub mod me;
+pub mod non_financial;
+pub mod non_financial_indicator;
 pub mod organizations;
+pub mod submission;
+pub mod upload;
 pub mod users;
 
 pub use audit::*;

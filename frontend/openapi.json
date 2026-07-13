@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "CoopData API",
-    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry → Federation → Apex → Cooperative)",
+    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry \u2192 Federation \u2192 Apex \u2192 Cooperative)",
     "contact": {
       "name": "CoopData Team",
       "email": "support@coopdata.org"
@@ -674,6 +674,1880 @@
         }
       }
     },
+    "/api/v1/apex/submissions": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "list_apex_submissions",
+        "responses": {
+          "200": {
+            "description": "Submissions for apex review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/submissions/{id}/approve": {
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "apex_approve_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Approved, forwarded to federation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/submissions/{id}/flags": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "get_submission_flags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Abnormality flags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AbnormalityFlagResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/submissions/{id}/return": {
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "apex_return_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returned to cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/extraction-jobs/{id}": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_extraction_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Extraction job ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Extraction job status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionJobResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/financial-statement/upload": {
+      "post": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "upload_financial_statement",
+        "responses": {
+          "202": {
+            "description": "Upload accepted, extraction queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported file type"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative profile not found"
+          },
+          "409": {
+            "description": "Submission already exists for this year"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/financial-statements/{id}": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_financial_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Financial statement ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Financial statement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialStatementResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/financial-statements/{id}/line-items": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "list_line_items",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Financial statement ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Line items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LineItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "update_line_items",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Financial statement ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LineItemBulkUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Line items updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LineItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/farm-coop": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "list_farm_coop",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List farm coop records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedFarmCoopResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "create_farm_coop",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFarmCoopRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Farm coop record created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarmCoopResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/farm-coop/{id}": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "get_farm_coop",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Farm coop record ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Farm coop record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarmCoopResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "update_farm_coop",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Farm coop record ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFarmCoopRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Farm coop record updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarmCoopResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "delete_farm_coop",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Farm coop record ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Farm coop record deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/fixed-deposits": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "list_fixed_deposits",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List fixed deposits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedFixedDepositsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "create_fixed_deposit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFixedDepositRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Fixed deposit created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedDepositResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/fixed-deposits/{id}": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "get_fixed_deposit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Fixed Deposit ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fixed deposit found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedDepositResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "update_fixed_deposit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Fixed Deposit ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFixedDepositRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Fixed deposit updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedDepositResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "delete_fixed_deposit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Fixed Deposit ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Fixed deposit deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/loans": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "list_loans",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List loans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedLoansResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "create_loan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLoanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Loan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/loans/{id}": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "get_loan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Loan ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loan found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "update_loan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Loan ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLoanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Loan updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "delete_loan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Loan ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Loan deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/members": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "list_members",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfPaginatedMembersResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "create_member",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NfCreateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Member created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - member_id already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/members/{id}": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "get_member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Member ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Member not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "update_member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Member ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NfUpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Member updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Member not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "delete_member",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Member ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member deleted"
+          },
+          "404": {
+            "description": "Member not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/savings": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "list_savings_accounts",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List savings accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSavingsAccountsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "create_savings_account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSavingsAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Savings account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsAccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/savings/{id}": {
+      "get": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "get_savings_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Savings Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Savings account found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsAccountResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "update_savings_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Savings Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSavingsAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Savings account updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsAccountResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "delete_savings_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Savings Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Savings account deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/non-financial/upload": {
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "upload_non_financial",
+        "responses": {
+          "201": {
+            "description": "Upload processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing file, submission_id, or no valid sheets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "list_cooperative_submissions",
+        "responses": {
+          "200": {
+            "description": "List of submissions for the cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative profile not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "create_submission",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Submission created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative profile not found"
+          },
+          "409": {
+            "description": "Submission already exists for this year"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "api_module::handlers::submission"
+        ],
+        "operationId": "delete_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Submission deleted"
+          },
+          "403": {
+            "description": "Forbidden \u2014 not your cooperative or submission not in draft"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/non-financial-indicators": {
+      "get": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "get_submission_entries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicator entries for submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorEntryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "save_submission_entries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEntriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entries saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorEntryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid submission state or bad values"
+          },
+          "403": {
+            "description": "Scope violation"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/sections": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "list_submission_sections",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Section statuses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionSectionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/sections/{section}": {
+      "patch": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "update_submission_section",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "description": "Section name: financial, members, savings, loans, fixed_deposits",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSectionStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Section updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionSectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid section name or status"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/submit": {
+      "post": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "submit_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error flags must be resolved first"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/validate-extraction": {
+      "post": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "validate_extraction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation complete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AbnormalityFlagResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
     "/api/v1/federation/apexes": {
       "get": {
         "tags": [
@@ -1259,6 +3133,128 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/submissions": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "list_federation_submissions",
+        "responses": {
+          "200": {
+            "description": "Submissions for federation review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/federation/submissions/{id}/approve": {
+      "post": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "federation_approve_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Approved, forwarded to ministry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/federation/submissions/{id}/return": {
+      "post": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "federation_return_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returned to apex",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }
@@ -2037,6 +4033,322 @@
         }
       }
     },
+    "/api/v1/ministry/non-financial-indicators/catalog": {
+      "post": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "create_catalog_item",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIndicatorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Catalog indicator created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden - Ministry only"
+          },
+          "409": {
+            "description": "Indicator name already exists"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/non-financial-indicators/catalog/{id}": {
+      "put": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "update_catalog_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Catalog indicator ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIndicatorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Catalog indicator updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Ministry only"
+          },
+          "404": {
+            "description": "Indicator not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "delete_catalog_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Catalog indicator ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "403": {
+            "description": "Forbidden - Ministry only"
+          },
+          "404": {
+            "description": "Indicator not found"
+          },
+          "409": {
+            "description": "Cannot delete: reported entries exist"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/non-financial-indicators/consolidate": {
+      "get": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "consolidate_indicator",
+        "parameters": [
+          {
+            "name": "indicator_name",
+            "in": "query",
+            "description": "Indicator to aggregate across all cooperatives",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consolidation metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsolidationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing indicator_name"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/submissions": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "list_ministry_submissions",
+        "responses": {
+          "200": {
+            "description": "Submissions for ministry review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/submissions/{id}/approve": {
+      "post": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "ministry_approve_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Approved, submission finalized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/submissions/{id}/reject": {
+      "post": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "ministry_reject_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Submission rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/non-financial-indicators/catalog": {
+      "get": {
+        "tags": [
+          "Non-Financial Indicators"
+        ],
+        "operationId": "list_catalog",
+        "parameters": [
+          {
+            "name": "coop_type",
+            "in": "query",
+            "description": "Filter by cooperative type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicator catalog list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorCatalogResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/organizations": {
       "get": {
         "tags": [
@@ -2524,10 +4836,214 @@
           }
         }
       }
+    },
+    "/api/v1/apex/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "get_submission_as_apex",
+        "summary": "Get a single submission as apex (verifies ownership)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - submission does not belong to apex cooperatives"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/federation/submissions/{id}": {
+      "get": {
+        "operationId": "get_submission_as_federation",
+        "tags": [
+          "Federation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/submissions/{id}": {
+      "get": {
+        "operationId": "get_submission_as_ministry",
+        "tags": [
+          "Ministry"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/stats": {
+      "get": {
+        "operationId": "get_apex_stats",
+        "tags": [
+          "Apex"
+        ],
+        "responses": {
+          "200": {
+            "description": "Apex dashboard stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApexStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/stats": {
+      "get": {
+        "operationId": "get_cooperative_stats",
+        "tags": [
+          "Cooperative"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cooperative dashboard stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CooperativeStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AbnormalityFlagResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "rule_id",
+          "severity",
+          "message"
+        ],
+        "properties": {
+          "field_ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "message": {
+            "type": "string"
+          },
+          "rule_id": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AccountType": {
+        "type": "string",
+        "enum": [
+          "Voluntary",
+          "Mandatory",
+          "Fixed"
+        ]
+      },
+      "AccountingYear": {
+        "type": "string",
+        "enum": [
+          "Calendar",
+          "Fiscal"
+        ]
+      },
       "AddMemberRequest": {
         "type": "object",
         "required": [
@@ -2557,6 +5073,15 @@
             "type": "string"
           }
         }
+      },
+      "AgeGroup": {
+        "type": "string",
+        "enum": [
+          "Under18",
+          "Between18And35",
+          "Between36And50",
+          "Over50"
+        ]
       },
       "ApexResponse": {
         "type": "object",
@@ -2716,6 +5241,106 @@
           }
         }
       },
+      "ConsolidationCoopTypeRowResponse": {
+        "type": "object",
+        "required": [
+          "coop_type",
+          "total_sum",
+          "average",
+          "count"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "coop_type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ConsolidationRegionRowResponse": {
+        "type": "object",
+        "required": [
+          "region",
+          "total_sum",
+          "average",
+          "count"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "region": {
+            "type": "string"
+          },
+          "total_sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ConsolidationResponse": {
+        "type": "object",
+        "required": [
+          "indicator_name",
+          "total_sum",
+          "average",
+          "count",
+          "by_region",
+          "by_coop_type"
+        ],
+        "properties": {
+          "average": {
+            "type": "number",
+            "format": "double"
+          },
+          "by_coop_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsolidationCoopTypeRowResponse"
+            }
+          },
+          "by_region": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsolidationRegionRowResponse"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "indicator_name": {
+            "type": "string"
+          },
+          "total_sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "CoopStatus": {
+        "type": "string",
+        "enum": [
+          "Active",
+          "Inactive",
+          "Suspended"
+        ]
+      },
       "CooperativeBriefResponse": {
         "type": "object",
         "required": [
@@ -2854,6 +5479,10 @@
           "id": {
             "type": "string"
           },
+          "institution_type": {
+            "type": "string",
+            "nullable": true
+          },
           "name": {
             "type": "string"
           },
@@ -2864,8 +5493,24 @@
           "path": {
             "type": "string",
             "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
           }
         }
+      },
+      "CooperativeType": {
+        "type": "string",
+        "enum": [
+          "Sacco",
+          "Multipurpose",
+          "Farm",
+          "Housing",
+          "Transport",
+          "Finance",
+          "Other"
+        ]
       },
       "CreateApexRequest": {
         "type": "object",
@@ -3032,6 +5677,84 @@
           }
         }
       },
+      "CreateFarmCoopRequest": {
+        "type": "object",
+        "properties": {
+          "access_to_processing_facilities": {
+            "type": "boolean"
+          },
+          "access_to_storage": {
+            "type": "boolean"
+          },
+          "active_producer_flag": {
+            "type": "boolean"
+          },
+          "buyer_concentration_flag": {
+            "type": "boolean"
+          },
+          "climate_exposure_type": {
+            "type": "string"
+          },
+          "climate_mitigation_practices": {
+            "type": "string"
+          },
+          "cooperative_type": {
+            "type": "string"
+          },
+          "delivery_compliance": {
+            "type": "string"
+          },
+          "formal_offtake_agreement": {
+            "type": "boolean"
+          },
+          "irrigation_access": {
+            "type": "boolean"
+          },
+          "market_channel_type": {
+            "type": "string"
+          },
+          "operational_status": {
+            "type": "string"
+          },
+          "participation_frequency": {
+            "type": "string"
+          },
+          "price_predictability_category": {
+            "type": "string"
+          },
+          "primary_activities": {
+            "type": "string"
+          },
+          "production_cycle_type": {
+            "type": "string"
+          },
+          "production_type": {
+            "type": "string"
+          },
+          "quality_compliance_flag": {
+            "type": "boolean"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "transport_coordination": {
+            "type": "string"
+          },
+          "use_of_production_planning": {
+            "type": "boolean"
+          },
+          "use_of_shared_inputs": {
+            "type": "boolean"
+          },
+          "year_of_establishment": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
       "CreateFederationRequest": {
         "type": "object",
         "required": [
@@ -3069,6 +5792,102 @@
           }
         }
       },
+      "CreateFixedDepositRequest": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "fixed_deposit_id",
+          "deposit_type",
+          "start_date",
+          "maturity_date"
+        ],
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "change_in_tenure_at_renewal": {
+            "type": "boolean"
+          },
+          "deposit_type": {
+            "type": "string"
+          },
+          "early_withdrawal_flag": {
+            "type": "boolean"
+          },
+          "fixed_deposit_id": {
+            "type": "string"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "maturity_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number_of_renewals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "original_tenure_selected": {
+            "type": "string"
+          },
+          "rollover_at_maturity_flag": {
+            "type": "boolean"
+          },
+          "single_depositor_dependency_flag": {
+            "type": "boolean"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FdStatus"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenure_category": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateIndicatorRequest": {
+        "type": "object",
+        "required": [
+          "indicator_name",
+          "display_name",
+          "data_type"
+        ],
+        "properties": {
+          "coop_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/IndicatorDataType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "indicator_name": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateInvitationRequest": {
         "type": "object",
         "required": [
@@ -3093,6 +5912,91 @@
           },
           "role": {
             "type": "string"
+          }
+        }
+      },
+      "CreateLoanRequest": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "loan_id",
+          "loan_product_type",
+          "loan_start_date",
+          "loan_maturity_date"
+        ],
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "borrower_type": {
+            "type": "string"
+          },
+          "days_past_due_category": {
+            "$ref": "#/components/schemas/DpdCategory"
+          },
+          "early_settlement_flag": {
+            "type": "boolean"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "large_borrower_flag": {
+            "type": "boolean"
+          },
+          "loan_amount": {
+            "type": "string"
+          },
+          "loan_id": {
+            "type": "string"
+          },
+          "loan_maturity_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "loan_product_type": {
+            "type": "string"
+          },
+          "loan_start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "loan_status": {
+            "$ref": "#/components/schemas/LoanStatus"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missed_installments_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "multiple_loans_flag": {
+            "type": "boolean"
+          },
+          "number_of_restructurings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repayment_regularity": {
+            "type": "string"
+          },
+          "restructured_loan_flag": {
+            "type": "boolean"
+          },
+          "rural_borrower_flag": {
+            "type": "boolean"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "women_borrower_flag": {
+            "type": "boolean"
+          },
+          "youth_borrower_flag": {
+            "type": "boolean"
           }
         }
       },
@@ -3136,6 +6040,84 @@
           "sector": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "CreateSavingsAccountRequest": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "savings_account_id",
+          "account_type",
+          "account_opening_date"
+        ],
+        "properties": {
+          "account_opening_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "account_status": {
+            "type": "string"
+          },
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "balance_trend": {
+            "type": "string"
+          },
+          "contribution_frequency": {
+            "type": "string"
+          },
+          "emergency_withdrawals_flag": {
+            "type": "boolean"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "last_contribution_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number_of_contributions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "savings_account_id": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "withdrawal_frequency_category": {
+            "type": "string"
+          },
+          "zero_balance_flag": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateSubmissionRequest": {
+        "type": "object",
+        "required": [
+          "reporting_year"
+        ],
+        "properties": {
+          "priority": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -3222,6 +6204,16 @@
           }
         }
       },
+      "DpdCategory": {
+        "type": "string",
+        "enum": [
+          "Zero",
+          "Days1To30",
+          "Days31To60",
+          "Days61To90",
+          "Days91Plus"
+        ]
+      },
       "ErrorResponse": {
         "type": "object",
         "required": [
@@ -3235,6 +6227,200 @@
             "type": "string"
           }
         }
+      },
+      "EswatiniRegion": {
+        "type": "string",
+        "enum": [
+          "Hhohho",
+          "Lubombo",
+          "Manzini",
+          "Shiselweni"
+        ]
+      },
+      "ExtractionJobResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "source_file_id",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double",
+            "description": "Overall extraction confidence (0.0\u20131.0)",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "engine": {
+            "type": "string",
+            "nullable": true
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_file_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "FarmCoopResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_id",
+          "cooperative_type",
+          "primary_activities",
+          "operational_status",
+          "active_producer_flag",
+          "production_type",
+          "participation_frequency",
+          "delivery_compliance",
+          "production_cycle_type",
+          "use_of_production_planning",
+          "use_of_shared_inputs",
+          "quality_compliance_flag",
+          "market_channel_type",
+          "formal_offtake_agreement",
+          "buyer_concentration_flag",
+          "price_predictability_category",
+          "access_to_storage",
+          "access_to_processing_facilities",
+          "transport_coordination",
+          "climate_exposure_type",
+          "irrigation_access",
+          "climate_mitigation_practices",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "access_to_processing_facilities": {
+            "type": "boolean"
+          },
+          "access_to_storage": {
+            "type": "boolean"
+          },
+          "active_producer_flag": {
+            "type": "boolean"
+          },
+          "buyer_concentration_flag": {
+            "type": "boolean"
+          },
+          "climate_exposure_type": {
+            "type": "string"
+          },
+          "climate_mitigation_practices": {
+            "type": "string"
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cooperative_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "delivery_compliance": {
+            "type": "string"
+          },
+          "formal_offtake_agreement": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "irrigation_access": {
+            "type": "boolean"
+          },
+          "market_channel_type": {
+            "type": "string"
+          },
+          "operational_status": {
+            "type": "string"
+          },
+          "participation_frequency": {
+            "type": "string"
+          },
+          "price_predictability_category": {
+            "type": "string"
+          },
+          "primary_activities": {
+            "type": "string"
+          },
+          "production_cycle_type": {
+            "type": "string"
+          },
+          "production_type": {
+            "type": "string"
+          },
+          "quality_compliance_flag": {
+            "type": "boolean"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "transport_coordination": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "use_of_production_planning": {
+            "type": "boolean"
+          },
+          "use_of_shared_inputs": {
+            "type": "boolean"
+          },
+          "year_of_establishment": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "FdStatus": {
+        "type": "string",
+        "enum": [
+          "Active",
+          "Matured",
+          "Withdrawn",
+          "RolledOver"
+        ]
       },
       "FederationResponse": {
         "type": "object",
@@ -3297,6 +6483,261 @@
           }
         }
       },
+      "FinancialStatementResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "cooperative_id",
+          "reporting_year",
+          "accounting_year",
+          "currency",
+          "is_validated",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "accounting_year": {
+            "type": "string"
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_validated": {
+            "type": "boolean"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validation_errors": {
+            "nullable": true
+          }
+        }
+      },
+      "FixedDepositResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_id",
+          "member_id",
+          "fixed_deposit_id",
+          "deposit_type",
+          "start_date",
+          "maturity_date",
+          "status",
+          "tenure_category",
+          "original_tenure_selected",
+          "early_withdrawal_flag",
+          "rollover_at_maturity_flag",
+          "number_of_renewals",
+          "change_in_tenure_at_renewal",
+          "single_depositor_dependency_flag",
+          "interest_rate",
+          "balance",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "change_in_tenure_at_renewal": {
+            "type": "boolean"
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deposit_type": {
+            "type": "string"
+          },
+          "early_withdrawal_flag": {
+            "type": "boolean"
+          },
+          "fixed_deposit_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "maturity_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number_of_renewals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "original_tenure_selected": {
+            "type": "string"
+          },
+          "rollover_at_maturity_flag": {
+            "type": "boolean"
+          },
+          "single_depositor_dependency_flag": {
+            "type": "boolean"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FdStatus"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenure_category": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "Male",
+          "Female",
+          "Other"
+        ]
+      },
+      "IndicatorCatalogResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "indicator_name",
+          "display_name",
+          "data_type",
+          "is_required",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "coop_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/IndicatorDataType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "indicator_name": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IndicatorDataType": {
+        "type": "string",
+        "enum": [
+          "Number",
+          "Text",
+          "Boolean"
+        ]
+      },
+      "IndicatorEntryResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "catalog_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value_boolean": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "value_numeric": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "InvitationResponse": {
         "type": "object",
         "required": [
@@ -3331,10 +6772,250 @@
           },
           "status": {
             "type": "string",
-            "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" — from Keycloak 26",
+            "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" \u2014 from Keycloak 26",
             "nullable": true
           }
         }
+      },
+      "LineItemBulkUpdateRequest": {
+        "type": "object",
+        "required": [
+          "updates"
+        ],
+        "properties": {
+          "updates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineItemUpdateRequest"
+            }
+          }
+        }
+      },
+      "LineItemResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "financial_statement_id",
+          "account_name",
+          "account_category",
+          "account_subcategory",
+          "month",
+          "ai_flagged",
+          "manually_edited",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "account_category": {
+            "type": "string"
+          },
+          "account_code": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "account_subcategory": {
+            "type": "string"
+          },
+          "ai_confidence": {
+            "type": "number",
+            "format": "double",
+            "description": "AI extraction confidence (0.0\u20131.0)",
+            "nullable": true
+          },
+          "ai_flagged": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "financial_statement_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "manually_edited": {
+            "type": "boolean"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "raw_label": {
+            "type": "string",
+            "description": "Original text label from the uploaded document",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
+            "description": "Monetary value",
+            "nullable": true
+          }
+        }
+      },
+      "LineItemUpdateRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "account_code": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "LoanResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_id",
+          "member_id",
+          "loan_id",
+          "loan_product_type",
+          "loan_start_date",
+          "loan_maturity_date",
+          "loan_status",
+          "borrower_type",
+          "youth_borrower_flag",
+          "women_borrower_flag",
+          "rural_borrower_flag",
+          "repayment_regularity",
+          "days_past_due_category",
+          "missed_installments_count",
+          "restructured_loan_flag",
+          "number_of_restructurings",
+          "early_settlement_flag",
+          "multiple_loans_flag",
+          "large_borrower_flag",
+          "interest_rate",
+          "balance",
+          "loan_amount",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "borrower_type": {
+            "type": "string"
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "days_past_due_category": {
+            "$ref": "#/components/schemas/DpdCategory"
+          },
+          "early_settlement_flag": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "large_borrower_flag": {
+            "type": "boolean"
+          },
+          "loan_amount": {
+            "type": "string"
+          },
+          "loan_id": {
+            "type": "string"
+          },
+          "loan_maturity_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "loan_product_type": {
+            "type": "string"
+          },
+          "loan_start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "loan_status": {
+            "$ref": "#/components/schemas/LoanStatus"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missed_installments_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "multiple_loans_flag": {
+            "type": "boolean"
+          },
+          "number_of_restructurings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repayment_regularity": {
+            "type": "string"
+          },
+          "restructured_loan_flag": {
+            "type": "boolean"
+          },
+          "rural_borrower_flag": {
+            "type": "boolean"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "women_borrower_flag": {
+            "type": "boolean"
+          },
+          "youth_borrower_flag": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LoanStatus": {
+        "type": "string",
+        "enum": [
+          "Performing",
+          "Arrears",
+          "Restructured",
+          "WrittenOff"
+        ]
       },
       "MemberResponse": {
         "type": "object",
@@ -3364,6 +7045,377 @@
           "username": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "MemberStatus": {
+        "type": "string",
+        "enum": [
+          "Active",
+          "Dormant",
+          "Exited"
+        ]
+      },
+      "NfCreateMemberRequest": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "join_date",
+          "gender",
+          "age_group",
+          "region",
+          "urban_rural"
+        ],
+        "properties": {
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "agm_attendance": {
+            "type": "boolean"
+          },
+          "exit_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "join_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "leadership_role": {
+            "type": "string",
+            "nullable": true
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/EswatiniRegion"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemberStatus"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "urban_rural": {
+            "$ref": "#/components/schemas/UrbanRural"
+          },
+          "voting_exercised": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NfListQueryParams": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "NfMemberResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_id",
+          "member_id",
+          "join_date",
+          "status",
+          "gender",
+          "age_group",
+          "region",
+          "urban_rural",
+          "agm_attendance",
+          "voting_exercised",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "agm_attendance": {
+            "type": "boolean"
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exit_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "join_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "leadership_role": {
+            "type": "string",
+            "nullable": true
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/EswatiniRegion"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemberStatus"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "urban_rural": {
+            "$ref": "#/components/schemas/UrbanRural"
+          },
+          "voting_exercised": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NfPaginatedMembersResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NfMemberResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "NfParseError": {
+        "type": "object",
+        "required": [
+          "sheet",
+          "row",
+          "column",
+          "value",
+          "rule",
+          "message"
+        ],
+        "properties": {
+          "column": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rule": {
+            "type": "string"
+          },
+          "sheet": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "NfParseWarning": {
+        "type": "object",
+        "required": [
+          "sheet",
+          "row",
+          "column",
+          "rule",
+          "message"
+        ],
+        "properties": {
+          "column": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rule": {
+            "type": "string"
+          },
+          "sheet": {
+            "type": "string"
+          }
+        }
+      },
+      "NfUpdateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "age_group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AgeGroup"
+              }
+            ],
+            "nullable": true
+          },
+          "agm_attendance": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "exit_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "nullable": true
+          },
+          "join_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "leadership_role": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EswatiniRegion"
+              }
+            ],
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "urban_rural": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UrbanRural"
+              }
+            ],
+            "nullable": true
+          },
+          "voting_exercised": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "NfUploadResponse": {
+        "type": "object",
+        "required": [
+          "upload_id",
+          "submission_id",
+          "sheets_found",
+          "rows_parsed",
+          "errors",
+          "warnings",
+          "rows_imported"
+        ],
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NfParseError"
+            }
+          },
+          "rows_imported": {
+            "$ref": "#/components/schemas/RowsImported"
+          },
+          "rows_parsed": {
+            "$ref": "#/components/schemas/RowsParsed"
+          },
+          "sheets_found": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "upload_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NfParseWarning"
+            }
           }
         }
       },
@@ -3504,6 +7556,102 @@
           }
         }
       },
+      "PaginatedFarmCoopResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FarmCoopResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PaginatedFixedDepositsResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FixedDepositResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PaginatedLoansResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoanResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "PaginatedOrganizationResponse": {
         "type": "object",
         "required": [
@@ -3536,6 +7684,38 @@
             "minimum": 0
           },
           "total_pages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PaginatedSavingsAccountsResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavingsAccountResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total": {
             "type": "integer",
             "format": "int64",
             "minimum": 0
@@ -3592,6 +7772,343 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          }
+        }
+      },
+      "ReviewActionRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "RowsImported": {
+        "type": "object",
+        "required": [
+          "members",
+          "savings_accounts",
+          "loans",
+          "fixed_deposits",
+          "farm_coop"
+        ],
+        "properties": {
+          "farm_coop": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "fixed_deposits": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "loans": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "savings_accounts": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "RowsParsed": {
+        "type": "object",
+        "required": [
+          "members",
+          "savings_accounts",
+          "loans",
+          "fixed_deposits",
+          "farm_coop"
+        ],
+        "properties": {
+          "farm_coop": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "fixed_deposits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "loans": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "members": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "savings_accounts": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SaveEntriesRequest": {
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SaveIndicatorEntry"
+            }
+          }
+        }
+      },
+      "SaveIndicatorEntry": {
+        "type": "object",
+        "required": [
+          "catalog_id"
+        ],
+        "properties": {
+          "catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value_boolean": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "value_numeric": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SavingsAccountResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_id",
+          "member_id",
+          "savings_account_id",
+          "account_type",
+          "account_opening_date",
+          "account_status",
+          "contribution_frequency",
+          "last_contribution_date",
+          "number_of_contributions",
+          "balance_trend",
+          "zero_balance_flag",
+          "withdrawal_frequency_category",
+          "emergency_withdrawals_flag",
+          "interest_rate",
+          "balance",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "account_opening_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "account_status": {
+            "type": "string"
+          },
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "balance_trend": {
+            "type": "string"
+          },
+          "contribution_frequency": {
+            "type": "string"
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "emergency_withdrawals_flag": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "last_contribution_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "member_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number_of_contributions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "savings_account_id": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "withdrawal_frequency_category": {
+            "type": "string"
+          },
+          "zero_balance_flag": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SubmissionResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_id",
+          "reporting_year",
+          "status",
+          "current_tier",
+          "priority",
+          "created_at",
+          "updated_at",
+          "sections"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current_tier": {
+            "type": "string"
+          },
+          "extraction_job_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Extraction job ID, present after upload",
+            "nullable": true
+          },
+          "financial_statement_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Financial statement ID, present after upload",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmissionSectionResponse"
+            },
+            "description": "Per-section readiness statuses"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "submitted_by": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "apex_name": {
+            "type": "string",
+            "description": "Apex display name (populated by list handlers for federation/ministry)",
+            "nullable": true
+          },
+          "cooperative_name": {
+            "type": "string",
+            "description": "Cooperative display name",
+            "nullable": true
+          },
+          "federation_name": {
+            "type": "string",
+            "description": "Federation display name (populated by list handlers for ministry)",
+            "nullable": true
+          }
+        }
+      },
+      "SubmissionSectionResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "section",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "section": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -3705,6 +8222,105 @@
           }
         }
       },
+      "UpdateFarmCoopRequest": {
+        "type": "object",
+        "properties": {
+          "access_to_processing_facilities": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "access_to_storage": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "active_producer_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "buyer_concentration_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "climate_exposure_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "climate_mitigation_practices": {
+            "type": "string",
+            "nullable": true
+          },
+          "cooperative_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "delivery_compliance": {
+            "type": "string",
+            "nullable": true
+          },
+          "formal_offtake_agreement": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "irrigation_access": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "market_channel_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "operational_status": {
+            "type": "string",
+            "nullable": true
+          },
+          "participation_frequency": {
+            "type": "string",
+            "nullable": true
+          },
+          "price_predictability_category": {
+            "type": "string",
+            "nullable": true
+          },
+          "primary_activities": {
+            "type": "string",
+            "nullable": true
+          },
+          "production_cycle_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "production_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "quality_compliance_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "transport_coordination": {
+            "type": "string",
+            "nullable": true
+          },
+          "use_of_production_planning": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "use_of_shared_inputs": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "year_of_establishment": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
       "UpdateFederationRequest": {
         "type": "object",
         "properties": {
@@ -3735,6 +8351,200 @@
           },
           "name": {
             "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateFixedDepositRequest": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "string",
+            "nullable": true
+          },
+          "change_in_tenure_at_renewal": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "deposit_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "early_withdrawal_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "interest_rate": {
+            "type": "string",
+            "nullable": true
+          },
+          "maturity_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "number_of_renewals": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "original_tenure_selected": {
+            "type": "string",
+            "nullable": true
+          },
+          "rollover_at_maturity_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "single_depositor_dependency_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FdStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenure_category": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateIndicatorRequest": {
+        "type": "object",
+        "required": [
+          "display_name",
+          "data_type",
+          "is_required"
+        ],
+        "properties": {
+          "coop_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/IndicatorDataType"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateLoanRequest": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "string",
+            "nullable": true
+          },
+          "borrower_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "days_past_due_category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DpdCategory"
+              }
+            ],
+            "nullable": true
+          },
+          "early_settlement_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "interest_rate": {
+            "type": "string",
+            "nullable": true
+          },
+          "large_borrower_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "loan_amount": {
+            "type": "string",
+            "nullable": true
+          },
+          "loan_maturity_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "loan_product_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "loan_start_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "loan_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoanStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "missed_installments_count": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "multiple_loans_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "number_of_restructurings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "repayment_regularity": {
+            "type": "string",
+            "nullable": true
+          },
+          "restructured_loan_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "rural_borrower_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "women_borrower_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "youth_borrower_flag": {
+            "type": "boolean",
             "nullable": true
           }
         }
@@ -3798,6 +8608,77 @@
           }
         }
       },
+      "UpdateSavingsAccountRequest": {
+        "type": "object",
+        "properties": {
+          "account_status": {
+            "type": "string",
+            "nullable": true
+          },
+          "account_type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccountType"
+              }
+            ],
+            "nullable": true
+          },
+          "balance": {
+            "type": "string",
+            "nullable": true
+          },
+          "balance_trend": {
+            "type": "string",
+            "nullable": true
+          },
+          "contribution_frequency": {
+            "type": "string",
+            "nullable": true
+          },
+          "emergency_withdrawals_flag": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "interest_rate": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_contribution_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "number_of_contributions": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "withdrawal_frequency_category": {
+            "type": "string",
+            "nullable": true
+          },
+          "zero_balance_flag": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateSectionStatusRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "UpdateUserRequest": {
         "type": "object",
         "properties": {
@@ -3823,6 +8704,35 @@
             "nullable": true
           }
         }
+      },
+      "UploadResponse": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "financial_statement_id",
+          "extraction_job_id"
+        ],
+        "properties": {
+          "extraction_job_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "financial_statement_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UrbanRural": {
+        "type": "string",
+        "enum": [
+          "Urban",
+          "Rural"
+        ]
       },
       "UserProfileResponse": {
         "type": "object",
@@ -3958,6 +8868,65 @@
             "type": "string"
           }
         }
+      },
+      "ApexStatsResponse": {
+        "type": "object",
+        "properties": {
+          "total_cooperatives": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending_submissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approved_submissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rejected_submissions": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "total_cooperatives",
+          "pending_submissions",
+          "approved_submissions",
+          "rejected_submissions"
+        ]
+      },
+      "CooperativeStatsResponse": {
+        "type": "object",
+        "properties": {
+          "total_submissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "draft_submissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending_submissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approved_submissions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rejected_submissions": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "total_submissions",
+          "draft_submissions",
+          "pending_submissions",
+          "approved_submissions",
+          "rejected_submissions"
+        ]
       }
     }
   }

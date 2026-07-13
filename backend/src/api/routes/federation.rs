@@ -75,4 +75,21 @@ pub fn federation_routes() -> Router<AppState> {
         )
         // Federation Stats
         .route("/stats", get(handlers::federation::get_federation_stats))
+        // Submission review
+        .route(
+            "/submissions",
+            get(handlers::submission::list_federation_submissions),
+        )
+        .route(
+            "/submissions/{id}",
+            get(handlers::submission::get_submission_as_federation),
+        )
+        .route(
+            "/submissions/{id}/approve",
+            post(handlers::submission::federation_approve_submission),
+        )
+        .route(
+            "/submissions/{id}/return",
+            post(handlers::submission::federation_return_submission),
+        )
 }

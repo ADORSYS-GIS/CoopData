@@ -412,8 +412,8 @@ pub async fn get_cooperative(
 ) -> AppResult<impl IntoResponse> {
     // Cooperative users can only fetch their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
-        let own_coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-        if own_coop_id != id {
+        let coop = resolve_caller_cooperative(&state, &claims).await?;
+        if coop.keycloak_id != id {
             return Err(AppError::Forbidden(
                 "Access denied: you can only view your own cooperative".into(),
             ));
@@ -708,8 +708,8 @@ pub async fn list_cooperative_members(
 ) -> AppResult<impl IntoResponse> {
     // Cooperative users may only list members of their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
-        let own_coop_id = ScopeEnforcement::get_cooperative_id(&claims)?;
-        if own_coop_id != id {
+        let coop = resolve_caller_cooperative(&state, &claims).await?;
+        if coop.keycloak_id != id {
             return Err(AppError::Forbidden(
                 "Access denied: you can only view members of your own cooperative".into(),
             ));
@@ -969,6 +969,10 @@ const VALID_REGIONS: &[&str] = &["Hhohho", "Lubombo", "Manzini", "Shiselweni"];
 /// Used for scope enforcement in cooperative profile endpoints.
 /// Returns `AppError::Forbidden` if the user has no apex group or the
 /// apex group is not registered in the database.
+pub async fn resolve_caller_apex_db_id_pub(state: &AppState, claims: &Claims) -> AppResult<Uuid> {
+    resolve_caller_apex_db_id(state, claims).await
+}
+
 async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResult<Uuid> {
     let apex_id_or_path = claims
         .get_apex_group_id()
@@ -989,6 +993,111 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
         .ok_or_else(|| AppError::Forbidden("Apex group not found in database".into()))?;
 
     Ok(apex_pg.id)
+}
+
+/// Resolves the calling cooperative user's DB record from JWT claims.
+/// The JWT `cooperation` claim contains Keycloak group paths using names
+/// (e.g. "/apex-name/coop-name"), but the DB stores the Keycloak group UUID.
+/// This function resolves the full path via the Keycloak API to get the UUID,
+/// then looks up the cooperative in the database.
+pub(crate) async fn resolve_caller_cooperative(
+    state: &AppState,
+    claims: &Claims,
+) -> AppResult<cooperative::Model> {
+    let paths = claims.get_cooperation_paths();
+    let path = paths.first().ok_or_else(|| {
+        AppError::Forbidden("Cooperative user has no cooperation group associated".into())
+    })?;
+
+    let group = state
+        .keycloak
+        .resolve_group(path)
+        .await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    let coop = state
+        .cooperative_repo
+        .find_by_keycloak_id(&group.id)
+        .await
+        .ok()
+        .flatten()
+        .ok_or_else(|| {
+            AppError::NotFound(
+                "Cooperative profile not found. Contact your Apex to set up your profile.".into(),
+            )
+        })?;
+
+    Ok(coop)
+}
+
+/// Resolves the cooperative IDs the caller is allowed to access.
+/// For cooperative users: returns their own cooperative ID.
+/// For apex users: returns all cooperative IDs under their apex.
+/// For federation users: returns all cooperative IDs under all apexes in their federation.
+/// For ministry users: returns all cooperative IDs (ministry sees everything).
+pub async fn resolve_caller_cooperative_ids(
+    state: &AppState,
+    claims: &Claims,
+) -> AppResult<Vec<Uuid>> {
+    if claims.has_role("ministry") {
+        let all = state.cooperative_repo.list_all().await?;
+        Ok(all.iter().map(|c| c.id).collect())
+    } else if claims.has_role("federation") {
+        let org_id = claims.get_organization_id().ok_or_else(|| {
+            AppError::Forbidden("Federation user has no organization associated".into())
+        })?;
+        let federation = state
+            .federation_repo
+            .find_by_keycloak_id(&org_id)
+            .await?
+            .ok_or_else(|| AppError::Forbidden("Federation not found in database".into()))?;
+        let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
+        let mut coop_ids: Vec<Uuid> = vec![];
+        for apex in &apexes {
+            let coops = state.cooperative_repo.find_by_apex_id(apex.id).await?;
+            coop_ids.extend(coops.iter().map(|c| c.id));
+        }
+        Ok(coop_ids)
+    } else if claims.has_role("apex") {
+        let apex_db_id = resolve_caller_apex_db_id(state, claims).await?;
+        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+        Ok(cooperatives.iter().map(|c| c.id).collect())
+    } else {
+        let coop = resolve_caller_cooperative(state, claims).await?;
+        Ok(vec![coop.id])
+    }
+}
+
+/// Resolves a single cooperative ID for NF list handlers.
+/// For cooperative users: returns their own cooperative ID.
+/// For apex/federation/ministry users: looks up the submission by submission_id,
+/// verifies it belongs to one of the caller's cooperatives, and returns the submission's cooperative_id.
+pub async fn resolve_cooperative_id_for_nf(
+    state: &AppState,
+    claims: &Claims,
+    submission_id: Option<Uuid>,
+) -> AppResult<Uuid> {
+    if claims.has_role("apex") || claims.has_role("federation") || claims.has_role("ministry") {
+        let sub_id = submission_id.ok_or_else(|| {
+            AppError::BadRequest(
+                "submission_id is required for apex/federation/ministry users".into(),
+            )
+        })?;
+        let submission = state
+            .submission_repo
+            .find_by_id(sub_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+        let coop_ids = resolve_caller_cooperative_ids(state, claims).await?;
+        if !coop_ids.contains(&submission.cooperative_id) {
+            return Err(AppError::Forbidden(
+                "Submission does not belong to your cooperatives".into(),
+            ));
+        }
+        Ok(submission.cooperative_id)
+    } else {
+        state.cooperative_id_from_claims(claims).await
+    }
 }
 
 /// Verifies that a cooperative profile belongs to the calling apex user's group.

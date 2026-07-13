@@ -2,10 +2,16 @@ pub mod apex;
 pub mod audit;
 pub mod common;
 pub mod cooperative;
+pub mod extraction;
 pub mod federation;
+pub mod financial;
 pub mod invitation;
 pub mod member;
+pub mod non_financial;
+pub mod non_financial_indicator;
 pub mod organization;
+pub mod submission;
+pub mod upload;
 pub mod user;
 pub mod verification;
 
@@ -15,7 +21,13 @@ pub use common::*;
 pub use cooperative::*;
 pub use federation::*;
 pub use invitation::*;
-pub use member::*;
+pub use member::{
+    AddMemberRequest, ChangePasswordRequest, ChangePasswordResponse,
+    MemberResponse as KeycloakMemberResponse, UpdateMemberRequest as UpdateKeycloakMemberRequest,
+    UserProfileResponse,
+};
+pub use non_financial::*;
+pub use non_financial_indicator::*;
 pub use organization::*;
 pub use user::*;
 pub use verification::*;

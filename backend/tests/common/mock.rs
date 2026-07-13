@@ -2,10 +2,16 @@ use std::sync::Arc;
 
 use coop_data_backend::auth::JwtValidator;
 use coop_data_backend::config::Environment;
-use coop_data_backend::services::cache::CacheService;
+use coop_data_backend::services::{cache::CacheService, CalamineNfParser, ObjectStorageService};
 use coop_data_backend::{
-    ApexRepository, AppConfig, AppState, AuditLogRepository, AuditService, CooperativeRepository,
-    FederationRepository, KeycloakService, OrganizationRepository, UserRepository,
+    AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppConfig, AppState,
+    AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
+    CooperativeRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
+    FinancialStatementRepository, FixedDepositRepository, KeycloakService, LoanRepository,
+    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -33,6 +39,33 @@ impl TestApp {
         let user_repo = UserRepository::new(db.clone());
         let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
+        let submission_repo = SubmissionRepository::new(db.clone());
+        let uploaded_file_repo = UploadedFileRepository::new(db.clone());
+        let extraction_job_repo = ExtractionJobRepository::new(db.clone());
+        let financial_statement_repo = FinancialStatementRepository::new(db.clone());
+        let line_item_repo = BalanceSheetLineItemRepository::new(db.clone());
+        let coa_repo = ChartOfAccountsRepository::new(db.clone());
+        let account_alias_repo = AccountAliasRepository::new(db.clone());
+        let flag_repo = AbnormalityFlagRepository::new(db.clone());
+        let review_repo = SubmissionReviewRepository::new(db.clone());
+        let section_repo = SubmissionSectionRepository::new(db.clone());
+
+        let extractor = coop_data_backend::services::ai_extraction::create_extractor(&config);
+
+        let member_repo = MemberRepository::new(db.clone());
+        let savings_account_repo = SavingsAccountRepository::new(db.clone());
+        let loan_repo = LoanRepository::new(db.clone());
+        let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
+        let farm_coop_repo = FarmCoopRepository::new(db.clone());
+        let storage =
+            ObjectStorageService::new(&config).expect("Failed to create object storage service");
+        let nf_excel_parser = CalamineNfParser::new();
+
+        let non_financial_indicator_catalog_repo =
+            NonFinancialIndicatorCatalogRepository::new(db.clone());
+        let non_financial_indicator_entry_repo =
+            NonFinancialIndicatorEntryRepository::new(db.clone());
+
         let state = AppState {
             db,
             config,
@@ -45,6 +78,26 @@ impl TestApp {
             organization_repo,
             user_repo,
             audit,
+            submission_repo,
+            uploaded_file_repo,
+            extraction_job_repo,
+            financial_statement_repo,
+            line_item_repo,
+            coa_repo,
+            account_alias_repo,
+            flag_repo,
+            review_repo,
+            section_repo,
+            non_financial_indicator_catalog_repo,
+            non_financial_indicator_entry_repo,
+            extractor,
+            member_repo,
+            savings_account_repo,
+            loan_repo,
+            fixed_deposit_repo,
+            farm_coop_repo,
+            storage,
+            nf_excel_parser,
         };
 
         TestApp { state }
@@ -68,5 +121,18 @@ pub fn test_config() -> AppConfig {
         jwt_issuer_aliases: vec![],
         frontend_url: "http://localhost:5173".to_string(),
         environment: Environment::Development,
+        extraction_backend: "mock".to_string(),
+        ai_provider_url: "https://api.openai.com/v1".to_string(),
+        ai_api_key: String::new(),
+        ai_model: "gpt-4o".to_string(),
+        ai_vision_model: "gpt-4o".to_string(),
+        ai_max_tokens: 65536,
+        storage_type: "local".to_string(),
+        storage_path: "/tmp/coopdata-test-uploads".to_string(),
+        s3_endpoint: "http://localhost:9000".to_string(),
+        s3_bucket: "test-bucket".to_string(),
+        s3_access_key: "minioadmin".to_string(),
+        s3_secret_key: "minioadmin".to_string(),
+        s3_region: "us-east-1".to_string(),
     }
 }

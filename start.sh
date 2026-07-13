@@ -156,6 +156,12 @@ if [[ $PORTS_IN_USE -gt 0 ]]; then
 fi
 
 info "Creating .env from .env.example if it does not exist..."
+if [[ ! -f .env ]]; then
+    cp .env.example .env
+    ok "Created root .env from .env.example"
+else
+    ok "root .env already exists — keeping it"
+fi
 if [[ ! -f backend/.env ]]; then
     cp backend/.env.example backend/.env
     ok "Created backend/.env from .env.example"
@@ -172,7 +178,7 @@ $COMPOSE_CMD build
 info "Starting CoopData stack..."
 $COMPOSE_CMD up -d
 
-info "Waiting for services to become healthy..."
+info "Waiting for core services to become healthy..."
 MAX_WAIT=120
 ELAPSED=0
 ALL_HEALTHY=false
@@ -180,6 +186,7 @@ ALL_HEALTHY=false
 while (( ELAPSED < MAX_WAIT )); do
     POSTGRES_UP=false
     REDIS_UP=false
+    MINIO_UP=false
     KEYCLOAK_UP=false
     BACKEND_UP=false
 
@@ -189,6 +196,9 @@ while (( ELAPSED < MAX_WAIT )); do
     if $COMPOSE_CMD ps redis 2>/dev/null | grep -q "healthy"; then
         REDIS_UP=true
     fi
+    if $COMPOSE_CMD ps minio 2>/dev/null | grep -q "healthy"; then
+        MINIO_UP=true
+    fi
     if $COMPOSE_CMD ps keycloak 2>/dev/null | grep -q "healthy"; then
         KEYCLOAK_UP=true
     fi
@@ -196,42 +206,72 @@ while (( ELAPSED < MAX_WAIT )); do
         BACKEND_UP=true
     fi
 
-    if $POSTGRES_UP && $REDIS_UP && $KEYCLOAK_UP && $BACKEND_UP; then
+    if $POSTGRES_UP && $REDIS_UP && $MINIO_UP && $KEYCLOAK_UP && $BACKEND_UP; then
         ALL_HEALTHY=true
         break
     fi
 
     sleep 3
     ELAPSED=$((ELAPSED + 3))
-    echo -e "  ${YELLOW}⏳${NC} Waiting... (${ELAPSED}s / ${MAX_WAIT}s)"
+    echo -e "  ${YELLOW}⏳${NC} Waiting... Core status: [Postgres: $([ "$POSTGRES_UP" = true ] && echo "OK" || echo "Wait"), Redis: $([ "$REDIS_UP" = true ] && echo "OK" || echo "Wait"), MinIO: $([ "$MINIO_UP" = true ] && echo "OK" || echo "Wait"), Keycloak: $([ "$KEYCLOAK_UP" = true ] && echo "OK" || echo "Wait"), Backend: $([ "$BACKEND_UP" = true ] && echo "OK" || echo "Wait")] (${ELAPSED}s / ${MAX_WAIT}s)"
 done
-
-echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║           CoopData is Running!                   ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  ${GREEN}►${NC}  Frontend:       ${CYAN}http://localhost:5174${NC}"
-echo -e "  ${GREEN}►${NC}  Backend API:    ${CYAN}http://localhost:3000/api/v1${NC}"
-echo -e "  ${GREEN}►${NC}  Swagger UI:     ${CYAN}http://localhost:3000/swagger-ui/${NC}"
-echo -e "  ${GREEN}►${NC}  Keycloak Admin: ${CYAN}http://localhost:8180${NC}"
-echo -e "                   Username: admin  Password: (from .env)"
-echo -e "  ${GREEN}►${NC}  PostgreSQL:     ${CYAN}localhost:5432${NC} (coopdata / password)"
-echo -e "  ${GREEN}►${NC}  Redis:           ${CYAN}localhost:6379${NC}"
-echo ""
 
 if [[ "$ALL_HEALTHY" == false ]]; then
     warn "Not all services became healthy within ${MAX_WAIT}s."
     info "Check status with: $COMPOSE_CMD ps"
     info "Check logs with:   $COMPOSE_CMD logs -f <service>"
 else
-    ok "All services are healthy"
+    ok "All core services are healthy"
 fi
 
+# Wait for Keycloak Provisioning script to complete
+info "Verifying Keycloak provisioning setup..."
+PROVISION_WAIT=60
+PROVISION_ELAPSED=0
+PROVISION_SUCCESS=false
+
+while (( PROVISION_ELAPSED < PROVISION_WAIT )); do
+    STATUS=$(docker inspect -f '{{.State.Status}}' coopdata-keycloak-provision 2>/dev/null || echo "not-found")
+    if [[ "$STATUS" == "exited" ]]; then
+        EXIT_CODE=$(docker inspect -f '{{.State.ExitCode}}' coopdata-keycloak-provision 2>/dev/null || echo "1")
+        if [[ "$EXIT_CODE" == "0" ]]; then
+            PROVISION_SUCCESS=true
+            break
+        else
+            error "Keycloak provisioning failed with exit code $EXIT_CODE. Logs: \n$(docker logs coopdata-keycloak-provision)"
+        fi
+    elif [[ "$STATUS" == "not-found" ]]; then
+        warn "Keycloak provision container not found. It may have finished and been auto-removed."
+        PROVISION_SUCCESS=true
+        break
+    fi
+    sleep 3
+    PROVISION_ELAPSED=$((PROVISION_ELAPSED + 3))
+    echo -e "  ${YELLOW}⏳${NC} Waiting for Keycloak provisioning to finish... (${PROVISION_ELAPSED}s / ${PROVISION_WAIT}s)"
+done
+
+if [[ "$PROVISION_SUCCESS" == true ]]; then
+    ok "Keycloak provisioning completed successfully"
+else
+    warn "Keycloak provisioning is taking longer than expected. Access credentials might not be fully initialized yet."
+fi
+
+echo ""
+echo -e "${BOLD}╔═════════════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}║                       CoopData is Running!                              ║${NC}"
+echo -e "${BOLD}╚═════════════════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  ${GREEN}►${NC}  Frontend App:     ${CYAN}http://localhost:5174${NC}"
+echo -e "  ${GREEN}►${NC}  Backend API:      ${CYAN}http://localhost:3000/api/v1${NC}"
+echo -e "  ${GREEN}►${NC}  Swagger UI Docs:  ${CYAN}http://localhost:3000/swagger-ui/${NC}"
+echo -e "  ${GREEN}►${NC}  Keycloak Console: ${CYAN}http://localhost:8180${NC} (admin / admin)"
+echo -e "  ${GREEN}►${NC}  MailHog (SMTP UI):${CYAN}http://localhost:8025${NC}"
+echo -e "  ${GREEN}►${NC}  MinIO Console:    ${CYAN}http://localhost:9101${NC} (minioadmin / minioadmin)"
+echo -e "  ${GREEN}►${NC}  Adminer DB UI:    ${CYAN}http://localhost:8080${NC} (coopdata / change-me-in-production)"
 echo ""
 echo -e "  ${YELLOW}Useful commands:${NC}"
 echo -e "    $COMPOSE_CMD logs -f          Follow all logs"
 echo -e "    $COMPOSE_CMD logs -f backend  Follow backend logs"
 echo -e "    $COMPOSE_CMD down             Stop all services (keep data)"
-echo -e "    $COMPOSE_CMD down -v           Stop and remove volumes (data loss!)"
+echo -e "    $COMPOSE_CMD down -v          Stop and remove volumes (DELETES database data!)"
 echo ""

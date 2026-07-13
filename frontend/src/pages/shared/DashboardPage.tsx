@@ -22,7 +22,6 @@ export const DashboardPage: React.FC = () => {
 
   void usersList;
 
-  // If no recognized role, redirect to unauthorized page
   if (!role) {
     return <Navigate to="/unauthorized" />;
   }
