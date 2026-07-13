@@ -18,7 +18,9 @@ use crate::api::handlers::submission::{
     list_submission_reviews, list_submission_sections, submit_submission,
     update_submission_section, validate_extraction,
 };
-use crate::api::handlers::upload::upload_financial_statement;
+use crate::api::handlers::upload::{
+    delete_financial_statement, serve_uploaded_file, upload_financial_statement,
+};
 use crate::auth::claims::Claims;
 
 use crate::error::AppResult;
@@ -100,6 +102,10 @@ pub fn cooperative_routes() -> Router<AppState> {
         .route("/submissions/{id}/sections", get(list_submission_sections))
         .route("/submissions/{id}/reviews", get(list_submission_reviews))
         .route(
+            "/submissions/{submission_id}/files/{file_id}",
+            get(serve_uploaded_file),
+        )
+        .route(
             "/submissions/{id}/sections/{section}",
             axum::routing::patch(update_submission_section),
         )
@@ -122,6 +128,10 @@ pub fn cooperative_routes() -> Router<AppState> {
         .route(
             "/financial-statement/upload",
             post(upload_financial_statement).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
+        )
+        .route(
+            "/submissions/{id}/financial-statement",
+            axum::routing::delete(delete_financial_statement),
         )
         .route("/financial-statements/{id}", get(get_financial_statement))
         .route(

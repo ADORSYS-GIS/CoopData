@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS submission_reviews (
     reviewer_id     UUID,
     action          review_action NOT NULL,
     comment         TEXT,
+    target_tier     review_tier,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

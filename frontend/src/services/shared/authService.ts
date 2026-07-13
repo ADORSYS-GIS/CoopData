@@ -8,6 +8,7 @@ const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
 
 let keycloakInitialized = false;
+let isLoggingOut = false;
 let keycloakInitPromise: Promise<boolean> | null = null;
 let keycloakReadyResolvers: ((value: boolean) => void)[] = [];
 
@@ -141,14 +142,20 @@ export async function login(): Promise<void> {
 
 export async function logout(): Promise<void> {
   console.log("[auth] logout() called");
+  isLoggingOut = true;
   await clearCachedTokens();
   keycloakInitialized = false;
   await keycloak.logout({
     redirectUri: window.location.origin + "/",
   });
+  isLoggingOut = false;
 }
 
 export async function getAccessToken(): Promise<string> {
+  if (isLoggingOut) {
+    throw new Error("Logging out");
+  }
+
   if (!keycloak.authenticated) {
     throw new Error("Not authenticated");
   }

@@ -178,7 +178,7 @@ export const FinancialStatementEditor: React.FC<{
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this draft submission? All extracted data will be lost.")) return;
+    if (!window.confirm("Delete this entire draft submission? This cannot be undone.")) return;
     try {
       await deleteSubmission.mutateAsync(submissionId);
       toast.success("Draft deleted");
@@ -322,6 +322,7 @@ export const FinancialStatementEditor: React.FC<{
           <button
             onClick={handleDelete}
             disabled={deleteSubmission.isPending}
+            title="Permanently delete this draft submission and all its data"
             className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
           >
             {deleteSubmission.isPending ? (

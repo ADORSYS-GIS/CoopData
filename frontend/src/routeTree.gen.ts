@@ -23,6 +23,7 @@ import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
 import { Route as AppMembersRouteImport } from './routes/app.members'
 import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
+import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
@@ -30,7 +31,6 @@ import { Route as AppDataCollectionRouteImport } from './routes/app.data-collect
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
-import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
@@ -110,6 +110,11 @@ const AppInvitationsRoute = AppInvitationsRouteImport.update({
   path: '/invitations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
+  id: '/indicators',
+  path: '/indicators',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
   id: '/financial-statement',
   path: '/financial-statement',
@@ -143,11 +148,6 @@ const AppCooperativesRoute = AppCooperativesRouteImport.update({
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
-  id: '/indicators',
-  path: '/indicators',
   getParentRoute: () => AppRoute,
 } as any)
 const AppApexesRoute = AppApexesRouteImport.update({
@@ -208,9 +208,9 @@ export interface FileRoutesByFullPath {
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -239,9 +239,9 @@ export interface FileRoutesByTo {
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -271,9 +271,9 @@ export interface FileRoutesById {
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
+  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
@@ -305,9 +305,9 @@ export interface FileRouteTypes {
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
+    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
-    | '/app/indicators'
     | '/app/non-financial-data'
     | '/app/profile'
     | '/app/reports'
@@ -336,9 +336,9 @@ export interface FileRouteTypes {
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
+    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
-    | '/app/indicators'
     | '/app/non-financial-data'
     | '/app/profile'
     | '/app/reports'
@@ -367,9 +367,9 @@ export interface FileRouteTypes {
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
+    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
-    | '/app/indicators'
     | '/app/non-financial-data'
     | '/app/profile'
     | '/app/reports'
@@ -493,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvitationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/indicators': {
+      id: '/app/indicators'
+      path: '/indicators'
+      fullPath: '/app/indicators'
+      preLoaderRoute: typeof AppIndicatorsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/financial-statement': {
       id: '/app/financial-statement'
       path: '/financial-statement'
@@ -540,13 +547,6 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/app/audit'
       preLoaderRoute: typeof AppAuditRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/indicators': {
-      id: '/app/indicators'
-      path: '/indicators'
-      fullPath: '/app/indicators'
-      preLoaderRoute: typeof AppIndicatorsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/apexes': {
@@ -626,13 +626,13 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
-  AppIndicatorsRoute: typeof AppIndicatorsRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataCollectionRoute: typeof AppDataCollectionRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
+  AppIndicatorsRoute: typeof AppIndicatorsRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
@@ -652,13 +652,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
-  AppIndicatorsRoute: AppIndicatorsRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDataCollectionRoute: AppDataCollectionRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
+  AppIndicatorsRoute: AppIndicatorsRoute,
   AppInvitationsRoute: AppInvitationsRoute,
   AppMembersRoute: AppMembersRoute,
   AppNonFinancialDataRoute: AppNonFinancialDataRoute,

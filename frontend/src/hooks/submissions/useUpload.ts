@@ -6,7 +6,7 @@ export type UploadResponse = components["schemas"]["UploadResponse"];
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-export const useUploadFinancialStatement = () => {
+export const useUploadFinancialStatement = (submissionId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -14,7 +14,7 @@ export const useUploadFinancialStatement = () => {
       reportingYear,
       accountingYear = "calendar",
       currency = "SZL",
-      submissionId,
+      submissionId: sid,
     }: {
       file: File;
       reportingYear: number;
@@ -28,8 +28,9 @@ export const useUploadFinancialStatement = () => {
       form.append("reporting_year", String(reportingYear));
       form.append("accounting_year", accountingYear);
       form.append("currency", currency);
-      if (submissionId) {
-        form.append("submission_id", submissionId);
+      const resolvedId = sid ?? submissionId;
+      if (resolvedId) {
+        form.append("submission_id", resolvedId);
       }
 
       const res = await fetch(`${API_BASE}/api/v1/cooperative/financial-statement/upload`, {
@@ -46,8 +47,12 @@ export const useUploadFinancialStatement = () => {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      const sid = vars.submissionId ?? submissionId;
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      if (sid) {
+        queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", sid] });
+      }
     },
   });
 };

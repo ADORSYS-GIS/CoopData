@@ -1,34 +1,31 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useUploadFinancialStatement } from "@/hooks/submissions/useUpload";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
+import { useQueryClient } from "@tanstack/react-query";
 
-const ACCEPTED_MIMES = [
-  "application/pdf",
-  "image/png",
-  "image/jpeg",
-  "image/tiff",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-excel",
-];
+const ACCEPTED_MIMES = ["application/pdf", "image/png", "image/jpeg", "image/tiff"];
 
-const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif,.xlsx,.xls";
+const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif";
 
 export const UploadFinancialStatementWidget: React.FC<{
   onClose?: () => void;
   submissionId?: string;
-}> = ({ onClose, submissionId }) => {
+  onExtractionComplete?: () => void;
+}> = ({ onClose, submissionId, onExtractionComplete }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [reportingYear, setReportingYear] = useState(new Date().getFullYear());
   const [currency, setCurrency] = useState("SZL");
   const [jobId, setJobId] = useState<string | null>(null);
+  const [extractionFinished, setExtractionFinished] = useState(false);
 
-  const upload = useUploadFinancialStatement();
+  const upload = useUploadFinancialStatement(submissionId);
   const { data: job } = useExtractionJob(jobId);
 
   const currentYear = new Date().getFullYear();
@@ -67,13 +64,32 @@ export const UploadFinancialStatementWidget: React.FC<{
     }
   };
 
-  // Navigate to submission detail when extraction done
-  if (isTerminal && job?.status === "succeeded") {
-    if (!submissionId) {
-      navigate({ to: "/app/submissions/$id", params: { id: job.submission_id } });
+  // When extraction succeeds, invalidate and notify parent
+  useEffect(() => {
+    if (isTerminal && job?.status === "succeeded" && !extractionFinished) {
+      setExtractionFinished(true);
+      void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      if (submissionId) {
+        void queryClient.invalidateQueries({
+          queryKey: ["cooperative-submissions", submissionId],
+        });
+      }
+      if (onExtractionComplete) {
+        onExtractionComplete();
+      } else if (!submissionId) {
+        navigate({ to: "/app/submissions/$id", params: { id: job.submission_id } });
+      }
     }
-    return null;
-  }
+  }, [
+    isTerminal,
+    job?.status,
+    extractionFinished,
+    submissionId,
+    queryClient,
+    onExtractionComplete,
+    navigate,
+    job?.submission_id,
+  ]);
 
   return (
     <div className="space-y-4">

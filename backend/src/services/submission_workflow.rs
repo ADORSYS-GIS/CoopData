@@ -244,12 +244,25 @@ impl SubmissionWorkflow {
             )));
         }
 
+        let next_tier = new_tier.clone();
         self.submission_repo
             .update_status(submission_id, new_status, new_tier)
             .await?;
 
-        self.append_review(submission_id, sub.current_tier, claims, action, comment)
-            .await?;
+        let reviewer_tier = sub.current_tier.clone();
+        let target_tier = match action {
+            ReviewAction::Return => Some(next_tier),
+            _ => Some(reviewer_tier.clone()),
+        };
+        self.append_review_with_target(
+            submission_id,
+            reviewer_tier,
+            target_tier,
+            claims,
+            action,
+            comment,
+        )
+        .await?;
         Ok(())
     }
 
@@ -269,6 +282,31 @@ impl SubmissionWorkflow {
             reviewer_id: Set(reviewer_id),
             action: Set(action),
             comment: Set(comment),
+            target_tier: Set(None),
+            created_at: Set(chrono::Utc::now()),
+        };
+        self.review_repo.create(model).await?;
+        Ok(())
+    }
+
+    async fn append_review_with_target(
+        &self,
+        submission_id: Uuid,
+        tier: ReviewTier,
+        target_tier: Option<ReviewTier>,
+        claims: &Claims,
+        action: ReviewAction,
+        comment: Option<String>,
+    ) -> AppResult<()> {
+        let reviewer_id = uuid::Uuid::parse_str(&claims.sub).ok();
+        let model = ReviewModel {
+            id: Set(Uuid::new_v4()),
+            submission_id: Set(submission_id),
+            tier: Set(tier),
+            reviewer_id: Set(reviewer_id),
+            action: Set(action),
+            comment: Set(comment),
+            target_tier: Set(target_tier),
             created_at: Set(chrono::Utc::now()),
         };
         self.review_repo.create(model).await?;

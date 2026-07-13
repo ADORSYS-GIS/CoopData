@@ -17,6 +17,8 @@ pub struct Model {
     pub action: ReviewAction,
     #[sea_orm(nullable)]
     pub comment: Option<String>,
+    #[sea_orm(nullable)]
+    pub target_tier: Option<ReviewTier>,
     pub created_at: DateTime<Utc>,
 }
 

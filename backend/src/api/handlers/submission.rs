@@ -169,6 +169,10 @@ pub async fn list_cooperative_submissions(
         .unwrap_or_default();
     let job_map: std::collections::HashMap<Uuid, Uuid> =
         job_list.iter().map(|j| (j.submission_id, j.id)).collect();
+    let file_map: std::collections::HashMap<Uuid, Uuid> = job_list
+        .iter()
+        .map(|j| (j.submission_id, j.source_file_id))
+        .collect();
 
     let section_list = state
         .section_repo
@@ -190,9 +194,10 @@ pub async fn list_cooperative_submissions(
             let sub_id = sub.id;
             let fs_id = fs_map.get(&sub_id).copied();
             let job_id = job_map.get(&sub_id).copied();
+            let file_id = file_map.get(&sub_id).copied();
             let sections = sections_by_sub.remove(&sub_id).unwrap_or_default();
             SubmissionResponse::from(sub)
-                .with_fs(fs_id, job_id)
+                .with_fs(fs_id, job_id, file_id)
                 .with_sections(sections)
         })
         .collect::<Vec<_>>();
@@ -233,14 +238,15 @@ pub async fn get_submission(
 
     let mut resp = SubmissionResponse::from(submission);
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
-        let job_id = state
+        let job = state
             .extraction_job_repo
             .find_by_submission(id)
             .await
             .ok()
-            .flatten()
-            .map(|j| j.id);
-        resp = resp.with_fs(Some(fs.id), job_id);
+            .flatten();
+        let job_id = job.as_ref().map(|j| j.id);
+        let file_id = job.as_ref().map(|j| j.source_file_id);
+        resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         let section_resps: Vec<SubmissionSectionResponse> = sections
@@ -486,14 +492,15 @@ pub async fn get_submission_as_apex(
 
     let mut resp = SubmissionResponse::from(submission);
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
-        let job_id = state
+        let job = state
             .extraction_job_repo
             .find_by_submission(id)
             .await
             .ok()
-            .flatten()
-            .map(|j| j.id);
-        resp = resp.with_fs(Some(fs.id), job_id);
+            .flatten();
+        let job_id = job.as_ref().map(|j| j.id);
+        let file_id = job.as_ref().map(|j| j.source_file_id);
+        resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         resp = resp.with_sections(
@@ -553,14 +560,15 @@ pub async fn get_submission_as_federation(
 
     let mut resp = SubmissionResponse::from(submission);
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
-        let job_id = state
+        let job = state
             .extraction_job_repo
             .find_by_submission(id)
             .await
             .ok()
-            .flatten()
-            .map(|j| j.id);
-        resp = resp.with_fs(Some(fs.id), job_id);
+            .flatten();
+        let job_id = job.as_ref().map(|j| j.id);
+        let file_id = job.as_ref().map(|j| j.source_file_id);
+        resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         resp = resp.with_sections(
@@ -595,14 +603,15 @@ pub async fn get_submission_as_ministry(
 
     let mut resp = SubmissionResponse::from(submission);
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
-        let job_id = state
+        let job = state
             .extraction_job_repo
             .find_by_submission(id)
             .await
             .ok()
-            .flatten()
-            .map(|j| j.id);
-        resp = resp.with_fs(Some(fs.id), job_id);
+            .flatten();
+        let job_id = job.as_ref().map(|j| j.id);
+        let file_id = job.as_ref().map(|j| j.source_file_id);
+        resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         resp = resp.with_sections(
@@ -1296,7 +1305,13 @@ pub async fn list_submission_reviews(
             "Submission does not belong to your cooperatives".into(),
         ));
     }
-    let reviews = state.review_repo.find_by_submission(id).await?;
+    let caller_tier = claims
+        .tier()
+        .ok_or_else(|| crate::error::AppError::Forbidden("No valid tier role".into()))?;
+    let reviews = state
+        .review_repo
+        .find_by_submission_for_tier(id, caller_tier)
+        .await?;
     let responses: Vec<SubmissionReviewResponse> = reviews
         .into_iter()
         .map(SubmissionReviewResponse::from)

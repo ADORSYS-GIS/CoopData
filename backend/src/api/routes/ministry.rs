@@ -18,6 +18,7 @@ use crate::api::handlers::federation::{
     list_federation_members, list_federations, remove_federation_member,
     resend_federation_invitation, update_federation,
 };
+use crate::api::handlers::upload::serve_uploaded_file;
 use crate::api::handlers::{
     assign_role_to_user, create_organization, create_user, delete_organization, delete_user,
     get_organization, get_user, list_organizations, list_users, update_organization, update_user,
@@ -98,6 +99,10 @@ pub fn ministry_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/reject",
             post(crate::api::handlers::submission::ministry_reject_submission),
+        )
+        .route(
+            "/submissions/{submission_id}/files/{file_id}",
+            get(serve_uploaded_file),
         )
         // Non-Financial Indicator catalog management (ministry-only)
         .route(

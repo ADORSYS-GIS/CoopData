@@ -253,29 +253,75 @@ function MiniKpi({
 }
 
 function TrustStrip() {
-  const items = [
-    "Ministry of Commerce",
-    "Cooperative Registrar",
-    "National Audit Office",
-    "Reserve Bank",
-    "Bureau of Statistics",
+  const partners = [
+    { src: "/partner-1.webp", alt: "Partner 1" },
+    { src: "/partner-2.webp", alt: "Partner 2" },
+    { src: "/partner-3.webp", alt: "Partner 3" },
+    { src: "/partner-4.png", alt: "Partner 4" },
+    { src: "/partner-5.png", alt: "Partner 5" },
+    { src: "/partner-6.png", alt: "Partner 6" },
+    { src: "/partner-7.png", alt: "Partner 7" },
   ];
+
   return (
-    <section className="border-b border-border bg-surface py-5.5 shadow-[var(--shadow-elev-1)]">
-      <div className="mx-auto flex flex-wrap items-center justify-between gap-x-10 gap-y-3.5 px-6 lg:px-8 max-w-7xl">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+    <section className="border-y border-border bg-muted/30 py-16 overflow-hidden">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <p className="text-center text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground mb-10">
           Operated in partnership with
         </p>
-        <ul className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-          {items.map((i) => (
-            <li key={i} className="flex items-center gap-2">
-              <span className="size-1 rounded-full bg-accent" />
-              {i}
-            </li>
-          ))}
-        </ul>
+        <PartnerCarousel partners={partners} />
       </div>
     </section>
+  );
+}
+
+function PartnerCarousel({ partners }: { partners: { src: string; alt: string }[] }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setHoveredIndex(-1)}
+      onMouseLeave={() => setHoveredIndex(null)}
+    >
+      <div className="flex flex-wrap lg:flex-nowrap items-center justify-center gap-x-10 gap-y-6 lg:gap-x-14">
+        {partners.map((partner, i) => (
+          <div
+            key={i}
+            className={`
+              relative rounded-2xl transition-all duration-500 ease-out cursor-pointer
+              ${hoveredIndex === i ? "scale-125 z-20" : hoveredIndex !== null ? "scale-90 opacity-30" : "scale-100 opacity-100"}
+            `}
+            onMouseEnter={() => setHoveredIndex(i)}
+          >
+            <div
+              className={`
+                absolute -inset-6 rounded-3xl transition-all duration-500 ease-out
+                ${hoveredIndex === i ? "opacity-100 scale-100" : "opacity-0 scale-90"}
+                bg-gradient-to-tr from-accent/25 via-accent/10 to-transparent blur-2xl
+              `}
+            />
+            <div className="relative">
+              <img
+                src={partner.src}
+                alt={partner.alt}
+                className="h-16 w-auto object-contain lg:h-20"
+              />
+              <div
+                className={`
+                  absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap
+                  text-[11px] font-bold uppercase tracking-wider text-muted-foreground
+                  transition-all duration-300 ease-out
+                  ${hoveredIndex === i ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}
+                `}
+              >
+                {partner.alt}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
