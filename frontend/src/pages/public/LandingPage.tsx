@@ -253,27 +253,24 @@ function MiniKpi({
 }
 
 function TrustStrip() {
-  const items = [
-    "Ministry of Commerce",
-    "Cooperative Registrar",
-    "National Audit Office",
-    "Reserve Bank",
-    "Bureau of Statistics",
-  ];
   return (
-    <section className="border-b border-border bg-surface py-5.5 shadow-[var(--shadow-elev-1)]">
-      <div className="mx-auto flex flex-wrap items-center justify-between gap-x-10 gap-y-3.5 px-6 lg:px-8 max-w-7xl">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+    <section className="border-y border-border bg-muted/30 py-24">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <p className="text-center text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground mb-14">
           Operated in partnership with
         </p>
-        <ul className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-          {items.map((i) => (
-            <li key={i} className="flex items-center gap-2">
-              <span className="size-1 rounded-full bg-accent" />
-              {i}
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-wrap items-center justify-center gap-x-24 gap-y-14">
+          <img
+            src="/partner-1.webp"
+            alt="Partner 1"
+            className="h-28 w-auto object-contain"
+          />
+          <img
+            src="/partner-2.webp"
+            alt="Partner 2"
+            className="h-28 w-auto object-contain"
+          />
+        </div>
       </div>
     </section>
   );

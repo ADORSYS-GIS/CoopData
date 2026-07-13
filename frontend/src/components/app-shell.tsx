@@ -117,11 +117,13 @@ function Sidebar({
       <div
         className={`flex items-center gap-3 px-5 py-6 border-b border-sidebar-border ${isCollapsed ? "justify-center px-0" : ""}`}
       >
-        <img
-          src="/coopdatalogo.png"
-          alt="CoopData logo"
-          className={`shrink-0 rounded-lg object-contain ${isCollapsed ? "size-11" : "size-20 py-1"}`}
-        />
+        <Link to="/" className="flex items-center gap-3">
+          <img
+            src="/coopdatalogo.png"
+            alt="CoopData logo"
+            className={`shrink-0 rounded-lg object-contain ${isCollapsed ? "size-11" : "size-20 py-1"}`}
+          />
+        </Link>
         {/* Collapse toggle — desktop only */}
         {!mobile && onToggleCollapse && (
           <button
@@ -327,11 +329,13 @@ function Topbar({
           >
             <Menu className="size-4.5" />
           </button>
-          <img
-            src="/coopdatalogo.png"
-            alt="CoopData logo"
-            className="hidden size-9 shrink-0 rounded-lg object-contain lg:block"
-          />
+          <Link to="/" className="hidden size-9 shrink-0 rounded-lg object-contain lg:block">
+            <img
+              src="/coopdatalogo.png"
+              alt="CoopData logo"
+              className="size-9 rounded-lg object-contain"
+            />
+          </Link>
           <div className="min-w-0">
             <h1 className="font-heading text-[15px] font-semibold tracking-tight text-foreground truncate">
               {title}
