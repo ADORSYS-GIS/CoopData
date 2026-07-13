@@ -9,7 +9,18 @@ CVE-2026-33750
 CVE-2026-42338
 CVE-2026-53655
 CVE-2026-48758
+CVE-2026-33630
 GHSA-g7r4-m6w7-qqqr
+
+# Backend (Rust / debian base) vulnerabilities - no fix available yet
+CVE-2025-10148
+CVE-2025-14524
+CVE-2025-14819
+CVE-2026-34743
+CVE-2026-3783
+CVE-2026-3784
+CVE-2026-5773
+CVE-2026-7168
 
 # Alpine base image vulnerabilities (node:22-alpine)
 # These are typically in the base OS packages and have no fix available yet
