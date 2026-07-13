@@ -429,8 +429,7 @@ impl LlmExtractor {
 
     /// Call vision API for image files — sends base64 image content.
     async fn vision_capture(&self, file_bytes: &[u8], mime_type: &str) -> AppResult<String> {
-        const ALLOWED_MIME_TYPES: &[&str] =
-            &["image/png", "image/jpeg", "image/jpg", "image/tiff"];
+        const ALLOWED_MIME_TYPES: &[&str] = &["image/png", "image/jpeg", "image/jpg", "image/tiff"];
         if !ALLOWED_MIME_TYPES.contains(&mime_type) {
             return Err(AppError::BadRequest(format!(
                 "Unsupported image MIME type for vision extraction: '{}'. \
@@ -664,8 +663,7 @@ impl FinancialStatementExtractor for LlmExtractor {
                     .await
                     .map_err(|e| {
                         AppError::InternalServerError(format!("Excel thread join error: {e}"))
-                    })?
-                    ?;
+                    })??;
                 tracing::info!(chars = text.len(), "=== EXCEL TEXT EXTRACTED ===");
                 tracing::info!("=== EXCEL TEXT START ===\n{text}\n=== EXCEL TEXT END ===");
                 Ok(text)

@@ -88,7 +88,10 @@ impl From<EntryModel> for IndicatorEntryResponse {
             id: m.id,
             submission_id: m.submission_id,
             catalog_id: m.catalog_id,
-            value_numeric: m.value_numeric.map(|d| { use rust_decimal::prelude::ToPrimitive; d.to_f64().unwrap_or(0.0) }),
+            value_numeric: m.value_numeric.map(|d| {
+                use rust_decimal::prelude::ToPrimitive;
+                d.to_f64().unwrap_or(0.0)
+            }),
             value_text: m.value_text,
             value_boolean: m.value_boolean,
             created_at: m.created_at,

@@ -175,7 +175,10 @@ pub async fn update_catalog_item(
         .await;
 
     tracing::info!(id = %id, "Indicator catalog item updated");
-    Ok((StatusCode::OK, Json(IndicatorCatalogResponse::from(updated))))
+    Ok((
+        StatusCode::OK,
+        Json(IndicatorCatalogResponse::from(updated)),
+    ))
 }
 
 #[utoipa::path(
@@ -295,8 +298,7 @@ pub async fn save_submission_entries(
     }
 
     if claims.is_cooperative() {
-        let caller_coop =
-            super::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+        let caller_coop = super::cooperative::resolve_caller_cooperative(&state, &claims).await?;
         if caller_coop.id != sub.cooperative_id {
             return Err(AppError::Forbidden(
                 "Access denied: submission belongs to a different cooperative".into(),
@@ -328,7 +330,9 @@ pub async fn save_submission_entries(
                     }
                 }
                 IndicatorDataType::Text => {
-                    let empty = entry.value_text.as_deref()
+                    let empty = entry
+                        .value_text
+                        .as_deref()
                         .map(|t| t.trim().is_empty())
                         .unwrap_or(true);
                     if empty {
@@ -348,7 +352,11 @@ pub async fn save_submission_entries(
             id: sea_orm::Set(Uuid::new_v4()),
             submission_id: sea_orm::Set(id),
             catalog_id: sea_orm::Set(entry.catalog_id),
-            value_numeric: sea_orm::Set(entry.value_numeric.map(|f| rust_decimal::Decimal::try_from(f).unwrap_or_default())),
+            value_numeric: sea_orm::Set(
+                entry
+                    .value_numeric
+                    .map(|f| rust_decimal::Decimal::try_from(f).unwrap_or_default()),
+            ),
             value_text: sea_orm::Set(entry.value_text),
             value_boolean: sea_orm::Set(entry.value_boolean),
             created_at: sea_orm::Set(chrono::Utc::now()),
@@ -364,7 +372,10 @@ pub async fn save_submission_entries(
 
     // Determine section completeness: check if all required catalog items for this
     // cooperative type have a non-null value in the current saved entries.
-    let coop_profile = state.cooperative_repo.find_by_id(sub.cooperative_id).await?;
+    let coop_profile = state
+        .cooperative_repo
+        .find_by_id(sub.cooperative_id)
+        .await?;
     let coop_type_str = coop_profile
         .and_then(|c| c.institution_type)
         .map(|t| t.as_str().to_string());
@@ -410,13 +421,20 @@ pub async fn save_submission_entries(
         })
     };
 
-    let indicators_status = if all_required_filled { "ready" } else { "in_progress" };
+    let indicators_status = if all_required_filled {
+        "ready"
+    } else {
+        "in_progress"
+    };
     if let Some(sec) = state
         .section_repo
         .find_by_submission_and_section(id, "indicators")
         .await?
     {
-        state.section_repo.update_status(sec.id, indicators_status).await?;
+        state
+            .section_repo
+            .update_status(sec.id, indicators_status)
+            .await?;
     }
     tracing::info!(
         submission_id = %id,
@@ -460,9 +478,9 @@ pub async fn consolidate_indicator(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<impl IntoResponse> {
-    let indicator_name = params
-        .get("indicator_name")
-        .ok_or_else(|| AppError::BadRequest("Query parameter 'indicator_name' is required".into()))?;
+    let indicator_name = params.get("indicator_name").ok_or_else(|| {
+        AppError::BadRequest("Query parameter 'indicator_name' is required".into())
+    })?;
 
     let metrics = state
         .non_financial_indicator_entry_repo

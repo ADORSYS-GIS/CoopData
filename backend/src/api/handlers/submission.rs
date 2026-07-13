@@ -9,11 +9,11 @@ use sea_orm::Set;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::api::dto::apex::ApexStatsResponse;
 use crate::api::dto::submission::{
     CooperativeStatsResponse, CreateSubmissionRequest, SubmissionResponse,
     SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
 };
-use crate::api::dto::apex::ApexStatsResponse;
 use crate::auth::claims::Claims;
 
 use crate::entities::enums::SubmissionStatus;
@@ -147,7 +147,10 @@ pub async fn list_cooperative_submissions(
     let coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let subs = state.submission_repo.find_by_cooperative_ids(coop_ids).await?;
+    let subs = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids)
+        .await?;
     let sub_ids: Vec<Uuid> = subs.iter().map(|s| s.id).collect();
 
     // Batch-fetch all enrichment data in 3 queries instead of 3N
@@ -416,10 +419,7 @@ pub async fn list_apex_submissions(
     let apex_db_id =
         crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
 
-    let cooperatives = state
-        .cooperative_repo
-        .find_by_apex_id(apex_db_id)
-        .await?;
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
     let coop_map: std::collections::HashMap<Uuid, String> = cooperatives
         .iter()
         .map(|c| {
@@ -475,7 +475,9 @@ pub async fn get_submission_as_apex(
 
     // Verify the submission belongs to one of this apex's cooperatives
     let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
-    let belongs = cooperatives.iter().any(|c| c.id == submission.cooperative_id);
+    let belongs = cooperatives
+        .iter()
+        .any(|c| c.id == submission.cooperative_id);
     if !belongs {
         return Err(AppError::Forbidden(
             "Access denied: submission does not belong to your apex".into(),
@@ -495,7 +497,10 @@ pub async fn get_submission_as_apex(
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         resp = resp.with_sections(
-            sections.into_iter().map(SubmissionSectionResponse::from).collect(),
+            sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect(),
         );
     }
     Ok((StatusCode::OK, Json(resp)))
@@ -517,9 +522,9 @@ pub async fn get_submission_as_federation(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let org_id = claims
-        .get_organization_id()
-        .ok_or_else(|| AppError::Forbidden("Federation user has no organization associated".into()))?;
+    let org_id = claims.get_organization_id().ok_or_else(|| {
+        AppError::Forbidden("Federation user has no organization associated".into())
+    })?;
 
     let federation = state
         .federation_repo
@@ -559,7 +564,10 @@ pub async fn get_submission_as_federation(
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         resp = resp.with_sections(
-            sections.into_iter().map(SubmissionSectionResponse::from).collect(),
+            sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect(),
         );
     }
     Ok((StatusCode::OK, Json(resp)))
@@ -598,7 +606,10 @@ pub async fn get_submission_as_ministry(
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
         resp = resp.with_sections(
-            sections.into_iter().map(SubmissionSectionResponse::from).collect(),
+            sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect(),
         );
     }
     Ok((StatusCode::OK, Json(resp)))
@@ -687,9 +698,9 @@ pub async fn list_federation_submissions(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    let org_id = claims
-        .get_organization_id()
-        .ok_or_else(|| AppError::Forbidden("Federation user has no organization associated".into()))?;
+    let org_id = claims.get_organization_id().ok_or_else(|| {
+        AppError::Forbidden("Federation user has no organization associated".into())
+    })?;
 
     let federation = state
         .federation_repo
@@ -697,10 +708,7 @@ pub async fn list_federation_submissions(
         .await?
         .ok_or_else(|| AppError::Forbidden("Federation not found in database".into()))?;
 
-    let apexes = state
-        .apex_repo
-        .find_by_federation_id(federation.id)
-        .await?;
+    let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
 
     let mut coop_ids: Vec<Uuid> = vec![];
     let mut coop_map: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
@@ -726,10 +734,7 @@ pub async fn list_federation_submissions(
 
     let subs = state
         .submission_repo
-        .find_by_cooperative_ids_and_tier(
-            coop_ids,
-            crate::entities::enums::ReviewTier::Federation,
-        )
+        .find_by_cooperative_ids_and_tier(coop_ids, crate::entities::enums::ReviewTier::Federation)
         .await?
         .into_iter()
         .map(|s| {
@@ -844,34 +849,58 @@ pub async fn list_ministry_submissions(
     let coop_map: std::collections::HashMap<Uuid, String> = coops
         .iter()
         .map(|c| {
-            let name = if c.display_name.is_empty() { c.name.clone() } else { c.display_name.clone() };
+            let name = if c.display_name.is_empty() {
+                c.name.clone()
+            } else {
+                c.display_name.clone()
+            };
             (c.id, name)
         })
         .collect();
 
     let apex_ids: Vec<Uuid> = coops.iter().map(|c| c.apex_id).collect();
-    let apexes = state.apex_repo.find_by_ids(apex_ids).await.unwrap_or_default();
+    let apexes = state
+        .apex_repo
+        .find_by_ids(apex_ids)
+        .await
+        .unwrap_or_default();
     let apex_name_map: std::collections::HashMap<Uuid, String> = apexes
         .iter()
         .map(|a| {
-            let name = if a.display_name.is_empty() { a.organization_keycloak_id.clone() } else { a.display_name.clone() };
+            let name = if a.display_name.is_empty() {
+                a.organization_keycloak_id.clone()
+            } else {
+                a.display_name.clone()
+            };
             (a.id, name)
         })
         .collect();
 
     let federation_ids: Vec<Uuid> = apexes.iter().map(|a| a.federation_id).collect();
-    let federations = state.federation_repo.find_by_ids(federation_ids).await.unwrap_or_default();
+    let federations = state
+        .federation_repo
+        .find_by_ids(federation_ids)
+        .await
+        .unwrap_or_default();
     let fed_name_map: std::collections::HashMap<Uuid, String> = federations
         .iter()
         .map(|f| {
-            let name = if f.display_name.is_empty() { f.keycloak_id.clone() } else { f.display_name.clone() };
+            let name = if f.display_name.is_empty() {
+                f.keycloak_id.clone()
+            } else {
+                f.display_name.clone()
+            };
             (f.id, name)
         })
         .collect();
 
     let coop_to_apex: std::collections::HashMap<Uuid, String> = coops
         .iter()
-        .filter_map(|c| apex_name_map.get(&c.apex_id).map(|name| (c.id, name.clone())))
+        .filter_map(|c| {
+            apex_name_map
+                .get(&c.apex_id)
+                .map(|name| (c.id, name.clone()))
+        })
         .collect();
     // Build apex_id → federation_id map for O(1) lookups (avoids inner linear scan)
     let apex_to_fed_id: std::collections::HashMap<Uuid, Uuid> =
@@ -1149,11 +1178,18 @@ pub async fn get_apex_stats(
     let total_cooperatives = cooperatives.len() as u64;
 
     let coop_ids: Vec<Uuid> = cooperatives.iter().map(|c| c.id).collect();
-    let subs = state.submission_repo.find_by_cooperative_ids(coop_ids).await?;
+    let subs = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids)
+        .await?;
 
     let pending_submissions = subs
         .iter()
-        .filter(|s| s.status != SubmissionStatus::Draft && s.status != SubmissionStatus::Approved && s.status != SubmissionStatus::Rejected)
+        .filter(|s| {
+            s.status != SubmissionStatus::Draft
+                && s.status != SubmissionStatus::Approved
+                && s.status != SubmissionStatus::Rejected
+        })
         .count() as u64;
     let approved_submissions = subs
         .iter()
@@ -1191,7 +1227,10 @@ pub async fn get_cooperative_stats(
     let coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let subs = state.submission_repo.find_by_cooperative_ids(coop_ids).await?;
+    let subs = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids)
+        .await?;
 
     let total_submissions = subs.len() as u64;
     let draft_submissions = subs
@@ -1200,7 +1239,11 @@ pub async fn get_cooperative_stats(
         .count() as u64;
     let pending_submissions = subs
         .iter()
-        .filter(|s| s.status != SubmissionStatus::Draft && s.status != SubmissionStatus::Approved && s.status != SubmissionStatus::Rejected)
+        .filter(|s| {
+            s.status != SubmissionStatus::Draft
+                && s.status != SubmissionStatus::Approved
+                && s.status != SubmissionStatus::Rejected
+        })
         .count() as u64;
     let approved_submissions = subs
         .iter()
@@ -1241,7 +1284,8 @@ pub async fn list_submission_reviews(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop_ids = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
     let submission = state
         .submission_repo
         .find_by_id(id)

@@ -17,7 +17,9 @@ use crate::error::{AppError, AppResult};
 use crate::services::nf_excel_parser::{NfExcelParser, NfParseWarning};
 use crate::AppState;
 
-use crate::api::handlers::cooperative::{resolve_caller_cooperative_ids, resolve_cooperative_id_for_nf};
+use crate::api::handlers::cooperative::{
+    resolve_caller_cooperative_ids, resolve_cooperative_id_for_nf,
+};
 
 const NF_TAG: &str = "Non-Financial";
 
@@ -98,7 +100,10 @@ pub async fn upload_non_financial(
         ));
     }
 
-    let existing_files = state.uploaded_file_repo.find_by_submission_id(submission_id).await?;
+    let existing_files = state
+        .uploaded_file_repo
+        .find_by_submission_id(submission_id)
+        .await?;
     let existing = existing_files.iter().find(|f| f.original_name == file_name);
 
     if let Some(old) = existing {
@@ -117,7 +122,10 @@ pub async fn upload_non_financial(
         active.size_bytes = Set(Some(file_bytes.len() as i64));
         active.mime_type = Set(Some(content_type.clone()));
         active.created_at = Set(chrono::Utc::now());
-        active.update(&state.db).await.map_err(AppError::DatabaseError)?
+        active
+            .update(&state.db)
+            .await
+            .map_err(AppError::DatabaseError)?
     } else {
         let model = uploaded_file::ActiveModel {
             id: Set(Uuid::new_v4()),
@@ -203,9 +211,15 @@ pub async fn upload_non_financial(
 
     // Clear all existing NF data for this cooperative before re-importing.
     // Order matters: delete child tables before members (FK constraints).
-    state.savings_account_repo.delete_by_cooperative(coop_id).await?;
+    state
+        .savings_account_repo
+        .delete_by_cooperative(coop_id)
+        .await?;
     state.loan_repo.delete_by_cooperative(coop_id).await?;
-    state.fixed_deposit_repo.delete_by_cooperative(coop_id).await?;
+    state
+        .fixed_deposit_repo
+        .delete_by_cooperative(coop_id)
+        .await?;
     state.farm_coop_repo.delete_by_cooperative(coop_id).await?;
     state.member_repo.delete_by_cooperative(coop_id).await?;
 
@@ -402,32 +416,70 @@ pub async fn upload_non_financial(
             updated_at: Set(now),
         });
     }
-    let farm_coop_imported = state.farm_coop_repo.bulk_insert(farm_coop_active_models).await?;
+    let farm_coop_imported = state
+        .farm_coop_repo
+        .bulk_insert(farm_coop_active_models)
+        .await?;
 
     // Mark sections as in_progress when data is imported — user confirms ready manually
     if !parse_result.members.is_empty() {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "members").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "members")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if !parse_result.savings_accounts.is_empty() {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "savings").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "savings")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if !parse_result.loans.is_empty() {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "loans").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "loans")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if !parse_result.fixed_deposits.is_empty() {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "fixed_deposits").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "fixed_deposits")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if !parse_result.farm_coop.is_empty() {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "farm_coop").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "farm_coop")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
 
@@ -1727,29 +1779,75 @@ pub async fn update_farm_coop(
         return Err(AppError::NotFound("Farm coop record not found".into()));
     }
     let mut active: farm_coop::ActiveModel = existing.into();
-    if let Some(v) = body.cooperative_type { active.cooperative_type = Set(v); }
-    if let Some(v) = body.primary_activities { active.primary_activities = Set(v); }
-    if let Some(v) = body.year_of_establishment { active.year_of_establishment = Set(Some(v)); }
-    if let Some(v) = body.operational_status { active.operational_status = Set(v); }
-    if let Some(v) = body.active_producer_flag { active.active_producer_flag = Set(v); }
-    if let Some(v) = body.production_type { active.production_type = Set(v); }
-    if let Some(v) = body.participation_frequency { active.participation_frequency = Set(v); }
-    if let Some(v) = body.delivery_compliance { active.delivery_compliance = Set(v); }
-    if let Some(v) = body.production_cycle_type { active.production_cycle_type = Set(v); }
-    if let Some(v) = body.use_of_production_planning { active.use_of_production_planning = Set(v); }
-    if let Some(v) = body.use_of_shared_inputs { active.use_of_shared_inputs = Set(v); }
-    if let Some(v) = body.quality_compliance_flag { active.quality_compliance_flag = Set(v); }
-    if let Some(v) = body.market_channel_type { active.market_channel_type = Set(v); }
-    if let Some(v) = body.formal_offtake_agreement { active.formal_offtake_agreement = Set(v); }
-    if let Some(v) = body.buyer_concentration_flag { active.buyer_concentration_flag = Set(v); }
-    if let Some(v) = body.price_predictability_category { active.price_predictability_category = Set(v); }
-    if let Some(v) = body.access_to_storage { active.access_to_storage = Set(v); }
-    if let Some(v) = body.access_to_processing_facilities { active.access_to_processing_facilities = Set(v); }
-    if let Some(v) = body.transport_coordination { active.transport_coordination = Set(v); }
-    if let Some(v) = body.climate_exposure_type { active.climate_exposure_type = Set(v); }
-    if let Some(v) = body.irrigation_access { active.irrigation_access = Set(v); }
-    if let Some(v) = body.climate_mitigation_practices { active.climate_mitigation_practices = Set(v); }
-    if let Some(v) = body.submission_id { active.submission_id = Set(v); }
+    if let Some(v) = body.cooperative_type {
+        active.cooperative_type = Set(v);
+    }
+    if let Some(v) = body.primary_activities {
+        active.primary_activities = Set(v);
+    }
+    if let Some(v) = body.year_of_establishment {
+        active.year_of_establishment = Set(Some(v));
+    }
+    if let Some(v) = body.operational_status {
+        active.operational_status = Set(v);
+    }
+    if let Some(v) = body.active_producer_flag {
+        active.active_producer_flag = Set(v);
+    }
+    if let Some(v) = body.production_type {
+        active.production_type = Set(v);
+    }
+    if let Some(v) = body.participation_frequency {
+        active.participation_frequency = Set(v);
+    }
+    if let Some(v) = body.delivery_compliance {
+        active.delivery_compliance = Set(v);
+    }
+    if let Some(v) = body.production_cycle_type {
+        active.production_cycle_type = Set(v);
+    }
+    if let Some(v) = body.use_of_production_planning {
+        active.use_of_production_planning = Set(v);
+    }
+    if let Some(v) = body.use_of_shared_inputs {
+        active.use_of_shared_inputs = Set(v);
+    }
+    if let Some(v) = body.quality_compliance_flag {
+        active.quality_compliance_flag = Set(v);
+    }
+    if let Some(v) = body.market_channel_type {
+        active.market_channel_type = Set(v);
+    }
+    if let Some(v) = body.formal_offtake_agreement {
+        active.formal_offtake_agreement = Set(v);
+    }
+    if let Some(v) = body.buyer_concentration_flag {
+        active.buyer_concentration_flag = Set(v);
+    }
+    if let Some(v) = body.price_predictability_category {
+        active.price_predictability_category = Set(v);
+    }
+    if let Some(v) = body.access_to_storage {
+        active.access_to_storage = Set(v);
+    }
+    if let Some(v) = body.access_to_processing_facilities {
+        active.access_to_processing_facilities = Set(v);
+    }
+    if let Some(v) = body.transport_coordination {
+        active.transport_coordination = Set(v);
+    }
+    if let Some(v) = body.climate_exposure_type {
+        active.climate_exposure_type = Set(v);
+    }
+    if let Some(v) = body.irrigation_access {
+        active.irrigation_access = Set(v);
+    }
+    if let Some(v) = body.climate_mitigation_practices {
+        active.climate_mitigation_practices = Set(v);
+    }
+    if let Some(v) = body.submission_id {
+        active.submission_id = Set(v);
+    }
     active.updated_at = Set(chrono::Utc::now());
     let m = state.farm_coop_repo.update(active).await?;
     tracing::info!(cooperative_id = %coop_id, id = %id, "Farm coop record updated");

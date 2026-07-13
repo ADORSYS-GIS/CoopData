@@ -15,9 +15,7 @@ impl NonFinancialIndicatorCatalogRepository {
         Self { db }
     }
 
-    pub async fn find_all(
-        &self,
-    ) -> AppResult<Vec<non_financial_indicator_catalog::Model>> {
+    pub async fn find_all(&self) -> AppResult<Vec<non_financial_indicator_catalog::Model>> {
         non_financial_indicator_catalog::Entity::find()
             .order_by_asc(NonFinancialIndicatorCatalogColumn::IndicatorName)
             .all(&self.db)
@@ -83,9 +81,7 @@ impl NonFinancialIndicatorCatalogRepository {
             .await
             .map_err(|e| {
                 if e.to_string().contains("violates foreign key constraint") {
-                    AppError::Conflict(
-                        "Cannot delete indicator: entries exist for it".into(),
-                    )
+                    AppError::Conflict("Cannot delete indicator: entries exist for it".into())
                 } else {
                     AppError::DatabaseError(e)
                 }

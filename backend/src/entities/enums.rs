@@ -144,7 +144,9 @@ impl ReviewAction {
 }
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "eswatini_region")]
 pub enum EswatiniRegion {
     #[sea_orm(string_value = "Hhohho")]
@@ -178,7 +180,9 @@ impl EswatiniRegion {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "cooperative_type")]
 pub enum CooperativeType {
     #[sea_orm(string_value = "sacco")]
@@ -224,7 +228,9 @@ impl CooperativeType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "urban_rural")]
 pub enum UrbanRural {
     #[sea_orm(string_value = "Urban")]
@@ -250,7 +256,9 @@ impl UrbanRural {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "coop_status")]
 pub enum CoopStatus {
     #[sea_orm(string_value = "Active")]
@@ -280,7 +288,9 @@ impl CoopStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "accounting_year")]
 pub enum AccountingYear {
     #[sea_orm(string_value = "calendar")]
@@ -360,8 +370,22 @@ impl AccountCategory {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, utoipa::ToSchema)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "indicator_data_type")]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    utoipa::ToSchema,
+)]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "Enum",
+    enum_name = "indicator_data_type"
+)]
 pub enum IndicatorDataType {
     #[sea_orm(string_value = "number")]
     Number,
@@ -390,8 +414,9 @@ impl IndicatorDataType {
     }
 }
 
-
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "member_status")]
 pub enum MemberStatus {
     #[sea_orm(string_value = "Active")]
@@ -421,7 +446,9 @@ impl MemberStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "gender")]
 pub enum Gender {
     #[sea_orm(string_value = "Male")]
@@ -451,7 +478,9 @@ impl Gender {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "age_group")]
 pub enum AgeGroup {
     #[sea_orm(string_value = "<18")]
@@ -485,7 +514,9 @@ impl AgeGroup {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "account_type")]
 pub enum AccountType {
     #[sea_orm(string_value = "Voluntary")]
@@ -515,7 +546,9 @@ impl AccountType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "loan_status")]
 pub enum LoanStatus {
     #[sea_orm(string_value = "Performing")]
@@ -549,7 +582,9 @@ impl LoanStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "dpd_category")]
 pub enum DpdCategory {
     #[sea_orm(string_value = "0")]
@@ -587,7 +622,9 @@ impl DpdCategory {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "fd_status")]
 pub enum FdStatus {
     #[sea_orm(string_value = "Active")]

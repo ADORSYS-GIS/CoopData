@@ -1,6 +1,8 @@
 use crate::entities::{federation, FederationColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]

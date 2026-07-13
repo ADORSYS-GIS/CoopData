@@ -1043,9 +1043,9 @@ pub async fn resolve_caller_cooperative_ids(
         let all = state.cooperative_repo.list_all().await?;
         Ok(all.iter().map(|c| c.id).collect())
     } else if claims.has_role("federation") {
-        let org_id = claims
-            .get_organization_id()
-            .ok_or_else(|| AppError::Forbidden("Federation user has no organization associated".into()))?;
+        let org_id = claims.get_organization_id().ok_or_else(|| {
+            AppError::Forbidden("Federation user has no organization associated".into())
+        })?;
         let federation = state
             .federation_repo
             .find_by_keycloak_id(&org_id)
@@ -1079,7 +1079,9 @@ pub async fn resolve_cooperative_id_for_nf(
 ) -> AppResult<Uuid> {
     if claims.has_role("apex") || claims.has_role("federation") || claims.has_role("ministry") {
         let sub_id = submission_id.ok_or_else(|| {
-            AppError::BadRequest("submission_id is required for apex/federation/ministry users".into())
+            AppError::BadRequest(
+                "submission_id is required for apex/federation/ministry users".into(),
+            )
         })?;
         let submission = state
             .submission_repo

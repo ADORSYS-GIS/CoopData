@@ -66,7 +66,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
   const handleChange = (
     catalogId: string,
     key: "value_numeric" | "value_text" | "value_boolean",
-    val: any,
+    val: number | string | boolean | undefined,
   ) => {
     setFormValues((prev) => ({
       ...prev,

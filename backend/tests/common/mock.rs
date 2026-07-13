@@ -6,11 +6,12 @@ use coop_data_backend::services::{cache::CacheService, CalamineNfParser, ObjectS
 use coop_data_backend::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppConfig, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
-    CooperativeRepository, ExtractionJobRepository, FederationRepository,
-    FinancialStatementRepository, KeycloakService, OrganizationRepository, SubmissionRepository,
+    CooperativeRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
+    FinancialStatementRepository, FixedDepositRepository, KeycloakService, LoanRepository,
+    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository, FarmCoopRepository, FixedDepositRepository, LoanRepository, MemberRepository,
-    SavingsAccountRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -60,8 +61,10 @@ impl TestApp {
             ObjectStorageService::new(&config).expect("Failed to create object storage service");
         let nf_excel_parser = CalamineNfParser::new();
 
-        let non_financial_indicator_catalog_repo = NonFinancialIndicatorCatalogRepository::new(db.clone());
-        let non_financial_indicator_entry_repo = NonFinancialIndicatorEntryRepository::new(db.clone());
+        let non_financial_indicator_catalog_repo =
+            NonFinancialIndicatorCatalogRepository::new(db.clone());
+        let non_financial_indicator_entry_repo =
+            NonFinancialIndicatorEntryRepository::new(db.clone());
 
         let state = AppState {
             db,

@@ -275,7 +275,10 @@ pub struct NfParseWarning {
 fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
     use calamine::{open_workbook_auto_from_rs, Reader};
 
-    tracing::info!(bytes = file_bytes.len(), "Starting non-financial Excel workbook parse");
+    tracing::info!(
+        bytes = file_bytes.len(),
+        "Starting non-financial Excel workbook parse"
+    );
 
     let mut result = NfParseResult::default();
     let mut workbook = open_workbook_auto_from_rs(std::io::Cursor::new(file_bytes.to_vec()))
@@ -309,7 +312,10 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
             }
             SHEET_FIXED_DEPOSITS => {
                 result.sheets_found.push(SHEET_FIXED_DEPOSITS.to_string());
-                tracing::info!(sheet = SHEET_FIXED_DEPOSITS, "Processing fixed deposits sheet");
+                tracing::info!(
+                    sheet = SHEET_FIXED_DEPOSITS,
+                    "Processing fixed deposits sheet"
+                );
                 if let Ok(range) = workbook.worksheet_range(SHEET_FIXED_DEPOSITS) {
                     parse_fixed_deposits_sheet(&range, &mut result);
                 }
@@ -390,10 +396,7 @@ fn build_column_map(
             column: "headers".to_string(),
             value: missing.join(", "),
             rule: "MISSING_HEADERS".to_string(),
-            message: format!(
-                "Missing required columns: {}",
-                missing.join(", ")
-            ),
+            message: format!("Missing required columns: {}", missing.join(", ")),
         });
         return None;
     }
@@ -522,13 +525,12 @@ fn parse_members_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     }
                 }
 
-                let agm_attendance = get_bool_cell(row, *map.get("agm_attendance").unwrap_or(&0))
-                    .unwrap_or(false);
+                let agm_attendance =
+                    get_bool_cell(row, *map.get("agm_attendance").unwrap_or(&0)).unwrap_or(false);
                 let leadership_role =
                     get_optional_string_cell(row, *map.get("leadership_role").unwrap_or(&0));
                 let voting_exercised =
-                    get_bool_cell(row, *map.get("voting_exercised").unwrap_or(&0))
-                        .unwrap_or(false);
+                    get_bool_cell(row, *map.get("voting_exercised").unwrap_or(&0)).unwrap_or(false);
 
                 result.members.push(MemberRecord {
                     member_id: mid,
@@ -607,20 +609,38 @@ fn parse_savings_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     account_opening_date: aod,
                     account_status: get_string_cell(row, *map.get("account_status").unwrap_or(&0))
                         .unwrap_or_else(|| "Active".to_string()),
-                    contribution_frequency: get_string_cell(row, *map.get("contribution_frequency").unwrap_or(&0))
-                        .unwrap_or_default(),
-                    last_contribution_date: get_optional_date_cell(row, *map.get("last_contribution_date").unwrap_or(&0))
-                        .flatten(),
-                    number_of_contributions: get_int_cell(row, *map.get("number_of_contributions").unwrap_or(&0))
-                        .unwrap_or(0),
+                    contribution_frequency: get_string_cell(
+                        row,
+                        *map.get("contribution_frequency").unwrap_or(&0),
+                    )
+                    .unwrap_or_default(),
+                    last_contribution_date: get_optional_date_cell(
+                        row,
+                        *map.get("last_contribution_date").unwrap_or(&0),
+                    )
+                    .flatten(),
+                    number_of_contributions: get_int_cell(
+                        row,
+                        *map.get("number_of_contributions").unwrap_or(&0),
+                    )
+                    .unwrap_or(0),
                     balance_trend: get_string_cell(row, *map.get("balance_trend").unwrap_or(&0))
                         .unwrap_or_default(),
-                    zero_balance_flag: get_bool_cell(row, *map.get("zero_balance_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    withdrawal_frequency_category: get_string_cell(row, *map.get("withdrawal_frequency_category").unwrap_or(&0))
-                        .unwrap_or_default(),
-                    emergency_withdrawals_flag: get_bool_cell(row, *map.get("emergency_withdrawals_flag").unwrap_or(&0))
-                        .unwrap_or(false),
+                    zero_balance_flag: get_bool_cell(
+                        row,
+                        *map.get("zero_balance_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    withdrawal_frequency_category: get_string_cell(
+                        row,
+                        *map.get("withdrawal_frequency_category").unwrap_or(&0),
+                    )
+                    .unwrap_or_default(),
+                    emergency_withdrawals_flag: get_bool_cell(
+                        row,
+                        *map.get("emergency_withdrawals_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
                     interest_rate: get_decimal_cell(row, *map.get("interest_rate").unwrap_or(&0))
                         .unwrap_or_default(),
                     balance: get_decimal_cell(row, *map.get("balance").unwrap_or(&0))
@@ -699,8 +719,9 @@ fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     continue;
                 }
 
-                let dpd_raw = get_string_cell(row, *map.get("days_past_due_category").unwrap_or(&0))
-                    .unwrap_or_else(|| "0".to_string());
+                let dpd_raw =
+                    get_string_cell(row, *map.get("days_past_due_category").unwrap_or(&0))
+                        .unwrap_or_else(|| "0".to_string());
                 let dpd_category = match DpdCategory::parse(&dpd_raw) {
                     Some(v) => v,
                     None => DpdCategory::Zero,
@@ -727,27 +748,57 @@ fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     loan_status: loan_status_enum,
                     borrower_type: get_string_cell(row, *map.get("borrower_type").unwrap_or(&0))
                         .unwrap_or_default(),
-                    youth_borrower_flag: get_bool_cell(row, *map.get("youth_borrower_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    women_borrower_flag: get_bool_cell(row, *map.get("women_borrower_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    rural_borrower_flag: get_bool_cell(row, *map.get("rural_borrower_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    repayment_regularity: get_string_cell(row, *map.get("repayment_regularity").unwrap_or(&0))
-                        .unwrap_or_default(),
+                    youth_borrower_flag: get_bool_cell(
+                        row,
+                        *map.get("youth_borrower_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    women_borrower_flag: get_bool_cell(
+                        row,
+                        *map.get("women_borrower_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    rural_borrower_flag: get_bool_cell(
+                        row,
+                        *map.get("rural_borrower_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    repayment_regularity: get_string_cell(
+                        row,
+                        *map.get("repayment_regularity").unwrap_or(&0),
+                    )
+                    .unwrap_or_default(),
                     days_past_due_category: dpd_category,
-                    missed_installments_count: get_int_cell(row, *map.get("missed_installments_count").unwrap_or(&0))
-                        .unwrap_or(0),
-                    restructured_loan_flag: get_bool_cell(row, *map.get("restructured_loan_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    number_of_restructurings: get_int_cell(row, *map.get("number_of_restructurings").unwrap_or(&0))
-                        .unwrap_or(0),
-                    early_settlement_flag: get_bool_cell(row, *map.get("early_settlement_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    multiple_loans_flag: get_bool_cell(row, *map.get("multiple_loans_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    large_borrower_flag: get_bool_cell(row, *map.get("large_borrower_flag").unwrap_or(&0))
-                        .unwrap_or(false),
+                    missed_installments_count: get_int_cell(
+                        row,
+                        *map.get("missed_installments_count").unwrap_or(&0),
+                    )
+                    .unwrap_or(0),
+                    restructured_loan_flag: get_bool_cell(
+                        row,
+                        *map.get("restructured_loan_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    number_of_restructurings: get_int_cell(
+                        row,
+                        *map.get("number_of_restructurings").unwrap_or(&0),
+                    )
+                    .unwrap_or(0),
+                    early_settlement_flag: get_bool_cell(
+                        row,
+                        *map.get("early_settlement_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    multiple_loans_flag: get_bool_cell(
+                        row,
+                        *map.get("multiple_loans_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    large_borrower_flag: get_bool_cell(
+                        row,
+                        *map.get("large_borrower_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
                     interest_rate: get_decimal_cell(row, *map.get("interest_rate").unwrap_or(&0))
                         .unwrap_or_default(),
                     balance: get_decimal_cell(row, *map.get("balance").unwrap_or(&0))
@@ -835,20 +886,41 @@ fn parse_fixed_deposits_sheet(range: &Range<Data>, result: &mut NfParseResult) {
                     start_date: sd,
                     maturity_date: md,
                     status: status_enum,
-                    tenure_category: get_string_cell(row, *map.get("tenure_category").unwrap_or(&0))
-                        .unwrap_or_default(),
-                    original_tenure_selected: get_string_cell(row, *map.get("original_tenure_selected").unwrap_or(&0))
-                        .unwrap_or_default(),
-                    early_withdrawal_flag: get_bool_cell(row, *map.get("early_withdrawal_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    rollover_at_maturity_flag: get_bool_cell(row, *map.get("rollover_at_maturity_flag").unwrap_or(&0))
-                        .unwrap_or(false),
-                    number_of_renewals: get_int_cell(row, *map.get("number_of_renewals").unwrap_or(&0))
-                        .unwrap_or(0),
-                    change_in_tenure_at_renewal: get_bool_cell(row, *map.get("change_in_tenure_at_renewal").unwrap_or(&0))
-                        .unwrap_or(false),
-                    single_depositor_dependency_flag: get_bool_cell(row, *map.get("single_depositor_dependency_flag").unwrap_or(&0))
-                        .unwrap_or(false),
+                    tenure_category: get_string_cell(
+                        row,
+                        *map.get("tenure_category").unwrap_or(&0),
+                    )
+                    .unwrap_or_default(),
+                    original_tenure_selected: get_string_cell(
+                        row,
+                        *map.get("original_tenure_selected").unwrap_or(&0),
+                    )
+                    .unwrap_or_default(),
+                    early_withdrawal_flag: get_bool_cell(
+                        row,
+                        *map.get("early_withdrawal_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    rollover_at_maturity_flag: get_bool_cell(
+                        row,
+                        *map.get("rollover_at_maturity_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    number_of_renewals: get_int_cell(
+                        row,
+                        *map.get("number_of_renewals").unwrap_or(&0),
+                    )
+                    .unwrap_or(0),
+                    change_in_tenure_at_renewal: get_bool_cell(
+                        row,
+                        *map.get("change_in_tenure_at_renewal").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
+                    single_depositor_dependency_flag: get_bool_cell(
+                        row,
+                        *map.get("single_depositor_dependency_flag").unwrap_or(&0),
+                    )
+                    .unwrap_or(false),
                     interest_rate: get_decimal_cell(row, *map.get("interest_rate").unwrap_or(&0))
                         .unwrap_or_default(),
                     balance: get_decimal_cell(row, *map.get("balance").unwrap_or(&0))
@@ -1054,18 +1126,20 @@ fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     for (idx, row) in rows.enumerate() {
         let row_index = idx + 1;
 
-        let cooperative_type = get_string_cell(row, *map.get("cooperative_type").unwrap())
-            .unwrap_or_default();
-        let primary_activities = get_string_cell(row, *map.get("primary_activities").unwrap())
-            .unwrap_or_default();
-        let year_of_establishment =
-            get_int_cell(row, *map.get("year_of_establishment").unwrap_or(&usize::MAX));
-        let operational_status = get_string_cell(row, *map.get("operational_status").unwrap())
-            .unwrap_or_default();
+        let cooperative_type =
+            get_string_cell(row, *map.get("cooperative_type").unwrap()).unwrap_or_default();
+        let primary_activities =
+            get_string_cell(row, *map.get("primary_activities").unwrap()).unwrap_or_default();
+        let year_of_establishment = get_int_cell(
+            row,
+            *map.get("year_of_establishment").unwrap_or(&usize::MAX),
+        );
+        let operational_status =
+            get_string_cell(row, *map.get("operational_status").unwrap()).unwrap_or_default();
         let active_producer_flag =
             get_bool_cell(row, *map.get("active_producer_flag").unwrap()).unwrap_or(false);
-        let production_type = get_string_cell(row, *map.get("production_type").unwrap())
-            .unwrap_or_default();
+        let production_type =
+            get_string_cell(row, *map.get("production_type").unwrap()).unwrap_or_default();
         let participation_frequency =
             get_string_cell(row, *map.get("participation_frequency").unwrap()).unwrap_or_default();
         let delivery_compliance =
@@ -1102,7 +1176,10 @@ fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
             get_string_cell(row, *map.get("climate_mitigation_practices").unwrap())
                 .unwrap_or_default();
 
-        if cooperative_type.is_empty() && primary_activities.is_empty() && operational_status.is_empty() {
+        if cooperative_type.is_empty()
+            && primary_activities.is_empty()
+            && operational_status.is_empty()
+        {
             result.warnings.push(NfParseWarning {
                 sheet: SHEET_FARM_COOP.to_string(),
                 row: row_index,
@@ -1190,7 +1267,12 @@ mod tests {
             Data::String("status".to_string()),
         ];
         let mut result = NfParseResult::default();
-        let map = build_column_map(&header_row, &["member_id", "join_date", "status"], "TEST", &mut result);
+        let map = build_column_map(
+            &header_row,
+            &["member_id", "join_date", "status"],
+            "TEST",
+            &mut result,
+        );
         assert!(map.is_some());
         assert!(result.errors.is_empty());
         let map = map.unwrap();
@@ -1205,7 +1287,12 @@ mod tests {
             Data::String("join_date".to_string()),
         ];
         let mut result = NfParseResult::default();
-        let map = build_column_map(&header_row, &["member_id", "join_date", "status"], "TEST", &mut result);
+        let map = build_column_map(
+            &header_row,
+            &["member_id", "join_date", "status"],
+            "TEST",
+            &mut result,
+        );
         assert!(map.is_none());
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].rule, "MISSING_HEADERS");
@@ -1218,7 +1305,12 @@ mod tests {
             Data::String("JOIN_DATE".to_string()),
         ];
         let mut result = NfParseResult::default();
-        let map = build_column_map(&header_row, &["member_id", "join_date"], "TEST", &mut result);
+        let map = build_column_map(
+            &header_row,
+            &["member_id", "join_date"],
+            "TEST",
+            &mut result,
+        );
         assert!(map.is_some());
         assert!(result.errors.is_empty());
     }

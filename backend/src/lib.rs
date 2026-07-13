@@ -18,10 +18,12 @@ pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    ExtractionJobRepository, FarmCoopRepository, FederationRepository, FinancialStatementRepository,
+    ExtractionJobRepository, FarmCoopRepository, FederationRepository,
+    FinancialStatementRepository, FixedDepositRepository, LoanRepository, MemberRepository,
     NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    FixedDepositRepository, LoanRepository, MemberRepository, OrganizationRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository, UploadedFileRepository, SavingsAccountRepository, UserRepository,
+    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 pub use services::ai_extraction::FinancialStatementExtractor;
 pub use services::keycloak::KeycloakService;

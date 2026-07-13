@@ -83,14 +83,7 @@ pub async fn upload_financial_statement(
                 currency_str = field.text().await.unwrap_or_else(|_| "SZL".to_string());
             }
             "submission_id" => {
-                submission_id_opt = Some(
-                    field
-                        .text()
-                        .await
-                        .unwrap_or_default()
-                        .trim()
-                        .to_string(),
-                );
+                submission_id_opt = Some(field.text().await.unwrap_or_default().trim().to_string());
             }
             _ => {}
         }

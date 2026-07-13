@@ -30,8 +30,8 @@ impl FarmCoopRepository {
         page: u64,
         page_size: u64,
     ) -> AppResult<(Vec<farm_coop::Model>, u64)> {
-        let mut query = farm_coop::Entity::find()
-            .filter(FarmCoopColumn::CooperativeId.eq(cooperative_id));
+        let mut query =
+            farm_coop::Entity::find().filter(FarmCoopColumn::CooperativeId.eq(cooperative_id));
         if let Some(sub_id) = submission_id {
             query = query.filter(FarmCoopColumn::SubmissionId.eq(sub_id));
         }
@@ -50,11 +50,17 @@ impl FarmCoopRepository {
     }
 
     pub async fn create(&self, model: farm_coop::ActiveModel) -> AppResult<farm_coop::Model> {
-        model.insert(&self.db).await.map_err(AppError::DatabaseError)
+        model
+            .insert(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn update(&self, model: farm_coop::ActiveModel) -> AppResult<farm_coop::Model> {
-        model.update(&self.db).await.map_err(AppError::DatabaseError)
+        model
+            .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn delete(&self, id: Uuid) -> AppResult<()> {

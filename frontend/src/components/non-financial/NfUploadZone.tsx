@@ -7,11 +7,11 @@ import { toast } from "sonner";
 import type { NfUploadResponse } from "@/types/non-financial";
 
 interface NfUploadZoneProps {
-  submissionId: string;
+  submissionId?: string;
   onUploadComplete?: (result: NfUploadResponse) => void;
 }
 
-export function NfUploadZone({ submissionId, onUploadComplete }: NfUploadZoneProps) {
+export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZoneProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

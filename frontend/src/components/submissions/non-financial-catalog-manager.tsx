@@ -221,7 +221,10 @@ export const NonFinancialCatalogManager: React.FC = () => {
 
               <div className="space-y-1.5">
                 <Label htmlFor="data-type">Data Validation Type</Label>
-                <Select value={dataType} onValueChange={(val) => setDataType(val as any)}>
+                <Select
+                  value={dataType}
+                  onValueChange={(val) => setDataType(val as "Number" | "Text" | "Boolean")}
+                >
                   <SelectTrigger id="data-type">
                     <SelectValue />
                   </SelectTrigger>

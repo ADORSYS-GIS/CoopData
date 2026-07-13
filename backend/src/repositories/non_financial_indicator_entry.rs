@@ -76,8 +76,7 @@ impl NonFinancialIndicatorEntryRepository {
                     ext_active.value_numeric = active.value_numeric;
                     ext_active.value_text = active.value_text;
                     ext_active.value_boolean = active.value_boolean;
-                    ext_active.updated_at =
-                        sea_orm::ActiveValue::Set(chrono::Utc::now());
+                    ext_active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now());
                     ext_active
                         .update(&self.db)
                         .await

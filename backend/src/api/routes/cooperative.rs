@@ -12,13 +12,13 @@ use crate::api::handlers::extraction::get_extraction_job;
 use crate::api::handlers::financial_statement::{
     get_financial_statement, list_line_items, update_line_items,
 };
+use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
     list_submission_reviews, list_submission_sections, submit_submission,
     update_submission_section, validate_extraction,
 };
 use crate::api::handlers::upload::upload_financial_statement;
-use crate::api::handlers::non_financial;
 use crate::auth::claims::Claims;
 
 use crate::error::AppResult;
@@ -27,7 +27,10 @@ use crate::AppState;
 pub fn cooperative_routes() -> Router<AppState> {
     Router::new()
         .route("/profile", get(get_cooperative_profile))
-        .route("/stats", get(crate::api::handlers::submission::get_cooperative_stats))
+        .route(
+            "/stats",
+            get(crate::api::handlers::submission::get_cooperative_stats),
+        )
         .route("/members", get(list_cooperative_members))
         .route("/dimensions", get(get_assigned_dimensions))
         .route(
@@ -140,11 +143,11 @@ async fn get_cooperative_profile(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
     tracing::info!(cooperative_id = %coop.keycloak_id, user_id = %claims.sub, "Cooperative profile viewed");
-    
+
     let mut resp = CooperativeResponse::from(group);
     resp.institution_type = coop.institution_type.map(|t| t.as_str().to_string());
     resp.region = coop.region.map(|r| r.as_str().to_string());
-    
+
     Ok(Json(resp))
 }
 
