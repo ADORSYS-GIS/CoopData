@@ -156,6 +156,21 @@ impl Claims {
             .unwrap_or_default()
     }
 
+    pub fn tier(&self) -> Option<crate::entities::enums::ReviewTier> {
+        use crate::entities::enums::ReviewTier;
+        if self.has_role("ministry") {
+            Some(ReviewTier::Ministry)
+        } else if self.has_role("federation") {
+            Some(ReviewTier::Federation)
+        } else if self.has_role("apex") {
+            Some(ReviewTier::Apex)
+        } else if self.has_role("cooperative") {
+            Some(ReviewTier::Cooperative)
+        } else {
+            None
+        }
+    }
+
     pub fn all_roles(&self) -> Vec<String> {
         let mut roles = Vec::new();
         if let Some(ra) = &self.realm_access {

@@ -1296,7 +1296,13 @@ pub async fn list_submission_reviews(
             "Submission does not belong to your cooperatives".into(),
         ));
     }
-    let reviews = state.review_repo.find_by_submission(id).await?;
+    let caller_tier = claims
+        .tier()
+        .ok_or_else(|| crate::error::AppError::Forbidden("No valid tier role".into()))?;
+    let reviews = state
+        .review_repo
+        .find_by_submission_for_tier(id, caller_tier)
+        .await?;
     let responses: Vec<SubmissionReviewResponse> = reviews
         .into_iter()
         .map(SubmissionReviewResponse::from)

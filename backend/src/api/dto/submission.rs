@@ -144,6 +144,7 @@ pub struct SubmissionReviewResponse {
     pub reviewer_id: Option<Uuid>,
     pub action: String,
     pub comment: Option<String>,
+    pub target_tier: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -156,6 +157,7 @@ impl From<crate::entities::submission_review::Model> for SubmissionReviewRespons
             reviewer_id: m.reviewer_id,
             action: m.action.as_str().to_string(),
             comment: m.comment,
+            target_tier: m.target_tier.map(|t| t.as_str().to_string()),
             created_at: m.created_at,
         }
     }
