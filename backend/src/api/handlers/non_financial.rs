@@ -1,4 +1,3 @@
-use crate::api::dto::ErrorResponse;
 use axum::extract::{Extension, Multipart, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -712,7 +711,7 @@ pub async fn delete_member(
     {
         tracing::error!("Failed to log audit: {}", e);
     }
-    Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
@@ -967,7 +966,7 @@ pub async fn delete_savings_account(
     {
         tracing::error!("Failed to log audit: {}", e);
     }
-    Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
@@ -1253,7 +1252,7 @@ pub async fn delete_loan(
     {
         tracing::error!("Failed to log audit: {}", e);
     }
-    Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
@@ -1515,7 +1514,7 @@ pub async fn delete_fixed_deposit(
     {
         tracing::error!("Failed to log audit: {}", e);
     }
-    Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[cfg(test)]

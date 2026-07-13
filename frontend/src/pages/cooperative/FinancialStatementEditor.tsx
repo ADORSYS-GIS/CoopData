@@ -88,12 +88,12 @@ function ConfidenceBadge({ confidence }: { confidence: number | null }) {
 
 // ── Editor ────────────────────────────────────────────────────────────────────
 
-export const FinancialStatementEditor: React.FC<{ fsId: string; submissionId: string; isDraft: boolean; isCooperative: boolean }> = ({
-  fsId,
-  submissionId,
-  isDraft,
-  isCooperative,
-}) => {
+export const FinancialStatementEditor: React.FC<{
+  fsId: string;
+  submissionId: string;
+  isDraft: boolean;
+  isCooperative: boolean;
+}> = ({ fsId, submissionId, isDraft, isCooperative }) => {
   const navigate = useNavigate();
   const { data: fs } = useFinancialStatement(fsId);
   const { data: items = [], isLoading: itemsLoading } = useLineItems(fsId);

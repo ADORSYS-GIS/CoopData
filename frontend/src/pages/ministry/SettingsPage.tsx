@@ -82,7 +82,7 @@ export const SettingsPage: React.FC = () => {
     toast.success(`${ch} notifications toggled.`);
   };
 
-  const handleGroupClick = (group: typeof GROUPS[0]) => {
+  const handleGroupClick = (group: (typeof GROUPS)[0]) => {
     if (group.id === "indicators") {
       setActiveCategory("indicators");
     } else {
@@ -190,7 +190,9 @@ export const SettingsPage: React.FC = () => {
                       </div>
                     </div>
                     <p className="text-sm font-semibold text-foreground">{n.channel}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{n.count} event types</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {n.count} event types
+                    </p>
                   </button>
                 ))}
               </div>
@@ -201,4 +203,3 @@ export const SettingsPage: React.FC = () => {
     </AppShell>
   );
 };
-

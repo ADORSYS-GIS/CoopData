@@ -9,3 +9,7 @@ ALTER TABLE balance_sheet_line_items
 UPDATE balance_sheet_line_items
 SET raw_label = account_name
 WHERE raw_label IS NULL;
+
+-- Down
+ALTER TABLE balance_sheet_line_items
+    DROP COLUMN IF EXISTS raw_label;

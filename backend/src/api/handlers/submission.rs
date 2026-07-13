@@ -147,35 +147,52 @@ pub async fn list_cooperative_submissions(
     let coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let mut responses = vec![];
-    for sub in state.submission_repo.find_by_cooperative_ids(coop_ids).await? {
-        let sub_id = sub.id;
-        let mut resp = SubmissionResponse::from(sub);
-        // Enrich with financial statement + extraction job ids
-        if let Ok(Some(fs)) = state
-            .financial_statement_repo
-            .find_by_submission(sub_id)
-            .await
-        {
-            let job_id = state
-                .extraction_job_repo
-                .find_by_submission(sub_id)
-                .await
-                .ok()
-                .flatten()
-                .map(|j| j.id);
-            resp = resp.with_fs(Some(fs.id), job_id);
-        }
-        // Enrich with section statuses
-        if let Ok(sections) = state.section_repo.find_by_submission(sub_id).await {
-            let section_resps: Vec<SubmissionSectionResponse> = sections
-                .into_iter()
-                .map(SubmissionSectionResponse::from)
-                .collect();
-            resp = resp.with_sections(section_resps);
-        }
-        responses.push(resp);
+    let subs = state.submission_repo.find_by_cooperative_ids(coop_ids).await?;
+    let sub_ids: Vec<Uuid> = subs.iter().map(|s| s.id).collect();
+
+    // Batch-fetch all enrichment data in 3 queries instead of 3N
+    let fs_list = state
+        .financial_statement_repo
+        .find_by_submission_ids(sub_ids.clone())
+        .await
+        .unwrap_or_default();
+    let fs_map: std::collections::HashMap<Uuid, Uuid> =
+        fs_list.iter().map(|fs| (fs.submission_id, fs.id)).collect();
+
+    let job_list = state
+        .extraction_job_repo
+        .find_by_submission_ids(sub_ids.clone())
+        .await
+        .unwrap_or_default();
+    let job_map: std::collections::HashMap<Uuid, Uuid> =
+        job_list.iter().map(|j| (j.submission_id, j.id)).collect();
+
+    let section_list = state
+        .section_repo
+        .find_by_submission_ids(sub_ids)
+        .await
+        .unwrap_or_default();
+    let mut sections_by_sub: std::collections::HashMap<Uuid, Vec<SubmissionSectionResponse>> =
+        std::collections::HashMap::new();
+    for sec in section_list {
+        sections_by_sub
+            .entry(sec.submission_id)
+            .or_default()
+            .push(SubmissionSectionResponse::from(sec));
     }
+
+    let responses = subs
+        .into_iter()
+        .map(|sub| {
+            let sub_id = sub.id;
+            let fs_id = fs_map.get(&sub_id).copied();
+            let job_id = job_map.get(&sub_id).copied();
+            let sections = sections_by_sub.remove(&sub_id).unwrap_or_default();
+            SubmissionResponse::from(sub)
+                .with_fs(fs_id, job_id)
+                .with_sections(sections)
+        })
+        .collect::<Vec<_>>();
 
     Ok((StatusCode::OK, Json(responses)))
 }
@@ -856,11 +873,14 @@ pub async fn list_ministry_submissions(
         .iter()
         .filter_map(|c| apex_name_map.get(&c.apex_id).map(|name| (c.id, name.clone())))
         .collect();
+    // Build apex_id → federation_id map for O(1) lookups (avoids inner linear scan)
+    let apex_to_fed_id: std::collections::HashMap<Uuid, Uuid> =
+        apexes.iter().map(|a| (a.id, a.federation_id)).collect();
     let coop_to_federation: std::collections::HashMap<Uuid, String> = coops
         .iter()
         .filter_map(|c| {
-            let apex = apexes.iter().find(|a| a.id == c.apex_id)?;
-            fed_name_map.get(&apex.federation_id).map(|name| (c.id, name.clone()))
+            let fed_id = apex_to_fed_id.get(&c.apex_id)?;
+            fed_name_map.get(fed_id).map(|name| (c.id, name.clone()))
         })
         .collect();
 

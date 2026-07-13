@@ -44,7 +44,7 @@ export const useSubmissionEntries = (submissionId: string) =>
         "/api/v1/cooperative/submissions/{id}/non-financial-indicators",
         {
           params: { path: { id: submissionId } },
-        }
+        },
       );
       if (error) throw new Error(extractErrorMessage(error));
       return (data as IndicatorEntryResponse[]) ?? [];
@@ -61,7 +61,7 @@ export const useSaveSubmissionEntries = (submissionId: string) => {
         {
           params: { path: { id: submissionId } },
           body: { entries },
-        }
+        },
       );
       if (error) throw new Error(extractErrorMessage(error));
       return data as IndicatorEntryResponse[];
@@ -70,7 +70,9 @@ export const useSaveSubmissionEntries = (submissionId: string) => {
       // Invalidate entries
       queryClient.invalidateQueries({ queryKey: [SUBMISSION_ENTRIES_KEY, submissionId] });
       // Invalidate sections so the status pills update immediately
-      queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId, "sections"] });
+      queryClient.invalidateQueries({
+        queryKey: ["cooperative-submissions", submissionId, "sections"],
+      });
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId] });
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
     },
@@ -83,7 +85,7 @@ export const useCreateCatalogItem = () => {
     mutationFn: async (body: CreateIndicatorRequest) => {
       const { data, error } = await apiClient.POST(
         "/api/v1/ministry/non-financial-indicators/catalog",
-        { body }
+        { body },
       );
       if (error) throw new Error(extractErrorMessage(error));
       return data as IndicatorCatalogResponse;
@@ -103,7 +105,7 @@ export const useUpdateCatalogItem = () => {
         {
           params: { path: { id } },
           body,
-        }
+        },
       );
       if (error) throw new Error(extractErrorMessage(error));
       return data as IndicatorCatalogResponse;
@@ -122,7 +124,7 @@ export const useDeleteCatalogItem = () => {
         "/api/v1/ministry/non-financial-indicators/catalog/{id}",
         {
           params: { path: { id } },
-        }
+        },
       );
       if (error) throw new Error(extractErrorMessage(error));
     },
@@ -140,7 +142,7 @@ export const useConsolidateIndicator = (indicatorName: string) =>
         "/api/v1/ministry/non-financial-indicators/consolidate",
         {
           params: { query: { indicator_name: indicatorName } },
-        }
+        },
       );
       if (error) throw new Error(extractErrorMessage(error));
       return data as ConsolidationResponse;

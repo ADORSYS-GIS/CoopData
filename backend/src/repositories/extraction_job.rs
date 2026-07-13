@@ -32,6 +32,20 @@ impl ExtractionJobRepository {
             .map_err(Into::into)
     }
 
+    pub async fn find_by_submission_ids(
+        &self,
+        submission_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<extraction_job::Model>> {
+        if submission_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        Entity::find()
+            .filter(Column::SubmissionId.is_in(submission_ids))
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn create(&self, model: ActiveModel) -> AppResult<extraction_job::Model> {
         model.insert(&self.db).await.map_err(Into::into)
     }

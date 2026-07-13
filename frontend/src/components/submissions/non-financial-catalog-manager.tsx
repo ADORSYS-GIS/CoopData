@@ -133,7 +133,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
   const handleDelete = async (id: string, name: string) => {
     if (
       !confirm(
-        `Are you sure you want to delete the indicator "${name}"? This will fail if cooperatives have already submitted entries for it.`
+        `Are you sure you want to delete the indicator "${name}"? This will fail if cooperatives have already submitted entries for it.`,
       )
     ) {
       return;
@@ -162,11 +162,15 @@ export const NonFinancialCatalogManager: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold tracking-tight">Non-Financial Indicator Catalog</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure periodic KPIs (board composition, training, audits) that cooperatives must submit.
+            Configure periodic KPIs (board composition, training, audits) that cooperatives must
+            submit.
           </p>
         </div>
         {!isFormOpen && (
-          <Button onClick={handleOpenCreate} className="flex items-center gap-1.5 self-start sm:self-auto">
+          <Button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-1.5 self-start sm:self-auto"
+          >
             <Plus className="size-4" /> Add Indicator
           </Button>
         )}
@@ -217,10 +221,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
 
               <div className="space-y-1.5">
                 <Label htmlFor="data-type">Data Validation Type</Label>
-                <Select
-                  value={dataType}
-                  onValueChange={(val) => setDataType(val as any)}
-                >
+                <Select value={dataType} onValueChange={(val) => setDataType(val as any)}>
                   <SelectTrigger id="data-type">
                     <SelectValue />
                   </SelectTrigger>
@@ -269,24 +270,18 @@ export const NonFinancialCatalogManager: React.FC = () => {
                   Required Field
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  If toggled, the cooperative cannot finalize their submission without filling this field.
+                  If toggled, the cooperative cannot finalize their submission without filling this
+                  field.
                 </p>
               </div>
-              <Switch
-                id="is-required"
-                checked={isRequired}
-                onCheckedChange={setIsRequired}
-              />
+              <Switch id="is-required" checked={isRequired} onCheckedChange={setIsRequired} />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                 {createMutation.isPending || updateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -359,7 +354,8 @@ export const NonFinancialCatalogManager: React.FC = () => {
           <HelpCircle className="mx-auto h-10 w-10 text-muted-foreground/60 mb-2" />
           <h3 className="text-sm font-semibold">No Indicators Defined</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-            The catalog is currently empty. Click the button above to add the first periodic reporting indicator.
+            The catalog is currently empty. Click the button above to add the first periodic
+            reporting indicator.
           </p>
         </div>
       )}

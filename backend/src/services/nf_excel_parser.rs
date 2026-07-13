@@ -275,49 +275,60 @@ pub struct NfParseWarning {
 fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
     use calamine::{open_workbook_auto_from_rs, Reader};
 
+    tracing::info!(bytes = file_bytes.len(), "Starting non-financial Excel workbook parse");
+
     let mut result = NfParseResult::default();
     let mut workbook = open_workbook_auto_from_rs(std::io::Cursor::new(file_bytes.to_vec()))
         .map_err(|e| AppError::BadRequest(format!("Failed to open Excel file: {}", e)))?;
 
     let sheet_names: Vec<String> = workbook.sheet_names().to_vec();
+    tracing::info!(available_sheets = ?sheet_names, "Opened workbook");
 
     for sheet_name in &sheet_names {
         match sheet_name.as_str() {
             SHEET_MEMBERS => {
                 result.sheets_found.push(SHEET_MEMBERS.to_string());
+                tracing::info!(sheet = SHEET_MEMBERS, "Processing members sheet");
                 if let Ok(range) = workbook.worksheet_range(SHEET_MEMBERS) {
                     parse_members_sheet(&range, &mut result);
                 }
             }
             SHEET_SAVINGS => {
                 result.sheets_found.push(SHEET_SAVINGS.to_string());
+                tracing::info!(sheet = SHEET_SAVINGS, "Processing savings sheet");
                 if let Ok(range) = workbook.worksheet_range(SHEET_SAVINGS) {
                     parse_savings_sheet(&range, &mut result);
                 }
             }
             SHEET_LOANS => {
                 result.sheets_found.push(SHEET_LOANS.to_string());
+                tracing::info!(sheet = SHEET_LOANS, "Processing loans sheet");
                 if let Ok(range) = workbook.worksheet_range(SHEET_LOANS) {
                     parse_loans_sheet(&range, &mut result);
                 }
             }
             SHEET_FIXED_DEPOSITS => {
                 result.sheets_found.push(SHEET_FIXED_DEPOSITS.to_string());
+                tracing::info!(sheet = SHEET_FIXED_DEPOSITS, "Processing fixed deposits sheet");
                 if let Ok(range) = workbook.worksheet_range(SHEET_FIXED_DEPOSITS) {
                     parse_fixed_deposits_sheet(&range, &mut result);
                 }
             }
             SHEET_FARM_COOP => {
                 result.sheets_found.push(SHEET_FARM_COOP.to_string());
+                tracing::info!(sheet = SHEET_FARM_COOP, "Processing farm coop sheet");
                 if let Ok(range) = workbook.worksheet_range(SHEET_FARM_COOP) {
                     parse_farm_coop_sheet(&range, &mut result);
                 }
             }
-            _ => {}
+            other => {
+                tracing::debug!(sheet = other, "Skipping unrecognized sheet");
+            }
         }
     }
 
     if result.sheets_found.is_empty() {
+        tracing::error!(available_sheets = ?sheet_names, "No recognized NF sheets found");
         return Err(AppError::BadRequest(
             "No recognized sheets found. Expected at least one of: NF MSHIP, NF S, NF LOANS, NF FS, NF FARM"
                 .to_string(),
@@ -325,6 +336,18 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
     }
 
     run_cross_table_validations(&mut result);
+
+    tracing::info!(
+        sheets_found = ?result.sheets_found,
+        members = result.members.len(),
+        savings = result.savings_accounts.len(),
+        loans = result.loans.len(),
+        fixed_deposits = result.fixed_deposits.len(),
+        farm_coop = result.farm_coop.len(),
+        errors = result.errors.len(),
+        warnings = result.warnings.len(),
+        "Finished parsing non-financial workbook"
+    );
 
     Ok(result)
 }
@@ -356,6 +379,11 @@ fn build_column_map(
     }
 
     if !missing.is_empty() {
+        tracing::error!(
+            sheet = sheet_name,
+            missing = ?missing,
+            "Missing required columns in sheet"
+        );
         result.errors.push(NfParseError {
             sheet: sheet_name.to_string(),
             row: 0,
@@ -1023,9 +1051,8 @@ fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
         None => return,
     };
 
-    let mut row_index = 0usize;
-    for row in rows {
-        row_index += 1;
+    for (idx, row) in rows.enumerate() {
+        let row_index = idx + 1;
 
         let cooperative_type = get_string_cell(row, *map.get("cooperative_type").unwrap())
             .unwrap_or_default();

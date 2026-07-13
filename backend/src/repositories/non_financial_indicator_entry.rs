@@ -61,7 +61,7 @@ impl NonFinancialIndicatorEntryRepository {
         let mut results = Vec::new();
 
         for mut active in entries {
-            let catalog_id = active.catalog_id.as_ref().clone();
+            let catalog_id = *active.catalog_id.as_ref();
 
             let existing = non_financial_indicator_entry::Entity::find()
                 .filter(NonFinancialIndicatorEntryColumn::SubmissionId.eq(submission_id))
@@ -124,9 +124,9 @@ impl NonFinancialIndicatorEntryRepository {
             .map_err(AppError::DatabaseError)?
             .ok_or_else(|| AppError::NotFound("No data for indicator".into()))?;
 
-        let total_sum: f64 = row.try_get_by_index(0).unwrap_or(0.0);
-        let average: f64 = row.try_get_by_index(1).unwrap_or(0.0);
-        let count: i64 = row.try_get_by_index(2).unwrap_or(0);
+        let total_sum: f64 = row.try_get_by_index(0).map_err(AppError::DatabaseError)?;
+        let average: f64 = row.try_get_by_index(1).map_err(AppError::DatabaseError)?;
+        let count: i64 = row.try_get_by_index(2).map_err(AppError::DatabaseError)?;
 
         let region_sql = "
             SELECT
@@ -151,15 +151,15 @@ impl NonFinancialIndicatorEntryRepository {
             .await
             .map_err(AppError::DatabaseError)?;
 
-        let by_region = region_rows
-            .into_iter()
-            .map(|r| ConsolidationRegionRow {
-                region: r.try_get_by_index(0).unwrap_or_default(),
-                total_sum: r.try_get_by_index(1).unwrap_or(0.0),
-                average: r.try_get_by_index(2).unwrap_or(0.0),
-                count: r.try_get_by_index(3).unwrap_or(0),
-            })
-            .collect();
+        let mut by_region = Vec::new();
+        for r in region_rows {
+            by_region.push(ConsolidationRegionRow {
+                region: r.try_get_by_index(0).map_err(AppError::DatabaseError)?,
+                total_sum: r.try_get_by_index(1).map_err(AppError::DatabaseError)?,
+                average: r.try_get_by_index(2).map_err(AppError::DatabaseError)?,
+                count: r.try_get_by_index(3).map_err(AppError::DatabaseError)?,
+            });
+        }
 
         let type_sql = "
             SELECT
@@ -184,15 +184,15 @@ impl NonFinancialIndicatorEntryRepository {
             .await
             .map_err(AppError::DatabaseError)?;
 
-        let by_coop_type = type_rows
-            .into_iter()
-            .map(|r| ConsolidationCoopTypeRow {
-                coop_type: r.try_get_by_index(0).unwrap_or_default(),
-                total_sum: r.try_get_by_index(1).unwrap_or(0.0),
-                average: r.try_get_by_index(2).unwrap_or(0.0),
-                count: r.try_get_by_index(3).unwrap_or(0),
-            })
-            .collect();
+        let mut by_coop_type = Vec::new();
+        for r in type_rows {
+            by_coop_type.push(ConsolidationCoopTypeRow {
+                coop_type: r.try_get_by_index(0).map_err(AppError::DatabaseError)?,
+                total_sum: r.try_get_by_index(1).map_err(AppError::DatabaseError)?,
+                average: r.try_get_by_index(2).map_err(AppError::DatabaseError)?,
+                count: r.try_get_by_index(3).map_err(AppError::DatabaseError)?,
+            });
+        }
 
         Ok(ConsolidationMetrics {
             indicator_name: indicator_name.to_string(),

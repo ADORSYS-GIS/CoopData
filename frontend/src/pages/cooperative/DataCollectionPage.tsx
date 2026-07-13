@@ -31,11 +31,46 @@ export const DataCollectionPage: React.FC = () => {
   const isReadOnly = false;
 
   const [activeQuestionnaires] = useState([
-    { name: "Quarterly Financial Filing", v: "v4.2", submissions: 412, status: "Live", tone: "success" as const, category: "Financial" },
-    { name: "Annual Compliance Disclosure", v: "v2.1", submissions: 188, status: "Live", tone: "success" as const, category: "Compliance" },
-    { name: "Membership Census 2025", v: "v1.0", submissions: 1204, status: "Live", tone: "success" as const, category: "Census" },
-    { name: "Loan Portfolio Stress Test", v: "v1.3", submissions: 84, status: "Draft", tone: "neutral" as const, category: "Financial" },
-    { name: "Field Audit Visit Form", v: "v3.0", submissions: 642, status: "Live", tone: "success" as const, category: "Audit" },
+    {
+      name: "Quarterly Financial Filing",
+      v: "v4.2",
+      submissions: 412,
+      status: "Live",
+      tone: "success" as const,
+      category: "Financial",
+    },
+    {
+      name: "Annual Compliance Disclosure",
+      v: "v2.1",
+      submissions: 188,
+      status: "Live",
+      tone: "success" as const,
+      category: "Compliance",
+    },
+    {
+      name: "Membership Census 2025",
+      v: "v1.0",
+      submissions: 1204,
+      status: "Live",
+      tone: "success" as const,
+      category: "Census",
+    },
+    {
+      name: "Loan Portfolio Stress Test",
+      v: "v1.3",
+      submissions: 84,
+      status: "Draft",
+      tone: "neutral" as const,
+      category: "Financial",
+    },
+    {
+      name: "Field Audit Visit Form",
+      v: "v3.0",
+      submissions: 642,
+      status: "Live",
+      tone: "success" as const,
+      category: "Audit",
+    },
   ]);
 
   if (!role) return null;
@@ -72,7 +107,9 @@ export const DataCollectionPage: React.FC = () => {
       actions={
         !isReadOnly ? (
           <button
-            onClick={() => toast.success("Simulation: Opened new empty questionnaire draft canvas.")}
+            onClick={() =>
+              toast.success("Simulation: Opened new empty questionnaire draft canvas.")
+            }
             className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 hover:bg-primary/90 transition-colors shadow-sm press-feedback"
           >
             <Plus className="size-4" /> New questionnaire
@@ -96,23 +133,57 @@ export const DataCollectionPage: React.FC = () => {
         )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Wifi} label="Online users" value="412" subtitle="Active field officers" tone="success" />
-          <StatCard icon={WifiOff} label="Offline (queued)" value="38" subtitle="Auto-sync on reconnect" tone="warning" />
-          <StatCard icon={ClipboardList} label="Active questionnaires" value={activeQuestionnaires.length.toString()} subtitle="Published forms" tone="primary" />
-          <StatCard icon={BarChart3} label="Submissions today" value="1,284" subtitle="Incoming data" tone="accent" />
+          <StatCard
+            icon={Wifi}
+            label="Online users"
+            value="412"
+            subtitle="Active field officers"
+            tone="success"
+          />
+          <StatCard
+            icon={WifiOff}
+            label="Offline (queued)"
+            value="38"
+            subtitle="Auto-sync on reconnect"
+            tone="warning"
+          />
+          <StatCard
+            icon={ClipboardList}
+            label="Active questionnaires"
+            value={activeQuestionnaires.length.toString()}
+            subtitle="Published forms"
+            tone="primary"
+          />
+          <StatCard
+            icon={BarChart3}
+            label="Submissions today"
+            value="1,284"
+            subtitle="Incoming data"
+            tone="accent"
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             className="lg:col-span-2"
             title="Form builder — Quarterly Financial Filing"
-            subtitle={isReadOnly ? "Drag actions disabled (View only)" : "Drag fields to compose · Conditional logic · No-code"}
+            subtitle={
+              isReadOnly
+                ? "Drag actions disabled (View only)"
+                : "Drag fields to compose · Conditional logic · No-code"
+            }
             action={
               <div className="flex gap-2">
-                <button onClick={() => toast.info("Form properties panel opened.")} className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors">
+                <button
+                  onClick={() => toast.info("Form properties panel opened.")}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors"
+                >
                   <Settings2 className="size-3.5" /> Settings
                 </button>
-                <button onClick={() => toast.info("Opening form preview modal...")} className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors">
+                <button
+                  onClick={() => toast.info("Opening form preview modal...")}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border border-border px-2.5 py-1.5 hover:bg-muted transition-colors"
+                >
                   <Eye className="size-3.5" /> Preview
                 </button>
               </div>
@@ -131,14 +202,18 @@ export const DataCollectionPage: React.FC = () => {
                 <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Zap className="size-3.5 text-warning-foreground shrink-0" />
-                    <span className="text-sm truncate">Show "Loan provisions" if portfolio &gt; $1M</span>
+                    <span className="text-sm truncate">
+                      Show "Loan provisions" if portfolio &gt; $1M
+                    </span>
                   </div>
                   <ToggleRight className="size-4 text-success shrink-0" />
                 </li>
                 <li className="flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Zap className="size-3.5 text-warning-foreground shrink-0" />
-                    <span className="text-sm truncate">Require audit doc if status = "Verified"</span>
+                    <span className="text-sm truncate">
+                      Require audit doc if status = "Verified"
+                    </span>
                   </div>
                   <ToggleRight className="size-4 text-success shrink-0" />
                 </li>
@@ -147,7 +222,10 @@ export const DataCollectionPage: React.FC = () => {
           </Card>
         </div>
 
-        <Card title="Active templates" subtitle="Currently distributed across the national data grid">
+        <Card
+          title="Active templates"
+          subtitle="Currently distributed across the national data grid"
+        >
           <ul className="divide-y divide-border -my-2">
             {activeQuestionnaires.map((q) => (
               <li
@@ -188,7 +266,10 @@ function FormBuilder({ isReadOnly }: { isReadOnly: boolean }) {
   return (
     <ol className="space-y-2">
       {fields.map((f, i) => (
-        <li key={i} className="group flex items-center gap-3 rounded-xl border border-border bg-background p-3 hover:border-accent/40 transition-all">
+        <li
+          key={i}
+          className="group flex items-center gap-3 rounded-xl border border-border bg-background p-3 hover:border-accent/40 transition-all"
+        >
           <GripVertical className="size-4 text-muted-foreground/30 cursor-grab" />
           <div className="size-8 rounded-lg bg-muted text-foreground grid place-items-center">
             <f.icon className="size-4" />
@@ -198,7 +279,9 @@ function FormBuilder({ isReadOnly }: { isReadOnly: boolean }) {
             <p className="text-[11px] text-muted-foreground">{f.type} field</p>
           </div>
           {f.required && (
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Required</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
+              Required
+            </span>
           )}
         </li>
       ))}
@@ -230,7 +313,9 @@ function Palette({ isReadOnly }: { isReadOnly: boolean }) {
       {types.map((t) => (
         <button
           key={t.label}
-          onClick={() => !isReadOnly && toast.success(`Simulation: "${t.label}" field dragged to canvas.`)}
+          onClick={() =>
+            !isReadOnly && toast.success(`Simulation: "${t.label}" field dragged to canvas.`)
+          }
           disabled={isReadOnly}
           className="flex items-center gap-2 rounded-xl border border-border p-2.5 text-xs font-semibold hover:border-accent hover:bg-accent/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

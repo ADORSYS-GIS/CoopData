@@ -153,10 +153,9 @@ export const useSubmissionReviews = (submissionId: string | undefined) =>
     queryFn: async () => {
       const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const res = await fetch(
-        `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/reviews`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await fetch(`${baseUrl}/api/v1/cooperative/submissions/${submissionId}/reviews`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Failed to fetch reviews (${res.status})`);
       return (await res.json()) as SubmissionReviewResponse[];
     },

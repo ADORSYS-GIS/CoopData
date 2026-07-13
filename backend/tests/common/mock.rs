@@ -123,6 +123,7 @@ pub fn test_config() -> AppConfig {
         ai_api_key: String::new(),
         ai_model: "gpt-4o".to_string(),
         ai_vision_model: "gpt-4o".to_string(),
+        ai_max_tokens: 65536,
         storage_type: "local".to_string(),
         storage_path: "/tmp/coopdata-test-uploads".to_string(),
         s3_endpoint: "http://localhost:9000".to_string(),

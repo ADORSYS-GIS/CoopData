@@ -66,6 +66,9 @@ pub async fn create_catalog_item(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateIndicatorRequest>,
 ) -> AppResult<impl IntoResponse> {
+    if !claims.is_ministry() {
+        return Err(AppError::Forbidden("Ministry role required".into()));
+    }
     if body.indicator_name.trim().is_empty() {
         return Err(AppError::BadRequest("Indicator name is required".into()));
     }
@@ -134,6 +137,9 @@ pub async fn update_catalog_item(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateIndicatorRequest>,
 ) -> AppResult<impl IntoResponse> {
+    if !claims.is_ministry() {
+        return Err(AppError::Forbidden("Ministry role required".into()));
+    }
     let existing = state
         .non_financial_indicator_catalog_repo
         .find_by_id(id)
@@ -192,6 +198,9 @@ pub async fn delete_catalog_item(
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
+    if !claims.is_ministry() {
+        return Err(AppError::Forbidden("Ministry role required".into()));
+    }
     let _existing = state
         .non_financial_indicator_catalog_repo
         .find_by_id(id)

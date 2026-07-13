@@ -33,17 +33,36 @@ export function NfUploadZone({ submissionId, onUploadComplete }: NfUploadZonePro
     setIsDragging(false);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); }, []);
-  const handleDragEnter = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }, []);
-  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }, []);
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
-    const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile) handleFileSelect(droppedFile);
-  }, [handleFileSelect]);
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      const droppedFile = e.dataTransfer.files?.[0];
+      if (droppedFile) handleFileSelect(droppedFile);
+    },
+    [handleFileSelect],
+  );
 
   const handleUpload = async () => {
-    if (!file) { toast.error("Please select an Excel file to upload."); return; }
+    if (!file) {
+      toast.error("Please select an Excel file to upload.");
+      return;
+    }
     try {
       const result = await uploadMutation.mutateAsync({ file, submissionId });
       toast.success(`Upload complete: ${result.rows_imported.members} members imported.`);
@@ -112,11 +131,19 @@ export function NfUploadZone({ submissionId, onUploadComplete }: NfUploadZonePro
           </div>
         )}
 
-        <Button onClick={handleUpload} disabled={!file || uploadMutation.isPending} className="w-full">
+        <Button
+          onClick={handleUpload}
+          disabled={!file || uploadMutation.isPending}
+          className="w-full"
+        >
           {uploadMutation.isPending ? (
-            <><Loader2 className="size-4 animate-spin" /> Uploading & Parsing...</>
+            <>
+              <Loader2 className="size-4 animate-spin" /> Uploading & Parsing...
+            </>
           ) : (
-            <><Upload className="size-4" /> Upload & Parse</>
+            <>
+              <Upload className="size-4" /> Upload & Parse
+            </>
           )}
         </Button>
 

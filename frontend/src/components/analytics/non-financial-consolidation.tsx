@@ -32,9 +32,11 @@ export const NonFinancialConsolidation: React.FC = () => {
   const { data: catalog, isLoading: isLoadingCatalog } = useIndicatorCatalog();
   const [selectedIndicator, setSelectedIndicator] = useState<string>("");
 
-  const { data: metrics, isLoading: isLoadingMetrics, isError } = useConsolidateIndicator(
-    selectedIndicator
-  );
+  const {
+    data: metrics,
+    isLoading: isLoadingMetrics,
+    isError,
+  } = useConsolidateIndicator(selectedIndicator);
 
   const handleIndicatorChange = (value: string) => {
     setSelectedIndicator(value);
@@ -83,7 +85,8 @@ export const NonFinancialConsolidation: React.FC = () => {
           <HelpCircle className="mx-auto h-10 w-10 text-muted-foreground/60 mb-3" />
           <h3 className="text-sm font-semibold">No Indicator Selected</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-            Please choose an indicator from the dropdown above to consolidation-consolidate and visualize data.
+            Please choose an indicator from the dropdown above to consolidation-consolidate and
+            visualize data.
           </p>
         </div>
       )}
@@ -160,7 +163,12 @@ export const NonFinancialConsolidation: React.FC = () => {
                         }}
                       />
                       <Legend />
-                      <Bar dataKey="total_sum" name="Total Sum" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar
+                        dataKey="total_sum"
+                        name="Total Sum"
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      />
                       <Bar dataKey="average" name="Average" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -189,15 +197,10 @@ export const NonFinancialConsolidation: React.FC = () => {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        label={({ name, percent }) =>
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       >
                         {metrics.by_coop_type.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip

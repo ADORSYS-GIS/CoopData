@@ -25,6 +25,7 @@ pub struct AppConfig {
     pub ai_api_key: String,
     pub ai_model: String,        // e.g. gpt-4o, claude-sonnet-4-5
     pub ai_vision_model: String, // model used for image capture (may differ)
+    pub ai_max_tokens: u32,      // max output tokens for LLM calls (default: 65536)
     pub storage_type: String,
     pub storage_path: String,
     pub s3_endpoint: String,
@@ -78,12 +79,16 @@ impl AppConfig {
             ai_api_key: env::var("AI_API_KEY").unwrap_or_default(),
             ai_model: env::var("AI_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
             ai_vision_model: env::var("AI_VISION_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
+            ai_max_tokens: env::var("AI_MAX_TOKENS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(65536),
             storage_type: env::var("STORAGE_TYPE").unwrap_or_else(|_| "local".into()),
             storage_path: env::var("STORAGE_PATH").unwrap_or_else(|_| "./uploads".into()),
             s3_endpoint: env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".into()),
             s3_bucket: env::var("S3_BUCKET").unwrap_or_else(|_| "coopdata".into()),
-            s3_access_key: env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".into()),
-            s3_secret_key: env::var("S3_SECRET_KEY").unwrap_or_else(|_| "minioadmin".into()),
+            s3_access_key: env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".into()), // Dev only
+            s3_secret_key: env::var("S3_SECRET_KEY").unwrap_or_else(|_| "minioadmin".into()), // Dev only
             s3_region: env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".into()),
         })
     }
@@ -141,6 +146,7 @@ mod tests {
             ai_api_key: String::new(),
             ai_model: "gpt-4o".into(),
             ai_vision_model: "gpt-4o".into(),
+            ai_max_tokens: 65536,
             storage_type: "local".into(),
             storage_path: "/tmp/coopdata-uploads".into(),
             s3_endpoint: "http://localhost:9000".into(),

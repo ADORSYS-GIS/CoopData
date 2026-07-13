@@ -28,17 +28,14 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
 }) => {
   const { data: profile } = useMyCooperativeProfile();
   const { data: catalog, isLoading: isLoadingCatalog } = useIndicatorCatalog(
-    profile?.institution_type || undefined
+    profile?.institution_type || undefined,
   );
   const { data: entries, isLoading: isLoadingEntries } = useSubmissionEntries(submissionId);
   const saveMutation = useSaveSubmissionEntries(submissionId);
 
   // Form state maps catalog ID to its corresponding value object
   const [formValues, setFormValues] = useState<
-    Record<
-      string,
-      { value_numeric?: number; value_text?: string; value_boolean?: boolean }
-    >
+    Record<string, { value_numeric?: number; value_text?: string; value_boolean?: boolean }>
   >({});
 
   // Populate form state when data loaded
@@ -69,7 +66,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
   const handleChange = (
     catalogId: string,
     key: "value_numeric" | "value_text" | "value_boolean",
-    val: any
+    val: any,
   ) => {
     setFormValues((prev) => ({
       ...prev,
@@ -134,7 +131,8 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
         <HelpCircle className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
         <p className="text-sm font-medium">No custom indicators found for your cooperative type.</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Ministry officials have not defined any periodic requirements for {profile?.institution_type || "your cooperative type"}.
+          Ministry officials have not defined any periodic requirements for{" "}
+          {profile?.institution_type || "your cooperative type"}.
         </p>
       </div>
     );
@@ -181,12 +179,13 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
                         value={val.value_numeric !== undefined ? val.value_numeric : ""}
                         disabled={isReadOnly}
                         onChange={(e) => {
-                          const num = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                          const num =
+                            e.target.value === "" ? undefined : parseFloat(e.target.value);
                           handleChange(item.id, "value_numeric", num);
                         }}
                         className={cn(
                           "w-full transition-colors focus-visible:ring-1",
-                          isFieldRequired && val.value_numeric === undefined && "border-warning"
+                          isFieldRequired && val.value_numeric === undefined && "border-warning",
                         )}
                       />
                     </div>
@@ -202,7 +201,9 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
                         onChange={(e) => handleChange(item.id, "value_text", e.target.value)}
                         className={cn(
                           "w-full transition-colors focus-visible:ring-1 resize-none",
-                          isFieldRequired && (!val.value_text || val.value_text.trim() === "") && "border-warning"
+                          isFieldRequired &&
+                            (!val.value_text || val.value_text.trim() === "") &&
+                            "border-warning",
                         )}
                       />
                     </div>
@@ -210,14 +211,19 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
 
                   {item.data_type === "Boolean" && (
                     <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-dashed">
-                      <Label htmlFor={`switch-${item.id}`} className="text-xs text-muted-foreground font-normal cursor-pointer">
+                      <Label
+                        htmlFor={`switch-${item.id}`}
+                        className="text-xs text-muted-foreground font-normal cursor-pointer"
+                      >
                         {val.value_boolean ? "Yes / Confirmed" : "No / Unconfirmed"}
                       </Label>
                       <Switch
                         id={`switch-${item.id}`}
                         checked={val.value_boolean || false}
                         disabled={isReadOnly}
-                        onCheckedChange={(checked) => handleChange(item.id, "value_boolean", checked)}
+                        onCheckedChange={(checked) =>
+                          handleChange(item.id, "value_boolean", checked)
+                        }
                         className="data-[state=checked]:bg-primary"
                       />
                     </div>
@@ -254,7 +260,8 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
           <Alert className="bg-muted/40 border border-muted-foreground/10 mt-4">
             <Info className="h-4 w-4 text-muted-foreground" />
             <AlertDescription className="text-xs text-muted-foreground">
-              These indicator fields are read-only because the submission has already been finalized or you are accessing this from a supervisor role.
+              These indicator fields are read-only because the submission has already been finalized
+              or you are accessing this from a supervisor role.
             </AlertDescription>
           </Alert>
         )}

@@ -39,6 +39,21 @@ impl SubmissionSectionRepository {
             .map_err(Into::into)
     }
 
+    pub async fn find_by_submission_ids(
+        &self,
+        submission_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<submission_section::Model>> {
+        if submission_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        Entity::find()
+            .filter(Column::SubmissionId.is_in(submission_ids))
+            .order_by_asc(Column::Section)
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn find_by_submission_and_section(
         &self,
         submission_id: Uuid,

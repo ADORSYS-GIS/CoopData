@@ -338,16 +338,24 @@ pub struct LlmExtractor {
     provider_url: String,
     model: String,
     vision_model: String,
+    max_tokens: u32,
 }
 
 impl LlmExtractor {
-    pub fn new(api_key: &str, provider_url: &str, model: &str, vision_model: &str) -> Self {
+    pub fn new(
+        api_key: &str,
+        provider_url: &str,
+        model: &str,
+        vision_model: &str,
+        max_tokens: u32,
+    ) -> Self {
         Self {
             client: reqwest::Client::new(),
             api_key: api_key.to_string(),
             provider_url: provider_url.trim_end_matches('/').to_string(),
             model: model.to_string(),
             vision_model: vision_model.to_string(),
+            max_tokens,
         }
     }
 
@@ -358,14 +366,14 @@ impl LlmExtractor {
             "model": model,
             "messages": [{ "role": "user", "content": prompt }],
             "temperature": 0,
-            "max_tokens": 65536
+            "max_tokens": self.max_tokens
         });
 
         tracing::info!(
             model = model,
             url = %url,
             prompt_chars = prompt.len(),
-            max_tokens = 65536,
+            max_tokens = self.max_tokens,
             "=== LLM CHAT REQUEST ==="
         );
         tracing::info!("=== LLM PROMPT START ===\n{prompt}\n=== LLM PROMPT END ===");
@@ -421,6 +429,16 @@ impl LlmExtractor {
 
     /// Call vision API for image files — sends base64 image content.
     async fn vision_capture(&self, file_bytes: &[u8], mime_type: &str) -> AppResult<String> {
+        const ALLOWED_MIME_TYPES: &[&str] =
+            &["image/png", "image/jpeg", "image/jpg", "image/tiff"];
+        if !ALLOWED_MIME_TYPES.contains(&mime_type) {
+            return Err(AppError::BadRequest(format!(
+                "Unsupported image MIME type for vision extraction: '{}'. \
+                 Allowed types: {}",
+                mime_type,
+                ALLOWED_MIME_TYPES.join(", ")
+            )));
+        }
         let b64 = image_to_base64(file_bytes);
         let url = format!("{}/chat/completions", self.provider_url);
         let data_url = format!("data:{mime_type};base64,{b64}");
@@ -465,7 +483,7 @@ impl LlmExtractor {
                 ]
             }],
             "temperature": 0,
-            "max_tokens": 65536
+            "max_tokens": self.max_tokens
         });
 
         tracing::info!(
@@ -473,7 +491,7 @@ impl LlmExtractor {
             url = %url,
             mime_type = mime_type,
             image_bytes = file_bytes.len(),
-            max_tokens = 65536,
+            max_tokens = self.max_tokens,
             "=== VISION API REQUEST ==="
         );
         tracing::info!("=== VISION PROMPT START ===\n{vision_prompt}\n=== VISION PROMPT END ===");
@@ -615,8 +633,14 @@ impl FinancialStatementExtractor for LlmExtractor {
         );
         match mime_type {
             "application/pdf" => {
-                // Try native text extraction first; fall back to vision for scanned PDFs
-                match extract_pdf_text(file_bytes) {
+                // Offload synchronous PDF parsing to a blocking thread
+                let bytes = file_bytes.to_vec();
+                let text_result = tokio::task::spawn_blocking(move || extract_pdf_text(&bytes))
+                    .await
+                    .map_err(|e| {
+                        AppError::InternalServerError(format!("PDF thread join error: {e}"))
+                    })?;
+                match text_result {
                     Ok(text) => {
                         tracing::info!(chars = text.len(), "=== PDF TEXT EXTRACTED NATIVELY ===");
                         tracing::info!("=== PDF TEXT START ===\n{text}\n=== PDF TEXT END ===");
@@ -634,7 +658,14 @@ impl FinancialStatementExtractor for LlmExtractor {
             }
             m if m.contains("spreadsheet") || m.contains("excel") || m.ends_with(".xls") => {
                 tracing::info!("=== EXCEL FILE — EXTRACTING WITH CALAMINE ===");
-                let text = extract_excel_text(file_bytes)?;
+                // Offload synchronous Excel parsing to a blocking thread
+                let bytes = file_bytes.to_vec();
+                let text = tokio::task::spawn_blocking(move || extract_excel_text(&bytes))
+                    .await
+                    .map_err(|e| {
+                        AppError::InternalServerError(format!("Excel thread join error: {e}"))
+                    })?
+                    ?;
                 tracing::info!(chars = text.len(), "=== EXCEL TEXT EXTRACTED ===");
                 tracing::info!("=== EXCEL TEXT START ===\n{text}\n=== EXCEL TEXT END ===");
                 Ok(text)
@@ -644,7 +675,13 @@ impl FinancialStatementExtractor for LlmExtractor {
                     mime = other,
                     "=== UNKNOWN MIME, ATTEMPTING PDF EXTRACTION ==="
                 );
-                extract_pdf_text(file_bytes)
+                // Offload synchronous PDF parsing to a blocking thread
+                let bytes = file_bytes.to_vec();
+                tokio::task::spawn_blocking(move || extract_pdf_text(&bytes))
+                    .await
+                    .map_err(|e| {
+                        AppError::InternalServerError(format!("PDF thread join error: {e}"))
+                    })?
             }
         }
     }
@@ -978,7 +1015,7 @@ pub fn create_extractor(
     if config.extraction_backend == "llm" {
         if config.ai_api_key.is_empty() {
             tracing::warn!(
-                "EXTRACTION_BACKEND=llm but AI_API_KEY is not set — falling back to mock"
+                "EXTRACTION_BACKEND=llm but AI_API_KEY is not set — falling back to mock extractor"
             );
             return std::sync::Arc::new(MockExtractor);
         }
@@ -986,6 +1023,7 @@ pub fn create_extractor(
             model = config.ai_model,
             vision_model = config.ai_vision_model,
             provider = config.ai_provider_url,
+            max_tokens = config.ai_max_tokens,
             "Using LLM extractor"
         );
         std::sync::Arc::new(LlmExtractor::new(
@@ -993,6 +1031,7 @@ pub fn create_extractor(
             &config.ai_provider_url,
             &config.ai_model,
             &config.ai_vision_model,
+            config.ai_max_tokens,
         ))
     } else {
         tracing::info!("Using mock extractor (set EXTRACTION_BACKEND=llm to enable real AI)");

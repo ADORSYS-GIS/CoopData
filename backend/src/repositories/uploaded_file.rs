@@ -2,7 +2,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 use uuid::Uuid;
 
 use crate::entities::uploaded_file::{self, ActiveModel, Column, Entity};
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
 
 #[derive(Clone)]
 pub struct UploadedFileRepository {

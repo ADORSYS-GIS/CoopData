@@ -2,3 +2,8 @@
 ALTER TABLE savings_accounts ADD CONSTRAINT uq_savings_account_coop_id UNIQUE (cooperative_id, savings_account_id);
 ALTER TABLE loans ADD CONSTRAINT uq_loans_coop_id UNIQUE (cooperative_id, loan_id);
 ALTER TABLE fixed_deposits ADD CONSTRAINT uq_fd_coop_id UNIQUE (cooperative_id, fixed_deposit_id);
+
+-- Down
+ALTER TABLE savings_accounts DROP CONSTRAINT IF EXISTS uq_savings_account_coop_id;
+ALTER TABLE loans DROP CONSTRAINT IF EXISTS uq_loans_coop_id;
+ALTER TABLE fixed_deposits DROP CONSTRAINT IF EXISTS uq_fd_coop_id;
