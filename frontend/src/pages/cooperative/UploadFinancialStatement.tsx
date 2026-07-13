@@ -80,7 +80,16 @@ export const UploadFinancialStatementWidget: React.FC<{
         navigate({ to: "/app/submissions/$id", params: { id: job.submission_id } });
       }
     }
-  }, [isTerminal, job?.status, extractionFinished, submissionId, queryClient, onExtractionComplete, navigate, job?.submission_id]);
+  }, [
+    isTerminal,
+    job?.status,
+    extractionFinished,
+    submissionId,
+    queryClient,
+    onExtractionComplete,
+    navigate,
+    job?.submission_id,
+  ]);
 
   return (
     <div className="space-y-4">

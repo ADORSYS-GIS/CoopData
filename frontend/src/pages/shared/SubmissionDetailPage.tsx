@@ -119,7 +119,10 @@ const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
 
   useEffect(() => {
     let cancelled = false;
-    setBlobUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setBlobUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setLoading(true);
     setError(false);
     setZoom(1);
@@ -141,12 +144,16 @@ const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [src]);
 
   // Cleanup blob URL on unmount
   useEffect(() => {
-    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
   }, [blobUrl]);
 
   const clampZoom = (z: number) => Math.min(4, Math.max(0.25, z));
@@ -173,9 +180,14 @@ const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
 
   const zoomIn = () => setZoom((z) => clampZoom(z + 0.25));
   const zoomOut = () => setZoom((z) => clampZoom(z - 0.25));
-  const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
 
-  const openInTab = () => { if (blobUrl) window.open(blobUrl, "_blank"); };
+  const openInTab = () => {
+    if (blobUrl) window.open(blobUrl, "_blank");
+  };
 
   if (loading) {
     return (
@@ -261,7 +273,11 @@ const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
         <div
           ref={containerRef}
           className="relative overflow-hidden bg-[#1e1e1e]"
-          style={{ height: "72vh", minHeight: 480, cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default" }}
+          style={{
+            height: "72vh",
+            minHeight: 480,
+            cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default",
+          }}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}

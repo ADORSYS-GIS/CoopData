@@ -169,8 +169,10 @@ pub async fn list_cooperative_submissions(
         .unwrap_or_default();
     let job_map: std::collections::HashMap<Uuid, Uuid> =
         job_list.iter().map(|j| (j.submission_id, j.id)).collect();
-    let file_map: std::collections::HashMap<Uuid, Uuid> =
-        job_list.iter().map(|j| (j.submission_id, j.source_file_id)).collect();
+    let file_map: std::collections::HashMap<Uuid, Uuid> = job_list
+        .iter()
+        .map(|j| (j.submission_id, j.source_file_id))
+        .collect();
 
     let section_list = state
         .section_repo
@@ -501,7 +503,12 @@ pub async fn get_submission_as_apex(
         resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
-        resp = resp.with_sections(sections.into_iter().map(SubmissionSectionResponse::from).collect());
+        resp = resp.with_sections(
+            sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect(),
+        );
     }
     Ok((StatusCode::OK, Json(resp)))
 }
@@ -564,7 +571,12 @@ pub async fn get_submission_as_federation(
         resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
-        resp = resp.with_sections(sections.into_iter().map(SubmissionSectionResponse::from).collect());
+        resp = resp.with_sections(
+            sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect(),
+        );
     }
     Ok((StatusCode::OK, Json(resp)))
 }
@@ -602,7 +614,12 @@ pub async fn get_submission_as_ministry(
         resp = resp.with_fs(Some(fs.id), job_id, file_id);
     }
     if let Ok(sections) = state.section_repo.find_by_submission(id).await {
-        resp = resp.with_sections(sections.into_iter().map(SubmissionSectionResponse::from).collect());
+        resp = resp.with_sections(
+            sections
+                .into_iter()
+                .map(SubmissionSectionResponse::from)
+                .collect(),
+        );
     }
     Ok((StatusCode::OK, Json(resp)))
 }

@@ -319,7 +319,9 @@ pub async fn serve_uploaded_file(
         ));
     }
     let bytes = state.storage.retrieve(&file.storage_key).await?;
-    let mime = file.mime_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    let mime = file
+        .mime_type
+        .unwrap_or_else(|| "application/octet-stream".to_string());
     let filename = file.original_name;
 
     Ok(Response::builder()
