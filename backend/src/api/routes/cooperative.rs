@@ -18,7 +18,9 @@ use crate::api::handlers::submission::{
     list_submission_reviews, list_submission_sections, submit_submission,
     update_submission_section, validate_extraction,
 };
-use crate::api::handlers::upload::{delete_financial_statement, serve_uploaded_file, upload_financial_statement};
+use crate::api::handlers::upload::{
+    delete_financial_statement, serve_uploaded_file, upload_financial_statement,
+};
 use crate::auth::claims::Claims;
 
 use crate::error::AppResult;
