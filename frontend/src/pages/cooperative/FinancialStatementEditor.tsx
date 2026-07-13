@@ -12,7 +12,6 @@ import {
   CircleDot,
   CircleDashed,
   Trash2,
-  UploadCloud,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
@@ -24,7 +23,7 @@ import {
   useSubmitSubmission,
   type LineItemResponse,
 } from "@/hooks/submissions/useFinancialStatement";
-import { useDeleteSubmission, useDeleteFinancialStatement } from "@/hooks/submissions/useSubmissions";
+import { useDeleteSubmission } from "@/hooks/submissions/useSubmissions";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -104,7 +103,6 @@ export const FinancialStatementEditor: React.FC<{
   const { data: sections = [] } = useSubmissionSections(submissionId);
   const updateSection = useUpdateSubmissionSection(submissionId);
   const deleteSubmission = useDeleteSubmission();
-  const deleteFinancialStatement = useDeleteFinancialStatement();
 
   // Inline value editing
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
@@ -176,21 +174,6 @@ export const FinancialStatementEditor: React.FC<{
       navigate({ to: "/app/submissions" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Submit failed");
-    }
-  };
-
-  const handleRemoveFile = async () => {
-    if (
-      !window.confirm(
-        "Remove the uploaded file and extracted data? The draft submission will be kept so you can re-upload a corrected file.",
-      )
-    )
-      return;
-    try {
-      await deleteFinancialStatement.mutateAsync(submissionId);
-      toast.success("File removed — you can now upload a new one");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to remove file");
     }
   };
 
@@ -333,21 +316,6 @@ export const FinancialStatementEditor: React.FC<{
               <Send className="size-4" />
             )}
             Submit to Apex
-          </button>
-        )}
-        {isDraft && (
-          <button
-            onClick={handleRemoveFile}
-            disabled={deleteFinancialStatement.isPending}
-            title="Remove the uploaded file and extracted data so you can re-upload a corrected version"
-            className="inline-flex items-center gap-2 rounded-lg border border-warning/40 px-4 py-2 text-sm font-semibold text-warning-foreground hover:bg-warning/10 disabled:opacity-50 transition-colors"
-          >
-            {deleteFinancialStatement.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <UploadCloud className="size-4" />
-            )}
-            Re-upload File
           </button>
         )}
         {isDraft && (

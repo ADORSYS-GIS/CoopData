@@ -24,6 +24,7 @@ import {
   useSubmission,
   useDeleteSubmission,
   useSubmissionReviews,
+  useDeleteFinancialStatement,
 } from "@/hooks/submissions/useSubmissions";
 import {
   useApexApprove,
@@ -297,6 +298,43 @@ const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// ── Delete File Button ────────────────────────────────────────────────────────
+
+const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
+  const deleteFs = useDeleteFinancialStatement();
+
+  const handleClick = async () => {
+    if (
+      !window.confirm(
+        "Remove this file and its extracted data? The draft is kept — you can upload a corrected file right after.",
+      )
+    )
+      return;
+    try {
+      await deleteFs.mutateAsync(submissionId);
+      toast.success("File removed — upload a new one to replace it");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove file");
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={deleteFs.isPending}
+      title="Remove file and re-upload a corrected version"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+    >
+      {deleteFs.isPending ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <Trash2 className="size-3.5" />
+      )}
+      Remove &amp; Re-upload
+    </button>
   );
 };
 
@@ -620,7 +658,15 @@ export const SubmissionDetailPage: React.FC = () => {
 
             <TabsContent value="financial" className="space-y-4">
               {submission.file_id && (
-                <Card title="Uploaded Document" subtitle="Original financial statement file">
+                <Card
+                  title="Uploaded Document"
+                  subtitle="Original financial statement file"
+                  action={
+                    isDraft && isCooperative ? (
+                      <DeleteFileButton submissionId={submission.id} />
+                    ) : undefined
+                  }
+                >
                   <DocumentViewer
                     src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${submission.file_id}`}
                   />
