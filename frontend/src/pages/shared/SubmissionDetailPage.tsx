@@ -367,7 +367,7 @@ export const SubmissionDetailPage: React.FC = () => {
             )}
 
           {reviews && reviews.length > 0 && (
-            <Card title="Review History" subtitle="Comments and actions from all review tiers">
+            <Card title="Review History" subtitle="Actions recorded for this submission">
               <div className="space-y-3">
                 {reviews.map((r) => (
                   <div
