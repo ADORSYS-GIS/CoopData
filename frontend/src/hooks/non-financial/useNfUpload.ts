@@ -40,8 +40,26 @@ export const useNfUpload = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: uploadFile,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [NF_KEY] });
+    onSuccess: (_data, vars) => {
+      // Invalidate all 5 non-financial data caches so tables refresh immediately
+      for (const key of [
+        "non-financial-members",
+        "non-financial-savings",
+        "non-financial-loans",
+        "non-financial-fixed-deposits",
+        "non-financial-farm-coop",
+        "non-financial",
+      ]) {
+        void queryClient.invalidateQueries({ queryKey: [key] });
+      }
+      // Also refresh submission sections so status pills update
+      void queryClient.invalidateQueries({
+        queryKey: ["cooperative-submissions", vars.submissionId, "sections"],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["cooperative-submissions", vars.submissionId],
+      });
     },
   });
 };

@@ -14,6 +14,7 @@ use axum::{
 };
 
 use crate::api::handlers;
+use crate::api::handlers::upload::serve_uploaded_file;
 use crate::AppState;
 
 /// Creates the Federation routes router.
@@ -91,5 +92,9 @@ pub fn federation_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/return",
             post(handlers::submission::federation_return_submission),
+        )
+        .route(
+            "/submissions/{submission_id}/files/{file_id}",
+            get(serve_uploaded_file),
         )
 }

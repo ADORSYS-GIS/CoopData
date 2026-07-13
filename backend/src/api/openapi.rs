@@ -101,6 +101,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::submission::ministry_approve_submission,
         api_module::handlers::submission::ministry_reject_submission,
         api_module::handlers::upload::upload_financial_statement,
+        api_module::handlers::upload::delete_financial_statement,
         api_module::handlers::extraction::get_extraction_job,
         api_module::handlers::financial_statement::get_financial_statement,
         api_module::handlers::financial_statement::list_line_items,

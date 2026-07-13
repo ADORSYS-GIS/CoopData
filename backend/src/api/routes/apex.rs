@@ -12,6 +12,7 @@ use axum::routing::{delete, get, post};
 use axum::Router;
 
 use crate::api::handlers;
+use crate::api::handlers::upload::serve_uploaded_file;
 use crate::AppState;
 
 pub fn apex_routes() -> Router<AppState> {
@@ -78,5 +79,9 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/flags",
             get(handlers::submission::get_submission_flags),
+        )
+        .route(
+            "/submissions/{submission_id}/files/{file_id}",
+            get(serve_uploaded_file),
         )
 }

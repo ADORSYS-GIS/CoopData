@@ -62,6 +62,8 @@ pub struct SubmissionResponse {
     pub financial_statement_id: Option<Uuid>,
     /// Extraction job ID, present after upload
     pub extraction_job_id: Option<Uuid>,
+    /// Uploaded file ID, present after upload
+    pub file_id: Option<Uuid>,
     /// Per-section readiness statuses
     pub sections: Vec<SubmissionSectionResponse>,
     /// Cooperative display name (populated by list handlers for apex/federation/ministry)
@@ -91,6 +93,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             updated_at: m.updated_at,
             financial_statement_id: None,
             extraction_job_id: None,
+            file_id: None,
             sections: Vec::new(),
             cooperative_name: None,
             apex_name: None,
@@ -100,9 +103,15 @@ impl From<SubmissionModel> for SubmissionResponse {
 }
 
 impl SubmissionResponse {
-    pub fn with_fs(mut self, fs_id: Option<Uuid>, job_id: Option<Uuid>) -> Self {
+    pub fn with_fs(
+        mut self,
+        fs_id: Option<Uuid>,
+        job_id: Option<Uuid>,
+        file_id: Option<Uuid>,
+    ) -> Self {
         self.financial_statement_id = fs_id;
         self.extraction_job_id = job_id;
+        self.file_id = file_id;
         self
     }
 

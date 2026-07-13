@@ -50,6 +50,14 @@ impl FinancialStatementRepository {
         model.insert(&self.db).await.map_err(Into::into)
     }
 
+    pub async fn delete(&self, id: Uuid) -> AppResult<()> {
+        Entity::delete_by_id(id)
+            .exec(&self.db)
+            .await
+            .map(|_| ())
+            .map_err(Into::into)
+    }
+
     pub async fn set_validation_errors(
         &self,
         id: Uuid,

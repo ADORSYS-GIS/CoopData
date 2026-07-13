@@ -134,6 +134,26 @@ export const useDeleteSubmission = () => {
   });
 };
 
+export const useDeleteFinancialStatement = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (submissionId: string) => {
+      const { error } = await apiClient.DELETE(
+        "/api/v1/cooperative/submissions/{id}/financial-statement",
+        { params: { path: { id: submissionId } } },
+      );
+      if (error) throw new Error(extractErrorMessage(error));
+    },
+    onSuccess: (_data, submissionId) => {
+      // Invalidate the submission and its financial data so the upload form re-appears
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, submissionId] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["financial-statement"] });
+      queryClient.invalidateQueries({ queryKey: ["extraction-job"] });
+    },
+  });
+};
+
 // ── Submission Reviews (review history / comments) ─────────────────────────────
 
 export interface SubmissionReviewResponse {

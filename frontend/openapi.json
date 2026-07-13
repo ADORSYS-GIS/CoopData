@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "CoopData API",
-    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry \u2192 Federation \u2192 Apex \u2192 Cooperative)",
+    "description": "Cooperative Data Management Platform API with RBAC hierarchy (Ministry → Federation → Apex → Cooperative)",
     "contact": {
       "name": "CoopData Team",
       "email": "support@coopdata.org"
@@ -674,6 +674,29 @@
         }
       }
     },
+    "/api/v1/apex/stats": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "get_apex_stats",
+        "responses": {
+          "200": {
+            "description": "Apex dashboard stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApexStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/apex/submissions": {
       "get": {
         "tags": [
@@ -696,6 +719,44 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "get_submission_as_apex",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — submission does not belong to your apex"
+          },
+          "404": {
+            "description": "Submission not found"
           }
         }
       }
@@ -890,13 +951,13 @@
             "description": "Invalid input or unsupported file type"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden or submission not owned by cooperative"
           },
           "404": {
-            "description": "Cooperative profile not found"
+            "description": "Cooperative profile or submission not found"
           },
           "409": {
-            "description": "Submission already exists for this year"
+            "description": "Submission already exists for this year or not in draft"
           }
         }
       }
@@ -2134,6 +2195,29 @@
         }
       }
     },
+    "/api/v1/cooperative/stats": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_cooperative_stats",
+        "responses": {
+          "200": {
+            "description": "Cooperative dashboard stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CooperativeStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/submissions": {
       "get": {
         "tags": [
@@ -2262,10 +2346,49 @@
             "description": "Submission deleted"
           },
           "403": {
-            "description": "Forbidden \u2014 not your cooperative or submission not in draft"
+            "description": "Forbidden — not your cooperative"
           },
           "404": {
             "description": "Submission not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/financial-statement": {
+      "delete": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "delete_financial_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Financial statement and uploaded file deleted; submission preserved"
+          },
+          "400": {
+            "description": "Submission is not in draft status"
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission, financial statement, or file not found"
           }
         },
         "security": [
@@ -2361,6 +2484,61 @@
           },
           "404": {
             "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/reviews": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "operationId": "list_submission_reviews",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of review actions for the submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionReviewResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3159,6 +3337,44 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/federation/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "get_submission_as_federation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — submission does not belong to your federation"
+          },
+          "404": {
+            "description": "Submission not found"
           }
         }
       }
@@ -4215,6 +4431,41 @@
         }
       }
     },
+    "/api/v1/ministry/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "get_submission_as_ministry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
     "/api/v1/ministry/submissions/{id}/approve": {
       "post": {
         "tags": [
@@ -4836,162 +5087,6 @@
           }
         }
       }
-    },
-    "/api/v1/apex/submissions/{id}": {
-      "get": {
-        "tags": [
-          "Apex"
-        ],
-        "operationId": "get_submission_as_apex",
-        "summary": "Get a single submission as apex (verifies ownership)",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Submission ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Submission details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmissionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - submission does not belong to apex cooperatives"
-          },
-          "404": {
-            "description": "Submission not found"
-          }
-        }
-      }
-    },
-    "/api/v1/federation/submissions/{id}": {
-      "get": {
-        "operationId": "get_submission_as_federation",
-        "tags": [
-          "Federation"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Submission found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmissionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Submission not found"
-          }
-        }
-      }
-    },
-    "/api/v1/ministry/submissions/{id}": {
-      "get": {
-        "operationId": "get_submission_as_ministry",
-        "tags": [
-          "Ministry"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Submission found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmissionResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Submission not found"
-          }
-        }
-      }
-    },
-    "/api/v1/apex/stats": {
-      "get": {
-        "operationId": "get_apex_stats",
-        "tags": [
-          "Apex"
-        ],
-        "responses": {
-          "200": {
-            "description": "Apex dashboard stats",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApexStatsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          }
-        }
-      }
-    },
-    "/api/v1/cooperative/stats": {
-      "get": {
-        "operationId": "get_cooperative_stats",
-        "tags": [
-          "Cooperative"
-        ],
-        "responses": {
-          "200": {
-            "description": "Cooperative dashboard stats",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CooperativeStatsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          }
-        }
-      }
     }
   },
   "components": {
@@ -5109,6 +5204,37 @@
             "items": {
               "$ref": "#/components/schemas/CooperativeBriefResponse"
             }
+          }
+        }
+      },
+      "ApexStatsResponse": {
+        "type": "object",
+        "required": [
+          "total_cooperatives",
+          "pending_submissions",
+          "approved_submissions",
+          "rejected_submissions"
+        ],
+        "properties": {
+          "approved_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pending_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rejected_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_cooperatives": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -5497,6 +5623,43 @@
           "region": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "CooperativeStatsResponse": {
+        "type": "object",
+        "required": [
+          "total_submissions",
+          "draft_submissions",
+          "pending_submissions",
+          "approved_submissions",
+          "rejected_submissions"
+        ],
+        "properties": {
+          "approved_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "draft_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pending_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rejected_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_submissions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -6255,7 +6418,7 @@
           "confidence": {
             "type": "number",
             "format": "double",
-            "description": "Overall extraction confidence (0.0\u20131.0)",
+            "description": "Overall extraction confidence (0.0–1.0)",
             "nullable": true
           },
           "created_at": {
@@ -6772,7 +6935,7 @@
           },
           "status": {
             "type": "string",
-            "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" \u2014 from Keycloak 26",
+            "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" — from Keycloak 26",
             "nullable": true
           }
         }
@@ -6823,7 +6986,7 @@
           "ai_confidence": {
             "type": "number",
             "format": "double",
-            "description": "AI extraction confidence (0.0\u20131.0)",
+            "description": "AI extraction confidence (0.0–1.0)",
             "nullable": true
           },
           "ai_flagged": {
@@ -7998,9 +8161,19 @@
           "sections"
         ],
         "properties": {
+          "apex_name": {
+            "type": "string",
+            "description": "Apex display name (populated by list handlers for federation/ministry)",
+            "nullable": true
+          },
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "cooperative_name": {
+            "type": "string",
+            "description": "Cooperative display name (populated by list handlers for apex/federation/ministry)",
+            "nullable": true
           },
           "created_at": {
             "type": "string",
@@ -8013,6 +8186,17 @@
             "type": "string",
             "format": "uuid",
             "description": "Extraction job ID, present after upload",
+            "nullable": true
+          },
+          "federation_name": {
+            "type": "string",
+            "description": "Federation display name (populated by list handlers for ministry)",
+            "nullable": true
+          },
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Uploaded file ID, present after upload",
             "nullable": true
           },
           "financial_statement_id": {
@@ -8059,21 +8243,49 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "SubmissionReviewResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "tier",
+          "action",
+          "created_at"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
           },
-          "apex_name": {
+          "comment": {
             "type": "string",
-            "description": "Apex display name (populated by list handlers for federation/ministry)",
             "nullable": true
           },
-          "cooperative_name": {
+          "created_at": {
             "type": "string",
-            "description": "Cooperative display name",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewer_id": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
-          "federation_name": {
+          "submission_id": {
             "type": "string",
-            "description": "Federation display name (populated by list handlers for ministry)",
+            "format": "uuid"
+          },
+          "target_tier": {
+            "type": "string",
             "nullable": true
+          },
+          "tier": {
+            "type": "string"
           }
         }
       },
@@ -8868,65 +9080,6 @@
             "type": "string"
           }
         }
-      },
-      "ApexStatsResponse": {
-        "type": "object",
-        "properties": {
-          "total_cooperatives": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "pending_submissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "approved_submissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "rejected_submissions": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "required": [
-          "total_cooperatives",
-          "pending_submissions",
-          "approved_submissions",
-          "rejected_submissions"
-        ]
-      },
-      "CooperativeStatsResponse": {
-        "type": "object",
-        "properties": {
-          "total_submissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "draft_submissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "pending_submissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "approved_submissions": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "rejected_submissions": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "required": [
-          "total_submissions",
-          "draft_submissions",
-          "pending_submissions",
-          "approved_submissions",
-          "rejected_submissions"
-        ]
       }
     }
   }
