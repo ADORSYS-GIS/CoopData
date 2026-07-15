@@ -11,6 +11,7 @@ use crate::api::dto::member::MemberResponse;
 use crate::api::handlers::extraction::get_extraction_job;
 use crate::api::handlers::financial_statement::{
     get_financial_statement, list_line_items, update_line_items,
+    get_submission_kpis, export_submission,
 };
 use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
@@ -99,6 +100,8 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(get_submission).delete(delete_submission),
         )
         .route("/submissions/{id}/submit", post(submit_submission))
+        .route("/submissions/{id}/kpis", get(get_submission_kpis))
+        .route("/submissions/{id}/export", get(export_submission))
         .route("/submissions/{id}/sections", get(list_submission_sections))
         .route("/submissions/{id}/reviews", get(list_submission_reviews))
         .route(

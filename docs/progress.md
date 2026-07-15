@@ -356,14 +356,29 @@
 - [ ] Members / savings / loans / fixed deposits entities→routes
 - [ ] Offline sync push/pull endpoints
 
-### Phase 11: KPI Engine & Abnormality Detection
-- [ ] Port `frontend/src/lib/kpi-calculations.ts` → `kpi_engine.rs`
-- [ ] `abnormality_detector.rs` (rules in `docs/architecture.md` §9)
-- [ ] Compliance scoring + benchmark aggregation + nightly batch
+### Phase 11: KPI Engine & Abnormality Detection ✅ (Sprint 4 — Partial)
+- [x] Port `frontend/src/lib/kpi-calculations.ts` → `backend/src/services/kpi_engine.rs`
+  - [x] 18 financial KPIs (PAR30, ROA, ROE, CAR, LFR, OSS, NIM, etc.) with status thresholds
+  - [x] `GET /api/v1/cooperative/submissions/{id}/kpis` endpoint — scope-checked, on-demand compute
+  - [x] `GET /api/v1/benchmarks?kpi_name=&cooperative_type=&reporting_year=` — Redis-cached 1hr
+  - [x] `GET /api/v1/cooperative/submissions/{id}/export?format=xlsx|csv` — rust_xlsxwriter + csv crate
+  - [x] `GET /api/v1/ministry/stats` — ministry dashboard aggregate counts
+  - [x] 8 unit tests in `services/kpi_engine.rs`, 4 DTO tests in `dto/financial.rs`
+- [ ] `abnormality_detector.rs` rules wired to submission workflow (existing service, not wired)
+- [ ] Compliance scoring + nightly batch materialization to `computed_kpis` table
 
-### Phase 12: Frontend Integration
-- [ ] Replace `lib/mock-data.ts` consumers with real hooks
-- [ ] Upload + AI-validation UI; per-tier review dashboards; offline sync queue
+### Phase 12: Frontend Integration ✅ (Sprint 4)
+- [x] `useCooperativeKpis` — fetches KPIs for a specific submission
+- [x] `useLatestSubmission` — picks highest reporting_year, no status priority
+- [x] `useBenchmarks` — sector benchmark data with 1hr client cache
+- [x] `useMinistryStats` — ministry dashboard aggregate stats
+- [x] `BenchmarkInsightPanel` — automated peer comparison with severity, comparison bars, expander
+- [x] `AnalyticsPage.tsx` — cooperative KPI hero row and performance metrics wired to real data
+- [x] `cooperative-dashboard.tsx` — Key Financial Metrics grid wired to real KPIs with loading skeletons
+- [x] `report-export-panel.tsx` — real XLSX/CSV file download for cooperative individual reports
+- [x] 16 frontend tests (BenchmarkInsightPanel + useLatestSubmission sorting)
+- [ ] Higher-tier (apex/federation/ministry) analytics wired to real aggregated stats (Sprint 5)
+- [ ] Offline sync queue
 
 ### Phase 13: Testing & Polish
 - [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow

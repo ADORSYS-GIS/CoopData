@@ -19,6 +19,11 @@ pub fn apex_routes() -> Router<AppState> {
     Router::new()
         .route("/profile", get(handlers::cooperative::get_apex_profile))
         .route("/stats", get(handlers::submission::get_apex_stats))
+        // Bulk export
+        .route(
+            "/submissions/export",
+            get(handlers::financial_statement::export_apex_submissions),
+        )
         .route(
             "/cooperatives",
             post(handlers::cooperative::create_cooperative)

@@ -47,6 +47,8 @@ pdf_oxide = "0.3"
 calamine = { version = "0.30", features = ["dates"] }
 base64 = "0.22"
 rust-s3 = { version = "0.37", features = ["with-tokio", "tokio-rustls-tls"] }
+rust_xlsxwriter = "0.96"
+csv = "1"
 
 [features]
 test-utils = []

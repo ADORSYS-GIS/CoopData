@@ -895,6 +895,64 @@
         }
       }
     },
+    "/api/v1/benchmarks": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_benchmarks",
+        "parameters": [
+          {
+            "name": "kpi_name",
+            "in": "query",
+            "description": "KPI identifier e.g. par30, roa, capital_adequacy_ratio",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cooperative_type",
+            "in": "query",
+            "description": "Filter by cooperative type e.g. sacco",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year, defaults to current year",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Benchmark statistics for the requested KPI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid KPI name"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/extraction-jobs/{id}": {
       "get": {
         "tags": [
@@ -2359,6 +2417,49 @@
         ]
       }
     },
+    "/api/v1/cooperative/submissions/{id}/export": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "export_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Export format: xlsx or csv",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File download (xlsx or csv)"
+          },
+          "400": {
+            "description": "Invalid format parameter"
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission or financial statement not found"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/submissions/{id}/financial-statement": {
       "delete": {
         "tags": [
@@ -2396,6 +2497,44 @@
             "bearer": []
           }
         ]
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/kpis": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_submission_kpis",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Computed KPIs for submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionKpisResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission or financial statement not found"
+          }
+        }
       }
     },
     "/api/v1/cooperative/submissions/{id}/non-financial-indicators": {
@@ -4405,6 +4544,29 @@
         }
       }
     },
+    "/api/v1/ministry/stats": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "get_ministry_stats",
+        "responses": {
+          "200": {
+            "description": "Ministry-level dashboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinistryStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/ministry/submissions": {
       "get": {
         "tags": [
@@ -5334,6 +5496,76 @@
           "user_agent": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "BenchmarkQueryParams": {
+        "type": "object",
+        "required": [
+          "kpi_name"
+        ],
+        "properties": {
+          "cooperative_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpi_name": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "BenchmarkResponse": {
+        "type": "object",
+        "required": [
+          "kpi_name",
+          "reporting_year",
+          "sector_average",
+          "national_average",
+          "percentile_25",
+          "percentile_50",
+          "percentile_75",
+          "sample_count"
+        ],
+        "properties": {
+          "cooperative_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpi_name": {
+            "type": "string"
+          },
+          "national_average": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentile_25": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentile_50": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentile_75": {
+            "type": "number",
+            "format": "double"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sector_average": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -6400,6 +6632,18 @@
           "Shiselweni"
         ]
       },
+      "ExportParams": {
+        "type": "object",
+        "required": [
+          "format"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "\"xlsx\" or \"csv\""
+          }
+        }
+      },
       "ExtractionJobResponse": {
         "type": "object",
         "required": [
@@ -6940,6 +7184,46 @@
           }
         }
       },
+      "KpiItemResponse": {
+        "type": "object",
+        "description": "A single computed KPI item for API responses.",
+        "required": [
+          "name",
+          "value",
+          "formatted",
+          "unit",
+          "description"
+        ],
+        "properties": {
+          "benchmark": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "formatted": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "\"green\" | \"amber\" | \"red\"",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "\"percent\" | \"currency\" | \"ratio\""
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "LineItemBulkUpdateRequest": {
         "type": "object",
         "required": [
@@ -7218,6 +7502,38 @@
           "Dormant",
           "Exited"
         ]
+      },
+      "MinistryStatsResponse": {
+        "type": "object",
+        "required": [
+          "total_cooperatives",
+          "total_submissions",
+          "pending_review_count",
+          "approved_count",
+          "rejected_count"
+        ],
+        "properties": {
+          "approved_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending_review_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rejected_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_cooperatives": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_submissions": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "NfCreateMemberRequest": {
         "type": "object",
@@ -8144,6 +8460,41 @@
           },
           "zero_balance_flag": {
             "type": "boolean"
+          }
+        }
+      },
+      "SubmissionKpisResponse": {
+        "type": "object",
+        "description": "Full KPI response for a submission.",
+        "required": [
+          "submission_id",
+          "reporting_year",
+          "computed_at",
+          "submission_status",
+          "kpis"
+        ],
+        "properties": {
+          "computed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiItemResponse"
+            }
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submission_status": {
+            "type": "string",
+            "description": "Reflects the submission's current status (draft / submitted / in_review / approved)"
           }
         }
       },

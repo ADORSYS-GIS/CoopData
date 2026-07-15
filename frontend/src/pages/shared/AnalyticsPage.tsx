@@ -23,16 +23,28 @@ import {
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
 import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
-import {
-  GROWTH_TREND,
-  REGIONS,
-  SECTOR_BREAKDOWN,
-  FEDERATIONS,
-  APEXES,
-  COOPERATIVES,
-  formatNumber,
-} from "@/lib/mock-data";
+import { BenchmarkInsightPanel } from "@/components/analytics/BenchmarkInsightPanel";
+import { useBenchmarks } from "@/hooks/analytics/useBenchmarks";
+import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
+import type { BenchmarkResponse } from "@/hooks/analytics/useBenchmarks";
+import { formatNumber, REGIONS, SECTOR_BREAKDOWN } from "@/lib/mock-data";
 import { type Role, useUserRole } from "@/lib/auth";
+import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
+import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
+import {
+  useCooperativeSubmissions,
+  useCooperativeStats,
+  useFederationSubmissions,
+  useApexSubmissions,
+  useApexStats,
+} from "@/hooks/submissions/useSubmissions";
+import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
+import { useFederationStats } from "@/hooks/analytics/useFederationStats";
+import { useRegionCompliance } from "@/hooks/analytics/useRegionCompliance";
+import { useSectorBreakdown } from "@/hooks/analytics/useSectorBreakdown";
+import { useFederations } from "@/hooks/federations/useFederations";
+import { useApexes } from "@/hooks/apexes/useApexes";
+import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import {
   TrendingUp,
   TrendingDown,
@@ -53,6 +65,7 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { format, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
@@ -68,90 +81,20 @@ const palette = [
 const sectorOpacities = [1, 0.78, 0.58, 0.42, 0.28];
 
 // ─────────────────────────────────────────────────────────────────────
-// Cooperative-specific data (replaces national/regional aggregates)
+// Cooperative chart data — empty until useMonthlyTrend (Sprint 5)
 // ─────────────────────────────────────────────────────────────────────
-const coopComplianceTrend = [
-  { month: "Jan", score: 89.2 },
-  { month: "Feb", score: 90.1 },
-  { month: "Mar", score: 91.4 },
-  { month: "Apr", score: 90.8 },
-  { month: "May", score: 92.0 },
-  { month: "Jun", score: 91.6 },
-  { month: "Jul", score: 93.1 },
-  { month: "Aug", score: 92.4 },
-  { month: "Sep", score: 93.8 },
-  { month: "Oct", score: 92.9 },
-  { month: "Nov", score: 94.2 },
-  { month: "Dec", score: 92.4 },
-];
-
-const coopMembershipHistory = [
-  { year: "2021", members: 2840, youth: 980, women: 1520 },
-  { year: "2022", members: 2960, youth: 1050, women: 1590 },
-  { year: "2023", members: 3080, youth: 1120, women: 1660 },
-  { year: "2024", members: 3190, youth: 1210, women: 1720 },
-  { year: "2025", members: 3284, youth: 1310, women: 1780 },
-];
-
-const coopMonthlyTrend = [
-  { month: "Jan", members: 3180, savings: 980 },
-  { month: "Feb", members: 3195, savings: 998 },
-  { month: "Mar", members: 3210, savings: 1020 },
-  { month: "Apr", members: 3225, savings: 1041 },
-  { month: "May", members: 3240, savings: 1078 },
-  { month: "Jun", members: 3250, savings: 1102 },
-  { month: "Jul", members: 3260, savings: 1130 },
-  { month: "Aug", members: 3270, savings: 1158 },
-  { month: "Sep", members: 3275, savings: 1182 },
-  { month: "Oct", members: 3278, savings: 1198 },
-  { month: "Nov", members: 3282, savings: 1204 },
-  { month: "Dec", members: 3284, savings: 1204 },
-];
-
-const coopPerformanceMetrics = [
-  {
-    label: "Compliance Score",
-    value: "92.4%",
-    trend: "+1.2%",
-    up: true,
-    desc: "Based on 11 of 12 submissions",
-  },
-  {
-    label: "Portfolio Quality",
-    value: "82%",
-    trend: "+3%",
-    up: true,
-    desc: "Performing loans ratio",
-  },
-  {
-    label: "Member Growth",
-    value: "+3.3%",
-    trend: "YoY",
-    up: true,
-    desc: "Net new members this year",
-  },
-  {
-    label: "Savings Growth",
-    value: "+22.9%",
-    trend: "YoY",
-    up: true,
-    desc: "Year-over-year savings increase",
-  },
-  {
-    label: "Submission Rate",
-    value: "91.7%",
-    trend: "+4.2%",
-    up: true,
-    desc: "On-time submission rate",
-  },
-  {
-    label: "Capital Adequacy",
-    value: "14.8%",
-    trend: "+1.1%",
-    up: true,
-    desc: "Above 10% regulatory minimum",
-  },
-];
+// NOTE: These charts require a time-series backend endpoint not yet built.
+// They will be replaced by real data in Sprint 5 via useMonthlyTrend.
+const coopComplianceTrend: { month: string; score: number }[] = [];
+const coopMembershipHistory: { year: string; members: number; youth: number; women: number }[] = [];
+const coopMonthlyTrend: { month: string; members: number; savings: number }[] = [];
+const coopPerformanceMetrics: {
+  label: string;
+  value: string;
+  trend: string;
+  up: boolean;
+  desc: string;
+}[] = [];
 
 // ─────────────────────────────────────────────────────────────────────
 // Base mock data (will be filtered/adjusted reactively)
@@ -395,36 +338,36 @@ const kpiMetricsByRole: Record<
   { label: string; value: string; change: string; up: boolean; icon: typeof TrendingUp }[]
 > = {
   ministry: [
-    { label: "Total Portfolio", value: "$2.05B", change: "+8.2%", up: true, icon: Landmark },
-    { label: "Active Coops", value: "11,420", change: "+3.1%", up: true, icon: Building2 },
-    { label: "National Compliance", value: "92.4%", change: "-0.4%", up: false, icon: ShieldCheck },
-    { label: "YoY Growth", value: "+7.2%", change: "+1.1%", up: true, icon: TrendingUp },
-    { label: "Total Members", value: "2.4M", change: "+4.8%", up: true, icon: Users },
-    { label: "Avg Loan Yield", value: "14.2%", change: "+0.8%", up: true, icon: Target },
+    { label: "Total Cooperatives", value: "—", change: "—", up: true, icon: Building2 },
+    { label: "Total Submissions", value: "—", change: "—", up: true, icon: BarChart3 },
+    { label: "Pending Review", value: "—", change: "—", up: false, icon: ShieldCheck },
+    { label: "Approved", value: "—", change: "—", up: true, icon: TrendingUp },
+    { label: "Rejected", value: "—", change: "—", up: false, icon: ShieldCheck },
+    { label: "Approval Rate", value: "—", change: "—", up: true, icon: Target },
   ],
   federation: [
-    { label: "Federation Portfolio", value: "$842M", change: "+6.4%", up: true, icon: Wallet },
-    { label: "Active Coops", value: "4,480", change: "+2.8%", up: true, icon: Building2 },
-    { label: "Compliance Rate", value: "91.3%", change: "+1.2%", up: true, icon: ShieldCheck },
-    { label: "YoY Growth", value: "+6.8%", change: "+0.9%", up: true, icon: TrendingUp },
-    { label: "Total Members", value: "891K", change: "+3.7%", up: true, icon: Users },
-    { label: "Avg Loan Yield", value: "13.8%", change: "+0.5%", up: true, icon: Target },
+    { label: "Total Apexes", value: "—", change: "—", up: true, icon: Building2 },
+    { label: "Total Members", value: "—", change: "—", up: true, icon: Users },
+    { label: "Submissions", value: "—", change: "—", up: true, icon: BarChart3 },
+    { label: "Pending Review", value: "—", change: "—", up: false, icon: ShieldCheck },
+    { label: "Approved", value: "—", change: "—", up: true, icon: TrendingUp },
+    { label: "Rejected", value: "—", change: "—", up: false, icon: ShieldCheck },
   ],
   apex: [
-    { label: "Apex Portfolio", value: "$312M", change: "+5.1%", up: true, icon: Wallet },
-    { label: "Active Coops", value: "1,240", change: "+2.2%", up: true, icon: Building2 },
-    { label: "Compliance Rate", value: "93.2%", change: "+2.1%", up: true, icon: ShieldCheck },
-    { label: "YoY Growth", value: "+4.9%", change: "+0.6%", up: true, icon: TrendingUp },
-    { label: "Total Members", value: "497K", change: "+3.2%", up: true, icon: Users },
-    { label: "Avg Loan Yield", value: "12.9%", change: "+0.3%", up: true, icon: Target },
+    { label: "Cooperatives", value: "—", change: "—", up: true, icon: Building2 },
+    { label: "Submissions", value: "—", change: "—", up: true, icon: BarChart3 },
+    { label: "Pending Review", value: "—", change: "—", up: false, icon: ShieldCheck },
+    { label: "Approved", value: "—", change: "—", up: true, icon: TrendingUp },
+    { label: "Rejected", value: "—", change: "—", up: false, icon: ShieldCheck },
+    { label: "Approval Rate", value: "—", change: "—", up: true, icon: Target },
   ],
   cooperative: [
-    { label: "Total Assets", value: "$6.4M", change: "+8.2%", up: true, icon: Wallet },
-    { label: "Total Savings", value: "$4.2M", change: "+5.1%", up: true, icon: TrendingUp },
-    { label: "Loan Portfolio", value: "$3.5M", change: "+3.7%", up: true, icon: BarChart3 },
-    { label: "Net Surplus", value: "$420K", change: "+12.4%", up: true, icon: Activity },
-    { label: "NPL Ratio", value: "1.2%", change: "-0.3%", up: false, icon: ShieldCheck },
-    { label: "Capital Ratio", value: "14.8%", change: "+1.1%", up: true, icon: Target },
+    { label: "Total Assets", value: "—", change: "—", up: true, icon: Wallet },
+    { label: "Gross Loans", value: "—", change: "—", up: true, icon: TrendingUp },
+    { label: "Member Deposits", value: "—", change: "—", up: true, icon: BarChart3 },
+    { label: "Net Surplus", value: "—", change: "—", up: true, icon: Activity },
+    { label: "NPL Ratio", value: "—", change: "—", up: false, icon: ShieldCheck },
+    { label: "Capital Ratio", value: "—", change: "—", up: true, icon: Target },
   ],
 };
 
@@ -452,36 +395,36 @@ const roleBadge: Record<Role, { label: string; color: string }> = {
 // Network summary data per role
 const networkSummaryByRole: Record<Role, { label: string; value: string; sub: string }[]> = {
   ministry: [
-    { label: "Federations", value: "4", sub: "Active national federations" },
-    { label: "Apexes", value: "7", sub: "Regional apex bodies" },
-    { label: "Cooperatives", value: "11,420", sub: "Registered cooperatives" },
-    { label: "Total Members", value: "2.4M", sub: "Active members nationwide" },
-    { label: "Submitted Reports", value: "8,912", sub: "YTD financial submissions" },
-    { label: "Pending Reviews", value: "142", sub: "Awaiting ministry approval" },
+    { label: "Federations", value: "—", sub: "Active national federations" },
+    { label: "Cooperatives", value: "—", sub: "Registered cooperatives" },
+    { label: "Total Submissions", value: "—", sub: "All time" },
+    { label: "Pending Reviews", value: "—", sub: "Awaiting ministry approval" },
+    { label: "Approved", value: "—", sub: "Ministry-approved returns" },
+    { label: "Rejected", value: "—", sub: "Rejected returns" },
   ],
   federation: [
-    { label: "Apexes Under Fed.", value: "3", sub: "Reporting to your federation" },
-    { label: "Cooperatives", value: "4,480", sub: "Under your federation" },
-    { label: "Total Members", value: "891K", sub: "Active members" },
-    { label: "Submitted Reports", value: "3,240", sub: "YTD financial submissions" },
-    { label: "Pending Reviews", value: "48", sub: "Awaiting federation review" },
-    { label: "Non-Compliant", value: "18", sub: "Coops below 80% threshold" },
+    { label: "Apexes", value: "—", sub: "Under this federation" },
+    { label: "Cooperatives", value: "—", sub: "Total across all apexes" },
+    { label: "Submissions", value: "—", sub: "All time" },
+    { label: "Pending Reviews", value: "—", sub: "Awaiting federation review" },
+    { label: "Approved", value: "—", sub: "Forwarded to ministry" },
+    { label: "Rejected", value: "—", sub: "Returned or rejected" },
   ],
   apex: [
-    { label: "Cooperatives", value: "1,240", sub: "Under your apex" },
-    { label: "Total Members", value: "497K", sub: "Active members" },
-    { label: "Submitted Reports", value: "1,104", sub: "YTD financial submissions" },
-    { label: "Pending Reviews", value: "21", sub: "Awaiting apex review" },
-    { label: "Top Compliance", value: "97.2%", sub: "Highest-scoring coop" },
-    { label: "Non-Compliant", value: "7", sub: "Coops below 80% threshold" },
+    { label: "Cooperatives", value: "—", sub: "Under this apex" },
+    { label: "Submissions", value: "—", sub: "All time" },
+    { label: "Pending Reviews", value: "—", sub: "Awaiting apex review" },
+    { label: "Approved", value: "—", sub: "Forwarded to federation" },
+    { label: "Rejected", value: "—", sub: "Returned or rejected" },
+    { label: "Approval Rate", value: "—", sub: "Approved / total submissions" },
   ],
   cooperative: [
-    { label: "Members", value: "3,284", sub: "Active as of today" },
-    { label: "Total Assets", value: "$6.4M", sub: "Balance sheet value" },
-    { label: "Reports Submitted", value: "11", sub: "YTD of 12 required" },
-    { label: "Next Deadline", value: "Aug 31", sub: "Q3 2025 submission" },
-    { label: "Compliance Score", value: "92.4%", sub: "Your current rating" },
-    { label: "NPL Ratio", value: "1.2%", sub: "Non-performing loans" },
+    { label: "Members", value: "—", sub: "Loading from database" },
+    { label: "Total Assets", value: "—", sub: "Balance sheet value" },
+    { label: "Reports Submitted", value: "—", sub: "YTD submissions" },
+    { label: "Next Deadline", value: "—", sub: "Submission deadline" },
+    { label: "Capital Adequacy", value: "—", sub: "Regulatory threshold: 10%" },
+    { label: "NPL Ratio", value: "—", sub: "Non-performing loans" },
   ],
 };
 
@@ -491,128 +434,65 @@ interface FilterConfig {
   options: { value: string; label: string }[];
 }
 
-const FILTERS_BY_ROLE: Record<Role, FilterConfig[]> = {
-  ministry: [
-    {
-      id: "federation",
-      label: "Federation",
-      options: [
-        { value: "all", label: "All Federations" },
-        ...FEDERATIONS.map((f) => ({ value: f.id, label: f.name })),
-      ],
-    },
-    {
-      id: "apex",
-      label: "Apex",
-      options: [
-        { value: "all", label: "All Apexes" },
-        ...APEXES.map((a) => ({ value: a.id, label: a.name })),
-      ],
-    },
-    {
-      id: "cooperative",
-      label: "Cooperative",
-      options: [
-        { value: "all", label: "All Cooperatives" },
-        ...COOPERATIVES.slice(0, 10).map((c) => ({ value: c.id, label: c.name })),
-      ],
-    },
-    {
-      id: "region",
-      label: "Region",
-      options: [
-        { value: "all", label: "All Regions" },
-        { value: "Manzini", label: "Manzini" },
-        { value: "Hhohho", label: "Hhohho" },
-        { value: "Shiselweni", label: "Shiselweni" },
-        { value: "Lubombo", label: "Lubombo" },
-      ],
-    },
-    {
-      id: "sector",
-      label: "Sector",
-      options: [
-        { value: "all", label: "All Sectors" },
-        { value: "Agriculture", label: "Agriculture" },
-        { value: "Finance", label: "Finance" },
-        { value: "Housing", label: "Housing" },
-        { value: "Transport", label: "Transport" },
-        { value: "Manufacturing", label: "Manufacturing" },
-      ],
-    },
-  ],
-  federation: [
-    {
-      id: "apex",
-      label: "Apex",
-      options: [
-        { value: "all", label: "All Apexes" },
-        ...APEXES.map((a) => ({ value: a.id, label: a.name })),
-      ],
-    },
-    {
-      id: "cooperative",
-      label: "Cooperative",
-      options: [
-        { value: "all", label: "All Cooperatives" },
-        ...COOPERATIVES.slice(0, 10).map((c) => ({ value: c.id, label: c.name })),
-      ],
-    },
-    {
-      id: "region",
-      label: "Region",
-      options: [
-        { value: "all", label: "All Regions" },
-        { value: "Manzini", label: "Manzini" },
-        { value: "Hhohho", label: "Hhohho" },
-        { value: "Shiselweni", label: "Shiselweni" },
-        { value: "Lubombo", label: "Lubombo" },
-      ],
-    },
-    {
-      id: "sector",
-      label: "Sector",
-      options: [
-        { value: "all", label: "All Sectors" },
-        { value: "Agriculture", label: "Agriculture" },
-        { value: "Finance", label: "Finance" },
-        { value: "Housing", label: "Housing" },
-        { value: "Transport", label: "Transport" },
-      ],
-    },
-  ],
-  apex: [
-    {
-      id: "cooperative",
-      label: "Cooperative",
-      options: [
-        { value: "all", label: "All Cooperatives" },
-        ...COOPERATIVES.slice(0, 10).map((c) => ({ value: c.id, label: c.name })),
-      ],
-    },
-    {
-      id: "region",
-      label: "Region",
-      options: [
-        { value: "all", label: "All Regions" },
-        { value: "Manzini", label: "Manzini" },
-        { value: "Hhohho", label: "Hhohho" },
-        { value: "Shiselweni", label: "Shiselweni" },
-        { value: "Lubombo", label: "Lubombo" },
-      ],
-    },
-    {
-      id: "sector",
-      label: "Sector",
-      options: [
-        { value: "all", label: "All Sectors" },
-        { value: "Agriculture", label: "Agriculture" },
-        { value: "Finance", label: "Finance" },
-        { value: "Housing", label: "Housing" },
-      ],
-    },
-  ],
-  cooperative: [
+function buildFiltersByRole(
+  role: Role,
+  federations: { id: string; name: string }[],
+  apexes: { id: string; name: string }[],
+  cooperatives: { id: string; name: string }[],
+): FilterConfig[] {
+  const federationOptions = [
+    { value: "all", label: "All Federations" },
+    ...federations.map((f) => ({ value: String(f.id), label: f.name })),
+  ];
+  const apexOptions = [
+    { value: "all", label: "All Apexes" },
+    ...apexes.map((a) => ({ value: String(a.id), label: a.name })),
+  ];
+  const coopOptions = [
+    { value: "all", label: "All Cooperatives" },
+    ...cooperatives.slice(0, 10).map((c) => ({ value: String(c.id), label: c.name })),
+  ];
+  const regionOptions = [
+    { value: "all", label: "All Regions" },
+    { value: "Manzini", label: "Manzini" },
+    { value: "Hhohho", label: "Hhohho" },
+    { value: "Shiselweni", label: "Shiselweni" },
+    { value: "Lubombo", label: "Lubombo" },
+  ];
+  const sectorOptions = [
+    { value: "all", label: "All Sectors" },
+    { value: "Agriculture", label: "Agriculture" },
+    { value: "Finance", label: "Finance" },
+    { value: "Housing", label: "Housing" },
+    { value: "Transport", label: "Transport" },
+    { value: "Manufacturing", label: "Manufacturing" },
+  ];
+
+  if (role === "ministry") {
+    return [
+      { id: "federation", label: "Federation", options: federationOptions },
+      { id: "apex", label: "Apex", options: apexOptions },
+      { id: "cooperative", label: "Cooperative", options: coopOptions },
+      { id: "region", label: "Region", options: regionOptions },
+      { id: "sector", label: "Sector", options: sectorOptions },
+    ];
+  }
+  if (role === "federation") {
+    return [
+      { id: "apex", label: "Apex", options: apexOptions },
+      { id: "cooperative", label: "Cooperative", options: coopOptions },
+      { id: "region", label: "Region", options: regionOptions },
+      { id: "sector", label: "Sector", options: sectorOptions },
+    ];
+  }
+  if (role === "apex") {
+    return [
+      { id: "cooperative", label: "Cooperative", options: coopOptions },
+      { id: "region", label: "Region", options: regionOptions },
+      { id: "sector", label: "Sector", options: sectorOptions },
+    ];
+  }
+  return [
     {
       id: "period",
       label: "Period",
@@ -624,8 +504,8 @@ const FILTERS_BY_ROLE: Record<Role, FilterConfig[]> = {
         { value: "q4", label: "Q4 2025" },
       ],
     },
-  ],
-};
+  ];
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // Helper: compute multiplier from active filters
@@ -732,7 +612,239 @@ const SPARKLINE_COMPLIANCE = [
 // ─────────────────────────────────────────────────────────────────────
 export const AnalyticsPage: React.FC = () => {
   const role = useUserRole();
-  const filters = role ? FILTERS_BY_ROLE[role] : [];
+
+  // ── Real data hooks (cooperative role) ──
+  const latestSubmission = useLatestSubmission();
+  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
+    role === "cooperative" ? latestSubmission?.id : undefined,
+  );
+
+  // ── Benchmark data for cooperative insight panel ──
+  // Fetch benchmarks for the KPIs that have sector thresholds defined.
+  // These calls are only enabled when the user is cooperative role.
+  const isCooperative = role === "cooperative";
+  const currentYear = new Date().getFullYear();
+  const benchmarkPar30 = useBenchmarks(
+    { kpiName: "par30", reportingYear: currentYear },
+    isCooperative,
+  );
+  const benchmarkRoa = useBenchmarks({ kpiName: "roa", reportingYear: currentYear }, isCooperative);
+  const benchmarkCar = useBenchmarks(
+    { kpiName: "capital_adequacy_ratio", reportingYear: currentYear },
+    isCooperative,
+  );
+  const benchmarkLfr = useBenchmarks(
+    { kpiName: "liquid_funds_ratio", reportingYear: currentYear },
+    isCooperative,
+  );
+  const benchmarkOer = useBenchmarks(
+    { kpiName: "operating_expense_ratio", reportingYear: currentYear },
+    isCooperative,
+  );
+  const benchmarkOss = useBenchmarks(
+    { kpiName: "operational_self_sufficiency", reportingYear: currentYear },
+    isCooperative,
+  );
+
+  const benchmarksForPanel: BenchmarkResponse[] = [
+    benchmarkPar30.data,
+    benchmarkRoa.data,
+    benchmarkCar.data,
+    benchmarkLfr.data,
+    benchmarkOer.data,
+    benchmarkOss.data,
+  ].filter((b): b is BenchmarkResponse => b !== undefined && b.sample_count > 0);
+
+  const benchmarksLoading =
+    benchmarkPar30.isLoading ||
+    benchmarkRoa.isLoading ||
+    benchmarkCar.isLoading ||
+    benchmarkLfr.isLoading;
+  const coopSubmissionsAll = useCooperativeSubmissions(role === "cooperative").data ?? [];
+  const coopStats = useCooperativeStats(role === "cooperative").data;
+
+  // ── Real data hooks (ministry/apex roles) ──
+  const ministryStats = useMinistryStats(role === "ministry").data;
+  const apexStats = useApexStats(role === "apex").data;
+  const federationStats = useFederationStats(role === "federation").data;
+  const federationSubmissions = useFederationSubmissions(role === "federation").data ?? [];
+  const apexSubmissions = useApexSubmissions(role === "apex").data ?? [];
+
+  // ── Analytics data hooks ──
+  const regionComplianceData = useRegionCompliance(!!role).data;
+  const sectorBreakdownData = useSectorBreakdown(!!role).data;
+
+  // ── Real data for filter dropdowns ──
+  const { data: federationsData } = useFederations();
+  const { data: apexesData } = useApexes();
+  const { data: cooperativesData } = useCooperatives();
+
+  // ── Monthly trend data ──
+  const monthlyTrendParams = useMemo(() => {
+    if (role === "cooperative") {
+      return { reportingYear: currentYear, cooperativeId: latestSubmission?.cooperative_id };
+    }
+    return { reportingYear: currentYear };
+  }, [role, currentYear, latestSubmission?.cooperative_id]);
+  const { data: monthlyTrendData } = useMonthlyTrend(monthlyTrendParams, !!role);
+
+  // ── Dynamic "At a Glance" summaries keyed by role ──
+  const ministerySummary: { label: string; value: string; sub: string }[] = [
+    {
+      label: "Cooperatives",
+      value: ministryStats ? ministryStats.total_cooperatives.toLocaleString() : "—",
+      sub: "Registered across all federations",
+    },
+    {
+      label: "Total Submissions",
+      value: ministryStats ? ministryStats.total_submissions.toLocaleString() : "—",
+      sub: "All time",
+    },
+    {
+      label: "Pending Review",
+      value: ministryStats ? ministryStats.pending_review_count.toLocaleString() : "—",
+      sub: "Awaiting ministry approval",
+    },
+    {
+      label: "Approved",
+      value: ministryStats ? ministryStats.approved_count.toLocaleString() : "—",
+      sub: "Ministry-approved returns",
+    },
+    {
+      label: "Rejected",
+      value: ministryStats ? ministryStats.rejected_count.toLocaleString() : "—",
+      sub: "Rejected returns",
+    },
+    {
+      label: "Approval Rate",
+      value:
+        ministryStats && ministryStats.total_submissions > 0
+          ? `${((ministryStats.approved_count / ministryStats.total_submissions) * 100).toFixed(0)}%`
+          : "—",
+      sub: "Approved / total submissions",
+    },
+  ];
+
+  const federationPending = federationSubmissions.filter((s) =>
+    ["submitted", "in_review"].includes(s.status),
+  ).length;
+  const federationApproved = federationSubmissions.filter((s) => s.status === "approved").length;
+  const federationRejected = federationSubmissions.filter((s) =>
+    ["rejected", "returned"].includes(s.status),
+  ).length;
+
+  const federationSummary: { label: string; value: string; sub: string }[] = [
+    {
+      label: "Submissions",
+      value: federationStats
+        ? federationStats.submission_count.toLocaleString()
+        : federationSubmissions.length.toLocaleString(),
+      sub: "All time",
+    },
+    {
+      label: "Pending Reviews",
+      value: federationStats
+        ? federationStats.pending_review_count.toLocaleString()
+        : federationPending.toLocaleString(),
+      sub: "Awaiting federation review",
+    },
+    {
+      label: "Approved",
+      value: federationStats
+        ? federationStats.approved_count.toLocaleString()
+        : federationApproved.toLocaleString(),
+      sub: "Forwarded to ministry",
+    },
+    {
+      label: "Rejected",
+      value: federationStats
+        ? federationStats.rejected_count.toLocaleString()
+        : federationRejected.toLocaleString(),
+      sub: "Returned or rejected",
+    },
+    {
+      label: "Cooperatives",
+      value: federationStats ? federationStats.cooperative_count.toLocaleString() : "—",
+      sub: "Total across all apexes",
+    },
+    { label: "Apexes", value: "—", sub: "Under this federation" },
+  ];
+
+  const apexPending = apexStats?.pending_submissions ?? 0;
+  const apexApproved = apexStats?.approved_submissions ?? 0;
+  const apexRejected = apexStats?.rejected_submissions ?? 0;
+  const apexCoops = apexStats?.total_cooperatives ?? 0;
+
+  const apexSummary: { label: string; value: string; sub: string }[] = [
+    { label: "Cooperatives", value: apexCoops.toLocaleString(), sub: "Under this apex" },
+    {
+      label: "Submissions",
+      value: apexSubmissions.length.toLocaleString(),
+      sub: "All time",
+    },
+    {
+      label: "Pending Reviews",
+      value: apexPending.toLocaleString(),
+      sub: "Awaiting apex review",
+    },
+    { label: "Approved", value: apexApproved.toLocaleString(), sub: "Forwarded to federation" },
+    { label: "Rejected", value: apexRejected.toLocaleString(), sub: "Returned or rejected" },
+    {
+      label: "Approval Rate",
+      value:
+        apexSubmissions.length > 0
+          ? `${((apexApproved / apexSubmissions.length) * 100).toFixed(0)}%`
+          : "—",
+      sub: "Approved / total submissions",
+    },
+  ];
+
+  const coopNetworkSummary: { label: string; value: string; sub: string }[] =
+    role === "cooperative"
+      ? [
+          {
+            label: "Members",
+            value: kpisData ? "See Database Status" : "—",
+            sub: "From membership database",
+          },
+          {
+            label: "Total Assets",
+            value: kpisData?.kpis.find((k) => k.name === "total_assets")?.formatted ?? "—",
+            sub: "Balance sheet value",
+          },
+          {
+            label: "Reports Submitted",
+            value: coopStats ? coopStats.total_submissions.toString() : "—",
+            sub: "All submissions on record",
+          },
+          {
+            label: "Approved",
+            value: coopStats ? coopStats.approved_submissions.toString() : "—",
+            sub: "Ministry-approved returns",
+          },
+          {
+            label: "Capital Adequacy",
+            value:
+              kpisData?.kpis.find((k) => k.name === "capital_adequacy_ratio")?.formatted ?? "—",
+            sub: "Regulatory threshold: 10%",
+          },
+          {
+            label: "NPL Ratio",
+            value: kpisData?.kpis.find((k) => k.name === "npl_ratio")?.formatted ?? "—",
+            sub: "Non-performing loans",
+          },
+        ]
+      : networkSummaryByRole[role ?? "ministry"];
+
+  const filters = useMemo(() => {
+    if (!role) return [];
+    return buildFiltersByRole(
+      role,
+      federationsData ?? [],
+      apexesData ?? [],
+      cooperativesData ?? [],
+    );
+  }, [role, federationsData, apexesData, cooperativesData]);
   const [filterValues, setFilterValues] = useState<Record<string, string>>(
     Object.fromEntries(filters.map((f) => [f.id, f.options[0].value])),
   );
@@ -759,23 +871,30 @@ export const AnalyticsPage: React.FC = () => {
   // ── Reactive data ──
   const multiplier = useMemo(() => getFilterMultiplier(filterValues), [filterValues]);
 
-  const localGrowthTrend = useMemo(
-    () => [
-      { month: "Jan", members: 2100000, savings: 1100, loans: 580 },
-      { month: "Feb", members: 2250000, savings: 780, loans: 620 },
-      { month: "Mar", members: 1850000, savings: 950, loans: 820 },
-      { month: "Apr", members: 1550000, savings: 1300, loans: 680 },
-      { month: "May", members: 1750000, savings: 980, loans: 380 },
-      { month: "Jun", members: 1650000, savings: 650, loans: 420 },
-      { month: "Jul", members: 1480000, savings: 880, loans: 520 },
-      { month: "Aug", members: 1420000, savings: 720, loans: 560 },
-      { month: "Sep", members: 1050000, savings: 1120, loans: 560 },
-      { month: "Oct", members: 1050000, savings: 800, loans: 720 },
-      { month: "Nov", members: 1250000, savings: 730, loans: 540 },
-      { month: "Dec", members: 1100000, savings: 750, loans: 560 },
-    ],
-    [],
-  );
+  const localGrowthTrend = useMemo(() => {
+    if (monthlyTrendData?.months) {
+      return monthlyTrendData.months.map((m) => ({
+        month: m.month_label,
+        savings: Math.round(m.savings / 1000),
+        loans: Math.round(m.loans / 1000),
+        members: Math.round(m.deposits / 1000),
+      }));
+    }
+    return [
+      { month: "Jan", members: 0, savings: 0, loans: 0 },
+      { month: "Feb", members: 0, savings: 0, loans: 0 },
+      { month: "Mar", members: 0, savings: 0, loans: 0 },
+      { month: "Apr", members: 0, savings: 0, loans: 0 },
+      { month: "May", members: 0, savings: 0, loans: 0 },
+      { month: "Jun", members: 0, savings: 0, loans: 0 },
+      { month: "Jul", members: 0, savings: 0, loans: 0 },
+      { month: "Aug", members: 0, savings: 0, loans: 0 },
+      { month: "Sep", members: 0, savings: 0, loans: 0 },
+      { month: "Oct", members: 0, savings: 0, loans: 0 },
+      { month: "Nov", members: 0, savings: 0, loans: 0 },
+      { month: "Dec", members: 0, savings: 0, loans: 0 },
+    ];
+  }, [monthlyTrendData]);
 
   const filteredGrowthTrend = useMemo(() => {
     const filtered = filterByDateRange(
@@ -810,17 +929,32 @@ export const AnalyticsPage: React.FC = () => {
   }, [periodSlice]);
 
   const filteredMonthlyFinancials = useMemo(() => {
+    if (monthlyTrendData?.months) {
+      const hasRealData = monthlyTrendData.months.some(
+        (m) => m.savings > 0 || m.loans > 0 || m.deposits > 0,
+      );
+      if (hasRealData) {
+        return monthlyTrendData.months.map((m) => ({
+          month: m.month_label,
+          monthShort: m.month_label,
+          savings: Math.round(m.savings / 1000),
+          loans: Math.round(m.loans / 1000),
+          deposits: Math.round(m.deposits / 1000),
+          variation: Math.round((m.savings / 1000) * 0.1),
+          date: `${monthlyTrendData.year}-${String(m.month).padStart(2, "0")}-15`,
+        }));
+      }
+    }
     const filtered = filterByDateRange(baseMonthlyFinancials, "date", dateRange);
     const multiplied = applyMultiplier(filtered, ["savings", "loans", "deposits"], multiplier);
     return multiplied.map((item, idx) => {
-      // Smooth, elegant seasonal wave with realistic peaks in May/Nov and troughs in Aug/Dec
       const customVariations = [650, 580, 720, 850, 920, 780, 610, 520, 690, 830, 950, 480];
       return {
         ...item,
         variation: Math.round(customVariations[idx % customVariations.length] * multiplier),
       };
     });
-  }, [dateRange, multiplier]);
+  }, [dateRange, multiplier, monthlyTrendData]);
 
   const filteredSubmissionTrend = useMemo(() => {
     const filtered = filterByDateRange(baseSubmissionTrend, "monthDate", dateRange);
@@ -836,10 +970,12 @@ export const AnalyticsPage: React.FC = () => {
     [multiplier],
   );
 
-  const filteredRegionCompliance = useMemo(
-    () => applyMultiplier(baseRegionCompliance, ["coops"], multiplier),
-    [multiplier],
-  );
+  const filteredRegionCompliance = useMemo(() => {
+    if (regionComplianceData?.regions && regionComplianceData.regions.length > 0) {
+      return regionComplianceData.regions;
+    }
+    return applyMultiplier(baseRegionCompliance, ["coops"], multiplier);
+  }, [multiplier, regionComplianceData]);
 
   const filteredLoanPortfolio = useMemo(() => {
     // Adjust portfolio quality based on entity selection
@@ -858,13 +994,16 @@ export const AnalyticsPage: React.FC = () => {
   }, [multiplier]);
 
   const filteredSectorBreakdown = useMemo(() => {
+    if (sectorBreakdownData?.sectors && sectorBreakdownData.sectors.length > 0) {
+      return sectorBreakdownData.sectors;
+    }
     if (multiplier >= 1.0) return SECTOR_BREAKDOWN;
     return SECTOR_BREAKDOWN.map((item) => ({
       ...item,
       value: Math.max(1, Math.round(item.value * (0.5 + multiplier * 0.5))),
       count: Math.round(item.count * multiplier),
     }));
-  }, [multiplier]);
+  }, [multiplier, sectorBreakdownData]);
 
   const filteredPerformers = useMemo(() => {
     if (multiplier >= 1.0) return PERFORMERS;
@@ -910,6 +1049,204 @@ export const AnalyticsPage: React.FC = () => {
 
   const filteredKPIs = useMemo(() => {
     if (!role) return [];
+
+    // Cooperative: build from real KPI data, not from the placeholder array
+    if (role === "cooperative" && kpisData) {
+      const pick = (name: string) => kpisData.kpis.find((k) => k.name === name);
+      return [
+        {
+          label: "Total Assets",
+          value: pick("total_assets")?.formatted ?? "—",
+          change: "",
+          up: true,
+          icon: Wallet,
+        },
+        {
+          label: "Gross Loans",
+          value: pick("gross_loan_portfolio")?.formatted ?? "—",
+          change: "",
+          up: true,
+          icon: TrendingUp,
+        },
+        {
+          label: "Member Deposits",
+          value: pick("total_member_deposits")?.formatted ?? "—",
+          change: "",
+          up: true,
+          icon: BarChart3,
+        },
+        {
+          label: "Net Surplus",
+          value: pick("net_surplus")?.formatted ?? "—",
+          change: "",
+          up: true,
+          icon: Activity,
+        },
+        {
+          label: "NPL Ratio",
+          value: pick("npl_ratio")?.formatted ?? "—",
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Capital Adequacy",
+          value: pick("capital_adequacy_ratio")?.formatted ?? "—",
+          change: "",
+          up: true,
+          icon: Target,
+        },
+      ];
+    }
+
+    // Non-cooperative roles: build from real stats data
+    if (role === "ministry" && ministryStats) {
+      const total = ministryStats.total_submissions;
+      return [
+        {
+          label: "Total Cooperatives",
+          value: ministryStats.total_cooperatives.toLocaleString(),
+          change: "",
+          up: true,
+          icon: Building2,
+        },
+        {
+          label: "Total Submissions",
+          value: total.toLocaleString(),
+          change: "",
+          up: true,
+          icon: BarChart3,
+        },
+        {
+          label: "Pending Review",
+          value: ministryStats.pending_review_count.toLocaleString(),
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Approved",
+          value: ministryStats.approved_count.toLocaleString(),
+          change: "",
+          up: true,
+          icon: TrendingUp,
+        },
+        {
+          label: "Rejected",
+          value: ministryStats.rejected_count.toLocaleString(),
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Approval Rate",
+          value: total > 0 ? `${((ministryStats.approved_count / total) * 100).toFixed(0)}%` : "—",
+          change: "",
+          up: true,
+          icon: Target,
+        },
+      ];
+    }
+    if (role === "apex" && apexStats) {
+      const total =
+        apexStats.pending_submissions +
+        apexStats.approved_submissions +
+        apexStats.rejected_submissions;
+      return [
+        {
+          label: "Cooperatives",
+          value: apexStats.total_cooperatives.toLocaleString(),
+          change: "",
+          up: true,
+          icon: Building2,
+        },
+        {
+          label: "Submissions",
+          value: total.toLocaleString(),
+          change: "",
+          up: true,
+          icon: BarChart3,
+        },
+        {
+          label: "Pending Review",
+          value: apexStats.pending_submissions.toLocaleString(),
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Approved",
+          value: apexStats.approved_submissions.toLocaleString(),
+          change: "",
+          up: true,
+          icon: TrendingUp,
+        },
+        {
+          label: "Rejected",
+          value: apexStats.rejected_submissions.toLocaleString(),
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Approval Rate",
+          value:
+            total > 0 ? `${((apexStats.approved_submissions / total) * 100).toFixed(0)}%` : "—",
+          change: "",
+          up: true,
+          icon: Target,
+        },
+      ];
+    }
+    if (role === "federation" && federationStats) {
+      const total = federationStats.submission_count;
+      return [
+        {
+          label: "Cooperatives",
+          value: federationStats.cooperative_count.toLocaleString(),
+          change: "",
+          up: true,
+          icon: Building2,
+        },
+        {
+          label: "Submissions",
+          value: total.toLocaleString(),
+          change: "",
+          up: true,
+          icon: BarChart3,
+        },
+        {
+          label: "Pending Review",
+          value: federationStats.pending_review_count.toLocaleString(),
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Approved",
+          value: federationStats.approved_count.toLocaleString(),
+          change: "",
+          up: true,
+          icon: TrendingUp,
+        },
+        {
+          label: "Rejected",
+          value: federationStats.rejected_count.toLocaleString(),
+          change: "",
+          up: false,
+          icon: ShieldCheck,
+        },
+        {
+          label: "Approval Rate",
+          value:
+            total > 0 ? `${((federationStats.approved_count / total) * 100).toFixed(0)}%` : "—",
+          change: "",
+          up: true,
+          icon: Target,
+        },
+      ];
+    }
+
     const baseKPIs = kpiMetricsByRole[role];
     if (multiplier >= 1.0) return baseKPIs;
     // Adjust KPI values based on multiplier
@@ -941,7 +1278,7 @@ export const AnalyticsPage: React.FC = () => {
       }
       return kpi;
     });
-  }, [role, multiplier]);
+  }, [role, multiplier, kpisData, ministryStats, apexStats, federationStats]);
 
   const genderData = [
     {
@@ -1101,7 +1438,16 @@ export const AnalyticsPage: React.FC = () => {
           subtitle="Key operational indicators for the current period"
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {networkSummaryByRole[role].map((item) => (
+            {(role === "cooperative"
+              ? coopNetworkSummary
+              : role === "ministry"
+                ? ministerySummary
+                : role === "federation"
+                  ? federationSummary
+                  : role === "apex"
+                    ? apexSummary
+                    : networkSummaryByRole[role]
+            ).map((item) => (
               <div key={item.label} className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   {item.label}
@@ -1114,38 +1460,89 @@ export const AnalyticsPage: React.FC = () => {
         </Card>
 
         {/* ── Role-Specific KPI Hero Row ── */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {filteredKPIs.map((metric) => (
-            <div
-              key={metric.label}
-              className="rounded-xl border border-border bg-surface p-4 hover-lift shadow-[var(--shadow-elev-1)] group cursor-default"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="size-8 rounded-lg grid place-items-center bg-primary/8 text-primary group-hover:bg-primary/12 transition-colors">
-                  <metric.icon className="size-4" />
+        {role === "cooperative" && kpisLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-surface p-4 animate-pulse space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="size-8 rounded-lg bg-muted" />
+                  <div className="h-3 w-10 rounded bg-muted" />
                 </div>
-                <span
-                  className={`inline-flex items-center gap-0.5 text-[11px] font-bold ${
-                    metric.up ? "text-success" : "text-destructive"
-                  }`}
-                >
-                  {metric.up ? (
-                    <ArrowUpRight className="size-3" />
-                  ) : (
-                    <ArrowDownRight className="size-3" />
-                  )}
-                  {metric.change}
-                </span>
+                <div className="h-6 w-16 rounded bg-muted" />
+                <div className="h-2.5 w-20 rounded bg-muted" />
               </div>
-              <p className="font-heading text-xl font-bold text-foreground num leading-none">
-                {metric.value}
-              </p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1.5 leading-tight">
-                {metric.label}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : role === "cooperative" && kpisData && kpisData.kpis.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {kpisData.kpis.slice(0, 6).map((kpi) => {
+              const statusColor =
+                kpi.status === "green"
+                  ? "text-success"
+                  : kpi.status === "red"
+                    ? "text-destructive"
+                    : kpi.status === "amber"
+                      ? "text-warning-foreground"
+                      : "text-muted-foreground";
+              return (
+                <div
+                  key={kpi.name}
+                  className="rounded-xl border border-border bg-surface p-4 hover-lift shadow-[var(--shadow-elev-1)] cursor-default"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="size-8 rounded-lg grid place-items-center bg-primary/8 text-primary">
+                      <Activity className="size-4" />
+                    </div>
+                    {kpi.status && (
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          kpi.status === "green"
+                            ? "bg-success/10 text-success"
+                            : kpi.status === "red"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-warning/15 text-warning-foreground"
+                        }`}
+                      >
+                        {kpi.status}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`font-heading text-xl font-bold num leading-none ${statusColor}`}>
+                    {kpi.formatted}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1.5 leading-tight">
+                    {kpi.name.replace(/_/g, " ")}
+                  </p>
+                  {kpi.benchmark !== undefined && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Benchmark: {kpi.unit === "percent" ? `${kpi.benchmark}%` : kpi.benchmark}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : role === "cooperative" ? (
+          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center">
+            <Activity className="size-8 mx-auto mb-3 text-muted-foreground opacity-40" />
+            <p className="text-sm font-semibold text-muted-foreground">No KPI data yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Submit a financial statement to see your computed KPIs here.
+            </p>
+          </div>
+        ) : null}
+
+        {/* ── Benchmark Insight Panel (cooperative only) ── */}
+        {role === "cooperative" && (
+          <BenchmarkInsightPanel
+            kpis={kpisData?.kpis ?? []}
+            benchmarks={benchmarksForPanel}
+            isLoading={kpisLoading || benchmarksLoading}
+          />
+        )}
 
         {/* ── Secondary KPI Insight Cards with Sparklines ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2829,32 +3226,71 @@ export const AnalyticsPage: React.FC = () => {
         {/* ── Performance Score (leaderboard for admin, metrics for cooperative) ── */}
         {role === "cooperative" ? (
           <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
-            <div className="px-6 py-5 border-b border-border">
-              <p className="text-sm font-bold text-foreground">Your Performance Metrics</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Key performance indicators for your cooperative
-              </p>
+            <div className="px-6 py-5 border-b border-border flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-foreground">Your Performance Metrics</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Key performance indicators from your latest submission
+                </p>
+              </div>
+              {latestSubmission && (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                  FY {latestSubmission.reporting_year}
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border">
-              {coopPerformanceMetrics.map((m) => (
-                <div key={m.label} className="bg-surface p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {m.label}
-                  </p>
-                  <p className="font-heading text-2xl font-bold text-foreground num mt-2">
-                    {m.value}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span
-                      className={`text-xs font-semibold ${m.up ? "text-success" : "text-warning-foreground"}`}
-                    >
-                      {m.up ? "↑" : "↓"} {m.trend}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">{m.desc}</span>
+            {kpisLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-surface p-5 animate-pulse space-y-2">
+                    <div className="h-2.5 w-20 rounded bg-muted" />
+                    <div className="h-7 w-16 rounded bg-muted" />
+                    <div className="h-2 w-24 rounded bg-muted" />
                   </div>
+                ))}
+              </div>
+            ) : kpisData && kpisData.kpis.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border">
+                {kpisData.kpis.slice(0, 6).map((kpi) => (
+                  <div key={kpi.name} className="bg-surface p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {kpi.name.replace(/_/g, " ")}
+                    </p>
+                    <p
+                      className={`font-heading text-2xl font-bold num mt-2 ${
+                        kpi.status === "green"
+                          ? "text-success"
+                          : kpi.status === "red"
+                            ? "text-destructive"
+                            : kpi.status === "amber"
+                              ? "text-warning-foreground"
+                              : "text-foreground"
+                      }`}
+                    >
+                      {kpi.formatted}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      {kpi.benchmark !== undefined && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Benchmark:{" "}
+                          {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-3">
+                <Activity className="size-10 opacity-30" />
+                <div>
+                  <p className="text-sm font-semibold">No performance data yet</p>
+                  <p className="text-xs mt-1">
+                    Submit a financial statement to see your KPIs here.
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">

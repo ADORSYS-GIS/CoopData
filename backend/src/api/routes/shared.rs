@@ -29,6 +29,26 @@ pub fn shared_routes() -> Router<AppState> {
             "/non-financial-indicators/catalog",
             get(crate::api::handlers::non_financial_indicator::list_catalog),
         )
+        // Benchmark analytics — accessible to all authenticated roles
+        .route(
+            "/benchmarks",
+            get(crate::api::handlers::financial_statement::get_benchmarks),
+        )
+        // Monthly trend analytics — accessible to all authenticated roles
+        .route(
+            "/analytics/monthly-trend",
+            get(crate::api::handlers::financial_statement::get_monthly_trend),
+        )
+        // Region compliance analytics — accessible to all authenticated roles
+        .route(
+            "/analytics/region-compliance",
+            get(crate::api::handlers::financial_statement::get_region_compliance),
+        )
+        // Sector breakdown analytics — accessible to all authenticated roles
+        .route(
+            "/analytics/sector-breakdown",
+            get(crate::api::handlers::financial_statement::get_sector_breakdown),
+        )
 }
 
 async fn get_current_user_profile(

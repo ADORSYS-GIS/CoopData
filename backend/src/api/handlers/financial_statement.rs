@@ -1,17 +1,24 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Extension, Json,
 };
+use utoipa::IntoParams;
+use chrono::Datelike;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::financial::{
-    FinancialStatementResponse, LineItemBulkUpdateRequest, LineItemResponse,
+    BenchmarkQueryParams, BenchmarkResponse, ExportParams, FinancialStatementResponse,
+    KpiItemResponse, LineItemBulkUpdateRequest, LineItemResponse, MinistryStatsResponse,
+    MonthlyTrendPoint, MonthlyTrendResponse, RegionCompliancePoint, RegionComplianceResponse,
+    SectorBreakdownPoint, SectorBreakdownResponse, SubmissionKpisResponse,
 };
 use crate::auth::claims::Claims;
 
+use rust_decimal::prelude::ToPrimitive;
+use serde::Deserialize;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
 
@@ -133,4 +140,1014 @@ pub async fn update_line_items(
     }
 
     Ok((StatusCode::OK, Json(updated)))
+}
+
+// ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/kpis",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Computed KPIs for submission", body = SubmissionKpisResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission or financial statement not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_submission_kpis(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let fs = state
+        .financial_statement_repo
+        .find_by_submission(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
+
+    let line_items = state
+        .line_item_repo
+        .find_by_financial_statement(fs.id)
+        .await?;
+
+    let kpi_set = crate::services::KpiEngine::compute(&line_items);
+    let kpis: Vec<KpiItemResponse> = kpi_set.to_vec().into_iter().map(KpiItemResponse::from).collect();
+
+    tracing::info!(
+        submission_id = %id,
+        kpi_count = kpis.len(),
+        submission_status = %submission.status.as_str(),
+        "KPIs computed for submission"
+    );
+
+    Ok((
+        StatusCode::OK,
+        Json(SubmissionKpisResponse {
+            submission_id: id,
+            reporting_year: submission.reporting_year,
+            computed_at: chrono::Utc::now(),
+            submission_status: submission.status.as_str().to_string(),
+            kpis,
+        }),
+    ))
+}
+
+// ── S4-T2: Benchmark aggregation endpoint ────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/benchmarks",
+    params(
+        ("kpi_name" = String, Query, description = "KPI identifier e.g. par30, roa, capital_adequacy_ratio"),
+        ("cooperative_type" = Option<String>, Query, description = "Filter by cooperative type e.g. sacco"),
+        ("reporting_year" = Option<i32>, Query, description = "Reporting year, defaults to current year"),
+    ),
+    responses(
+        (status = 200, description = "Benchmark statistics for the requested KPI", body = BenchmarkResponse),
+        (status = 400, description = "Invalid KPI name"),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_benchmarks(
+    State(state): State<AppState>,
+    Query(params): Query<BenchmarkQueryParams>,
+) -> AppResult<impl IntoResponse> {
+    let year = params
+        .reporting_year
+        .unwrap_or_else(|| chrono::Utc::now().year());
+
+    let cache_key = format!(
+        "benchmark:{}:{}:{}",
+        params.kpi_name,
+        params.cooperative_type.as_deref().unwrap_or("all"),
+        year
+    );
+
+    // ── Cache hit ────────────────────────────────────────────────────────────
+    if let Ok(Some(cached)) = state.cache.get::<BenchmarkResponse>(&cache_key).await {
+        tracing::debug!(cache_key = %cache_key, "Benchmark cache hit");
+        return Ok((StatusCode::OK, Json(cached)));
+    }
+
+    // ── Compute from approved submissions ────────────────────────────────────
+    use crate::entities::enums::SubmissionStatus;
+    let all_approved = state
+        .submission_repo
+        .find_by_status(SubmissionStatus::Approved)
+        .await?;
+
+    // Filter by year first
+    let year_filtered: Vec<_> = all_approved
+        .iter()
+        .filter(|s| s.reporting_year == year)
+        .collect();
+
+    // Filter by cooperative_type if provided
+    let type_filtered: Vec<_> = if let Some(coop_type) = &params.cooperative_type {
+        let coop_type_lower = coop_type.to_lowercase();
+        let mut result = Vec::new();
+        for sub in &year_filtered {
+            if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(sub.cooperative_id).await {
+                let institution_type = coop
+                    .institution_type
+                    .as_ref()
+                    .map(|t| t.as_str().to_lowercase())
+                    .unwrap_or_default();
+                if institution_type == coop_type_lower {
+                    result.push(*sub);
+                }
+            }
+        }
+        result
+    } else {
+        year_filtered.to_vec()
+    };
+
+    if type_filtered.is_empty() {
+        return Ok((
+            StatusCode::OK,
+            Json(BenchmarkResponse {
+                kpi_name: params.kpi_name.clone(),
+                cooperative_type: params.cooperative_type.clone(),
+                reporting_year: year,
+                sector_average: 0.0,
+                national_average: 0.0,
+                percentile_25: 0.0,
+                percentile_50: 0.0,
+                percentile_75: 0.0,
+                sample_count: 0,
+            }),
+        ));
+    }
+
+    // Collect all submission IDs and batch-load financial statements
+    let submission_ids: Vec<_> = type_filtered.iter().map(|s| s.id).collect();
+    let all_fs = state
+        .financial_statement_repo
+        .find_by_submission_ids(submission_ids)
+        .await?;
+
+    // Compute KPI value for each submission
+    let mut kpi_values: Vec<f64> = Vec::with_capacity(all_fs.len());
+
+    for fs in &all_fs {
+        let line_items = state
+            .line_item_repo
+            .find_by_financial_statement(fs.id)
+            .await?;
+
+        if line_items.is_empty() {
+            continue;
+        }
+
+        let kpi_set = crate::services::KpiEngine::compute(&line_items);
+
+        if let Some(kpi) = kpi_set.get_by_name(&params.kpi_name) {
+            kpi_values.push(kpi.value);
+        } else {
+            return Err(AppError::BadRequest(format!(
+                "Unknown KPI name '{}'. Valid names: par30, par90, npl_ratio, loan_loss_coverage, \
+                 roa, roe, operating_expense_ratio, capital_adequacy_ratio, liquid_funds_ratio, \
+                 operational_self_sufficiency, net_interest_margin, deposits_to_loans, \
+                 total_assets, gross_loan_portfolio, net_loan_portfolio, total_member_deposits, \
+                 total_equity, net_surplus",
+                params.kpi_name
+            )));
+        }
+    }
+
+    let sample_count = kpi_values.len();
+
+    // Compute statistics
+    let (sector_avg, national_avg, p25, p50, p75) = if sample_count == 0 {
+        (0.0, 0.0, 0.0, 0.0, 0.0)
+    } else {
+        let mut sorted = kpi_values.clone();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+        let mean = sorted.iter().sum::<f64>() / sorted.len() as f64;
+        let p25 = sorted[sorted.len() * 25 / 100];
+        let p50 = sorted[sorted.len() * 50 / 100];
+        let p75 = sorted[(sorted.len() * 75 / 100).min(sorted.len() - 1)];
+
+        (mean, mean, p25, p50, p75)
+    };
+
+    let result = BenchmarkResponse {
+        kpi_name: params.kpi_name.clone(),
+        cooperative_type: params.cooperative_type.clone(),
+        reporting_year: year,
+        sector_average: sector_avg,
+        national_average: national_avg,
+        percentile_25: p25,
+        percentile_50: p50,
+        percentile_75: p75,
+        sample_count,
+    };
+
+    // Cache for 1 hour — fire-and-forget
+    let cache_clone = state.cache.clone();
+    let result_clone = result.clone();
+    let key_clone = cache_key.clone();
+    tokio::spawn(async move {
+        if let Err(e) = cache_clone
+            .set(&key_clone, &result_clone, std::time::Duration::from_secs(3600))
+            .await
+        {
+            tracing::warn!(error = %e, "Failed to cache benchmark result");
+        }
+    });
+
+    tracing::info!(
+        kpi_name = %params.kpi_name,
+        sample_count,
+        sector_average = sector_avg,
+        "Benchmarks computed"
+    );
+
+    Ok((StatusCode::OK, Json(result)))
+}
+
+// ── S4-T5: Multi-format export endpoint ──────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/export",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("format" = String, Query, description = "Export format: xlsx or csv"),
+    ),
+    responses(
+        (status = 200, description = "File download (xlsx or csv)"),
+        (status = 400, description = "Invalid format parameter"),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission or financial statement not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn export_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(params): Query<ExportParams>,
+) -> AppResult<impl IntoResponse> {
+    let format = params.format.to_lowercase();
+    if format != "xlsx" && format != "csv" {
+        return Err(AppError::BadRequest(
+            "format must be 'xlsx' or 'csv'".into(),
+        ));
+    }
+
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let fs = state
+        .financial_statement_repo
+        .find_by_submission(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
+
+    let line_items = state
+        .line_item_repo
+        .find_by_financial_statement(fs.id)
+        .await?;
+
+    let kpi_set = crate::services::KpiEngine::compute(&line_items);
+    let kpis = kpi_set.to_vec();
+
+    let reference = submission
+        .reference
+        .clone()
+        .unwrap_or_else(|| id.to_string());
+
+    tracing::info!(
+        submission_id = %id,
+        format = %format,
+        line_item_count = line_items.len(),
+        "Exporting submission"
+    );
+
+    use axum::response::Response;
+    let response: Response = match format.as_str() {
+        "xlsx" => build_xlsx_response(&line_items, &kpis, &reference)?.into_response(),
+        "csv" => build_csv_response(&line_items, &reference)?.into_response(),
+        _ => unreachable!(),
+    };
+    Ok(response)
+}
+
+fn build_xlsx_response(
+    line_items: &[crate::entities::balance_sheet_line_item::Model],
+    kpis: &[crate::services::kpi_engine::KpiValue],
+    reference: &str,
+) -> AppResult<impl IntoResponse> {
+    use rust_xlsxwriter::Workbook;
+    use axum::http::header;
+
+    let mut workbook = Workbook::new();
+
+    // ── Sheet 1: Balance Sheet ────────────────────────────────────────────────
+    let ws = workbook
+        .add_worksheet()
+        .set_name("Balance Sheet")
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let headers = ["Account Code", "Account Name", "Category", "Subcategory", "Month", "Value", "AI Confidence", "AI Flagged", "Manually Edited"];
+    for (col, h) in headers.iter().enumerate() {
+        ws.write_string(0, col as u16, *h)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    }
+
+    for (row, item) in line_items.iter().enumerate() {
+        let r = (row + 1) as u32;
+        if let Some(code) = item.account_code {
+            ws.write_number(r, 0, code as f64)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        ws.write_string(r, 1, item.account_name.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws.write_string(r, 2, item.account_category.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws.write_string(r, 3, item.account_subcategory.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws.write_number(r, 4, item.month as f64)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        if let Some(val) = item.value.as_ref().and_then(|d| d.to_f64()) {
+            ws.write_number(r, 5, val)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        if let Some(conf) = item.ai_confidence.as_ref().and_then(|d| d.to_f64()) {
+            ws.write_number(r, 6, conf)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        ws.write_boolean(r, 7, item.ai_flagged)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws.write_boolean(r, 8, item.manually_edited)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    }
+
+    // ── Sheet 2: KPIs ─────────────────────────────────────────────────────────
+    let ws2 = workbook
+        .add_worksheet()
+        .set_name("KPIs")
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let kpi_headers = ["KPI Name", "Value", "Formatted", "Unit", "Status", "Benchmark", "Description"];
+    for (col, h) in kpi_headers.iter().enumerate() {
+        ws2.write_string(0, col as u16, *h)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    }
+    for (row, kpi) in kpis.iter().enumerate() {
+        let r = (row + 1) as u32;
+        ws2.write_string(r, 0, kpi.name.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws2.write_number(r, 1, kpi.value)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws2.write_string(r, 2, kpi.formatted.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws2.write_string(r, 3, kpi.unit.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws2.write_string(r, 4, kpi.status.as_deref().unwrap_or("—"))
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        if let Some(b) = kpi.benchmark {
+            ws2.write_number(r, 5, b)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        ws2.write_string(r, 6, kpi.description.as_str())
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    }
+
+    let bytes = workbook
+        .save_to_buffer()
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let filename = format!("{reference}.xlsx");
+    use axum::response::Response;
+    use axum::body::Body;
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+        .body(Body::from(bytes))
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    Ok(response)
+}
+
+fn build_csv_response(
+    line_items: &[crate::entities::balance_sheet_line_item::Model],
+    reference: &str,
+) -> AppResult<impl IntoResponse> {
+    use rust_decimal::prelude::ToPrimitive;
+    use axum::http::header;
+
+    let mut writer = csv::Writer::from_writer(vec![]);
+
+    writer
+        .write_record([
+            "account_code",
+            "account_name",
+            "category",
+            "subcategory",
+            "month",
+            "value",
+            "ai_confidence",
+            "ai_flagged",
+            "manually_edited",
+        ])
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    for item in line_items {
+        writer
+            .write_record([
+                item.account_code.map(|c| c.to_string()).unwrap_or_default(),
+                item.account_name.clone(),
+                item.account_category.as_str().to_string(),
+                item.account_subcategory.clone(),
+                item.month.to_string(),
+                item.value.as_ref().and_then(|d| d.to_f64()).map(|v| format!("{v:.2}")).unwrap_or_default(),
+                item.ai_confidence.as_ref().and_then(|d| d.to_f64()).map(|v| format!("{v:.4}")).unwrap_or_default(),
+                item.ai_flagged.to_string(),
+                item.manually_edited.to_string(),
+            ])
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    }
+
+    let data = writer
+        .into_inner()
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let filename = format!("{reference}.csv");
+    use axum::response::Response;
+    use axum::body::Body;
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "text/csv")
+        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+        .body(Body::from(data))
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    Ok(response)
+}
+
+
+// ── S4-T6: Ministry stats endpoint ───────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/ministry/stats",
+    responses(
+        (status = 200, description = "Ministry-level dashboard statistics", body = MinistryStatsResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Ministry"
+)]
+pub async fn get_ministry_stats(
+    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    use crate::entities::enums::SubmissionStatus;
+
+    // Count all cooperatives via cooperative_repo
+    let all_coops = state
+        .cooperative_repo
+        .list_all()
+        .await
+        .unwrap_or_default();
+    let total_cooperatives = all_coops.len() as i64;
+
+    let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
+    let all_submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(all_coop_ids)
+        .await?;
+
+    let total_submissions = all_submissions.len() as i64;
+    let pending_review_count = all_submissions
+        .iter()
+        .filter(|s| {
+            s.status != SubmissionStatus::Draft
+                && s.status != SubmissionStatus::Approved
+                && s.status != SubmissionStatus::Rejected
+        })
+        .count() as i64;
+    let approved_count = all_submissions
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .count() as i64;
+    let rejected_count = all_submissions
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Rejected)
+        .count() as i64;
+
+    tracing::info!(
+        total_cooperatives,
+        total_submissions,
+        pending_review_count,
+        "Ministry stats computed"
+    );
+
+    // Compute average PAR30 and CAR from approved submissions
+    let approved_sub_ids: Vec<Uuid> = all_submissions
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .map(|s| s.id)
+        .collect();
+
+    let (average_par30, average_car) =
+        crate::api::handlers::submission::compute_average_kpis(&state, approved_sub_ids).await;
+
+    tracing::info!(
+        total_cooperatives,
+        total_submissions,
+        pending_review_count,
+        average_par30 = ?average_par30,
+        average_car = ?average_car,
+        "Ministry stats computed"
+    );
+
+    Ok((
+        StatusCode::OK,
+        Json(MinistryStatsResponse {
+            total_cooperatives,
+            total_submissions,
+            pending_review_count,
+            approved_count,
+            rejected_count,
+            average_par30,
+            average_car,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/ministry/submissions/export",
+    params(("format" = String, Query, description = "Export format: xlsx or csv")),
+    responses(
+        (status = 200, description = "Bulk export file"),
+        (status = 400, description = "Invalid format"),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Ministry"
+)]
+pub async fn export_ministry_submissions(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ExportParams>,
+) -> AppResult<impl IntoResponse> {
+    let format = params.format.to_lowercase();
+    if format != "xlsx" && format != "csv" {
+        return Err(AppError::BadRequest("format must be 'xlsx' or 'csv'".into()));
+    }
+
+    let all_coops = state.cooperative_repo.list_all().await?;
+    let coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
+    let coop_names: std::collections::HashMap<Uuid, String> =
+        all_coops.iter().map(|c| (c.id, c.name.clone())).collect();
+
+    build_bulk_export(&state, &coop_ids, &coop_names, "ministry", &format).await
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/federation/submissions/export",
+    params(("format" = String, Query, description = "Export format: xlsx or csv")),
+    responses(
+        (status = 200, description = "Bulk export file"),
+        (status = 400, description = "Invalid format"),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Federation"
+)]
+pub async fn export_federation_submissions(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ExportParams>,
+) -> AppResult<impl IntoResponse> {
+    let format = params.format.to_lowercase();
+    if format != "xlsx" && format != "csv" {
+        return Err(AppError::BadRequest("format must be 'xlsx' or 'csv'".into()));
+    }
+
+    let org_id = claims.get_organization_id()
+        .ok_or_else(|| AppError::Forbidden("Federation user has no organization".into()))?;
+    let federation = state.federation_repo.find_by_keycloak_id(&org_id).await?
+        .ok_or_else(|| AppError::Forbidden("Federation not found".into()))?;
+    let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
+    let mut coop_ids = Vec::new();
+    let mut coop_names = std::collections::HashMap::new();
+    for apex in &apexes {
+        let coops = state.cooperative_repo.find_by_apex_id(apex.id).await?;
+        for c in &coops {
+            coop_names.insert(c.id, c.name.clone());
+            coop_ids.push(c.id);
+        }
+    }
+
+    build_bulk_export(&state, &coop_ids, &coop_names, "federation", &format).await
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/submissions/export",
+    params(("format" = String, Query, description = "Export format: xlsx or csv")),
+    responses(
+        (status = 200, description = "Bulk export file"),
+        (status = 400, description = "Invalid format"),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Apex"
+)]
+pub async fn export_apex_submissions(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ExportParams>,
+) -> AppResult<impl IntoResponse> {
+    let format = params.format.to_lowercase();
+    if format != "xlsx" && format != "csv" {
+        return Err(AppError::BadRequest("format must be 'xlsx' or 'csv'".into()));
+    }
+
+    let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+    let coops = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let coop_ids: Vec<Uuid> = coops.iter().map(|c| c.id).collect();
+    let coop_names: std::collections::HashMap<Uuid, String> =
+        coops.iter().map(|c| (c.id, c.name.clone())).collect();
+
+    build_bulk_export(&state, &coop_ids, &coop_names, "apex", &format).await
+}
+
+async fn build_bulk_export(
+    state: &AppState,
+    coop_ids: &[Uuid],
+    coop_names: &std::collections::HashMap<Uuid, String>,
+    tier: &str,
+    format: &str,
+) -> AppResult<impl IntoResponse> {
+    use crate::services::KpiEngine;
+    use rust_xlsxwriter::Workbook;
+    use axum::http::header;
+    use axum::body::Body;
+    use axum::response::Response;
+
+    let submissions = state.submission_repo.find_by_cooperative_ids(coop_ids.to_vec()).await?;
+
+    let sub_ids: Vec<Uuid> = submissions.iter().map(|s| s.id).collect();
+    let fs_list = state.financial_statement_repo.find_by_submission_ids(sub_ids.clone()).await.unwrap_or_default();
+    let fs_map: std::collections::HashMap<Uuid, Uuid> =
+        fs_list.iter().map(|fs| (fs.submission_id, fs.id)).collect();
+
+    let mut rows: Vec<(String, String, i32, String, f64, f64, f64, f64, f64, f64)> = Vec::new();
+
+    for sub in &submissions {
+        let coop_name = coop_names.get(&sub.cooperative_id).cloned().unwrap_or_default();
+        let ref_str = sub.reference.clone().unwrap_or_else(|| sub.id.to_string());
+        let status = format!("{:?}", sub.status);
+
+        if let Some(&fs_id) = fs_map.get(&sub.id) {
+            let line_items = state.line_item_repo.find_by_financial_statement(fs_id).await.unwrap_or_default();
+            let kpi_set = KpiEngine::compute(&line_items);
+            let find_kpi = |name: &str| -> f64 {
+                kpi_set.get_by_name(name)
+                    .map(|k| k.value)
+                    .unwrap_or(0.0)
+            };
+            rows.push((
+                coop_name, ref_str, sub.reporting_year, status,
+                find_kpi("total_assets"),
+                find_kpi("gross_loan_portfolio"),
+                find_kpi("par30"),
+                find_kpi("roa"),
+                find_kpi("capital_adequacy_ratio"),
+                find_kpi("total_equity"),
+            ));
+        } else {
+            rows.push((coop_name, ref_str, sub.reporting_year, status, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+        }
+    }
+
+    rows.sort_by(|a, b| a.1.cmp(&b.1));
+
+    let response: Response = if format == "xlsx" {
+        let mut workbook = Workbook::new();
+        let ws = workbook.add_worksheet()
+            .set_name("Submissions Summary")
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let headers = ["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"];
+        for (col, h) in headers.iter().enumerate() {
+            ws.write_string(0, col as u16, *h)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        for (row, r) in rows.iter().enumerate() {
+            let rn = (row + 1) as u32;
+            ws.write_string(rn, 0, &r.0).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            ws.write_string(rn, 1, &r.1).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            ws.write_number(rn, 2, r.2 as f64).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            ws.write_string(rn, 3, &r.3).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let vals = [r.4, r.5, r.6, r.7, r.8, r.9];
+            for (col, val) in vals.iter().enumerate() {
+                ws.write_number(rn, (col + 4) as u16, *val)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            }
+        }
+
+        let bytes = workbook.save_to_buffer()
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        let filename = format!("{tier}-submissions.xlsx");
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+            .body(Body::from(bytes))
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+    } else {
+        let mut wtr = csv::Writer::from_writer(vec![]);
+        wtr.write_record(["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"])
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        for r in &rows {
+            wtr.write_record([
+                &r.0, &r.1, &r.2.to_string(), &r.3,
+                &format_f64(r.4), &format_f64(r.5), &format_f64(r.6),
+                &format_f64(r.7), &format_f64(r.8), &format_f64(r.9),
+            ]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        let bytes = wtr.into_inner().map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        let filename = format!("{tier}-submissions.csv");
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "text/csv")
+            .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+            .body(Body::from(bytes))
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+    };
+
+    Ok(response)
+}
+
+fn format_f64(v: f64) -> String {
+    if v == 0.0 { String::new() } else { format!("{:.2}", v) }
+}
+
+// ── Monthly trend analytics endpoint ─────────────────────────────────────────
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct MonthlyTrendParams {
+    pub reporting_year: Option<i32>,
+    pub cooperative_id: Option<Uuid>,
+}
+
+const MONTH_LABELS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const SAVINGS_ACCOUNT_CODES: [i32; 3] = [2101, 2102, 2103];
+const LOANS_ACCOUNT_CODES: [i32; 5] = [1201, 1202, 1203, 1204, 1205];
+const DEPOSITS_ACCOUNT_CODES: [i32; 1] = [1999];
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/monthly-trend",
+    params(
+        ("reporting_year" = Option<i32>, Query, description = "Reporting year, defaults to current year"),
+        ("cooperative_id" = Option<Uuid>, Query, description = "Filter to a single cooperative"),
+    ),
+    responses(
+        (status = 200, description = "Monthly trend data", body = MonthlyTrendResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_monthly_trend(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<MonthlyTrendParams>,
+) -> AppResult<impl IntoResponse> {
+    let year = params
+        .reporting_year
+        .unwrap_or_else(|| chrono::Utc::now().year());
+
+    let caller_coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let coop_ids = if let Some(target_id) = params.cooperative_id {
+        if !caller_coop_ids.contains(&target_id) {
+            return Err(AppError::Forbidden("Access denied to this cooperative".into()));
+        }
+        vec![target_id]
+    } else {
+        caller_coop_ids
+    };
+
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids.clone())
+        .await?;
+
+    let year_filtered: Vec<_> = submissions
+        .iter()
+        .filter(|s| s.reporting_year == year)
+        .collect();
+
+    let submission_ids: Vec<Uuid> = year_filtered.iter().map(|s| s.id).collect();
+    let financial_statements = state
+        .financial_statement_repo
+        .find_by_submission_ids(submission_ids)
+        .await?;
+
+    let fs_ids: Vec<Uuid> = financial_statements.iter().map(|fs| fs.id).collect();
+    let line_items = state
+        .line_item_repo
+        .find_by_financial_statement_ids(fs_ids)
+        .await?;
+
+    let mut months: Vec<MonthlyTrendPoint> = (1..=12)
+        .map(|m| MonthlyTrendPoint {
+            month: m,
+            month_label: MONTH_LABELS[(m - 1) as usize].to_string(),
+            savings: 0.0,
+            loans: 0.0,
+            deposits: 0.0,
+        })
+        .collect();
+
+    for item in &line_items {
+        let month_idx = (item.month - 1) as usize;
+        if month_idx >= 12 {
+            continue;
+        }
+        if let Some(code) = item.account_code {
+            if let Some(val) = item.value.and_then(|d| d.to_f64()) {
+                if SAVINGS_ACCOUNT_CODES.contains(&code) {
+                    months[month_idx].savings += val;
+                } else if LOANS_ACCOUNT_CODES.contains(&code) {
+                    months[month_idx].loans += val;
+                } else if DEPOSITS_ACCOUNT_CODES.contains(&code) {
+                    months[month_idx].deposits += val;
+                }
+            }
+        }
+    }
+
+    tracing::info!(
+        year,
+        cooperative_count = coop_ids.len(),
+        submission_count = year_filtered.len(),
+        line_item_count = line_items.len(),
+        "Monthly trend computed"
+    );
+
+    Ok((
+        StatusCode::OK,
+        Json(MonthlyTrendResponse { year, months }),
+    ))
+}
+
+// ── Region compliance analytics endpoint ────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/region-compliance",
+    responses(
+        (status = 200, description = "Region compliance data", body = RegionComplianceResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_region_compliance(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let caller_coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let cooperatives = state.cooperative_repo.find_by_ids(caller_coop_ids.clone()).await?;
+
+    let mut region_map: std::collections::HashMap<String, (i64, i64)> =
+        std::collections::HashMap::new();
+
+    for coop in &cooperatives {
+        let region = coop
+            .region
+            .as_ref()
+            .map(|r| r.as_str().to_string())
+            .unwrap_or_else(|| "Unknown".to_string());
+        let entry = region_map.entry(region).or_insert((0, 0));
+        entry.0 += 1;
+    }
+
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(caller_coop_ids)
+        .await?;
+
+    let mut region_approved: std::collections::HashMap<String, i64> =
+        std::collections::HashMap::new();
+    for sub in &submissions {
+        if let Some(coop) = cooperatives.iter().find(|c| c.id == sub.cooperative_id) {
+            let region = coop
+                .region
+                .as_ref()
+                .map(|r| r.as_str().to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+            if sub.status == crate::entities::enums::SubmissionStatus::Approved {
+                *region_approved.entry(region).or_insert(0) += 1;
+            }
+        }
+    }
+
+    let mut regions: Vec<RegionCompliancePoint> = region_map
+        .into_iter()
+        .map(|(name, (total, _))| {
+            let approved = region_approved.get(&name).copied().unwrap_or(0);
+            let score = if total > 0 {
+                (approved as f64 / total as f64) * 100.0
+            } else {
+                0.0
+            };
+            RegionCompliancePoint {
+                name,
+                score: (score * 10.0).round() / 10.0,
+                coops: total,
+            }
+        })
+        .collect();
+    regions.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+
+    Ok((
+        StatusCode::OK,
+        Json(RegionComplianceResponse { regions }),
+    ))
+}
+
+// ── Sector breakdown analytics endpoint ─────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/sector-breakdown",
+    responses(
+        (status = 200, description = "Sector breakdown data", body = SectorBreakdownResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_sector_breakdown(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let caller_coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let cooperatives = state.cooperative_repo.find_by_ids(caller_coop_ids).await?;
+
+    let mut sector_map: std::collections::HashMap<String, i64> =
+        std::collections::HashMap::new();
+
+    for coop in &cooperatives {
+        let sector = coop
+            .sector
+            .clone()
+            .unwrap_or_else(|| "Other".to_string());
+        *sector_map.entry(sector).or_insert(0) += 1;
+    }
+
+    let mut sectors: Vec<SectorBreakdownPoint> = sector_map
+        .into_iter()
+        .map(|(name, count)| SectorBreakdownPoint {
+            name,
+            value: count,
+            count,
+        })
+        .collect();
+    sectors.sort_by(|a, b| b.value.cmp(&a.value));
+
+    Ok((
+        StatusCode::OK,
+        Json(SectorBreakdownResponse { sectors }),
+    ))
 }

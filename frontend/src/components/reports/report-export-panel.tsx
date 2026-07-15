@@ -11,6 +11,8 @@ import {
 import { Card } from "@/components/app-shell";
 import { type Role, useUserRole } from "@/lib/auth";
 import { toast } from "sonner";
+import { useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
+import { getAccessToken } from "@/services/shared/authService";
 
 export type ExportFormat = "pdf" | "xlsx" | "csv";
 
@@ -113,35 +115,111 @@ const FORMAT_ICONS: Record<ExportFormat, typeof FileText> = {
 };
 
 interface ReportExportPanelProps {
+  submissionId?: string;
   className?: string;
 }
 
-export function ReportExportPanel({ className }: ReportExportPanelProps) {
+export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
   const role = useUserRole();
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("pdf");
   const [isExporting, setIsExporting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Load cooperative's submissions to get the latest for export
+  const { data: submissions = [] } = useCooperativeSubmissions(role === "cooperative");
+  const latestSubmission = submissionId
+    ? submissions.find((s) => s.id === submissionId)
+    : [...submissions].sort((a, b) => b.reporting_year - a.reporting_year)[0];
+
   if (!role) return null;
 
   const availableReports = REPORT_EXPORT_OPTIONS.filter((r) => r.availableTo.includes(role));
-
   const selectedOption = availableReports.find((r) => r.id === selectedReport);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!selectedReport || !selectedOption) return;
 
     setIsExporting(true);
-    // Simulate export
-    setTimeout(() => {
-      setIsExporting(false);
+    try {
+      // Cooperative individual report — real file download
+      if (role === "cooperative" && selectedOption.scope === "individual") {
+        if (!latestSubmission) {
+          toast.error("No submission found to export. Please submit a financial statement first.");
+          return;
+        }
+
+        // PDF is not implemented yet — fall back to xlsx with a note
+        const format = selectedFormat === "pdf" ? "xlsx" : selectedFormat;
+        if (selectedFormat === "pdf") {
+          toast.info("PDF export is coming soon. Downloading as Excel instead.");
+        }
+
+        const token = await getAccessToken();
+        const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+        const res = await fetch(
+          `${baseUrl}/api/v1/cooperative/submissions/${latestSubmission.id}/export?format=${format}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = (err as Record<string, string>)["message"] ?? `Export failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `submission-${latestSubmission.reference ?? latestSubmission.id}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success(`${selectedOption.label} exported as ${format.toUpperCase()} successfully!`);
+      } else {
+        // Higher-tier consolidated exports — real bulk download
+        const format = selectedFormat === "pdf" ? "xlsx" : selectedFormat;
+        if (selectedFormat === "pdf") {
+          toast.info("PDF export is coming soon. Downloading as Excel instead.");
+        }
+
+        const tier = role as "ministry" | "federation" | "apex";
+        const token = await getAccessToken();
+        const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+        const res = await fetch(`${baseUrl}/api/v1/${tier}/submissions/export?format=${format}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = (err as Record<string, string>)["message"] ?? `Export failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${tier}-submissions.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success(`${selectedOption.label} exported as ${format.toUpperCase()} successfully!`);
+      }
+
       setIsModalOpen(false);
-      toast.success(
-        `${selectedOption.label} exported as ${selectedFormat.toUpperCase()} successfully!`,
-      );
       setSelectedReport(null);
-    }, 1500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Export failed. Please try again.";
+      toast.error(msg);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
