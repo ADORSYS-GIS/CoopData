@@ -13,6 +13,7 @@ use crate::api::handlers::financial_statement::{
     get_financial_statement, list_line_items, update_line_items,
     get_submission_kpis, export_submission,
 };
+use crate::api::handlers::nf_indicator_stats::get_nf_statistics;
 use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
@@ -142,6 +143,11 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(list_line_items).patch(update_line_items),
         )
         .route("/extraction-jobs/{id}", get(get_extraction_job))
+        // NF indicator statistics for the caller's cooperative
+        .route(
+            "/nf-statistics",
+            get(get_nf_statistics),
+        )
 }
 
 async fn get_cooperative_profile(

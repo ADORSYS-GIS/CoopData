@@ -49,6 +49,11 @@ pub fn shared_routes() -> Router<AppState> {
             "/analytics/sector-breakdown",
             get(crate::api::handlers::financial_statement::get_sector_breakdown),
         )
+        // National overview — aggregated KPI traffic-light distribution
+        .route(
+            "/analytics/national-overview",
+            get(crate::api::handlers::national_overview::get_national_overview),
+        )
 }
 
 async fn get_current_user_profile(

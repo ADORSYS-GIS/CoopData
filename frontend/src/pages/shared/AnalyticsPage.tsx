@@ -42,9 +42,11 @@ import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
 import { useFederationStats } from "@/hooks/analytics/useFederationStats";
 import { useRegionCompliance } from "@/hooks/analytics/useRegionCompliance";
 import { useSectorBreakdown } from "@/hooks/analytics/useSectorBreakdown";
+import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
+import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes } from "@/hooks/apexes/useApexes";
-import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
+import { useCooperatives, useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
 import {
   TrendingUp,
   TrendingDown,
@@ -262,22 +264,6 @@ const baseRegionTrendData = [
   { month: "Oct", Hhohho: 7000, Manzini: 4000, Lubombo: 4500, Shiselweni: 1400 },
   { month: "Nov", Hhohho: 2500, Manzini: 5600, Lubombo: 3000, Shiselweni: 6000 },
   { month: "Dec", Hhohho: 6000, Manzini: 2200, Lubombo: 6800, Shiselweni: 1000 },
-];
-
-// Previous-period financials (last year) for comparison chart
-const basePrevPeriodFinancials = [
-  { month: "Jan", savings: 620, loans: 420, members: 180000 },
-  { month: "Feb", savings: 1380, loans: 890, members: 310000 },
-  { month: "Mar", savings: 480, loans: 310, members: 140000 },
-  { month: "Apr", savings: 1500, loans: 950, members: 340000 },
-  { month: "May", savings: 390, loans: 240, members: 120000 },
-  { month: "Jun", savings: 1280, loans: 820, members: 280000 },
-  { month: "Jul", savings: 700, loans: 450, members: 200000 },
-  { month: "Aug", savings: 1600, loans: 1020, members: 360000 },
-  { month: "Sep", savings: 320, loans: 200, members: 110000 },
-  { month: "Oct", savings: 1420, loans: 910, members: 320000 },
-  { month: "Nov", savings: 560, loans: 370, members: 165000 },
-  { month: "Dec", savings: 1700, loans: 1100, members: 380000 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -566,47 +552,6 @@ function filterByDateRange<T extends Record<string, unknown>>(
   });
 }
 
-const SPARKLINE_GROWTH = [
-  { value: 10 },
-  { value: 12 },
-  { value: 11 },
-  { value: 14 },
-  { value: 13 },
-  { value: 16 },
-  { value: 15 },
-  { value: 18 },
-];
-const SPARKLINE_MEMBERS = [
-  { value: 100 },
-  { value: 105 },
-  { value: 112 },
-  { value: 110 },
-  { value: 118 },
-  { value: 124 },
-  { value: 130 },
-  { value: 135 },
-];
-const SPARKLINE_SECTORS = [
-  { value: 4 },
-  { value: 5 },
-  { value: 5 },
-  { value: 6 },
-  { value: 6 },
-  { value: 7 },
-  { value: 7 },
-  { value: 8 },
-];
-const SPARKLINE_COMPLIANCE = [
-  { value: 91 },
-  { value: 92 },
-  { value: 91.5 },
-  { value: 93 },
-  { value: 92.8 },
-  { value: 92.4 },
-  { value: 93.1 },
-  { value: 92.4 },
-];
-
 // ─────────────────────────────────────────────────────────────────────
 // Analytics Page Component
 // ─────────────────────────────────────────────────────────────────────
@@ -674,10 +619,19 @@ export const AnalyticsPage: React.FC = () => {
   const regionComplianceData = useRegionCompliance(!!role).data;
   const sectorBreakdownData = useSectorBreakdown(!!role).data;
 
+  // ── NF Statistics (real data from uploaded NF databases) ──
+  const nfStats = useNfStatistics(!!role).data;
+
+  // ── National Overview (aggregated KPI traffic-light for admin roles) ──
+  const nationalOverview = useNationalOverview(
+    role === "ministry" || role === "federation" || role === "apex",
+  ).data;
+
   // ── Real data for filter dropdowns ──
   const { data: federationsData } = useFederations();
   const { data: apexesData } = useApexes();
   const { data: cooperativesData } = useCooperatives();
+  const { data: myCoopProfile } = useMyCooperativeProfile();
 
   // ── Monthly trend data ──
   const monthlyTrendParams = useMemo(() => {
@@ -945,16 +899,8 @@ export const AnalyticsPage: React.FC = () => {
         }));
       }
     }
-    const filtered = filterByDateRange(baseMonthlyFinancials, "date", dateRange);
-    const multiplied = applyMultiplier(filtered, ["savings", "loans", "deposits"], multiplier);
-    return multiplied.map((item, idx) => {
-      const customVariations = [650, 580, 720, 850, 920, 780, 610, 520, 690, 830, 950, 480];
-      return {
-        ...item,
-        variation: Math.round(customVariations[idx % customVariations.length] * multiplier),
-      };
-    });
-  }, [dateRange, multiplier, monthlyTrendData]);
+    return [] as typeof baseMonthlyFinancials;
+  }, [monthlyTrendData]);
 
   const filteredSubmissionTrend = useMemo(() => {
     const filtered = filterByDateRange(baseSubmissionTrend, "monthDate", dateRange);
@@ -978,7 +924,37 @@ export const AnalyticsPage: React.FC = () => {
   }, [multiplier, regionComplianceData]);
 
   const filteredLoanPortfolio = useMemo(() => {
-    // Adjust portfolio quality based on entity selection
+    // For cooperative role: derive from real NF loan statistics
+    if (role === "cooperative" && nfStats) {
+      const { loans } = nfStats;
+      const total = loans.total_loans;
+      if (total > 0) {
+        return [
+          {
+            name: "Performing",
+            value: Math.round((loans.performing / total) * 100),
+            fill: "var(--chart-1)",
+          },
+          {
+            name: "Watch List (Arrears)",
+            value: Math.round((loans.arrears / total) * 100),
+            fill: "var(--chart-3)",
+          },
+          {
+            name: "Restructured",
+            value: Math.round((loans.restructured / total) * 100),
+            fill: "var(--chart-5)",
+          },
+          {
+            name: "Written Off",
+            value: Math.round((loans.written_off / total) * 100),
+            fill: "var(--chart-4)",
+          },
+        ].filter((s) => s.value > 0);
+      }
+      return [];
+    }
+    // For higher roles: use mock until aggregation endpoint built
     if (multiplier >= 1.0) return baseLoanPortfolio;
     const adjustments: Record<string, number> = {
       Performing: multiplier < 0.3 ? -5 : multiplier < 0.6 ? -2 : 0,
@@ -991,7 +967,7 @@ export const AnalyticsPage: React.FC = () => {
       ...item,
       value: Math.max(1, item.value + (adjustments[item.name] ?? 0)),
     }));
-  }, [multiplier]);
+  }, [role, nfStats, multiplier]);
 
   const filteredSectorBreakdown = useMemo(() => {
     if (sectorBreakdownData?.sectors && sectorBreakdownData.sectors.length > 0) {
@@ -1014,27 +990,32 @@ export const AnalyticsPage: React.FC = () => {
   }, [multiplier]);
 
   const filteredComplianceScore = useMemo(() => {
-    const base = 92.4;
-    if (multiplier >= 1.0) return base;
-    return Math.max(75, Math.round(base * (0.9 + multiplier * 0.1) * 10) / 10);
-  }, [multiplier]);
+    // For cooperative: use Operational Self-Sufficiency from real KPI data
+    if (role === "cooperative" && kpisData) {
+      const oss = kpisData.kpis.find((k) => k.name === "operational_self_sufficiency");
+      if (oss) return Math.min(oss.value, 150); // cap at 150 for radial display
+    }
+    if (filteredRegionCompliance.length > 0) {
+      const avg =
+        filteredRegionCompliance.reduce((sum, r) => sum + ((r.score as number) || 0), 0) /
+        filteredRegionCompliance.length;
+      return Math.round(avg * 10) / 10;
+    }
+    return null;
+  }, [role, kpisData, filteredRegionCompliance]);
 
-  // Merged comparison data: current period savings vs previous year
+  // Merged comparison data: current period savings (no previous-year data available)
   const mergedCompData = useMemo(() => {
     const sliceMap: Record<string, number> = { Week: 2, Month: 4, Quarter: 3, Year: 12 };
     const n = sliceMap[compPeriod] ?? 12;
-    return filteredMonthlyFinancials.slice(-n).map((curr, i) => ({
+    return filteredMonthlyFinancials.slice(-n).map((curr) => ({
       month: curr.month,
       "This Period": curr.savings as number,
-      "Last Period": Math.round(
-        (basePrevPeriodFinancials.slice(-n)[i]?.savings ?? 0) * Math.max(multiplier, 0.3),
-      ),
+      "Last Period": 0,
       "This Period Loans": curr.loans as number,
-      "Last Period Loans": Math.round(
-        (basePrevPeriodFinancials.slice(-n)[i]?.loans ?? 0) * Math.max(multiplier, 0.3),
-      ),
+      "Last Period Loans": 0,
     }));
-  }, [filteredMonthlyFinancials, compPeriod, multiplier]);
+  }, [filteredMonthlyFinancials, compPeriod]);
 
   // Multi-region trend (scaled by multiplier)
   const filteredRegionTrend = useMemo(
@@ -1280,29 +1261,43 @@ export const AnalyticsPage: React.FC = () => {
     });
   }, [role, multiplier, kpisData, ministryStats, apexStats, federationStats]);
 
-  const genderData = [
-    {
-      name: "Women",
-      value: multiplier >= 1.0 ? 54.1 : Math.round(54.1 * (0.95 + multiplier * 0.05) * 10) / 10,
-      fill: "var(--chart-1)",
-    },
-    {
-      name: "Men",
-      value: multiplier >= 1.0 ? 38.4 : Math.round(38.4 * (0.95 + multiplier * 0.05) * 10) / 10,
-      fill: "var(--chart-2)",
-    },
-    {
-      name: "Non-binary / Undisclosed",
-      value: multiplier >= 1.0 ? 7.5 : Math.round(7.5 * (1.1 - multiplier * 0.1) * 10) / 10,
-      fill: "var(--chart-3)",
-    },
-  ];
+  const genderData = useMemo(() => {
+    if (nfStats) {
+      return [
+        {
+          name: "Women",
+          value: Math.round(nfStats.membership.female_pct * 10) / 10,
+          fill: "var(--chart-1)",
+        },
+        {
+          name: "Men",
+          value: Math.round(nfStats.membership.male_pct * 10) / 10,
+          fill: "var(--chart-2)",
+        },
+        {
+          name: "Non-binary / Undisclosed",
+          value: Math.round(nfStats.membership.other_pct * 10) / 10,
+          fill: "var(--chart-3)",
+        },
+      ];
+    }
+    return [
+      { name: "Women", value: 0, fill: "var(--chart-1)" },
+      { name: "Men", value: 0, fill: "var(--chart-2)" },
+      { name: "Non-binary / Undisclosed", value: 0, fill: "var(--chart-3)" },
+    ];
+  }, [nfStats]);
 
-  const youthData = REGIONS.map((r) => ({
-    name: r.name,
-    youth: Math.round(25 + r.growth * 4 * (0.9 + multiplier * 0.1)),
-    adult: Math.round(70 - r.growth * 2 * (0.9 + multiplier * 0.1)),
-  }));
+  const youthData = useMemo(() => {
+    if (nfStats) {
+      // Single bar: your cooperative's youth vs adult split
+      return [
+        { name: "Youth (<35)", youth: Math.round(nfStats.membership.youth_pct), adult: 0 },
+        { name: "Co-op avg", youth: 0, adult: Math.round(nfStats.membership.adult_pct) },
+      ];
+    }
+    return [{ name: "Youth (<35)", youth: 0, adult: 0 }];
+  }, [nfStats]);
 
   if (!role) return null;
 
@@ -1544,149 +1539,65 @@ export const AnalyticsPage: React.FC = () => {
           />
         )}
 
-        {/* ── Secondary KPI Insight Cards with Sparklines ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon={TrendingUp}
-            label="YoY Growth"
-            value={
-              multiplier >= 1.0 ? "+12.4%" : `+${(12.4 * (0.7 + multiplier * 0.3)).toFixed(1)}%`
-            }
-            subtitle="vs same period last year"
-            tone="success"
-          >
-            <div className="h-10 w-[calc(100%+2.5rem)] mt-4 -mx-5 -mb-5 opacity-85">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={SPARKLINE_GROWTH}
-                  margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="spark-growth" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--success)" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--success)"
-                    strokeWidth={1.5}
-                    fill="url(#spark-growth)"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+        {/* ── Secondary KPI Insight Cards (real data) ── */}
+        {(() => {
+          const totalMembers =
+            role === "cooperative"
+              ? (nfStats?.membership.total ?? null)
+              : nationalOverview
+                ? nationalOverview.total_cooperatives
+                : null;
+          const totalMembersLabel =
+            role === "cooperative" ? "Members in your cooperative" : "Registered cooperatives";
+          const sectorCount =
+            filteredSectorBreakdown.length > 0 ? filteredSectorBreakdown.length : null;
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                icon={TrendingUp}
+                label="YoY Growth"
+                value="—"
+                subtitle="No year-over-year data"
+                tone="success"
+              />
+              <StatCard
+                icon={Users}
+                label={role === "cooperative" ? "Total Members" : "Total Cooperatives"}
+                value={
+                  totalMembers != null
+                    ? role === "cooperative" && totalMembers >= 1000
+                      ? `${(totalMembers / 1000).toFixed(1)}K`
+                      : totalMembers.toLocaleString()
+                    : "—"
+                }
+                subtitle={totalMembersLabel}
+                tone="primary"
+              />
+              <StatCard
+                icon={PieChartIcon}
+                label="Sector Diversity"
+                value={sectorCount != null ? `${sectorCount} sectors` : "—"}
+                subtitle="Active industry groups"
+                tone="info"
+              />
+              <StatCard
+                icon={BarChart3}
+                label="Avg Compliance"
+                value={filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
+                subtitle={
+                  role === "ministry"
+                    ? "National average"
+                    : role === "federation"
+                      ? "Federation average"
+                      : role === "apex"
+                        ? "Apex average"
+                        : "Your cooperative"
+                }
+                tone="accent"
+              />
             </div>
-          </StatCard>
-          <StatCard
-            icon={Users}
-            label="Total Members"
-            value={multiplier >= 1.0 ? "2.4M" : `${(2.4 * Math.max(multiplier, 0.1)).toFixed(1)}M`}
-            subtitle="Active cooperative members"
-            tone="primary"
-          >
-            <div className="h-10 w-[calc(100%+2.5rem)] mt-4 -mx-5 -mb-5 opacity-85">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={SPARKLINE_MEMBERS}
-                  margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="spark-members" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--primary)"
-                    strokeWidth={1.5}
-                    fill="url(#spark-members)"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </StatCard>
-          <StatCard
-            icon={PieChartIcon}
-            label="Sector Diversity"
-            value={
-              multiplier >= 1.0 ? "8 sectors" : `${Math.max(3, Math.round(8 * multiplier))} sectors`
-            }
-            subtitle="Active industry groups"
-            tone="info"
-          >
-            <div className="h-10 w-[calc(100%+2.5rem)] mt-4 -mx-5 -mb-5 opacity-85">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={SPARKLINE_SECTORS}
-                  margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="spark-sectors" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--info)" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="var(--info)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--info)"
-                    strokeWidth={1.5}
-                    fill="url(#spark-sectors)"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </StatCard>
-          <StatCard
-            icon={BarChart3}
-            label="Avg Compliance"
-            value={`${filteredComplianceScore}%`}
-            subtitle={
-              role === "ministry"
-                ? "National average"
-                : role === "federation"
-                  ? "Federation average"
-                  : role === "apex"
-                    ? "Apex average"
-                    : "Your cooperative"
-            }
-            tone="accent"
-          >
-            <div className="h-10 w-[calc(100%+2.5rem)] mt-4 -mx-5 -mb-5 opacity-85">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={SPARKLINE_COMPLIANCE}
-                  margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="spark-compliance" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--accent)"
-                    strokeWidth={1.5}
-                    fill="url(#spark-compliance)"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </StatCard>
-        </div>
+          );
+        })()}
 
         {/* ── Pro Line Chart + 3D Pie ── */}
         <div className="grid lg:grid-cols-3 gap-6">
@@ -1916,7 +1827,7 @@ export const AnalyticsPage: React.FC = () => {
               {/* Center label */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="font-heading text-xl font-bold text-foreground num leading-none">
-                  54.1%
+                  {nfStats ? `${Math.round(nfStats.membership.female_pct * 10) / 10}%` : "—"}
                 </span>
                 <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
                   Women
@@ -2103,37 +2014,59 @@ export const AnalyticsPage: React.FC = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Sector Capital Share — 2D Doughnut (or simple card for cooperative) */}
           {role === "cooperative" ? (
-            <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Your Sector
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Cooperative classification
-                </p>
-              </div>
-              <div className="my-6 flex flex-col items-center">
-                <div className="size-16 rounded-full bg-accent/10 grid place-items-center">
-                  <BarChart3 className="size-7 text-accent" />
+            (() => {
+              const sectorName = myCoopProfile?.institution_type ?? null;
+              const coopSector = sectorName
+                ? filteredSectorBreakdown.find(
+                    (s) => s.name?.toLowerCase() === sectorName.toLowerCase(),
+                  )
+                : null;
+              const capitalShare = coopSector ? `${coopSector.value}%` : "—";
+              const coopCount = coopSector
+                ? ((coopSector as unknown as { count?: number }).count ?? "—")
+                : "—";
+              return (
+                <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Your Sector
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Cooperative classification
+                    </p>
+                  </div>
+                  <div className="my-6 flex flex-col items-center">
+                    <div className="size-16 rounded-full bg-accent/10 grid place-items-center">
+                      <BarChart3 className="size-7 text-accent" />
+                    </div>
+                    <p className="font-heading text-2xl font-bold text-foreground mt-4">
+                      {sectorName ?? "—"}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {myCoopProfile?.name ?? "—"}
+                    </p>
+                  </div>
+                  <div className="border-t border-border pt-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Capital share</span>
+                      <span className="font-bold num text-foreground">{capitalShare}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Sector avg. compliance</span>
+                      <span className="font-bold num text-foreground">
+                        {filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Cooperatives in sector</span>
+                      <span className="font-bold num text-foreground">
+                        {typeof coopCount === "number" ? coopCount.toLocaleString() : coopCount}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="font-heading text-2xl font-bold text-foreground mt-4">Agricultural</p>
-                <p className="text-sm text-muted-foreground mt-1">Financial SACCOs sector</p>
-              </div>
-              <div className="border-t border-border pt-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Capital share</span>
-                  <span className="font-bold num text-foreground">42%</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Sector avg. compliance</span>
-                  <span className="font-bold num text-foreground">91.8%</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Cooperatives in sector</span>
-                  <span className="font-bold num text-foreground">5,394</span>
-                </div>
-              </div>
-            </div>
+              );
+            })()
           ) : (
             <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
               <div className="mb-3">
@@ -2222,7 +2155,13 @@ export const AnalyticsPage: React.FC = () => {
               <div className="h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={[{ name: "Your Co-op", youth: 39.9, adult: 60.1 }]}
+                    data={[
+                      {
+                        name: "Your Co-op",
+                        youth: nfStats ? Math.round(nfStats.membership.youth_pct) : 0,
+                        adult: nfStats ? Math.round(nfStats.membership.adult_pct) : 0,
+                      },
+                    ]}
                     layout="vertical"
                     margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                   >
@@ -2347,20 +2286,126 @@ export const AnalyticsPage: React.FC = () => {
           </Card>
         </div>
 
+        {/* ── Non-Financial Indicator Cards ── */}
+        {nfStats && nfStats.membership.total > 0 && (
+          <div className="grid lg:grid-cols-4 gap-6">
+            <Card title="Savings Penetration" subtitle="% of members with savings accounts">
+              <div className="flex flex-col items-center justify-center py-4">
+                <span className="font-heading text-3xl font-bold text-foreground num">
+                  {nfStats.savings.savings_penetration_pct.toFixed(1)}%
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {nfStats.savings.active_accounts.toLocaleString()} active savers /{" "}
+                  {nfStats.membership.total.toLocaleString()} members
+                </span>
+                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--chart-1)]"
+                    style={{ width: `${Math.min(nfStats.savings.savings_penetration_pct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <Card title="Credit Penetration" subtitle="% of members with active loans">
+              <div className="flex flex-col items-center justify-center py-4">
+                <span className="font-heading text-3xl font-bold text-foreground num">
+                  {nfStats.loans.credit_penetration_pct.toFixed(1)}%
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {nfStats.loans.members_with_loans.toLocaleString()} borrowers /{" "}
+                  {nfStats.membership.total.toLocaleString()} members
+                </span>
+                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--chart-2)]"
+                    style={{ width: `${Math.min(nfStats.loans.credit_penetration_pct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <Card title="FD Penetration" subtitle="% of members with fixed deposits">
+              <div className="flex flex-col items-center justify-center py-4">
+                <span className="font-heading text-3xl font-bold text-foreground num">
+                  {nfStats.fixed_deposits.fd_penetration_pct.toFixed(1)}%
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {nfStats.fixed_deposits.members_with_fds.toLocaleString()} depositors /{" "}
+                  {nfStats.membership.total.toLocaleString()} members
+                </span>
+                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--chart-3)]"
+                    style={{
+                      width: `${Math.min(nfStats.fixed_deposits.fd_penetration_pct, 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <Card title="Repayment Discipline" subtitle="% of loans repaid on time">
+              <div className="flex flex-col items-center justify-center py-4">
+                <span
+                  className={`font-heading text-3xl font-bold num ${
+                    nfStats.loans.on_time_repayment_pct >= 75
+                      ? "text-emerald-600"
+                      : nfStats.loans.on_time_repayment_pct >= 50
+                        ? "text-amber-600"
+                        : "text-red-600"
+                  }`}
+                >
+                  {nfStats.loans.on_time_repayment_pct.toFixed(1)}%
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {nfStats.loans.performing.toLocaleString()} performing /{" "}
+                  {nfStats.loans.active_loans.toLocaleString()} active
+                </span>
+                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${
+                      nfStats.loans.on_time_repayment_pct >= 75
+                        ? "bg-emerald-500"
+                        : nfStats.loans.on_time_repayment_pct >= 50
+                          ? "bg-amber-500"
+                          : "bg-red-500"
+                    }`}
+                    style={{ width: `${Math.min(nfStats.loans.on_time_repayment_pct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* ── Membership Horizontal Bar + Loan Portfolio Pie + Compliance Radial ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
-            title={role === "cooperative" ? "Membership Growth" : "Membership Growth"}
+            title={role === "cooperative" ? "Membership Composition" : "Membership Growth"}
             subtitle={
               role === "cooperative"
-                ? "Your cooperative's 5-year trend"
+                ? "Your cooperative's member breakdown from NF data"
                 : "5-year trend with demographics"
             }
           >
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={role === "cooperative" ? coopMembershipHistory : filteredMembershipGrowth}
+                  data={
+                    role === "cooperative"
+                      ? nfStats && nfStats.membership.total > 0
+                        ? [
+                            {
+                              year: "Current",
+                              members: nfStats.membership.total,
+                              youth: nfStats.membership.under_18 + nfStats.membership.age_18_35,
+                              women: nfStats.membership.female,
+                            },
+                          ]
+                        : coopMembershipHistory
+                      : filteredMembershipGrowth
+                  }
                   layout="vertical"
                   margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                 >
@@ -2536,7 +2581,11 @@ export const AnalyticsPage: React.FC = () => {
                   outerRadius="85%"
                   barSize={10}
                   data={[
-                    { name: "Compliance", value: filteredComplianceScore, fill: "var(--chart-1)" },
+                    {
+                      name: "Compliance",
+                      value: filteredComplianceScore ?? 0,
+                      fill: "var(--chart-1)",
+                    },
                   ]}
                   startAngle={90}
                   endAngle={-270}
@@ -2552,7 +2601,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
             <div className="text-center -mt-4">
               <p className="font-heading text-4xl font-bold text-foreground num">
-                {filteredComplianceScore}%
+                {filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Compliance score</p>
               <div className="flex items-center justify-center gap-1 mt-2">
@@ -3415,6 +3464,160 @@ export const AnalyticsPage: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {(role === "ministry" || role === "federation" || role === "apex") && nationalOverview && (
+          <div className="mt-6">
+            <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
+              <div className="px-6 py-5 border-b border-border">
+                <p className="text-sm font-bold text-foreground">National KPI Overview</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Traffic-light distribution across {nationalOverview.total_cooperatives}{" "}
+                  cooperatives
+                  {nationalOverview.cooperatives_with_data > 0 &&
+                    ` (${nationalOverview.cooperatives_with_data} with data)`}
+                </p>
+              </div>
+              <div className="p-6">
+                {Object.keys(nationalOverview.distributions).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No financial data available for aggregation.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {Object.entries(nationalOverview.distributions).map(([kpiName, dist]) => (
+                      <div
+                        key={kpiName}
+                        className="rounded-lg border border-border bg-muted/20 p-4"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                          {kpiName.replace(/_/g, " ")}
+                        </p>
+                        <div className="flex items-center gap-1 h-3 rounded-full overflow-hidden bg-border">
+                          {dist.green_count > 0 && (
+                            <div
+                              className="h-full bg-success"
+                              style={{ width: `${dist.green_pct}%` }}
+                            />
+                          )}
+                          {dist.amber_count > 0 && (
+                            <div
+                              className="h-full bg-warning"
+                              style={{ width: `${dist.amber_pct}%` }}
+                            />
+                          )}
+                          {dist.red_count > 0 && (
+                            <div
+                              className="h-full bg-danger"
+                              style={{ width: `${dist.red_pct}%` }}
+                            />
+                          )}
+                        </div>
+                        <div className="flex justify-between mt-2 text-[10px]">
+                          <span className="text-success font-bold">{dist.green_count}G</span>
+                          <span className="text-warning font-bold">{dist.amber_count}A</span>
+                          <span className="text-danger font-bold">{dist.red_count}R</span>
+                          {dist.no_data_count > 0 && (
+                            <span className="text-muted-foreground">{dist.no_data_count}N/A</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Institution comparison table */}
+              {nationalOverview.cooperatives.length > 0 && (
+                <div className="border-t border-border">
+                  <div className="px-6 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Institution Comparison
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-t border-border bg-muted/30">
+                          <th className="px-4 py-2 text-left font-bold text-muted-foreground">
+                            Cooperative
+                          </th>
+                          <th className="px-4 py-2 text-left font-bold text-muted-foreground">
+                            Region
+                          </th>
+                          <th className="px-4 py-2 text-left font-bold text-muted-foreground">
+                            Sector
+                          </th>
+                          <th className="px-4 py-2 text-center font-bold text-muted-foreground">
+                            Data
+                          </th>
+                          {Object.keys(nationalOverview.distributions)
+                            .slice(0, 6)
+                            .map((kpi) => (
+                              <th
+                                key={kpi}
+                                className="px-3 py-2 text-center font-bold text-muted-foreground"
+                              >
+                                {kpi.replace(/_/g, " ")}
+                              </th>
+                            ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {nationalOverview.cooperatives.map((coop) => (
+                          <tr
+                            key={coop.cooperative_id}
+                            className="border-t border-border hover:bg-muted/10"
+                          >
+                            <td className="px-4 py-2 font-medium text-foreground max-w-[180px] truncate">
+                              {coop.name}
+                            </td>
+                            <td className="px-4 py-2 text-muted-foreground">
+                              {coop.region ?? "—"}
+                            </td>
+                            <td className="px-4 py-2 text-muted-foreground">
+                              {coop.sector ?? "—"}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              {coop.has_data ? (
+                                <span className="text-success">✓</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            {Object.keys(nationalOverview.distributions)
+                              .slice(0, 6)
+                              .map((kpi) => {
+                                const kpiVal = coop.kpis[kpi];
+                                return (
+                                  <td key={kpi} className="px-3 py-2 text-center">
+                                    {kpiVal ? (
+                                      <span
+                                        className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                          kpiVal.status === "green"
+                                            ? "bg-success/15 text-success"
+                                            : kpiVal.status === "amber"
+                                              ? "bg-warning/15 text-warning"
+                                              : "bg-danger/15 text-danger"
+                                        }`}
+                                      >
+                                        {kpiVal.formatted}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

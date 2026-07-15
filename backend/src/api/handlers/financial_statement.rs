@@ -716,7 +716,7 @@ pub async fn get_ministry_stats(
 )]
 pub async fn export_ministry_submissions(
     State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
+    Extension(_claims): Extension<Arc<Claims>>,
     Query(params): Query<ExportParams>,
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
@@ -821,7 +821,8 @@ async fn build_bulk_export(
     let fs_map: std::collections::HashMap<Uuid, Uuid> =
         fs_list.iter().map(|fs| (fs.submission_id, fs.id)).collect();
 
-    let mut rows: Vec<(String, String, i32, String, f64, f64, f64, f64, f64, f64)> = Vec::new();
+    type KpiRow = (String, String, i32, String, f64, f64, f64, f64, f64, f64);
+    let mut rows: Vec<KpiRow> = Vec::new();
 
     for sub in &submissions {
         let coop_name = coop_names.get(&sub.cooperative_id).cloned().unwrap_or_default();
@@ -1144,7 +1145,7 @@ pub async fn get_sector_breakdown(
             count,
         })
         .collect();
-    sectors.sort_by(|a, b| b.value.cmp(&a.value));
+    sectors.sort_by_key(|s: &SectorBreakdownPoint| std::cmp::Reverse(s.value));
 
     Ok((
         StatusCode::OK,

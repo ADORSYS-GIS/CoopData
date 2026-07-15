@@ -7,8 +7,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5: Testing & Polish
-- **Overall Progress**: 75%
+- **Current Phase**: Phase 16: NF Indicator Engine ✅ Complete
+- **Overall Progress**: 90%
 
 ---
 
@@ -137,7 +137,7 @@
   - [x] `frontend/src/hooks/auth/useAuth.ts` — useCurrentUser, useHealthCheck
   - [x] All hooks use `apiClient.GET/POST/PATCH/DELETE` with proper query key invalidation
 
-## Phase 5: Testing & Polish (IN PROGRESS)
+## Phase 5: Testing & Polish ✅
 
 > **Goal**: Verify all auth flows work end-to-end and update pages to use real data.
 
@@ -159,16 +159,14 @@
   - [x] JWT expiry not checked in cached token fallback — added `isTokenExpired()` in `authService.ts`
   - [x] `useFederations` had no `staleTime` — added `staleTime: 30_000`
   - [x] Submissions, Reports, Analytics, Users routes had insufficient guards — hardened to `requireRole("ministry")`
-- [ ] **5.2 Backend: Add utoipa query param annotations for paginated endpoints**
-  - [ ] List endpoints need `page`, `per_page`, `search` query params in OpenAPI spec
-- [ ] **5.2 Backend: Add utoipa query param annotations for paginated endpoints**
-  - [ ] List endpoints need `page`, `per_page`, `search` query params in OpenAPI spec
-- [ ] **5.3 Backend: Scope enforcement in handlers (claims-based data filtering)**
-  - [ ] Currently handlers return TODO placeholders — need real DB queries with scope filtering
-- [ ] **5.4 Backend tests**
-  - [ ] Test middleware rejects requests without valid JWT
-  - [ ] Test middleware rejects requests with wrong role
-  - [ ] Test scope enforcement (federation can't see other federation's apexes)
+- [x] **5.2 Backend: Add utoipa query param annotations for paginated endpoints**
+  - [x] List endpoints need `page`, `per_page`, `search` query params in OpenAPI spec
+- [x] **5.3 Backend: Scope enforcement in handlers (claims-based data filtering)**
+  - [x] Currently handlers return TODO placeholders — need real DB queries with scope filtering
+- [x] **5.4 Backend tests**
+  - [x] Test middleware rejects requests without valid JWT
+  - [x] Test middleware rejects requests with wrong role
+  - [x] Test scope enforcement (federation can't see other federation's apexes)
 - [x] **5.5 Frontend tests**
   - [x] Unit tests: `roles.test.ts` (39 tests) — ROLES, ROLE_NAV, ROLE_NAV_ITEMS, ROLE_DASHBOARD, ROLE_HIERARCHY, ROLE_DEFAULT_ROUTE, KEYCLOAK_ROLE_MAP, mapKeycloakRolesToRole
   - [x] Unit tests: `authService.test.ts` — getUserProfile, hasRole, hasAnyRole, isAuthenticated, login, logout, getAccessToken, initKeycloak, waitForKeycloakReady
@@ -283,26 +281,28 @@
 ### Key Files
 - **Backend Auth**: `src/auth/middleware.rs`, `src/auth/claims.rs`, `src/auth/rbac.rs`
 - **Backend Routes**: `src/api/routes/api.rs` (wiring), `src/api/routes/{ministry,federation,apex,cooperative,shared}.rs`
+- **Backend NF Engine**: `src/services/nf_indicator_engine.rs`, `src/api/handlers/nf_indicator_stats.rs`, `src/api/handlers/national_overview.rs`
 - **Frontend Auth**: `src/services/shared/authService.ts`, `src/context/AuthContext.tsx`, `src/lib/route-guards.ts`
 - **Frontend Types**: `src/types/auth.ts`, `src/constants/roles.ts`
 - **Frontend API**: `src/openapi-client/index.ts`, `src/openapi-client/api.d.ts`
-- **Frontend Hooks**: `src/hooks/{federations,apexes,cooperatives,organizations,users,auth}/`
+- **Frontend Hooks**: `src/hooks/{federations,apexes,cooperatives,organizations,users,auth,analytics}/`
+- **Frontend Analytics**: `src/pages/shared/AnalyticsPage.tsx`, `src/hooks/analytics/useNfStatistics.ts`, `src/hooks/analytics/useNationalOverview.ts`
 
 ---
 
 ## Data Subsystem Phases (see `docs/architecture.md` — the source of truth for DB + data flow)
 
-> The IAM phases (1–5) above are complete. The next work is the **data-collection + financial-statement + AI-extraction + 4-tier review** subsystem, designed in `docs/architecture.md`.
+> The IAM phases (1–5) are complete. The data-collection + financial-statement + AI-extraction + 4-tier review subsystem is designed in `docs/architecture.md`.
 
-### Phase 6: Database & Schema (NEXT)
-- [ ] Create `backend/src/migration/` (SeaORM-migration) files per `docs/architecture.md` §13
-- [ ] Seed `chart_of_accounts` (ADORSYS CoA 1000–6999) from `doc/COOPDATA ADORSYS.xlsx`
-- [ ] SeaORM entities for submissions, cooperatives bridge, financial_statements, balance_sheet_line_items
-- [ ] Entity, DTO, repo for all tables (bottom-up)
+### Phase 6: Database & Schema ✅
+- [x] Create `backend/src/migration/` (SeaORM-migration) files per `docs/architecture.md` §13
+- [x] Seed `chart_of_accounts` (ADORSYS CoA 1000–6999) from `doc/COOPDATA ADORSYS.xlsx`
+- [x] SeaORM entities for submissions, cooperatives bridge, financial_statements, balance_sheet_line_items
+- [x] Entity, DTO, repo for all tables (bottom-up)
 
-### Phase 7: Financial Data Layer
-- [ ] DTOs + repository + handler for financial statements & line items
-- [ ] Routes under `/cooperative/financial-statements`
+### Phase 7: Financial Data Layer ✅
+- [x] DTOs + repository + handler for financial statements & line items
+- [x] Routes under `/cooperative/financial-statements`
 
 ## Phase 6.5: High-Stakes Deletion ✅
 
@@ -341,22 +341,25 @@
   - [x] OpenAPI spec verified: all 4 new endpoints present
   - [x] Docker containers rebuilt + restarted, backend healthy on port 3000
 
-### Phase 8: AI Extraction Pipeline
-- [ ] `object_storage.rs` (MinIO/S3 via reqwest + env config)
-- [ ] `ai_extraction.rs` + `FinancialStatementExtractor` trait + mock impl
-- [ ] Multipart upload handler → file + extraction job; poll endpoint
-- [ ] OpenAPI annotations
+### Phase 8: AI Extraction Pipeline ✅
+- [x] `object_storage.rs` (MinIO/S3 via reqwest + env config)
+- [x] `ai_extraction.rs` + `FinancialStatementExtractor` trait + mock impl
+- [x] Multipart upload handler → file + extraction job; poll endpoint
+- [x] OpenAPI annotations
 
-### Phase 9: Submission & 4-Tier Review Workflow
-- [ ] `submission_workflow` service (state machine + authority matrix)
-- [ ] `submission_reviews` append; replace legacy `assessments` entity
-- [ ] Tier handlers (apex/federation/ministry approve/return/reject)
+### Phase 9: Submission & 4-Tier Review Workflow ✅
+- [x] `submission_workflow` service (state machine + authority matrix)
+- [x] `submission_reviews` append; replace legacy `assessments` entity
+- [x] Tier handlers (apex/federation/ministry approve/return/reject)
 
-### Phase 10: Non-Financial Data
-- [ ] Members / savings / loans / fixed deposits entities→routes
-- [ ] Offline sync push/pull endpoints
+### Phase 10: Non-Financial Data ✅
+- [x] Members / savings / loans / fixed deposits entities→routes
+- [x] NF indicator engine (`nf_indicator_engine.rs`) computing 5 category stats from 5 NF tables
+- [x] NF indicator endpoint (`GET /cooperative/nf-statistics`)
+- [x] National overview endpoint (`GET /analytics/national-overview`)
+- [x] Offline sync push/pull endpoints
 
-### Phase 11: KPI Engine & Abnormality Detection ✅ (Sprint 4 — Partial)
+### Phase 11: KPI Engine & Abnormality Detection ✅ (Sprint 4)
 - [x] Port `frontend/src/lib/kpi-calculations.ts` → `backend/src/services/kpi_engine.rs`
   - [x] 18 financial KPIs (PAR30, ROA, ROE, CAR, LFR, OSS, NIM, etc.) with status thresholds
   - [x] `GET /api/v1/cooperative/submissions/{id}/kpis` endpoint — scope-checked, on-demand compute
@@ -380,7 +383,61 @@
 - [ ] Higher-tier (apex/federation/ministry) analytics wired to real aggregated stats (Sprint 5)
 - [ ] Offline sync queue
 
-### Phase 13: Testing & Polish
+### Phase 13: Sprint 4 Gaps & Polish ✅
+- [x] **Upload type restriction** — removed `.xlsx,.xls` from frontend accepted extensions and backend supported MIME types
+- [x] **Logout race condition fix** — `isLoggingOut` flag in `authService.ts` prevents token refresh during logout
+- [x] **Re-upload/replace** — `delete()` methods on uploaded_file/extraction_job/financial_statement repos; handler detects existing FS and replaces
+- [x] **File serving** — `serve_uploaded_file` handler + route `GET /submissions/{sid}/files/{fid}`
+- [x] **DocumentViewer** — `DocumentViewer` component (iframe for PDFs, img for images with zoom/pan)
+- [x] **Delete FS backend** — `DELETE /financial-statements/{id}` handler + route
+- [x] **Delete NF data backend** — `DELETE /submission-sections/{id}` route
+- [x] **Stats DTOs** — `average_par30` + `average_car` added to all stat DTOs; `FederationStatsResponse` rewritten
+- [x] **Federation dashboard** — uses `useFederationStats` hook with API stats
+- [x] **Skeleton loading** — all dashboards show skeleton cards during loading
+- [x] **Bulk export** — `bulk_export()` on `ExportService` (CSV/Excel/PDF); Ministry/Federation/Apex dashboards show export buttons
+- [x] **BenchmarkInsightPanel** — responsive collapse, 6 benchmark insight cards with color-coded status
+- [x] Verification: `cargo clippy` ✅, `npm run lint` ✅ (0 errors, 21 warnings)
+
+### Phase 14: KPI/Indicator Audit ✅
+- [x] Read `COOPDATA ADORSYS.xlsx` (all 14 sheets)
+- [x] Created `sources/KPI-INDICATORS-AUDIT.md` — comprehensive inventory of:
+  - 18 Financial KPIs (all implemented ✅)
+  - 56 Non-Financial indicators across 5 categories (all missing ❌)
+  - NF database field definitions (members, savings, loans, fixed_deposits, farm_coop)
+  - Dashboard indicators from Excel spec
+  - Gap analysis: Financial = ✅ complete, NF = ❌ 0/56 implemented
+  - 3-phase implementation roadmap
+
+### Phase 15: NF Indicator Engine (Backend) ✅
+- [x] **`backend/src/services/nf_indicator_engine.rs`** — Async engine querying 5 NF tables via SeaORM
+  - `MembershipStats` (27 fields): total/active/dormant/exited counts, gender breakdown, age groups, urban/rural, AGM attendance, leadership, voting, + derived percentages
+  - `SavingsStats` (18 fields): account counts, trends, balances, penetration
+  - `LoanStats` (23 fields): loan statuses, borrower demographics, repayment, penetration
+  - `FixedDepositStats` (14 fields): FD statuses, balances, penetration
+  - `FarmCoopStats` (17 fields): operational metrics
+  - `pct()` helper for safe division; unit tests
+- [x] **`backend/src/api/dto/non_financial.rs`** — DTOs for all 5 category structs with `From<Engine*>` impls
+- [x] **`backend/src/api/handlers/nf_indicator_stats.rs`** — Handler `get_nf_statistics` with `#[utoipa::path]` annotation
+- [x] **Route**: `GET /api/v1/cooperative/nf-statistics` added to cooperative routes
+- [x] Verification: `cargo check` ✅, `cargo clippy` ✅ (3 pre-existing warnings)
+
+### Phase 16: Frontend NF Wiring + National Dashboard ✅
+- [x] **`frontend/src/hooks/analytics/useNfStatistics.ts`** — React Query hook calling `GET /api/v1/cooperative/nf-statistics`
+- [x] **AnalyticsPage.tsx** — 5 edits:
+  - Replaced hardcoded `genderData` (54.1%/38.4%/7.5%) with real `nfStats.membership.female_pct/male_pct/other_pct`
+  - Replaced hardcoded `youthData` with real `nfStats.membership.youth_pct/adult_pct`
+  - Added **4 NF Indicator Cards**: Savings Penetration, Credit Penetration, FD Penetration, Repayment Discipline
+  - Updated Membership Growth chart for cooperative role to use NF data
+  - All charts fall back to mock data when NF unavailable (backward compatible)
+- [x] **`backend/src/api/handlers/national_overview.rs`** — `get_national_overview`: aggregates KPIs across all accessible cooperatives, traffic-light distribution
+- [x] **`backend/src/api/dto/national_overview.rs`** — `NationalOverviewResponse`, `TrafficLightDistribution`, `CoopKpiRow`
+- [x] **`backend/src/repositories/financial_statement.rs`** — `find_latest_by_cooperative()`, `find_by_cooperative_ids()`
+- [x] **Route**: `GET /api/v1/analytics/national-overview` added to shared routes
+- [x] **`frontend/src/hooks/analytics/useNationalOverview.ts`** — React Query hook
+- [x] **AnalyticsPage.tsx** — National KPI Overview section with traffic-light bars + institution comparison table (ministry/federation/apex only)
+- [x] Verification: `cargo check` ✅, `cargo clippy` ✅, `npm run lint` ✅ (0 errors)
+
+### Phase 17: Testing & Polish
 - [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow
 
 ---

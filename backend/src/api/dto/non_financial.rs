@@ -743,3 +743,287 @@ pub struct PaginatedFarmCoopResponse {
     pub page_size: u64,
     pub total: u64,
 }
+
+// ── NF Indicator Statistics ───────────────────────────────────────────────────
+
+use crate::services::nf_indicator_engine::{
+    FarmCoopStats as EngineFarmCoopStats, FixedDepositStats as EngineFixedDepositStats,
+    LoanStats as EngineLoanStats, MembershipStats as EngineMembershipStats,
+    NfStatisticsResponse as EngineNfStatisticsResponse, SavingsStats as EngineSavingsStats,
+};
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MembershipStatsDto {
+    pub total: u64,
+    pub active: u64,
+    pub dormant: u64,
+    pub exited: u64,
+    pub male: u64,
+    pub female: u64,
+    pub other: u64,
+    pub under_18: u64,
+    pub age_18_35: u64,
+    pub age_36_50: u64,
+    pub over_50: u64,
+    pub urban: u64,
+    pub rural: u64,
+    pub agm_attendance: u64,
+    pub leadership_count: u64,
+    pub voting_count: u64,
+    pub active_pct: f64,
+    pub dormancy_pct: f64,
+    pub exit_pct: f64,
+    pub male_pct: f64,
+    pub female_pct: f64,
+    pub other_pct: f64,
+    pub youth_pct: f64,
+    pub adult_pct: f64,
+    pub urban_pct: f64,
+    pub rural_pct: f64,
+    pub agm_participation_pct: f64,
+    pub women_in_governance_pct: f64,
+    pub youth_in_governance_pct: f64,
+}
+
+impl From<EngineMembershipStats> for MembershipStatsDto {
+    fn from(s: EngineMembershipStats) -> Self {
+        Self {
+            total: s.total,
+            active: s.active,
+            dormant: s.dormant,
+            exited: s.exited,
+            male: s.male,
+            female: s.female,
+            other: s.other,
+            under_18: s.under_18,
+            age_18_35: s.age_18_35,
+            age_36_50: s.age_36_50,
+            over_50: s.over_50,
+            urban: s.urban,
+            rural: s.rural,
+            agm_attendance: s.agm_attendance,
+            leadership_count: s.leadership_count,
+            voting_count: s.voting_count,
+            active_pct: s.active_pct,
+            dormancy_pct: s.dormancy_pct,
+            exit_pct: s.exit_pct,
+            male_pct: s.male_pct,
+            female_pct: s.female_pct,
+            other_pct: s.other_pct,
+            youth_pct: s.youth_pct,
+            adult_pct: s.adult_pct,
+            urban_pct: s.urban_pct,
+            rural_pct: s.rural_pct,
+            agm_participation_pct: s.agm_participation_pct,
+            women_in_governance_pct: s.women_in_governance_pct,
+            youth_in_governance_pct: s.youth_in_governance_pct,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SavingsStatsDto {
+    pub total_accounts: u64,
+    pub active_accounts: u64,
+    pub dormant_accounts: u64,
+    pub zero_balance_count: u64,
+    pub increasing_trend: u64,
+    pub stable_trend: u64,
+    pub declining_trend: u64,
+    pub high_withdrawal_count: u64,
+    pub emergency_withdrawal_count: u64,
+    pub total_balance: f64,
+    pub average_balance: f64,
+    pub savings_penetration_pct: f64,
+    pub active_savers_pct: f64,
+    pub dormant_savings_pct: f64,
+    pub zero_balance_pct: f64,
+    pub increasing_trend_pct: f64,
+    pub regular_savers_pct: f64,
+}
+
+impl From<EngineSavingsStats> for SavingsStatsDto {
+    fn from(s: EngineSavingsStats) -> Self {
+        Self {
+            total_accounts: s.total_accounts,
+            active_accounts: s.active_accounts,
+            dormant_accounts: s.dormant_accounts,
+            zero_balance_count: s.zero_balance_count,
+            increasing_trend: s.increasing_trend,
+            stable_trend: s.stable_trend,
+            declining_trend: s.declining_trend,
+            high_withdrawal_count: s.high_withdrawal_count,
+            emergency_withdrawal_count: s.emergency_withdrawal_count,
+            total_balance: s.total_balance,
+            average_balance: s.average_balance,
+            savings_penetration_pct: s.savings_penetration_pct,
+            active_savers_pct: s.active_savers_pct,
+            dormant_savings_pct: s.dormant_savings_pct,
+            zero_balance_pct: s.zero_balance_pct,
+            increasing_trend_pct: s.increasing_trend_pct,
+            regular_savers_pct: s.regular_savers_pct,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct LoanStatsDto {
+    pub total_loans: u64,
+    pub active_loans: u64,
+    pub performing: u64,
+    pub arrears: u64,
+    pub restructured: u64,
+    pub written_off: u64,
+    pub members_with_loans: u64,
+    pub youth_borrowers: u64,
+    pub women_borrowers: u64,
+    pub rural_borrowers: u64,
+    pub multiple_loan_count: u64,
+    pub large_borrower_count: u64,
+    pub total_balance: f64,
+    pub total_loan_amount: f64,
+    pub average_loan_size: f64,
+    pub on_time_repayment_pct: f64,
+    pub arrears_rate_pct: f64,
+    pub restructured_pct: f64,
+    pub credit_penetration_pct: f64,
+    pub youth_borrower_pct: f64,
+    pub women_borrower_pct: f64,
+    pub rural_borrower_pct: f64,
+}
+
+impl From<EngineLoanStats> for LoanStatsDto {
+    fn from(s: EngineLoanStats) -> Self {
+        Self {
+            total_loans: s.total_loans,
+            active_loans: s.active_loans,
+            performing: s.performing,
+            arrears: s.arrears,
+            restructured: s.restructured,
+            written_off: s.written_off,
+            members_with_loans: s.members_with_loans,
+            youth_borrowers: s.youth_borrowers,
+            women_borrowers: s.women_borrowers,
+            rural_borrowers: s.rural_borrowers,
+            multiple_loan_count: s.multiple_loan_count,
+            large_borrower_count: s.large_borrower_count,
+            total_balance: s.total_balance,
+            total_loan_amount: s.total_loan_amount,
+            average_loan_size: s.average_loan_size,
+            on_time_repayment_pct: s.on_time_repayment_pct,
+            arrears_rate_pct: s.arrears_rate_pct,
+            restructured_pct: s.restructured_pct,
+            credit_penetration_pct: s.credit_penetration_pct,
+            youth_borrower_pct: s.youth_borrower_pct,
+            women_borrower_pct: s.women_borrower_pct,
+            rural_borrower_pct: s.rural_borrower_pct,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct FixedDepositStatsDto {
+    pub total_fds: u64,
+    pub active_fds: u64,
+    pub matured_fds: u64,
+    pub withdrawn_fds: u64,
+    pub rolled_over_fds: u64,
+    pub members_with_fds: u64,
+    pub early_withdrawal_count: u64,
+    pub single_depositor_count: u64,
+    pub total_balance: f64,
+    pub average_balance: f64,
+    pub fd_penetration_pct: f64,
+    pub early_withdrawal_pct: f64,
+    pub rollover_rate_pct: f64,
+    pub concentration_risk_pct: f64,
+}
+
+impl From<EngineFixedDepositStats> for FixedDepositStatsDto {
+    fn from(s: EngineFixedDepositStats) -> Self {
+        Self {
+            total_fds: s.total_fds,
+            active_fds: s.active_fds,
+            matured_fds: s.matured_fds,
+            withdrawn_fds: s.withdrawn_fds,
+            rolled_over_fds: s.rolled_over_fds,
+            members_with_fds: s.members_with_fds,
+            early_withdrawal_count: s.early_withdrawal_count,
+            single_depositor_count: s.single_depositor_count,
+            total_balance: s.total_balance,
+            average_balance: s.average_balance,
+            fd_penetration_pct: s.fd_penetration_pct,
+            early_withdrawal_pct: s.early_withdrawal_pct,
+            rollover_rate_pct: s.rollover_rate_pct,
+            concentration_risk_pct: s.concentration_risk_pct,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct FarmCoopStatsDto {
+    pub total_coops: u64,
+    pub active_producers: u64,
+    pub using_planning: u64,
+    pub using_shared_inputs: u64,
+    pub with_offtake_agreement: u64,
+    pub with_storage: u64,
+    pub with_processing: u64,
+    pub with_irrigation: u64,
+    pub with_climate_mitigation: u64,
+    pub active_producer_pct: f64,
+    pub planning_adoption_pct: f64,
+    pub shared_services_pct: f64,
+    pub formal_offtake_pct: f64,
+    pub storage_coverage_pct: f64,
+    pub processing_access_pct: f64,
+    pub irrigation_coverage_pct: f64,
+    pub climate_mitigation_pct: f64,
+}
+
+impl From<EngineFarmCoopStats> for FarmCoopStatsDto {
+    fn from(s: EngineFarmCoopStats) -> Self {
+        Self {
+            total_coops: s.total_coops,
+            active_producers: s.active_producers,
+            using_planning: s.using_planning,
+            using_shared_inputs: s.using_shared_inputs,
+            with_offtake_agreement: s.with_offtake_agreement,
+            with_storage: s.with_storage,
+            with_processing: s.with_processing,
+            with_irrigation: s.with_irrigation,
+            with_climate_mitigation: s.with_climate_mitigation,
+            active_producer_pct: s.active_producer_pct,
+            planning_adoption_pct: s.planning_adoption_pct,
+            shared_services_pct: s.shared_services_pct,
+            formal_offtake_pct: s.formal_offtake_pct,
+            storage_coverage_pct: s.storage_coverage_pct,
+            processing_access_pct: s.processing_access_pct,
+            irrigation_coverage_pct: s.irrigation_coverage_pct,
+            climate_mitigation_pct: s.climate_mitigation_pct,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct NfStatisticsResponse {
+    pub membership: MembershipStatsDto,
+    pub savings: SavingsStatsDto,
+    pub loans: LoanStatsDto,
+    pub fixed_deposits: FixedDepositStatsDto,
+    pub farm_coop: FarmCoopStatsDto,
+    pub computed_at: chrono::DateTime<Utc>,
+}
+
+impl From<EngineNfStatisticsResponse> for NfStatisticsResponse {
+    fn from(r: EngineNfStatisticsResponse) -> Self {
+        Self {
+            membership: r.membership.into(),
+            savings: r.savings.into(),
+            loans: r.loans.into(),
+            fixed_deposits: r.fixed_deposits.into(),
+            farm_coop: r.farm_coop.into(),
+            computed_at: r.computed_at,
+        }
+    }
+}

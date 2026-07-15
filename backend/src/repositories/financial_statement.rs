@@ -1,4 +1,6 @@
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
+};
 use uuid::Uuid;
 
 use crate::entities::financial_statement::{self, ActiveModel, Column, Entity};
@@ -41,6 +43,33 @@ impl FinancialStatementRepository {
         }
         Entity::find()
             .filter(Column::SubmissionId.is_in(submission_ids))
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn find_latest_by_cooperative(
+        &self,
+        cooperative_id: Uuid,
+    ) -> AppResult<Option<financial_statement::Model>> {
+        Entity::find()
+            .filter(Column::CooperativeId.eq(cooperative_id))
+            .order_by_desc(Column::CreatedAt)
+            .one(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn find_by_cooperative_ids(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<financial_statement::Model>> {
+        if cooperative_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        Entity::find()
+            .filter(Column::CooperativeId.is_in(cooperative_ids))
+            .order_by_desc(Column::CreatedAt)
             .all(&self.db)
             .await
             .map_err(Into::into)

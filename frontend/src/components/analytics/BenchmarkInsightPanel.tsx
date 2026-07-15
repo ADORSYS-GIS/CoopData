@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -257,18 +257,7 @@ const LoadingSkeleton = () => (
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const INITIAL_VISIBLE = 3;
-
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return isDesktop;
-}
+export const INITIAL_VISIBLE = 3;
 
 export function BenchmarkInsightPanel({
   kpis,
@@ -276,11 +265,10 @@ export function BenchmarkInsightPanel({
   cooperativeType,
   isLoading = false,
 }: Props) {
-  const isDesktop = useIsDesktop();
   const [expanded, setExpanded] = useState(false);
 
   const insights = generateInsights(kpis, benchmarks);
-  const showAll = expanded || isDesktop;
+  const showAll = expanded;
   const visibleInsights = showAll ? insights : insights.slice(0, INITIAL_VISIBLE);
   const hiddenCount = showAll ? 0 : insights.length - INITIAL_VISIBLE;
 
@@ -332,6 +320,7 @@ export function BenchmarkInsightPanel({
 
           {hiddenCount > 0 && (
             <button
+              data-testid="insight-expander"
               onClick={() => setExpanded((v) => !v)}
               className="press-feedback w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition-colors"
             >
