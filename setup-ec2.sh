@@ -67,8 +67,10 @@ if [[ "$HAS_DOMAIN_CHOICE" == "1" ]]; then
     echo -ne "${BOLD}Enter your email for Let's Encrypt:${NC} "
     read -r EMAIL
     [[ -z "$EMAIL" ]] && error "Email is required."
+    PROTOCOL="https"
 else
     DOMAIN="$PUBLIC_IP"
+    PROTOCOL="http"
     warn "Using IP address mode: http://$PUBLIC_IP"
     warn "Note: HTTPS is not available without a domain. Browser may show 'Not Secure' warning."
 fi
@@ -307,17 +309,23 @@ NGINX_HTTP
     ok "Nginx configured (HTTP + reverse proxy)"
 fi
 
+# ── Patch Keycloak realm JSON ─────────────────────────────────────────────
+info "Patching Keycloak realm JSON for ${PROTOCOL}://${DOMAIN}..."
+REALM_FILE="keycloak/realm-coopdata.json"
+if [[ -f "$REALM_FILE" ]]; then
+    cp "$REALM_FILE" "${REALM_FILE}.bak"
+    sed -i "s|http://localhost:5173|${PROTOCOL}://${DOMAIN}|g" "$REALM_FILE"
+    sed -i "s|http://localhost:5174|${PROTOCOL}://${DOMAIN}|g" "$REALM_FILE"
+    ok "Realm JSON patched: localhost → ${DOMAIN}"
+else
+    warn "Realm JSON not found at $REALM_FILE — skipping patch"
+fi
+
 # ── Set up .env ───────────────────────────────────────────────────────────
 info "Setting up .env file..."
 if [[ ! -f .env ]]; then
     if [[ -f .env.example ]]; then
         cp .env.example .env
-
-        if [[ "$HAS_DOMAIN" == true ]]; then
-            PROTOCOL="https"
-        else
-            PROTOCOL="http"
-        fi
 
         sed -i "s|coopdata.example.com|$DOMAIN|g" .env
         sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=${PROTOCOL}://${DOMAIN}|g" .env

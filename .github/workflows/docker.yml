@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, develop]
   push:
-    branches: [main, develop]
+    branches: [main, develop, "deployed-*"]
   release:
     types: [published]
 
@@ -41,7 +41,7 @@ jobs:
         with:
           images: ${{ steps.images.outputs.frontend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
             type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
@@ -54,7 +54,7 @@ jobs:
         with:
           images: ${{ steps.images.outputs.backend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
             type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
@@ -171,7 +171,7 @@ jobs:
         with:
           images: ${{ steps.images.outputs.frontend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
             type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
@@ -181,7 +181,7 @@ jobs:
         with:
           images: ${{ steps.images.outputs.backend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
             type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag

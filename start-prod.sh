@@ -13,6 +13,16 @@ cd "$SCRIPT_DIR"
 
 PROD_COMPOSE="docker-compose.ghcr.yaml"
 
+DOCKER_SUDO=""
+if ! docker info &>/dev/null 2>&1; then
+    if sudo docker info &>/dev/null 2>&1; then
+        DOCKER_SUDO="sudo"
+    else
+        echo -e "${RED}[ERROR]${NC} Cannot access Docker. Run: sudo usermod -aG docker \$USER && newgrp docker"
+        exit 1
+    fi
+fi
+
 info()  { echo -e "${CYAN}[INFO]${NC}  $*"; }
 ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
@@ -76,13 +86,13 @@ info "Checking prerequisites..."
 
 check_command "Docker" "docker" "24.0"
 
-if ! docker compose version &>/dev/null; then
-    if ! docker-compose version &>/dev/null; then
+if ! $DOCKER_SUDO docker compose version &>/dev/null; then
+    if ! $DOCKER_SUDO docker-compose version &>/dev/null; then
         error "Docker Compose is not installed. Please install Docker Compose V2."
     fi
-    COMPOSE_CMD="docker-compose"
+    COMPOSE_CMD="$DOCKER_SUDO docker-compose"
 else
-    COMPOSE_CMD="docker compose"
+    COMPOSE_CMD="$DOCKER_SUDO docker compose"
 fi
 ok "Docker Compose is available (using: $COMPOSE_CMD)"
 
@@ -234,9 +244,9 @@ PROVISION_ELAPSED=0
 PROVISION_SUCCESS=false
 
 while (( PROVISION_ELAPSED < PROVISION_WAIT )); do
-    STATUS=$(docker inspect -f '{{.State.Status}}' coopdata-keycloak-provision 2>/dev/null || echo "not-found")
+    STATUS=$($DOCKER_SUDO docker inspect -f '{{.State.Status}}' coopdata-keycloak-provision 2>/dev/null || echo "not-found")
     if [[ "$STATUS" == "exited" ]]; then
-        EXIT_CODE=$(docker inspect -f '{{.State.ExitCode}}' coopdata-keycloak-provision 2>/dev/null || echo "1")
+        EXIT_CODE=$($DOCKER_SUDO docker inspect -f '{{.State.ExitCode}}' coopdata-keycloak-provision 2>/dev/null || echo "1")
         if [[ "$EXIT_CODE" == "0" ]]; then
             PROVISION_SUCCESS=true
             break
@@ -262,10 +272,14 @@ fi
 
 # ── Determine Domain ──────────────────────────────────────────────────────
 DOMAIN="localhost"
+PROTOCOL="http"
 if [[ -f .env ]]; then
     FRONTEND_URL=$(grep -E "^FRONTEND_URL=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'" | sed 's|https\?://||' | sed 's|/.*||')
     if [[ -n "$FRONTEND_URL" ]]; then
         DOMAIN="$FRONTEND_URL"
+    fi
+    if grep -q "^FRONTEND_URL=https://" .env; then
+        PROTOCOL="https"
     fi
 fi
 
@@ -275,11 +289,11 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║              CoopData Production is Running!                            ║${NC}"
 echo -e "${BOLD}╚═════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  ${GREEN}►${NC}  Frontend App:     ${CYAN}https://${DOMAIN}${NC}"
-echo -e "  ${GREEN}►${NC}  Backend API:      ${CYAN}https://${DOMAIN}/api/v1${NC}"
-echo -e "  ${GREEN}►${NC}  Swagger UI:       ${CYAN}https://${DOMAIN}/swagger-ui/${NC}"
-echo -e "  ${GREEN}►${NC}  Keycloak Console: ${CYAN}https://${DOMAIN}/auth/admin${NC}"
-echo -e "  ${GREEN}►${NC}  Health Check:     ${CYAN}https://${DOMAIN}/api/v1/health${NC}"
+echo -e "  ${GREEN}►${NC}  Frontend App:     ${CYAN}${PROTOCOL}://${DOMAIN}${NC}"
+echo -e "  ${GREEN}►${NC}  Backend API:      ${CYAN}${PROTOCOL}://${DOMAIN}/api/v1${NC}"
+echo -e "  ${GREEN}►${NC}  Swagger UI:       ${CYAN}${PROTOCOL}://${DOMAIN}/swagger-ui/${NC}"
+echo -e "  ${GREEN}►${NC}  Keycloak Console: ${CYAN}${PROTOCOL}://${DOMAIN}/auth/admin${NC}"
+echo -e "  ${GREEN}►${NC}  Health Check:     ${CYAN}${PROTOCOL}://${DOMAIN}/api/v1/health${NC}"
 echo ""
 echo -e "  ${YELLOW}Useful commands:${NC}"
 echo -e "    $COMPOSE_CMD -f $PROD_COMPOSE logs -f          Follow all logs"
@@ -288,5 +302,5 @@ echo -e "    $COMPOSE_CMD -f $PROD_COMPOSE ps               Check service status
 echo -e "    $COMPOSE_CMD -f $PROD_COMPOSE down             Stop (keep data)"
 echo -e "    $COMPOSE_CMD -f $PROD_COMPOSE down -v          Stop + DELETE data"
 echo ""
-echo -e "  ${GREEN}►${NC}  Test: curl -sf https://${DOMAIN}/api/v1/health"
+echo -e "  ${GREEN}►${NC}  Test: curl -sf ${PROTOCOL}://${DOMAIN}/api/v1/health"
 echo ""
