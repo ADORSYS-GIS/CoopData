@@ -40,15 +40,25 @@ echo -e "${BOLD}╚════════════════════�
 echo ""
 
 # ── Detect public IP + public DNS hostname ────────────────────────────────
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")
+EC2_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null || echo "")
+
+get_metadata() {
+    if [[ -n "$EC2_TOKEN" ]]; then
+        curl -s -H "X-aws-ec2-metadata-token: $EC2_TOKEN" "$1" 2>/dev/null
+    else
+        curl -s "$1" 2>/dev/null
+    fi
+}
+
+PUBLIC_IP=$(get_metadata "http://169.254.169.254/latest/meta-data/public-ipv4" || echo "")
 if [[ -z "$PUBLIC_IP" ]]; then
     PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "localhost")
 fi
 ok "Detected EC2 public IP: $PUBLIC_IP"
 
-PUBLIC_DNS=$(curl -s http://169.254.169.254/latest/meta-data/public-hostname 2>/dev/null || echo "")
+PUBLIC_DNS=$(get_metadata "http://169.254.169.254/latest/meta-data/public-hostname" || echo "")
 if [[ -z "$PUBLIC_DNS" ]] || [[ "$PUBLIC_DNS" == "$PUBLIC_IP" ]]; then
-    AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone 2>/dev/null || echo "")
+    AZ=$(get_metadata "http://169.254.169.254/latest/meta-data/placement/availability-zone" || echo "")
     REGION="${AZ%?}"
     IP_DASHED="${PUBLIC_IP//./-}"
     if [[ -n "$REGION" ]]; then
