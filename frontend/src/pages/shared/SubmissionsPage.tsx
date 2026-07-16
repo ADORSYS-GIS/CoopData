@@ -113,9 +113,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground">New Submission</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Start a new annual data return
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Start a new annual data return</p>
             </div>
           </div>
           <button
@@ -192,34 +190,38 @@ function OrgCard({
   return (
     <button
       onClick={onClick}
-      className="group text-left rounded-2xl border border-border bg-surface p-5 hover:border-primary/30 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+      className="group text-left rounded-2xl border border-border bg-surface p-5 hover:border-primary/30 hover:shadow-[var(--shadow-elev-2)] transition-all duration-200 hover:-translate-y-0.5 w-full press-feedback"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="size-9 rounded-xl bg-primary/8 grid place-items-center">
-          <Icon className="size-4 text-primary" />
+        <div className="size-10 rounded-xl bg-primary/8 grid place-items-center ring-1 ring-border group-hover:bg-primary/12 transition-colors">
+          <Icon className="size-5 text-primary" />
         </div>
-        <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-150 mt-0.5" />
+        <ChevronRight className="size-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-150 mt-1.5" />
       </div>
-      <p className="text-sm font-bold text-foreground mb-1 truncate leading-snug">{name}</p>
-      <p className="text-xs text-muted-foreground mb-3.5">
+      <p className="text-sm font-bold text-foreground mb-0.5 leading-snug line-clamp-2">{name}</p>
+      <p className="text-[11px] text-muted-foreground mb-4">
         {count} submission{count !== 1 ? "s" : ""}
       </p>
-      {(reviewCount > 0 || approvedCount > 0) && (
-        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold border-t border-border/60 pt-3">
-          {reviewCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-warning-foreground">
-              <Clock className="size-3" />
-              {reviewCount} in review
-            </span>
-          )}
-          {approvedCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-success">
-              <CheckCircle2 className="size-3" />
-              {approvedCount} approved
-            </span>
-          )}
-        </div>
-      )}
+      <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-[11px] font-semibold border-t border-border/60 pt-3">
+        {reviewCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-warning-foreground">
+            <span className="size-1.5 rounded-full bg-warning animate-pulse" />
+            {reviewCount} in review
+          </span>
+        )}
+        {approvedCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-success">
+            <span className="size-1.5 rounded-full bg-success" />
+            {approvedCount} approved
+          </span>
+        )}
+        {reviewCount === 0 && approvedCount === 0 && (
+          <span className="inline-flex items-center gap-1.5 text-muted-foreground/60">
+            <span className="size-1.5 rounded-full bg-muted-foreground/40" />
+            No activity
+          </span>
+        )}
+      </div>
     </button>
   );
 }
@@ -307,35 +309,35 @@ function SubmissionTable({
       <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
-              <th className="px-5 py-3">Reference</th>
-              {showCoopColumn && <th className="px-5 py-3 hidden md:table-cell">Cooperative</th>}
-              <th className="px-5 py-3">Reporting Year</th>
-              <th className="px-5 py-3 hidden md:table-cell">Tier</th>
-              <th className="px-5 py-3 hidden lg:table-cell">Created</th>
-              <th className="px-5 py-3">Priority</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3 text-right">Action</th>
+            <tr className="border-b border-border bg-muted/20 text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-left">
+              <th className="px-5 py-3.5">Reference</th>
+              {showCoopColumn && <th className="px-5 py-3.5 hidden md:table-cell">Cooperative</th>}
+              <th className="px-5 py-3.5">Year</th>
+              <th className="px-5 py-3.5 hidden md:table-cell">Tier</th>
+              <th className="px-5 py-3.5 hidden lg:table-cell">Created</th>
+              <th className="px-5 py-3.5">Priority</th>
+              <th className="px-5 py-3.5">Status</th>
+              <th className="px-5 py-3.5 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/60">
             {isLoading ? (
               <tr>
                 <td
                   colSpan={showCoopColumn ? 8 : 7}
-                  className="py-12 text-center text-muted-foreground"
+                  className="py-16 text-center text-muted-foreground"
                 >
-                  <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
-                  <p className="text-xs">Loading submissions…</p>
+                  <Loader2 className="size-6 mx-auto mb-3 animate-spin text-accent/50" />
+                  <p className="text-xs font-medium">Loading submissions…</p>
                 </td>
               </tr>
             ) : isError ? (
               <tr>
                 <td
                   colSpan={showCoopColumn ? 8 : 7}
-                  className="py-12 text-center text-muted-foreground"
+                  className="py-16 text-center text-muted-foreground"
                 >
-                  <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
+                  <AlertCircle className="size-8 mx-auto mb-3 text-destructive/50" />
                   <p className="text-sm font-semibold">Failed to load submissions</p>
                   <p className="text-xs mt-1 text-muted-foreground">
                     {error instanceof Error ? error.message : "Unknown error"}
@@ -346,41 +348,47 @@ function SubmissionTable({
               <tr>
                 <td
                   colSpan={showCoopColumn ? 8 : 7}
-                  className="py-12 text-center text-muted-foreground"
+                  className="py-16 text-center text-muted-foreground"
                 >
-                  <FileText className="size-8 mx-auto mb-2 text-muted-foreground/50" />
+                  <FileText className="size-8 mx-auto mb-3 text-muted-foreground/40" />
                   <p className="text-sm font-semibold">No submissions found</p>
+                  <p className="text-xs mt-1 text-muted-foreground/70">
+                    Adjust the filter or search to see more results.
+                  </p>
                 </td>
               </tr>
             ) : (
               submissions.map((s) => (
                 <tr
                   key={s.id}
-                  className="group border-l-2 border-l-transparent hover:border-l-primary/50 hover:bg-muted/25 transition-all duration-150 cursor-pointer"
+                  className="group border-l-2 border-l-transparent hover:border-l-accent hover:bg-accent/[0.03] transition-all duration-150 cursor-pointer"
                   onClick={() => onRowClick(s.id)}
                 >
-                  <td className="px-5 py-3.5 font-mono text-[11px] text-muted-foreground">
+                  <td className="px-5 py-4 font-mono text-[12px] font-semibold text-foreground/70">
                     {s.reference ?? s.id.slice(0, 8).toUpperCase()}
                   </td>
                   {showCoopColumn && (
-                    <td className="px-5 py-3.5 text-xs text-foreground hidden md:table-cell max-w-[160px] truncate">
+                    <td className="px-5 py-4 text-xs text-foreground hidden md:table-cell max-w-[160px] truncate font-medium">
                       {s.cooperative_name ?? "—"}
                     </td>
                   )}
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-foreground text-sm">{s.reporting_year}</p>
+                  <td className="px-5 py-4">
+                    <p className="font-bold text-foreground text-sm">{s.reporting_year}</p>
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground text-xs hidden md:table-cell capitalize">
-                    {s.current_tier}
+                  <td className="px-5 py-4 hidden md:table-cell">
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium capitalize">
+                      <span className="size-1.5 rounded-full bg-primary/30" />
+                      {s.current_tier}
+                    </span>
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground text-xs hidden lg:table-cell">
+                  <td className="px-5 py-4 text-muted-foreground text-xs hidden lg:table-cell">
                     {new Date(s.created_at).toLocaleDateString("en-GB", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
                     })}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-4">
                     <span
                       className={`text-xs font-semibold ${
                         s.priority === "Urgent"
@@ -390,15 +398,14 @@ function SubmissionTable({
                             : "text-muted-foreground"
                       }`}
                     >
-                      {s.priority === "Urgent" && "⚡ "}
                       {s.priority}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-4">
                     <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status)}</StatusPill>
                   </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  <td className="px-5 py-4 text-right">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 border border-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-150 group-hover:bg-primary/10">
                       {canValidate && s.status !== "draft" ? "Review" : "Open"}
                       <ArrowUpRight className="size-3" />
                     </span>

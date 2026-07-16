@@ -55,6 +55,13 @@ pub fn sum_signed(v: &ValuesMap, codes: &[(i32, bool)]) -> Decimal {
         .sum()
 }
 
+pub fn sum_children(v: &ValuesMap, codes: &[(i32, bool)]) -> Decimal {
+    codes
+        .iter()
+        .map(|(c, _)| get_zero(v, *c))
+        .sum()
+}
+
 #[allow(dead_code)]
 pub fn all_present(v: &ValuesMap, codes: &[i32]) -> bool {
     codes.iter().all(|c| v.contains_key(c))

@@ -114,9 +114,7 @@ export const useChartOfAccounts = () =>
   useQuery({
     queryKey: ["chart-of-accounts"],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET(
-        "/api/v1/cooperative/chart-of-accounts" as never,
-      );
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/chart-of-accounts" as never);
       if (error) throw new Error(extractErrorMessage(error));
       return (data as ChartOfAccountResponse[]) ?? [];
     },

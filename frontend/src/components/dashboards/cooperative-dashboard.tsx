@@ -1,5 +1,5 @@
 import { AppShell, Card, StatCard } from "@/components/app-shell";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   SUBMISSIONS as INITIAL_SUBMISSIONS,
   ACTIVITY_FEED as INITIAL_ACTIVITY_FEED,
@@ -122,6 +122,8 @@ export function CooperativeDashboard({
   void setSubmissions;
   void activities;
   void setActivities;
+
+  const navigate = useNavigate();
 
   const { data: stats, isLoading: statsLoading } = useCooperativeStats();
   const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
@@ -549,6 +551,9 @@ export function CooperativeDashboard({
                   realSubmissions.slice(0, 5).map((sub) => (
                     <tr
                       key={sub.id}
+                      onClick={() =>
+                        navigate({ to: "/app/submissions/$id", params: { id: sub.id } })
+                      }
                       className="hover:bg-muted/25 transition-colors duration-150 cursor-pointer"
                     >
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">

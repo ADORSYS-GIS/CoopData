@@ -3,11 +3,11 @@ use rust_decimal::Decimal;
 use crate::entities::chart_of_account;
 
 use super::calculations::{
-    any_present, child_codes, flag, get_val, parse_formula, sum_signed, FlagOutput, ValuesMap,
+    any_present, child_codes, flag, get_val, parse_formula, sum_children, sum_signed, FlagOutput, ValuesMap,
 };
 
 fn tolerance_pct() -> Decimal {
-    Decimal::new(1, 2)
+    Decimal::new(5, 2)
 }
 
 pub fn run_sum_checks(
@@ -34,12 +34,19 @@ pub fn run_sum_checks(
                 .iter()
                 .all(|c| values.contains_key(c));
 
-            let calculated = sum_signed(values, &children);
-            let diff = (parent_val - calculated).abs();
+            let calculated_signed = sum_signed(values, &children);
+            let calculated_unsigned = sum_children(values, &children);
+            let diff_signed = (parent_val - calculated_signed).abs();
+            let diff_unsigned = (parent_val - calculated_unsigned).abs();
+            let (calculated, diff) = if diff_signed <= diff_unsigned {
+                (calculated_signed, diff_signed)
+            } else {
+                (calculated_unsigned, diff_unsigned)
+            };
             let tolerance = (parent_val.abs() * tolerance_pct()).max(Decimal::ONE);
 
             if diff > tolerance {
-                let severity = if all_children { "critical" } else { "medium" };
+                let severity = "medium";
                 let partial_note = if all_children {
                     String::new()
                 } else {

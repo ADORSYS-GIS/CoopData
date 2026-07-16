@@ -1499,8 +1499,8 @@ mod tests {
         assert_eq!(date.unwrap().to_string(), "2024-01-15");
     }
 
-    #[test]
-    fn test_build_column_map_success() {
+    #[tokio::test]
+    async fn test_build_column_map_success() {
         let header_row = vec![
             Data::String("member_id".to_string()),
             Data::String("join_date".to_string()),
@@ -1512,7 +1512,8 @@ mod tests {
             &["member_id", "join_date", "status"],
             "TEST",
             &mut result,
-        );
+            None,
+        ).await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
         let map = map.unwrap();
@@ -1520,8 +1521,8 @@ mod tests {
         assert_eq!(map.get("status"), Some(&2));
     }
 
-    #[test]
-    fn test_build_column_map_missing_header() {
+    #[tokio::test]
+    async fn test_build_column_map_missing_header() {
         let header_row = vec![
             Data::String("member_id".to_string()),
             Data::String("join_date".to_string()),
@@ -1532,14 +1533,15 @@ mod tests {
             &["member_id", "join_date", "status"],
             "TEST",
             &mut result,
-        );
+            None,
+        ).await;
         assert!(map.is_none());
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].rule, "MISSING_HEADERS");
     }
 
-    #[test]
-    fn test_build_column_map_case_insensitive() {
+    #[tokio::test]
+    async fn test_build_column_map_case_insensitive() {
         let header_row = vec![
             Data::String("Member_ID".to_string()),
             Data::String("JOIN_DATE".to_string()),
@@ -1550,7 +1552,8 @@ mod tests {
             &["member_id", "join_date"],
             "TEST",
             &mut result,
-        );
+            None,
+        ).await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
     }

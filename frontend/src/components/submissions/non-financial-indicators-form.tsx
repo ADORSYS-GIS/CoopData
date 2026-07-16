@@ -77,6 +77,36 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
     }));
   };
 
+  const isFormValid = () => {
+    if (!catalog) return false;
+    for (const item of catalog) {
+      if (item.is_required) {
+        const val = formValues[item.id];
+        if (!val) return false;
+
+        if (item.data_type === "Number") {
+          const num = val.value_numeric;
+          if (num === undefined || num === null || isNaN(Number(num))) {
+            return false;
+          }
+        }
+        if (item.data_type === "Text") {
+          const txt = val.value_text;
+          if (txt === undefined || txt === null || String(txt).trim() === "") {
+            return false;
+          }
+        }
+        if (item.data_type === "Boolean") {
+          const bool = val.value_boolean;
+          if (bool === undefined || bool === null) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!catalog) return;
@@ -86,25 +116,42 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
     for (const item of catalog) {
       const val = formValues[item.id] || {};
       if (item.is_required) {
-        if (item.data_type === "Number" && val.value_numeric === undefined) {
-          toast.error(`"${item.display_name}" is required and must be a number.`);
-          return;
+        if (item.data_type === "Number") {
+          const numVal = val.value_numeric;
+          if (numVal === undefined || numVal === null || isNaN(Number(numVal))) {
+            toast.error(`"${item.display_name}" is required and must be a number.`);
+            return;
+          }
         }
-        if (item.data_type === "Text" && (!val.value_text || val.value_text.trim() === "")) {
-          toast.error(`"${item.display_name}" is required and must contain text.`);
-          return;
+        if (item.data_type === "Text") {
+          const textVal = val.value_text;
+          if (textVal === undefined || textVal === null || String(textVal).trim() === "") {
+            toast.error(`"${item.display_name}" is required and must contain text.`);
+            return;
+          }
         }
-        if (item.data_type === "Boolean" && val.value_boolean === undefined) {
-          toast.error(`"${item.display_name}" is required.`);
-          return;
+        if (item.data_type === "Boolean") {
+          const boolVal = val.value_boolean;
+          if (boolVal === undefined || boolVal === null) {
+            toast.error(`"${item.display_name}" is required.`);
+            return;
+          }
         }
       }
 
+      const numVal = val.value_numeric;
+      const textVal = val.value_text;
+      const boolVal = val.value_boolean;
+
       toSave.push({
         catalog_id: item.id,
-        value_numeric: val.value_numeric !== undefined ? val.value_numeric : null,
-        value_text: val.value_text !== undefined ? val.value_text : null,
-        value_boolean: val.value_boolean !== undefined ? val.value_boolean : null,
+        value_numeric:
+          numVal !== undefined && numVal !== null && !isNaN(Number(numVal)) ? Number(numVal) : null,
+        value_text:
+          textVal !== undefined && textVal !== null && String(textVal).trim() !== ""
+            ? String(textVal)
+            : null,
+        value_boolean: boolVal !== undefined && boolVal !== null ? Boolean(boolVal) : null,
       });
     }
 
@@ -150,28 +197,37 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
       </div>
 
       <form onSubmit={handleSave} className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          {catalog.map((item) => {
-            const val = formValues[item.id] || {};
-            const isFieldRequired = item.is_required;
+        <Card>
+          <div className="divide-y divide-border/60">
+            {catalog.map((item) => {
+              const val = formValues[item.id] || {};
+              const isFieldRequired = item.is_required;
 
-            return (
-              <Card
-                key={item.id}
-                title={item.display_name}
-                subtitle={item.description || "No description provided"}
-                action={
-                  isFieldRequired ? (
-                    <span className="text-xs font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
-                      Required
-                    </span>
-                  ) : undefined
-                }
-                className="hover:shadow-md transition-shadow duration-200 border-l-4 border-l-primary/40"
-              >
-                <div className="mt-3">
-                  {item.data_type === "Number" && (
-                    <div className="space-y-1.5">
+              return (
+                <div
+                  key={item.id}
+                  className="py-5 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-start justify-between gap-6"
+                >
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
+                        {item.display_name}
+                      </span>
+                      {isFieldRequired && (
+                        <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                          Required
+                        </span>
+                      )}
+                    </div>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="w-full md:w-72 shrink-0">
+                    {item.data_type === "Number" && (
                       <Input
                         type="number"
                         step="any"
@@ -183,62 +239,52 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
                             e.target.value === "" ? undefined : parseFloat(e.target.value);
                           handleChange(item.id, "value_numeric", num);
                         }}
-                        className={cn(
-                          "w-full transition-colors focus-visible:ring-1",
-                          isFieldRequired && val.value_numeric === undefined && "border-warning",
-                        )}
+                        className="w-full transition-colors focus-visible:ring-1 text-sm h-9"
                       />
-                    </div>
-                  )}
+                    )}
 
-                  {item.data_type === "Text" && (
-                    <div className="space-y-1.5">
+                    {item.data_type === "Text" && (
                       <Textarea
                         placeholder="Enter details..."
                         value={val.value_text || ""}
                         disabled={isReadOnly}
                         rows={2}
                         onChange={(e) => handleChange(item.id, "value_text", e.target.value)}
-                        className={cn(
-                          "w-full transition-colors focus-visible:ring-1 resize-none",
-                          isFieldRequired &&
-                            (!val.value_text || val.value_text.trim() === "") &&
-                            "border-warning",
-                        )}
+                        className="w-full transition-colors focus-visible:ring-1 text-sm resize-none"
                       />
-                    </div>
-                  )}
+                    )}
 
-                  {item.data_type === "Boolean" && (
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-dashed">
-                      <Label
-                        htmlFor={`switch-${item.id}`}
-                        className="text-xs text-muted-foreground font-normal cursor-pointer"
-                      >
-                        {val.value_boolean ? "Yes / Confirmed" : "No / Unconfirmed"}
-                      </Label>
-                      <Switch
-                        id={`switch-${item.id}`}
-                        checked={val.value_boolean || false}
-                        disabled={isReadOnly}
-                        onCheckedChange={(checked) =>
-                          handleChange(item.id, "value_boolean", checked)
-                        }
-                        className="data-[state=checked]:bg-primary"
-                      />
-                    </div>
-                  )}
+                    {item.data_type === "Boolean" && (
+                      <div className="flex items-center gap-3 h-9">
+                        <Switch
+                          id={`switch-${item.id}`}
+                          checked={val.value_boolean || false}
+                          disabled={isReadOnly}
+                          onCheckedChange={(checked) =>
+                            handleChange(item.id, "value_boolean", checked)
+                          }
+                          className="data-[state=checked]:bg-primary"
+                        />
+                        <Label
+                          htmlFor={`switch-${item.id}`}
+                          className="text-xs text-muted-foreground font-medium cursor-pointer select-none"
+                        >
+                          {val.value_boolean ? "Yes / Confirmed" : "No / Unconfirmed"}
+                        </Label>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </Card>
 
         {!isReadOnly && (
-          <div className="flex justify-end pt-4 border-t">
+          <div className="flex justify-end pt-4">
             <Button
               type="submit"
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || !isFormValid()}
               className="px-6 flex items-center gap-2 hover:opacity-90 shadow-sm"
             >
               {saveMutation.isPending ? (

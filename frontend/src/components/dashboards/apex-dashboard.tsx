@@ -189,9 +189,11 @@ export function ApexDashboard({
           ) : (
             <div className="space-y-3">
               {filteredSubmissions.slice(0, 8).map((sub) => (
-                <div
+                <Link
                   key={sub.id}
-                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4 card-edge hover-lift"
+                  to="/app/submissions/$id"
+                  params={{ id: sub.id }}
+                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4 card-edge hover-lift hover:border-primary/30 transition-all block"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -217,13 +219,9 @@ export function ApexDashboard({
 
                   {sub.status === "submitted" && (
                     <div className="flex items-center gap-2 shrink-0">
-                      <Link
-                        to="/app/submissions/$id"
-                        params={{ id: sub.id }}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1"
-                      >
+                      <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1">
                         <CheckCircle2 className="size-3.5" /> Review
-                      </Link>
+                      </div>
                     </div>
                   )}
 
@@ -250,7 +248,7 @@ export function ApexDashboard({
                       <AlertTriangle className="size-3.5" /> Changes Requested
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           )}
