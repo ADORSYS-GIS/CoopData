@@ -451,7 +451,7 @@ if [[ ! -f .env ]]; then
 
         sed -i "s|coopdata.example.com|$DOMAIN|g" .env
         sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=${PROTOCOL}://${DOMAIN}|g" .env
-        sed -i "s|JWT_ISSUER=.*|JWT_ISSUER=${PROTOCOL}://${DOMAIN}/auth/realms/coop-data|g" .env
+        sed -i "s|JWT_ISSUER=.*|JWT_ISSUER=${PROTOCOL}://${DOMAIN}/realms/coop-data|g" .env
         sed -i "s|JWT_ISSUER_ALIASES=.*|JWT_ISSUER_ALIASES=http://keycloak:8180/realms/coop-data|g" .env
         sed -i "s|DOMAIN_NAME=.*|DOMAIN_NAME=${DOMAIN}|g" .env
         sed -i "s|VITE_API_BASE_URL=.*|VITE_API_BASE_URL=|g" .env
