@@ -39,6 +39,10 @@ pub fn shared_routes() -> Router<AppState> {
             "/analytics/monthly-trend",
             get(crate::api::handlers::financial_statement::get_monthly_trend),
         )
+        .route(
+            "/analytics/submission-activity",
+            get(crate::api::handlers::financial_statement::get_submission_activity),
+        )
         // Region compliance analytics — accessible to all authenticated roles
         .route(
             "/analytics/region-compliance",
@@ -53,6 +57,10 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/analytics/national-overview",
             get(crate::api::handlers::national_overview::get_national_overview),
+        )
+        .route(
+            "/analytics/nf-trend",
+            get(crate::api::handlers::nf_indicator_stats::get_nf_trend),
         )
 }
 

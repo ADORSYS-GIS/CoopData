@@ -149,11 +149,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
           return;
         }
 
-        // PDF is not implemented yet — fall back to xlsx with a note
-        const format = selectedFormat === "pdf" ? "xlsx" : selectedFormat;
-        if (selectedFormat === "pdf") {
-          toast.info("PDF export is coming soon. Downloading as Excel instead.");
-        }
+        const format = selectedFormat;
 
         const token = await getAccessToken();
         const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -180,11 +176,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
         toast.success(`${selectedOption.label} exported as ${format.toUpperCase()} successfully!`);
       } else {
-        // Higher-tier consolidated exports — real bulk download
-        const format = selectedFormat === "pdf" ? "xlsx" : selectedFormat;
-        if (selectedFormat === "pdf") {
-          toast.info("PDF export is coming soon. Downloading as Excel instead.");
-        }
+        const format = selectedFormat;
 
         const tier = role as "ministry" | "federation" | "apex";
         const token = await getAccessToken();

@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAccessToken } from "@/services/shared/authService";
+import { apiClient } from "@/openapi-client";
 
 export interface MonthlyTrendPoint {
   month: number;
   month_label: string;
   savings: number;
   loans: number;
-  deposits: number;
+  assets: number;
 }
 
 export interface MonthlyTrendResponse {
@@ -14,33 +14,43 @@ export interface MonthlyTrendResponse {
   months: MonthlyTrendPoint[];
 }
 
-interface MonthlyTrendParams {
+export interface MonthlyTrendParams {
   reportingYear?: number;
   cooperativeId?: string;
+  // Server-side filter params
+  region?: string;
+  sector?: string;
+  federationId?: string;
+  apexId?: string;
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const extractErrorMessage = (error: unknown): string => {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = error.message;
+    if (typeof message === "string" && message.length > 0) return message;
+  }
+  return "Unable to load monthly financial history.";
+};
 
 export const useMonthlyTrend = (params: MonthlyTrendParams = {}, enabled = true) => {
-  const queryParams = new URLSearchParams();
-  if (params.reportingYear) queryParams.set("reporting_year", String(params.reportingYear));
-  if (params.cooperativeId) queryParams.set("cooperative_id", params.cooperativeId);
-
-  const qs = queryParams.toString();
-  const url = `${BASE_URL}/api/v1/analytics/monthly-trend${qs ? `?${qs}` : ""}`;
-
   return useQuery<MonthlyTrendResponse>({
     queryKey: ["monthly-trend", params],
     queryFn: async () => {
-      const token = await getAccessToken();
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+      const { data, error } = await apiClient.GET("/api/v1/analytics/monthly-trend", {
+        params: {
+          query: {
+            reporting_year: params.reportingYear,
+            cooperative_id: params.cooperativeId,
+            region: params.region !== "all" ? params.region : undefined,
+            sector: params.sector !== "all" ? params.sector : undefined,
+            federation_id: params.federationId !== "all" ? params.federationId : undefined,
+            apex_id: params.apexId !== "all" ? params.apexId : undefined,
+          } as Record<string, unknown>,
+        },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as Record<string, string>)["message"] ?? `HTTP ${res.status}`);
-      }
-      return res.json() as Promise<MonthlyTrendResponse>;
+      if (error) throw new Error(extractErrorMessage(error));
+      if (!data) throw new Error("Monthly financial history response was empty.");
+      return data as MonthlyTrendResponse;
     },
     enabled,
     staleTime: 5 * 60 * 1000,

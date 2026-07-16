@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ResponsiveContainer,
   LineChart,
@@ -24,10 +25,17 @@ import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
 import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
 import { BenchmarkInsightPanel } from "@/components/analytics/BenchmarkInsightPanel";
+import { KpiChipGrid } from "@/components/analytics/KpiChipGrid";
+import { DormancyLeaderboard } from "@/components/analytics/DormancyLeaderboard";
+import { LoanDualBar } from "@/components/analytics/LoanDualBar";
+import { SavingsRadialGauges } from "@/components/analytics/SavingsRadialGauges";
+import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
+import { ComplianceStackedBars } from "@/components/analytics/ComplianceStackedBars";
+import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
+import { GenderStatusDoughnuts } from "@/components/analytics/GenderStatusDoughnuts";
 import { useBenchmarks } from "@/hooks/analytics/useBenchmarks";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import type { BenchmarkResponse } from "@/hooks/analytics/useBenchmarks";
-import { formatNumber, REGIONS, SECTOR_BREAKDOWN } from "@/lib/mock-data";
 import { type Role, useUserRole } from "@/lib/auth";
 import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
@@ -43,10 +51,12 @@ import { useFederationStats } from "@/hooks/analytics/useFederationStats";
 import { useRegionCompliance } from "@/hooks/analytics/useRegionCompliance";
 import { useSectorBreakdown } from "@/hooks/analytics/useSectorBreakdown";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
+import { useNfTrend } from "@/hooks/analytics/useNfTrend";
+import { useSubmissionActivity } from "@/hooks/analytics/useSubmissionActivity";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useMyCooperativeProfile, useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes } from "@/hooks/apexes/useApexes";
-import { useCooperatives, useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
 import {
   TrendingUp,
   TrendingDown,
@@ -82,13 +92,19 @@ const palette = [
 // Monochromatic accent palette for sector distributions
 const sectorOpacities = [1, 0.78, 0.58, 0.42, 0.28];
 
+// Local number formatter — replaces the one from mock-data
+function formatNumber(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  return n.toLocaleString();
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Cooperative chart data — empty until useMonthlyTrend (Sprint 5)
 // ─────────────────────────────────────────────────────────────────────
 // NOTE: These charts require a time-series backend endpoint not yet built.
 // They will be replaced by real data in Sprint 5 via useMonthlyTrend.
 const coopComplianceTrend: { month: string; score: number }[] = [];
-const coopMembershipHistory: { year: string; members: number; youth: number; women: number }[] = [];
 const coopMonthlyTrend: { month: string; members: number; savings: number }[] = [];
 const coopPerformanceMetrics: {
   label: string;
@@ -98,226 +114,11 @@ const coopPerformanceMetrics: {
   desc: string;
 }[] = [];
 
-// ─────────────────────────────────────────────────────────────────────
-// Base mock data (will be filtered/adjusted reactively)
-// ─────────────────────────────────────────────────────────────────────
-
-const PERFORMERS = [
-  { n: "Sunrise Savings SACCO", s: 98, p: "Finance" },
-  { n: "Lakeside Agricultural Union", s: 95, p: "Agriculture" },
-  { n: "National Teachers SACCO", s: 94, p: "Finance" },
-  { n: "Unity Housing Federation", s: 92, p: "Housing" },
-  { n: "Lubombo Dairy Co-op", s: 90, p: "Agriculture" },
-  { n: "Highveld Women's Trust", s: 88, p: "Finance" },
-  { n: "Eastern Grain Collective", s: 84, p: "Agriculture" },
-  { n: "Shiselweni Coffee Growers", s: 78, p: "Agriculture" },
-];
-
-const baseMonthlyFinancials = [
-  {
-    month: "Jan 2025",
-    monthShort: "Jan",
-    savings: 980,
-    loans: 612,
-    deposits: 340,
-    date: "2025-01-15",
-  },
-  {
-    month: "Feb 2025",
-    monthShort: "Feb",
-    savings: 998,
-    loans: 631,
-    deposits: 355,
-    date: "2025-02-15",
-  },
-  {
-    month: "Mar 2025",
-    monthShort: "Mar",
-    savings: 1020,
-    loans: 655,
-    deposits: 372,
-    date: "2025-03-15",
-  },
-  {
-    month: "Apr 2025",
-    monthShort: "Apr",
-    savings: 1041,
-    loans: 678,
-    deposits: 390,
-    date: "2025-04-15",
-  },
-  {
-    month: "May 2025",
-    monthShort: "May",
-    savings: 1078,
-    loans: 702,
-    deposits: 412,
-    date: "2025-05-15",
-  },
-  {
-    month: "Jun 2025",
-    monthShort: "Jun",
-    savings: 1102,
-    loans: 731,
-    deposits: 438,
-    date: "2025-06-15",
-  },
-  {
-    month: "Jul 2025",
-    monthShort: "Jul",
-    savings: 1130,
-    loans: 758,
-    deposits: 460,
-    date: "2025-07-15",
-  },
-  {
-    month: "Aug 2025",
-    monthShort: "Aug",
-    savings: 1158,
-    loans: 781,
-    deposits: 482,
-    date: "2025-08-15",
-  },
-  {
-    month: "Sep 2025",
-    monthShort: "Sep",
-    savings: 1182,
-    loans: 802,
-    deposits: 501,
-    date: "2025-09-15",
-  },
-  {
-    month: "Oct 2025",
-    monthShort: "Oct",
-    savings: 1198,
-    loans: 821,
-    deposits: 520,
-    date: "2025-10-15",
-  },
-  {
-    month: "Nov 2025",
-    monthShort: "Nov",
-    savings: 1204,
-    loans: 835,
-    deposits: 538,
-    date: "2025-11-15",
-  },
-  {
-    month: "Dec 2025",
-    monthShort: "Dec",
-    savings: 1204,
-    loans: 842,
-    deposits: 555,
-    date: "2025-12-15",
-  },
-];
-
-const baseLoanPortfolio = [
-  { name: "Performing", value: 82, fill: "var(--chart-1)" },
-  { name: "Watch List", value: 9, fill: "var(--chart-3)" },
-  { name: "Substandard", value: 5, fill: "var(--chart-5)" },
-  { name: "Doubtful", value: 3, fill: "var(--chart-2)" },
-  { name: "Loss", value: 1, fill: "var(--chart-4)" },
-];
-
-const baseMembershipGrowth = [
-  { year: "2021", members: 1820000, youth: 612000, women: 980000 },
-  { year: "2022", members: 1980000, youth: 680000, women: 1070000 },
-  { year: "2023", members: 2145000, youth: 748000, women: 1158000 },
-  { year: "2024", members: 2284000, youth: 812000, women: 1234000 },
-  { year: "2025", members: 2412300, youth: 912000, women: 1303000 },
-];
-
-const baseRegionCompliance = [
-  { name: "Hhohho", score: 94.1, coops: 3120 },
-  { name: "Manzini", score: 91.3, coops: 4480 },
-  { name: "Lubombo", score: 93.2, coops: 3138 },
-  { name: "Shiselweni", score: 88.7, coops: 2104 },
-];
-
-const baseSubmissionTrend = [
-  { month: "Jan", monthDate: "2025-01-01", onTime: 92, late: 8 },
-  { month: "Feb", monthDate: "2025-02-01", onTime: 89, late: 11 },
-  { month: "Mar", monthDate: "2025-03-01", onTime: 94, late: 6 },
-  { month: "Apr", monthDate: "2025-04-01", onTime: 91, late: 9 },
-  { month: "May", monthDate: "2025-05-01", onTime: 96, late: 4 },
-  { month: "Jun", monthDate: "2025-06-01", onTime: 93, late: 7 },
-  { month: "Jul", monthDate: "2025-07-01", onTime: 95, late: 5 },
-  { month: "Aug", monthDate: "2025-08-01", onTime: 97, late: 3 },
-  { month: "Sep", monthDate: "2025-09-01", onTime: 94, late: 6 },
-  { month: "Oct", monthDate: "2025-10-01", onTime: 96, late: 4 },
-  { month: "Nov", monthDate: "2025-11-01", onTime: 95, late: 5 },
-  { month: "Dec", monthDate: "2025-12-01", onTime: 97, late: 3 },
-];
-
-// Multi-region member trend — 12 months
-const baseRegionTrendData = [
-  { month: "Jan", Hhohho: 2800, Manzini: 5800, Lubombo: 1500, Shiselweni: 3200 },
-  { month: "Feb", Hhohho: 4900, Manzini: 3100, Lubombo: 4200, Shiselweni: 1200 },
-  { month: "Mar", Hhohho: 2200, Manzini: 6500, Lubombo: 2100, Shiselweni: 4500 },
-  { month: "Apr", Hhohho: 5800, Manzini: 2800, Lubombo: 5000, Shiselweni: 1800 },
-  { month: "May", Hhohho: 1900, Manzini: 7000, Lubombo: 1700, Shiselweni: 5200 },
-  { month: "Jun", Hhohho: 6200, Manzini: 3500, Lubombo: 5800, Shiselweni: 900 },
-  { month: "Jul", Hhohho: 3000, Manzini: 5200, Lubombo: 2800, Shiselweni: 4000 },
-  { month: "Aug", Hhohho: 5500, Manzini: 1800, Lubombo: 6200, Shiselweni: 2200 },
-  { month: "Sep", Hhohho: 1500, Manzini: 6800, Lubombo: 1200, Shiselweni: 5500 },
-  { month: "Oct", Hhohho: 7000, Manzini: 4000, Lubombo: 4500, Shiselweni: 1400 },
-  { month: "Nov", Hhohho: 2500, Manzini: 5600, Lubombo: 3000, Shiselweni: 6000 },
-  { month: "Dec", Hhohho: 6000, Manzini: 2200, Lubombo: 6800, Shiselweni: 1000 },
-];
-
-// ─────────────────────────────────────────────────────────────────────
-// Entity-specific multipliers for filter reactivity
-// ─────────────────────────────────────────────────────────────────────
-
-const entityMultiplier: Record<string, number> = {
-  all: 1.0,
-  // Federations
-  fed_1: 0.35, // Manzini Regional Federation
-  fed_2: 0.28, // Hhohho Regional Federation
-  fed_3: 0.22, // Shiselweni Regional Federation
-  fed_4: 0.15, // Lubombo Regional Federation
-  // Apexes
-  a1: 0.18, // Manzini Apex
-  a2: 0.15, // Hhohho Apex
-  a3: 0.12, // Shiselweni Apex
-  a4: 0.1, // Lubombo Apex
-  a5: 0.14, // Northern Apex
-  a6: 0.16, // Central Apex
-  a7: 0.15, // Eastern Apex
-  // Cooperatives
-  coop_1: 0.35,
-  coop_2: 0.28,
-  coop_3: 0.22,
-  coop_4: 0.15,
-  coop_5: 0.08,
-  coop_6: 0.04,
-  coop_7: 0.06,
-  coop_8: 0.03,
-  coop_9: 0.07,
-  coop_10: 0.1,
-};
-
-const regionMultiplier: Record<string, number> = {
-  all: 1.0,
-  Manzini: 0.37,
-  Hhohho: 0.25,
-  Shiselweni: 0.17,
-  Lubombo: 0.21,
-};
-
-const sectorMultiplier: Record<string, number> = {
-  all: 1.0,
-  Agriculture: 0.42,
-  Finance: 0.31,
-  Housing: 0.11,
-  Transport: 0.09,
-  Manufacturing: 0.07,
-};
 
 // ─────────────────────────────────────────────────────────────────────
 // Role-aware KPI metrics
 // ─────────────────────────────────────────────────────────────────────
+
 
 const kpiMetricsByRole: Record<
   Role,
@@ -493,47 +294,6 @@ function buildFiltersByRole(
   ];
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Helper: compute multiplier from active filters
-// ─────────────────────────────────────────────────────────────────────
-
-function getFilterMultiplier(filterValues: Record<string, string>): number {
-  let mult = 1.0;
-  for (const [key, value] of Object.entries(filterValues)) {
-    if (value === "all" || value === "ytd") continue;
-    // Prefix the value based on filter type to match entityMultiplier keys
-    const prefixedKey =
-      key === "federation"
-        ? `fed_${value}`
-        : key === "apex"
-          ? value // apex IDs already have 'a' prefix
-          : key === "cooperative"
-            ? `coop_${value}`
-            : value;
-    const m =
-      entityMultiplier[prefixedKey] ?? regionMultiplier[value] ?? sectorMultiplier[value] ?? 1.0;
-    mult *= m;
-  }
-  return Math.max(mult, 0.02); // floor at 2% so charts aren't empty
-}
-
-function applyMultiplier<T extends Record<string, unknown>>(
-  data: T[],
-  numericKeys: (keyof T)[],
-  multiplier: number,
-): T[] {
-  return data.map((item) => {
-    const updated = { ...item };
-    for (const key of numericKeys) {
-      if (typeof updated[key] === "number") {
-        (updated as Record<string, unknown>)[key as string] = Math.round(
-          (updated[key] as number) * multiplier,
-        );
-      }
-    }
-    return updated;
-  });
-}
 
 function filterByDateRange<T extends Record<string, unknown>>(
   data: T[],
@@ -552,11 +312,13 @@ function filterByDateRange<T extends Record<string, unknown>>(
   });
 }
 
+
 // ─────────────────────────────────────────────────────────────────────
 // Analytics Page Component
 // ─────────────────────────────────────────────────────────────────────
 export const AnalyticsPage: React.FC = () => {
   const role = useUserRole();
+  const navigate = useNavigate();
 
   // ── Real data hooks (cooperative role) ──
   const latestSubmission = useLatestSubmission();
@@ -608,6 +370,55 @@ export const AnalyticsPage: React.FC = () => {
   const coopSubmissionsAll = useCooperativeSubmissions(role === "cooperative").data ?? [];
   const coopStats = useCooperativeStats(role === "cooperative").data;
 
+  // ── 1. Fetch lists for dropdowns (admin roles) ──
+  const isMinistry = role === "ministry";
+  const isFederation = role === "federation";
+  const isApex = role === "apex";
+  
+  const federationsData = useFederations().data ?? [];
+  const apexesData = useApexes().data ?? [];
+  const cooperativesData = useCooperatives().data ?? [];
+
+  const filters = useMemo<FilterConfig[]>(() => {
+    if (!role) return [];
+    return buildFiltersByRole(role, federationsData, apexesData, cooperativesData);
+  }, [role, federationsData, apexesData, cooperativesData]);
+
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({
+    region: "all",
+    sector: "all",
+    federationId: "all",
+    apexId: "all",
+    cooperativeId: "all",
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [period, setPeriod] = useState<"1D" | "5D" | "1M" | "1Y">("1Y");
+  const [compPeriod, setCompPeriod] = useState<"Week" | "Month" | "Quarter" | "Year">("Year");
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(2025, 0, 1),
+    to: new Date(),
+  });
+
+  const activeFilterCount = Object.values(filterValues).filter(
+    (v) => v !== "all" && v !== "ytd",
+  ).length;
+
+  const handleFilterChange = useCallback((filterId: string, value: string) => {
+    // Map internal filterIds to the state keys
+    const key = filterId === "federation" ? "federationId" : filterId === "apex" ? "apexId" : filterId === "cooperative" ? "cooperativeId" : filterId;
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilterValues({
+      region: "all",
+      sector: "all",
+      federationId: "all",
+      apexId: "all",
+      cooperativeId: "all",
+    });
+  }, []);
+
   // ── Real data hooks (ministry/apex roles) ──
   const ministryStats = useMinistryStats(role === "ministry").data;
   const apexStats = useApexStats(role === "apex").data;
@@ -615,9 +426,9 @@ export const AnalyticsPage: React.FC = () => {
   const federationSubmissions = useFederationSubmissions(role === "federation").data ?? [];
   const apexSubmissions = useApexSubmissions(role === "apex").data ?? [];
 
-  // ── Analytics data hooks ──
-  const regionComplianceData = useRegionCompliance(!!role).data;
-  const sectorBreakdownData = useSectorBreakdown(!!role).data;
+  // ── Analytics data hooks (with dynamic filters!) ──
+  const regionComplianceData = useRegionCompliance(!!role, filterValues).data;
+  const sectorBreakdownData = useSectorBreakdown(!!role, filterValues).data;
 
   // ── NF Statistics (real data from uploaded NF databases) ──
   const nfStats = useNfStatistics(!!role).data;
@@ -627,20 +438,35 @@ export const AnalyticsPage: React.FC = () => {
     role === "ministry" || role === "federation" || role === "apex",
   ).data;
 
-  // ── Real data for filter dropdowns ──
-  const { data: federationsData } = useFederations();
-  const { data: apexesData } = useApexes();
-  const { data: cooperativesData } = useCooperatives();
   const { data: myCoopProfile } = useMyCooperativeProfile();
 
   // ── Monthly trend data ──
   const monthlyTrendParams = useMemo(() => {
+    const baseParams = {
+      reportingYear: currentYear,
+      region: filterValues.region,
+      sector: filterValues.sector,
+      federationId: filterValues.federationId,
+      apexId: filterValues.apexId,
+      // If a specific cooperative is selected in the filter, override.
+      cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
+    };
     if (role === "cooperative") {
-      return { reportingYear: currentYear, cooperativeId: latestSubmission?.cooperative_id };
+      return { ...baseParams, cooperativeId: latestSubmission?.cooperative_id };
     }
-    return { reportingYear: currentYear };
-  }, [role, currentYear, latestSubmission?.cooperative_id]);
+    return baseParams;
+  }, [role, currentYear, latestSubmission?.cooperative_id, filterValues]);
+  
   const { data: monthlyTrendData } = useMonthlyTrend(monthlyTrendParams, !!role);
+  const { data: submissionActivityData } = useSubmissionActivity(currentYear, !!role);
+
+  const nfTrendParams = useMemo(() => {
+    if (role === "cooperative") {
+      return { cooperativeId: latestSubmission?.cooperative_id };
+    }
+    return {};
+  }, [role, latestSubmission?.cooperative_id]);
+  const { data: nfTrendData } = useNfTrend(nfTrendParams, !!role);
 
   // ── Dynamic "At a Glance" summaries keyed by role ──
   const ministerySummary: { label: string; value: string; sub: string }[] = [
@@ -790,63 +616,31 @@ export const AnalyticsPage: React.FC = () => {
         ]
       : networkSummaryByRole[role ?? "ministry"];
 
-  const filters = useMemo(() => {
-    if (!role) return [];
-    return buildFiltersByRole(
-      role,
-      federationsData ?? [],
-      apexesData ?? [],
-      cooperativesData ?? [],
-    );
-  }, [role, federationsData, apexesData, cooperativesData]);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>(
-    Object.fromEntries(filters.map((f) => [f.id, f.options[0].value])),
-  );
-  const [showFilters, setShowFilters] = useState(false);
-  const [period, setPeriod] = useState<"1D" | "5D" | "1M" | "1Y">("1Y");
-  const [compPeriod, setCompPeriod] = useState<"Week" | "Month" | "Quarter" | "Year">("Year");
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(2025, 0, 1),
-    to: new Date(),
-  });
-
-  const activeFilterCount = Object.values(filterValues).filter(
-    (v) => v !== "all" && v !== "ytd",
-  ).length;
-
-  const handleFilterChange = useCallback((filterId: string, value: string) => {
-    setFilterValues((prev) => ({ ...prev, [filterId]: value }));
-  }, []);
-
-  const clearFilters = useCallback(() => {
-    setFilterValues(Object.fromEntries(filters.map((f) => [f.id, f.options[0].value])));
-  }, [filters]);
+  // Filter state definition moved UP to top of component so it can feed hooks
 
   // ── Reactive data ──
-  const multiplier = useMemo(() => getFilterMultiplier(filterValues), [filterValues]);
-
   const localGrowthTrend = useMemo(() => {
     if (monthlyTrendData?.months) {
       return monthlyTrendData.months.map((m) => ({
         month: m.month_label,
         savings: Math.round(m.savings / 1000),
         loans: Math.round(m.loans / 1000),
-        members: Math.round(m.deposits / 1000),
+        assets: Math.round(m.assets / 1000),
       }));
     }
     return [
-      { month: "Jan", members: 0, savings: 0, loans: 0 },
-      { month: "Feb", members: 0, savings: 0, loans: 0 },
-      { month: "Mar", members: 0, savings: 0, loans: 0 },
-      { month: "Apr", members: 0, savings: 0, loans: 0 },
-      { month: "May", members: 0, savings: 0, loans: 0 },
-      { month: "Jun", members: 0, savings: 0, loans: 0 },
-      { month: "Jul", members: 0, savings: 0, loans: 0 },
-      { month: "Aug", members: 0, savings: 0, loans: 0 },
-      { month: "Sep", members: 0, savings: 0, loans: 0 },
-      { month: "Oct", members: 0, savings: 0, loans: 0 },
-      { month: "Nov", members: 0, savings: 0, loans: 0 },
-      { month: "Dec", members: 0, savings: 0, loans: 0 },
+      { month: "Jan", assets: 0, savings: 0, loans: 0 },
+      { month: "Feb", assets: 0, savings: 0, loans: 0 },
+      { month: "Mar", assets: 0, savings: 0, loans: 0 },
+      { month: "Apr", assets: 0, savings: 0, loans: 0 },
+      { month: "May", assets: 0, savings: 0, loans: 0 },
+      { month: "Jun", assets: 0, savings: 0, loans: 0 },
+      { month: "Jul", assets: 0, savings: 0, loans: 0 },
+      { month: "Aug", assets: 0, savings: 0, loans: 0 },
+      { month: "Sep", assets: 0, savings: 0, loans: 0 },
+      { month: "Oct", assets: 0, savings: 0, loans: 0 },
+      { month: "Nov", assets: 0, savings: 0, loans: 0 },
+      { month: "Dec", assets: 0, savings: 0, loans: 0 },
     ];
   }, [monthlyTrendData]);
 
@@ -859,8 +653,8 @@ export const AnalyticsPage: React.FC = () => {
       "date",
       dateRange,
     );
-    return applyMultiplier(filtered, ["members", "savings", "loans"], multiplier);
-  }, [dateRange, localGrowthTrend, multiplier]);
+    return filtered;
+  }, [dateRange, localGrowthTrend]);
 
   // Period-sliced data for the Pro Line Chart
   const periodSlice = useMemo(() => {
@@ -874,18 +668,18 @@ export const AnalyticsPage: React.FC = () => {
   // Summary totals for the Pro Line Chart header
   const portfolioTotal = useMemo(() => {
     const last = periodSlice[periodSlice.length - 1];
-    if (!last) return { savings: 0, loans: 0, members: 0 };
+    if (!last) return { savings: 0, loans: 0, assets: 0 };
     return {
       savings: last.savings as number,
       loans: last.loans as number,
-      members: last.members as number,
+      assets: last.assets as number,
     };
   }, [periodSlice]);
 
   const filteredMonthlyFinancials = useMemo(() => {
     if (monthlyTrendData?.months) {
       const hasRealData = monthlyTrendData.months.some(
-        (m) => m.savings > 0 || m.loans > 0 || m.deposits > 0,
+        (m) => m.savings > 0 || m.loans > 0 || m.assets > 0,
       );
       if (hasRealData) {
         return monthlyTrendData.months.map((m) => ({
@@ -893,35 +687,49 @@ export const AnalyticsPage: React.FC = () => {
           monthShort: m.month_label,
           savings: Math.round(m.savings / 1000),
           loans: Math.round(m.loans / 1000),
-          deposits: Math.round(m.deposits / 1000),
+          assets: Math.round(m.assets / 1000),
           variation: Math.round((m.savings / 1000) * 0.1),
           date: `${monthlyTrendData.year}-${String(m.month).padStart(2, "0")}-15`,
         }));
       }
     }
-    return [] as typeof baseMonthlyFinancials;
+    return [] as {
+      month: string;
+      monthShort: string;
+      savings: number;
+      loans: number;
+      assets: number;
+      variation: number;
+      date: string;
+    }[];
   }, [monthlyTrendData]);
 
-  const filteredSubmissionTrend = useMemo(() => {
-    const filtered = filterByDateRange(baseSubmissionTrend, "monthDate", dateRange);
-    return applyMultiplier(filtered, ["onTime", "late"], multiplier).map((item) => ({
-      ...item,
-      onTime: Math.min(item.onTime as number, 100),
-      late: Math.min(item.late as number, 100),
-    }));
-  }, [dateRange, multiplier]);
+  const submissionActivityTrend = useMemo(
+    () =>
+      (submissionActivityData?.months ?? []).map((point) => ({
+        month: point.month_label,
+        submitted: point.submitted,
+        approved: point.approved,
+        rejected: point.rejected,
+        inReview: point.in_review,
+      })),
+    [submissionActivityData],
+  );
 
-  const filteredMembershipGrowth = useMemo(
-    () => applyMultiplier(baseMembershipGrowth, ["members", "youth", "women"], multiplier),
-    [multiplier],
+  const membershipTrend = useMemo(
+    () =>
+      (nfTrendData?.points ?? []).map((point) => ({
+        year: String(point.reporting_year),
+        members: point.total_members,
+        youth: point.youth_members,
+        women: point.women_members,
+      })),
+    [nfTrendData],
   );
 
   const filteredRegionCompliance = useMemo(() => {
-    if (regionComplianceData?.regions && regionComplianceData.regions.length > 0) {
-      return regionComplianceData.regions;
-    }
-    return applyMultiplier(baseRegionCompliance, ["coops"], multiplier);
-  }, [multiplier, regionComplianceData]);
+    return regionComplianceData?.regions ?? [];
+  }, [regionComplianceData]);
 
   const filteredLoanPortfolio = useMemo(() => {
     // For cooperative role: derive from real NF loan statistics
@@ -954,40 +762,27 @@ export const AnalyticsPage: React.FC = () => {
       }
       return [];
     }
-    // For higher roles: use mock until aggregation endpoint built
-    if (multiplier >= 1.0) return baseLoanPortfolio;
-    const adjustments: Record<string, number> = {
-      Performing: multiplier < 0.3 ? -5 : multiplier < 0.6 ? -2 : 0,
-      "Watch List": multiplier < 0.3 ? 3 : multiplier < 0.6 ? 1 : 0,
-      Substandard: multiplier < 0.3 ? 1 : 0,
-      Doubtful: multiplier < 0.3 ? 1 : 0,
-      Loss: multiplier < 0.3 ? 0 : 0,
-    };
-    return baseLoanPortfolio.map((item) => ({
-      ...item,
-      value: Math.max(1, item.value + (adjustments[item.name] ?? 0)),
-    }));
-  }, [role, nfStats, multiplier]);
+    return [];
+  }, [role, nfStats]);
 
   const filteredSectorBreakdown = useMemo(() => {
-    if (sectorBreakdownData?.sectors && sectorBreakdownData.sectors.length > 0) {
-      return sectorBreakdownData.sectors;
-    }
-    if (multiplier >= 1.0) return SECTOR_BREAKDOWN;
-    return SECTOR_BREAKDOWN.map((item) => ({
-      ...item,
-      value: Math.max(1, Math.round(item.value * (0.5 + multiplier * 0.5))),
-      count: Math.round(item.count * multiplier),
-    }));
-  }, [multiplier, sectorBreakdownData]);
+    return sectorBreakdownData?.sectors ?? [];
+  }, [sectorBreakdownData]);
 
   const filteredPerformers = useMemo(() => {
-    if (multiplier >= 1.0) return PERFORMERS;
-    return PERFORMERS.map((p) => ({
-      ...p,
-      s: Math.max(60, Math.round(p.s * (0.85 + multiplier * 0.15))),
-    }));
-  }, [multiplier]);
+    return (nationalOverview?.cooperatives ?? [])
+      .filter((cooperative) => cooperative.has_data)
+      .map((cooperative) => {
+        const values = Object.values(cooperative.kpis);
+        const greenCount = values.filter((kpi) => kpi.status === "green").length;
+        return {
+          n: cooperative.name,
+          p: cooperative.sector ?? cooperative.institution_type ?? "Unclassified",
+          s: values.length > 0 ? Math.round((greenCount / values.length) * 100) : 0,
+        };
+      })
+      .sort((a, b) => b.s - a.s);
+  }, [nationalOverview]);
 
   const filteredComplianceScore = useMemo(() => {
     // For cooperative: use Operational Self-Sufficiency from real KPI data
@@ -1017,16 +812,7 @@ export const AnalyticsPage: React.FC = () => {
     }));
   }, [filteredMonthlyFinancials, compPeriod]);
 
-  // Multi-region trend (scaled by multiplier)
-  const filteredRegionTrend = useMemo(
-    () =>
-      applyMultiplier(
-        baseRegionTrendData,
-        ["Hhohho", "Manzini", "Lubombo", "Shiselweni"],
-        multiplier,
-      ),
-    [multiplier],
-  );
+  const filteredRegionTrend: { month: string }[] = [];
 
   const filteredKPIs = useMemo(() => {
     if (!role) return [];
@@ -1228,38 +1014,8 @@ export const AnalyticsPage: React.FC = () => {
       ];
     }
 
-    const baseKPIs = kpiMetricsByRole[role];
-    if (multiplier >= 1.0) return baseKPIs;
-    // Adjust KPI values based on multiplier
-    return baseKPIs.map((kpi) => {
-      if (kpi.label.includes("Compliance") || kpi.label.includes("NPL")) {
-        return { ...kpi, value: kpi.value }; // Keep compliance/NPL as-is
-      }
-      // For monetary values, adjust
-      if (kpi.value.startsWith("$")) {
-        const numStr = kpi.value.replace(/[$,%]/g, "");
-        const suffix = kpi.value.includes("M")
-          ? "M"
-          : kpi.value.includes("B")
-            ? "B"
-            : kpi.value.includes("K")
-              ? "K"
-              : "";
-        const numVal = parseFloat(numStr);
-        if (!isNaN(numVal)) {
-          const adjusted = numVal * Math.max(multiplier, 0.1);
-          return { ...kpi, value: `$${adjusted.toFixed(1)}${suffix}` };
-        }
-      }
-      if (kpi.value.includes(",")) {
-        const numVal = parseInt(kpi.value.replace(/,/g, ""), 10);
-        if (!isNaN(numVal)) {
-          return { ...kpi, value: Math.round(numVal * Math.max(multiplier, 0.1)).toLocaleString() };
-        }
-      }
-      return kpi;
-    });
-  }, [role, multiplier, kpisData, ministryStats, apexStats, federationStats]);
+    return kpiMetricsByRole[role];
+  }, [role, kpisData, ministryStats, apexStats, federationStats]);
 
   const genderData = useMemo(() => {
     if (nfStats) {
@@ -1323,56 +1079,64 @@ export const AnalyticsPage: React.FC = () => {
         </div>
         {/* ── Filter Bar ── */}
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
-              activeFilterCount > 0
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted/50"
-            }`}
-          >
-            <Filter className="size-3.5" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center">
-                {activeFilterCount}
-              </span>
-            )}
-            {showFilters ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-          </button>
-
-          {/* Active filter pills */}
-          {Object.entries(filterValues).map(([key, value]) => {
-            if (value === "all" || value === "ytd") return null;
-            const filter = filters.find((f) => f.id === key);
-            const option = filter?.options.find((o) => o.value === value);
-            if (!option) return null;
-            return (
-              <span
-                key={key}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold"
+          {filters.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+                  activeFilterCount > 0
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted/50"
+                }`}
               >
-                <span className="text-[10px] uppercase tracking-wider text-primary/60">
-                  {filter?.label}:
-                </span>
-                {option.label}
-                <button
-                  onClick={() => handleFilterChange(key, "all")}
-                  className="hover:bg-primary/20 rounded-full p-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            );
-          })}
+                <Filter className="size-3.5" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center">
+                    {activeFilterCount}
+                  </span>
+                )}
+                {showFilters ? (
+                  <ChevronUp className="size-3" />
+                ) : (
+                  <ChevronDown className="size-3" />
+                )}
+              </button>
 
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearFilters}
-              className="press-feedback text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
-            >
-              Clear all
-            </button>
+              {/* Active filter pills */}
+              {Object.entries(filterValues).map(([key, value]) => {
+                if (value === "all" || value === "ytd") return null;
+                const filter = filters.find((f) => f.id === key);
+                const option = filter?.options.find((o) => o.value === value);
+                if (!option) return null;
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold"
+                  >
+                    <span className="text-[10px] uppercase tracking-wider text-primary/60">
+                      {filter?.label}:
+                    </span>
+                    {option.label}
+                    <button
+                      onClick={() => handleFilterChange(key, "all")}
+                      className="hover:bg-primary/20 rounded-full p-0.5"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                );
+              })}
+
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="press-feedback text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </>
           )}
 
           <div className="flex-1" />
@@ -1612,12 +1376,12 @@ export const AnalyticsPage: React.FC = () => {
                 <p className="font-heading text-2xl font-bold text-foreground num">
                   {role === "cooperative"
                     ? `$${portfolioTotal.savings.toLocaleString()}K`
-                    : formatNumber(portfolioTotal.members)}
+                    : formatNumber(portfolioTotal.assets)}
                 </p>
                 <div className="flex items-center gap-4 mt-2">
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />
-                    {role === "cooperative" ? "Savings" : "Members"}
+                    {role === "cooperative" ? "Savings" : "Assets"}
                   </span>
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />
@@ -1625,7 +1389,7 @@ export const AnalyticsPage: React.FC = () => {
                   </span>
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />
-                    {role === "cooperative" ? "Deposits" : "Savings"}
+                    {role === "cooperative" ? "Assets" : "Savings"}
                   </span>
                 </div>
               </div>
@@ -1729,8 +1493,8 @@ export const AnalyticsPage: React.FC = () => {
                   <Area
                     yAxisId="left"
                     type="monotone"
-                    dataKey="members"
-                    name="Members"
+                    dataKey="assets"
+                    name="Assets ($K)"
                     stroke="var(--chart-1)"
                     strokeDasharray="4 4"
                     strokeWidth={2}
@@ -1781,80 +1545,21 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Gender Participation — 2D Doughnut */}
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
-            <div className="mb-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Gender Participation
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {role === "cooperative" ? "Your cooperative breakdown" : "Aggregate breakdown"}
-              </p>
+          {/* Gender & Status Doughnuts (replaces plain 2D pie) */}
+          {nfStats && role === "cooperative" && (
+            <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
+              <GenderStatusDoughnuts data={nfStats.membership} />
             </div>
-            <div className="relative flex-1 flex items-center justify-center">
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={genderData}
-                      dataKey="value"
-                      innerRadius={56}
-                      outerRadius={82}
-                      paddingAngle={3}
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      {genderData.map((d) => (
-                        <Cell key={d.name} fill={d.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "10px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      formatter={(value) => [`${value}%`]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              {/* Center label */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="font-heading text-xl font-bold text-foreground num leading-none">
-                  {nfStats ? `${Math.round(nfStats.membership.female_pct * 10) / 10}%` : "—"}
-                </span>
-                <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
-                  Women
-                </span>
-              </div>
-            </div>
-            <ul className="space-y-2 border-t border-border pt-3 mt-2">
-              {genderData.map((g) => (
-                <li key={g.name} className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <span className="size-2.5 rounded-sm shrink-0" style={{ background: g.fill }} />
-                    {g.name}
-                  </span>
-                  <span className="font-heading font-bold num text-foreground">{g.value}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          )}
         </div>
 
         {/* ── Composed Chart: Savings, Loans & Deposits ── */}
         <Card
-          title="Savings, Loans & Deposits"
+          title="Savings, Loans & Assets"
           subtitle={
             role === "cooperative"
-              ? "Your monthly financial breakdown & variation"
-              : "Aggregate monthly financial breakdown & variation"
+              ? "Your submitted monthly financial balances"
+              : "Authorized portfolio financial balances"
           }
         >
           <div className="h-80">
@@ -1875,7 +1580,7 @@ export const AnalyticsPage: React.FC = () => {
                     <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.95} />
                     <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0.65} />
                   </linearGradient>
-                  <linearGradient id="bar-deposits-grad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="bar-assets-grad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.95} />
                     <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0.65} />
                   </linearGradient>
@@ -1972,9 +1677,9 @@ export const AnalyticsPage: React.FC = () => {
                 />
                 <Bar
                   yAxisId="left"
-                  dataKey="deposits"
-                  fill="url(#bar-deposits-grad)"
-                  name="Deposits"
+                  dataKey="assets"
+                  fill="url(#bar-assets-grad)"
+                  name="Assets"
                   barSize={14}
                   radius={[3, 3, 0, 0]}
                 />
@@ -2286,94 +1991,44 @@ export const AnalyticsPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* ── Non-Financial Indicator Cards ── */}
-        {nfStats && nfStats.membership.total > 0 && (
-          <div className="grid lg:grid-cols-4 gap-6">
-            <Card title="Savings Penetration" subtitle="% of members with savings accounts">
-              <div className="flex flex-col items-center justify-center py-4">
-                <span className="font-heading text-3xl font-bold text-foreground num">
-                  {nfStats.savings.savings_penetration_pct.toFixed(1)}%
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {nfStats.savings.active_accounts.toLocaleString()} active savers /{" "}
-                  {nfStats.membership.total.toLocaleString()} members
-                </span>
-                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[var(--chart-1)]"
-                    style={{ width: `${Math.min(nfStats.savings.savings_penetration_pct, 100)}%` }}
-                  />
-                </div>
+        {/* ── Non-Financial Core Components ── */}
+        {nfStats && nfStats.membership.total > 0 && role === "cooperative" && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card title="Savings Health Metrics" subtitle="Activity and penetration metrics">
+              <div className="py-4">
+                <SavingsRadialGauges data={nfStats.savings} />
               </div>
             </Card>
 
-            <Card title="Credit Penetration" subtitle="% of members with active loans">
-              <div className="flex flex-col items-center justify-center py-4">
-                <span className="font-heading text-3xl font-bold text-foreground num">
-                  {nfStats.loans.credit_penetration_pct.toFixed(1)}%
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {nfStats.loans.members_with_loans.toLocaleString()} borrowers /{" "}
-                  {nfStats.membership.total.toLocaleString()} members
-                </span>
-                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[var(--chart-2)]"
-                    style={{ width: `${Math.min(nfStats.loans.credit_penetration_pct, 100)}%` }}
-                  />
-                </div>
+            <Card title="Loan Portfolio Composition" subtitle="Volume and value by loan status">
+              <div className="py-4 h-full">
+                <LoanDualBar data={nfStats.loans} />
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {role !== "cooperative" && nationalOverview && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card title="Regional Financial Distribution" subtitle="Aggregate Assets, Loans & Deposits">
+              <div className="py-4">
+                <RegionalGroupedBar cooperatives={nationalOverview.cooperatives} />
               </div>
             </Card>
 
-            <Card title="FD Penetration" subtitle="% of members with fixed deposits">
-              <div className="flex flex-col items-center justify-center py-4">
-                <span className="font-heading text-3xl font-bold text-foreground num">
-                  {nfStats.fixed_deposits.fd_penetration_pct.toFixed(1)}%
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {nfStats.fixed_deposits.members_with_fds.toLocaleString()} depositors /{" "}
-                  {nfStats.membership.total.toLocaleString()} members
-                </span>
-                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[var(--chart-3)]"
-                    style={{
-                      width: `${Math.min(nfStats.fixed_deposits.fd_penetration_pct, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            <Card title="Repayment Discipline" subtitle="% of loans repaid on time">
-              <div className="flex flex-col items-center justify-center py-4">
-                <span
-                  className={`font-heading text-3xl font-bold num ${
-                    nfStats.loans.on_time_repayment_pct >= 75
-                      ? "text-emerald-600"
-                      : nfStats.loans.on_time_repayment_pct >= 50
-                        ? "text-amber-600"
-                        : "text-red-600"
-                  }`}
-                >
-                  {nfStats.loans.on_time_repayment_pct.toFixed(1)}%
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  {nfStats.loans.performing.toLocaleString()} performing /{" "}
-                  {nfStats.loans.active_loans.toLocaleString()} active
-                </span>
-                <div className="w-full mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      nfStats.loans.on_time_repayment_pct >= 75
-                        ? "bg-emerald-500"
-                        : nfStats.loans.on_time_repayment_pct >= 50
-                          ? "bg-amber-500"
-                          : "bg-red-500"
-                    }`}
-                    style={{ width: `${Math.min(nfStats.loans.on_time_repayment_pct, 100)}%` }}
-                  />
-                </div>
+            <Card title="Dormancy Leaderboard" subtitle="Cooperatives ranked by dormancy rate (Watch/Critical)">
+              <div className="py-4">
+                <DormancyLeaderboard
+                  data={nationalOverview.cooperatives
+                    .filter((c) => c.non_financial.has_data)
+                    .map((c) => ({
+                      name: c.name,
+                      dormancy_pct: c.non_financial.dormancy_pct,
+                      active_members_pct: c.non_financial.active_members_pct,
+                      total_members: c.non_financial.total_members,
+                    }))}
+                  maxRows={10}
+                />
               </div>
             </Card>
           </div>
@@ -2382,189 +2037,160 @@ export const AnalyticsPage: React.FC = () => {
         {/* ── Membership Horizontal Bar + Loan Portfolio Pie + Compliance Radial ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
-            title={role === "cooperative" ? "Membership Composition" : "Membership Growth"}
-            subtitle={
-              role === "cooperative"
-                ? "Your cooperative's member breakdown from NF data"
-                : "5-year trend with demographics"
-            }
+            title="Membership and Inclusion Trend"
+            subtitle="Submitted reporting-period totals for members, youth, and women"
           >
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={
-                    role === "cooperative"
-                      ? nfStats && nfStats.membership.total > 0
-                        ? [
-                            {
-                              year: "Current",
-                              members: nfStats.membership.total,
-                              youth: nfStats.membership.under_18 + nfStats.membership.age_18_35,
-                              women: nfStats.membership.female,
-                            },
-                          ]
-                        : coopMembershipHistory
-                      : filteredMembershipGrowth
-                  }
-                  layout="vertical"
-                  margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    domain={[0, "dataMax"]}
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) =>
-                      role === "cooperative" ? v.toLocaleString() : `${(v / 1000000).toFixed(1)}M`
-                    }
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="year"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    width={35}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-sans)",
-                      padding: "8px 12px",
-                      boxShadow: "var(--shadow-elev-2)",
-                    }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                    labelStyle={{
-                      fontWeight: "600",
-                      color: "var(--foreground)",
-                      marginBottom: "4px",
-                    }}
-                    formatter={(value: number) => [formatNumber(value)]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  {role === "cooperative" ? (
-                    <>
-                      <Bar
-                        dataKey="women"
-                        fill="var(--accent)"
-                        fillOpacity={1}
-                        radius={[0, 3, 3, 0]}
-                        name="Women"
-                        barSize={10}
-                      />
-                      <Bar
-                        dataKey="youth"
-                        fill="var(--accent)"
-                        fillOpacity={0.6}
-                        radius={[0, 3, 3, 0]}
-                        name="Youth"
-                        barSize={10}
-                      />
-                      <Bar
-                        dataKey="members"
-                        fill="var(--accent)"
-                        fillOpacity={0.3}
-                        radius={[0, 3, 3, 0]}
-                        name="Total"
-                        barSize={10}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Bar
-                        dataKey="women"
-                        fill="var(--chart-1)"
-                        radius={[0, 3, 3, 0]}
-                        name="Women"
-                        barSize={10}
-                      />
-                      <Bar
-                        dataKey="youth"
-                        fill="var(--chart-3)"
-                        radius={[0, 3, 3, 0]}
-                        name="Youth"
-                        barSize={10}
-                      />
-                      <Bar
-                        dataKey="members"
-                        fill="var(--chart-2)"
-                        radius={[0, 3, 3, 0]}
-                        name="Total"
-                        barSize={10}
-                      />
-                    </>
-                  )}
-                </BarChart>
-              </ResponsiveContainer>
+              {membershipTrend.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
+                  <Users className="size-8 opacity-30" />
+                  <p className="mt-3 text-sm font-semibold">No reporting-period history yet</p>
+                  <p className="mt-1 max-w-xs text-xs">
+                    Membership and inclusion trends appear after non-financial data is submitted.
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={membershipTrend}
+                    layout="vertical"
+                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      domain={[0, "dataMax"]}
+                      stroke="var(--muted-foreground)"
+                      fontSize={11}
+                      fontFamily="var(--font-sans)"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => formatNumber(v as number)}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="year"
+                      stroke="var(--muted-foreground)"
+                      fontSize={11}
+                      fontFamily="var(--font-sans)"
+                      tickLine={false}
+                      axisLine={false}
+                      width={35}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontFamily: "var(--font-sans)",
+                        padding: "8px 12px",
+                        boxShadow: "var(--shadow-elev-2)",
+                      }}
+                      itemStyle={{ color: "var(--foreground)" }}
+                      labelStyle={{
+                        fontWeight: "600",
+                        color: "var(--foreground)",
+                        marginBottom: "4px",
+                      }}
+                      formatter={(value: number) => [formatNumber(value)]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar
+                      dataKey="women"
+                      fill="var(--chart-1)"
+                      radius={[0, 3, 3, 0]}
+                      name="Women"
+                      barSize={10}
+                    />
+                    <Bar
+                      dataKey="youth"
+                      fill="var(--chart-3)"
+                      radius={[0, 3, 3, 0]}
+                      name="Youth"
+                      barSize={10}
+                    />
+                    <Bar
+                      dataKey="members"
+                      fill="var(--chart-2)"
+                      radius={[0, 3, 3, 0]}
+                      name="Total"
+                      barSize={10}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </Card>
 
-          <Card title="Loan Portfolio Quality" subtitle="Risk distribution">
-            <div className="relative h-52 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={filteredLoanPortfolio}
-                    dataKey="value"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={3}
-                  >
-                    {filteredLoanPortfolio.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-sans)",
-                      padding: "8px 12px",
-                      boxShadow: "var(--shadow-elev-2)",
-                    }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                    labelStyle={{
-                      fontWeight: "600",
-                      color: "var(--foreground)",
-                      marginBottom: "4px",
-                    }}
-                    formatter={(value: number) => [`${value}%`]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="text-[20px] font-bold text-success leading-none">82%</span>
-                <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
-                  Performing
-                </span>
-              </div>
-            </div>
-            <ul className="space-y-2 border-t border-border pt-3 mt-1">
-              {filteredLoanPortfolio.map((item) => (
-                <li key={item.name} className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <span
-                      className="size-2.5 rounded-sm shrink-0"
-                      style={{ background: item.fill }}
+          {role === "cooperative" && (
+            <Card
+              title="Loan Portfolio Quality"
+              subtitle="Risk distribution from submitted non-financial loan records"
+            >
+              <div className="relative h-52 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={filteredLoanPortfolio}
+                      dataKey="value"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={3}
+                    >
+                      {filteredLoanPortfolio.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontFamily: "var(--font-sans)",
+                        padding: "8px 12px",
+                        boxShadow: "var(--shadow-elev-2)",
+                      }}
+                      itemStyle={{ color: "var(--foreground)" }}
+                      labelStyle={{
+                        fontWeight: "600",
+                        color: "var(--foreground)",
+                        marginBottom: "4px",
+                      }}
+                      formatter={(value: number) => [`${value}%`]}
                     />
-                    {item.name}
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+                  <span className="text-[20px] font-bold text-success leading-none">
+                    {filteredLoanPortfolio.find((item) => item.name === "Performing")?.value ?? 0}%
                   </span>
-                  <span className="font-bold num text-foreground">{item.value}%</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
+                    Performing
+                  </span>
+                </div>
+              </div>
+              <ul className="space-y-2 border-t border-border pt-3 mt-1">
+                {filteredLoanPortfolio.map((item) => (
+                  <li key={item.name} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span
+                        className="size-2.5 rounded-sm shrink-0"
+                        style={{ background: item.fill }}
+                      />
+                      {item.name}
+                    </span>
+                    <span className="font-bold num text-foreground">{item.value}%</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           <Card
             title="Compliance Score"
@@ -2604,46 +2230,173 @@ export const AnalyticsPage: React.FC = () => {
                 {filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Compliance score</p>
-              <div className="flex items-center justify-center gap-1 mt-2">
-                <ArrowDownRight className="size-3.5 text-warning-foreground" />
-                <span className="text-xs font-semibold text-warning-foreground">-0.4 pts</span>
-                <span className="text-xs text-muted-foreground">vs last quarter</span>
-              </div>
             </div>
           </Card>
         </div>
 
         {/* ── Region Compliance Horizontal Bar + Submission Timeliness Area ── */}
         <div className="grid lg:grid-cols-2 gap-6">
-          <Card
-            title={
-              role === "cooperative"
-                ? "Your Compliance Trend"
-                : role === "ministry"
-                  ? "Regional Compliance Comparison"
-                  : role === "federation"
-                    ? "Regional Compliance in Your Federation"
-                    : "Regional Compliance Overview"
-            }
-            subtitle={
-              role === "cooperative"
-                ? "Monthly compliance score over the year"
-                : "Compliance score by region"
-            }
-          >
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                {role === "cooperative" ? (
+          {(role === "cooperative"
+            ? coopComplianceTrend.length > 0
+            : filteredRegionCompliance.length > 0) && (
+            <Card
+              title={
+                role === "cooperative"
+                  ? "Your Compliance Trend"
+                  : role === "ministry"
+                    ? "Regional Compliance Comparison"
+                    : role === "federation"
+                      ? "Regional Compliance in Your Federation"
+                      : "Regional Compliance Overview"
+              }
+              subtitle={
+                role === "cooperative"
+                  ? "Monthly compliance score over the year"
+                  : "Compliance score by region"
+              }
+            >
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  {role === "cooperative" ? (
+                    <AreaChart
+                      data={coopComplianceTrend}
+                      margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="coop-comp" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
+                          <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        stroke="var(--muted-foreground)"
+                        fontSize={11}
+                        fontFamily="var(--font-sans)"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        domain={[85, 100]}
+                        stroke="var(--muted-foreground)"
+                        fontSize={11}
+                        fontFamily="var(--font-sans)"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontFamily: "var(--font-sans)",
+                          padding: "8px 12px",
+                          boxShadow: "var(--shadow-elev-2)",
+                        }}
+                        itemStyle={{ color: "var(--foreground)" }}
+                        labelStyle={{
+                          fontWeight: "600",
+                          color: "var(--foreground)",
+                          marginBottom: "4px",
+                        }}
+                        formatter={(value: number) => [`${value}%`]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="score"
+                        stroke="var(--accent)"
+                        strokeWidth={2}
+                        fill="url(#coop-comp)"
+                        dot={{
+                          r: 3,
+                          strokeWidth: 2,
+                          fill: "var(--surface)",
+                          stroke: "var(--accent)",
+                        }}
+                        name="Compliance"
+                      />
+                    </AreaChart>
+                  ) : (
+                    <BarChart
+                      data={filteredRegionCompliance}
+                      layout="vertical"
+                      margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        domain={[80, 100]}
+                        stroke="var(--muted-foreground)"
+                        fontSize={11}
+                        fontFamily="var(--font-sans)"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        stroke="var(--muted-foreground)"
+                        fontSize={11}
+                        fontFamily="var(--font-sans)"
+                        tickLine={false}
+                        axisLine={false}
+                        width={80}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontFamily: "var(--font-sans)",
+                          padding: "8px 12px",
+                          boxShadow: "var(--shadow-elev-2)",
+                        }}
+                        itemStyle={{ color: "var(--foreground)" }}
+                        labelStyle={{
+                          fontWeight: "600",
+                          color: "var(--foreground)",
+                          marginBottom: "4px",
+                        }}
+                        formatter={(value: number) => [`${value}%`]}
+                      />
+                      <Bar
+                        dataKey="score"
+                        fill="var(--chart-1)"
+                        radius={[0, 6, 6, 0]}
+                        barSize={24}
+                        name="Compliance %"
+                      />
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
+          {submissionActivityTrend.some((point) => point.submitted > 0) && (
+            <Card
+              title="Submission Activity"
+              subtitle="Actual submissions and review outcomes by reporting month"
+            >
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={coopComplianceTrend}
-                    margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+                    data={submissionActivityTrend}
+                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                   >
-                    <defs>
-                      <linearGradient id="coop-comp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
-                        <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="month"
@@ -2654,13 +2407,12 @@ export const AnalyticsPage: React.FC = () => {
                       axisLine={false}
                     />
                     <YAxis
-                      domain={[85, 100]}
                       stroke="var(--muted-foreground)"
                       fontSize={11}
                       fontFamily="var(--font-sans)"
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(v) => `${v}%`}
+                      allowDecimals={false}
                     />
                     <Tooltip
                       contentStyle={{
@@ -2678,342 +2430,104 @@ export const AnalyticsPage: React.FC = () => {
                         color: "var(--foreground)",
                         marginBottom: "4px",
                       }}
-                      formatter={(value: number) => [`${value}%`]}
+                      formatter={(value: number) => [value.toLocaleString()]}
+                    />
+                    <Legend
+                      wrapperStyle={{
+                        fontSize: "11px",
+                        fontFamily: "var(--font-sans)",
+                        color: "var(--muted-foreground)",
+                      }}
                     />
                     <Area
-                      type="monotone"
-                      dataKey="score"
-                      stroke="var(--accent)"
+                      dataKey="submitted"
+                      fill="var(--chart-1)"
+                      fillOpacity={0.06}
+                      stroke="var(--chart-1)"
                       strokeWidth={2}
-                      fill="url(#coop-comp)"
-                      dot={{
-                        r: 3,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--accent)",
-                      }}
-                      name="Compliance"
+                      name="Submitted"
+                    />
+                    <Area
+                      dataKey="approved"
+                      fill="var(--chart-4)"
+                      fillOpacity={0.06}
+                      stroke="var(--chart-4)"
+                      strokeWidth={2}
+                      name="Approved"
+                    />
+                    <Area
+                      dataKey="inReview"
+                      fill="var(--chart-3)"
+                      fillOpacity={0.04}
+                      stroke="var(--chart-3)"
+                      strokeWidth={2}
+                      name="In review"
+                    />
+                    <Area
+                      dataKey="rejected"
+                      fill="var(--destructive)"
+                      fillOpacity={0.04}
+                      stroke="var(--destructive)"
+                      strokeWidth={2}
+                      name="Rejected"
                     />
                   </AreaChart>
-                ) : (
-                  <BarChart
-                    data={filteredRegionCompliance}
-                    layout="vertical"
-                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      domain={[80, 100]}
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      width={80}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      labelStyle={{
-                        fontWeight: "600",
-                        color: "var(--foreground)",
-                        marginBottom: "4px",
-                      }}
-                      formatter={(value: number) => [`${value}%`]}
-                    />
-                    <Bar
-                      dataKey="score"
-                      fill="var(--chart-1)"
-                      radius={[0, 6, 6, 0]}
-                      barSize={24}
-                      name="Compliance %"
-                    />
-                  </BarChart>
-                )}
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <Card title="Submission Timeliness" subtitle="% of on-time vs late submissions">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={filteredSubmissionTrend}
-                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `${v}%`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-sans)",
-                      padding: "8px 12px",
-                      boxShadow: "var(--shadow-elev-2)",
-                    }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                    labelStyle={{
-                      fontWeight: "600",
-                      color: "var(--foreground)",
-                      marginBottom: "4px",
-                    }}
-                    formatter={(value: number) => [`${value}%`]}
-                  />
-                  <Legend
-                    wrapperStyle={{
-                      fontSize: "11px",
-                      fontFamily: "var(--font-sans)",
-                      color: "var(--muted-foreground)",
-                    }}
-                  />
-                  <Area
-                    dataKey="onTime"
-                    fill="var(--chart-1)"
-                    fillOpacity={0.06}
-                    stroke="var(--chart-1)"
-                    strokeWidth={2}
-                    name="On Time"
-                  />
-                  <Area
-                    dataKey="late"
-                    fill="var(--chart-4)"
-                    fillOpacity={0.06}
-                    stroke="var(--chart-4)"
-                    strokeWidth={2}
-                    name="Late"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* ── Period Comparison + Region Trend side by side ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* ── Current vs Previous Period Comparison Chart ── */}
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Portfolio Savings — Period Comparison
-                </p>
-                <div className="flex items-center gap-5 mt-2">
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="inline-block w-6 h-0.5 rounded-full bg-[var(--chart-1)]" />
-                    This Period
-                  </span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <svg width="24" height="4" className="shrink-0">
-                      <line
-                        x1="0"
-                        y1="2"
-                        x2="24"
-                        y2="2"
-                        stroke="var(--chart-4)"
-                        strokeWidth="2"
-                        strokeDasharray="5 3"
-                      />
-                    </svg>
-                    Last Period
-                  </span>
+        {mergedCompData.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ── Current vs Previous Period Comparison Chart ── */}
+            <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Portfolio Savings Trend
+                  </p>
+                  <div className="flex items-center gap-5 mt-2">
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-block w-6 h-0.5 rounded-full bg-[var(--chart-1)]" />
+                      Submitted savings
+                    </span>
+                  </div>
+                </div>
+                {/* Period selector */}
+                <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
+                  {(["Week", "Month", "Quarter", "Year"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setCompPeriod(p)}
+                      className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
+                        compPeriod === p
+                          ? "bg-surface text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
                 </div>
               </div>
-              {/* Period selector */}
-              <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
-                {(["Week", "Month", "Quarter", "Year"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setCompPeriod(p)}
-                    className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
-                      compPeriod === p
-                        ? "bg-surface text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Chart */}
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={mergedCompData}
-                  margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="comp-curr" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
-                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="comp-prev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.14} />
-                      <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="4 4"
-                    stroke="var(--border)"
-                    vertical={false}
-                    opacity={0.6}
-                  />
-                  <XAxis
-                    dataKey="month"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "var(--muted-foreground)" }}
-                  />
-                  <YAxis
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "var(--muted-foreground)" }}
-                    tickFormatter={(v) => `$${v}K`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-sans)",
-                      padding: "12px 16px",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-                    }}
-                    itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
-                    labelStyle={{
-                      fontWeight: "700",
-                      color: "var(--foreground)",
-                      marginBottom: "6px",
-                      fontSize: "13px",
-                      borderBottom: "1px solid var(--border)",
-                      paddingBottom: "6px",
-                    }}
-                    formatter={(value: number, name: string) => [`$${value}K`, name]}
-                    cursor={{
-                      stroke: "var(--muted-foreground)",
-                      strokeWidth: 1,
-                      strokeDasharray: "4 3",
-                    }}
-                  />
-                  {/* Current period — solid with visible dots */}
-                  <Area
-                    type="monotone"
-                    dataKey="This Period"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2.5}
-                    fill="url(#comp-curr)"
-                    dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-1)" }}
-                    activeDot={{
-                      r: 6,
-                      strokeWidth: 2,
-                      stroke: "var(--surface)",
-                      fill: "var(--chart-1)",
-                    }}
-                  />
-                  {/* Previous period — dashed with visible dots */}
-                  <Area
-                    type="monotone"
-                    dataKey="Last Period"
-                    stroke="var(--chart-4)"
-                    strokeWidth={2}
-                    strokeDasharray="6 4"
-                    fill="url(#comp-prev)"
-                    dot={{
-                      r: 3.5,
-                      strokeWidth: 2,
-                      fill: "var(--surface)",
-                      stroke: "var(--chart-4)",
-                    }}
-                    activeDot={{
-                      r: 5.5,
-                      strokeWidth: 2,
-                      stroke: "var(--surface)",
-                      fill: "var(--chart-4)",
-                    }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* ── Multi-Region Trend (or Coop Monthly Trend) ── */}
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-            <div className="flex items-start justify-between mb-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  {role === "cooperative" ? "Monthly Members & Savings" : "Member Trend by Region"}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  {role === "cooperative"
-                    ? "Your cooperative's monthly trend"
-                    : "Jan – Dec 2025 · Across all regions"}
-                </p>
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-                Jan 1 – Dec 31
-              </span>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                {role === "cooperative" ? (
+              {/* Chart */}
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={coopMonthlyTrend}
+                    data={mergedCompData}
                     margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="coop-members" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
-                        <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                      <linearGradient id="comp-curr" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
+                        <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                       </linearGradient>
-                      <linearGradient id="coop-savings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--success)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
+                      <linearGradient id="comp-prev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.14} />
+                        <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid
@@ -3031,17 +2545,6 @@ export const AnalyticsPage: React.FC = () => {
                       tick={{ fill: "var(--muted-foreground)" }}
                     />
                     <YAxis
-                      yAxisId="left"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                      tickFormatter={(v) => v.toLocaleString()}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
                       fontSize={11}
                       fontFamily="var(--font-sans)"
                       tickLine={false}
@@ -3068,132 +2571,20 @@ export const AnalyticsPage: React.FC = () => {
                         borderBottom: "1px solid var(--border)",
                         paddingBottom: "6px",
                       }}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "11px",
-                        fontFamily: "var(--font-sans)",
-                        paddingTop: "12px",
-                      }}
-                      iconType="circle"
-                      iconSize={8}
-                    />
-                    <Area
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="members"
-                      stroke="var(--accent)"
-                      strokeWidth={2}
-                      fill="url(#coop-members)"
-                      dot={{
-                        r: 3,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--accent)",
-                      }}
-                      name="Members"
-                    />
-                    <Area
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="savings"
-                      stroke="var(--success)"
-                      strokeWidth={2}
-                      fill="url(#coop-savings)"
-                      dot={{
-                        r: 3,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--success)",
-                      }}
-                      name="Savings ($K)"
-                    />
-                  </AreaChart>
-                ) : (
-                  <AreaChart
-                    data={filteredRegionTrend}
-                    margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="region-h" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
-                        <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="region-m" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.12} />
-                        <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="region-l" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.12} />
-                        <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="region-s" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.12} />
-                        <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      stroke="var(--border)"
-                      vertical={false}
-                      opacity={0.6}
-                    />
-                    <XAxis
-                      dataKey="month"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                    />
-                    <YAxis
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                      tickFormatter={(v) => formatNumber(v as number)}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "12px 16px",
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
-                      labelStyle={{
-                        fontWeight: "700",
-                        color: "var(--foreground)",
-                        marginBottom: "6px",
-                        fontSize: "13px",
-                        borderBottom: "1px solid var(--border)",
-                        paddingBottom: "6px",
-                      }}
+                      formatter={(value: number, name: string) => [`$${value}K`, name]}
                       cursor={{
                         stroke: "var(--muted-foreground)",
                         strokeWidth: 1,
                         strokeDasharray: "4 3",
                       }}
                     />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "11px",
-                        fontFamily: "var(--font-sans)",
-                        paddingTop: "12px",
-                      }}
-                      iconType="circle"
-                      iconSize={8}
-                    />
+                    {/* Current period — solid with visible dots */}
                     <Area
-                      dataKey="Hhohho"
-                      stroke="var(--chart-1)"
-                      strokeWidth={2}
-                      fill="url(#region-h)"
                       type="monotone"
+                      dataKey="This Period"
+                      stroke="var(--chart-1)"
+                      strokeWidth={2.5}
+                      fill="url(#comp-curr)"
                       dot={{
                         r: 4,
                         strokeWidth: 2,
@@ -3207,69 +2598,312 @@ export const AnalyticsPage: React.FC = () => {
                         fill: "var(--chart-1)",
                       }}
                     />
-                    <Area
-                      dataKey="Manzini"
-                      stroke="var(--chart-2)"
-                      strokeWidth={2}
-                      fill="url(#region-m)"
-                      type="monotone"
-                      dot={{
-                        r: 4,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--chart-2)",
-                      }}
-                      activeDot={{
-                        r: 6,
-                        strokeWidth: 2,
-                        stroke: "var(--surface)",
-                        fill: "var(--chart-2)",
-                      }}
-                    />
-                    <Area
-                      dataKey="Lubombo"
-                      stroke="var(--chart-3)"
-                      strokeWidth={2}
-                      fill="url(#region-l)"
-                      type="monotone"
-                      dot={{
-                        r: 4,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--chart-3)",
-                      }}
-                      activeDot={{
-                        r: 6,
-                        strokeWidth: 2,
-                        stroke: "var(--surface)",
-                        fill: "var(--chart-3)",
-                      }}
-                    />
-                    <Area
-                      dataKey="Shiselweni"
-                      stroke="var(--chart-4)"
-                      strokeWidth={2}
-                      fill="url(#region-s)"
-                      type="monotone"
-                      dot={{
-                        r: 4,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--chart-4)",
-                      }}
-                      activeDot={{
-                        r: 6,
-                        strokeWidth: 2,
-                        stroke: "var(--surface)",
-                        fill: "var(--chart-4)",
-                      }}
-                    />
                   </AreaChart>
-                )}
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </div>
+
+            {/* ── Multi-Region Trend (or Coop Monthly Trend) ── */}
+            {filteredRegionTrend.length > 0 && (
+              <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {role === "cooperative"
+                        ? "Monthly Members & Savings"
+                        : "Member Trend by Region"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {role === "cooperative"
+                        ? "Your cooperative's monthly trend"
+                        : "Jan – Dec 2025 · Across all regions"}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                    Jan 1 – Dec 31
+                  </span>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    {role === "cooperative" ? (
+                      <AreaChart
+                        data={coopMonthlyTrend}
+                        margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="coop-members" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
+                            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="coop-savings" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--success)" stopOpacity={0.15} />
+                            <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="4 4"
+                          stroke="var(--border)"
+                          vertical={false}
+                          opacity={0.6}
+                        />
+                        <XAxis
+                          dataKey="month"
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "var(--muted-foreground)" }}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "var(--muted-foreground)" }}
+                          tickFormatter={(v) => v.toLocaleString()}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "var(--muted-foreground)" }}
+                          tickFormatter={(v) => `$${v}K`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--surface)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            fontFamily: "var(--font-sans)",
+                            padding: "12px 16px",
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+                          }}
+                          itemStyle={{
+                            color: "var(--foreground)",
+                            fontWeight: 500,
+                            lineHeight: "1.8",
+                          }}
+                          labelStyle={{
+                            fontWeight: "700",
+                            color: "var(--foreground)",
+                            marginBottom: "6px",
+                            fontSize: "13px",
+                            borderBottom: "1px solid var(--border)",
+                            paddingBottom: "6px",
+                          }}
+                        />
+                        <Legend
+                          wrapperStyle={{
+                            fontSize: "11px",
+                            fontFamily: "var(--font-sans)",
+                            paddingTop: "12px",
+                          }}
+                          iconType="circle"
+                          iconSize={8}
+                        />
+                        <Area
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="members"
+                          stroke="var(--accent)"
+                          strokeWidth={2}
+                          fill="url(#coop-members)"
+                          dot={{
+                            r: 3,
+                            strokeWidth: 2,
+                            fill: "var(--surface)",
+                            stroke: "var(--accent)",
+                          }}
+                          name="Members"
+                        />
+                        <Area
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="savings"
+                          stroke="var(--success)"
+                          strokeWidth={2}
+                          fill="url(#coop-savings)"
+                          dot={{
+                            r: 3,
+                            strokeWidth: 2,
+                            fill: "var(--surface)",
+                            stroke: "var(--success)",
+                          }}
+                          name="Savings ($K)"
+                        />
+                      </AreaChart>
+                    ) : (
+                      <AreaChart
+                        data={filteredRegionTrend}
+                        margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="region-h" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
+                            <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="region-m" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.12} />
+                            <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="region-l" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.12} />
+                            <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="region-s" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.12} />
+                            <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="4 4"
+                          stroke="var(--border)"
+                          vertical={false}
+                          opacity={0.6}
+                        />
+                        <XAxis
+                          dataKey="month"
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "var(--muted-foreground)" }}
+                        />
+                        <YAxis
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "var(--muted-foreground)" }}
+                          tickFormatter={(v) => formatNumber(v as number)}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--surface)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            fontFamily: "var(--font-sans)",
+                            padding: "12px 16px",
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+                          }}
+                          itemStyle={{
+                            color: "var(--foreground)",
+                            fontWeight: 500,
+                            lineHeight: "1.8",
+                          }}
+                          labelStyle={{
+                            fontWeight: "700",
+                            color: "var(--foreground)",
+                            marginBottom: "6px",
+                            fontSize: "13px",
+                            borderBottom: "1px solid var(--border)",
+                            paddingBottom: "6px",
+                          }}
+                          cursor={{
+                            stroke: "var(--muted-foreground)",
+                            strokeWidth: 1,
+                            strokeDasharray: "4 3",
+                          }}
+                        />
+                        <Legend
+                          wrapperStyle={{
+                            fontSize: "11px",
+                            fontFamily: "var(--font-sans)",
+                            paddingTop: "12px",
+                          }}
+                          iconType="circle"
+                          iconSize={8}
+                        />
+                        <Area
+                          dataKey="Hhohho"
+                          stroke="var(--chart-1)"
+                          strokeWidth={2}
+                          fill="url(#region-h)"
+                          type="monotone"
+                          dot={{
+                            r: 4,
+                            strokeWidth: 2,
+                            fill: "var(--surface)",
+                            stroke: "var(--chart-1)",
+                          }}
+                          activeDot={{
+                            r: 6,
+                            strokeWidth: 2,
+                            stroke: "var(--surface)",
+                            fill: "var(--chart-1)",
+                          }}
+                        />
+                        <Area
+                          dataKey="Manzini"
+                          stroke="var(--chart-2)"
+                          strokeWidth={2}
+                          fill="url(#region-m)"
+                          type="monotone"
+                          dot={{
+                            r: 4,
+                            strokeWidth: 2,
+                            fill: "var(--surface)",
+                            stroke: "var(--chart-2)",
+                          }}
+                          activeDot={{
+                            r: 6,
+                            strokeWidth: 2,
+                            stroke: "var(--surface)",
+                            fill: "var(--chart-2)",
+                          }}
+                        />
+                        <Area
+                          dataKey="Lubombo"
+                          stroke="var(--chart-3)"
+                          strokeWidth={2}
+                          fill="url(#region-l)"
+                          type="monotone"
+                          dot={{
+                            r: 4,
+                            strokeWidth: 2,
+                            fill: "var(--surface)",
+                            stroke: "var(--chart-3)",
+                          }}
+                          activeDot={{
+                            r: 6,
+                            strokeWidth: 2,
+                            stroke: "var(--surface)",
+                            fill: "var(--chart-3)",
+                          }}
+                        />
+                        <Area
+                          dataKey="Shiselweni"
+                          stroke="var(--chart-4)"
+                          strokeWidth={2}
+                          fill="url(#region-s)"
+                          type="monotone"
+                          dot={{
+                            r: 4,
+                            strokeWidth: 2,
+                            fill: "var(--surface)",
+                            stroke: "var(--chart-4)",
+                          }}
+                          activeDot={{
+                            r: 6,
+                            strokeWidth: 2,
+                            stroke: "var(--surface)",
+                            fill: "var(--chart-4)",
+                          }}
+                        />
+                      </AreaChart>
+                    )}
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
         {/* end side-by-side grid */}
 
         {/* ── Performance Score (leaderboard for admin, metrics for cooperative) ── */}
@@ -3341,132 +2975,28 @@ export const AnalyticsPage: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
-          <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
-            {/* Section Header */}
-            <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">
-                  Performance Score — Top Cooperatives
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Composite score based on compliance, portfolio quality, and member engagement
-                </p>
+        ) : nationalOverview ? (
+          <div className="space-y-6">
+            <TopBottomLeaderboard
+              cooperatives={nationalOverview.cooperatives}
+              sortByKpi="par30"
+            />
+            
+            <Card title="Detailed Cooperative Compliance Grid" subtitle="Traffic light indicators across key operational KPIs">
+              <div className="p-4 bg-surface rounded-lg">
+                <KpiChipGrid
+                  cooperatives={nationalOverview.cooperatives.map(c => ({
+                    name: c.name,
+                    region: c.region,
+                    kpis: c.kpis,
+                  }))}
+                  kpiKeys={["par30", "capital_adequacy_ratio", "npl_ratio", "roa", "roe", "operating_expense_ratio"]}
+                  maxRows={15}
+                />
               </div>
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-                FY 2025
-              </span>
-            </div>
-
-            {/* Table Header */}
-            <div className="grid grid-cols-[3rem_1fr_auto_6rem_4rem] items-center gap-4 px-6 py-3 bg-muted/30 border-b border-border">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                #
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Cooperative
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right">
-                Sector
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-center">
-                Performance
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right">
-                Score
-              </span>
-            </div>
-
-            {/* Rows */}
-            <div className="divide-y divide-border">
-              {filteredPerformers.map((c, i) => {
-                const scorePct = c.s;
-                const isTop = scorePct >= 90;
-                const isMid = scorePct >= 80 && scorePct < 90;
-                const barColor = isTop
-                  ? "var(--success)"
-                  : isMid
-                    ? "var(--chart-3)"
-                    : "var(--destructive)";
-                const bgBadge = isTop
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : isMid
-                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                    : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400";
-                const rankColors = [
-                  "bg-yellow-400 text-yellow-900",
-                  "bg-slate-300 text-slate-700",
-                  "bg-amber-600 text-amber-100",
-                ];
-                return (
-                  <div
-                    key={c.n}
-                    className="grid grid-cols-[3rem_1fr_auto_6rem_4rem] items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors group"
-                  >
-                    {/* Rank badge */}
-                    <div className="flex justify-center">
-                      {i < 3 ? (
-                        <span
-                          className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-black shadow-sm ${rankColors[i]}`}
-                        >
-                          {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-muted text-[11px] font-bold text-muted-foreground">
-                          {i + 1}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Name + progress bar */}
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate leading-snug">
-                        {c.n}
-                      </p>
-                      <div className="mt-2 h-1.5 rounded-full bg-border overflow-hidden w-full max-w-[280px]">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${scorePct}%`,
-                            background: `linear-gradient(90deg, ${barColor}99, ${barColor})`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Sector badge */}
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                      {c.p}
-                    </span>
-
-                    {/* Score bar visual */}
-                    <div className="flex items-center justify-center">
-                      <div className="w-full h-2 rounded-full bg-border overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${scorePct}%`,
-                            background: barColor,
-                            opacity: 0.7,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Score number */}
-                    <div className="text-right">
-                      <span
-                        className={`inline-flex items-center justify-center min-w-[44px] px-2 py-1 rounded-lg text-sm font-black num ${bgBadge}`}
-                      >
-                        {c.s}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            </Card>
           </div>
-        )}
+        ) : null}
 
         {(role === "ministry" || role === "federation" || role === "apex") && nationalOverview && (
           <div className="mt-6">
@@ -3481,143 +3011,72 @@ export const AnalyticsPage: React.FC = () => {
                 </p>
               </div>
               <div className="p-6">
+                {nationalOverview.non_financial_summary.cooperatives_with_data > 0 && (
+                  <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+                    {[
+                      [
+                        "Active members",
+                        nationalOverview.non_financial_summary.average_active_members_pct,
+                      ],
+                      [
+                        "Savings penetration",
+                        nationalOverview.non_financial_summary.average_savings_penetration_pct,
+                      ],
+                      [
+                        "Credit penetration",
+                        nationalOverview.non_financial_summary.average_credit_penetration_pct,
+                      ],
+                      [
+                        "FD penetration",
+                        nationalOverview.non_financial_summary.average_fd_penetration_pct,
+                      ],
+                      [
+                        "On-time repayment",
+                        nationalOverview.non_financial_summary.average_on_time_repayment_pct,
+                      ],
+                      [
+                        "Member dormancy",
+                        nationalOverview.non_financial_summary.average_dormancy_pct,
+                      ],
+                      [
+                        "AGM participation",
+                        nationalOverview.non_financial_summary.average_agm_participation_pct,
+                      ],
+                      [
+                        "Loans in arrears",
+                        nationalOverview.non_financial_summary.average_arrears_rate_pct,
+                      ],
+                      [
+                        "FD early withdrawals",
+                        nationalOverview.non_financial_summary.average_fd_early_withdrawal_pct,
+                      ],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label as string}
+                        className="rounded-lg border border-border bg-muted/20 p-3"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {label as string}
+                        </p>
+                        <p className="mt-1 text-lg font-bold text-foreground">
+                          {(value as number).toFixed(1)}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {Object.keys(nationalOverview.distributions).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     No financial data available for aggregation.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {Object.entries(nationalOverview.distributions).map(([kpiName, dist]) => (
-                      <div
-                        key={kpiName}
-                        className="rounded-lg border border-border bg-muted/20 p-4"
-                      >
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                          {kpiName.replace(/_/g, " ")}
-                        </p>
-                        <div className="flex items-center gap-1 h-3 rounded-full overflow-hidden bg-border">
-                          {dist.green_count > 0 && (
-                            <div
-                              className="h-full bg-success"
-                              style={{ width: `${dist.green_pct}%` }}
-                            />
-                          )}
-                          {dist.amber_count > 0 && (
-                            <div
-                              className="h-full bg-warning"
-                              style={{ width: `${dist.amber_pct}%` }}
-                            />
-                          )}
-                          {dist.red_count > 0 && (
-                            <div
-                              className="h-full bg-danger"
-                              style={{ width: `${dist.red_pct}%` }}
-                            />
-                          )}
-                        </div>
-                        <div className="flex justify-between mt-2 text-[10px]">
-                          <span className="text-success font-bold">{dist.green_count}G</span>
-                          <span className="text-warning font-bold">{dist.amber_count}A</span>
-                          <span className="text-danger font-bold">{dist.red_count}R</span>
-                          {dist.no_data_count > 0 && (
-                            <span className="text-muted-foreground">{dist.no_data_count}N/A</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="mt-8">
+                    <p className="text-sm font-bold text-foreground mb-4">Traffic Light Distribution by KPI</p>
+                    <ComplianceStackedBars distributions={nationalOverview.distributions} />
                   </div>
                 )}
               </div>
-
-              {/* Institution comparison table */}
-              {nationalOverview.cooperatives.length > 0 && (
-                <div className="border-t border-border">
-                  <div className="px-6 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Institution Comparison
-                    </p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-t border-border bg-muted/30">
-                          <th className="px-4 py-2 text-left font-bold text-muted-foreground">
-                            Cooperative
-                          </th>
-                          <th className="px-4 py-2 text-left font-bold text-muted-foreground">
-                            Region
-                          </th>
-                          <th className="px-4 py-2 text-left font-bold text-muted-foreground">
-                            Sector
-                          </th>
-                          <th className="px-4 py-2 text-center font-bold text-muted-foreground">
-                            Data
-                          </th>
-                          {Object.keys(nationalOverview.distributions)
-                            .slice(0, 6)
-                            .map((kpi) => (
-                              <th
-                                key={kpi}
-                                className="px-3 py-2 text-center font-bold text-muted-foreground"
-                              >
-                                {kpi.replace(/_/g, " ")}
-                              </th>
-                            ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {nationalOverview.cooperatives.map((coop) => (
-                          <tr
-                            key={coop.cooperative_id}
-                            className="border-t border-border hover:bg-muted/10"
-                          >
-                            <td className="px-4 py-2 font-medium text-foreground max-w-[180px] truncate">
-                              {coop.name}
-                            </td>
-                            <td className="px-4 py-2 text-muted-foreground">
-                              {coop.region ?? "—"}
-                            </td>
-                            <td className="px-4 py-2 text-muted-foreground">
-                              {coop.sector ?? "—"}
-                            </td>
-                            <td className="px-4 py-2 text-center">
-                              {coop.has_data ? (
-                                <span className="text-success">✓</span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            {Object.keys(nationalOverview.distributions)
-                              .slice(0, 6)
-                              .map((kpi) => {
-                                const kpiVal = coop.kpis[kpi];
-                                return (
-                                  <td key={kpi} className="px-3 py-2 text-center">
-                                    {kpiVal ? (
-                                      <span
-                                        className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                          kpiVal.status === "green"
-                                            ? "bg-success/15 text-success"
-                                            : kpiVal.status === "amber"
-                                              ? "bg-warning/15 text-warning"
-                                              : "bg-danger/15 text-danger"
-                                        }`}
-                                      >
-                                        {kpiVal.formatted}
-                                      </span>
-                                    ) : (
-                                      <span className="text-muted-foreground">—</span>
-                                    )}
-                                  </td>
-                                );
-                              })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+            </div>
             </div>
           </div>
         )}

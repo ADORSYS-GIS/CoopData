@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAccessToken } from "@/services/shared/authService";
+import { apiClient } from "@/openapi-client";
 
 export interface SectorBreakdownPoint {
   name: string;
@@ -11,22 +11,43 @@ export interface SectorBreakdownResponse {
   sectors: SectorBreakdownPoint[];
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+export interface SectorBreakdownFilters {
+  region?: string;
+  sector?: string;
+  federationId?: string;
+  apexId?: string;
+  cooperativeId?: string;
+  reportingYear?: number;
+}
 
-export const useSectorBreakdown = (enabled = true) =>
+const extractErrorMessage = (error: unknown): string => {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = error.message;
+    if (typeof message === "string" && message.length > 0) return message;
+  }
+  return "Unable to load sector analytics.";
+};
+
+export const useSectorBreakdown = (enabled = true, filters: SectorBreakdownFilters = {}) =>
   useQuery<SectorBreakdownResponse>({
-    queryKey: ["sector-breakdown"],
+    queryKey: ["sector-breakdown", filters],
     enabled,
     queryFn: async () => {
-      const token = await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/analytics/sector-breakdown`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const { data, error } = await apiClient.GET("/api/v1/analytics/sector-breakdown", {
+        params: {
+          query: {
+            region: filters.region !== "all" ? filters.region : undefined,
+            sector: filters.sector !== "all" ? filters.sector : undefined,
+            federation_id: filters.federationId !== "all" ? filters.federationId : undefined,
+            apex_id: filters.apexId !== "all" ? filters.apexId : undefined,
+            cooperative_id: filters.cooperativeId !== "all" ? filters.cooperativeId : undefined,
+            reporting_year: filters.reportingYear,
+          } as Record<string, unknown>,
+        },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as Record<string, string>)["message"] ?? `HTTP ${res.status}`);
-      }
-      return res.json() as Promise<SectorBreakdownResponse>;
+      if (error) throw new Error(extractErrorMessage(error));
+      if (!data) throw new Error("Sector analytics response was empty.");
+      return data as SectorBreakdownResponse;
     },
     staleTime: 5 * 60 * 1000,
   });

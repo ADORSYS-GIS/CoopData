@@ -1015,6 +1015,25 @@ pub struct NfStatisticsResponse {
     pub computed_at: chrono::DateTime<Utc>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct NfTrendResponse {
+    pub points: Vec<NfTrendPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct NfTrendPoint {
+    pub reporting_year: i32,
+    pub cooperative_count: u64,
+    pub total_members: u64,
+    pub youth_members: u64,
+    pub women_members: u64,
+    pub active_members_pct: f64,
+    pub savings_penetration_pct: f64,
+    pub credit_penetration_pct: f64,
+    pub fd_penetration_pct: f64,
+    pub on_time_repayment_pct: f64,
+}
+
 impl From<EngineNfStatisticsResponse> for NfStatisticsResponse {
     fn from(r: EngineNfStatisticsResponse) -> Self {
         Self {

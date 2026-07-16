@@ -161,12 +161,20 @@ impl NfIndicatorEngine {
         db: &DatabaseConnection,
         cooperative_id: Uuid,
     ) -> crate::error::AppResult<NfStatisticsResponse> {
+        Self::compute_for_submission(db, cooperative_id, None).await
+    }
+
+    pub async fn compute_for_submission(
+        db: &DatabaseConnection,
+        cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
+    ) -> crate::error::AppResult<NfStatisticsResponse> {
         let (membership, savings, loans, fixed_deposits, farm_coop) = tokio::join!(
-            Self::compute_membership(db, cooperative_id),
-            Self::compute_savings(db, cooperative_id),
-            Self::compute_loans(db, cooperative_id),
-            Self::compute_fixed_deposits(db, cooperative_id),
-            Self::compute_farm_coop(db, cooperative_id),
+            Self::compute_membership(db, cooperative_id, submission_id),
+            Self::compute_savings(db, cooperative_id, submission_id),
+            Self::compute_loans(db, cooperative_id, submission_id),
+            Self::compute_fixed_deposits(db, cooperative_id, submission_id),
+            Self::compute_farm_coop(db, cooperative_id, submission_id),
         );
 
         let membership = membership?;
@@ -179,7 +187,7 @@ impl NfIndicatorEngine {
         let total_members = membership.total;
         if total_members > 0 {
             savings.savings_penetration_pct = pct(
-                Self::count_unique_members_with_savings(db, cooperative_id).await?,
+                Self::count_unique_members_with_savings(db, cooperative_id, submission_id).await?,
                 total_members,
             );
             loans.credit_penetration_pct = pct(loans.members_with_loans, total_members);
@@ -199,37 +207,75 @@ impl NfIndicatorEngine {
     async fn compute_membership(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
     ) -> crate::error::AppResult<MembershipStats> {
         use member::Column as C;
 
-        let all = member::Entity::find()
-            .filter(C::CooperativeId.eq(cooperative_id))
-            .all(db)
-            .await?;
+        let mut query = member::Entity::find().filter(C::CooperativeId.eq(cooperative_id));
+        if let Some(submission_id) = submission_id {
+            query = query.filter(C::SubmissionId.eq(submission_id));
+        }
+        let all = query.all(db).await?;
 
         let total = all.len() as u64;
-        let active = all.iter().filter(|m| m.status == MemberStatus::Active).count() as u64;
-        let dormant = all.iter().filter(|m| m.status == MemberStatus::Dormant).count() as u64;
-        let exited = all.iter().filter(|m| m.status == MemberStatus::Exited).count() as u64;
+        let active = all
+            .iter()
+            .filter(|m| m.status == MemberStatus::Active)
+            .count() as u64;
+        let dormant = all
+            .iter()
+            .filter(|m| m.status == MemberStatus::Dormant)
+            .count() as u64;
+        let exited = all
+            .iter()
+            .filter(|m| m.status == MemberStatus::Exited)
+            .count() as u64;
 
         let male = all.iter().filter(|m| m.gender == Gender::Male).count() as u64;
         let female = all.iter().filter(|m| m.gender == Gender::Female).count() as u64;
         let other = all.iter().filter(|m| m.gender == Gender::Other).count() as u64;
 
-        let under_18 = all.iter().filter(|m| m.age_group == AgeGroup::Under18).count() as u64;
-        let age_18_35 = all.iter().filter(|m| m.age_group == AgeGroup::Between18And35).count() as u64;
-        let age_36_50 = all.iter().filter(|m| m.age_group == AgeGroup::Between36And50).count() as u64;
-        let over_50 = all.iter().filter(|m| m.age_group == AgeGroup::Over50).count() as u64;
+        let under_18 = all
+            .iter()
+            .filter(|m| m.age_group == AgeGroup::Under18)
+            .count() as u64;
+        let age_18_35 = all
+            .iter()
+            .filter(|m| m.age_group == AgeGroup::Between18And35)
+            .count() as u64;
+        let age_36_50 = all
+            .iter()
+            .filter(|m| m.age_group == AgeGroup::Between36And50)
+            .count() as u64;
+        let over_50 = all
+            .iter()
+            .filter(|m| m.age_group == AgeGroup::Over50)
+            .count() as u64;
 
-        let urban = all.iter().filter(|m| m.urban_rural.as_str() == "Urban").count() as u64;
-        let rural = all.iter().filter(|m| m.urban_rural.as_str() == "Rural").count() as u64;
+        let urban = all
+            .iter()
+            .filter(|m| m.urban_rural.as_str() == "Urban")
+            .count() as u64;
+        let rural = all
+            .iter()
+            .filter(|m| m.urban_rural.as_str() == "Rural")
+            .count() as u64;
 
         let agm_attendance = all.iter().filter(|m| m.agm_attendance).count() as u64;
         let leadership_count = all.iter().filter(|m| m.leadership_role.is_some()).count() as u64;
         let voting_count = all.iter().filter(|m| m.voting_exercised).count() as u64;
 
-        let women_leaders = all.iter().filter(|m| m.gender == Gender::Female && m.leadership_role.is_some()).count() as u64;
-        let youth_leaders = all.iter().filter(|m| matches!(m.age_group, AgeGroup::Under18 | AgeGroup::Between18And35) && m.leadership_role.is_some()).count() as u64;
+        let women_leaders = all
+            .iter()
+            .filter(|m| m.gender == Gender::Female && m.leadership_role.is_some())
+            .count() as u64;
+        let youth_leaders = all
+            .iter()
+            .filter(|m| {
+                matches!(m.age_group, AgeGroup::Under18 | AgeGroup::Between18And35)
+                    && m.leadership_role.is_some()
+            })
+            .count() as u64;
 
         Ok(MembershipStats {
             total,
@@ -267,28 +313,44 @@ impl NfIndicatorEngine {
     async fn compute_savings(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
     ) -> crate::error::AppResult<SavingsStats> {
         use savings_account::Column as C;
 
-        let all = savings_account::Entity::find()
-            .filter(C::CooperativeId.eq(cooperative_id))
-            .all(db)
-            .await?;
+        let mut query = savings_account::Entity::find().filter(C::CooperativeId.eq(cooperative_id));
+        if let Some(submission_id) = submission_id {
+            query = query.filter(C::SubmissionId.eq(submission_id));
+        }
+        let all = query.all(db).await?;
 
         let total_accounts = all.len() as u64;
         let active_accounts = all.iter().filter(|s| s.account_status == "Active").count() as u64;
         let dormant_accounts = all.iter().filter(|s| s.account_status == "Dormant").count() as u64;
         let zero_balance_count = all.iter().filter(|s| s.zero_balance_flag).count() as u64;
 
-        let increasing_trend = all.iter().filter(|s| s.balance_trend == "Increasing").count() as u64;
+        let increasing_trend = all
+            .iter()
+            .filter(|s| s.balance_trend == "Increasing")
+            .count() as u64;
         let stable_trend = all.iter().filter(|s| s.balance_trend == "Stable").count() as u64;
-        let declining_trend = all.iter().filter(|s| s.balance_trend == "Declining").count() as u64;
+        let declining_trend = all
+            .iter()
+            .filter(|s| s.balance_trend == "Declining")
+            .count() as u64;
 
-        let high_withdrawal_count = all.iter().filter(|s| s.withdrawal_frequency_category == "High").count() as u64;
-        let emergency_withdrawal_count = all.iter().filter(|s| s.emergency_withdrawals_flag).count() as u64;
+        let high_withdrawal_count = all
+            .iter()
+            .filter(|s| s.withdrawal_frequency_category == "High")
+            .count() as u64;
+        let emergency_withdrawal_count =
+            all.iter().filter(|s| s.emergency_withdrawals_flag).count() as u64;
 
         let total_balance: f64 = all.iter().filter_map(|s| s.balance.to_f64()).sum();
-        let average_balance = if total_accounts > 0 { total_balance / total_accounts as f64 } else { 0.0 };
+        let average_balance = if total_accounts > 0 {
+            total_balance / total_accounts as f64
+        } else {
+            0.0
+        };
 
         let _unique_members_with_savings: u64 = {
             let mut set = std::collections::HashSet::new();
@@ -298,12 +360,10 @@ impl NfIndicatorEngine {
             set.len() as u64
         };
 
-        let regular_savers = all.iter().filter(|s| {
-            matches!(
-                s.contribution_frequency.as_str(),
-                "Monthly" | "Quarterly"
-            )
-        }).count() as u64;
+        let regular_savers = all
+            .iter()
+            .filter(|s| matches!(s.contribution_frequency.as_str(), "Monthly" | "Quarterly"))
+            .count() as u64;
 
         Ok(SavingsStats {
             total_accounts,
@@ -329,22 +389,42 @@ impl NfIndicatorEngine {
     async fn compute_loans(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
     ) -> crate::error::AppResult<LoanStats> {
         use loan::Column as C;
 
-        let all = loan::Entity::find()
-            .filter(C::CooperativeId.eq(cooperative_id))
-            .all(db)
-            .await?;
+        let mut query = loan::Entity::find().filter(C::CooperativeId.eq(cooperative_id));
+        if let Some(submission_id) = submission_id {
+            query = query.filter(C::SubmissionId.eq(submission_id));
+        }
+        let all = query.all(db).await?;
 
         let total_loans = all.len() as u64;
-        let active_loans = all.iter().filter(|l| l.loan_status != LoanStatus::WrittenOff).count() as u64;
-        let performing = all.iter().filter(|l| l.loan_status == LoanStatus::Performing).count() as u64;
-        let arrears = all.iter().filter(|l| l.loan_status == LoanStatus::Arrears).count() as u64;
-        let restructured = all.iter().filter(|l| l.loan_status == LoanStatus::Restructured).count() as u64;
-        let written_off = all.iter().filter(|l| l.loan_status == LoanStatus::WrittenOff).count() as u64;
+        let active_loans = all
+            .iter()
+            .filter(|l| l.loan_status != LoanStatus::WrittenOff)
+            .count() as u64;
+        let performing = all
+            .iter()
+            .filter(|l| l.loan_status == LoanStatus::Performing)
+            .count() as u64;
+        let arrears = all
+            .iter()
+            .filter(|l| l.loan_status == LoanStatus::Arrears)
+            .count() as u64;
+        let restructured = all
+            .iter()
+            .filter(|l| l.loan_status == LoanStatus::Restructured)
+            .count() as u64;
+        let written_off = all
+            .iter()
+            .filter(|l| l.loan_status == LoanStatus::WrittenOff)
+            .count() as u64;
 
-        let on_time = all.iter().filter(|l| l.repayment_regularity == "Regular").count() as u64;
+        let on_time = all
+            .iter()
+            .filter(|l| l.repayment_regularity == "Regular")
+            .count() as u64;
 
         let youth_borrowers = all.iter().filter(|l| l.youth_borrower_flag).count() as u64;
         let women_borrowers = all.iter().filter(|l| l.women_borrower_flag).count() as u64;
@@ -354,7 +434,11 @@ impl NfIndicatorEngine {
 
         let total_balance: f64 = all.iter().filter_map(|l| l.balance.to_f64()).sum();
         let total_loan_amount: f64 = all.iter().filter_map(|l| l.loan_amount.to_f64()).sum();
-        let average_loan_size = if active_loans > 0 { total_balance / active_loans as f64 } else { 0.0 };
+        let average_loan_size = if active_loans > 0 {
+            total_balance / active_loans as f64
+        } else {
+            0.0
+        };
 
         let unique_borrowers: u64 = {
             let mut set = std::collections::HashSet::new();
@@ -393,25 +477,43 @@ impl NfIndicatorEngine {
     async fn compute_fixed_deposits(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
     ) -> crate::error::AppResult<FixedDepositStats> {
         use fixed_deposit::Column as C;
 
-        let all = fixed_deposit::Entity::find()
-            .filter(C::CooperativeId.eq(cooperative_id))
-            .all(db)
-            .await?;
+        let mut query = fixed_deposit::Entity::find().filter(C::CooperativeId.eq(cooperative_id));
+        if let Some(submission_id) = submission_id {
+            query = query.filter(C::SubmissionId.eq(submission_id));
+        }
+        let all = query.all(db).await?;
 
         let total_fds = all.len() as u64;
         let active_fds = all.iter().filter(|f| f.status.as_str() == "Active").count() as u64;
-        let matured_fds = all.iter().filter(|f| f.status.as_str() == "Matured").count() as u64;
-        let withdrawn_fds = all.iter().filter(|f| f.status.as_str() == "Withdrawn").count() as u64;
-        let rolled_over_fds = all.iter().filter(|f| f.status.as_str() == "RolledOver").count() as u64;
+        let matured_fds = all
+            .iter()
+            .filter(|f| f.status.as_str() == "Matured")
+            .count() as u64;
+        let withdrawn_fds = all
+            .iter()
+            .filter(|f| f.status.as_str() == "Withdrawn")
+            .count() as u64;
+        let rolled_over_fds = all
+            .iter()
+            .filter(|f| f.status.as_str() == "RolledOver")
+            .count() as u64;
 
         let early_withdrawal_count = all.iter().filter(|f| f.early_withdrawal_flag).count() as u64;
-        let single_depositor_count = all.iter().filter(|f| f.single_depositor_dependency_flag).count() as u64;
+        let single_depositor_count = all
+            .iter()
+            .filter(|f| f.single_depositor_dependency_flag)
+            .count() as u64;
 
         let total_balance: f64 = all.iter().filter_map(|f| f.balance.to_f64()).sum();
-        let average_balance = if total_fds > 0 { total_balance / total_fds as f64 } else { 0.0 };
+        let average_balance = if total_fds > 0 {
+            total_balance / total_fds as f64
+        } else {
+            0.0
+        };
 
         let unique_members_with_fds: u64 = {
             let mut set = std::collections::HashSet::new();
@@ -445,12 +547,14 @@ impl NfIndicatorEngine {
     async fn count_unique_members_with_savings(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
     ) -> crate::error::AppResult<u64> {
         use savings_account::Column as C;
-        let all = savings_account::Entity::find()
-            .filter(C::CooperativeId.eq(cooperative_id))
-            .all(db)
-            .await?;
+        let mut query = savings_account::Entity::find().filter(C::CooperativeId.eq(cooperative_id));
+        if let Some(submission_id) = submission_id {
+            query = query.filter(C::SubmissionId.eq(submission_id));
+        }
+        let all = query.all(db).await?;
         let mut set = std::collections::HashSet::new();
         for s in &all {
             set.insert(s.member_id);
@@ -461,13 +565,15 @@ impl NfIndicatorEngine {
     async fn compute_farm_coop(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
     ) -> crate::error::AppResult<FarmCoopStats> {
         use farm_coop::Column as C;
 
-        let all = farm_coop::Entity::find()
-            .filter(C::CooperativeId.eq(cooperative_id))
-            .all(db)
-            .await?;
+        let mut query = farm_coop::Entity::find().filter(C::CooperativeId.eq(cooperative_id));
+        if let Some(submission_id) = submission_id {
+            query = query.filter(C::SubmissionId.eq(submission_id));
+        }
+        let all = query.all(db).await?;
 
         let total = all.len() as u64;
         let active_producers = all.iter().filter(|f| f.active_producer_flag).count() as u64;
@@ -475,9 +581,18 @@ impl NfIndicatorEngine {
         let using_shared_inputs = all.iter().filter(|f| f.use_of_shared_inputs).count() as u64;
         let with_offtake = all.iter().filter(|f| f.formal_offtake_agreement).count() as u64;
         let with_storage = all.iter().filter(|f| f.access_to_storage).count() as u64;
-        let with_processing = all.iter().filter(|f| f.access_to_processing_facilities).count() as u64;
+        let with_processing = all
+            .iter()
+            .filter(|f| f.access_to_processing_facilities)
+            .count() as u64;
         let with_irrigation = all.iter().filter(|f| f.irrigation_access).count() as u64;
-        let with_climate = all.iter().filter(|f| f.climate_mitigation_practices != "None" && !f.climate_mitigation_practices.is_empty()).count() as u64;
+        let with_climate = all
+            .iter()
+            .filter(|f| {
+                f.climate_mitigation_practices != "None"
+                    && !f.climate_mitigation_practices.is_empty()
+            })
+            .count() as u64;
 
         Ok(FarmCoopStats {
             total_coops: total,

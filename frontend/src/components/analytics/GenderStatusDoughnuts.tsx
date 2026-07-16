@@ -1,0 +1,79 @@
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
+
+interface GenderStatusDoughnutsProps {
+  data: MembershipStats;
+}
+
+export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
+  const genderData = [
+    { name: "Women", value: data.female, fill: "var(--chart-1)" },
+    { name: "Men", value: data.male, fill: "var(--chart-2)" },
+    { name: "Other", value: data.other, fill: "var(--chart-3)" },
+  ].filter((d) => d.value > 0);
+
+  const statusData = [
+    { name: "Active", value: data.active, fill: "var(--success)" },
+    { name: "Dormant", value: data.dormant, fill: "var(--warning)" },
+    { name: "Exited", value: data.exited, fill: "var(--muted-foreground)" },
+  ].filter((d) => d.value > 0);
+
+  const renderDoughnut = (title: string, pieData: any[], total: number) => (
+    <div className="flex flex-col items-center">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+        {title}
+      </p>
+      <div className="relative h-40 w-full flex items-center justify-center">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              dataKey="value"
+              innerRadius={50}
+              outerRadius={70}
+              paddingAngle={3}
+            >
+              {pieData.map((d) => (
+                <Cell key={d.name} fill={d.fill} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                fontSize: "12px",
+              }}
+              itemStyle={{ color: "var(--foreground)" }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="font-heading text-xl font-bold text-foreground num leading-none">
+            {total.toLocaleString()}
+          </span>
+        </div>
+      </div>
+      <ul className="space-y-1 mt-2 w-full max-w-[160px]">
+        {pieData.map((d) => (
+          <li key={d.name} className="flex items-center justify-between text-[11px]">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="size-2 rounded-sm shrink-0" style={{ background: d.fill }} />
+              {d.name}
+            </span>
+            <span className="font-bold num text-foreground">
+              {Math.round((d.value / Math.max(total, 1)) * 100)}%
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {renderDoughnut("Gender Breakdown", genderData, data.male + data.female + data.other)}
+      {renderDoughnut("Membership Status", statusData, data.active + data.dormant + data.exited)}
+    </div>
+  );
+}

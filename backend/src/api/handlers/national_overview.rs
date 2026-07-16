@@ -5,13 +5,15 @@ use axum::Json;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::api::dto::national_overview::{
-    CoopKpiRow, KpiStatusCount, NationalOverviewResponse, TrafficLightDistribution,
+    CoopKpiRow, CoopNfSummary, KpiStatusCount, NationalOverviewResponse, NfPortfolioSummary,
+    TrafficLightDistribution,
 };
+use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::auth::claims::Claims;
 use crate::error::AppResult;
 use crate::services::kpi_engine::KpiEngine;
+use crate::services::nf_indicator_engine::NfIndicatorEngine;
 use crate::AppState;
 
 #[utoipa::path(
@@ -37,20 +39,37 @@ pub async fn get_national_overview(
         }
     }
 
-    // Batch 2: fetch latest financial statement per cooperative
-    let mut fs_map: HashMap<uuid::Uuid, uuid::Uuid> = HashMap::new(); // coop_id -> fs_id
-    for coop in &cooperatives {
-        if let Ok(Some(fs)) = state
-            .financial_statement_repo
-            .find_latest_by_cooperative(coop.id)
-            .await
-        {
-            fs_map.insert(coop.id, fs.id);
+    // Batch 2: retain the latest approved financial statement per cooperative.
+    // Draft and rejected submissions must not affect supervisory analytics.
+    let mut fs_map: HashMap<uuid::Uuid, (uuid::Uuid, uuid::Uuid)> = HashMap::new();
+    let approved_submissions: Vec<_> = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids.clone())
+        .await?
+        .into_iter()
+        .filter(|submission| {
+            submission.status == crate::entities::enums::SubmissionStatus::Approved
+        })
+        .collect();
+    let submission_ids: Vec<_> = approved_submissions
+        .iter()
+        .map(|submission| submission.id)
+        .collect();
+    let statements_by_submission: HashMap<_, _> = state
+        .financial_statement_repo
+        .find_by_submission_ids(submission_ids)
+        .await?
+        .into_iter()
+        .map(|statement| (statement.submission_id, statement))
+        .collect();
+    for submission in approved_submissions {
+        if let Some(statement) = statements_by_submission.get(&submission.id) {
+            fs_map.entry(submission.cooperative_id).or_insert((statement.id, submission.id));
         }
     }
 
     // Batch 3: fetch line items for all financial statements
-    let fs_ids: Vec<_> = fs_map.values().copied().collect();
+    let fs_ids: Vec<_> = fs_map.values().map(|(id, _)| *id).collect();
     let all_line_items = if fs_ids.is_empty() {
         vec![]
     } else {
@@ -100,15 +119,55 @@ pub async fn get_national_overview(
     }
 
     let mut coop_rows: Vec<CoopKpiRow> = Vec::new();
+    let mut nf_rows: Vec<CoopNfSummary> = Vec::new();
 
     for coop in &cooperatives {
         let fs_id = fs_map.get(&coop.id);
         let items = fs_id
-            .and_then(|fid| items_by_fs.get(fid))
+            .and_then(|(financial_statement_id, _)| items_by_fs.get(financial_statement_id))
             .map(|v| v.as_slice())
             .unwrap_or(&[]);
 
         let kpis = KpiEngine::compute(items);
+        let non_financial = if let Some((_, submission_id)) = fs_id {
+            let statistics =
+                NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(*submission_id))
+                    .await?;
+            CoopNfSummary {
+                has_data: statistics.membership.total > 0
+                    || statistics.savings.total_accounts > 0
+                    || statistics.loans.total_loans > 0
+                    || statistics.fixed_deposits.total_fds > 0
+                    || statistics.farm_coop.total_coops > 0,
+                total_members: statistics.membership.total,
+                active_members_pct: statistics.membership.active_pct,
+                savings_penetration_pct: statistics.savings.savings_penetration_pct,
+                credit_penetration_pct: statistics.loans.credit_penetration_pct,
+                fd_penetration_pct: statistics.fixed_deposits.fd_penetration_pct,
+                on_time_repayment_pct: statistics.loans.on_time_repayment_pct,
+                dormancy_pct: statistics.membership.dormancy_pct,
+                agm_participation_pct: statistics.membership.agm_participation_pct,
+                arrears_rate_pct: statistics.loans.arrears_rate_pct,
+                fd_early_withdrawal_pct: statistics.fixed_deposits.early_withdrawal_pct,
+            }
+        } else {
+            CoopNfSummary {
+                has_data: false,
+                total_members: 0,
+                active_members_pct: 0.0,
+                savings_penetration_pct: 0.0,
+                credit_penetration_pct: 0.0,
+                fd_penetration_pct: 0.0,
+                on_time_repayment_pct: 0.0,
+                dormancy_pct: 0.0,
+                agm_participation_pct: 0.0,
+                arrears_rate_pct: 0.0,
+                fd_early_withdrawal_pct: 0.0,
+            }
+        };
+        if non_financial.has_data {
+            nf_rows.push(non_financial.clone());
+        }
         let mut kpi_map = HashMap::new();
         for name in &ratio_names {
             if let Some(kpi) = kpis.get_by_name(name) {
@@ -126,6 +185,7 @@ pub async fn get_national_overview(
 
         coop_rows.push(CoopKpiRow {
             cooperative_id: coop.id,
+            submission_id: fs_id.map(|(_, submission_id)| *submission_id),
             name: coop.display_name.clone(),
             region: coop.region.as_ref().map(|r| r.as_str().to_string()),
             sector: coop.sector.clone(),
@@ -134,6 +194,7 @@ pub async fn get_national_overview(
                 .as_ref()
                 .map(|t| t.as_str().to_string()),
             has_data: !items.is_empty(),
+            non_financial,
             kpis: kpi_map,
         });
     }
@@ -160,6 +221,20 @@ pub async fn get_national_overview(
         }
     }
 
+    let nf_count = nf_rows.len() as u64;
+    let non_financial_summary = NfPortfolioSummary {
+        cooperatives_with_data: nf_count,
+        average_active_members_pct: average(&nf_rows, |row| row.active_members_pct),
+        average_savings_penetration_pct: average(&nf_rows, |row| row.savings_penetration_pct),
+        average_credit_penetration_pct: average(&nf_rows, |row| row.credit_penetration_pct),
+        average_fd_penetration_pct: average(&nf_rows, |row| row.fd_penetration_pct),
+        average_on_time_repayment_pct: average(&nf_rows, |row| row.on_time_repayment_pct),
+        average_dormancy_pct: average(&nf_rows, |row| row.dormancy_pct),
+        average_agm_participation_pct: average(&nf_rows, |row| row.agm_participation_pct),
+        average_arrears_rate_pct: average(&nf_rows, |row| row.arrears_rate_pct),
+        average_fd_early_withdrawal_pct: average(&nf_rows, |row| row.fd_early_withdrawal_pct),
+    };
+
     tracing::info!(
         caller = %claims.sub,
         cooperatives_in_scope = total,
@@ -171,6 +246,7 @@ pub async fn get_national_overview(
         Json(NationalOverviewResponse {
             total_cooperatives: total,
             cooperatives_with_data: coop_rows.iter().filter(|r| r.has_data).count() as u64,
+            non_financial_summary,
             distributions,
             cooperatives: coop_rows,
         }),
@@ -182,4 +258,12 @@ fn pct(part: u64, total: u64) -> f64 {
         return 0.0;
     }
     (part as f64 / total as f64) * 100.0
+}
+
+fn average(rows: &[CoopNfSummary], selector: impl Fn(&CoopNfSummary) -> f64) -> f64 {
+    if rows.is_empty() {
+        0.0
+    } else {
+        rows.iter().map(selector).sum::<f64>() / rows.len() as f64
+    }
 }

@@ -13,7 +13,8 @@ use crate::api::dto::financial::{
     BenchmarkQueryParams, BenchmarkResponse, ExportParams, FinancialStatementResponse,
     KpiItemResponse, LineItemBulkUpdateRequest, LineItemResponse, MinistryStatsResponse,
     MonthlyTrendPoint, MonthlyTrendResponse, RegionCompliancePoint, RegionComplianceResponse,
-    SectorBreakdownPoint, SectorBreakdownResponse, SubmissionKpisResponse,
+    SectorBreakdownPoint, SectorBreakdownResponse, SubmissionActivityPoint,
+    SubmissionActivityResponse, SubmissionKpisResponse,
 };
 use crate::auth::claims::Claims;
 
@@ -21,6 +22,66 @@ use rust_decimal::prelude::ToPrimitive;
 use serde::Deserialize;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/financial-statements/{id}",
+    params(("id" = Uuid, Path, description = "Financial statement ID")),
+    responses(
+        (status = 200, description = "Financial statement", body = FinancialStatementResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Cooperative"
+)]
+pub(crate) async fn filter_cooperatives(
+    state: &AppState,
+    caller_coop_ids: Vec<Uuid>,
+    cooperative_id: Option<Uuid>,
+    region: Option<String>,
+    sector: Option<String>,
+    federation_id: Option<Uuid>,
+    apex_id: Option<Uuid>,
+) -> AppResult<Vec<Uuid>> {
+    if let Some(target_id) = cooperative_id {
+        if !caller_coop_ids.contains(&target_id) {
+            return Err(AppError::Forbidden("Access denied to this cooperative".into()));
+        }
+        return Ok(vec![target_id]);
+    }
+
+    let coops = state.cooperative_repo.find_by_ids(caller_coop_ids).await?;
+
+    let filtered = coops
+        .into_iter()
+        .filter(|c| {
+            if let Some(ref r) = region {
+                if r != "all" && c.region.as_ref().map(|x| x.as_str()) != Some(r.as_str()) {
+                    return false;
+                }
+            }
+            if let Some(ref s) = sector {
+                if s != "all" && c.sector.as_deref() != Some(s.as_str()) {
+                    return false;
+                }
+            }
+            if let Some(fid) = federation_id {
+                if c.federation_id != Some(fid) {
+                    return false;
+                }
+            }
+            if let Some(aid) = apex_id {
+                if c.apex_id != Some(aid) {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|c| c.id)
+        .collect();
+
+    Ok(filtered)
+}
 
 #[utoipa::path(
     get,
@@ -407,9 +468,9 @@ pub async fn export_submission(
     Query(params): Query<ExportParams>,
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
-    if format != "xlsx" && format != "csv" {
+    if format != "xlsx" && format != "csv" && format != "pdf" {
         return Err(AppError::BadRequest(
-            "format must be 'xlsx' or 'csv'".into(),
+            "format must be 'xlsx', 'csv', or 'pdf'".into(),
         ));
     }
 
@@ -456,6 +517,7 @@ pub async fn export_submission(
     let response: Response = match format.as_str() {
         "xlsx" => build_xlsx_response(&line_items, &kpis, &reference)?.into_response(),
         "csv" => build_csv_response(&line_items, &reference)?.into_response(),
+        "pdf" => build_pdf_response(&line_items, &kpis, &reference)?.into_response(),
         _ => unreachable!(),
     };
     Ok(response)
@@ -613,6 +675,73 @@ fn build_csv_response(
     Ok(response)
 }
 
+fn build_pdf_response(
+    line_items: &[crate::entities::balance_sheet_line_item::Model],
+    kpis: &[crate::services::kpi_engine::KpiValue],
+    reference: &str,
+) -> AppResult<impl IntoResponse> {
+    use printpdf::*;
+    use axum::http::header;
+
+    let (doc, mut page1, mut layer1) = PdfDocument::new("Financial Statement Report", Mm(210.0), Mm(297.0), "Layer 1");
+    let mut current_layer = doc.get_page(page1).get_layer(layer1);
+    
+    let font = doc.add_builtin_font(BuiltinFont::Helvetica).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    current_layer.use_text(format!("Financial Statement Report: {}", reference), 16.0, Mm(20.0), Mm(275.0), &font_bold);
+    
+    let mut y = 260.0;
+    
+    let mut check_page = |doc: &PdfDocumentReference, y: &mut f64, current_layer: &mut PdfLayerReference| {
+        if *y < 25.0 {
+            let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
+            page1 = new_page;
+            layer1 = new_layer;
+            *current_layer = doc.get_page(page1).get_layer(layer1);
+            *y = 275.0;
+        }
+    };
+
+    current_layer.use_text("Key Performance Indicators (KPIs)", 14.0, Mm(20.0), Mm(y), &font_bold);
+    y -= 8.0;
+    
+    for kpi in kpis {
+        check_page(&doc, &mut y, &mut current_layer);
+        let text = format!("{}: {} (Status: {})", kpi.name, kpi.formatted, kpi.status.as_deref().unwrap_or("—"));
+        current_layer.use_text(text, 10.0, Mm(20.0), Mm(y), &font);
+        y -= 6.0;
+    }
+    
+    y -= 10.0;
+    check_page(&doc, &mut y, &mut current_layer);
+    current_layer.use_text("Line Items Summary", 14.0, Mm(20.0), Mm(y), &font_bold);
+    y -= 8.0;
+    
+    for item in line_items {
+        check_page(&doc, &mut y, &mut current_layer);
+        use rust_decimal::prelude::ToPrimitive;
+        let val_str = item.value.as_ref().and_then(|d| d.to_f64()).map(|v| format!("{v:.2}")).unwrap_or_default();
+        let text = format!("{} - {}: {}", item.account_code.unwrap_or_default(), item.account_name, val_str);
+        current_layer.use_text(text, 9.0, Mm(20.0), Mm(y), &font);
+        y -= 5.0;
+    }
+
+    let bytes = doc.save_to_bytes().map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    
+    let filename = format!("{reference}.pdf");
+    use axum::response::Response;
+    use axum::body::Body;
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/pdf")
+        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+        .body(Body::from(bytes))
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        
+    Ok(response)
+}
+
 
 // ── S4-T6: Ministry stats endpoint ───────────────────────────────────────────
 
@@ -720,8 +849,8 @@ pub async fn export_ministry_submissions(
     Query(params): Query<ExportParams>,
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
-    if format != "xlsx" && format != "csv" {
-        return Err(AppError::BadRequest("format must be 'xlsx' or 'csv'".into()));
+    if format != "xlsx" && format != "csv" && format != "pdf" {
+        return Err(AppError::BadRequest("format must be 'xlsx', 'csv', or 'pdf'".into()));
     }
 
     let all_coops = state.cooperative_repo.list_all().await?;
@@ -749,8 +878,8 @@ pub async fn export_federation_submissions(
     Query(params): Query<ExportParams>,
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
-    if format != "xlsx" && format != "csv" {
-        return Err(AppError::BadRequest("format must be 'xlsx' or 'csv'".into()));
+    if format != "xlsx" && format != "csv" && format != "pdf" {
+        return Err(AppError::BadRequest("format must be 'xlsx', 'csv', or 'pdf'".into()));
     }
 
     let org_id = claims.get_organization_id()
@@ -788,8 +917,8 @@ pub async fn export_apex_submissions(
     Query(params): Query<ExportParams>,
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
-    if format != "xlsx" && format != "csv" {
-        return Err(AppError::BadRequest("format must be 'xlsx' or 'csv'".into()));
+    if format != "xlsx" && format != "csv" && format != "pdf" {
+        return Err(AppError::BadRequest("format must be 'xlsx', 'csv', or 'pdf'".into()));
     }
 
     let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
@@ -853,58 +982,116 @@ async fn build_bulk_export(
 
     rows.sort_by(|a, b| a.1.cmp(&b.1));
 
-    let response: Response = if format == "xlsx" {
-        let mut workbook = Workbook::new();
-        let ws = workbook.add_worksheet()
-            .set_name("Submissions Summary")
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-
-        let headers = ["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"];
-        for (col, h) in headers.iter().enumerate() {
-            ws.write_string(0, col as u16, *h)
+    let response: Response = match format.as_str() {
+        "xlsx" => {
+            let mut workbook = Workbook::new();
+            let ws = workbook.add_worksheet()
+                .set_name("Submissions Summary")
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        }
-        for (row, r) in rows.iter().enumerate() {
-            let rn = (row + 1) as u32;
-            ws.write_string(rn, 0, &r.0).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-            ws.write_string(rn, 1, &r.1).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-            ws.write_number(rn, 2, r.2 as f64).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-            ws.write_string(rn, 3, &r.3).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-            let vals = [r.4, r.5, r.6, r.7, r.8, r.9];
-            for (col, val) in vals.iter().enumerate() {
-                ws.write_number(rn, (col + 4) as u16, *val)
+
+            let headers = ["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"];
+            for (col, h) in headers.iter().enumerate() {
+                ws.write_string(0, col as u16, *h)
                     .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             }
-        }
+            for (row, r) in rows.iter().enumerate() {
+                let rn = (row + 1) as u32;
+                ws.write_string(rn, 0, &r.0).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_string(rn, 1, &r.1).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_number(rn, 2, r.2 as f64).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_string(rn, 3, &r.3).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                let vals = [r.4, r.5, r.6, r.7, r.8, r.9];
+                for (col, val) in vals.iter().enumerate() {
+                    ws.write_number(rn, (col + 4) as u16, *val)
+                        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                }
+            }
 
-        let bytes = workbook.save_to_buffer()
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        let filename = format!("{tier}-submissions.xlsx");
-        Response::builder()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
-            .body(Body::from(bytes))
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?
-    } else {
-        let mut wtr = csv::Writer::from_writer(vec![]);
-        wtr.write_record(["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"])
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        for r in &rows {
-            wtr.write_record([
-                &r.0, &r.1, &r.2.to_string(), &r.3,
-                &format_f64(r.4), &format_f64(r.5), &format_f64(r.6),
-                &format_f64(r.7), &format_f64(r.8), &format_f64(r.9),
-            ]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let bytes = workbook.save_to_buffer()
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let filename = format!("{tier}-submissions.xlsx");
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+                .body(Body::from(bytes))
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?
         }
-        let bytes = wtr.into_inner().map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        let filename = format!("{tier}-submissions.csv");
-        Response::builder()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, "text/csv")
-            .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
-            .body(Body::from(bytes))
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+        "csv" => {
+            let mut wtr = csv::Writer::from_writer(vec![]);
+            wtr.write_record(["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"])
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            for r in &rows {
+                wtr.write_record([
+                    &r.0, &r.1, &r.2.to_string(), &r.3,
+                    &format_f64(r.4), &format_f64(r.5), &format_f64(r.6),
+                    &format_f64(r.7), &format_f64(r.8), &format_f64(r.9),
+                ]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            }
+            let bytes = wtr.into_inner().map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let filename = format!("{tier}-submissions.csv");
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "text/csv")
+                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+                .body(Body::from(bytes))
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?
+        }
+        "pdf" => {
+            use printpdf::*;
+            let (doc, mut page1, mut layer1) = PdfDocument::new(format!("{} Report", tier.to_uppercase()), Mm(297.0), Mm(210.0), "Layer 1");
+            let mut current_layer = doc.get_page(page1).get_layer(layer1);
+            let font = doc.add_builtin_font(BuiltinFont::Helvetica).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+            current_layer.use_text(format!("{} Consolidated Report", tier.to_uppercase()), 16.0, Mm(20.0), Mm(190.0), &font_bold);
+            
+            let mut y = 175.0;
+            let headers = ["Cooperative", "Year", "Status", "Assets", "GLP", "PAR30", "ROA", "CAR"];
+            let x_positions = [20.0, 90.0, 110.0, 140.0, 170.0, 200.0, 230.0, 260.0];
+            
+            for (i, h) in headers.iter().enumerate() {
+                current_layer.use_text(*h, 10.0, Mm(x_positions[i]), Mm(y), &font_bold);
+            }
+            y -= 6.0;
+
+            let mut check_page = |doc: &PdfDocumentReference, y: &mut f64, current_layer: &mut PdfLayerReference| {
+                if *y < 20.0 {
+                    let (new_page, new_layer) = doc.add_page(Mm(297.0), Mm(210.0), "Layer 1");
+                    page1 = new_page;
+                    layer1 = new_layer;
+                    *current_layer = doc.get_page(page1).get_layer(layer1);
+                    *y = 190.0;
+                }
+            };
+
+            for row in &rows {
+                check_page(&doc, &mut y, &mut current_layer);
+                
+                let name = if row.0.len() > 30 { format!("{}...", &row.0[0..27]) } else { row.0.clone() };
+                
+                current_layer.use_text(name, 9.0, Mm(x_positions[0]), Mm(y), &font);
+                current_layer.use_text(row.2.to_string(), 9.0, Mm(x_positions[1]), Mm(y), &font);
+                current_layer.use_text(row.3.clone(), 9.0, Mm(x_positions[2]), Mm(y), &font);
+                current_layer.use_text(format!("{:.1}M", row.4 / 1_000_000.0), 9.0, Mm(x_positions[3]), Mm(y), &font);
+                current_layer.use_text(format!("{:.1}M", row.5 / 1_000_000.0), 9.0, Mm(x_positions[4]), Mm(y), &font);
+                current_layer.use_text(format!("{:.1}%", row.6), 9.0, Mm(x_positions[5]), Mm(y), &font);
+                current_layer.use_text(format!("{:.1}%", row.7), 9.0, Mm(x_positions[6]), Mm(y), &font);
+                current_layer.use_text(format!("{:.1}%", row.8), 9.0, Mm(x_positions[7]), Mm(y), &font);
+                
+                y -= 5.0;
+            }
+
+            let bytes = doc.save_to_bytes().map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let filename = format!("{tier}-submissions.pdf");
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "application/pdf")
+                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+                .body(Body::from(bytes))
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?
+        }
+        _ => unreachable!(),
     };
 
     Ok(response)
@@ -920,6 +1107,19 @@ fn format_f64(v: f64) -> String {
 pub struct MonthlyTrendParams {
     pub reporting_year: Option<i32>,
     pub cooperative_id: Option<Uuid>,
+    pub region: Option<String>,
+    pub sector: Option<String>,
+    pub federation_id: Option<Uuid>,
+    pub apex_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct AnalyticsFilterParams {
+    pub cooperative_id: Option<Uuid>,
+    pub region: Option<String>,
+    pub sector: Option<String>,
+    pub federation_id: Option<Uuid>,
+    pub apex_id: Option<Uuid>,
 }
 
 const MONTH_LABELS: [&str; 12] = [
@@ -929,7 +1129,7 @@ const MONTH_LABELS: [&str; 12] = [
 
 const SAVINGS_ACCOUNT_CODES: [i32; 3] = [2101, 2102, 2103];
 const LOANS_ACCOUNT_CODES: [i32; 5] = [1201, 1202, 1203, 1204, 1205];
-const DEPOSITS_ACCOUNT_CODES: [i32; 1] = [1999];
+const TOTAL_ASSETS_ACCOUNT_CODES: [i32; 1] = [1999];
 
 #[utoipa::path(
     get,
@@ -956,14 +1156,15 @@ pub async fn get_monthly_trend(
     let caller_coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let coop_ids = if let Some(target_id) = params.cooperative_id {
-        if !caller_coop_ids.contains(&target_id) {
-            return Err(AppError::Forbidden("Access denied to this cooperative".into()));
-        }
-        vec![target_id]
-    } else {
-        caller_coop_ids
-    };
+    let coop_ids = filter_cooperatives(
+        &state,
+        caller_coop_ids,
+        params.cooperative_id,
+        params.region,
+        params.sector,
+        params.federation_id,
+        params.apex_id,
+    ).await?;
 
     let submissions = state
         .submission_repo
@@ -972,7 +1173,10 @@ pub async fn get_monthly_trend(
 
     let year_filtered: Vec<_> = submissions
         .iter()
-        .filter(|s| s.reporting_year == year)
+        .filter(|s| {
+            s.reporting_year == year
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
+        })
         .collect();
 
     let submission_ids: Vec<Uuid> = year_filtered.iter().map(|s| s.id).collect();
@@ -993,7 +1197,7 @@ pub async fn get_monthly_trend(
             month_label: MONTH_LABELS[(m - 1) as usize].to_string(),
             savings: 0.0,
             loans: 0.0,
-            deposits: 0.0,
+            assets: 0.0,
         })
         .collect();
 
@@ -1008,8 +1212,8 @@ pub async fn get_monthly_trend(
                     months[month_idx].savings += val;
                 } else if LOANS_ACCOUNT_CODES.contains(&code) {
                     months[month_idx].loans += val;
-                } else if DEPOSITS_ACCOUNT_CODES.contains(&code) {
-                    months[month_idx].deposits += val;
+                } else if TOTAL_ASSETS_ACCOUNT_CODES.contains(&code) {
+                    months[month_idx].assets += val;
                 }
             }
         }
@@ -1029,11 +1233,68 @@ pub async fn get_monthly_trend(
     ))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/submission-activity",
+    params(("reporting_year" = Option<i32>, Query, description = "Reporting year, defaults to current year")),
+    responses(
+        (status = 200, description = "Submission activity by month", body = SubmissionActivityResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_submission_activity(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<MonthlyTrendParams>,
+) -> AppResult<impl IntoResponse> {
+    let year = params
+        .reporting_year
+        .unwrap_or_else(|| chrono::Utc::now().year());
+    let cooperative_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(cooperative_ids)
+        .await?;
+    let mut months: Vec<SubmissionActivityPoint> = (1..=12)
+        .map(|month| SubmissionActivityPoint {
+            month,
+            month_label: MONTH_LABELS[(month - 1) as usize].to_string(),
+            submitted: 0,
+            approved: 0,
+            rejected: 0,
+            in_review: 0,
+        })
+        .collect();
+
+    for submission in submissions.iter().filter(|submission| submission.reporting_year == year) {
+        let activity_at = submission.submitted_at.unwrap_or(submission.created_at);
+        let month_index = activity_at.month0() as usize;
+        let point = &mut months[month_index];
+        point.submitted += 1;
+        match submission.status {
+            crate::entities::enums::SubmissionStatus::Approved => point.approved += 1,
+            crate::entities::enums::SubmissionStatus::Rejected => point.rejected += 1,
+            crate::entities::enums::SubmissionStatus::Draft => {}
+            _ => point.in_review += 1,
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(SubmissionActivityResponse { year, months }),
+    ))
+}
+
 // ── Region compliance analytics endpoint ────────────────────────────────────
 
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/region-compliance",
+    params(
+        AnalyticsFilterParams
+    ),
     responses(
         (status = 200, description = "Region compliance data", body = RegionComplianceResponse),
         (status = 403, description = "Forbidden")
@@ -1043,11 +1304,22 @@ pub async fn get_monthly_trend(
 pub async fn get_region_compliance(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<AnalyticsFilterParams>,
 ) -> AppResult<impl IntoResponse> {
     let caller_coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let cooperatives = state.cooperative_repo.find_by_ids(caller_coop_ids.clone()).await?;
+    let coop_ids = filter_cooperatives(
+        &state,
+        caller_coop_ids,
+        params.cooperative_id,
+        params.region,
+        params.sector,
+        params.federation_id,
+        params.apex_id,
+    ).await?;
+
+    let cooperatives = state.cooperative_repo.find_by_ids(coop_ids.clone()).await?;
 
     let mut region_map: std::collections::HashMap<String, (i64, i64)> =
         std::collections::HashMap::new();
@@ -1064,7 +1336,7 @@ pub async fn get_region_compliance(
 
     let submissions = state
         .submission_repo
-        .find_by_cooperative_ids(caller_coop_ids)
+        .find_by_cooperative_ids(coop_ids.clone())
         .await?;
 
     let mut region_approved: std::collections::HashMap<String, i64> =
@@ -1111,6 +1383,9 @@ pub async fn get_region_compliance(
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/sector-breakdown",
+    params(
+        AnalyticsFilterParams
+    ),
     responses(
         (status = 200, description = "Sector breakdown data", body = SectorBreakdownResponse),
         (status = 403, description = "Forbidden")
@@ -1120,11 +1395,22 @@ pub async fn get_region_compliance(
 pub async fn get_sector_breakdown(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<AnalyticsFilterParams>,
 ) -> AppResult<impl IntoResponse> {
     let caller_coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let cooperatives = state.cooperative_repo.find_by_ids(caller_coop_ids).await?;
+    let coop_ids = filter_cooperatives(
+        &state,
+        caller_coop_ids,
+        params.cooperative_id,
+        params.region,
+        params.sector,
+        params.federation_id,
+        params.apex_id,
+    ).await?;
+
+    let cooperatives = state.cooperative_repo.find_by_ids(coop_ids).await?;
 
     let mut sector_map: std::collections::HashMap<String, i64> =
         std::collections::HashMap::new();

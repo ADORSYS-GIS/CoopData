@@ -194,9 +194,28 @@ pub struct MonthlyTrendResponse {
 pub struct MonthlyTrendPoint {
     pub month: i16,
     pub month_label: String,
+    /// Member savings and deposits (COA 2101–2103).
     pub savings: f64,
+    /// Gross loan portfolio (COA 1201–1205).
     pub loans: f64,
-    pub deposits: f64,
+    /// Total assets (COA 1999).
+    pub assets: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SubmissionActivityResponse {
+    pub year: i32,
+    pub months: Vec<SubmissionActivityPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SubmissionActivityPoint {
+    pub month: i16,
+    pub month_label: String,
+    pub submitted: u64,
+    pub approved: u64,
+    pub rejected: u64,
+    pub in_review: u64,
 }
 
 // ── Region compliance ──────────────────────────────────────────────────────
