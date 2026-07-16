@@ -4,6 +4,20 @@ use crate::entities::account_alias::Model as AliasEntry;
 use crate::entities::chart_of_account::Model as CoaEntry;
 use crate::error::{AppError, AppResult};
 
+// ── NF Header Mapping ─────────────────────────────────────────────────────────
+
+/// Maps a sheet's actual column headers to canonical field names via LLM.
+/// Returns a map of `actual_header_lowercase → canonical_field_name`.
+#[async_trait::async_trait]
+pub trait NfHeaderMapper: Send + Sync {
+    async fn map_headers(
+        &self,
+        sheet_name: &str,
+        actual_headers: &[String],
+        canonical_fields: &[&str],
+    ) -> std::collections::HashMap<String, String>;
+}
+
 // ── Domain types ──────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,6 +92,7 @@ pub fn extract_pdf_text(bytes: &[u8]) -> AppResult<String> {
 }
 
 /// Extract text from an Excel file using calamine.
+/// Preserves column/row structure so the LLM can identify monthly columns.
 pub fn extract_excel_text(bytes: &[u8]) -> AppResult<String> {
     use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
     use std::io::Cursor;
@@ -90,30 +105,80 @@ pub fn extract_excel_text(bytes: &[u8]) -> AppResult<String> {
     for sheet_name in workbook.sheet_names().to_vec() {
         if let Ok(range) = workbook.worksheet_range(&sheet_name) {
             output.push_str(&format!("=== Sheet: {sheet_name} ===\n"));
-            for row in range.rows() {
-                let cells: Vec<String> = row
-                    .iter()
-                    .map(|cell| match cell {
-                        Data::Empty => String::new(),
-                        Data::String(s) => s.clone(),
-                        Data::Float(f) => format!("{f}"),
-                        Data::Int(i) => format!("{i}"),
-                        Data::Bool(b) => format!("{b}"),
-                        Data::DateTime(dt) => format!("{dt}"),
-                        Data::Error(e) => format!("ERR:{e:?}"),
-                        Data::DateTimeIso(s) => s.clone(),
-                        Data::DurationIso(s) => s.clone(),
-                    })
-                    .collect();
-                let line = cells.join("\t");
-                if !line.trim().is_empty() {
-                    output.push_str(&line);
-                    output.push('\n');
+
+            let rows: Vec<Vec<Data>> = range.rows().map(|r| r.to_vec()).collect();
+            if rows.is_empty() {
+                continue;
+            }
+
+            // Detect if the first non-empty row looks like a month/period header
+            // (contains "Jan", "Feb", month numbers, or year-like values)
+            let first_row = &rows[0];
+            let has_column_headers = first_row.iter().skip(1).any(|cell| {
+                let s = cell_to_str(cell);
+                let lower = s.to_lowercase();
+                lower.contains("jan") || lower.contains("feb") || lower.contains("mar")
+                    || lower.contains("apr") || lower.contains("may") || lower.contains("jun")
+                    || lower.contains("jul") || lower.contains("aug") || lower.contains("sep")
+                    || lower.contains("oct") || lower.contains("nov") || lower.contains("dec")
+                    || lower.contains("month") || lower.contains("period")
+                    // numeric month headers like "1", "2" ... "12"
+                    || s.trim().parse::<u32>().map(|n| (1..=12).contains(&n)).unwrap_or(false)
+            });
+
+            if has_column_headers {
+                // Structured mode: emit as table with | separator so LLM preserves columns
+                output.push_str("TABLE FORMAT (Label | Col1 | Col2 | ... | ColN):\n");
+                for row in &rows {
+                    if row.iter().all(|c| cell_to_str(c).trim().is_empty()) {
+                        continue; // skip blank rows
+                    }
+                    let cells: Vec<String> = row.iter().map(cell_to_str).collect();
+                    output.push_str(&format!("| {} |\n", cells.join(" | ")));
+                }
+            } else {
+                // Simple mode: label → value pairs, one per line
+                for row in &rows {
+                    if row.iter().all(|c| cell_to_str(c).trim().is_empty()) {
+                        continue;
+                    }
+                    let cells: Vec<String> = row
+                        .iter()
+                        .map(cell_to_str)
+                        .filter(|s| !s.trim().is_empty())
+                        .collect();
+                    if !cells.is_empty() {
+                        output.push_str(&cells.join(": "));
+                        output.push('\n');
+                    }
                 }
             }
+            output.push('\n');
         }
     }
     Ok(output)
+}
+
+fn cell_to_str(cell: &calamine::Data) -> String {
+    use calamine::Data;
+    match cell {
+        Data::Empty => String::new(),
+        Data::String(s) => s.clone(),
+        Data::Float(f) => {
+            // Avoid scientific notation for financial values
+            if f.abs() >= 1.0 && f.fract() == 0.0 {
+                format!("{}", *f as i64)
+            } else {
+                format!("{f:.2}")
+            }
+        }
+        Data::Int(i) => format!("{i}"),
+        Data::Bool(b) => format!("{b}"),
+        Data::DateTime(dt) => format!("{dt}"),
+        Data::Error(e) => format!("ERR:{e:?}"),
+        Data::DateTimeIso(s) => s.clone(),
+        Data::DurationIso(s) => s.clone(),
+    }
 }
 
 /// Encode image bytes as base64 for vision API.
@@ -134,11 +199,12 @@ fn build_mapping_prompt(
         .iter()
         .map(|c| {
             format!(
-                "| {} | {} | {} | {} |",
+                "| {} | {} | {} | {} | {} |",
                 c.account_code,
                 c.account_name,
                 c.account_category.as_str(),
-                c.formula.as_deref().unwrap_or("")
+                c.formula.as_deref().unwrap_or(""),
+                c.description.as_deref().unwrap_or("")
             )
         })
         .collect::<Vec<_>>()
@@ -164,9 +230,11 @@ fn build_mapping_prompt(
 Your job is to extract EVERY line item from the raw text and map each one to the canonical Chart of Accounts.
 
 CHART OF ACCOUNTS (target schema):
-| Code | Name | Category | Formula |
-|------|------|----------|---------|
+| Code | Name | Category | Formula | Description |
+|------|------|----------|---------|-------------|
 {coa_table}
+
+The Description column explains what each account code means, its sign convention, and parent/child relationships. Use it to map labels accurately.
 
 Only use account codes from this list. If a label doesn't match any code, set account_code to null.
 
@@ -182,21 +250,109 @@ RAW TEXT FROM UPLOADED FILE:
 
 This is a balance sheet for a {cooperative_type} cooperative.
 
-CRITICAL INSTRUCTIONS:
-1. Extract EVERY single numeric value from the raw text as a separate line item.
-2. Do NOT skip any row — include individual items, subtotals, AND totals.
-3. For each value, create a line item with:
-   - account_code: the best matching CoA code (integer), or null if no match
-   - account_name: the canonical CoA name if mapped, or the raw label if unmapped
-   - raw_label: the EXACT label as it appears in the raw text
-   - value: the numeric value (negative if in parentheses)
-   - confidence: how confident you are in the mapping (not in the value)
-4. Map aggressively — "Cash and cash equivalents" should map to cash codes, "Trade and other receivables" to receivables codes, etc.
-5. Subtotal rows (e.g. "Total current assets") and total rows (e.g. "Total assets") should also be mapped to their corresponding total codes if they exist in the CoA (e.g. 1999 for Total Assets, 2999 for Total Liabilities, 3999 for Total Equity).
-6. Prefer mapping to leaf/child codes (e.g. 1101, 1303, 3301) over parent/roll-up codes (e.g. 1100, 1300, 3300). Parent codes have formulas and are computed automatically — do NOT map to a parent code if a child code exists for that item.
-7. "Retained earnings" → 3301 (Accumulated Surplus), NOT 3300 (which is a parent code).
-8. "Cash and cash equivalents" → 1101 (Cash on Hand) if no separate bank accounts are listed.
-9. "Share capital" or "Permanent share capital" → 3101, NOT 3100 (parent).
+═══════════════════════════════════════════════════════
+CRITICAL MAPPING RULES — READ CAREFULLY BEFORE MAPPING
+═══════════════════════════════════════════════════════
+
+RULE 1 — PARENT vs CHILD CODES (most common mistake):
+Codes that have a Formula column are PARENT/TOTAL codes. NEVER map individual line items to parent codes.
+Always map to the specific child code. Examples of what NOT to do:
+  WRONG: "Cash" → 1100 (parent, has formula)   RIGHT: "Cash" → 1101
+  WRONG: "Retained earnings" → 3300 (parent)   RIGHT: "Retained earnings" → 3301
+  WRONG: "Total Assets" → 1000 (section header) RIGHT: "Total Assets" → 1999
+  WRONG: "Share capital" → 3100 (parent)        RIGHT: "Share capital" → 3101
+  WRONG: "Net surplus" → 6000 (section header)  RIGHT: "Net surplus" → 6999
+  WRONG: "Total Liabilities" → 2000             RIGHT: "Total Liabilities" → 2999
+  WRONG: "Total Equity" → 3000                  RIGHT: "Total Equity" → 3999
+
+RULE 2 — NEGATIVE VALUES (critical for balance sheet accuracy):
+These accounts MUST always be stored as negative numbers:
+  - Accumulated depreciation / Depreciation (code 1304) → ALWAYS negative (e.g. -20000)
+  - General loan loss provision (code 1251) → ALWAYS negative
+  - Specific loan loss provision (code 1252) → ALWAYS negative
+  - Values already in parentheses "(8,000)" → negative: -8000.0
+  - Expense items ARE negative on the income side
+
+RULE 3 — CONFIDENCE SCORING (be honest, not optimistic):
+  - 1.00: Exact label match (e.g., "Cash on Hand" → 1101)
+  - 0.85: Near-exact match (e.g., "Cash in hand" → 1101)
+  - 0.70: Synonym/alias match (e.g., "Caja" → 1101 via alias table)
+  - 0.50: Fuzzy/inferred (e.g., "Liquid assets" → probably 1100 area)
+  - 0.30: Guessed (e.g., "Miscellaneous" → unclear)
+  - 0.00: Cannot map → set account_code to null
+  Do NOT assign 0.95 to everything. Differentiate based on certainty.
+
+RULE 4 — MONTHLY DATA (for 12-column balance sheets):
+If the document has monthly columns (Jan, Feb, Mar, ..., Dec) OR a table with column headers:
+  - Extract EACH month as a SEPARATE line item
+  - Use month=1 for January, month=2 for February, ..., month=12 for December
+  - Use month=0 ONLY for annual total or when no monthly breakdown exists
+  - Example: "Cash on Hand: Jan=50000, Feb=48000" → TWO items:
+    {{account_code:1101, month:1, value:50000}} AND {{account_code:1101, month:2, value:48000}}
+
+RULE 5 — EXCEL TABLE STRUCTURE:
+If the raw text contains table-structured data with Row/Column notation:
+  - Row headers (column A) are LABELS
+  - Column headers are typically MONTHS or PERIODS
+  - Map each cell at intersection of label-row and month-column as a separate line item
+  - Do NOT discard column data — every column with a numeric header is a month
+
+RULE 6 — EXTRACTION COMPLETENESS:
+  - Extract EVERY single numeric value — do NOT skip any row
+  - Include individual items, subtotals, AND grand totals
+  - A typical balance sheet has 25-40 line items
+  - Do NOT invent values — only extract what appears in the raw text
+
+═══════════════════════════════════════════
+SPECIFIC LABEL → CODE MAPPINGS (memorize):
+═══════════════════════════════════════════
+"Cash on Hand" / "Cash in hand" / "Imali" → 1101
+"Cash at Bank (Current)" / "Bank current account" → 1102
+"Cash at Bank (Savings)" / "Bank savings account" → 1103
+"Short-term investments" / "Treasury bills" → 1104
+"Performing loans" / "Good loans" → 1201
+"Loans in arrears 1-30" → 1202
+"Loans in arrears 31-60" → 1203
+"Loans in arrears 61-90" → 1204
+"Non-performing loans" / "NPL" / "Bad loans" / "Write-offs" → 1205
+"General loan loss provision" / "GLLP" → 1251 (NEGATIVE)
+"Specific loan loss provision" / "SLLP" → 1252 (NEGATIVE)
+"Accounts receivable" / "Receivables" → 1301
+"Prepaid expenses" → 1302
+"Fixed assets (cost)" / "Property plant equipment" / "PPE" → 1303
+"Accumulated depreciation" / "Accum. depreciation" → 1304 (NEGATIVE)
+"Intangible assets" → 1305
+"Total Assets" → 1999
+"Voluntary savings" / "Member savings" → 2101
+"Mandatory savings" / "Compulsory savings" → 2102
+"Fixed term deposits" / "Fixed deposits" / "Term deposits" → 2103
+"Short-term borrowings" → 2201
+"Long-term borrowings" → 2202
+"Accounts payable" / "Trade payables" → 2301
+"Accrued expenses" / "Accruals" → 2302
+"Deferred income" → 2303
+"Total Liabilities" → 2999
+"Permanent share capital" / "Share capital" / "Permanent shares" → 3101
+"Withdrawable shares" / "Redeemable shares" → 3102
+"Statutory reserve" → 3201
+"General reserve" → 3202
+"Risk/capital adequacy reserve" → 3203
+"Accumulated surplus" / "Retained earnings" / "Retained surplus" → 3301
+"Current year surplus" / "Net income" / "Profit this year" → 3302
+"Total Equity" / "Members equity" → 3999
+"Interest income on loans" / "Loan interest" → 4101
+"Fees and commissions" / "Service charges" → 4102
+"Other operating income" → 4201
+"Total Income" → 4999
+"Interest expense on deposits" / "Interest paid on savings" → 5101
+"Interest expense on borrowings" / "Interest on loans" → 5102
+"Personnel costs" / "Staff costs" / "Salaries" → 5201
+"Administrative expenses" / "Admin costs" → 5202
+"Governance expenses" / "Board expenses" → 5203
+"Depreciation" / "Depreciation charge" → 5204
+"Loan loss provision expense" / "Provision expense" → 5301
+"Total Expenses" → 5999
+"Net surplus" / "Net deficit" / "Net income" / "Profit or loss" → 6999
 
 Return ONLY a JSON object with this exact structure (no markdown, no explanation):
 {{
@@ -206,7 +362,7 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
       "account_name": "Cash on Hand",
       "month": 0,
       "value": 50000.00,
-      "confidence": 0.95,
+      "confidence": 0.85,
       "raw_label": "Cash on Hand"
     }}
   ],
@@ -218,13 +374,13 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
   }}
 }}
 
-Rules:
-- account_code must be an integer from the chart above, or null if unmapped
-- month=0 means annual total; month=1-12 means that specific month
-- confidence: 1.0=exact match, 0.8=alias match, 0.5=fuzzy, 0.3=guessed
-- Parentheses like (8,000) mean negative values: -8000.0
-- Do NOT invent values. Only extract values that appear in the raw text.
-- Output ALL line items — a typical balance sheet has 25-40 line items."#
+Fill totals_reconciliation from the grand total rows in the document:
+  assets_total → the value next to "Total Assets" or equivalent
+  liabilities_total → the value next to "Total Liabilities" or equivalent
+  equity_total → the value next to "Total Equity" or equivalent
+  net_surplus → the value next to "Net Surplus/Deficit" or equivalent
+
+Do NOT invent values. Only extract values that appear in the raw text."#
     )
 }
 
@@ -404,19 +560,18 @@ impl LlmExtractor {
         let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== LLM FINISH REASON ===");
 
-        if finish_reason == "max_tokens" || finish_reason == "length" {
-            tracing::error!(
-                finish_reason,
-                "LLM response truncated due to max_tokens limit"
-            );
-            return Err(AppError::ExternalServiceError(
-                "LLM response was truncated (max_tokens reached). The financial statement has too many line items for a single call. Consider splitting the document or increasing max_tokens.".into()
-            ));
-        }
-
         let content = json["choices"][0]["message"]["content"]
             .as_str()
             .ok_or_else(|| AppError::ExternalServiceError("Empty LLM response".into()))?;
+
+        if finish_reason == "max_tokens" || finish_reason == "length" {
+            tracing::warn!(
+                finish_reason,
+                response_chars = content.len(),
+                "LLM response truncated — returning partial content for JSON repair"
+            );
+            return Ok(content.to_string());
+        }
 
         tracing::info!(
             response_chars = content.len(),
@@ -447,24 +602,43 @@ impl LlmExtractor {
                  \n\
                  INSTRUCTIONS:\n\
                  1. Scan the image from top to bottom, left to right.\n\
-                 2. For EVERY row that has a label and a numeric value, output: LABEL: VALUE\n\
-                 3. Include EVERY individual line item (Cash, Inventories, PP&E, Accounts Payable, Share Capital, etc.)\n\
-                 4. Include EVERY subtotal row (Total current assets, Total noncurrent assets, Total current liabilities, etc.)\n\
-                 5. Include EVERY total row (Total assets, Total liabilities, Total equity, Total liabilities and equity)\n\
-                 6. Include section headers as context lines (ASSETS, Current assets, Noncurrent assets, LIABILITIES AND EQUITY, etc.)\n\
-                 7. Preserve negative values in parentheses as negative numbers: (1,000) → -1000\n\
-                 8. Preserve the exact numeric values including ALL digits and commas.\n\
-                 9. Do NOT summarize, do NOT skip rows, do NOT combine rows, do NOT round.\n\
-                 10. A typical balance sheet has 25-40 rows — make sure you output ALL of them.\n\
+                 2. Detect if the image has MULTIPLE COLUMNS of numeric data (e.g. monthly columns Jan-Dec, or quarterly columns).\n\
+                 3. If the image has multiple columns, output a PIPE-SEPARATED table preserving ALL columns:\n\
+                    LABEL | Col1Header | Col2Header | Col3Header | ...\n\
+                    RowLabel | value1 | value2 | value3 | ...\n\
+                    Example:\n\
+                    Account | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec\n\
+                    Cash on Hand | 500 | 520 | 510 | 530 | 540 | 550 | 560 | 570 | 580 | 590 | 600 | 610\n\
+                    Total Assets | 9,270 | 9,500 | 9,800 | 10,000 | 10,200 | 10,500 | 10,700 | 10,900 | 11,000 | 11,200 | 11,400 | 11,600\n\
+                 4. If the image has a SINGLE column of values, output: LABEL: VALUE\n\
+                 5. Include EVERY individual line item (Cash, Inventories, PP&E, Accounts Payable, Share Capital, etc.)\n\
+                 6. Include EVERY subtotal row (Total current assets, Total noncurrent assets, Total current liabilities, etc.)\n\
+                 7. Include EVERY total row (Total assets, Total liabilities, Total equity, Total liabilities and equity)\n\
+                 8. Include section headers as context lines (ASSETS, Current assets, Noncurrent assets, LIABILITIES AND EQUITY, etc.)\n\
+                 9. Preserve negative values in parentheses as negative numbers: (1,000) → -1000\n\
+                 10. Preserve the exact numeric values including ALL digits and commas.\n\
+                 11. Do NOT summarize, do NOT skip rows, do NOT combine rows, do NOT round.\n\
+                 12. Do NOT collapse multiple columns into a single value — preserve EVERY column.\n\
+                 13. A typical balance sheet has 25-40 rows — make sure you output ALL of them.\n\
                  \n\
-                 Output format (one row per line):\n\
+                 Output format for single-column data (one row per line):\n\
                  LABEL: VALUE\n\
                  \n\
-                 Example:\n\
+                 Output format for multi-column data (pipe-separated):\n\
+                 LABEL | Header1 | Header2 | Header3\n\
+                 RowLabel | value1 | value2 | value3\n\
+                 \n\
+                 Example single-column:\n\
                  Cash and cash equivalents: 500\n\
                  Short-term investments: 1,100\n\
                  Total current assets: 9,270\n\
-                 Total assets: 52,484";
+                 Total assets: 52,484\n\
+                 \n\
+                 Example multi-column:\n\
+                 Account | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec\n\
+                 Cash on Hand | 500 | 520 | 510 | 530 | 540 | 550 | 560 | 570 | 580 | 590 | 600 | 610\n\
+                 Cash at Bank | 5000 | 5100 | 5200 | 5300 | 5400 | 5500 | 5600 | 5700 | 5800 | 5900 | 6000 | 6100\n\
+                 Total Assets | 9270 | 9500 | 9800 | 10000 | 10200 | 10500 | 10700 | 10900 | 11000 | 11200 | 11400 | 11600";
 
         let body = serde_json::json!({
             "model": self.vision_model,
@@ -521,19 +695,18 @@ impl LlmExtractor {
         let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== VISION FINISH REASON ===");
 
-        if finish_reason == "max_tokens" || finish_reason == "length" {
-            tracing::error!(
-                finish_reason,
-                "Vision API response truncated due to max_tokens limit"
-            );
-            return Err(AppError::ExternalServiceError(
-                "Vision API response was truncated (max_tokens reached). The image contains too much text for a single call.".into()
-            ));
-        }
-
         let content = json["choices"][0]["message"]["content"]
             .as_str()
             .ok_or_else(|| AppError::ExternalServiceError("Empty vision response".into()))?;
+
+        if finish_reason == "max_tokens" || finish_reason == "length" {
+            tracing::warn!(
+                finish_reason,
+                response_chars = content.len(),
+                "Vision API response truncated — returning partial content"
+            );
+            return Ok(content.to_string());
+        }
 
         tracing::info!(
             response_chars = content.len(),
@@ -617,6 +790,80 @@ impl LlmExtractor {
                     "Failed to parse LLM output as ExtractionOutput: {e}\nRaw: {}",
                     &cleaned[..cleaned.len().min(500)]
                 )))
+            }
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl NfHeaderMapper for LlmExtractor {
+    async fn map_headers(
+        &self,
+        sheet_name: &str,
+        actual_headers: &[String],
+        canonical_fields: &[&str],
+    ) -> std::collections::HashMap<String, String> {
+        let actual_list = actual_headers.join(", ");
+        let canonical_list = canonical_fields.join(", ");
+
+        let prompt = format!(
+            r#"You are a data-mapping assistant for cooperative financial data systems.
+
+A user uploaded an Excel file with a sheet named "{sheet_name}".
+The sheet has these column headers (as they appear in the file):
+  [{actual_list}]
+
+Map each actual header to the closest canonical field from this list:
+  [{canonical_list}]
+
+Rules:
+- Only map when you are confident (typos, spaces vs underscores, capitalisation, language differences are fine to resolve).
+- Do NOT invent or guess mappings for unrelated headers.
+- If an actual header has no clear match, omit it from the output.
+- Each canonical field should appear AT MOST ONCE in the output.
+
+Return ONLY a JSON object like:
+{{"actual_header": "canonical_field", "another_actual": "another_canonical"}}
+
+No markdown, no explanation."#
+        );
+
+        tracing::info!(
+            sheet = sheet_name,
+            actual_count = actual_headers.len(),
+            "Calling LLM for NF header mapping"
+        );
+
+        let raw = match self.chat(&self.model, &prompt).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(error = %e, sheet = sheet_name, "LLM header mapping failed, returning empty map");
+                return std::collections::HashMap::new();
+            }
+        };
+
+        let cleaned = raw
+            .trim()
+            .trim_start_matches("```json")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim();
+
+        match serde_json::from_str::<std::collections::HashMap<String, String>>(cleaned) {
+            Ok(map) => {
+                tracing::info!(
+                    sheet = sheet_name,
+                    mappings = ?map,
+                    "LLM header mapping succeeded"
+                );
+                // Normalise keys to lowercase for consistent lookup
+                map.into_iter()
+                    .map(|(k, v)| (k.trim().to_lowercase(), v.trim().to_lowercase()))
+                    .collect()
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, raw = %cleaned, "Failed to parse LLM header mapping response");
+                std::collections::HashMap::new()
             }
         }
     }
@@ -723,6 +970,18 @@ impl FinancialStatementExtractor for LlmExtractor {
 // ── Mock implementation (deterministic, no network) ───────────────────────────
 
 pub struct MockExtractor;
+
+#[async_trait::async_trait]
+impl NfHeaderMapper for MockExtractor {
+    async fn map_headers(
+        &self,
+        _sheet_name: &str,
+        _actual_headers: &[String],
+        _canonical_fields: &[&str],
+    ) -> std::collections::HashMap<String, String> {
+        std::collections::HashMap::new()
+    }
+}
 
 #[async_trait::async_trait]
 impl FinancialStatementExtractor for MockExtractor {
@@ -1005,11 +1264,18 @@ fn item(code: i32, name: &str, value: f64, confidence: f64, raw_label: &str) -> 
     }
 }
 
+// ── Combined extractor trait ──────────────────────────────────────────────────
+
+/// Combines financial-statement extraction with NF header mapping.
+/// This is what `AppState::extractor` holds.
+pub trait Extractor: FinancialStatementExtractor + NfHeaderMapper {}
+impl<T: FinancialStatementExtractor + NfHeaderMapper> Extractor for T {}
+
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 pub fn create_extractor(
     config: &crate::config::AppConfig,
-) -> std::sync::Arc<dyn FinancialStatementExtractor> {
+) -> std::sync::Arc<dyn Extractor> {
     if config.extraction_backend == "llm" {
         if config.ai_api_key.is_empty() {
             tracing::warn!(

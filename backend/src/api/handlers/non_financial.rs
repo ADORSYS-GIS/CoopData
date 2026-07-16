@@ -140,7 +140,7 @@ pub async fn upload_non_financial(
         state.uploaded_file_repo.create(model).await?
     };
 
-    let parse_result = state.nf_excel_parser.parse(&file_bytes)?;
+    let parse_result = state.nf_excel_parser.parse(&file_bytes, Some(state.extractor.clone())).await?;
 
     if parse_result.sheets_found.is_empty() {
         return Err(AppError::BadRequest(

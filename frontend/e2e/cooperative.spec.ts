@@ -17,9 +17,9 @@ test.describe("Cooperative user navigation", () => {
     await expect(page.getByText("Cooperative Workspace")).toBeVisible({ timeout: 15000 });
   });
 
-  test("should access data collection page", async ({ page }) => {
-    await page.goto("/app/data-collection");
-    await expect(page).toHaveURL(/\/app\/data-collection/);
+  test("should access submissions page", async ({ page }) => {
+    await page.goto("/app/submissions");
+    await expect(page).toHaveURL(/\/app\/submissions/);
   });
 
   test("should access financial statement page", async ({ page }) => {
@@ -32,9 +32,9 @@ test.describe("Cooperative user navigation", () => {
     await expect(page).toHaveURL(/\/app\/non-financial-data/);
   });
 
-  test("should see Data Collection in sidebar nav", async ({ page }) => {
+  test("should see Submissions in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(page.getByRole("link", { name: /Data Collection/ })).toBeVisible({
+    await expect(page.getByRole("link", { name: /Submissions/ })).toBeVisible({
       timeout: 10000,
     });
   });

@@ -17,6 +17,8 @@ import {
   Building2,
   Landmark,
   Network,
+  ArrowUpRight,
+  Filter,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -30,6 +32,10 @@ import {
   useCreateSubmission,
 } from "@/hooks/submissions/useSubmissions";
 import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
+
+// Suppress unused import warnings for icons that may be used in JSX conditionally
+void ArrowUpRight;
+void Filter;
 
 type FilterType = "all" | "draft" | "submitted" | "approved" | "rejected";
 
@@ -94,45 +100,59 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-sm p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-foreground">New Submission</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Select the reporting year</p>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+              <Calendar className="size-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">New Submission</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Start a new annual data return
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted transition-colors"
+            className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-muted-foreground mb-2">
+        {/* Body */}
+        <div className="px-6 pb-2">
+          <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
             Reporting Year
           </label>
-          <div className="relative">
-            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="w-full rounded-xl border border-input bg-muted/40 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
-            >
-              {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-4 gap-2">
+            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3].map((y) => (
+              <button
+                key={y}
+                onClick={() => setYear(y)}
+                className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${
+                  year === y
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border bg-muted/30 text-foreground hover:border-primary/40 hover:bg-muted/60"
+                }`}
+              >
+                {y}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="flex gap-3">
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-5">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"
+            className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
           >
             Cancel
           </button>
@@ -146,7 +166,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             ) : (
               <Plus className="size-4" />
             )}
-            Create
+            Create Submission
           </button>
         </div>
       </div>
@@ -154,46 +174,52 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function CooperativeCard({
+function OrgCard({
   name,
   count,
   approvedCount,
   reviewCount,
   onClick,
+  icon: Icon = Building2,
 }: {
   name: string;
   count: number;
   approvedCount: number;
   reviewCount: number;
   onClick: () => void;
+  icon?: React.ElementType;
 }) {
   return (
     <button
       onClick={onClick}
-      className="group text-left rounded-2xl border border-border bg-surface p-5 hover:border-primary/40 hover:shadow-md transition-all duration-200"
+      className="group text-left rounded-2xl border border-border bg-surface p-5 hover:border-primary/30 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="size-10 rounded-xl bg-primary/10 grid place-items-center">
-          <Building2 className="size-5 text-primary" />
+        <div className="size-9 rounded-xl bg-primary/8 grid place-items-center">
+          <Icon className="size-4 text-primary" />
         </div>
-        <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-150 mt-0.5" />
       </div>
-      <h3 className="text-sm font-bold text-foreground mb-1 truncate">{name}</h3>
-      <p className="text-xs text-muted-foreground mb-3">
+      <p className="text-sm font-bold text-foreground mb-1 truncate leading-snug">{name}</p>
+      <p className="text-xs text-muted-foreground mb-3.5">
         {count} submission{count !== 1 ? "s" : ""}
       </p>
-      <div className="flex items-center gap-3 text-[10px] font-semibold">
-        {reviewCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-warning">
-            <Clock className="size-3" /> {reviewCount} in review
-          </span>
-        )}
-        {approvedCount > 0 && (
-          <span className="inline-flex items-center gap-1 text-success">
-            <CheckCircle2 className="size-3" /> {approvedCount} approved
-          </span>
-        )}
-      </div>
+      {(reviewCount > 0 || approvedCount > 0) && (
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold border-t border-border/60 pt-3">
+          {reviewCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-warning-foreground">
+              <Clock className="size-3" />
+              {reviewCount} in review
+            </span>
+          )}
+          {approvedCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-success">
+              <CheckCircle2 className="size-3" />
+              {approvedCount} approved
+            </span>
+          )}
+        </div>
+      )}
     </button>
   );
 }
@@ -241,7 +267,8 @@ function SubmissionTable({
       }
     >
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        {/* Segmented filter control */}
+        <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-xl p-1 border border-border/60">
           {(
             [
               ["all", `All (${counts.total})`],
@@ -254,10 +281,10 @@ function SubmissionTable({
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`press-feedback rounded-lg border px-3 py-1.5 font-bold transition-all ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
                 filter === f
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                  : "border-border bg-surface text-muted-foreground hover:bg-muted/50"
+                  ? "bg-surface text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {label}
@@ -265,14 +292,14 @@ function SubmissionTable({
           ))}
         </div>
 
-        <div className="relative w-full sm:w-56">
+        <div className="relative w-full sm:w-60">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search submissions…"
+            placeholder="Search by reference or year…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-input bg-muted/40 py-1.5 pl-9 pr-3 text-xs transition-all focus:border-ring focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none"
+            className="w-full rounded-xl border border-input bg-muted/30 py-2 pl-9 pr-3 text-xs transition-all focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none placeholder:text-muted-foreground/60"
           />
         </div>
       </div>
@@ -329,33 +356,37 @@ function SubmissionTable({
               submissions.map((s) => (
                 <tr
                   key={s.id}
-                  className="group hover:bg-muted/30 transition-colors duration-150 cursor-pointer"
+                  className="group border-l-2 border-l-transparent hover:border-l-primary/50 hover:bg-muted/25 transition-all duration-150 cursor-pointer"
                   onClick={() => onRowClick(s.id)}
                 >
-                  <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
+                  <td className="px-5 py-3.5 font-mono text-[11px] text-muted-foreground">
                     {s.reference ?? s.id.slice(0, 8).toUpperCase()}
                   </td>
                   {showCoopColumn && (
-                    <td className="px-5 py-3.5 text-xs text-foreground hidden md:table-cell">
+                    <td className="px-5 py-3.5 text-xs text-foreground hidden md:table-cell max-w-[160px] truncate">
                       {s.cooperative_name ?? "—"}
                     </td>
                   )}
                   <td className="px-5 py-3.5">
-                    <p className="font-semibold text-foreground">{s.reporting_year}</p>
+                    <p className="font-semibold text-foreground text-sm">{s.reporting_year}</p>
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground text-xs hidden md:table-cell capitalize">
                     {s.current_tier}
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground text-xs hidden lg:table-cell">
-                    {new Date(s.created_at).toLocaleDateString()}
+                    {new Date(s.created_at).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </td>
                   <td className="px-5 py-3.5">
                     <span
-                      className={`inline-block text-xs font-bold ${
+                      className={`text-xs font-semibold ${
                         s.priority === "Urgent"
                           ? "text-destructive"
                           : s.priority === "Quarterly"
-                            ? "text-accent"
+                            ? "text-primary"
                             : "text-muted-foreground"
                       }`}
                     >
@@ -367,9 +398,9 @@ function SubmissionTable({
                     <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status)}</StatusPill>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-accent group-hover:underline">
-                      {canValidate && s.status !== "draft" ? "Review" : "View"}{" "}
-                      <ChevronRight className="size-3" />
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      {canValidate && s.status !== "draft" ? "Review" : "Open"}
+                      <ArrowUpRight className="size-3" />
                     </span>
                   </td>
                 </tr>
@@ -541,7 +572,7 @@ export const SubmissionsPage: React.FC = () => {
           ) : undefined
         }
       >
-        <div className="space-y-6">
+        <div className="space-y-8">
           {isMinistry && selectedFederationId === null ? (
             <>
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -626,7 +657,7 @@ export const SubmissionsPage: React.FC = () => {
                         ].includes(s.status),
                       ).length;
                       return (
-                        <CooperativeCard
+                        <OrgCard
                           key={fed.id}
                           name={fed.name}
                           count={fed.subs.length}
@@ -648,7 +679,7 @@ export const SubmissionsPage: React.FC = () => {
             <>
               <button
                 onClick={() => setSelectedFederationId(null)}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
               >
                 <ChevronLeft className="size-4" /> Back to federations
               </button>
@@ -676,7 +707,7 @@ export const SubmissionsPage: React.FC = () => {
                         ].includes(s.status),
                       ).length;
                       return (
-                        <CooperativeCard
+                        <OrgCard
                           key={apex.id}
                           name={apex.name}
                           count={apex.subs.length}
@@ -701,7 +732,7 @@ export const SubmissionsPage: React.FC = () => {
             <>
               <button
                 onClick={() => setSelectedApexId(null)}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
               >
                 <ChevronLeft className="size-4" /> Back to apexes
               </button>
@@ -726,7 +757,7 @@ export const SubmissionsPage: React.FC = () => {
                         ].includes(s.status),
                       ).length;
                       return (
-                        <CooperativeCard
+                        <OrgCard
                           key={coop.id}
                           name={coop.name}
                           count={coop.subs.length}
@@ -828,7 +859,7 @@ export const SubmissionsPage: React.FC = () => {
                         ].includes(s.status),
                       ).length;
                       return (
-                        <CooperativeCard
+                        <OrgCard
                           key={apex.id}
                           name={apex.name}
                           count={apex.subs.length}
@@ -850,7 +881,7 @@ export const SubmissionsPage: React.FC = () => {
             <>
               <button
                 onClick={() => setSelectedApexId(null)}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
               >
                 <ChevronLeft className="size-4" /> Back to apexes
               </button>
@@ -875,7 +906,7 @@ export const SubmissionsPage: React.FC = () => {
                         ].includes(s.status),
                       ).length;
                       return (
-                        <CooperativeCard
+                        <OrgCard
                           key={coop.id}
                           name={coop.name}
                           count={coop.subs.length}
@@ -977,7 +1008,7 @@ export const SubmissionsPage: React.FC = () => {
                         ].includes(s.status),
                       ).length;
                       return (
-                        <CooperativeCard
+                        <OrgCard
                           key={coop.id}
                           name={coop.name}
                           count={coop.subs.length}
@@ -1000,7 +1031,7 @@ export const SubmissionsPage: React.FC = () => {
               {isApex && selectedCoopId !== null && (
                 <button
                   onClick={() => setSelectedCoopId(null)}
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
                 >
                   <ChevronLeft className="size-4" /> Back to cooperatives
                 </button>
@@ -1008,7 +1039,7 @@ export const SubmissionsPage: React.FC = () => {
               {isFederation && selectedCoopId !== null && (
                 <button
                   onClick={() => setSelectedCoopId(null)}
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
                 >
                   <ChevronLeft className="size-4" /> Back to cooperatives
                 </button>
@@ -1016,7 +1047,7 @@ export const SubmissionsPage: React.FC = () => {
               {isMinistry && selectedCoopId !== null && (
                 <button
                   onClick={() => setSelectedCoopId(null)}
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
                 >
                   <ChevronLeft className="size-4" /> Back to cooperatives
                 </button>

@@ -176,7 +176,7 @@ describe("route-guards", () => {
       expect(ROUTE_ACCESS["/app/federations"]).toBeDefined();
       expect(ROUTE_ACCESS["/app/apexes"]).toBeDefined();
       expect(ROUTE_ACCESS["/app/cooperatives"]).toBeDefined();
-      expect(ROUTE_ACCESS["/app/data-collection"]).toBeDefined();
+      expect(ROUTE_ACCESS["/app/submissions"]).toBeDefined();
       expect(ROUTE_ACCESS["/app/users"]).toBeDefined();
       expect(ROUTE_ACCESS["/app/settings"]).toBeDefined();
     });
@@ -199,8 +199,10 @@ describe("route-guards", () => {
       expect(ROUTE_ACCESS["/app/cooperatives"]).toEqual(["apex"]);
     });
 
-    it("should restrict data-collection to cooperative only", () => {
-      expect(ROUTE_ACCESS["/app/data-collection"]).toEqual(["cooperative"]);
+    it("should allow all roles access to submissions", () => {
+      expect(ROUTE_ACCESS["/app/submissions"]).toEqual(
+        expect.arrayContaining(["ministry", "federation", "apex", "cooperative"]),
+      );
     });
 
     it("should allow ministry, federation, apex for users", () => {

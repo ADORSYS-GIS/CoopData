@@ -25,7 +25,7 @@ pub use repositories::{
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
     UserRepository,
 };
-pub use services::ai_extraction::FinancialStatementExtractor;
+pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
 pub use services::{AuditService, CalamineNfParser, ObjectStorageService};
 
@@ -58,7 +58,7 @@ pub struct AppState {
     pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
     pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,
     // services
-    pub extractor: std::sync::Arc<dyn FinancialStatementExtractor>,
+    pub extractor: std::sync::Arc<dyn Extractor>,
     pub member_repo: MemberRepository,
     pub savings_account_repo: SavingsAccountRepository,
     pub loan_repo: LoanRepository,

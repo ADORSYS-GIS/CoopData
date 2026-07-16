@@ -12,6 +12,10 @@ import {
   CircleDot,
   CircleDashed,
   Trash2,
+  Info,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
@@ -28,11 +32,14 @@ import {
   useSubmissionSections,
   useUpdateSubmissionSection,
 } from "@/hooks/submissions/useSubmissionSections";
+import { useChartOfAccountsLeafs } from "@/hooks/submissions/useFinancialStatement";
+
+// COA_BY_CODE is built dynamically from the live hook inside the component.
+// We keep a module-level fallback map seeded from the static constants for
+// the account_name display column (used even before the hook resolves).
 import { ACCOUNT_CODES } from "@/lib/financial-data";
 
-// ── Flat CoA lookup for dropdown ─────────────────────────────────────────────
-
-const COA_OPTIONS: { code: number; name: string; category: string }[] = Object.entries(
+const STATIC_COA_OPTIONS: { code: number; name: string; category: string }[] = Object.entries(
   ACCOUNT_CODES,
 ).flatMap(([category, codes]) =>
   Object.entries(codes as Record<string, number>).map(([key, code]) => ({
@@ -42,7 +49,253 @@ const COA_OPTIONS: { code: number; name: string; category: string }[] = Object.e
   })),
 );
 
-const COA_BY_CODE = new Map(COA_OPTIONS.map((o) => [o.code, o]));
+const STATIC_COA_BY_CODE = new Map(STATIC_COA_OPTIONS.map((o) => [o.code, o]));
+
+// ── Flag explanations (shown in info popover) ─────────────────────────────────
+
+const FLAG_EXPLANATIONS: Record<string, { what: string; fix: string }> = {
+  // Balance sheet integrity
+  TOTAL_MISMATCH: {
+    what: "The sum of the sub-category line items does not add up to the reported total. This usually means some line items were mapped to the wrong account code, or key accounts are missing.",
+    fix: "Check each line item in the table. Look for rows with 'Low' confidence — they are likely mapped to the wrong code. Use the account code dropdown to reassign them correctly. After fixing, click Re-validate.",
+  },
+  BALANCE_UNBALANCED: {
+    what: "Total Assets ≠ Total Liabilities + Total Equity. The fundamental accounting equation is broken.",
+    fix: "This usually means one or more totals are mapped incorrectly. Verify that code 1999 holds Total Assets, 2999 holds Total Liabilities, and 3999 holds Total Equity. Reassign any misplaced items.",
+  },
+  MISSING_ACCOUNT: {
+    what: "A required account code is missing from the extracted data. The AI could not find or confidently map this field from your document.",
+    fix: "Scroll to the 'Unmapped Items' section at the bottom of the table. Find the item that corresponds to this account and use the 'Assign ↑' dropdown to assign the correct code.",
+  },
+  // Liquidity
+  LIQUIDITY_CRISIS: {
+    what: "Liquid assets (cash + short-term investments) cover less than 50% of short-term liabilities. This is a critical risk indicator.",
+    fix: "Verify that liquid asset codes (1101, 1102, 1103, 1104) and deposit codes (2101, 2102, 2103) are correctly assigned. If the values look right, this is a genuine financial risk requiring management attention.",
+  },
+  LOW_LIQUIDITY: {
+    what: "Liquid assets are below 10% of total assets. Either cash/investments are underreported or the cooperative has very little liquid resources.",
+    fix: "Check that all cash accounts (1101, 1102, 1103) and short-term investments (1104) have been correctly identified and mapped. Look for any cash items in the unmapped section.",
+  },
+  CASH_TOO_LOW: {
+    what: "Cash on hand and at bank is below 2% of total assets, which is dangerously low for daily operations.",
+    fix: "Verify codes 1101 (Cash on Hand), 1102 (Cash at Bank Current), 1103 (Cash at Bank Savings) are correctly mapped with the right values.",
+  },
+  // Credit risk
+  NPL_HIGH: {
+    what: "Non-performing loans exceed 10% of the total loan portfolio. This is above the alert threshold.",
+    fix: "Verify codes 1201–1205 are correctly assigned to the right loan quality buckets. If the data is correct, this reflects a real credit risk requiring management action.",
+  },
+  UNDER_PROVISIONING: {
+    what: "The specific loan loss provision (code 1252) covers less than 50% of non-performing loans (code 1205). This may be a regulatory violation.",
+    fix: "Check that 1252 (Specific Loan Loss Provision) is mapped and stored as a NEGATIVE number. Also verify 1205 (Non-Performing Loans) is correct.",
+  },
+  // Capital
+  LOW_EQUITY: {
+    what: "Equity is below 10% of total assets. The cooperative may be under-capitalised.",
+    fix: "Verify that all equity components are mapped: 3101 (Permanent Share Capital), 3102 (Withdrawable Shares), 3201 (Statutory Reserve), 3301 (Accumulated Surplus), 3302 (Current Year Surplus).",
+  },
+  STATUTORY_RESERVE_MISSING: {
+    what: "The statutory reserve (code 3201) is zero or missing. This is legally required for cooperatives.",
+    fix: "Check if the uploaded document includes a statutory or legal reserve. If it does, find it in the unmapped items and assign code 3201.",
+  },
+  HIGH_LEVERAGE: {
+    what: "The debt-to-equity ratio exceeds the 2:1 target threshold.",
+    fix: "Verify total liabilities (2999) and total equity (3999) are correctly mapped. If the data is accurate, this is a genuine financial concern.",
+  },
+  // Profitability
+  LOW_PROFITABILITY: {
+    what: "Return on Assets (ROA) is below 1%. The cooperative is generating very little profit relative to its asset base.",
+    fix: "Verify income accounts (4101, 4102, 4201) and expense accounts (5101–5301) are all correctly mapped and that the current year surplus (3302) is present.",
+  },
+  // Missing data
+  MISSING_DATA: {
+    what: "A critical field that is required for financial analysis is missing from the extracted data.",
+    fix: "Check the unmapped items section at the bottom of the table. The field may have been extracted but not assigned a code. Use the dropdown to assign the correct account code.",
+  },
+  // Default
+  DEFAULT: {
+    what: "A data quality or financial health issue was detected.",
+    fix: "Review the flagged value, check for misassigned account codes, and click Re-validate after making corrections.",
+  },
+};
+
+function getFlagExplanation(rule: string) {
+  const key = Object.keys(FLAG_EXPLANATIONS).find((k) =>
+    rule.toUpperCase().includes(k.replace(/_/g, " ").split(" ")[0]),
+  );
+  // Try direct prefix matches for known rule patterns
+  if (rule.includes("TOTAL_MISMATCH") || rule.includes("sum of")) return FLAG_EXPLANATIONS.TOTAL_MISMATCH;
+  if (rule.includes("BALANCE") || rule.includes("equation")) return FLAG_EXPLANATIONS.BALANCE_UNBALANCED;
+  if (rule.includes("MISSING_ACCOUNT") || rule.includes("missing")) return FLAG_EXPLANATIONS.MISSING_DATA;
+  if (rule.includes("LIQUIDITY_CRISIS") || rule.includes("Liquidity crisis")) return FLAG_EXPLANATIONS.LIQUIDITY_CRISIS;
+  if (rule.includes("LOW_LIQUIDITY") || rule.includes("10% minimum")) return FLAG_EXPLANATIONS.LOW_LIQUIDITY;
+  if (rule.includes("CASH_TOO_LOW") || rule.includes("Dangerously low")) return FLAG_EXPLANATIONS.CASH_TOO_LOW;
+  if (rule.includes("STATUTORY") || rule.includes("statutory")) return FLAG_EXPLANATIONS.STATUTORY_RESERVE_MISSING;
+  if (rule.includes("LEVERAGE") || rule.includes("Debt-to-Equity")) return FLAG_EXPLANATIONS.HIGH_LEVERAGE;
+  if (rule.includes("LOW_PROFITABILITY") || rule.includes("ROA")) return FLAG_EXPLANATIONS.LOW_PROFITABILITY;
+  if (rule.includes("NPL") || rule.includes("Non-performing")) return FLAG_EXPLANATIONS.NPL_HIGH;
+  if (rule.includes("PROVISION") || rule.includes("provision")) return FLAG_EXPLANATIONS.UNDER_PROVISIONING;
+  if (rule.includes("EQUITY") || rule.includes("equity")) return FLAG_EXPLANATIONS.LOW_EQUITY;
+  return FLAG_EXPLANATIONS.DEFAULT;
+}
+
+// ── Flag row with info popover ────────────────────────────────────────────────
+
+function FlagRow({
+  rule,
+  message,
+  severity,
+}: {
+  rule: string;
+  message: string;
+  severity: "error" | "warning" | "info";
+}) {
+  const [open, setOpen] = useState(false);
+  const explanation = getFlagExplanation(rule + " " + message);
+
+  const colorCls =
+    severity === "error"
+      ? "border-destructive/20 bg-destructive/5"
+      : severity === "warning"
+        ? "border-warning/20 bg-warning/5"
+        : "border-border bg-muted/20";
+
+  const iconCls =
+    severity === "error"
+      ? "text-destructive"
+      : severity === "warning"
+        ? "text-warning-foreground"
+        : "text-muted-foreground";
+
+  const Icon =
+    severity === "error" ? AlertCircle : severity === "warning" ? AlertTriangle : Info;
+
+  return (
+    <div className={`rounded-xl border ${colorCls}`}>
+      <div className="flex items-start gap-3 px-4 py-3">
+        <Icon className={`size-4 ${iconCls} shrink-0 mt-0.5`} />
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-bold ${iconCls}`}>{rule}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{message}</p>
+        </div>
+        <button
+          onClick={() => setOpen((o) => !o)}
+          title="How to fix this"
+          className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors ${
+            open
+              ? "bg-muted text-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Info className="size-3" />
+          How to fix
+          {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+        </button>
+      </div>
+
+      {open && (
+        <div className="border-t border-border/60 mx-4 mb-3 pt-3 space-y-2">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+              What this means
+            </p>
+            <p className="text-xs text-foreground">{explanation.what}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+              How to fix it
+            </p>
+            <p className="text-xs text-foreground">{explanation.fix}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Validation panel ──────────────────────────────────────────────────────────
+
+function ValidationPanel({
+  errors,
+  warnings,
+  infos,
+  onRevalidate,
+  isRevalidating,
+}: {
+  errors: { rule: string; message: string; severity: string }[];
+  warnings: { rule: string; message: string; severity: string }[];
+  infos: { rule: string; message: string; severity: string }[];
+  onRevalidate: () => void;
+  isRevalidating: boolean;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const total = errors.length + warnings.length + infos.length;
+  if (total === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {errors.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2.5 py-0.5 ring-1 ring-inset ring-destructive/20">
+                <AlertCircle className="size-3" />
+                {errors.length} error{errors.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            {warnings.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-warning-foreground px-2.5 py-0.5 ring-1 ring-inset ring-warning/30">
+                <AlertTriangle className="size-3" />
+                {warnings.length} warning{warnings.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            {infos.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 ring-1 ring-inset ring-border">
+                <Info className="size-3" />
+                {infos.length} info
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onRevalidate}
+            disabled={isRevalidating}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
+          >
+            {isRevalidating ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <RefreshCw className="size-3" />
+            )}
+            Re-validate
+          </button>
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors"
+          >
+            {collapsed ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
+          </button>
+        </div>
+      </div>
+
+      {!collapsed && (
+        <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
+          {errors.map((e, i) => (
+            <FlagRow key={`e-${i}`} rule={e.rule} message={e.message} severity="error" />
+          ))}
+          {warnings.map((w, i) => (
+            <FlagRow key={`w-${i}`} rule={w.rule} message={w.message} severity="warning" />
+          ))}
+          {infos.map((n, i) => (
+            <FlagRow key={`n-${i}`} rule={n.rule} message={n.message} severity="info" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Section helpers ───────────────────────────────────────────────────────────
 
@@ -103,6 +356,16 @@ export const FinancialStatementEditor: React.FC<{
   const { data: sections = [] } = useSubmissionSections(submissionId);
   const updateSection = useUpdateSubmissionSection(submissionId);
   const deleteSubmission = useDeleteSubmission();
+
+  // Live CoA from backend — same data the LLM uses, sorted by display_order
+  const { data: liveCoaLeafs = [] } = useChartOfAccountsLeafs();
+  // Build a live lookup map; fall back to static map while hook is loading
+  const COA_BY_CODE = liveCoaLeafs.length > 0
+    ? new Map(liveCoaLeafs.map((c) => [c.account_code, { code: c.account_code, name: c.account_name, category: c.account_category }]))
+    : STATIC_COA_BY_CODE;
+  const COA_OPTIONS = liveCoaLeafs.length > 0
+    ? liveCoaLeafs.map((c) => ({ code: c.account_code, name: c.account_name, category: c.account_category }))
+    : STATIC_COA_OPTIONS;
 
   // Inline value editing
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
@@ -258,39 +521,20 @@ export const FinancialStatementEditor: React.FC<{
         </Card>
       )}
 
-      {/* Validation flags */}
+      {/* Validation panel */}
       {(validationErrors.length > 0 || validationWarnings.length > 0) && (
-        <div className="space-y-2">
-          {validationErrors.map((e, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3"
-            >
-              <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-bold text-destructive">{e.rule}</p>
-                <p className="text-xs text-muted-foreground">{e.message}</p>
-              </div>
-            </div>
-          ))}
-          {validationWarnings.map((w, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3"
-            >
-              <AlertTriangle className="size-4 text-warning-foreground shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-bold text-warning-foreground">{w.rule}</p>
-                <p className="text-xs text-muted-foreground">{w.message}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ValidationPanel
+          errors={validationErrors}
+          warnings={validationWarnings}
+          infos={[]}
+          onRevalidate={handleValidate}
+          isRevalidating={validate.isPending}
+        />
       )}
 
       {/* Action bar */}
       <div className="flex flex-wrap items-center gap-3">
-        {isDraft && (
+        {isDraft && validationErrors.length === 0 && validationWarnings.length === 0 && (
           <button
             onClick={handleValidate}
             disabled={validate.isPending}

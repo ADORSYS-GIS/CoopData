@@ -15,3 +15,4 @@ pub use keycloak::KeycloakService;
 pub use nf_excel_parser::CalamineNfParser;
 pub use object_storage::ObjectStorageService;
 pub use verification_token::VerificationTokenService;
+pub use ai_extraction::{Extractor, NfHeaderMapper};

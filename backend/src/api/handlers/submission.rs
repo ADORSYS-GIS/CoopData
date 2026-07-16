@@ -309,8 +309,19 @@ pub async fn validate_extraction(
     }
 
     let coa = state.coa_repo.find_all().await?;
-    let detector = AbnormalityDetector::new(state.line_item_repo.clone(), state.flag_repo.clone());
-    let (errors, warnings) = detector.run(id, coop.id, fs.id, &coa).await?;
+    let coop_type = coop
+        .institution_type
+        .as_ref()
+        .map(|t| t.as_str())
+        .unwrap_or("other");
+    let detector = AbnormalityDetector::new(
+        state.line_item_repo.clone(),
+        state.flag_repo.clone(),
+        state.coa_repo.clone(),
+    );
+    let (errors, warnings) = detector
+        .run(id, coop.id, fs.id, &coa, coop_type)
+        .await?;
 
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
     state

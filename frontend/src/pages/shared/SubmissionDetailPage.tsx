@@ -442,13 +442,17 @@ export const SubmissionDetailPage: React.FC = () => {
   };
 
   return (
-    <AppShell title="Submission Detail" subtitle="Upload data, validate, and submit to Apex">
-      <div className="mb-4">
+    <AppShell title="Submission Detail" subtitle="Review data, validate, and submit to Apex">
+      {/* Back nav */}
+      <div className="mb-6">
         <Link
           to="/app/submissions"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group"
         >
-          <ArrowLeft className="size-3.5" /> Back to Submissions
+          <div className="size-7 rounded-lg border border-border bg-surface grid place-items-center group-hover:border-border/80 group-hover:bg-muted transition-colors">
+            <ArrowLeft className="size-3.5" />
+          </div>
+          Back to Submissions
         </Link>
       </div>
 
@@ -469,32 +473,55 @@ export const SubmissionDetailPage: React.FC = () => {
 
       {submission && (
         <div className="space-y-5">
+          {/* ── Hero header ── */}
           <Card
-            title={submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
-            subtitle={`Reporting year ${submission.reporting_year} · ${submission.current_tier} tier`}
+            edge={
+              submission.status === "approved"
+                ? "success"
+                : submission.status === "rejected"
+                  ? "danger"
+                  : submission.status === "draft"
+                    ? "none"
+                    : "warning"
+            }
             action={
               <StatusPill tone={statusTone(submission.status)}>
                 {statusLabel(submission.status)}
               </StatusPill>
             }
           >
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="size-3.5 shrink-0" />
-                {new Date(submission.created_at).toLocaleDateString()}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground tracking-tight">
+                  {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Reporting year {submission.reporting_year} ·{" "}
+                  <span className="capitalize">{submission.current_tier}</span> tier
+                </p>
               </div>
-              <div className="flex items-center gap-2 font-mono">
+            </div>
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground border-t border-border/60 pt-4">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="size-3.5 shrink-0" />
+                {new Date(submission.created_at).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <span className="flex items-center gap-1.5 font-mono">
                 <Hash className="size-3.5 shrink-0" />
                 {submission.id.slice(0, 8)}
-              </div>
-              <div className="flex items-center gap-2">
+              </span>
+              <span className="flex items-center gap-1.5">
                 <Clock className="size-3.5 shrink-0" />
                 {submission.priority}
-              </div>
-              <div className="flex items-center gap-2">
+              </span>
+              <span className="flex items-center gap-1.5">
                 <FileText className="size-3.5 shrink-0" />
                 <span className="capitalize">{submission.current_tier}</span>
-              </div>
+              </span>
             </div>
           </Card>
 
@@ -516,9 +543,10 @@ export const SubmissionDetailPage: React.FC = () => {
           )}
 
           {isCooperative && isDraft && (
-            <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-3">
+            <Card edge="none">
+              {/* Section status pills */}
               {sections && sections.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {sections.map((s) => (
                     <StatusPill key={s.section} tone={sectionStatusTone(s.status)}>
                       {s.section.replace(/_/g, " ")} — {sectionStatusLabel(s.status)}
@@ -526,50 +554,56 @@ export const SubmissionDetailPage: React.FC = () => {
                   ))}
                 </div>
               )}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 flex items-center gap-2 text-sm">
+
+              <hr className="border-border mb-4" />
+
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 text-sm">
                   {allReady ? (
                     <>
-                      <CheckCircle2 className="size-4 text-success" />
+                      <CheckCircle2 className="size-4 text-success shrink-0" />
                       <span className="font-semibold text-success">
                         All sections ready — you can submit
                       </span>
                     </>
                   ) : (
                     <>
-                      <AlertCircle className="size-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        Complete all sections before submitting
+                      <AlertCircle className="size-4 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground text-xs">
+                        Complete all sections to enable submission
                       </span>
                     </>
                   )}
                 </div>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!canSubmit || submitMutation.isPending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  {submitMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
-                  Submit to Apex
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {deleteMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="size-4" />
-                  )}
-                  Delete Draft
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
+                    Delete Draft
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!canSubmit || submitMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    {submitMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}
+                    Submit to Apex
+                  </button>
+                </div>
               </div>
-            </div>
+            </Card>
           )}
 
           {role === "apex" && submission.status === "submitted" && (
@@ -623,33 +657,59 @@ export const SubmissionDetailPage: React.FC = () => {
             )}
 
           {reviews && reviews.length > 0 && (
-            <Card title="Review History" subtitle="Actions recorded for this submission">
-              <div className="space-y-3">
-                {reviews.map((r) => (
+            <Card title="Review History" subtitle="Audit trail for this submission">
+              <div className="space-y-0">
+                {reviews.map((r, idx) => (
                   <div
                     key={r.id}
-                    className="flex gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                    className={`flex gap-4 ${idx < reviews.length - 1 ? "pb-4" : ""}`}
                   >
-                    <div className="shrink-0 mt-0.5">
-                      {r.action === "approve" ? (
-                        <CheckCircle2 className="size-4 text-success" />
-                      ) : r.action === "reject" ? (
-                        <XCircle className="size-4 text-destructive" />
-                      ) : (
-                        <ArrowLeft className="size-4 text-warning" />
+                    {/* Timeline rail */}
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`size-8 rounded-full grid place-items-center shrink-0 ring-2 ring-background ${
+                          r.action === "approve"
+                            ? "bg-success/15 text-success ring-success/10"
+                            : r.action === "reject"
+                              ? "bg-destructive/15 text-destructive ring-destructive/10"
+                              : "bg-warning/15 text-warning-foreground ring-warning/10"
+                        }`}
+                      >
+                        {r.action === "approve" ? (
+                          <CheckCircle2 className="size-4" />
+                        ) : r.action === "reject" ? (
+                          <XCircle className="size-4" />
+                        ) : (
+                          <ArrowLeft className="size-4" />
+                        )}
+                      </div>
+                      {idx < reviews.length - 1 && (
+                        <div className="w-px flex-1 bg-border/60 mt-1" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold capitalize">{r.action}</span>
-                        <span className="text-muted-foreground">·</span>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 pt-1 pb-2">
+                      <div className="flex items-center gap-2 flex-wrap text-xs mb-1">
+                        <span className="font-bold capitalize text-foreground">{r.action}</span>
+                        <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground capitalize">{r.tier} tier</span>
-                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground">
-                          {new Date(r.created_at).toLocaleString()}
+                          {new Date(r.created_at).toLocaleString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
-                      {r.comment && <p className="mt-1 text-sm text-foreground">{r.comment}</p>}
+                      {r.comment && (
+                        <p className="text-sm text-foreground bg-muted/40 rounded-lg px-3 py-2 mt-1.5 border border-border/60">
+                          {r.comment}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -658,22 +718,23 @@ export const SubmissionDetailPage: React.FC = () => {
           )}
 
           <Tabs defaultValue="financial" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg mb-4">
-              <TabsTrigger value="financial" className="flex items-center gap-2">
+            <TabsList className="w-full grid grid-cols-3 mb-5 h-auto p-1">
+              <TabsTrigger value="financial" className="flex items-center gap-2 py-2.5">
                 <FileText className="size-4" />
-                Financial Statement
+                <span>Financial</span>
               </TabsTrigger>
-              <TabsTrigger value="databases" className="flex items-center gap-2">
-                <Database className="size-4" />5 Databases
+              <TabsTrigger value="databases" className="flex items-center gap-2 py-2.5">
+                <Database className="size-4" />
+                <span>5 Databases</span>
               </TabsTrigger>
-              <TabsTrigger value="non-financial" className="flex items-center gap-2">
+              <TabsTrigger value="non-financial" className="flex items-center gap-2 py-2.5">
                 <BarChart3 className="size-4" />
-                NF Ledger
+                <span>NF Ledger</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="financial" className="space-y-4">
-              {submission.file_id && (
+              {submission.extraction_job_id && extractionJob?.source_file_id && (
                 <Card
                   title="Uploaded Document"
                   subtitle="Original financial statement file"
@@ -684,7 +745,7 @@ export const SubmissionDetailPage: React.FC = () => {
                   }
                 >
                   <DocumentViewer
-                    src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${submission.file_id}`}
+                    src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${extractionJob.source_file_id}`}
                   />
                 </Card>
               )}
@@ -764,8 +825,13 @@ function ReviewActionPanel({
   isPending: boolean;
 }) {
   const hasComment = comment.trim().length > 0;
+  const borderCls = onReject
+    ? "border-l-4 border-l-destructive/50"
+    : onReturn
+      ? "border-l-4 border-l-warning/60"
+      : "border-l-4 border-l-success/50";
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-3">
+    <div className={`rounded-xl border border-border bg-surface px-5 py-4 space-y-4 ${borderCls}`}>
       <div>
         <h3 className="text-sm font-bold text-foreground">{title}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
@@ -779,13 +845,13 @@ function ReviewActionPanel({
             : "Add a comment (optional)…"
         }
         rows={2}
-        className="w-full rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
+        className="w-full rounded-xl border border-input bg-muted/30 px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 resize-none"
       />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={onApprove}
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-semibold text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
         >
           {isPending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -798,7 +864,8 @@ function ReviewActionPanel({
           <button
             onClick={onReturn}
             disabled={isPending || !hasComment}
-            className="inline-flex items-center gap-2 rounded-xl border border-warning/30 px-4 py-2 text-sm font-semibold text-warning hover:bg-warning/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={!hasComment ? "A comment is required to return" : undefined}
+            className="inline-flex items-center gap-2 rounded-xl border border-warning/40 px-5 py-2.5 text-sm font-semibold text-warning-foreground hover:bg-warning/8 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -812,7 +879,8 @@ function ReviewActionPanel({
           <button
             onClick={onReject}
             disabled={isPending || !hasComment}
-            className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={!hasComment ? "A comment is required to reject" : undefined}
+            className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -821,6 +889,11 @@ function ReviewActionPanel({
             )}
             {rejectLabel}
           </button>
+        )}
+        {(onReturn || onReject) && !hasComment && (
+          <p className="text-[11px] text-muted-foreground ml-1">
+            A comment is required to send back
+          </p>
         )}
       </div>
     </div>
@@ -886,16 +959,25 @@ function NfDatabasesTab({
       {isCooperative && isDraft && (
         <Card
           title="Upload Non-Financial Databases"
-          subtitle="Upload your Excel file, review all imported records, then mark each section ready"
+          subtitle="Upload your Excel file containing member, savings, loan, and farm data"
+          edge="primary"
         >
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {["NF MSHIP", "NF S", "NF LOANS", "NF FS", "NF FARM"].map((sheet) => (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { sheet: "NF MSHIP", label: "Members" },
+                { sheet: "NF S", label: "Savings" },
+                { sheet: "NF LOANS", label: "Loans" },
+                { sheet: "NF FS", label: "Fixed Deposits" },
+                { sheet: "NF FARM", label: "Farm Coop" },
+              ].map(({ sheet, label }) => (
                 <div
                   key={sheet}
-                  className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center text-xs font-semibold text-muted-foreground"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
                 >
-                  {sheet}
+                  <span className="font-mono">{sheet}</span>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span>{label}</span>
                 </div>
               ))}
             </div>
@@ -1152,7 +1234,7 @@ function NfTable({
             <button
               onClick={onMarkReady}
               disabled={isUpdating}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/30 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/25 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/15 disabled:opacity-50 transition-colors"
             >
               {isUpdating ? (
                 <Loader2 className="size-3 animate-spin" />
@@ -1164,7 +1246,7 @@ function NfTable({
           )}
           <button
             onClick={() => setOpen((o) => !o)}
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted/50"
           >
             {open ? "Collapse" : "Expand"}
           </button>

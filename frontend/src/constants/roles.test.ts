@@ -86,11 +86,11 @@ describe("roles constants", () => {
       expect(ministryItems).not.toContain("/app/cooperatives");
     });
 
-    it("should include /app/data-collection only for cooperative", () => {
+    it("should include /app/submissions for cooperative", () => {
       const coopItems = Object.values(ROLE_NAV_ITEMS.cooperative).flat();
-      expect(coopItems).toContain("/app/data-collection");
+      expect(coopItems).toContain("/app/submissions");
       const ministryItems = Object.values(ROLE_NAV_ITEMS.ministry).flat();
-      expect(ministryItems).not.toContain("/app/data-collection");
+      expect(ministryItems).toContain("/app/submissions");
     });
 
     it("should include /app/users for federation and apex but not ministry (superadmin) or cooperative", () => {

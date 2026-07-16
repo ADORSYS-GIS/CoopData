@@ -96,3 +96,39 @@ export const useSubmitSubmission = () => {
     },
   });
 };
+
+// ── Chart of Accounts — reference data, cached forever ───────────────────────
+
+export interface ChartOfAccountResponse {
+  account_code: number;
+  account_name: string;
+  account_category: string;
+  account_subcategory: string | null;
+  is_total: boolean;
+  is_section_header: boolean;
+  formula: string | null;
+  display_order: number;
+}
+
+export const useChartOfAccounts = () =>
+  useQuery({
+    queryKey: ["chart-of-accounts"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/chart-of-accounts" as never,
+      );
+      if (error) throw new Error(extractErrorMessage(error));
+      return (data as ChartOfAccountResponse[]) ?? [];
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+/** Leaf-only CoA entries (no section headers, no total roll-ups) — for dropdowns */
+export const useChartOfAccountsLeafs = () => {
+  const query = useChartOfAccounts();
+  return {
+    ...query,
+    data: query.data?.filter((c) => !c.is_total && !c.is_section_header) ?? [],
+  };
+};
