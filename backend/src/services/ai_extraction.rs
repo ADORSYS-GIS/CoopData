@@ -1273,9 +1273,7 @@ impl<T: FinancialStatementExtractor + NfHeaderMapper> Extractor for T {}
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-pub fn create_extractor(
-    config: &crate::config::AppConfig,
-) -> std::sync::Arc<dyn Extractor> {
+pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn Extractor> {
     if config.extraction_backend == "llm" {
         if config.ai_api_key.is_empty() {
             tracing::warn!(

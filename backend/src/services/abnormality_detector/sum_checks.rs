@@ -3,17 +3,15 @@ use rust_decimal::Decimal;
 use crate::entities::chart_of_account;
 
 use super::calculations::{
-    any_present, child_codes, flag, get_val, parse_formula, sum_children, sum_signed, FlagOutput, ValuesMap,
+    any_present, child_codes, flag, get_val, parse_formula, sum_children, sum_signed, FlagOutput,
+    ValuesMap,
 };
 
 fn tolerance_pct() -> Decimal {
     Decimal::new(5, 2)
 }
 
-pub fn run_sum_checks(
-    coa: &[chart_of_account::Model],
-    values: &ValuesMap,
-) -> Vec<FlagOutput> {
+pub fn run_sum_checks(coa: &[chart_of_account::Model], values: &ValuesMap) -> Vec<FlagOutput> {
     let mut flags = Vec::new();
 
     for entry in coa {
@@ -30,9 +28,7 @@ pub fn run_sum_checks(
                 continue;
             }
 
-            let all_children = child_codes
-                .iter()
-                .all(|c| values.contains_key(c));
+            let all_children = child_codes.iter().all(|c| values.contains_key(c));
 
             let calculated_signed = sum_signed(values, &children);
             let calculated_unsigned = sum_children(values, &children);
@@ -50,15 +46,14 @@ pub fn run_sum_checks(
                 let partial_note = if all_children {
                     String::new()
                 } else {
-                    format!(" (partial check — not all child codes present: {:?})", child_codes)
+                    format!(
+                        " (partial check — not all child codes present: {:?})",
+                        child_codes
+                    )
                 };
                 let msg = format!(
                     "Sum check failed for {}: {} should be {} but components sum to {}{}",
-                    entry.account_name,
-                    entry.account_code,
-                    parent_val,
-                    calculated,
-                    partial_note
+                    entry.account_name, entry.account_code, parent_val, calculated, partial_note
                 );
                 flags.push(flag(
                     &format!("SUM-{}", entry.account_code),

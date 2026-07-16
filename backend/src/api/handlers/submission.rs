@@ -319,9 +319,7 @@ pub async fn validate_extraction(
         state.flag_repo.clone(),
         state.coa_repo.clone(),
     );
-    let (errors, warnings) = detector
-        .run(id, coop.id, fs.id, &coa, coop_type)
-        .await?;
+    let (errors, warnings) = detector.run(id, coop.id, fs.id, &coa, coop_type).await?;
 
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
     state

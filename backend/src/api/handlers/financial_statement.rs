@@ -147,9 +147,7 @@ pub async fn update_line_items(
     ),
     tag = "Cooperative"
 )]
-pub async fn list_chart_of_accounts(
-    State(state): State<AppState>,
-) -> AppResult<impl IntoResponse> {
+pub async fn list_chart_of_accounts(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
     let coa = state.coa_repo.find_all().await?;
     let mut resp: Vec<ChartOfAccountResponse> =
         coa.into_iter().map(ChartOfAccountResponse::from).collect();

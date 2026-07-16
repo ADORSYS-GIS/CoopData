@@ -534,8 +534,9 @@ async fn build_column_map(
         for &expected in &still_missing {
             // The LLM returns { actual_header_lowercase → canonical }
             // Find an entry where the value matches the expected canonical field
-            if let Some((actual_key, _)) =
-                ai_map.iter().find(|(_, canonical)| canonical.as_str() == expected)
+            if let Some((actual_key, _)) = ai_map
+                .iter()
+                .find(|(_, canonical)| canonical.as_str() == expected)
             {
                 // Find the column index for the original actual header
                 if let Some(&idx) = col_map.get(actual_key.as_str()) {
@@ -610,10 +611,11 @@ async fn parse_members_sheet(
         None => return,
     };
 
-    let map = match build_column_map(header_row, MEMBERS_HEADERS, SHEET_MEMBERS, result, mapper).await {
-        Some(m) => m,
-        None => return,
-    };
+    let map =
+        match build_column_map(header_row, MEMBERS_HEADERS, SHEET_MEMBERS, result, mapper).await {
+            Some(m) => m,
+            None => return,
+        };
 
     let mut row_index = 0usize;
     for row in rows {
@@ -770,10 +772,11 @@ async fn parse_savings_sheet(
         None => return,
     };
 
-    let map = match build_column_map(header_row, SAVINGS_HEADERS, SHEET_SAVINGS, result, mapper).await {
-        Some(m) => m,
-        None => return,
-    };
+    let map =
+        match build_column_map(header_row, SAVINGS_HEADERS, SHEET_SAVINGS, result, mapper).await {
+            Some(m) => m,
+            None => return,
+        };
 
     let mut row_index = 0usize;
     for row in rows {
@@ -1039,7 +1042,9 @@ async fn parse_fixed_deposits_sheet(
         None => return,
     };
 
-    let map = match build_column_map(header_row, FD_HEADERS, SHEET_FIXED_DEPOSITS, result, mapper).await {
+    let map = match build_column_map(header_row, FD_HEADERS, SHEET_FIXED_DEPOSITS, result, mapper)
+        .await
+    {
         Some(m) => m,
         None => return,
     };
@@ -1333,7 +1338,15 @@ async fn parse_farm_coop_sheet(
         None => return,
     };
 
-    let map = match build_column_map(header_row, FARM_COOP_HEADERS, SHEET_FARM_COOP, result, mapper).await {
+    let map = match build_column_map(
+        header_row,
+        FARM_COOP_HEADERS,
+        SHEET_FARM_COOP,
+        result,
+        mapper,
+    )
+    .await
+    {
         Some(m) => m,
         None => return,
     };
@@ -1513,7 +1526,8 @@ mod tests {
             "TEST",
             &mut result,
             None,
-        ).await;
+        )
+        .await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
         let map = map.unwrap();
@@ -1534,7 +1548,8 @@ mod tests {
             "TEST",
             &mut result,
             None,
-        ).await;
+        )
+        .await;
         assert!(map.is_none());
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].rule, "MISSING_HEADERS");
@@ -1553,7 +1568,8 @@ mod tests {
             "TEST",
             &mut result,
             None,
-        ).await;
+        )
+        .await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
     }

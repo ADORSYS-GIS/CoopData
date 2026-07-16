@@ -12,7 +12,12 @@ pub struct FlagOutput {
     pub field_ref: Option<String>,
 }
 
-pub fn flag(rule_id: &str, severity: &str, message: String, field_ref: Option<String>) -> FlagOutput {
+pub fn flag(
+    rule_id: &str,
+    severity: &str,
+    message: String,
+    field_ref: Option<String>,
+) -> FlagOutput {
     FlagOutput {
         rule_id: rule_id.to_string(),
         severity: severity.to_string(),
@@ -50,16 +55,17 @@ pub fn sum_signed(v: &ValuesMap, codes: &[(i32, bool)]) -> Decimal {
         .iter()
         .map(|(c, pos)| {
             let val = get_zero(v, *c);
-            if *pos { val } else { -val }
+            if *pos {
+                val
+            } else {
+                -val
+            }
         })
         .sum()
 }
 
 pub fn sum_children(v: &ValuesMap, codes: &[(i32, bool)]) -> Decimal {
-    codes
-        .iter()
-        .map(|(c, _)| get_zero(v, *c))
-        .sum()
+    codes.iter().map(|(c, _)| get_zero(v, *c)).sum()
 }
 
 #[allow(dead_code)]

@@ -113,9 +113,9 @@ impl AbnormalityDetector {
             .collect();
         self.flag_repo.bulk_create(active_models).await?;
 
-        let (errors, warnings) = all_flags.into_iter().partition(|f| {
-            f.severity == "critical" || f.severity == "high"
-        });
+        let (errors, warnings) = all_flags
+            .into_iter()
+            .partition(|f| f.severity == "critical" || f.severity == "high");
 
         Ok((errors, warnings))
     }
