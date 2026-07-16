@@ -1364,53 +1364,61 @@ export const AnalyticsPage: React.FC = () => {
         {/* ── Savings, Loans & Assets main chart ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* ── Premium Area/Line Chart with period selector ── */}
-          <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-            {/* Header: stats + period toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Portfolio Overview
-                </p>
-                <p className="font-heading text-2xl font-bold text-foreground num">
-                  {role === "cooperative"
-                    ? `$${portfolioTotal.savings.toLocaleString()}K`
-                    : formatNumber(portfolioTotal.assets)}
-                </p>
-                <div className="flex items-center gap-4 mt-2">
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />
-                    {role === "cooperative" ? "Savings" : "Assets"}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />
-                    Loans
-                  </span>
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />
-                    {role === "cooperative" ? "Assets" : "Savings"}
-                  </span>
+          <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
+            {isCooperative && !coopHasApprovedSubmission ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground min-h-[300px]">
+                <Activity className="size-8 mx-auto mb-3 opacity-40" />
+                <p className="text-sm font-semibold">No financial data yet</p>
+                <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
+              </div>
+            ) : (
+              <>
+                {/* Header: stats + period toggle */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      Portfolio Overview
+                    </p>
+                    <p className="font-heading text-2xl font-bold text-foreground num">
+                      {role === "cooperative"
+                        ? `$${portfolioTotal.savings.toLocaleString()}K`
+                        : formatNumber(portfolioTotal.assets)}
+                    </p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />
+                        {role === "cooperative" ? "Savings" : "Assets"}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />
+                        Loans
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />
+                        {role === "cooperative" ? "Assets" : "Savings"}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Period selector */}
+                  <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
+                    {(["1D", "5D", "1M", "1Y"] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPeriod(p)}
+                        className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
+                          period === p
+                            ? "bg-surface text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              {/* Period selector */}
-              <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
-                {(["1D", "5D", "1M", "1Y"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
-                      period === p
-                        ? "bg-surface text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Chart */}
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+                {/* Chart */}
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={periodSlice} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
                   <defs>
                     <linearGradient id="grad-members-new" x1="0" y1="0" x2="0" y2="1">
@@ -1541,6 +1549,8 @@ export const AnalyticsPage: React.FC = () => {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+            </>
+            )}
           </div>
 
           {/* Gender & Status Doughnuts (replaces plain 2D pie) */}
@@ -1560,9 +1570,18 @@ export const AnalyticsPage: React.FC = () => {
               : "Authorized portfolio financial balances"
           }
         >
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
+          {isCooperative && !coopHasApprovedSubmission ? (
+            <div className="flex items-center justify-center text-center text-muted-foreground min-h-[320px]">
+              <div>
+                <Activity className="size-8 mx-auto mb-3 opacity-40" />
+                <p className="text-sm font-semibold">No financial data yet</p>
+                <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
                 data={filteredMonthlyFinancials}
                 margin={{ top: 16, right: 24, left: -10, bottom: 0 }}
                 barGap={3}
@@ -1711,6 +1730,7 @@ export const AnalyticsPage: React.FC = () => {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+          )}
         </Card>
 
         {/* ── Sector Pie + Youth Stacked Bar (admin/federation/ministry only) ── */}
