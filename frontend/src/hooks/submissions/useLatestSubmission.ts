@@ -2,16 +2,26 @@ import { useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
 import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
 
 /**
- * Returns the cooperative's submission with the highest reporting_year.
+ * Returns the cooperative's approved submission for the given reporting year.
+ * If `reportingYear` is provided, only submissions matching that year are
+ * considered. If none is approved for that year, returns undefined (so all
+ * analytics show empty rather than stale data from a different year).
  *
- * Design decision: we always pick by year, not by status.
- * If the 2025 submission was returned by apex (back to draft),
- * we still show its KPIs — not fall back to the 2024 approved one.
- * KPIs reflect whatever data is currently on the submission's financial
- * statement, giving the cooperative accurate feedback during correction.
+ * This ensures that the executive analytics dashboard never displays
+ * tentative or unapproved data that could later be rejected.
  */
-export const useLatestSubmission = (): SubmissionResponse | undefined => {
+export const useLatestSubmission = (reportingYear?: number): SubmissionResponse | undefined => {
   const { data: submissions = [] } = useCooperativeSubmissions();
-  if (submissions.length === 0) return undefined;
-  return [...submissions].sort((a, b) => b.reporting_year - a.reporting_year)[0];
+
+  const approvedSubmissions = submissions.filter((sub) => {
+    if (sub.status !== "approved") return false;
+    if (reportingYear !== undefined && sub.reporting_year !== reportingYear) return false;
+    return true;
+  });
+
+  if (approvedSubmissions.length === 0) return undefined;
+
+  return [...approvedSubmissions].sort(
+    (a, b) => b.reporting_year - a.reporting_year
+  )[0];
 };

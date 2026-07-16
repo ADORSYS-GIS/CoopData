@@ -161,7 +161,23 @@ impl NfIndicatorEngine {
         db: &DatabaseConnection,
         cooperative_id: Uuid,
     ) -> crate::error::AppResult<NfStatisticsResponse> {
-        Self::compute_for_submission(db, cooperative_id, None).await
+        use crate::entities::submission;
+        use sea_orm::{QueryFilter, QueryOrder, EntityTrait, ColumnTrait};
+
+        let latest_approved = submission::Entity::find()
+            .filter(submission::Column::CooperativeId.eq(cooperative_id))
+            .filter(submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Approved))
+            .order_by_desc(submission::Column::ReportingYear)
+            .one(db)
+            .await?;
+
+        if let Some(sub) = latest_approved {
+            Self::compute_for_submission(db, cooperative_id, Some(sub.id)).await
+        } else {
+            // If there's no approved submission, compute with a dummy non-existent ID
+            // so that it safely returns zero for all metrics.
+            Self::compute_for_submission(db, cooperative_id, Some(Uuid::nil())).await
+        }
     }
 
     pub async fn compute_for_submission(

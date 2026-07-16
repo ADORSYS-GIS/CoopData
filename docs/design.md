@@ -164,3 +164,25 @@ Already defined in `docs/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key endpoints:
 ---
 
 **Reference:** Full architecture details in `docs/RBAC_AND_AUTH_SYSTEM.md`
+
+---
+
+## 11. Hierarchical Financial and Non-Financial Analytics
+
+All roles receive accurate financial and non-financial analytics with authorized drill-down from Ministry through Federation, Apex, Cooperative, Submission, and raw records.
+
+### Delivery contract
+
+- Dashboard indicators use the financial KPI suite and the 56 business non-financial indicators in `sources/KPI-INDICATORS-AUDIT.md`.
+- Analytics are scoped to reporting submissions and reporting years. Supervisory portfolio analytics use approved submissions by default; historical charts use dated snapshots rather than mutable current non-financial rows.
+- Higher tiers retain all authorized descendant detail and add aggregate, comparison, trend and risk views.
+- Server-side scope enforcement applies to every hierarchy and filter query.
+- Production visualizations have loading, empty and error states and never replace unavailable live data with mock values.
+
+### Delivery sequence
+
+1. Submission-period financial and non-financial aggregation APIs with hierarchy scope enforcement.
+2. Generated-client hooks and explicit frontend response types.
+3. Real role-specific cards, trends, comparisons and risk views.
+4. Aggregate-to-detail drill-down to cooperative, submission and raw records.
+5. Calculation, scope and role-journey verification.

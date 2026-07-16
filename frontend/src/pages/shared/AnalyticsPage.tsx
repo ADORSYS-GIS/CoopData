@@ -58,6 +58,13 @@ import { useMyCooperativeProfile, useCooperatives } from "@/hooks/cooperatives/u
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes } from "@/hooks/apexes/useApexes";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   TrendingUp,
   TrendingDown,
   Users,
@@ -78,6 +85,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Calendar,
 } from "lucide-react";
 import { format, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from "date-fns";
 
@@ -254,9 +262,18 @@ function buildFiltersByRole(
     { value: "Transport", label: "Transport" },
     { value: "Manufacturing", label: "Manufacturing" },
   ];
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [
+    { value: String(currentYear + 1), label: String(currentYear + 1) },
+    { value: String(currentYear), label: String(currentYear) },
+    { value: String(currentYear - 1), label: String(currentYear - 1) },
+    { value: String(currentYear - 2), label: String(currentYear - 2) },
+    { value: String(currentYear - 3), label: String(currentYear - 3) },
+  ];
 
   if (role === "ministry") {
     return [
+      { id: "year", label: "Reporting Year", options: yearOptions },
       { id: "federation", label: "Federation", options: federationOptions },
       { id: "apex", label: "Apex", options: apexOptions },
       { id: "cooperative", label: "Cooperative", options: coopOptions },
@@ -266,6 +283,7 @@ function buildFiltersByRole(
   }
   if (role === "federation") {
     return [
+      { id: "year", label: "Reporting Year", options: yearOptions },
       { id: "apex", label: "Apex", options: apexOptions },
       { id: "cooperative", label: "Cooperative", options: coopOptions },
       { id: "region", label: "Region", options: regionOptions },
@@ -274,23 +292,14 @@ function buildFiltersByRole(
   }
   if (role === "apex") {
     return [
+      { id: "year", label: "Reporting Year", options: yearOptions },
       { id: "cooperative", label: "Cooperative", options: coopOptions },
       { id: "region", label: "Region", options: regionOptions },
       { id: "sector", label: "Sector", options: sectorOptions },
     ];
   }
   return [
-    {
-      id: "period",
-      label: "Period",
-      options: [
-        { value: "ytd", label: "Year to Date" },
-        { value: "q1", label: "Q1 2025" },
-        { value: "q2", label: "Q2 2025" },
-        { value: "q3", label: "Q3 2025" },
-        { value: "q4", label: "Q4 2025" },
-      ],
-    },
+    { id: "year", label: "Reporting Year", options: yearOptions },
   ];
 }
 
@@ -320,17 +329,29 @@ export const AnalyticsPage: React.FC = () => {
   const role = useUserRole();
   const navigate = useNavigate();
 
+  // ── Filter state (year drives reportingYear for all hooks) ──
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({
+    year: String(new Date().getFullYear()),
+    region: "all",
+    sector: "all",
+    federationId: "all",
+    apexId: "all",
+    cooperativeId: "all",
+  });
+  const currentYear = Number(filterValues.year) || new Date().getFullYear();
+  const isCooperative = role === "cooperative";
+
   // ── Real data hooks (cooperative role) ──
-  const latestSubmission = useLatestSubmission();
+  // latestSubmission is scoped to the selected year so analytics only show
+  // data from an approved submission of that exact year.
+  const latestSubmission = useLatestSubmission(isCooperative ? currentYear : undefined);
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
-    role === "cooperative" ? latestSubmission?.id : undefined,
+    isCooperative ? latestSubmission?.id : undefined,
   );
 
   // ── Benchmark data for cooperative insight panel ──
   // Fetch benchmarks for the KPIs that have sector thresholds defined.
   // These calls are only enabled when the user is cooperative role.
-  const isCooperative = role === "cooperative";
-  const currentYear = new Date().getFullYear();
   const benchmarkPar30 = useBenchmarks(
     { kpiName: "par30", reportingYear: currentYear },
     isCooperative,
@@ -384,13 +405,7 @@ export const AnalyticsPage: React.FC = () => {
     return buildFiltersByRole(role, federationsData, apexesData, cooperativesData);
   }, [role, federationsData, apexesData, cooperativesData]);
 
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({
-    region: "all",
-    sector: "all",
-    federationId: "all",
-    apexId: "all",
-    cooperativeId: "all",
-  });
+
   const [showFilters, setShowFilters] = useState(false);
   const [period, setPeriod] = useState<"1D" | "5D" | "1M" | "1Y">("1Y");
   const [compPeriod, setCompPeriod] = useState<"Week" | "Month" | "Quarter" | "Year">("Year");
@@ -399,8 +414,9 @@ export const AnalyticsPage: React.FC = () => {
     to: new Date(),
   });
 
-  const activeFilterCount = Object.values(filterValues).filter(
-    (v) => v !== "all" && v !== "ytd",
+  const defaultYear = String(new Date().getFullYear());
+  const activeFilterCount = Object.entries(filterValues).filter(
+    ([key, v]) => key !== "year" && v !== "all" && v !== "ytd",
   ).length;
 
   const handleFilterChange = useCallback((filterId: string, value: string) => {
@@ -411,6 +427,7 @@ export const AnalyticsPage: React.FC = () => {
 
   const clearFilters = useCallback(() => {
     setFilterValues({
+      year: String(new Date().getFullYear()),
       region: "all",
       sector: "all",
       federationId: "all",
@@ -430,8 +447,19 @@ export const AnalyticsPage: React.FC = () => {
   const regionComplianceData = useRegionCompliance(!!role, filterValues).data;
   const sectorBreakdownData = useSectorBreakdown(!!role, filterValues).data;
 
+  // For the cooperative role, only fetch chart data when there is an
+  // approved submission for the selected year. Without this gate, the
+  // backend would return data from ANY year when no submission_id is
+  // provided, leaking data from a different year into the selected year view.
+  const coopHasApprovedSubmission = isCooperative ? !!latestSubmission : true;
+
   // ── NF Statistics (real data from uploaded NF databases) ──
-  const nfStats = useNfStatistics(!!role).data;
+  // We always fetch when role is set so the query key stays stable, but we
+  // explicitly override to undefined when no approved submission for the year.
+  // This defeats React Query's stale-cache problem: even when `enabled:false`,
+  // RQ still returns the last cached value — so we must null it out manually.
+  const _nfStatsRaw = useNfStatistics(!!role && coopHasApprovedSubmission).data;
+  const nfStats = isCooperative && !coopHasApprovedSubmission ? undefined : _nfStatsRaw;
 
   // ── National Overview (aggregated KPI traffic-light for admin roles) ──
   const nationalOverview = useNationalOverview(
@@ -457,7 +485,12 @@ export const AnalyticsPage: React.FC = () => {
     return baseParams;
   }, [role, currentYear, latestSubmission?.cooperative_id, filterValues]);
   
-  const { data: monthlyTrendData } = useMonthlyTrend(monthlyTrendParams, !!role);
+  const { data: _monthlyTrendRaw } = useMonthlyTrend(
+    monthlyTrendParams,
+    !!role && coopHasApprovedSubmission,
+  );
+  const monthlyTrendData = isCooperative && !coopHasApprovedSubmission ? undefined : _monthlyTrendRaw;
+
   const { data: submissionActivityData } = useSubmissionActivity(currentYear, !!role);
 
   const nfTrendParams = useMemo(() => {
@@ -466,7 +499,8 @@ export const AnalyticsPage: React.FC = () => {
     }
     return {};
   }, [role, latestSubmission?.cooperative_id]);
-  const { data: nfTrendData } = useNfTrend(nfTrendParams, !!role);
+  const { data: _nfTrendRaw } = useNfTrend(nfTrendParams, !!role && coopHasApprovedSubmission);
+  const nfTrendData = isCooperative && !coopHasApprovedSubmission ? undefined : _nfTrendRaw;
 
   // ── Dynamic "At a Glance" summaries keyed by role ──
   const ministerySummary: { label: string; value: string; sub: string }[] = [
@@ -620,6 +654,9 @@ export const AnalyticsPage: React.FC = () => {
 
   // ── Reactive data ──
   const localGrowthTrend = useMemo(() => {
+    // No approved submission for selected year → return empty so charts show
+    // no data rather than a misleading flat $0K line.
+    if (isCooperative && !coopHasApprovedSubmission) return [];
     if (monthlyTrendData?.months) {
       return monthlyTrendData.months.map((m) => ({
         month: m.month_label,
@@ -642,7 +679,7 @@ export const AnalyticsPage: React.FC = () => {
       { month: "Nov", assets: 0, savings: 0, loans: 0 },
       { month: "Dec", assets: 0, savings: 0, loans: 0 },
     ];
-  }, [monthlyTrendData]);
+  }, [monthlyTrendData, isCooperative, coopHasApprovedSubmission]);
 
   const filteredGrowthTrend = useMemo(() => {
     const filtered = filterByDateRange(
@@ -678,20 +715,15 @@ export const AnalyticsPage: React.FC = () => {
 
   const filteredMonthlyFinancials = useMemo(() => {
     if (monthlyTrendData?.months) {
-      const hasRealData = monthlyTrendData.months.some(
-        (m) => m.savings > 0 || m.loans > 0 || m.assets > 0,
-      );
-      if (hasRealData) {
-        return monthlyTrendData.months.map((m) => ({
-          month: m.month_label,
-          monthShort: m.month_label,
-          savings: Math.round(m.savings / 1000),
-          loans: Math.round(m.loans / 1000),
-          assets: Math.round(m.assets / 1000),
-          variation: Math.round((m.savings / 1000) * 0.1),
-          date: `${monthlyTrendData.year}-${String(m.month).padStart(2, "0")}-15`,
-        }));
-      }
+      return monthlyTrendData.months.map((m) => ({
+        month: m.month_label,
+        monthShort: m.month_label,
+        savings: Math.round(m.savings / 1000),
+        loans: Math.round(m.loans / 1000),
+        assets: Math.round(m.assets / 1000),
+        variation: Math.round((m.savings / 1000) * 0.1),
+        date: `${monthlyTrendData.year}-${String(m.month).padStart(2, "0")}-15`,
+      }));
     }
     return [] as {
       month: string;
@@ -1079,65 +1111,98 @@ export const AnalyticsPage: React.FC = () => {
         </div>
         {/* ── Filter Bar ── */}
         <div className="flex flex-wrap items-center gap-3">
-          {filters.length > 0 && (
-            <>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
-                  activeFilterCount > 0
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted/50"
-                }`}
-              >
-                <Filter className="size-3.5" />
-                Filters
-                {activeFilterCount > 0 && (
-                  <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center">
-                    {activeFilterCount}
-                  </span>
-                )}
-                {showFilters ? (
-                  <ChevronUp className="size-3" />
-                ) : (
-                  <ChevronDown className="size-3" />
-                )}
-              </button>
+          {(() => {
+            const yearFilter = filters.find((f) => f.id === "year");
+            const otherFilters = filters.filter((f) => f.id !== "year");
 
-              {/* Active filter pills */}
-              {Object.entries(filterValues).map(([key, value]) => {
-                if (value === "all" || value === "ytd") return null;
-                const filter = filters.find((f) => f.id === key);
-                const option = filter?.options.find((o) => o.value === value);
-                if (!option) return null;
-                return (
-                  <span
-                    key={key}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold"
-                  >
-                    <span className="text-[10px] uppercase tracking-wider text-primary/60">
-                      {filter?.label}:
-                    </span>
-                    {option.label}
-                    <button
-                      onClick={() => handleFilterChange(key, "all")}
-                      className="hover:bg-primary/20 rounded-full p-0.5"
+            return (
+              <>
+                {/* Year Dropdown directly in the bar */}
+                {yearFilter && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold transition-all hover:bg-muted/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+                    <Calendar className="size-3.5 text-primary" />
+                    <span className="text-muted-foreground uppercase whitespace-nowrap">Reporting Year:</span>
+                    <Select
+                      value={filterValues.year}
+                      onValueChange={(val) => handleFilterChange("year", val)}
                     >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                );
-              })}
+                      <SelectTrigger className="h-auto border-none bg-transparent p-0 font-bold text-foreground shadow-none focus:ring-0 [&>svg]:opacity-50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearFilter.options.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} className="font-bold cursor-pointer">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="press-feedback text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  Clear all
-                </button>
-              )}
-            </>
-          )}
+                {/* More Filters button (only if there are other filters) */}
+                {otherFilters.length > 0 && (
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+                      activeFilterCount > 0
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    <Filter className="size-3.5" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                    {showFilters ? (
+                      <ChevronUp className="size-3" />
+                    ) : (
+                      <ChevronDown className="size-3" />
+                    )}
+                  </button>
+                )}
+
+                {/* Active filter pills */}
+                {Object.entries(filterValues).map(([key, value]) => {
+                  if (key === "year") return null;
+                  if (value === "all" || value === "ytd") return null;
+                  const filter = filters.find((f) => f.id === key);
+                  const option = filter?.options.find((o) => o.value === value);
+                  if (!option) return null;
+                  const resetValue = key === "year" ? defaultYear : "all";
+                  return (
+                    <span
+                      key={key}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold z-10 relative"
+                    >
+                      <span className="text-[10px] uppercase tracking-wider text-primary/60">
+                        {filter?.label}:
+                      </span>
+                      {option.label}
+                      <button
+                        onClick={() => handleFilterChange(key, resetValue)}
+                        className="hover:bg-primary/20 rounded-full p-0.5 relative z-20"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="press-feedback text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </>
+            );
+          })()}
 
           <div className="flex-1" />
 
@@ -1161,7 +1226,7 @@ export const AnalyticsPage: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filters.map((filter) => (
+              {filters.filter((f) => f.id !== "year").map((filter) => (
                 <div key={filter.id}>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                     {filter.label}
@@ -1294,76 +1359,9 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         ) : null}
 
-        {/* ── Benchmark Insight Panel (cooperative only) ── */}
-        {role === "cooperative" && (
-          <BenchmarkInsightPanel
-            kpis={kpisData?.kpis ?? []}
-            benchmarks={benchmarksForPanel}
-            isLoading={kpisLoading || benchmarksLoading}
-          />
-        )}
 
-        {/* ── Secondary KPI Insight Cards (real data) ── */}
-        {(() => {
-          const totalMembers =
-            role === "cooperative"
-              ? (nfStats?.membership.total ?? null)
-              : nationalOverview
-                ? nationalOverview.total_cooperatives
-                : null;
-          const totalMembersLabel =
-            role === "cooperative" ? "Members in your cooperative" : "Registered cooperatives";
-          const sectorCount =
-            filteredSectorBreakdown.length > 0 ? filteredSectorBreakdown.length : null;
-          return (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                icon={TrendingUp}
-                label="YoY Growth"
-                value="—"
-                subtitle="No year-over-year data"
-                tone="success"
-              />
-              <StatCard
-                icon={Users}
-                label={role === "cooperative" ? "Total Members" : "Total Cooperatives"}
-                value={
-                  totalMembers != null
-                    ? role === "cooperative" && totalMembers >= 1000
-                      ? `${(totalMembers / 1000).toFixed(1)}K`
-                      : totalMembers.toLocaleString()
-                    : "—"
-                }
-                subtitle={totalMembersLabel}
-                tone="primary"
-              />
-              <StatCard
-                icon={PieChartIcon}
-                label="Sector Diversity"
-                value={sectorCount != null ? `${sectorCount} sectors` : "—"}
-                subtitle="Active industry groups"
-                tone="info"
-              />
-              <StatCard
-                icon={BarChart3}
-                label="Avg Compliance"
-                value={filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
-                subtitle={
-                  role === "ministry"
-                    ? "National average"
-                    : role === "federation"
-                      ? "Federation average"
-                      : role === "apex"
-                        ? "Apex average"
-                        : "Your cooperative"
-                }
-                tone="accent"
-              />
-            </div>
-          );
-        })()}
 
-        {/* ── Pro Line Chart + 3D Pie ── */}
+        {/* ── Savings, Loans & Assets main chart ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* ── Premium Area/Line Chart with period selector ── */}
           <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
@@ -1715,281 +1713,144 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* ── Sector Pie + Youth Stacked Bar ── */}
+        {/* ── Sector Pie + Youth Stacked Bar (admin/federation/ministry only) ── */}
+        {role !== "cooperative" && (
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Sector Capital Share — 2D Doughnut (or simple card for cooperative) */}
-          {role === "cooperative" ? (
-            (() => {
-              const sectorName = myCoopProfile?.institution_type ?? null;
-              const coopSector = sectorName
-                ? filteredSectorBreakdown.find(
-                    (s) => s.name?.toLowerCase() === sectorName.toLowerCase(),
-                  )
-                : null;
-              const capitalShare = coopSector ? `${coopSector.value}%` : "—";
-              const coopCount = coopSector
-                ? ((coopSector as unknown as { count?: number }).count ?? "—")
-                : "—";
-              return (
-                <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Your Sector
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Cooperative classification
-                    </p>
-                  </div>
-                  <div className="my-6 flex flex-col items-center">
-                    <div className="size-16 rounded-full bg-accent/10 grid place-items-center">
-                      <BarChart3 className="size-7 text-accent" />
-                    </div>
-                    <p className="font-heading text-2xl font-bold text-foreground mt-4">
-                      {sectorName ?? "—"}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {myCoopProfile?.name ?? "—"}
-                    </p>
-                  </div>
-                  <div className="border-t border-border pt-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Capital share</span>
-                      <span className="font-bold num text-foreground">{capitalShare}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Sector avg. compliance</span>
-                      <span className="font-bold num text-foreground">
-                        {filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Cooperatives in sector</span>
-                      <span className="font-bold num text-foreground">
-                        {typeof coopCount === "number" ? coopCount.toLocaleString() : coopCount}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()
-          ) : (
-            <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
-              <div className="mb-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Sector Capital Share
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Share of portfolio by sector
-                </p>
-              </div>
-              <div className="relative flex-1 flex items-center justify-center">
-                <div className="h-52 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={filteredSectorBreakdown}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={56}
-                        outerRadius={82}
-                        paddingAngle={3}
-                        startAngle={90}
-                        endAngle={-270}
-                      >
-                        {filteredSectorBreakdown.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill="var(--accent)"
-                            fillOpacity={sectorOpacities[i] ?? 0.3}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          background: "var(--surface)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "10px",
-                          fontSize: "12px",
-                          fontFamily: "var(--font-sans)",
-                          padding: "8px 12px",
-                          boxShadow: "var(--shadow-elev-2)",
-                        }}
-                        itemStyle={{ color: "var(--foreground)" }}
-                        formatter={(value: number) => [`${value}%`]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                {/* Center label */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="font-heading text-xl font-bold text-foreground num leading-none">
-                    {filteredSectorBreakdown.length}
-                  </span>
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
-                    Sectors
-                  </span>
-                </div>
-              </div>
-              <ul className="space-y-1.5 border-t border-border pt-3 mt-2">
-                {filteredSectorBreakdown.map((s, i) => (
-                  <li key={s.name} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <span
-                        className="size-2.5 rounded-sm shrink-0"
-                        style={{ background: "var(--accent)", opacity: sectorOpacities[i] ?? 0.3 }}
-                      />
-                      {s.name}
-                    </span>
-                    <span className="font-bold num text-foreground">{s.value}%</span>
-                  </li>
-                ))}
-              </ul>
+          <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
+            <div className="mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Sector Capital Share
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Share of portfolio by sector
+              </p>
             </div>
-          )}
+            <div className="relative flex-1 flex items-center justify-center">
+              <div className="h-52 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={filteredSectorBreakdown}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={56}
+                      outerRadius={82}
+                      paddingAngle={3}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      {filteredSectorBreakdown.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill="var(--accent)"
+                          fillOpacity={sectorOpacities[i] ?? 0.3}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "10px",
+                        fontSize: "12px",
+                        fontFamily: "var(--font-sans)",
+                        padding: "8px 12px",
+                        boxShadow: "var(--shadow-elev-2)",
+                      }}
+                      itemStyle={{ color: "var(--foreground)" }}
+                      formatter={(value: number) => [`${value}%`]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="font-heading text-xl font-bold text-foreground num leading-none">
+                  {filteredSectorBreakdown.length}
+                </span>
+                <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
+                  Sectors
+                </span>
+              </div>
+            </div>
+            <ul className="space-y-1.5 border-t border-border pt-3 mt-2">
+              {filteredSectorBreakdown.map((s, i) => (
+                <li key={s.name} className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <span
+                      className="size-2.5 rounded-sm shrink-0"
+                      style={{ background: "var(--accent)", opacity: sectorOpacities[i] ?? 0.3 }}
+                    />
+                    {s.name}
+                  </span>
+                  <span className="font-bold num text-foreground">{s.value}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <Card
             className="lg:col-span-2"
-            title={role === "cooperative" ? "Youth Participation" : "Youth Participation by Region"}
-            subtitle={
-              role === "cooperative"
-                ? "Youth vs adult member composition"
-                : "% of members under 35 years old"
-            }
+            title="Youth Participation by Region"
+            subtitle="% of members under 35 years old"
           >
-            {role === "cooperative" ? (
-              <div className="h-60">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      {
-                        name: "Your Co-op",
-                        youth: nfStats ? Math.round(nfStats.membership.youth_pct) : 0,
-                        adult: nfStats ? Math.round(nfStats.membership.adult_pct) : 0,
-                      },
-                    ]}
-                    layout="vertical"
-                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      domain={[0, 100]}
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      width={70}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      labelStyle={{
-                        fontWeight: "600",
-                        color: "var(--foreground)",
-                        marginBottom: "4px",
-                      }}
-                      formatter={(value: number) => [`${value}%`]}
-                    />
-                    <Bar
-                      dataKey="youth"
-                      fill="var(--accent)"
-                      fillOpacity={1}
-                      radius={[0, 0, 0, 0]}
-                      barSize={28}
-                      name="Youth (< 35)"
-                    />
-                    <Bar
-                      dataKey="adult"
-                      fill="var(--accent)"
-                      fillOpacity={0.3}
-                      radius={[0, 6, 6, 0]}
-                      barSize={28}
-                      name="Adult (35+)"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-60">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={youthData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis
-                      dataKey="name"
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      labelStyle={{
-                        fontWeight: "600",
-                        color: "var(--foreground)",
-                        marginBottom: "4px",
-                      }}
-                    />
-                    <Bar
-                      dataKey="youth"
-                      stackId="a"
-                      fill="var(--chart-1)"
-                      barSize={20}
-                      name="Youth (< 35)"
-                    />
-                    <Bar
-                      dataKey="adult"
-                      stackId="a"
-                      fill="var(--muted)"
-                      radius={[4, 4, 0, 0]}
-                      barSize={20}
-                      name="Adult (35+)"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={youthData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="var(--muted-foreground)"
+                    fontSize={11}
+                    fontFamily="var(--font-sans)"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="var(--muted-foreground)"
+                    fontSize={11}
+                    fontFamily="var(--font-sans)"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontFamily: "var(--font-sans)",
+                      padding: "8px 12px",
+                      boxShadow: "var(--shadow-elev-2)",
+                    }}
+                    itemStyle={{ color: "var(--foreground)" }}
+                    labelStyle={{
+                      fontWeight: "600",
+                      color: "var(--foreground)",
+                      marginBottom: "4px",
+                    }}
+                  />
+                  <Bar
+                    dataKey="youth"
+                    stackId="a"
+                    fill="var(--chart-1)"
+                    barSize={20}
+                    name="Youth (< 35)"
+                  />
+                  <Bar
+                    dataKey="adult"
+                    stackId="a"
+                    fill="var(--muted)"
+                    radius={[4, 4, 0, 0]}
+                    barSize={20}
+                    name="Adult (35+)"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         </div>
+        )}
+
 
         {/* ── Non-Financial Core Components ── */}
         {nfStats && nfStats.membership.total > 0 && role === "cooperative" && (
@@ -2034,7 +1895,7 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         )}
 
-        {/* ── Membership Horizontal Bar + Loan Portfolio Pie + Compliance Radial ── */}
+        {/* ── Compliance Trend / Region Compliance ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             title="Membership and Inclusion Trend"
@@ -2386,100 +2247,11 @@ export const AnalyticsPage: React.FC = () => {
             </Card>
           )}
 
-          {submissionActivityTrend.some((point) => point.submitted > 0) && (
-            <Card
-              title="Submission Activity"
-              subtitle="Actual submissions and review outcomes by reporting month"
-            >
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={submissionActivityTrend}
-                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis
-                      dataKey="month"
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      labelStyle={{
-                        fontWeight: "600",
-                        color: "var(--foreground)",
-                        marginBottom: "4px",
-                      }}
-                      formatter={(value: number) => [value.toLocaleString()]}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        fontSize: "11px",
-                        fontFamily: "var(--font-sans)",
-                        color: "var(--muted-foreground)",
-                      }}
-                    />
-                    <Area
-                      dataKey="submitted"
-                      fill="var(--chart-1)"
-                      fillOpacity={0.06}
-                      stroke="var(--chart-1)"
-                      strokeWidth={2}
-                      name="Submitted"
-                    />
-                    <Area
-                      dataKey="approved"
-                      fill="var(--chart-4)"
-                      fillOpacity={0.06}
-                      stroke="var(--chart-4)"
-                      strokeWidth={2}
-                      name="Approved"
-                    />
-                    <Area
-                      dataKey="inReview"
-                      fill="var(--chart-3)"
-                      fillOpacity={0.04}
-                      stroke="var(--chart-3)"
-                      strokeWidth={2}
-                      name="In review"
-                    />
-                    <Area
-                      dataKey="rejected"
-                      fill="var(--destructive)"
-                      fillOpacity={0.04}
-                      stroke="var(--destructive)"
-                      strokeWidth={2}
-                      name="Rejected"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          )}
+
         </div>
 
-        {/* ── Period Comparison + Region Trend side by side ── */}
-        {mergedCompData.length > 0 && (
+        {/* ── Period Comparison + Region Trend (admin only) ── */}
+        {role !== "cooperative" && mergedCompData.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* ── Current vs Previous Period Comparison Chart ── */}
             <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
@@ -2906,76 +2678,8 @@ export const AnalyticsPage: React.FC = () => {
         )}
         {/* end side-by-side grid */}
 
-        {/* ── Performance Score (leaderboard for admin, metrics for cooperative) ── */}
-        {role === "cooperative" ? (
-          <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
-            <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-foreground">Your Performance Metrics</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Key performance indicators from your latest submission
-                </p>
-              </div>
-              {latestSubmission && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-                  FY {latestSubmission.reporting_year}
-                </span>
-              )}
-            </div>
-            {kpisLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-surface p-5 animate-pulse space-y-2">
-                    <div className="h-2.5 w-20 rounded bg-muted" />
-                    <div className="h-7 w-16 rounded bg-muted" />
-                    <div className="h-2 w-24 rounded bg-muted" />
-                  </div>
-                ))}
-              </div>
-            ) : kpisData && kpisData.kpis.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border">
-                {kpisData.kpis.slice(0, 6).map((kpi) => (
-                  <div key={kpi.name} className="bg-surface p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {kpi.name.replace(/_/g, " ")}
-                    </p>
-                    <p
-                      className={`font-heading text-2xl font-bold num mt-2 ${
-                        kpi.status === "green"
-                          ? "text-success"
-                          : kpi.status === "red"
-                            ? "text-destructive"
-                            : kpi.status === "amber"
-                              ? "text-warning-foreground"
-                              : "text-foreground"
-                      }`}
-                    >
-                      {kpi.formatted}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      {kpi.benchmark !== undefined && (
-                        <span className="text-[11px] text-muted-foreground">
-                          Benchmark:{" "}
-                          {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-3">
-                <Activity className="size-10 opacity-30" />
-                <div>
-                  <p className="text-sm font-semibold">No performance data yet</p>
-                  <p className="text-xs mt-1">
-                    Submit a financial statement to see your KPIs here.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : nationalOverview ? (
+        {/* ── Performance Score leaderboard (admin/ministry/federation only) ── */}
+        {role !== "cooperative" && nationalOverview ? (
           <div className="space-y-6">
             <TopBottomLeaderboard
               cooperatives={nationalOverview.cooperatives}
@@ -3076,7 +2780,6 @@ export const AnalyticsPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
             </div>
           </div>
         )}

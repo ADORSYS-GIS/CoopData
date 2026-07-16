@@ -66,12 +66,12 @@ pub(crate) async fn filter_cooperatives(
                 }
             }
             if let Some(fid) = federation_id {
-                if c.federation_id != Some(fid) {
+                if c.federation_org_id != Some(fid) {
                     return false;
                 }
             }
             if let Some(aid) = apex_id {
-                if c.apex_id != Some(aid) {
+                if c.apex_id != aid {
                     return false;
                 }
             }
@@ -982,7 +982,7 @@ async fn build_bulk_export(
 
     rows.sort_by(|a, b| a.1.cmp(&b.1));
 
-    let response: Response = match format.as_str() {
+    let response: Response = match format {
         "xlsx" => {
             let mut workbook = Workbook::new();
             let ws = workbook.add_worksheet()
@@ -1103,7 +1103,7 @@ fn format_f64(v: f64) -> String {
 
 // ── Monthly trend analytics endpoint ─────────────────────────────────────────
 
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Deserialize, IntoParams, utoipa::ToSchema)]
 pub struct MonthlyTrendParams {
     pub reporting_year: Option<i32>,
     pub cooperative_id: Option<Uuid>,
@@ -1113,7 +1113,7 @@ pub struct MonthlyTrendParams {
     pub apex_id: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Deserialize, IntoParams, utoipa::ToSchema)]
 pub struct AnalyticsFilterParams {
     pub cooperative_id: Option<Uuid>,
     pub region: Option<String>,
