@@ -93,7 +93,7 @@ services:
       - "127.0.0.1:8180:8180"
     volumes:
       - ./keycloak/realm-coopdata.json:/opt/keycloak/data/import/realm-coopdata.json:ro
-      - ./keycloak/themes:/opt/keycloak/themes
+      - ./keycloak/themes/coopdata:/opt/keycloak/themes/coopdata:ro
     depends_on:
       postgres:
         condition: service_healthy
