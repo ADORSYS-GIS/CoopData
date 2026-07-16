@@ -9,7 +9,7 @@ set -euo pipefail
 #
 # Supports two modes:
 #   1. With domain  → full HTTPS via Let's Encrypt
-#   2. No domain    → HTTP only via EC2 public IP
+#   2. No domain    → self-signed HTTPS via EC2 public DNS hostname
 #
 # Usage:  sudo ./setup-ec2.sh
 # ═══════════════════════════════════════════════════════════════════════════
@@ -39,18 +39,23 @@ echo -e "${BOLD}║      CoopData — EC2 Environment Setup            ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# ── Detect public IP ──────────────────────────────────────────────────────
+# ── Detect public IP + public DNS hostname ────────────────────────────────
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")
 if [[ -z "$PUBLIC_IP" ]]; then
     PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "localhost")
 fi
 ok "Detected EC2 public IP: $PUBLIC_IP"
 
+PUBLIC_DNS=$(curl -s http://169.254.169.254/latest/meta-data/public-hostname 2>/dev/null || echo "")
+if [[ -z "$PUBLIC_DNS" ]]; then
+    PUBLIC_DNS="$PUBLIC_IP"
+fi
+
 # ── Ask: domain or no domain? ─────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}Do you have a domain name configured?${NC}"
 echo -e "  ${CYAN}1)${NC} Yes — I have a domain pointing to this EC2 (HTTPS with Let's Encrypt)"
-echo -e "  ${CYAN}2)${NC} No  — Use the EC2 public IP address directly (HTTP only, no SSL)"
+echo -e "  ${CYAN}2)${NC} No  — Use self-signed HTTPS with the EC2 public DNS hostname"
 echo -ne "\n${BOLD}Enter choice [1-2]:${NC} "
 read -r HAS_DOMAIN_CHOICE
 
@@ -69,10 +74,11 @@ if [[ "$HAS_DOMAIN_CHOICE" == "1" ]]; then
     [[ -z "$EMAIL" ]] && error "Email is required."
     PROTOCOL="https"
 else
-    DOMAIN="$PUBLIC_IP"
-    PROTOCOL="http"
-    warn "Using IP address mode: http://$PUBLIC_IP"
-    warn "Note: HTTPS is not available without a domain. Browser may show 'Not Secure' warning."
+    DOMAIN="$PUBLIC_DNS"
+    PROTOCOL="https"
+    warn "Using self-signed HTTPS mode: https://$PUBLIC_DNS"
+    warn "Browser will show a certificate warning — click 'Advanced → Proceed' to continue."
+    warn "Ensure port 443 is open in your EC2 security group!"
 fi
 
 echo ""
@@ -250,11 +256,37 @@ NGINX_TLS
     ok "Certbot auto-renewal cron installed"
 
 else
-    # ── NO-DOMAIN MODE: HTTP only ────────────────────────────────────────
-    cat > /etc/nginx/sites-available/coopdata <<NGINX_HTTP
+    # ── SELF-SIGNED HTTPS MODE ────────────────────────────────────────────
+    info "Generating self-signed TLS certificate for $DOMAIN..."
+
+    CERT_DIR="/etc/nginx/ssl"
+    mkdir -p "$CERT_DIR"
+
+    openssl req -x509 -nodes -days 365 \
+        -newkey rsa:2048 \
+        -keyout "$CERT_DIR/coopdata-selfsigned.key" \
+        -out "$CERT_DIR/coopdata-selfsigned.crt" \
+        -subj "/C=US/ST=State/L=City/O=CoopData/CN=$DOMAIN" \
+        -addext "subjectAltName=DNS:$DOMAIN,IP:$PUBLIC_IP" 2>/dev/null
+
+    chmod 600 "$CERT_DIR/coopdata-selfsigned.key"
+    ok "Self-signed certificate generated (valid 365 days)"
+
+    cat > /etc/nginx/sites-available/coopdata <<NGINX_SELFSIGNED
 server {
     listen 80 default_server;
-    server_name _;
+    server_name $DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    server_name $DOMAIN;
+
+    ssl_certificate     $CERT_DIR/coopdata-selfsigned.crt;
+    ssl_certificate_key $CERT_DIR/coopdata-selfsigned.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
 
     add_header X-Frame-Options SAMEORIGIN always;
     add_header X-Content-Type-Options nosniff always;
@@ -302,11 +334,11 @@ server {
         proxy_request_buffering    off;
     }
 }
-NGINX_HTTP
+NGINX_SELFSIGNED
 
     ln -sf /etc/nginx/sites-available/coopdata /etc/nginx/sites-enabled/coopdata
     nginx -t && systemctl reload nginx
-    ok "Nginx configured (HTTP + reverse proxy)"
+    ok "Nginx configured (self-signed HTTPS + reverse proxy)"
 fi
 
 # ── Patch Keycloak realm JSON ─────────────────────────────────────────────
@@ -360,10 +392,10 @@ if [[ "$HAS_DOMAIN" == true ]]; then
     echo -e "  ${GREEN}►${NC} SSL:       ${CYAN}Let's Encrypt (auto-renewal)${NC}"
     echo -e "  ${GREEN}►${NC} URL:       ${CYAN}https://$DOMAIN${NC}"
 else
-    echo -e "  ${GREEN}►${NC} Mode:      ${CYAN}IP Address (HTTP)${NC}"
-    echo -e "  ${GREEN}►${NC} Public IP: ${CYAN}$PUBLIC_IP${NC}"
-    echo -e "  ${GREEN}►${NC} URL:       ${CYAN}http://$PUBLIC_IP${NC}"
-    echo -e "  ${YELLOW}►${NC} Note:      ${YELLOW}No SSL. Browser will show 'Not Secure'.${NC}"
+    echo -e "  ${GREEN}►${NC} Mode:      ${CYAN}Self-signed HTTPS${NC}"
+    echo -e "  ${GREEN}►${NC} Hostname:  ${CYAN}$DOMAIN${NC}"
+    echo -e "  ${GREEN}►${NC} URL:       ${CYAN}https://$DOMAIN${NC}"
+    echo -e "  ${YELLOW}►${NC} Note:      ${YELLOW}Browser will warn about cert — click 'Advanced → Proceed'.${NC}"
 fi
 
 echo -e "  ${GREEN}►${NC} Nginx:     ${CYAN}Reverse proxy configured${NC}"
