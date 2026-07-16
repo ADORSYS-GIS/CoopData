@@ -261,6 +261,33 @@ server {
         proxy_set_header   X-Forwarded-Proto \$scheme;
         proxy_http_version 1.1;
     }
+
+    location /realms/ {
+        proxy_pass         http://127.0.0.1:8180/realms/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /admin/ {
+        proxy_pass         http://127.0.0.1:8180/admin/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /js/ {
+        proxy_pass         http://127.0.0.1:8180/js/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
 }
 NGINX_TLS
     }
@@ -363,6 +390,33 @@ server {
 
     location /resources/ {
         proxy_pass         http://127.0.0.1:8180/resources/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /realms/ {
+        proxy_pass         http://127.0.0.1:8180/realms/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /admin/ {
+        proxy_pass         http://127.0.0.1:8180/admin/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /js/ {
+        proxy_pass         http://127.0.0.1:8180/js/;
         proxy_set_header   Host \$host;
         proxy_set_header   X-Real-IP \$remote_addr;
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
