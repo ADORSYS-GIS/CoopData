@@ -47,9 +47,17 @@ fi
 ok "Detected EC2 public IP: $PUBLIC_IP"
 
 PUBLIC_DNS=$(curl -s http://169.254.169.254/latest/meta-data/public-hostname 2>/dev/null || echo "")
-if [[ -z "$PUBLIC_DNS" ]]; then
-    PUBLIC_DNS="$PUBLIC_IP"
+if [[ -z "$PUBLIC_DNS" ]] || [[ "$PUBLIC_DNS" == "$PUBLIC_IP" ]]; then
+    AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone 2>/dev/null || echo "")
+    REGION="${AZ%?}"
+    IP_DASHED="${PUBLIC_IP//./-}"
+    if [[ -n "$REGION" ]]; then
+        PUBLIC_DNS="ec2-${IP_DASHED}.${REGION}.compute.amazonaws.com"
+    else
+        PUBLIC_DNS="$PUBLIC_IP"
+    fi
 fi
+ok "Detected EC2 public DNS: $PUBLIC_DNS"
 
 # ── Ask: domain or no domain? ─────────────────────────────────────────────
 echo ""
