@@ -259,8 +259,9 @@ function TrustStrip() {
     { src: "/partner-3.webp", alt: "Partner 3" },
     { src: "/partner-4.png", alt: "Partner 4" },
     { src: "/partner-5.png", alt: "Partner 5" },
-    { src: "/partner-6.png", alt: "Partner 6" },
     { src: "/partner-7.png", alt: "Partner 7" },
+    { src: "/partner-8.png", alt: "Partner 8" },
+    { src: "/partner-9.png", alt: "Partner 9" },
   ];
 
   return (
@@ -276,51 +277,52 @@ function TrustStrip() {
 }
 
 function PartnerCarousel({ partners }: { partners: { src: string; alt: string }[] }) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  // Duplicate the list to create a seamless infinite loop
+  const doubled = [...partners, ...partners];
 
   return (
     <div
-      className="relative"
-      onMouseEnter={() => setHoveredIndex(-1)}
-      onMouseLeave={() => setHoveredIndex(null)}
+      className="relative overflow-hidden"
+      style={{
+        // Fade edges
+        maskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+      }}
     >
-      <div className="flex flex-wrap lg:flex-nowrap items-center justify-center gap-x-10 gap-y-6 lg:gap-x-14">
-        {partners.map((partner, i) => (
+      <div
+        className="flex items-center gap-12 lg:gap-16 w-max"
+        style={{
+          animation: "partner-scroll 28s linear infinite",
+        }}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.animationPlayState = "paused")
+        }
+        onMouseLeave={(e) =>
+          ((e.currentTarget as HTMLDivElement).style.animationPlayState = "running")
+        }
+      >
+        {doubled.map((partner, i) => (
           <div
             key={i}
-            className={`
-              relative rounded-2xl transition-all duration-500 ease-out cursor-pointer
-              ${hoveredIndex === i ? "scale-125 z-20" : hoveredIndex !== null ? "scale-90 opacity-30" : "scale-100 opacity-100"}
-            `}
-            onMouseEnter={() => setHoveredIndex(i)}
+            className="shrink-0 flex items-center justify-center px-2"
           >
-            <div
-              className={`
-                absolute -inset-6 rounded-3xl transition-all duration-500 ease-out
-                ${hoveredIndex === i ? "opacity-100 scale-100" : "opacity-0 scale-90"}
-                bg-gradient-to-tr from-accent/25 via-accent/10 to-transparent blur-2xl
-              `}
+            <img
+              src={partner.src}
+              alt={partner.alt}
+              className="h-14 w-auto max-w-[140px] object-contain opacity-80 hover:opacity-100 transition-opacity duration-300"
+              draggable={false}
             />
-            <div className="relative">
-              <img
-                src={partner.src}
-                alt={partner.alt}
-                className="h-16 w-auto object-contain lg:h-20"
-              />
-              <div
-                className={`
-                  absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap
-                  text-[11px] font-bold uppercase tracking-wider text-muted-foreground
-                  transition-all duration-300 ease-out
-                  ${hoveredIndex === i ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}
-                `}
-              >
-                {partner.alt}
-              </div>
-            </div>
           </div>
         ))}
       </div>
+
+      {/* Inject keyframes via a style tag */}
+      <style>{`
+        @keyframes partner-scroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 }

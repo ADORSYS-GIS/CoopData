@@ -94,6 +94,14 @@ pub fn federation_routes() -> Router<AppState> {
             post(handlers::submission::federation_return_submission),
         )
         .route(
+            "/submissions/{id}/export",
+            get(crate::api::handlers::export::export_single_submission),
+        )
+        .route(
+            "/export",
+            get(crate::api::handlers::export::export_bulk_consolidated),
+        )
+        .route(
             "/submissions/{submission_id}/files/{file_id}",
             get(serve_uploaded_file),
         )

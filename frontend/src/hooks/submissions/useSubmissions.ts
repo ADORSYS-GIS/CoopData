@@ -45,29 +45,47 @@ export const useApexSubmissions = (enabled = true) =>
 
 // ── Federation: submissions forwarded to federation tier ──────────────────────
 
-export const useFederationSubmissions = (enabled = true) =>
-  useQuery({
-    queryKey: ["federation-submissions"],
+export const useFederationSubmissions = (
+  options: { all?: boolean; enabled?: boolean } | boolean = true
+) => {
+  const all = typeof options === "object" ? options.all : undefined;
+  const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
+  return useQuery({
+    queryKey: ["federation-submissions", { all, enabled }],
     enabled,
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/federation/submissions");
+      const { data, error } = await apiClient.GET("/api/v1/federation/submissions", {
+        params: {
+          query: { all },
+        },
+      });
       if (error) throw new Error(extractErrorMessage(error));
       return (data as SubmissionResponse[]) ?? [];
     },
   });
+};
 
 // ── Ministry: all submissions ────────────────────────────────────────────────
 
-export const useMinistrySubmissions = (enabled = true) =>
-  useQuery({
-    queryKey: ["ministry-submissions"],
+export const useMinistrySubmissions = (
+  options: { all?: boolean; enabled?: boolean } | boolean = true
+) => {
+  const all = typeof options === "object" ? options.all : undefined;
+  const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
+  return useQuery({
+    queryKey: ["ministry-submissions", { all, enabled }],
     enabled,
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/ministry/submissions");
+      const { data, error } = await apiClient.GET("/api/v1/ministry/submissions", {
+        params: {
+          query: { all },
+        },
+      });
       if (error) throw new Error(extractErrorMessage(error));
       return (data as SubmissionResponse[]) ?? [];
     },
   });
+};
 
 // ── Single submission — role-aware ────────────────────────────────────────────
 

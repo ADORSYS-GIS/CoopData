@@ -140,6 +140,8 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::non_financial::create_farm_coop,
         api_module::handlers::non_financial::update_farm_coop,
         api_module::handlers::non_financial::delete_farm_coop,
+        api_module::handlers::export::export_single_submission,
+        api_module::handlers::export::export_bulk_consolidated,
     ),
     components(schemas(
         api_module::dto::PaginationParams,

@@ -81,6 +81,14 @@ pub fn apex_routes() -> Router<AppState> {
             get(handlers::submission::get_submission_flags),
         )
         .route(
+            "/submissions/{id}/export",
+            get(crate::api::handlers::export::export_single_submission),
+        )
+        .route(
+            "/export",
+            get(crate::api::handlers::export::export_bulk_consolidated),
+        )
+        .route(
             "/submissions/{submission_id}/files/{file_id}",
             get(serve_uploaded_file),
         )

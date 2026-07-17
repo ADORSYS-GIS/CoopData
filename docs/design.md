@@ -161,6 +161,10 @@ Already defined in `docs/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key endpoints:
 - [ ] Invitation pending detection: Implement `InvitationPendingDialog` for `is_member_of === false`
 - [ ] Onboarding flow: Define what happens on first login per role
 
+## 11. Report Export Subsystem
+
+See [Report Export Design & Roadmap](file:///home/ariel/Desktop/CoopData/docs/design-report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
+
 ---
 
 **Reference:** Full architecture details in `docs/RBAC_AND_AUTH_SYSTEM.md`

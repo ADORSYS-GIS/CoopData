@@ -75,6 +75,12 @@ pub struct SubmissionResponse {
     /// Federation display name (populated by list handlers for ministry)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub federation_name: Option<String>,
+    /// Apex ID (populated for hierarchical filtering)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apex_id: Option<Uuid>,
+    /// Federation ID (populated for hierarchical filtering)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub federation_id: Option<Uuid>,
 }
 
 impl From<SubmissionModel> for SubmissionResponse {
@@ -98,6 +104,8 @@ impl From<SubmissionModel> for SubmissionResponse {
             cooperative_name: None,
             apex_name: None,
             federation_name: None,
+            apex_id: None,
+            federation_id: None,
         }
     }
 }
@@ -132,6 +140,16 @@ impl SubmissionResponse {
 
     pub fn with_federation_name(mut self, name: Option<String>) -> Self {
         self.federation_name = name;
+        self
+    }
+
+    pub fn with_apex_id(mut self, id: Option<Uuid>) -> Self {
+        self.apex_id = id;
+        self
+    }
+
+    pub fn with_federation_id(mut self, id: Option<Uuid>) -> Self {
+        self.federation_id = id;
         self
     }
 }

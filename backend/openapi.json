@@ -651,6 +651,24 @@
         }
       }
     },
+    "/api/v1/apex/export": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/apex/export",
+        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nExports a consolidated multi-sheet Excel file of all cooperatives within the user's scope.",
+        "operationId": "export_bulk_consolidated",
+        "responses": {
+          "200": {
+            "description": "Consolidated Excel workbook file stream"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/apex/profile": {
       "get": {
         "tags": [
@@ -891,6 +909,31 @@
           },
           "404": {
             "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/chart-of-accounts": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "summary": "GET /api/v1/cooperative/chart-of-accounts",
+        "description": "Returns the full seeded Chart of Accounts — used to populate account code dropdowns\nin the extraction editor. No scope restriction (reference data).",
+        "operationId": "list_chart_of_accounts",
+        "responses": {
+          "200": {
+            "description": "Full chart of accounts sorted by display_order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChartOfAccountResponse"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2359,6 +2402,48 @@
         ]
       }
     },
+    "/api/v1/cooperative/submissions/{id}/export": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/cooperative/submissions/{id}/export",
+        "description": "GET /api/v1/apex/submissions/{id}/export\nExports a single cooperative submission in XLSX, CSV, DOCX, or PDF.",
+        "operationId": "export_single_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Export format (xlsx, csv, docx, pdf)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Export file stream"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/submissions/{id}/financial-statement": {
       "delete": {
         "tags": [
@@ -3321,6 +3406,17 @@
           "Federation"
         ],
         "operationId": "list_federation_submissions",
+        "parameters": [
+          {
+            "name": "all",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Submissions for federation review",
@@ -4411,6 +4507,17 @@
           "Ministry"
         ],
         "operationId": "list_ministry_submissions",
+        "parameters": [
+          {
+            "name": "all",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Submissions for ministry review",
@@ -5364,6 +5471,51 @@
         "properties": {
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "ChartOfAccountResponse": {
+        "type": "object",
+        "required": [
+          "account_code",
+          "account_name",
+          "account_category",
+          "is_total",
+          "is_section_header",
+          "display_order"
+        ],
+        "properties": {
+          "account_category": {
+            "type": "string",
+            "description": "\"assets\" | \"liabilities\" | \"equity\" | \"income\" | \"expenses\" | \"surplus\""
+          },
+          "account_code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "account_subcategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "formula": {
+            "type": "string",
+            "description": "e.g. \"1101+1102+1103+1104\" — present only on total/parent codes",
+            "nullable": true
+          },
+          "is_section_header": {
+            "type": "boolean",
+            "description": "true for display section headers (1000, 2000, etc.)"
+          },
+          "is_total": {
+            "type": "boolean",
+            "description": "true for roll-up totals (1999, 2999, 3999, etc.)"
           }
         }
       },
@@ -8161,6 +8313,12 @@
           "sections"
         ],
         "properties": {
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Apex ID (populated for hierarchical filtering)",
+            "nullable": true
+          },
           "apex_name": {
             "type": "string",
             "description": "Apex display name (populated by list handlers for federation/ministry)",
@@ -8186,6 +8344,12 @@
             "type": "string",
             "format": "uuid",
             "description": "Extraction job ID, present after upload",
+            "nullable": true
+          },
+          "federation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Federation ID (populated for hierarchical filtering)",
             "nullable": true
           },
           "federation_name": {

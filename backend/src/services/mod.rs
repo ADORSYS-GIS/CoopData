@@ -4,6 +4,7 @@ pub mod audit;
 pub mod cache;
 pub mod extraction_pipeline;
 pub mod keycloak;
+pub mod kpi_engine;
 pub mod nf_excel_parser;
 pub mod object_storage;
 pub mod submission_workflow;

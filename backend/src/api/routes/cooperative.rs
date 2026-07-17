@@ -99,6 +99,7 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(get_submission).delete(delete_submission),
         )
         .route("/submissions/{id}/submit", post(submit_submission))
+        .route("/submissions/{id}/export", get(crate::api::handlers::export::export_single_submission))
         .route("/submissions/{id}/sections", get(list_submission_sections))
         .route("/submissions/{id}/reviews", get(list_submission_reviews))
         .route(

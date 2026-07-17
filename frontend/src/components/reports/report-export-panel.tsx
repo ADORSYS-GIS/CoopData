@@ -1,116 +1,36 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Download,
   FileText,
-  FileSpreadsheet,
-  FileBarChart,
   CheckCircle2,
   X,
   Loader2,
+  ChevronRight,
 } from "lucide-react";
 import { Card } from "@/components/app-shell";
-import { type Role, useUserRole } from "@/lib/auth";
+import { useUserRole } from "@/lib/auth";
 import { toast } from "sonner";
+import { getAccessToken } from "@/services/shared/authService";
+import {
+  useCooperativeSubmissions,
+  useApexSubmissions,
+  useFederationSubmissions,
+  useMinistrySubmissions,
+} from "@/hooks/submissions/useSubmissions";
+import type { components } from "@/openapi-client/api";
 
-export type ExportFormat = "pdf" | "xlsx" | "csv";
-
-export type ReportScope = "consolidated" | "individual" | "comparative" | "trend";
-
-interface ReportExportOption {
-  id: string;
-  label: string;
-  description: string;
-  scope: ReportScope;
-  formats: ExportFormat[];
-  availableTo: Role[];
-}
-
-const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
-  {
-    id: "national-consolidated",
-    label: "National Consolidated Report",
-    description: "Aggregated data across all federations, apexes, and cooperatives nationwide.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv"],
-    availableTo: ["ministry"],
-  },
-  {
-    id: "federation-consolidated",
-    label: "Federation Consolidated Report",
-    description: "Aggregated data for all apexes and cooperatives under your federation.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv"],
-    availableTo: ["ministry", "federation"],
-  },
-  {
-    id: "apex-consolidated",
-    label: "Apex Consolidated Report",
-    description: "Aggregated data for all cooperatives under your apex organization.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv"],
-    availableTo: ["ministry", "federation", "apex"],
-  },
-  {
-    id: "cooperative-individual",
-    label: "Cooperative Individual Report",
-    description: "Detailed financial statement and database report for a single cooperative.",
-    scope: "individual",
-    formats: ["pdf", "xlsx"],
-    availableTo: ["ministry", "federation", "apex", "cooperative"],
-  },
-  {
-    id: "comparative-analysis",
-    label: "Comparative Analysis Report",
-    description: "Side-by-side comparison of multiple cooperatives or regions.",
-    scope: "comparative",
-    formats: ["pdf", "xlsx"],
-    availableTo: ["ministry", "federation", "apex"],
-  },
-  {
-    id: "trend-analysis",
-    label: "Trend & Growth Report",
-    description: "Historical trends, growth patterns, and projections over time.",
-    scope: "trend",
-    formats: ["pdf", "xlsx"],
-    availableTo: ["ministry", "federation", "apex"],
-  },
-  {
-    id: "compliance-audit",
-    label: "Compliance & Audit Report",
-    description: "Filing rates, late submission flags, and systemic risk indicators.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv"],
-    availableTo: ["ministry", "federation", "apex"],
-  },
-  {
-    id: "membership-report",
-    label: "Membership Demographics Report",
-    description: "Gender participation, youth engagement, and membership statistics.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx"],
-    availableTo: ["ministry", "federation", "apex", "cooperative"],
-  },
-];
-
-const SCOPE_LABELS: Record<ReportScope, string> = {
-  consolidated: "Consolidated",
-  individual: "Individual",
-  comparative: "Comparative",
-  trend: "Trend",
-};
-
-const SCOPE_COLORS: Record<ReportScope, string> = {
-  consolidated: "bg-accent/10 text-accent",
-  individual: "bg-success/10 text-success",
-  comparative: "bg-info/10 text-info",
-  trend: "bg-warning/15 text-warning-foreground",
-};
-
-const FORMAT_ICONS: Record<ExportFormat, typeof FileText> = {
-  pdf: FileText,
-  xlsx: FileSpreadsheet,
-  csv: FileBarChart,
-};
+import {
+  type ExportFormat,
+  REPORT_EXPORT_OPTIONS,
+  SCOPE_LABELS,
+  SCOPE_COLORS,
+  FORMAT_ICONS,
+  FORMAT_LABELS,
+  EXPORTABLE_STATUSES,
+} from "./types";
+import { StepIndicator } from "./step-indicator";
+import { SelectionSummary } from "./selection-summary";
+import { ActiveStepPicker } from "./active-step-picker";
 
 interface ReportExportPanelProps {
   className?: string;
@@ -118,31 +38,272 @@ interface ReportExportPanelProps {
 
 export function ReportExportPanel({ className }: ReportExportPanelProps) {
   const role = useUserRole();
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("pdf");
+
+  // Step state for drill-down hierarchy
+  const [selectedFedId, setSelectedFedId] = useState<string>("");
+  const [selectedApexId, setSelectedApexId] = useState<string>("");
+  const [selectedCoopId, setSelectedCoopId] = useState<string>("");
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>("");
+
   const [isExporting, setIsExporting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // ── Data sources ────────────────────────────────────────────────────────────
+
+  // All submissions (raw, unfiltered — used to build the pickers)
+  const cooperativeQuery = useCooperativeSubmissions(role === "cooperative");
+  const apexQuery        = useApexSubmissions(role === "apex");
+  const federationQuery  = useFederationSubmissions({ all: true, enabled: role === "federation" });
+  const ministryQuery    = useMinistrySubmissions({ all: true, enabled: role === "ministry" });
+
+  const rawSubmissions = useMemo(() => {
+    if (role === "cooperative") return cooperativeQuery.data ?? [];
+    if (role === "apex")        return apexQuery.data ?? [];
+    if (role === "federation")  return federationQuery.data ?? [];
+    if (role === "ministry")    return ministryQuery.data ?? [];
+    return [];
+  }, [role, cooperativeQuery.data, apexQuery.data, federationQuery.data, ministryQuery.data]);
+
+  // Only submitted / approved can be exported
+  const allSubmissions = useMemo(
+    () => rawSubmissions.filter((s) => EXPORTABLE_STATUSES.includes(s.status.toLowerCase())),
+    [rawSubmissions]
+  );
+
+  const isLoadingSubmissions =
+    (role === "cooperative" && cooperativeQuery.isLoading) ||
+    (role === "apex" && apexQuery.isLoading) ||
+    (role === "federation" && federationQuery.isLoading) ||
+    (role === "ministry" && ministryQuery.isLoading);
+
+  // ── Derived ─────────────────────────────────────────────────────────────────
+
+  const availableReports = useMemo(() => {
+    if (!role) return [];
+    return REPORT_EXPORT_OPTIONS.filter((r) => r.availableTo.includes(role));
+  }, [role]);
+
+  const selectedOption = useMemo(() => {
+    return availableReports.find((r) => r.id === selectedReport);
+  }, [availableReports, selectedReport]);
+
+  const isIndividual = selectedOption?.scope === "individual";
+
+  const needsFedSelector =
+    selectedOption !== undefined &&
+    selectedOption.id !== "national-consolidated" &&
+    selectedOption.id !== "membership-report" &&
+    role === "ministry";
+
+  const needsApexSelector =
+    selectedOption !== undefined &&
+    (selectedOption.id === "apex-consolidated" || isIndividual) &&
+    (role === "ministry" || role === "federation");
+
+  const needsCoopSelector = isIndividual && role !== "cooperative";
+  const needsSubmissionSelector = isIndividual;
+
+  // Build federation picker list from RAW submissions
+  const federationList = useMemo(() => {
+    if (role !== "ministry") return [];
+    const seen = new Map<string, string>();
+    rawSubmissions.forEach((s) => {
+      if (s.federation_id) {
+        seen.set(s.federation_id, s.federation_name ?? s.federation_id);
+      }
+    });
+    return Array.from(seen.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [role, rawSubmissions]);
+
+  // Build apex picker list — derive from submissions for both federation & ministry
+  const apexList = useMemo(() => {
+    if (role === "cooperative" || role === "apex") return [];
+    
+    const seen = new Map<string, { name: string; federationId?: string }>();
+    rawSubmissions.forEach((s) => {
+      if (s.apex_id) {
+        seen.set(s.apex_id, {
+          name: s.apex_name ?? s.apex_id,
+          federationId: s.federation_id ?? undefined,
+        });
+      }
+    });
+    
+    let list = Array.from(seen.entries()).map(([id, item]) => ({
+      id,
+      name: item.name,
+      federationId: item.federationId,
+    }));
+    
+    if (role === "ministry" && selectedFedId) {
+      list = list.filter((a) => a.federationId === selectedFedId);
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [role, rawSubmissions, selectedFedId]);
+
+  // Build cooperative picker list — derive from submissions for both federation & ministry
+  const cooperativeList = useMemo(() => {
+    if (role === "cooperative") return [];
+
+    const seen = new Map<string, { name: string; apexId?: string }>();
+    rawSubmissions.forEach((s) => {
+      if (s.cooperative_id) {
+        seen.set(s.cooperative_id, {
+          name: s.cooperative_name ?? s.cooperative_id,
+          apexId: s.apex_id ?? undefined,
+        });
+      }
+    });
+    
+    let list = Array.from(seen.entries()).map(([id, item]) => ({
+      id,
+      name: item.name,
+      apexId: item.apexId,
+    }));
+    
+    if (selectedApexId) {
+      list = list.filter((c) => c.apexId === selectedApexId);
+    } else if (role === "ministry" && selectedFedId) {
+      const fedApexIds = apexList.map((a) => a.id);
+      list = list.filter((c) => c.apexId && fedApexIds.includes(c.apexId));
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [role, rawSubmissions, selectedApexId, selectedFedId, apexList]);
+
+  // Submissions filtered to the selected cooperative (for individual reports)
+  const filteredSubmissions = useMemo(() => {
+    if (!isIndividual) return [];
+    if (role === "cooperative") return allSubmissions;
+    if (!selectedCoopId) return [];
+    return allSubmissions.filter((s) => s.cooperative_id === selectedCoopId);
+  }, [isIndividual, role, selectedCoopId, allSubmissions]);
+
+  // Steps configuration
+  const steps = useMemo(() => {
+    const list = [];
+    if (needsFedSelector) list.push({ key: "fed", label: "Federation" });
+    if (needsApexSelector) list.push({ key: "apex", label: "Apex" });
+    if (needsCoopSelector) list.push({ key: "coop", label: "Cooperative" });
+    if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
+    list.push({ key: "format", label: "Format" });
+    return list;
+  }, [needsFedSelector, needsApexSelector, needsCoopSelector, needsSubmissionSelector]);
+
+  const currentStepIndex = useMemo(() => {
+    if (needsFedSelector && !selectedFedId) return 0;
+    let idx = needsFedSelector ? 1 : 0;
+    if (needsApexSelector && !selectedApexId) return idx;
+    if (needsApexSelector) idx++;
+    if (needsCoopSelector && !selectedCoopId) return idx;
+    if (needsCoopSelector) idx++;
+    if (needsSubmissionSelector && !selectedSubmissionId) return idx;
+    if (needsSubmissionSelector) idx++;
+    return idx; // format selection
+  }, [needsFedSelector, selectedFedId, needsApexSelector, selectedApexId, needsCoopSelector, selectedCoopId, needsSubmissionSelector, selectedSubmissionId]);
+
+  const activeStepKey: string = steps[currentStepIndex]?.key ?? "format";
 
   if (!role) return null;
 
-  const availableReports = REPORT_EXPORT_OPTIONS.filter((r) => r.availableTo.includes(role));
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  const selectedOption = availableReports.find((r) => r.id === selectedReport);
+  function openModal(reportId: string) {
+    setSelectedReport(reportId);
+    const opt = availableReports.find((r) => r.id === reportId);
+    setSelectedFormat(opt?.formats[0] ?? "pdf");
+    setSelectedFedId("");
+    setSelectedApexId("");
+    setSelectedCoopId("");
+    setSelectedSubmissionId("");
+    setIsModalOpen(true);
+  }
 
-  const handleExport = () => {
-    if (!selectedReport || !selectedOption) return;
+  function closeModal() {
+    if (!isExporting) setIsModalOpen(false);
+  }
+
+  const isFedSelected = !needsFedSelector || !!selectedFedId;
+  const isApexSelected = !needsApexSelector || !!selectedApexId;
+  const isCoopSelected = !needsCoopSelector || !!selectedCoopId;
+  const isSubmissionSelected = !needsSubmissionSelector || !!selectedSubmissionId;
+
+  const canExport =
+    !isExporting &&
+    selectedOption !== undefined &&
+    isFedSelected &&
+    isApexSelected &&
+    isCoopSelected &&
+    isSubmissionSelected;
+
+  const handleExport = async () => {
+    if (!selectedOption || !canExport) return;
 
     setIsExporting(true);
-    // Simulate export
-    setTimeout(() => {
-      setIsExporting(false);
+    try {
+      const token   = await getAccessToken();
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+
+      let url = "";
+      if (isIndividual) {
+        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?format=${selectedFormat}`;
+      } else {
+        const queryParams = new URLSearchParams({ format: selectedFormat });
+        if (selectedOption.id === "federation-consolidated" && selectedFedId) {
+          queryParams.append("federation_id", selectedFedId);
+        } else if (selectedOption.id === "apex-consolidated" && selectedApexId) {
+          queryParams.append("apex_id", selectedApexId);
+        }
+
+        if (role === "apex")        url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
+        else if (role === "federation") url = `${baseUrl}/api/v1/federation/export?${queryParams}`;
+        else if (role === "ministry")   url = `${baseUrl}/api/v1/ministry/export?${queryParams}`;
+      }
+
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `Export failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      let filename = `${selectedOption.id}_report.${selectedFormat}`;
+
+      if (isIndividual && selectedSubmissionId) {
+        const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
+        const nameClean = (sub?.cooperative_name ?? "cooperative")
+          .replace(/[^a-z0-9]/gi, "_")
+          .toLowerCase();
+        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.${selectedFormat}`;
+      } else {
+        filename = `${role}_consolidated_report.${selectedFormat}`;
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success(`${selectedOption.label} exported as ${selectedFormat.toUpperCase()}!`);
       setIsModalOpen(false);
-      toast.success(
-        `${selectedOption.label} exported as ${selectedFormat.toUpperCase()} successfully!`,
-      );
-      setSelectedReport(null);
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
+
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -152,7 +313,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
         className={className}
         action={
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => openModal(availableReports[0]?.id || "")}
             className="press-feedback inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Download className="size-3.5" /> Export Report
@@ -163,11 +324,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
           {availableReports.map((report) => (
             <div
               key={report.id}
-              onClick={() => {
-                setSelectedReport(report.id);
-                setSelectedFormat(report.formats[0]);
-                setIsModalOpen(true);
-              }}
+              onClick={() => openModal(report.id)}
               className="group rounded-xl border border-border p-4 hover:border-accent/40 hover:bg-muted/20 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between gap-3">
@@ -182,9 +339,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                       {report.label}
                     </h4>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {report.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{report.description}</p>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   {report.formats.map((fmt) => {
@@ -206,146 +361,205 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
         </div>
       </Card>
 
-      {/* Export Modal */}
+      {/* ── Export Modal ── */}
       {isModalOpen && selectedOption && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
           <div
-            onClick={() => {
-              if (!isExporting) setIsModalOpen(false);
-            }}
-            className="absolute inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
+            onClick={closeModal}
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
           />
-          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] animate-panel z-10">
-            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
-              <div className="flex items-center gap-2">
+
+          {/* Dialog */}
+          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-3)] z-10 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+              <div className="flex items-center gap-3">
                 <div className="size-8 rounded-xl bg-accent/10 grid place-items-center">
                   <Download className="size-4 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">Export Report</h3>
-                  <p className="text-xs text-muted-foreground">Configure your export settings</p>
+                  <h3 className="font-heading text-base font-bold text-foreground">Export Report</h3>
+                  <p className="text-xs text-muted-foreground">{selectedOption.label}</p>
                 </div>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
                 disabled={isExporting}
-                className="press-feedback rounded-lg p-1 hover:bg-muted text-muted-foreground disabled:opacity-50"
+                className="press-feedback rounded-lg p-1.5 hover:bg-muted text-muted-foreground disabled:opacity-50"
               >
                 <X className="size-4" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* Selected Report */}
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${SCOPE_COLORS[selectedOption.scope]}`}
-                  >
-                    {SCOPE_LABELS[selectedOption.scope]}
-                  </span>
-                  <span className="font-heading font-bold text-sm text-foreground">
-                    {selectedOption.label}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">{selectedOption.description}</p>
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+              {/* Step indicator header */}
+              <StepIndicator steps={steps} currentStepIndex={currentStepIndex} />
+
+              {/* Summary of already selected steps */}
+              <SelectionSummary
+                needsFedSelector={needsFedSelector}
+                selectedFedId={selectedFedId}
+                federationList={federationList}
+                onClearFed={() => {
+                  setSelectedFedId("");
+                  setSelectedApexId("");
+                  setSelectedCoopId("");
+                  setSelectedSubmissionId("");
+                }}
+                needsApexSelector={needsApexSelector}
+                selectedApexId={selectedApexId}
+                apexList={apexList}
+                onClearApex={() => {
+                  setSelectedApexId("");
+                  setSelectedCoopId("");
+                  setSelectedSubmissionId("");
+                }}
+                needsCoopSelector={needsCoopSelector}
+                selectedCoopId={selectedCoopId}
+                cooperativeList={cooperativeList}
+                onClearCoop={() => {
+                  setSelectedCoopId("");
+                  setSelectedSubmissionId("");
+                }}
+                needsSubmissionSelector={needsSubmissionSelector}
+                selectedSubmissionId={selectedSubmissionId}
+                filteredSubmissions={filteredSubmissions}
+                onClearSubmission={() => {
+                  setSelectedSubmissionId("");
+                }}
+              />
+
+              {/* Active Step Picker */}
+              <div className="mt-4">
+                <ActiveStepPicker
+                  activeStepKey={activeStepKey}
+                  isLoadingSubmissions={isLoadingSubmissions}
+                  federationList={federationList}
+                  selectedFedId={selectedFedId}
+                  onSelectFed={(id) => {
+                    setSelectedFedId(id);
+                    setSelectedApexId("");
+                    setSelectedCoopId("");
+                    setSelectedSubmissionId("");
+                  }}
+                  apexList={apexList}
+                  selectedApexId={selectedApexId}
+                  onSelectApex={(id) => {
+                    setSelectedApexId(id);
+                    setSelectedCoopId("");
+                    setSelectedSubmissionId("");
+                  }}
+                  cooperativeList={cooperativeList}
+                  selectedCoopId={selectedCoopId}
+                  onSelectCoop={(id) => {
+                    setSelectedCoopId(id);
+                    setSelectedSubmissionId("");
+                  }}
+                  filteredSubmissions={filteredSubmissions}
+                  selectedSubmissionId={selectedSubmissionId}
+                  onSelectSubmission={(id) => {
+                    setSelectedSubmissionId(id);
+                  }}
+                  selectedOption={selectedOption}
+                  selectedFormat={selectedFormat}
+                  onSelectFormat={(fmt) => setSelectedFormat(fmt)}
+                  isExporting={isExporting}
+                  formatIcons={FORMAT_ICONS}
+                  formatLabels={FORMAT_LABELS}
+                />
               </div>
 
-              {/* Format Selection */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  Export Format
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {selectedOption.formats.map((fmt) => {
-                    const Icon = FORMAT_ICONS[fmt];
-                    const isSelected = selectedFormat === fmt;
-                    return (
-                      <button
-                        key={fmt}
-                        type="button"
-                        onClick={() => setSelectedFormat(fmt)}
-                        disabled={isExporting}
-                        className={`press-feedback flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all ${
-                          isSelected
-                            ? "border-primary bg-primary/5 text-primary shadow-sm"
-                            : "border-border text-muted-foreground hover:bg-muted/50"
-                        }`}
-                      >
-                        <Icon className="size-5" />
-                        <span className="text-xs font-bold uppercase">{fmt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Date Range (placeholder) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    From Date
-                  </label>
-                  <input
-                    type="date"
-                    defaultValue="2025-01-01"
-                    disabled={isExporting}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    To Date
-                  </label>
-                  <input
-                    type="date"
-                    defaultValue="2025-12-31"
-                    disabled={isExporting}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Scope Info */}
-              {role !== "cooperative" && (
+              {/* Scope info for consolidated */}
+              {activeStepKey === "format" && !isIndividual && role !== "cooperative" && (
                 <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
                   <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
                   <span>
                     {role === "ministry"
-                      ? "This report includes data from all federations, apexes, and cooperatives nationwide."
+                      ? selectedOption.id === "federation-consolidated"
+                        ? `This report includes consolidated data for federation: ${federationList.find(f => f.id === selectedFedId)?.name || "selected federation"}.`
+                        : selectedOption.id === "apex-consolidated"
+                        ? `This report includes consolidated data for apex: ${apexList.find(a => a.id === selectedApexId)?.name || "selected apex"}.`
+                        : "This report includes data from all federations, apexes, and cooperatives nationwide."
                       : role === "federation"
-                        ? "This report includes data from all apexes and cooperatives under your federation."
-                        : "This report includes data from all cooperatives under your apex organization."}
+                      ? selectedOption.id === "apex-consolidated"
+                        ? `This report includes consolidated data for apex: ${apexList.find(a => a.id === selectedApexId)?.name || "selected apex"}.`
+                        : "This report includes data from all apexes and cooperatives under your federation."
+                      : "This report includes data from all cooperatives under your apex organization."}
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-border pt-4 mt-4">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                disabled={isExporting}
-                className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleExport}
-                disabled={isExporting}
-                className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50"
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" /> Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}
-                  </>
-                )}
-              </button>
+            {/* Footer */}
+            <div className="flex items-center justify-between border-t border-border px-6 py-4 shrink-0 bg-muted/10">
+              {/* Breadcrumb hint */}
+              {(needsFedSelector || needsApexSelector || needsCoopSelector) && (
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground min-w-0 flex-wrap">
+                  {needsFedSelector && (
+                    <span className={selectedFedId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                      {selectedFedId
+                        ? federationList.find((f) => f.id === selectedFedId)?.name ?? "Federation"
+                        : "Federation"}
+                    </span>
+                  )}
+                  {needsFedSelector && selectedFedId && needsApexSelector && (
+                    <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
+                  )}
+                  {needsApexSelector && (selectedFedId || !needsFedSelector) && (
+                    <span className={selectedApexId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                      {selectedApexId
+                        ? apexList.find((a) => a.id === selectedApexId)?.name ?? "Apex"
+                        : "Apex"}
+                    </span>
+                  )}
+                  {needsApexSelector && selectedApexId && needsCoopSelector && (
+                    <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
+                  )}
+                  {needsCoopSelector && (selectedApexId || !needsApexSelector) && (
+                    <span className={selectedCoopId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                      {selectedCoopId
+                        ? cooperativeList.find((c) => c.id === selectedCoopId)?.name ?? "Cooperative"
+                        : "Cooperative"}
+                    </span>
+                  )}
+                  {needsCoopSelector && selectedCoopId && needsSubmissionSelector && (
+                    <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
+                  )}
+                  {needsSubmissionSelector && selectedCoopId && (
+                    <span className={selectedSubmissionId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                      {selectedSubmissionId
+                        ? `${filteredSubmissions.find((s) => s.id === selectedSubmissionId)?.reporting_year} Report`
+                        : "Submission"}
+                    </span>
+                  )}
+                </div>
+              )}
+              {!(needsFedSelector || needsApexSelector || needsCoopSelector) && <div />}
+
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={isExporting}
+                  className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={!canExport}
+                  className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-40"
+                >
+                  {isExporting ? (
+                    <><Loader2 className="size-3.5 animate-spin" /> Exporting…</>
+                  ) : (
+                    <><Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
