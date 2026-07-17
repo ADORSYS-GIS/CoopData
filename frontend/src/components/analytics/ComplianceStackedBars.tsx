@@ -69,14 +69,14 @@ export function ComplianceStackedBars({ distributions }: ComplianceStackedBarsPr
               formatter={(
                 value: number,
                 name: string,
-                props: { payload: Record<string, number> },
+                props: { payload?: Record<string, number> },
               ) => {
                 const count =
                   name === "Healthy"
-                    ? props.payload.green_count
+                    ? props.payload?.green_count
                     : name === "Watch"
-                      ? props.payload.amber_count
-                      : props.payload.red_count;
+                      ? props.payload?.amber_count
+                      : props.payload?.red_count;
                 return [`${value.toFixed(1)}% (${count} coops)`, name];
               }}
             />

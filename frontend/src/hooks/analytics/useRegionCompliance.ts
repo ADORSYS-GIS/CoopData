@@ -42,7 +42,7 @@ export const useRegionCompliance = (enabled = true, filters: RegionComplianceFil
             apex_id: filters.apexId !== "all" ? filters.apexId : undefined,
             cooperative_id: filters.cooperativeId !== "all" ? filters.cooperativeId : undefined,
             reporting_year: filters.reportingYear,
-          } as Record<string, unknown>,
+          } as never,
         },
       });
       if (error) throw new Error(extractErrorMessage(error));

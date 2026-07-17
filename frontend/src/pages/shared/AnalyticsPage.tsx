@@ -129,7 +129,14 @@ const coopPerformanceMetrics: {
 
 const kpiMetricsByRole: Record<
   Role,
-  { label: string; value: string; change: string; up: boolean; icon: typeof TrendingUp }[]
+  {
+    label: string;
+    value: string;
+    change: string;
+    up: boolean;
+    icon: typeof TrendingUp;
+    status?: "green" | "amber" | "red";
+  }[]
 > = {
   ministry: [
     { label: "Total Cooperatives", value: "—", change: "—", up: true, icon: Building2 },
@@ -1261,7 +1268,7 @@ export const AnalyticsPage: React.FC = () => {
                     </p>
                   </div>
                   <h2 className="font-heading text-xl font-bold text-foreground">
-                    {selectedCoopProfile.display_name ?? selectedCoopProfile.name}
+                    {selectedCoopProfile.name}
                   </h2>
                   <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
                     <span className="capitalize">
@@ -1269,23 +1276,12 @@ export const AnalyticsPage: React.FC = () => {
                     </span>
                     <span>·</span>
                     <span>{selectedCoopProfile.region ?? "—"}</span>
-                    <span>·</span>
-                    <span className="capitalize">{selectedCoopProfile.sector ?? "—"}</span>
-                    {selectedCoopProfile.reg_no && (
+                    {selectedCoopProfile.description && (
                       <>
                         <span>·</span>
-                        <span>Reg: {selectedCoopProfile.reg_no}</span>
+                        <span>{selectedCoopProfile.description}</span>
                       </>
                     )}
-                    <span
-                      className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                        selectedCoopProfile.status === "Active"
-                          ? "bg-success/10 text-success"
-                          : "bg-warning/15 text-warning-foreground"
-                      }`}
-                    >
-                      {selectedCoopProfile.status}
-                    </span>
                   </div>
                 </div>
                 <button
@@ -1414,8 +1410,8 @@ export const AnalyticsPage: React.FC = () => {
                         Submission pending approval for {currentYear}
                       </p>
                       <p className="text-sm text-muted-foreground/70 mt-1">
-                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has a
-                        submission for {currentYear} but it has not been approved yet. Status:{" "}
+                        {selectedCoopProfile?.name} has a submission for {currentYear} but it has
+                        not been approved yet. Status:{" "}
                         <span className="font-semibold capitalize">
                           {deepDiveAnySubmission.status}
                         </span>
@@ -1427,8 +1423,8 @@ export const AnalyticsPage: React.FC = () => {
                         No submission for {currentYear}
                       </p>
                       <p className="text-sm text-muted-foreground/70 mt-1">
-                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has not
-                        submitted a report for the {currentYear} reporting year.
+                        {selectedCoopProfile?.name} has not submitted a report for the {currentYear}{" "}
+                        reporting year.
                       </p>
                     </>
                   )}
@@ -3128,14 +3124,10 @@ export const AnalyticsPage: React.FC = () => {
                     <div className="flex items-start justify-between mb-5">
                       <div>
                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                          {role === "cooperative"
-                            ? "Monthly Members & Savings"
-                            : "Member Trend by Region"}
+                          Member Trend by Region
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          {role === "cooperative"
-                            ? "Your cooperative's monthly trend"
-                            : "Jan – Dec 2025 · Across all regions"}
+                          Jan – Dec 2025 · Across all regions
                         </p>
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
@@ -3144,279 +3136,165 @@ export const AnalyticsPage: React.FC = () => {
                     </div>
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
-                        {role === "cooperative" ? (
-                          <AreaChart
-                            data={coopMonthlyTrend}
-                            margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
-                          >
-                            <defs>
-                              <linearGradient id="coop-members" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
-                                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-                              </linearGradient>
-                              <linearGradient id="coop-savings" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--success)" stopOpacity={0.15} />
-                                <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid
-                              strokeDasharray="4 4"
-                              stroke="var(--border)"
-                              vertical={false}
-                              opacity={0.6}
-                            />
-                            <XAxis
-                              dataKey="month"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: "var(--muted-foreground)" }}
-                            />
-                            <YAxis
-                              yAxisId="left"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: "var(--muted-foreground)" }}
-                              tickFormatter={(v) => v.toLocaleString()}
-                            />
-                            <YAxis
-                              yAxisId="right"
-                              orientation="right"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: "var(--muted-foreground)" }}
-                              tickFormatter={(v) => `$${v}K`}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                background: "var(--surface)",
-                                border: "1px solid var(--border)",
-                                borderRadius: "12px",
-                                fontSize: "12px",
-                                fontFamily: "var(--font-sans)",
-                                padding: "12px 16px",
-                                boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-                              }}
-                              itemStyle={{
-                                color: "var(--foreground)",
-                                fontWeight: 500,
-                                lineHeight: "1.8",
-                              }}
-                              labelStyle={{
-                                fontWeight: "700",
-                                color: "var(--foreground)",
-                                marginBottom: "6px",
-                                fontSize: "13px",
-                                borderBottom: "1px solid var(--border)",
-                                paddingBottom: "6px",
-                              }}
-                            />
-                            <Legend
-                              wrapperStyle={{
-                                fontSize: "11px",
-                                fontFamily: "var(--font-sans)",
-                                paddingTop: "12px",
-                              }}
-                              iconType="circle"
-                              iconSize={8}
-                            />
-                            <Area
-                              yAxisId="left"
-                              type="monotone"
-                              dataKey="members"
-                              stroke="var(--accent)"
-                              strokeWidth={2}
-                              fill="url(#coop-members)"
-                              dot={{
-                                r: 3,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--accent)",
-                              }}
-                              name="Members"
-                            />
-                            <Area
-                              yAxisId="right"
-                              type="monotone"
-                              dataKey="savings"
-                              stroke="var(--success)"
-                              strokeWidth={2}
-                              fill="url(#coop-savings)"
-                              dot={{
-                                r: 3,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--success)",
-                              }}
-                              name="Savings ($K)"
-                            />
-                          </AreaChart>
-                        ) : (
-                          <AreaChart
-                            data={filteredRegionTrend}
-                            margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
-                          >
-                            <defs>
-                              <linearGradient id="region-h" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
-                                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                              </linearGradient>
-                              <linearGradient id="region-m" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.12} />
-                                <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-                              </linearGradient>
-                              <linearGradient id="region-l" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.12} />
-                                <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                              </linearGradient>
-                              <linearGradient id="region-s" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.12} />
-                                <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid
-                              strokeDasharray="4 4"
-                              stroke="var(--border)"
-                              vertical={false}
-                              opacity={0.6}
-                            />
-                            <XAxis
-                              dataKey="month"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: "var(--muted-foreground)" }}
-                            />
-                            <YAxis
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: "var(--muted-foreground)" }}
-                              tickFormatter={(v) => formatNumber(v as number)}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                background: "var(--surface)",
-                                border: "1px solid var(--border)",
-                                borderRadius: "12px",
-                                fontSize: "12px",
-                                fontFamily: "var(--font-sans)",
-                                padding: "12px 16px",
-                                boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-                              }}
-                              itemStyle={{
-                                color: "var(--foreground)",
-                                fontWeight: 500,
-                                lineHeight: "1.8",
-                              }}
-                              labelStyle={{
-                                fontWeight: "700",
-                                color: "var(--foreground)",
-                                marginBottom: "6px",
-                                fontSize: "13px",
-                                borderBottom: "1px solid var(--border)",
-                                paddingBottom: "6px",
-                              }}
-                              cursor={{
-                                stroke: "var(--muted-foreground)",
-                                strokeWidth: 1,
-                                strokeDasharray: "4 3",
-                              }}
-                            />
-                            <Legend
-                              wrapperStyle={{
-                                fontSize: "11px",
-                                fontFamily: "var(--font-sans)",
-                                paddingTop: "12px",
-                              }}
-                              iconType="circle"
-                              iconSize={8}
-                            />
-                            <Area
-                              dataKey="Hhohho"
-                              stroke="var(--chart-1)"
-                              strokeWidth={2}
-                              fill="url(#region-h)"
-                              type="monotone"
-                              dot={{
-                                r: 4,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--chart-1)",
-                              }}
-                              activeDot={{
-                                r: 6,
-                                strokeWidth: 2,
-                                stroke: "var(--surface)",
-                                fill: "var(--chart-1)",
-                              }}
-                            />
-                            <Area
-                              dataKey="Manzini"
-                              stroke="var(--chart-2)"
-                              strokeWidth={2}
-                              fill="url(#region-m)"
-                              type="monotone"
-                              dot={{
-                                r: 4,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--chart-2)",
-                              }}
-                              activeDot={{
-                                r: 6,
-                                strokeWidth: 2,
-                                stroke: "var(--surface)",
-                                fill: "var(--chart-2)",
-                              }}
-                            />
-                            <Area
-                              dataKey="Lubombo"
-                              stroke="var(--chart-3)"
-                              strokeWidth={2}
-                              fill="url(#region-l)"
-                              type="monotone"
-                              dot={{
-                                r: 4,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--chart-3)",
-                              }}
-                              activeDot={{
-                                r: 6,
-                                strokeWidth: 2,
-                                stroke: "var(--surface)",
-                                fill: "var(--chart-3)",
-                              }}
-                            />
-                            <Area
-                              dataKey="Shiselweni"
-                              stroke="var(--chart-4)"
-                              strokeWidth={2}
-                              fill="url(#region-s)"
-                              type="monotone"
-                              dot={{
-                                r: 4,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--chart-4)",
-                              }}
-                              activeDot={{
-                                r: 6,
-                                strokeWidth: 2,
-                                stroke: "var(--surface)",
-                                fill: "var(--chart-4)",
-                              }}
-                            />
-                          </AreaChart>
-                        )}
+                        <AreaChart
+                          data={filteredRegionTrend}
+                          margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="region-h" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
+                              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="region-m" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.12} />
+                              <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="region-l" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.12} />
+                              <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="region-s" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.12} />
+                              <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="4 4"
+                            stroke="var(--border)"
+                            vertical={false}
+                            opacity={0.6}
+                          />
+                          <XAxis
+                            dataKey="month"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: "var(--muted-foreground)" }}
+                          />
+                          <YAxis
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: "var(--muted-foreground)" }}
+                            tickFormatter={(v) => formatNumber(v as number)}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "12px",
+                              fontSize: "12px",
+                              fontFamily: "var(--font-sans)",
+                              padding: "12px 16px",
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+                            }}
+                            itemStyle={{
+                              color: "var(--foreground)",
+                              fontWeight: 500,
+                              lineHeight: "1.8",
+                            }}
+                            labelStyle={{
+                              fontWeight: "700",
+                              color: "var(--foreground)",
+                              marginBottom: "6px",
+                              fontSize: "13px",
+                              borderBottom: "1px solid var(--border)",
+                              paddingBottom: "6px",
+                            }}
+                            cursor={{
+                              stroke: "var(--muted-foreground)",
+                              strokeWidth: 1,
+                              strokeDasharray: "4 3",
+                            }}
+                          />
+                          <Legend
+                            wrapperStyle={{
+                              fontSize: "11px",
+                              fontFamily: "var(--font-sans)",
+                              paddingTop: "12px",
+                            }}
+                            iconType="circle"
+                            iconSize={8}
+                          />
+                          <Area
+                            dataKey="Hhohho"
+                            stroke="var(--chart-1)"
+                            strokeWidth={2}
+                            fill="url(#region-h)"
+                            type="monotone"
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-1)",
+                            }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-1)",
+                            }}
+                          />
+                          <Area
+                            dataKey="Manzini"
+                            stroke="var(--chart-2)"
+                            strokeWidth={2}
+                            fill="url(#region-m)"
+                            type="monotone"
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-2)",
+                            }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-2)",
+                            }}
+                          />
+                          <Area
+                            dataKey="Lubombo"
+                            stroke="var(--chart-3)"
+                            strokeWidth={2}
+                            fill="url(#region-l)"
+                            type="monotone"
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-3)",
+                            }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-3)",
+                            }}
+                          />
+                          <Area
+                            dataKey="Shiselweni"
+                            stroke="var(--chart-4)"
+                            strokeWidth={2}
+                            fill="url(#region-s)"
+                            type="monotone"
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-4)",
+                            }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-4)",
+                            }}
+                          />
+                        </AreaChart>
                       </ResponsiveContainer>
                     </div>
                   </div>

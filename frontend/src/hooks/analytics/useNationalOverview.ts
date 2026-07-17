@@ -84,8 +84,8 @@ export const useNationalOverview = (enabled = true, year?: number) =>
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/analytics/national-overview", {
         params: {
-          query: year ? { reporting_year: year } : {},
-        },
+          query: year ? { reporting_year: year } : undefined,
+        } as never,
       });
       if (error) throw new Error(extractErrorMessage(error));
       if (!data) throw new Error("Portfolio analytics response was empty.");
