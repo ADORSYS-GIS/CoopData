@@ -48,6 +48,7 @@ const SECTOR_OPTIONS: FilterConfig["options"] = [
   { value: "Manufacturing", label: "Manufacturing" },
 ];
 
+
 const FILTERS_BY_ROLE: Record<string, FilterConfig[]> = {
   ministry: [
     { id: "federation", label: "Federation", options: [{ value: "all", label: "All Federations" }] },
