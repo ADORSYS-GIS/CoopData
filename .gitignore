@@ -49,6 +49,7 @@ docs/progress.md
 docs/design.md
 
 #personal
-source
+sources/
+source/
 # openapi-client/api.d.ts is generated — commit index.ts but ignore the generated types
 frontend/src/openapi-client/api.d.ts

@@ -49,7 +49,8 @@
 1. A **persistent PostgreSQL schema** for financial & non-financial cooperative data (replacing Keycloak-only storage and frontend mock data).
 2. The **submission + 4-tier review workflow** (Cooperative → Apex → Federation → Ministry).
 3. The **AI-extraction pipeline** (PDF/image/Excel → structured chart-of-accounts data → human validation).
-4. **KPI materialization** and **abnormality flagging** as backend services.
+4. **KPI materialization** and **abnormality flagging** as 
+backend services.
 5. **Data-flow** from upload through approval and analytics.
 
 ### 1.3 Key reconciliation decision: Keycloak vs PostgreSQL for identity
