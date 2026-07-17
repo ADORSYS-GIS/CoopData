@@ -394,7 +394,7 @@ export const AnalyticsPage: React.FC = () => {
   const isMinistry = role === "ministry";
   const isFederation = role === "federation";
   const isApex = role === "apex";
-  
+
   const federationsData = useFederations().data ?? [];
   const apexesData = useApexes().data ?? [];
   const cooperativesData = useCooperatives().data ?? [];
@@ -441,7 +441,8 @@ export const AnalyticsPage: React.FC = () => {
   const apexStats = useApexStats(role === "apex").data;
   const federationStats = useFederationStats(role === "federation").data;
   const federationSubmissions = useFederationSubmissions(role === "federation").data ?? [];
-  const apexSubmissions = useApexSubmissions(role === "apex").data ?? [];
+  const { data: apexSubmissionsData, isLoading: isApexSubmissionsLoading } = useApexSubmissions(role === "apex");
+  const apexSubmissions = apexSubmissionsData ?? [];
 
   // ── Analytics data hooks (with dynamic filters!) ──
   const regionComplianceData = useRegionCompliance(!!role, filterValues).data;
@@ -489,7 +490,7 @@ export const AnalyticsPage: React.FC = () => {
     role === "ministry" || role === "federation" || role === "apex",
     currentYear,
   ).data;
-  
+
   const { data: _monthlyTrendRaw } = useMonthlyTrend(
     monthlyTrendParams,
     !!role && coopHasApprovedSubmission,
@@ -515,7 +516,7 @@ export const AnalyticsPage: React.FC = () => {
     reportingYear: currentYear,
     cooperativeId: selectedCoopId ?? undefined,
   }), [currentYear, selectedCoopId]);
-  
+
   const { data: deepDiveTrend, isLoading: isDeepDiveTrendLoading } = useMonthlyTrend(deepDiveTrendParams, !!selectedCoopId);
   const { data: deepDiveNfStats, isLoading: isDeepDiveNfLoading } = useNfStatistics(
     false,
@@ -523,22 +524,18 @@ export const AnalyticsPage: React.FC = () => {
     !!selectedCoopId,
   );
 
-  // Find the approved submission for the selected coop + year so we can
-  // fetch financial KPIs that match exactly what the cooperative sees.
-  const deepDiveSubmission = useMemo(() => {
+  // Check if there's ANY submission (approved or not) for the selected coop+year
+  const deepDiveAnySubmission = useMemo(() => {
     if (!selectedCoopId) return undefined;
-    const approved = apexSubmissions.filter(
-      (s) => s.cooperative_id === selectedCoopId
-        && s.reporting_year === currentYear
-        && s.status === "approved",
+    return apexSubmissions.find(
+      (s) => s.cooperative_id === selectedCoopId && s.reporting_year === currentYear,
     );
-    if (approved.length === 0) return undefined;
-    return [...approved].sort((a, b) => b.reporting_year - a.reporting_year)[0];
   }, [apexSubmissions, selectedCoopId, currentYear]);
 
-  // True if the selected coop has no APPROVED submission for the selected year
-  const deepDiveLoading = isDeepDiveTrendLoading || isDeepDiveNfLoading;
-  const deepDiveHasNoData = !!selectedCoopId && !deepDiveLoading && !deepDiveSubmission;
+  // Gate all deep-dive data loading on submissions + trend + NF stats
+  const deepDiveLoading = isDeepDiveTrendLoading || isDeepDiveNfLoading || isApexSubmissionsLoading;
+  const deepDiveHasNoData = !!selectedCoopId && !deepDiveLoading &&
+    (!deepDiveTrend?.months?.length && !deepDiveNfStats);
 
   const deepDiveMonthly = useMemo(() => {
     if (!deepDiveTrend?.months) return [];
@@ -554,6 +551,19 @@ export const AnalyticsPage: React.FC = () => {
     () => cooperativesData.find((c) => c.id === selectedCoopId) ?? null,
     [cooperativesData, selectedCoopId],
   );
+
+  // Find the approved submission for the selected coop + year so we can
+  // fetch financial KPIs that match exactly what the cooperative sees.
+  const deepDiveSubmission = useMemo(() => {
+    if (!selectedCoopId) return undefined;
+    const approved = apexSubmissions.filter(
+      (s) => s.cooperative_id === selectedCoopId
+        && s.reporting_year === currentYear
+        && s.status.toLowerCase() === "approved",
+    );
+    if (approved.length === 0) return undefined;
+    return [...approved].sort((a, b) => b.reporting_year - a.reporting_year)[0];
+  }, [apexSubmissions, selectedCoopId, currentYear]);
 
   const { data: deepDiveKpis, isLoading: isDeepDiveKpisLoading } = useApexSubmissionKpis(
     deepDiveSubmission?.id,
@@ -1108,11 +1118,10 @@ export const AnalyticsPage: React.FC = () => {
                 {otherFilters.length > 0 && (
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
-                      activeFilterCount > 0
+                    className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${activeFilterCount > 0
                         ? "border-primary bg-primary/5 text-primary"
                         : "border-border text-muted-foreground hover:bg-muted/50"
-                    }`}
+                      }`}
                   >
                     <Filter className="size-3.5" />
                     Filters
@@ -1238,11 +1247,10 @@ export const AnalyticsPage: React.FC = () => {
                         <span>Reg: {selectedCoopProfile.reg_no}</span>
                       </>
                     )}
-                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                      selectedCoopProfile.status === "Active"
+                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${selectedCoopProfile.status === "Active"
                         ? "bg-success/10 text-success"
                         : "bg-warning/15 text-warning-foreground"
-                    }`}>
+                      }`}>
                       {selectedCoopProfile.status}
                     </span>
                   </div>
@@ -1257,66 +1265,65 @@ export const AnalyticsPage: React.FC = () => {
               </div>
 
               {/* ── Financial KPI Summary (matches what the cooperative sees) ── */}
-              {deepDiveSubmission && (
-                <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)]">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                    <div className="flex items-center gap-2">
-                      <Landmark className="size-4 text-primary" />
-                      <p className="text-xs font-bold uppercase tracking-wider text-foreground">
-                        Financial Performance — {currentYear}
-                      </p>
-                    </div>
-                    {isDeepDiveKpisLoading && (
-                      <Loader2 className="size-4 text-muted-foreground animate-spin" />
-                    )}
+              <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)]">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Landmark className="size-4 text-primary" />
+                    <h3 className="font-heading text-lg font-bold text-foreground">
+                      Financial Performance — {currentYear}
+                    </h3>
                   </div>
-                  {deepDiveKpis ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-border">
-                      {[
-                        { label: "Total Assets", kpi: "total_assets", icon: "💰", color: "text-primary" },
-                        { label: "Gross Loans", kpi: "gross_loan_portfolio", icon: "🏦", color: "text-foreground" },
-                        { label: "Member Deposits", kpi: "total_member_deposits", icon: "🏧", color: "text-foreground" },
-                        { label: "Net Surplus", kpi: "net_surplus", icon: "📈", color: "text-success" },
-                        { label: "NPL Ratio", kpi: "npl_ratio", icon: "⚠️", color: "text-warning-foreground" },
-                        { label: "Capital Adequacy", kpi: "capital_adequacy_ratio", icon: "🛡️", color: "text-foreground" },
-                      ].map(({ label, kpi, icon, color }) => {
-                        const item = deepDiveKpis.kpis.find((k) => k.name === kpi);
-                        const statusColor = item?.status === "green"
-                          ? "text-success"
-                          : item?.status === "amber"
-                          ? "text-warning-foreground"
-                          : item?.status === "red"
-                          ? "text-destructive"
-                          : color;
-                        return (
-                          <div key={kpi} className="px-4 py-4 flex flex-col gap-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              <span>{icon}</span>
-                              {label}
-                            </p>
-                            <p className={`font-heading text-xl font-bold num ${statusColor}`}>
-                              {item?.formatted ?? "—"}
-                            </p>
-                            {item?.status && (
-                              <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                                item.status === "green" ? "text-success" :
-                                item.status === "amber" ? "text-warning-foreground" :
-                                "text-destructive"
-                              }`}>
-                                ● {item.status}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : !isDeepDiveKpisLoading && (
-                    <p className="px-5 py-4 text-sm text-muted-foreground">
-                      No financial statement submitted for {currentYear}.
-                    </p>
+                  {isDeepDiveKpisLoading && (
+                    <Loader2 className="size-4 text-muted-foreground animate-spin" />
                   )}
                 </div>
-              )}
+                {deepDiveKpis ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-border">
+                    {[
+                      { label: "Total Assets", kpi: "total_assets", icon: "💰", color: "text-primary" },
+                      { label: "Gross Loans", kpi: "gross_loan_portfolio", icon: "🏦", color: "text-foreground" },
+                      { label: "Member Deposits", kpi: "total_member_deposits", icon: "🏧", color: "text-foreground" },
+                      { label: "Net Surplus", kpi: "net_surplus", icon: "📈", color: "text-success" },
+                      { label: "NPL Ratio", kpi: "npl_ratio", icon: "⚠️", color: "text-warning-foreground" },
+                      { label: "Capital Adequacy", kpi: "capital_adequacy_ratio", icon: "🛡️", color: "text-foreground" },
+                    ].map(({ label, kpi, icon, color }) => {
+                      const item = deepDiveKpis.kpis.find((k) => k.name === kpi);
+                      const statusColor = item?.status === "green"
+                        ? "text-success"
+                        : item?.status === "amber"
+                          ? "text-warning-foreground"
+                          : item?.status === "red"
+                            ? "text-destructive"
+                            : color;
+                      return (
+                        <div key={kpi} className="px-4 py-4 flex flex-col gap-1">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                            <span>{icon}</span>
+                            {label}
+                          </p>
+                          <p className={`font-heading text-xl font-bold num ${statusColor}`}>
+                            {item?.formatted ?? "—"}
+                          </p>
+                          {item?.status && (
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${item.status === "green" ? "text-success" :
+                                item.status === "amber" ? "text-warning-foreground" :
+                                  "text-destructive"
+                              }`}>
+                              {item.status}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : !isDeepDiveKpisLoading && !isApexSubmissionsLoading && (
+                  <p className="px-5 py-4 text-sm text-muted-foreground">
+                    {deepDiveSubmission
+                      ? `No financial KPIs available for the ${currentYear} submission.`
+                      : `No approved submission found for ${currentYear}.`}
+                  </p>
+                )}
+              </div>
 
               {/* Member Demographics — only shown when coop has data for selected year */}
               {deepDiveLoading ? (
@@ -1327,10 +1334,22 @@ export const AnalyticsPage: React.FC = () => {
               ) : deepDiveHasNoData ? (
                 <div className="rounded-xl border border-dashed border-border bg-muted/10 p-12 text-center">
                   <Calendar className="size-10 mx-auto mb-3 text-muted-foreground opacity-30" />
-                  <p className="text-base font-bold text-muted-foreground">No approved submission for {currentYear}</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has not submitted or been approved for the {currentYear} reporting year.
-                  </p>
+                  {deepDiveAnySubmission ? (
+                    <>
+                      <p className="text-base font-bold text-muted-foreground">Submission pending approval for {currentYear}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">
+                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has a submission for {currentYear} but it has not been approved yet.
+                        Status: <span className="font-semibold capitalize">{deepDiveAnySubmission.status}</span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-base font-bold text-muted-foreground">No submission for {currentYear}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">
+                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has not submitted a report for the {currentYear} reporting year.
+                      </p>
+                    </>
+                  )}
                   <button
                     onClick={() => handleFilterChange("year", String(currentYear - 1))}
                     className="mt-4 press-feedback text-xs font-bold text-primary hover:underline"
@@ -1339,260 +1358,260 @@ export const AnalyticsPage: React.FC = () => {
                   </button>
                 </div>
               ) : (
-              <>{deepDiveNfStats && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Total Members KPI */}
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="size-8 rounded-lg bg-primary/8 text-primary grid place-items-center">
-                        <Users className="size-4" />
-                      </div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Membership Summary</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="font-heading text-2xl font-bold text-foreground num">
-                          {deepDiveNfStats.membership.total.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Total Members</p>
-                      </div>
-                      <div>
-                        <p className="font-heading text-2xl font-bold text-success num">
-                          {deepDiveNfStats.membership.active.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Active</p>
-                      </div>
-                      <div>
-                        <p className="font-heading text-lg font-bold text-warning-foreground num">
-                          {deepDiveNfStats.membership.dormant.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Dormant</p>
-                      </div>
-                      <div>
-                        <p className="font-heading text-lg font-bold text-muted-foreground num">
-                          {deepDiveNfStats.membership.exited.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Exited</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.female_pct.toFixed(0)}%</p>
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Women</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.male_pct.toFixed(0)}%</p>
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Men</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.youth_pct.toFixed(0)}%</p>
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Youth</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gender Doughnut */}
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Gender Breakdown</p>
-                    <div className="h-40">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: "Women", value: deepDiveNfStats.membership.female_pct, fill: "var(--chart-1)" },
-                              { name: "Men", value: deepDiveNfStats.membership.male_pct, fill: "var(--chart-2)" },
-                              { name: "Other", value: deepDiveNfStats.membership.other_pct, fill: "var(--chart-3)" },
-                            ].filter(d => d.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={42}
-                            outerRadius={62}
-                            dataKey="value"
-                            strokeWidth={2}
-                            stroke="var(--surface)"
-                          >
-                            {["var(--chart-1)","var(--chart-2)","var(--chart-3)"].map((c, i) => (
-                              <Cell key={i} fill={c} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px" }}
-                            formatter={(v: number) => [`${v.toFixed(1)}%`]}
-                          />
-                          <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: "11px" }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Membership Status Doughnut */}
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Membership Status</p>
-                    <div className="h-40">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: "Active", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.active / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--success)" },
-                              { name: "Dormant", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.dormant / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--chart-3)" },
-                              { name: "Exited", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.exited / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--chart-4)" },
-                            ].filter(d => d.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={42}
-                            outerRadius={62}
-                            dataKey="value"
-                            strokeWidth={2}
-                            stroke="var(--surface)"
-                          >
-                            {["var(--success)","var(--chart-3)","var(--chart-4)"].map((c, i) => (
-                              <Cell key={i} fill={c} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px" }}
-                            formatter={(v: number) => [`${v}%`]}
-                          />
-                          <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: "11px" }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Portfolio Financial Trend (12 months) */}
-              {deepDiveMonthly.length > 0 && (
-                <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Portfolio Overview</p>
-                      <p className="font-heading text-xl font-bold text-foreground mt-1">
-                        {formatNumber(deepDiveMonthly[deepDiveMonthly.length - 1]?.assets ?? 0)}K Total Assets
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />Assets</span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />Loans</span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />Savings</span>
-                    </div>
-                  </div>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={deepDiveMonthly} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="dd-assets" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.2} />
-                            <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="dd-loans" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.15} />
-                            <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="dd-savings" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.15} />
-                            <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
-                        <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} />
-                        <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} tickFormatter={(v) => formatNumber(v as number)} />
-                        <Tooltip
-                          contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", fontSize: "12px", padding: "10px 14px" }}
-                          formatter={(v: number, name: string) => [`${formatNumber(v)}K`, name]}
-                        />
-                        <Area type="monotone" dataKey="assets" stroke="var(--chart-1)" strokeWidth={2} fill="url(#dd-assets)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-1)", strokeWidth: 2 }} name="Assets" />
-                        <Area type="monotone" dataKey="loans" stroke="var(--chart-2)" strokeWidth={2} fill="url(#dd-loans)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-2)", strokeWidth: 2 }} name="Loans" />
-                        <Area type="monotone" dataKey="savings" stroke="var(--chart-3)" strokeWidth={2} fill="url(#dd-savings)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-3)", strokeWidth: 2 }} name="Savings" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Loan & Savings Health */}
-              {deepDiveNfStats && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Loan Status Breakdown */}
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Loan Portfolio Health</p>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="rounded-lg bg-success/8 border border-success/20 p-3">
-                        <p className="font-heading text-xl font-bold text-success num">{deepDiveNfStats.loans.total_loans.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">Total Loans</p>
-                      </div>
-                      <div className="rounded-lg bg-muted/30 border border-border p-3">
-                        <p className="font-heading text-xl font-bold text-foreground num">{deepDiveNfStats.loans.performing.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Performing</p>
-                      </div>
-                      <div className="rounded-lg bg-warning/8 border border-warning/20 p-3">
-                        <p className="font-heading text-xl font-bold text-warning-foreground num">{deepDiveNfStats.loans.arrears.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-warning-foreground/70 mt-1">In Arrears</p>
-                      </div>
-                      <div className="rounded-lg bg-destructive/8 border border-destructive/20 p-3">
-                        <p className="font-heading text-xl font-bold text-destructive num">{deepDiveNfStats.loans.written_off.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-destructive/70 mt-1">Written Off</p>
-                      </div>
-                    </div>
-                    {deepDiveNfStats.loans.total_loans > 0 && (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
-                          <span>NPL Rate</span>
-                          <span className="font-bold text-foreground">
-                            {((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100).toFixed(1)}%
-                          </span>
+                <>{deepDiveNfStats && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Total Members KPI */}
+                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="size-8 rounded-lg bg-primary/8 text-primary grid place-items-center">
+                          <Users className="size-4" />
                         </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-warning transition-all"
-                            style={{ width: `${Math.min((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100, 100)}%` }}
-                          />
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Membership Summary</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="font-heading text-2xl font-bold text-foreground num">
+                            {deepDiveNfStats.membership.total.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Total Members</p>
+                        </div>
+                        <div>
+                          <p className="font-heading text-2xl font-bold text-success num">
+                            {deepDiveNfStats.membership.active.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Active</p>
+                        </div>
+                        <div>
+                          <p className="font-heading text-lg font-bold text-warning-foreground num">
+                            {deepDiveNfStats.membership.dormant.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Dormant</p>
+                        </div>
+                        <div>
+                          <p className="font-heading text-lg font-bold text-muted-foreground num">
+                            {deepDiveNfStats.membership.exited.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Exited</p>
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Savings Account Health */}
-                  <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Savings Portfolio Health</p>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="rounded-lg bg-primary/8 border border-primary/20 p-3">
-                        <p className="font-heading text-xl font-bold text-primary num">{deepDiveNfStats.savings.total_accounts.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mt-1">Total Accounts</p>
-                      </div>
-                      <div className="rounded-lg bg-success/8 border border-success/20 p-3">
-                        <p className="font-heading text-xl font-bold text-success num">{deepDiveNfStats.savings.active_accounts.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">Active</p>
-                      </div>
-                      <div className="rounded-lg bg-muted/30 border border-border p-3">
-                        <p className="font-heading text-xl font-bold text-foreground num">{deepDiveNfStats.savings.dormant_accounts.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Dormant</p>
-                      </div>
-                      <div className="rounded-lg bg-muted/30 border border-border p-3">
-                        <p className="font-heading text-xl font-bold text-foreground num">{(deepDiveNfStats.savings.zero_balance_count ?? 0).toLocaleString()}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Zero Balance</p>
+                      <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.female_pct.toFixed(0)}%</p>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Women</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.male_pct.toFixed(0)}%</p>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Men</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.youth_pct.toFixed(0)}%</p>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Youth</p>
+                        </div>
                       </div>
                     </div>
-                    {deepDiveNfStats.savings.total_accounts > 0 && (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
-                          <span>Account Utilisation</span>
-                          <span className="font-bold text-foreground">
-                            {((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100).toFixed(1)}%
-                          </span>
+
+                    {/* Gender Doughnut */}
+                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Gender Breakdown</p>
+                      <div className="h-40">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: "Women", value: deepDiveNfStats.membership.female_pct, fill: "var(--chart-1)" },
+                                { name: "Men", value: deepDiveNfStats.membership.male_pct, fill: "var(--chart-2)" },
+                                { name: "Other", value: deepDiveNfStats.membership.other_pct, fill: "var(--chart-3)" },
+                              ].filter(d => d.value > 0)}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={42}
+                              outerRadius={62}
+                              dataKey="value"
+                              strokeWidth={2}
+                              stroke="var(--surface)"
+                            >
+                              {["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"].map((c, i) => (
+                                <Cell key={i} fill={c} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px" }}
+                              formatter={(v: number) => [`${v.toFixed(1)}%`]}
+                            />
+                            <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: "11px" }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Membership Status Doughnut */}
+                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Membership Status</p>
+                      <div className="h-40">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: "Active", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.active / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--success)" },
+                                { name: "Dormant", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.dormant / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--chart-3)" },
+                                { name: "Exited", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.exited / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--chart-4)" },
+                              ].filter(d => d.value > 0)}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={42}
+                              outerRadius={62}
+                              dataKey="value"
+                              strokeWidth={2}
+                              stroke="var(--surface)"
+                            >
+                              {["var(--success)", "var(--chart-3)", "var(--chart-4)"].map((c, i) => (
+                                <Cell key={i} fill={c} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px" }}
+                              formatter={(v: number) => [`${v}%`]}
+                            />
+                            <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: "11px" }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                  {/* Portfolio Financial Trend (12 months) */}
+                  {deepDiveMonthly.length > 0 && (
+                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                      <div className="flex items-center justify-between mb-5">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Portfolio Overview</p>
+                          <p className="font-heading text-xl font-bold text-foreground mt-1">
+                            {formatNumber(deepDiveMonthly[deepDiveMonthly.length - 1]?.assets ?? 0)}K Total Assets
+                          </p>
                         </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-success transition-all"
-                            style={{ width: `${Math.min((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100, 100)}%` }}
-                          />
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />Assets</span>
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />Loans</span>
+                          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />Savings</span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              </>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={deepDiveMonthly} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="dd-assets" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="dd-loans" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.15} />
+                                <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="dd-savings" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.15} />
+                                <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} />
+                            <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} tickFormatter={(v) => formatNumber(v as number)} />
+                            <Tooltip
+                              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", fontSize: "12px", padding: "10px 14px" }}
+                              formatter={(v: number, name: string) => [`${formatNumber(v)}K`, name]}
+                            />
+                            <Area type="monotone" dataKey="assets" stroke="var(--chart-1)" strokeWidth={2} fill="url(#dd-assets)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-1)", strokeWidth: 2 }} name="Assets" />
+                            <Area type="monotone" dataKey="loans" stroke="var(--chart-2)" strokeWidth={2} fill="url(#dd-loans)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-2)", strokeWidth: 2 }} name="Loans" />
+                            <Area type="monotone" dataKey="savings" stroke="var(--chart-3)" strokeWidth={2} fill="url(#dd-savings)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-3)", strokeWidth: 2 }} name="Savings" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Loan & Savings Health */}
+                  {deepDiveNfStats && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Loan Status Breakdown */}
+                      <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Loan Portfolio Health</p>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="rounded-lg bg-success/8 border border-success/20 p-3">
+                            <p className="font-heading text-xl font-bold text-success num">{deepDiveNfStats.loans.total_loans.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">Total Loans</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <p className="font-heading text-xl font-bold text-foreground num">{deepDiveNfStats.loans.performing.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Performing</p>
+                          </div>
+                          <div className="rounded-lg bg-warning/8 border border-warning/20 p-3">
+                            <p className="font-heading text-xl font-bold text-warning-foreground num">{deepDiveNfStats.loans.arrears.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-warning-foreground/70 mt-1">In Arrears</p>
+                          </div>
+                          <div className="rounded-lg bg-destructive/8 border border-destructive/20 p-3">
+                            <p className="font-heading text-xl font-bold text-destructive num">{deepDiveNfStats.loans.written_off.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-destructive/70 mt-1">Written Off</p>
+                          </div>
+                        </div>
+                        {deepDiveNfStats.loans.total_loans > 0 && (
+                          <div className="mt-3">
+                            <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
+                              <span>NPL Rate</span>
+                              <span className="font-bold text-foreground">
+                                {((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-warning transition-all"
+                                style={{ width: `${Math.min((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Savings Account Health */}
+                      <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Savings Portfolio Health</p>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="rounded-lg bg-primary/8 border border-primary/20 p-3">
+                            <p className="font-heading text-xl font-bold text-primary num">{deepDiveNfStats.savings.total_accounts.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mt-1">Total Accounts</p>
+                          </div>
+                          <div className="rounded-lg bg-success/8 border border-success/20 p-3">
+                            <p className="font-heading text-xl font-bold text-success num">{deepDiveNfStats.savings.active_accounts.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">Active</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <p className="font-heading text-xl font-bold text-foreground num">{deepDiveNfStats.savings.dormant_accounts.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Dormant</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <p className="font-heading text-xl font-bold text-foreground num">{(deepDiveNfStats.savings.zero_balance_count ?? 0).toLocaleString()}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Zero Balance</p>
+                          </div>
+                        </div>
+                        {deepDiveNfStats.savings.total_accounts > 0 && (
+                          <div className="mt-3">
+                            <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
+                              <span>Account Utilisation</span>
+                              <span className="font-bold text-foreground">
+                                {((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-success transition-all"
+                                style={{ width: `${Math.min((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )
@@ -1600,1298 +1619,1065 @@ export const AnalyticsPage: React.FC = () => {
           <>
             {/* ── Network Summary ── */}
             <Card
-          title={
-            role === "ministry"
-              ? "National Network Overview"
-              : role === "federation"
-                ? "Federation Network Summary"
-                : role === "apex"
-                  ? "Apex Network Summary"
-                  : "Your Cooperative At a Glance"
-          }
-          subtitle="Key operational indicators for the current period"
-        >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {consolidatedNetworkSummary.map((item) => (
-              <div key={item.label} className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {item.label}
-                </p>
-                <p className="font-heading text-2xl font-bold text-foreground num">{item.value}</p>
-                <p className="text-[11px] text-muted-foreground leading-tight">{item.sub}</p>
+              title={
+                role === "ministry"
+                  ? "National Network Overview"
+                  : role === "federation"
+                    ? "Federation Network Summary"
+                    : role === "apex"
+                      ? "Apex Network Summary"
+                      : "Your Cooperative At a Glance"
+              }
+              subtitle="Key operational indicators for the current period"
+            >
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {consolidatedNetworkSummary.map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="font-heading text-2xl font-bold text-foreground num">{item.value}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">{item.sub}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
             </Card>
 
             {/* ── KPI Hero Row for ALL roles ── */}
-        {kpisLoading && isCooperative ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-border bg-surface p-4 animate-pulse space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="size-8 rounded-lg bg-muted" />
-                  <div className="h-3 w-10 rounded bg-muted" />
-                </div>
-                <div className="h-6 w-16 rounded bg-muted" />
-                <div className="h-2.5 w-20 rounded bg-muted" />
-              </div>
-            ))}
-          </div>
-        ) : filteredKPIs.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {filteredKPIs.slice(0, 6).map((kpi) => {
-              const statusColor =
-                kpi.status === "green"
-                  ? "text-success"
-                  : kpi.status === "red"
-                    ? "text-destructive"
-                    : kpi.status === "amber"
-                      ? "text-warning-foreground"
-                      : "text-muted-foreground";
-              return (
-                <div
-                  key={kpi.label}
-                  className="rounded-xl border border-border bg-surface p-4 hover-lift shadow-[var(--shadow-elev-1)] cursor-default"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="size-8 rounded-lg grid place-items-center bg-primary/8 text-primary">
-                      <kpi.icon className="size-4" />
-                    </div>
-                    {kpi.status && (
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          kpi.status === "green"
-                            ? "bg-success/10 text-success"
-                            : kpi.status === "red"
-                              ? "bg-destructive/10 text-destructive"
-                              : kpi.status === "amber"
-                                ? "bg-warning/15 text-warning-foreground"
-                                : "bg-muted/15 text-muted-foreground"
-                        }`}
-                      >
-                        {kpi.status}
-                      </span>
-                    )}
-                  </div>
-                  <p className={`font-heading text-xl font-bold num leading-none ${statusColor}`}>
-                    {kpi.value}
-                  </p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1.5 leading-tight">
-                    {kpi.label.replace(/_/g, " ")}
-                  </p>
-                  {kpi.change && (
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {kpi.change}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : isCooperative ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center">
-            <Activity className="size-8 mx-auto mb-3 text-muted-foreground opacity-40" />
-            <p className="text-sm font-semibold text-muted-foreground">No KPI data yet</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Submit a financial statement to see your computed KPIs here.
-            </p>
-          </div>
-        ) : null}
-
-
-
-        {/* ── Savings, Loans & Assets main chart ── */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* ── Premium Area/Line Chart with period selector ── */}
-          <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
-            {!monthlyTrendData?.months?.length && (role === "cooperative" ? !coopHasApprovedSubmission : true) && periodSlice.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground min-h-[300px]">
-                <Activity className="size-8 mx-auto mb-3 opacity-40" />
-                <p className="text-sm font-semibold">No financial data yet</p>
-                <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
-              </div>
-            ) : (
-              <>
-                {/* Header: stats + period toggle */}
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                      Portfolio Overview
-                    </p>
-                    <p className="font-heading text-2xl font-bold text-foreground num">
-                      {role === "cooperative"
-                        ? `$${portfolioTotal.savings.toLocaleString()}K`
-                        : formatNumber(portfolioTotal.assets)}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />
-                        {role === "cooperative" ? "Savings" : "Assets"}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />
-                        Loans
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />
-                        {role === "cooperative" ? "Assets" : "Savings"}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Period selector */}
-                  <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
-                    {(["1D", "5D", "1M", "1Y"] as const).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setPeriod(p)}
-                        className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
-                          period === p
-                            ? "bg-surface text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* Chart */}
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={periodSlice} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="grad-members-new" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
-                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="grad-savings-new" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.18} />
-                      <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="grad-loans-new" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.18} />
-                      <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "var(--muted-foreground)" }}
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "var(--muted-foreground)" }}
-                    tickFormatter={(v) => formatNumber(v as number)}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "var(--muted-foreground)" }}
-                    tickFormatter={(v) => `$${v}M`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "10px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-sans)",
-                      padding: "10px 14px",
-                      boxShadow: "var(--shadow-elev-2)",
-                    }}
-                    itemStyle={{ color: "var(--foreground)", fontWeight: 500 }}
-                    labelStyle={{
-                      fontWeight: "700",
-                      color: "var(--foreground)",
-                      marginBottom: "6px",
-                      fontSize: "13px",
-                    }}
-                    cursor={{
-                      stroke: "var(--muted-foreground)",
-                      strokeWidth: 1,
-                      strokeDasharray: "4 3",
-                    }}
-                  />
-                  {/* Reference line at last period */}
-                  {periodSlice.length > 0 && (
-                    <ReferenceLine
-                      yAxisId="left"
-                      x={periodSlice[periodSlice.length - 1]?.month}
-                      stroke="var(--muted-foreground)"
-                      strokeDasharray="4 3"
-                      strokeWidth={1}
-                    />
-                  )}
-                  <Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="assets"
-                    name="Assets ($K)"
-                    stroke="var(--chart-1)"
-                    strokeDasharray="4 4"
-                    strokeWidth={2}
-                    fill="url(#grad-members-new)"
-                    dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-1)" }}
-                    activeDot={{
-                      r: 6,
-                      strokeWidth: 2,
-                      stroke: "var(--surface)",
-                      fill: "var(--chart-1)",
-                    }}
-                  />
-                  <Area
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="savings"
-                    name="Savings ($K)"
-                    stroke="var(--chart-2)"
-                    strokeDasharray="3 3"
-                    strokeWidth={2}
-                    fill="url(#grad-savings-new)"
-                    dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-2)" }}
-                    activeDot={{
-                      r: 6,
-                      strokeWidth: 2,
-                      stroke: "var(--surface)",
-                      fill: "var(--chart-2)",
-                    }}
-                  />
-                  <Area
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="loans"
-                    name="Loans ($K)"
-                    stroke="var(--chart-3)"
-                    strokeWidth={2}
-                    fill="url(#grad-loans-new)"
-                    dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-3)" }}
-                    activeDot={{
-                      r: 6,
-                      strokeWidth: 2,
-                      stroke: "var(--surface)",
-                      fill: "var(--chart-3)",
-                    }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            </>
-            )}
-          </div>
-
-          {/* Gender & Status Doughnuts (replaces plain 2D pie) */}
-          {nfStats && (
-            <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
-              <GenderStatusDoughnuts data={nfStats.membership} />
-            </div>
-          )}
-        </div>
-
-        {/* ── Composed Chart: Savings, Loans & Deposits ── */}
-        <Card
-          title="Savings, Loans & Assets"
-          subtitle={
-            role === "cooperative"
-              ? "Your submitted monthly financial balances"
-              : "Authorized portfolio financial balances"
-          }
-        >
-          {!monthlyTrendData?.months?.length && (role === "cooperative" ? !coopHasApprovedSubmission : true) && filteredMonthlyFinancials.length === 0 ? (
-            <div className="flex items-center justify-center text-center text-muted-foreground min-h-[320px]">
-              <div>
-                <Activity className="size-8 mx-auto mb-3 opacity-40" />
-                <p className="text-sm font-semibold">No financial data yet</p>
-                <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                data={filteredMonthlyFinancials}
-                margin={{ top: 16, right: 24, left: -10, bottom: 0 }}
-                barGap={3}
-                barCategoryGap="28%"
-              >
-                <defs>
-                  {/* Gradient fills for bars */}
-                  <linearGradient id="bar-savings-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.65} />
-                  </linearGradient>
-                  <linearGradient id="bar-loans-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0.65} />
-                  </linearGradient>
-                  <linearGradient id="bar-assets-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0.65} />
-                  </linearGradient>
-                  {/* Soft area behind variation line */}
-                  <linearGradient id="variation-area-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border)"
-                  vertical={false}
-                  opacity={0.6}
-                />
-                <XAxis
-                  dataKey="monthShort"
-                  stroke="var(--muted-foreground)"
-                  fontSize={11}
-                  fontFamily="var(--font-sans)"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                />
-                <YAxis
-                  yAxisId="left"
-                  stroke="var(--muted-foreground)"
-                  fontSize={11}
-                  fontFamily="var(--font-sans)"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "var(--muted-foreground)" }}
-                  tickFormatter={(v) => `$${v}K`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="var(--chart-4)"
-                  fontSize={11}
-                  fontFamily="var(--font-sans)"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "var(--chart-4)", fontSize: 11 }}
-                  tickFormatter={(v) => `$${v}K`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    fontFamily: "var(--font-sans)",
-                    padding: "12px 16px",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-                  }}
-                  itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
-                  labelStyle={{
-                    fontWeight: "700",
-                    color: "var(--foreground)",
-                    marginBottom: "6px",
-                    fontSize: "13px",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: "6px",
-                  }}
-                  formatter={(value: number, name: string) => [`$${value.toLocaleString()}K`, name]}
-                  cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-                />
-                <Legend
-                  wrapperStyle={{
-                    fontSize: "11px",
-                    fontFamily: "var(--font-sans)",
-                    color: "var(--muted-foreground)",
-                    paddingTop: "12px",
-                  }}
-                  iconType="circle"
-                  iconSize={8}
-                />
-                {/* Grouped side-by-side bars with gradient fills */}
-                <Bar
-                  yAxisId="left"
-                  dataKey="savings"
-                  fill="url(#bar-savings-grad)"
-                  name="Savings"
-                  barSize={14}
-                  radius={[3, 3, 0, 0]}
-                />
-                <Bar
-                  yAxisId="left"
-                  dataKey="loans"
-                  fill="url(#bar-loans-grad)"
-                  name="Loans"
-                  barSize={14}
-                  radius={[3, 3, 0, 0]}
-                />
-                <Bar
-                  yAxisId="left"
-                  dataKey="assets"
-                  fill="url(#bar-assets-grad)"
-                  name="Assets"
-                  barSize={14}
-                  radius={[3, 3, 0, 0]}
-                />
-                {/* Soft area fill beneath variation line */}
-                <Area
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="variation"
-                  stroke="none"
-                  fill="url(#variation-area-grad)"
-                  name="_variation-fill"
-                  legendType="none"
-                  tooltipType="none"
-                />
-                {/* Variation trend line with hollow dots */}
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="variation"
-                  stroke="var(--chart-4)"
-                  strokeWidth={2.5}
-                  name="Net Variation"
-                  dot={{ r: 4.5, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-4)" }}
-                  activeDot={{
-                    r: 7,
-                    strokeWidth: 2.5,
-                    stroke: "var(--chart-4)",
-                    fill: "var(--surface)",
-                  }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          )}
-        </Card>
-
-        {/* ── Sector Pie + Youth Stacked Bar (admin/federation/ministry only) ── */}
-        {role !== "cooperative" && (
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
-            <div className="mb-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Sector Capital Share
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Share of portfolio by sector
-              </p>
-            </div>
-            <div className="relative flex-1 flex items-center justify-center">
-              <div className="h-52 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={filteredSectorBreakdown}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={56}
-                      outerRadius={82}
-                      paddingAngle={3}
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      {filteredSectorBreakdown.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill="var(--accent)"
-                          fillOpacity={sectorOpacities[i] ?? 0.3}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "10px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      formatter={(value: number) => [`${value}%`]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="font-heading text-xl font-bold text-foreground num leading-none">
-                  {filteredSectorBreakdown.length}
-                </span>
-                <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
-                  Sectors
-                </span>
-              </div>
-            </div>
-            <ul className="space-y-1.5 border-t border-border pt-3 mt-2">
-              {filteredSectorBreakdown.map((s, i) => (
-                <li key={s.name} className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <span
-                      className="size-2.5 rounded-sm shrink-0"
-                      style={{ background: "var(--accent)", opacity: sectorOpacities[i] ?? 0.3 }}
-                    />
-                    {s.name}
-                  </span>
-                  <span className="font-bold num text-foreground">{s.value}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <Card
-            className="lg:col-span-2"
-            title="Youth Participation by Region"
-            subtitle="% of members under 35 years old"
-          >
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={youthData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    fontFamily="var(--font-sans)"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-sans)",
-                      padding: "8px 12px",
-                      boxShadow: "var(--shadow-elev-2)",
-                    }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                    labelStyle={{
-                      fontWeight: "600",
-                      color: "var(--foreground)",
-                      marginBottom: "4px",
-                    }}
-                  />
-                  <Bar
-                    dataKey="youth"
-                    stackId="a"
-                    fill="var(--chart-1)"
-                    barSize={20}
-                    name="Youth (< 35)"
-                  />
-                  <Bar
-                    dataKey="adult"
-                    stackId="a"
-                    fill="var(--muted)"
-                    radius={[4, 4, 0, 0]}
-                    barSize={20}
-                    name="Adult (35+)"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
-        )}
-
-
-        {/* ── Non-Financial Core Components ── */}
-        {nfStats && nfStats.membership.total > 0 && role === "cooperative" && (
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card title="Savings Health Metrics" subtitle="Activity and penetration metrics">
-              <div className="py-4">
-                <SavingsRadialGauges data={nfStats.savings} />
-              </div>
-            </Card>
-
-            <Card title="Loan Portfolio Composition" subtitle="Volume and value by loan status">
-              <div className="py-4 h-full">
-                <LoanDualBar data={nfStats.loans} />
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {role !== "cooperative" && nationalOverview && (
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card title="Regional Financial Distribution" subtitle="Aggregate Assets, Loans & Deposits">
-              <div className="py-4">
-                <RegionalGroupedBar cooperatives={nationalOverview.cooperatives} />
-              </div>
-            </Card>
-
-            <Card title="Dormancy Leaderboard" subtitle="Cooperatives ranked by dormancy rate (Watch/Critical)">
-              <div className="py-4">
-                <DormancyLeaderboard
-                  data={nationalOverview.cooperatives
-                    .filter((c) => c.non_financial.has_data)
-                    .map((c) => ({
-                      name: c.name,
-                      dormancy_pct: c.non_financial.dormancy_pct,
-                      active_members_pct: c.non_financial.active_members_pct,
-                      total_members: c.non_financial.total_members,
-                    }))}
-                  maxRows={10}
-                />
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* ── Compliance Trend / Region Compliance ── */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card
-            title="Membership and Inclusion Trend"
-            subtitle="Submitted reporting-period totals for members, youth, and women"
-          >
-            <div className="h-64">
-              {membershipTrend.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
-                  <Users className="size-8 opacity-30" />
-                  <p className="mt-3 text-sm font-semibold">No reporting-period history yet</p>
-                  <p className="mt-1 max-w-xs text-xs">
-                    Membership and inclusion trends appear after non-financial data is submitted.
-                  </p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={membershipTrend}
-                    layout="vertical"
-                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+            {kpisLoading && isCooperative ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-surface p-4 animate-pulse space-y-3"
                   >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      domain={[0, "dataMax"]}
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => formatNumber(v as number)}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="year"
-                      stroke="var(--muted-foreground)"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      width={35}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      labelStyle={{
-                        fontWeight: "600",
-                        color: "var(--foreground)",
-                        marginBottom: "4px",
-                      }}
-                      formatter={(value: number) => [formatNumber(value)]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar
-                      dataKey="women"
-                      fill="var(--chart-1)"
-                      radius={[0, 3, 3, 0]}
-                      name="Women"
-                      barSize={10}
-                    />
-                    <Bar
-                      dataKey="youth"
-                      fill="var(--chart-3)"
-                      radius={[0, 3, 3, 0]}
-                      name="Youth"
-                      barSize={10}
-                    />
-                    <Bar
-                      dataKey="members"
-                      fill="var(--chart-2)"
-                      radius={[0, 3, 3, 0]}
-                      name="Total"
-                      barSize={10}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                    <div className="flex items-center justify-between">
+                      <div className="size-8 rounded-lg bg-muted" />
+                      <div className="h-3 w-10 rounded bg-muted" />
+                    </div>
+                    <div className="h-6 w-16 rounded bg-muted" />
+                    <div className="h-2.5 w-20 rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredKPIs.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {filteredKPIs.slice(0, 6).map((kpi) => {
+                  const statusColor =
+                    kpi.status === "green"
+                      ? "text-success"
+                      : kpi.status === "red"
+                        ? "text-destructive"
+                        : kpi.status === "amber"
+                          ? "text-warning-foreground"
+                          : "text-muted-foreground";
+                  return (
+                    <div
+                      key={kpi.label}
+                      className="rounded-xl border border-border bg-surface p-4 hover-lift shadow-[var(--shadow-elev-1)] cursor-default"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="size-8 rounded-lg grid place-items-center bg-primary/8 text-primary">
+                          <kpi.icon className="size-4" />
+                        </div>
+                        {kpi.status && (
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${kpi.status === "green"
+                                ? "bg-success/10 text-success"
+                                : kpi.status === "red"
+                                  ? "bg-destructive/10 text-destructive"
+                                  : kpi.status === "amber"
+                                    ? "bg-warning/15 text-warning-foreground"
+                                    : "bg-muted/15 text-muted-foreground"
+                              }`}
+                          >
+                            {kpi.status}
+                          </span>
+                        )}
+                      </div>
+                      <p className={`font-heading text-xl font-bold num leading-none ${statusColor}`}>
+                        {kpi.value}
+                      </p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1.5 leading-tight">
+                        {kpi.label.replace(/_/g, " ")}
+                      </p>
+                      {kpi.change && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {kpi.change}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : isCooperative ? (
+              <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center">
+                <Activity className="size-8 mx-auto mb-3 text-muted-foreground opacity-40" />
+                <p className="text-sm font-semibold text-muted-foreground">No KPI data yet</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Submit a financial statement to see your computed KPIs here.
+                </p>
+              </div>
+            ) : null}
+
+
+
+            {/* ── Savings, Loans & Assets main chart ── */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* ── Premium Area/Line Chart with period selector ── */}
+              <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
+                {!monthlyTrendData?.months?.length && (role === "cooperative" ? !coopHasApprovedSubmission : true) && periodSlice.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground min-h-[300px]">
+                    <Activity className="size-8 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-semibold">No financial data yet</p>
+                    <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Header: stats + period toggle */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                          Portfolio Overview
+                        </p>
+                        <p className="font-heading text-2xl font-bold text-foreground num">
+                          {role === "cooperative"
+                            ? `$${portfolioTotal.savings.toLocaleString()}K`
+                            : formatNumber(portfolioTotal.assets)}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />
+                            {role === "cooperative" ? "Savings" : "Assets"}
+                          </span>
+                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />
+                            Loans
+                          </span>
+                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />
+                            {role === "cooperative" ? "Assets" : "Savings"}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Period selector */}
+                      <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
+                        {(["1D", "5D", "1M", "1Y"] as const).map((p) => (
+                          <button
+                            key={p}
+                            onClick={() => setPeriod(p)}
+                            className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${period === p
+                                ? "bg-surface text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                              }`}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Chart */}
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={periodSlice} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="grad-members-new" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
+                              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="grad-savings-new" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.18} />
+                              <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="grad-loans-new" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.18} />
+                              <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
+                          <XAxis
+                            dataKey="month"
+                            stroke="var(--muted-foreground)"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: "var(--muted-foreground)" }}
+                          />
+                          <YAxis
+                            yAxisId="left"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: "var(--muted-foreground)" }}
+                            tickFormatter={(v) => formatNumber(v as number)}
+                          />
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: "var(--muted-foreground)" }}
+                            tickFormatter={(v) => `$${v}M`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "10px",
+                              fontSize: "12px",
+                              fontFamily: "var(--font-sans)",
+                              padding: "10px 14px",
+                              boxShadow: "var(--shadow-elev-2)",
+                            }}
+                            itemStyle={{ color: "var(--foreground)", fontWeight: 500 }}
+                            labelStyle={{
+                              fontWeight: "700",
+                              color: "var(--foreground)",
+                              marginBottom: "6px",
+                              fontSize: "13px",
+                            }}
+                            cursor={{
+                              stroke: "var(--muted-foreground)",
+                              strokeWidth: 1,
+                              strokeDasharray: "4 3",
+                            }}
+                          />
+                          {/* Reference line at last period */}
+                          {periodSlice.length > 0 && (
+                            <ReferenceLine
+                              yAxisId="left"
+                              x={periodSlice[periodSlice.length - 1]?.month}
+                              stroke="var(--muted-foreground)"
+                              strokeDasharray="4 3"
+                              strokeWidth={1}
+                            />
+                          )}
+                          <Area
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="assets"
+                            name="Assets ($K)"
+                            stroke="var(--chart-1)"
+                            strokeDasharray="4 4"
+                            strokeWidth={2}
+                            fill="url(#grad-members-new)"
+                            dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-1)" }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-1)",
+                            }}
+                          />
+                          <Area
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="savings"
+                            name="Savings ($K)"
+                            stroke="var(--chart-2)"
+                            strokeDasharray="3 3"
+                            strokeWidth={2}
+                            fill="url(#grad-savings-new)"
+                            dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-2)" }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-2)",
+                            }}
+                          />
+                          <Area
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="loans"
+                            name="Loans ($K)"
+                            stroke="var(--chart-3)"
+                            strokeWidth={2}
+                            fill="url(#grad-loans-new)"
+                            dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-3)" }}
+                            activeDot={{
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "var(--surface)",
+                              fill: "var(--chart-3)",
+                            }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Gender & Status Doughnuts (replaces plain 2D pie) */}
+              {nfStats && (
+                <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
+                  <GenderStatusDoughnuts data={nfStats.membership} />
+                </div>
               )}
             </div>
-          </Card>
 
-          {role === "cooperative" && (
+            {/* ── Composed Chart: Savings, Loans & Deposits ── */}
             <Card
-              title="Loan Portfolio Quality"
-              subtitle="Risk distribution from submitted non-financial loan records"
-            >
-              <div className="relative h-52 flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={filteredLoanPortfolio}
-                      dataKey="value"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={3}
-                    >
-                      {filteredLoanPortfolio.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "8px 12px",
-                        boxShadow: "var(--shadow-elev-2)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)" }}
-                      labelStyle={{
-                        fontWeight: "600",
-                        color: "var(--foreground)",
-                        marginBottom: "4px",
-                      }}
-                      formatter={(value: number) => [`${value}%`]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
-                  <span className="text-[20px] font-bold text-success leading-none">
-                    {filteredLoanPortfolio.find((item) => item.name === "Performing")?.value ?? 0}%
-                  </span>
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
-                    Performing
-                  </span>
-                </div>
-              </div>
-              <ul className="space-y-2 border-t border-border pt-3 mt-1">
-                {filteredLoanPortfolio.map((item) => (
-                  <li key={item.name} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <span
-                        className="size-2.5 rounded-sm shrink-0"
-                        style={{ background: item.fill }}
-                      />
-                      {item.name}
-                    </span>
-                    <span className="font-bold num text-foreground">{item.value}%</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          <Card
-            title="Compliance Score"
-            subtitle={
-              role === "cooperative" ? "Your current rating" : "Aggregate compliance rating"
-            }
-          >
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="70%"
-                  outerRadius="85%"
-                  barSize={10}
-                  data={[
-                    {
-                      name: "Compliance",
-                      value: filteredComplianceScore ?? 0,
-                      fill: "var(--chart-1)",
-                    },
-                  ]}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <RadialBar
-                    dataKey="value"
-                    cornerRadius={10}
-                    fill="var(--chart-1)"
-                    background={{ fill: "var(--muted)", opacity: 0.15 }}
-                  />
-                </RadialBarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-center -mt-4">
-              <p className="font-heading text-4xl font-bold text-foreground num">
-                {filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">Compliance score</p>
-            </div>
-          </Card>
-        </div>
-
-        {/* ── Region Compliance Horizontal Bar + Submission Timeliness Area ── */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {(role === "cooperative"
-            ? coopComplianceTrend.length > 0
-            : filteredRegionCompliance.length > 0) && (
-            <Card
-              title={
-                role === "cooperative"
-                  ? "Your Compliance Trend"
-                  : role === "ministry"
-                    ? "Regional Compliance Comparison"
-                    : role === "federation"
-                      ? "Regional Compliance in Your Federation"
-                      : "Regional Compliance Overview"
-              }
+              title="Savings, Loans & Assets"
               subtitle={
                 role === "cooperative"
-                  ? "Monthly compliance score over the year"
-                  : "Compliance score by region"
+                  ? "Your submitted monthly financial balances"
+                  : "Authorized portfolio financial balances"
               }
             >
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  {role === "cooperative" ? (
-                    <AreaChart
-                      data={coopComplianceTrend}
-                      margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+              {!monthlyTrendData?.months?.length && (role === "cooperative" ? !coopHasApprovedSubmission : true) && filteredMonthlyFinancials.length === 0 ? (
+                <div className="flex items-center justify-center text-center text-muted-foreground min-h-[320px]">
+                  <div>
+                    <Activity className="size-8 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-semibold">No financial data yet</p>
+                    <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart
+                      data={filteredMonthlyFinancials}
+                      margin={{ top: 16, right: 24, left: -10, bottom: 0 }}
+                      barGap={3}
+                      barCategoryGap="28%"
                     >
                       <defs>
-                        <linearGradient id="coop-comp" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} />
+                        {/* Gradient fills for bars */}
+                        <linearGradient id="bar-savings-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.65} />
+                        </linearGradient>
+                        <linearGradient id="bar-loans-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0.65} />
+                        </linearGradient>
+                        <linearGradient id="bar-assets-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0.65} />
+                        </linearGradient>
+                        {/* Soft area behind variation line */}
+                        <linearGradient id="variation-area-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="var(--border)"
                         vertical={false}
+                        opacity={0.6}
                       />
                       <XAxis
-                        dataKey="month"
+                        dataKey="monthShort"
                         stroke="var(--muted-foreground)"
                         fontSize={11}
                         fontFamily="var(--font-sans)"
                         tickLine={false}
                         axisLine={false}
+                        tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                       />
                       <YAxis
-                        domain={[85, 100]}
+                        yAxisId="left"
                         stroke="var(--muted-foreground)"
                         fontSize={11}
                         fontFamily="var(--font-sans)"
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(v) => `${v}%`}
+                        tick={{ fill: "var(--muted-foreground)" }}
+                        tickFormatter={(v) => `$${v}K`}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="var(--chart-4)"
+                        fontSize={11}
+                        fontFamily="var(--font-sans)"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: "var(--chart-4)", fontSize: 11 }}
+                        tickFormatter={(v) => `$${v}K`}
                       />
                       <Tooltip
                         contentStyle={{
                           background: "var(--surface)",
                           border: "1px solid var(--border)",
-                          borderRadius: "8px",
+                          borderRadius: "12px",
                           fontSize: "12px",
                           fontFamily: "var(--font-sans)",
-                          padding: "8px 12px",
-                          boxShadow: "var(--shadow-elev-2)",
+                          padding: "12px 16px",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
                         }}
-                        itemStyle={{ color: "var(--foreground)" }}
+                        itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
                         labelStyle={{
-                          fontWeight: "600",
+                          fontWeight: "700",
                           color: "var(--foreground)",
-                          marginBottom: "4px",
+                          marginBottom: "6px",
+                          fontSize: "13px",
+                          borderBottom: "1px solid var(--border)",
+                          paddingBottom: "6px",
                         }}
-                        formatter={(value: number) => [`${value}%`]}
+                        formatter={(value: number, name: string) => [`$${value.toLocaleString()}K`, name]}
+                        cursor={{ fill: "var(--muted)", opacity: 0.3 }}
                       />
-                      <Area
-                        type="monotone"
-                        dataKey="score"
-                        stroke="var(--accent)"
-                        strokeWidth={2}
-                        fill="url(#coop-comp)"
-                        dot={{
-                          r: 3,
-                          strokeWidth: 2,
-                          fill: "var(--surface)",
-                          stroke: "var(--accent)",
-                        }}
-                        name="Compliance"
-                      />
-                    </AreaChart>
-                  ) : (
-                    <BarChart
-                      data={filteredRegionCompliance}
-                      layout="vertical"
-                      margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--border)"
-                        horizontal={false}
-                      />
-                      <XAxis
-                        type="number"
-                        domain={[80, 100]}
-                        stroke="var(--muted-foreground)"
-                        fontSize={11}
-                        fontFamily="var(--font-sans)"
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => `${v}%`}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        stroke="var(--muted-foreground)"
-                        fontSize={11}
-                        fontFamily="var(--font-sans)"
-                        tickLine={false}
-                        axisLine={false}
-                        width={80}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          background: "var(--surface)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "8px",
-                          fontSize: "12px",
+                      <Legend
+                        wrapperStyle={{
+                          fontSize: "11px",
                           fontFamily: "var(--font-sans)",
-                          padding: "8px 12px",
-                          boxShadow: "var(--shadow-elev-2)",
+                          color: "var(--muted-foreground)",
+                          paddingTop: "12px",
                         }}
-                        itemStyle={{ color: "var(--foreground)" }}
-                        labelStyle={{
-                          fontWeight: "600",
-                          color: "var(--foreground)",
-                          marginBottom: "4px",
-                        }}
-                        formatter={(value: number) => [`${value}%`]}
+                        iconType="circle"
+                        iconSize={8}
+                      />
+                      {/* Grouped side-by-side bars with gradient fills */}
+                      <Bar
+                        yAxisId="left"
+                        dataKey="savings"
+                        fill="url(#bar-savings-grad)"
+                        name="Savings"
+                        barSize={14}
+                        radius={[3, 3, 0, 0]}
                       />
                       <Bar
-                        dataKey="score"
-                        fill="var(--chart-1)"
-                        radius={[0, 6, 6, 0]}
-                        barSize={24}
-                        name="Compliance %"
+                        yAxisId="left"
+                        dataKey="loans"
+                        fill="url(#bar-loans-grad)"
+                        name="Loans"
+                        barSize={14}
+                        radius={[3, 3, 0, 0]}
                       />
-                    </BarChart>
-                  )}
-                </ResponsiveContainer>
-              </div>
+                      <Bar
+                        yAxisId="left"
+                        dataKey="assets"
+                        fill="url(#bar-assets-grad)"
+                        name="Assets"
+                        barSize={14}
+                        radius={[3, 3, 0, 0]}
+                      />
+                      {/* Soft area fill beneath variation line */}
+                      <Area
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="variation"
+                        stroke="none"
+                        fill="url(#variation-area-grad)"
+                        name="_variation-fill"
+                        legendType="none"
+                        tooltipType="none"
+                      />
+                      {/* Variation trend line with hollow dots */}
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="variation"
+                        stroke="var(--chart-4)"
+                        strokeWidth={2.5}
+                        name="Net Variation"
+                        dot={{ r: 4.5, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-4)" }}
+                        activeDot={{
+                          r: 7,
+                          strokeWidth: 2.5,
+                          stroke: "var(--chart-4)",
+                          fill: "var(--surface)",
+                        }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </Card>
-          )}
 
-
-        </div>
-
-        {/* ── Period Comparison + Region Trend (admin only) ── */}
-        {role !== "cooperative" && mergedCompData.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* ── Current vs Previous Period Comparison Chart ── */}
-            <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Portfolio Savings Trend
-                  </p>
-                  <div className="flex items-center gap-5 mt-2">
-                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="inline-block w-6 h-0.5 rounded-full bg-[var(--chart-1)]" />
-                      Submitted savings
-                    </span>
-                  </div>
-                </div>
-                {/* Period selector */}
-                <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
-                  {(["Week", "Month", "Quarter", "Year"] as const).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setCompPeriod(p)}
-                      className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
-                        compPeriod === p
-                          ? "bg-surface text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Chart */}
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={mergedCompData}
-                    margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="comp-curr" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
-                        <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="comp-prev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.14} />
-                        <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      stroke="var(--border)"
-                      vertical={false}
-                      opacity={0.6}
-                    />
-                    <XAxis
-                      dataKey="month"
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                    />
-                    <YAxis
-                      fontSize={11}
-                      fontFamily="var(--font-sans)"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                      tickFormatter={(v) => `$${v}K`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontFamily: "var(--font-sans)",
-                        padding: "12px 16px",
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-                      }}
-                      itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
-                      labelStyle={{
-                        fontWeight: "700",
-                        color: "var(--foreground)",
-                        marginBottom: "6px",
-                        fontSize: "13px",
-                        borderBottom: "1px solid var(--border)",
-                        paddingBottom: "6px",
-                      }}
-                      formatter={(value: number, name: string) => [`$${value}K`, name]}
-                      cursor={{
-                        stroke: "var(--muted-foreground)",
-                        strokeWidth: 1,
-                        strokeDasharray: "4 3",
-                      }}
-                    />
-                    {/* Current period — solid with visible dots */}
-                    <Area
-                      type="monotone"
-                      dataKey="This Period"
-                      stroke="var(--chart-1)"
-                      strokeWidth={2.5}
-                      fill="url(#comp-curr)"
-                      dot={{
-                        r: 4,
-                        strokeWidth: 2,
-                        fill: "var(--surface)",
-                        stroke: "var(--chart-1)",
-                      }}
-                      activeDot={{
-                        r: 6,
-                        strokeWidth: 2,
-                        stroke: "var(--surface)",
-                        fill: "var(--chart-1)",
-                      }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* ── Multi-Region Trend (or Coop Monthly Trend) ── */}
-            {filteredRegionTrend.length > 0 && (
-              <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                <div className="flex items-start justify-between mb-5">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                      {role === "cooperative"
-                        ? "Monthly Members & Savings"
-                        : "Member Trend by Region"}
+            {/* ── Sector Pie + Youth Stacked Bar (admin/federation/ministry only) ── */}
+            {role !== "cooperative" && (
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
+                  <div className="mb-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Sector Capital Share
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {role === "cooperative"
-                        ? "Your cooperative's monthly trend"
-                        : "Jan – Dec 2025 · Across all regions"}
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Share of portfolio by sector
                     </p>
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-                    Jan 1 – Dec 31
-                  </span>
+                  <div className="relative flex-1 flex items-center justify-center">
+                    <div className="h-52 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={filteredSectorBreakdown}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={56}
+                            outerRadius={82}
+                            paddingAngle={3}
+                            startAngle={90}
+                            endAngle={-270}
+                          >
+                            {filteredSectorBreakdown.map((_, i) => (
+                              <Cell
+                                key={i}
+                                fill="var(--accent)"
+                                fillOpacity={sectorOpacities[i] ?? 0.3}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "10px",
+                              fontSize: "12px",
+                              fontFamily: "var(--font-sans)",
+                              padding: "8px 12px",
+                              boxShadow: "var(--shadow-elev-2)",
+                            }}
+                            itemStyle={{ color: "var(--foreground)" }}
+                            formatter={(value: number) => [`${value}%`]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="font-heading text-xl font-bold text-foreground num leading-none">
+                        {filteredSectorBreakdown.length}
+                      </span>
+                      <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
+                        Sectors
+                      </span>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5 border-t border-border pt-3 mt-2">
+                    {filteredSectorBreakdown.map((s, i) => (
+                      <li key={s.name} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <span
+                            className="size-2.5 rounded-sm shrink-0"
+                            style={{ background: "var(--accent)", opacity: sectorOpacities[i] ?? 0.3 }}
+                          />
+                          {s.name}
+                        </span>
+                        <span className="font-bold num text-foreground">{s.value}%</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    {role === "cooperative" ? (
-                      <AreaChart
-                        data={coopMonthlyTrend}
-                        margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="coop-members" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
-                            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="coop-savings" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--success)" stopOpacity={0.15} />
-                            <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="4 4"
-                          stroke="var(--border)"
-                          vertical={false}
-                          opacity={0.6}
-                        />
+
+                <Card
+                  className="lg:col-span-2"
+                  title="Youth Participation by Region"
+                  subtitle="% of members under 35 years old"
+                >
+                  <div className="h-60">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={youthData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                         <XAxis
-                          dataKey="month"
+                          dataKey="name"
+                          stroke="var(--muted-foreground)"
                           fontSize={11}
                           fontFamily="var(--font-sans)"
                           tickLine={false}
                           axisLine={false}
-                          tick={{ fill: "var(--muted-foreground)" }}
                         />
                         <YAxis
-                          yAxisId="left"
+                          stroke="var(--muted-foreground)"
                           fontSize={11}
                           fontFamily="var(--font-sans)"
                           tickLine={false}
                           axisLine={false}
-                          tick={{ fill: "var(--muted-foreground)" }}
-                          tickFormatter={(v) => v.toLocaleString()}
-                        />
-                        <YAxis
-                          yAxisId="right"
-                          orientation="right"
-                          fontSize={11}
-                          fontFamily="var(--font-sans)"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: "var(--muted-foreground)" }}
-                          tickFormatter={(v) => `$${v}K`}
                         />
                         <Tooltip
                           contentStyle={{
                             background: "var(--surface)",
                             border: "1px solid var(--border)",
-                            borderRadius: "12px",
+                            borderRadius: "8px",
                             fontSize: "12px",
                             fontFamily: "var(--font-sans)",
-                            padding: "12px 16px",
-                            boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+                            padding: "8px 12px",
+                            boxShadow: "var(--shadow-elev-2)",
                           }}
-                          itemStyle={{
-                            color: "var(--foreground)",
-                            fontWeight: 500,
-                            lineHeight: "1.8",
-                          }}
+                          itemStyle={{ color: "var(--foreground)" }}
                           labelStyle={{
-                            fontWeight: "700",
+                            fontWeight: "600",
                             color: "var(--foreground)",
-                            marginBottom: "6px",
-                            fontSize: "13px",
-                            borderBottom: "1px solid var(--border)",
-                            paddingBottom: "6px",
+                            marginBottom: "4px",
                           }}
                         />
-                        <Legend
-                          wrapperStyle={{
-                            fontSize: "11px",
+                        <Bar
+                          dataKey="youth"
+                          stackId="a"
+                          fill="var(--chart-1)"
+                          barSize={20}
+                          name="Youth (< 35)"
+                        />
+                        <Bar
+                          dataKey="adult"
+                          stackId="a"
+                          fill="var(--muted)"
+                          radius={[4, 4, 0, 0]}
+                          barSize={20}
+                          name="Adult (35+)"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+
+            {/* ── Non-Financial Core Components ── */}
+            {nfStats && nfStats.membership.total > 0 && role === "cooperative" && (
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card title="Savings Health Metrics" subtitle="Activity and penetration metrics">
+                  <div className="py-4">
+                    <SavingsRadialGauges data={nfStats.savings} />
+                  </div>
+                </Card>
+
+                <Card title="Loan Portfolio Composition" subtitle="Volume and value by loan status">
+                  <div className="py-4 h-full">
+                    <LoanDualBar data={nfStats.loans} />
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {role !== "cooperative" && nationalOverview && (
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card title="Regional Financial Distribution" subtitle="Aggregate Assets, Loans & Deposits">
+                  <div className="py-4">
+                    <RegionalGroupedBar cooperatives={nationalOverview.cooperatives} />
+                  </div>
+                </Card>
+
+                <Card title="Dormancy Leaderboard" subtitle="Cooperatives ranked by dormancy rate (Watch/Critical)">
+                  <div className="py-4">
+                    <DormancyLeaderboard
+                      data={nationalOverview.cooperatives
+                        .filter((c) => c.non_financial.has_data)
+                        .map((c) => ({
+                          name: c.name,
+                          dormancy_pct: c.non_financial.dormancy_pct,
+                          active_members_pct: c.non_financial.active_members_pct,
+                          total_members: c.non_financial.total_members,
+                        }))}
+                      maxRows={10}
+                    />
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* ── Compliance Trend / Region Compliance ── */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card
+                title="Membership and Inclusion Trend"
+                subtitle="Submitted reporting-period totals for members, youth, and women"
+              >
+                <div className="h-64">
+                  {membershipTrend.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
+                      <Users className="size-8 opacity-30" />
+                      <p className="mt-3 text-sm font-semibold">No reporting-period history yet</p>
+                      <p className="mt-1 max-w-xs text-xs">
+                        Membership and inclusion trends appear after non-financial data is submitted.
+                      </p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={membershipTrend}
+                        layout="vertical"
+                        margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--border)"
+                          horizontal={false}
+                        />
+                        <XAxis
+                          type="number"
+                          domain={[0, "dataMax"]}
+                          stroke="var(--muted-foreground)"
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => formatNumber(v as number)}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="year"
+                          stroke="var(--muted-foreground)"
+                          fontSize={11}
+                          fontFamily="var(--font-sans)"
+                          tickLine={false}
+                          axisLine={false}
+                          width={35}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--surface)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "8px",
+                            fontSize: "12px",
                             fontFamily: "var(--font-sans)",
-                            paddingTop: "12px",
+                            padding: "8px 12px",
+                            boxShadow: "var(--shadow-elev-2)",
                           }}
-                          iconType="circle"
-                          iconSize={8}
+                          itemStyle={{ color: "var(--foreground)" }}
+                          labelStyle={{
+                            fontWeight: "600",
+                            color: "var(--foreground)",
+                            marginBottom: "4px",
+                          }}
+                          formatter={(value: number) => [formatNumber(value)]}
                         />
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Bar
+                          dataKey="women"
+                          fill="var(--chart-1)"
+                          radius={[0, 3, 3, 0]}
+                          name="Women"
+                          barSize={10}
+                        />
+                        <Bar
+                          dataKey="youth"
+                          fill="var(--chart-3)"
+                          radius={[0, 3, 3, 0]}
+                          name="Youth"
+                          barSize={10}
+                        />
+                        <Bar
                           dataKey="members"
-                          stroke="var(--accent)"
-                          strokeWidth={2}
-                          fill="url(#coop-members)"
-                          dot={{
-                            r: 3,
-                            strokeWidth: 2,
-                            fill: "var(--surface)",
-                            stroke: "var(--accent)",
-                          }}
-                          name="Members"
+                          fill="var(--chart-2)"
+                          radius={[0, 3, 3, 0]}
+                          name="Total"
+                          barSize={10}
                         />
-                        <Area
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey="savings"
-                          stroke="var(--success)"
-                          strokeWidth={2}
-                          fill="url(#coop-savings)"
-                          dot={{
-                            r: 3,
-                            strokeWidth: 2,
-                            fill: "var(--surface)",
-                            stroke: "var(--success)",
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </Card>
+
+              {role === "cooperative" && (
+                <Card
+                  title="Loan Portfolio Quality"
+                  subtitle="Risk distribution from submitted non-financial loan records"
+                >
+                  <div className="relative h-52 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={filteredLoanPortfolio}
+                          dataKey="value"
+                          innerRadius={55}
+                          outerRadius={80}
+                          paddingAngle={3}
+                        >
+                          {filteredLoanPortfolio.map((entry) => (
+                            <Cell key={entry.name} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--surface)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            fontFamily: "var(--font-sans)",
+                            padding: "8px 12px",
+                            boxShadow: "var(--shadow-elev-2)",
                           }}
-                          name="Savings ($K)"
+                          itemStyle={{ color: "var(--foreground)" }}
+                          labelStyle={{
+                            fontWeight: "600",
+                            color: "var(--foreground)",
+                            marginBottom: "4px",
+                          }}
+                          formatter={(value: number) => [`${value}%`]}
                         />
-                      </AreaChart>
-                    ) : (
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+                      <span className="text-[20px] font-bold text-success leading-none">
+                        {filteredLoanPortfolio.find((item) => item.name === "Performing")?.value ?? 0}%
+                      </span>
+                      <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
+                        Performing
+                      </span>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 border-t border-border pt-3 mt-1">
+                    {filteredLoanPortfolio.map((item) => (
+                      <li key={item.name} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <span
+                            className="size-2.5 rounded-sm shrink-0"
+                            style={{ background: item.fill }}
+                          />
+                          {item.name}
+                        </span>
+                        <span className="font-bold num text-foreground">{item.value}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
+
+              <Card
+                title="Compliance Score"
+                subtitle={
+                  role === "cooperative" ? "Your current rating" : "Aggregate compliance rating"
+                }
+              >
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="70%"
+                      outerRadius="85%"
+                      barSize={10}
+                      data={[
+                        {
+                          name: "Compliance",
+                          value: filteredComplianceScore ?? 0,
+                          fill: "var(--chart-1)",
+                        },
+                      ]}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      <RadialBar
+                        dataKey="value"
+                        cornerRadius={10}
+                        fill="var(--chart-1)"
+                        background={{ fill: "var(--muted)", opacity: 0.15 }}
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="text-center -mt-4">
+                  <p className="font-heading text-4xl font-bold text-foreground num">
+                    {filteredComplianceScore != null ? `${filteredComplianceScore}%` : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Compliance score</p>
+                </div>
+              </Card>
+            </div>
+
+            {/* ── Region Compliance Horizontal Bar + Submission Timeliness Area ── */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {(role === "cooperative"
+                ? coopComplianceTrend.length > 0
+                : filteredRegionCompliance.length > 0) && (
+                  <Card
+                    title={
+                      role === "cooperative"
+                        ? "Your Compliance Trend"
+                        : role === "ministry"
+                          ? "Regional Compliance Comparison"
+                          : role === "federation"
+                            ? "Regional Compliance in Your Federation"
+                            : "Regional Compliance Overview"
+                    }
+                    subtitle={
+                      role === "cooperative"
+                        ? "Monthly compliance score over the year"
+                        : "Compliance score by region"
+                    }
+                  >
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        {role === "cooperative" ? (
+                          <AreaChart
+                            data={coopComplianceTrend}
+                            margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+                          >
+                            <defs>
+                              <linearGradient id="coop-comp" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="var(--border)"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="month"
+                              stroke="var(--muted-foreground)"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              domain={[85, 100]}
+                              stroke="var(--muted-foreground)"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `${v}%`}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                fontFamily: "var(--font-sans)",
+                                padding: "8px 12px",
+                                boxShadow: "var(--shadow-elev-2)",
+                              }}
+                              itemStyle={{ color: "var(--foreground)" }}
+                              labelStyle={{
+                                fontWeight: "600",
+                                color: "var(--foreground)",
+                                marginBottom: "4px",
+                              }}
+                              formatter={(value: number) => [`${value}%`]}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="score"
+                              stroke="var(--accent)"
+                              strokeWidth={2}
+                              fill="url(#coop-comp)"
+                              dot={{
+                                r: 3,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--accent)",
+                              }}
+                              name="Compliance"
+                            />
+                          </AreaChart>
+                        ) : (
+                          <BarChart
+                            data={filteredRegionCompliance}
+                            layout="vertical"
+                            margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="var(--border)"
+                              horizontal={false}
+                            />
+                            <XAxis
+                              type="number"
+                              domain={[80, 100]}
+                              stroke="var(--muted-foreground)"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `${v}%`}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              stroke="var(--muted-foreground)"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              width={80}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                fontFamily: "var(--font-sans)",
+                                padding: "8px 12px",
+                                boxShadow: "var(--shadow-elev-2)",
+                              }}
+                              itemStyle={{ color: "var(--foreground)" }}
+                              labelStyle={{
+                                fontWeight: "600",
+                                color: "var(--foreground)",
+                                marginBottom: "4px",
+                              }}
+                              formatter={(value: number) => [`${value}%`]}
+                            />
+                            <Bar
+                              dataKey="score"
+                              fill="var(--chart-1)"
+                              radius={[0, 6, 6, 0]}
+                              barSize={24}
+                              name="Compliance %"
+                            />
+                          </BarChart>
+                        )}
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                )}
+
+
+            </div>
+
+            {/* ── Period Comparison + Region Trend (admin only) ── */}
+            {role !== "cooperative" && mergedCompData.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* ── Current vs Previous Period Comparison Chart ── */}
+                <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                        Portfolio Savings Trend
+                      </p>
+                      <div className="flex items-center gap-5 mt-2">
+                        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="inline-block w-6 h-0.5 rounded-full bg-[var(--chart-1)]" />
+                          Submitted savings
+                        </span>
+                      </div>
+                    </div>
+                    {/* Period selector */}
+                    <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5 shrink-0">
+                      {(["Week", "Month", "Quarter", "Year"] as const).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setCompPeriod(p)}
+                          className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${compPeriod === p
+                              ? "bg-surface text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Chart */}
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
-                        data={filteredRegionTrend}
+                        data={mergedCompData}
                         margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
                       >
                         <defs>
-                          <linearGradient id="region-h" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
+                          <linearGradient id="comp-curr" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
                             <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                           </linearGradient>
-                          <linearGradient id="region-m" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.12} />
-                            <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="region-l" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.12} />
-                            <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="region-s" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.12} />
+                          <linearGradient id="comp-prev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.14} />
                             <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
@@ -2915,7 +2701,7 @@ export const AnalyticsPage: React.FC = () => {
                           tickLine={false}
                           axisLine={false}
                           tick={{ fill: "var(--muted-foreground)" }}
-                          tickFormatter={(v) => formatNumber(v as number)}
+                          tickFormatter={(v) => `$${v}K`}
                         />
                         <Tooltip
                           contentStyle={{
@@ -2927,11 +2713,7 @@ export const AnalyticsPage: React.FC = () => {
                             padding: "12px 16px",
                             boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
                           }}
-                          itemStyle={{
-                            color: "var(--foreground)",
-                            fontWeight: 500,
-                            lineHeight: "1.8",
-                          }}
+                          itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
                           labelStyle={{
                             fontWeight: "700",
                             color: "var(--foreground)",
@@ -2940,27 +2722,20 @@ export const AnalyticsPage: React.FC = () => {
                             borderBottom: "1px solid var(--border)",
                             paddingBottom: "6px",
                           }}
+                          formatter={(value: number, name: string) => [`$${value}K`, name]}
                           cursor={{
                             stroke: "var(--muted-foreground)",
                             strokeWidth: 1,
                             strokeDasharray: "4 3",
                           }}
                         />
-                        <Legend
-                          wrapperStyle={{
-                            fontSize: "11px",
-                            fontFamily: "var(--font-sans)",
-                            paddingTop: "12px",
-                          }}
-                          iconType="circle"
-                          iconSize={8}
-                        />
+                        {/* Current period — solid with visible dots */}
                         <Area
-                          dataKey="Hhohho"
-                          stroke="var(--chart-1)"
-                          strokeWidth={2}
-                          fill="url(#region-h)"
                           type="monotone"
+                          dataKey="This Period"
+                          stroke="var(--chart-1)"
+                          strokeWidth={2.5}
+                          fill="url(#comp-curr)"
                           dot={{
                             r: 4,
                             strokeWidth: 2,
@@ -2974,178 +2749,419 @@ export const AnalyticsPage: React.FC = () => {
                             fill: "var(--chart-1)",
                           }}
                         />
-                        <Area
-                          dataKey="Manzini"
-                          stroke="var(--chart-2)"
-                          strokeWidth={2}
-                          fill="url(#region-m)"
-                          type="monotone"
-                          dot={{
-                            r: 4,
-                            strokeWidth: 2,
-                            fill: "var(--surface)",
-                            stroke: "var(--chart-2)",
-                          }}
-                          activeDot={{
-                            r: 6,
-                            strokeWidth: 2,
-                            stroke: "var(--surface)",
-                            fill: "var(--chart-2)",
-                          }}
-                        />
-                        <Area
-                          dataKey="Lubombo"
-                          stroke="var(--chart-3)"
-                          strokeWidth={2}
-                          fill="url(#region-l)"
-                          type="monotone"
-                          dot={{
-                            r: 4,
-                            strokeWidth: 2,
-                            fill: "var(--surface)",
-                            stroke: "var(--chart-3)",
-                          }}
-                          activeDot={{
-                            r: 6,
-                            strokeWidth: 2,
-                            stroke: "var(--surface)",
-                            fill: "var(--chart-3)",
-                          }}
-                        />
-                        <Area
-                          dataKey="Shiselweni"
-                          stroke="var(--chart-4)"
-                          strokeWidth={2}
-                          fill="url(#region-s)"
-                          type="monotone"
-                          dot={{
-                            r: 4,
-                            strokeWidth: 2,
-                            fill: "var(--surface)",
-                            stroke: "var(--chart-4)",
-                          }}
-                          activeDot={{
-                            r: 6,
-                            strokeWidth: 2,
-                            stroke: "var(--surface)",
-                            fill: "var(--chart-4)",
-                          }}
-                        />
                       </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* ── Multi-Region Trend (or Coop Monthly Trend) ── */}
+                {filteredRegionTrend.length > 0 && (
+                  <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                    <div className="flex items-start justify-between mb-5">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                          {role === "cooperative"
+                            ? "Monthly Members & Savings"
+                            : "Member Trend by Region"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {role === "cooperative"
+                            ? "Your cooperative's monthly trend"
+                            : "Jan – Dec 2025 · Across all regions"}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                        Jan 1 – Dec 31
+                      </span>
+                    </div>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        {role === "cooperative" ? (
+                          <AreaChart
+                            data={coopMonthlyTrend}
+                            margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
+                          >
+                            <defs>
+                              <linearGradient id="coop-members" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="coop-savings" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--success)" stopOpacity={0.15} />
+                                <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid
+                              strokeDasharray="4 4"
+                              stroke="var(--border)"
+                              vertical={false}
+                              opacity={0.6}
+                            />
+                            <XAxis
+                              dataKey="month"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                            />
+                            <YAxis
+                              yAxisId="left"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                              tickFormatter={(v) => v.toLocaleString()}
+                            />
+                            <YAxis
+                              yAxisId="right"
+                              orientation="right"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                              tickFormatter={(v) => `$${v}K`}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "12px",
+                                fontSize: "12px",
+                                fontFamily: "var(--font-sans)",
+                                padding: "12px 16px",
+                                boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+                              }}
+                              itemStyle={{
+                                color: "var(--foreground)",
+                                fontWeight: 500,
+                                lineHeight: "1.8",
+                              }}
+                              labelStyle={{
+                                fontWeight: "700",
+                                color: "var(--foreground)",
+                                marginBottom: "6px",
+                                fontSize: "13px",
+                                borderBottom: "1px solid var(--border)",
+                                paddingBottom: "6px",
+                              }}
+                            />
+                            <Legend
+                              wrapperStyle={{
+                                fontSize: "11px",
+                                fontFamily: "var(--font-sans)",
+                                paddingTop: "12px",
+                              }}
+                              iconType="circle"
+                              iconSize={8}
+                            />
+                            <Area
+                              yAxisId="left"
+                              type="monotone"
+                              dataKey="members"
+                              stroke="var(--accent)"
+                              strokeWidth={2}
+                              fill="url(#coop-members)"
+                              dot={{
+                                r: 3,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--accent)",
+                              }}
+                              name="Members"
+                            />
+                            <Area
+                              yAxisId="right"
+                              type="monotone"
+                              dataKey="savings"
+                              stroke="var(--success)"
+                              strokeWidth={2}
+                              fill="url(#coop-savings)"
+                              dot={{
+                                r: 3,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--success)",
+                              }}
+                              name="Savings ($K)"
+                            />
+                          </AreaChart>
+                        ) : (
+                          <AreaChart
+                            data={filteredRegionTrend}
+                            margin={{ top: 10, right: 24, left: -10, bottom: 0 }}
+                          >
+                            <defs>
+                              <linearGradient id="region-h" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
+                                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="region-m" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.12} />
+                                <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="region-l" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.12} />
+                                <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="region-s" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.12} />
+                                <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid
+                              strokeDasharray="4 4"
+                              stroke="var(--border)"
+                              vertical={false}
+                              opacity={0.6}
+                            />
+                            <XAxis
+                              dataKey="month"
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                            />
+                            <YAxis
+                              fontSize={11}
+                              fontFamily="var(--font-sans)"
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                              tickFormatter={(v) => formatNumber(v as number)}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "12px",
+                                fontSize: "12px",
+                                fontFamily: "var(--font-sans)",
+                                padding: "12px 16px",
+                                boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+                              }}
+                              itemStyle={{
+                                color: "var(--foreground)",
+                                fontWeight: 500,
+                                lineHeight: "1.8",
+                              }}
+                              labelStyle={{
+                                fontWeight: "700",
+                                color: "var(--foreground)",
+                                marginBottom: "6px",
+                                fontSize: "13px",
+                                borderBottom: "1px solid var(--border)",
+                                paddingBottom: "6px",
+                              }}
+                              cursor={{
+                                stroke: "var(--muted-foreground)",
+                                strokeWidth: 1,
+                                strokeDasharray: "4 3",
+                              }}
+                            />
+                            <Legend
+                              wrapperStyle={{
+                                fontSize: "11px",
+                                fontFamily: "var(--font-sans)",
+                                paddingTop: "12px",
+                              }}
+                              iconType="circle"
+                              iconSize={8}
+                            />
+                            <Area
+                              dataKey="Hhohho"
+                              stroke="var(--chart-1)"
+                              strokeWidth={2}
+                              fill="url(#region-h)"
+                              type="monotone"
+                              dot={{
+                                r: 4,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-1)",
+                              }}
+                              activeDot={{
+                                r: 6,
+                                strokeWidth: 2,
+                                stroke: "var(--surface)",
+                                fill: "var(--chart-1)",
+                              }}
+                            />
+                            <Area
+                              dataKey="Manzini"
+                              stroke="var(--chart-2)"
+                              strokeWidth={2}
+                              fill="url(#region-m)"
+                              type="monotone"
+                              dot={{
+                                r: 4,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-2)",
+                              }}
+                              activeDot={{
+                                r: 6,
+                                strokeWidth: 2,
+                                stroke: "var(--surface)",
+                                fill: "var(--chart-2)",
+                              }}
+                            />
+                            <Area
+                              dataKey="Lubombo"
+                              stroke="var(--chart-3)"
+                              strokeWidth={2}
+                              fill="url(#region-l)"
+                              type="monotone"
+                              dot={{
+                                r: 4,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-3)",
+                              }}
+                              activeDot={{
+                                r: 6,
+                                strokeWidth: 2,
+                                stroke: "var(--surface)",
+                                fill: "var(--chart-3)",
+                              }}
+                            />
+                            <Area
+                              dataKey="Shiselweni"
+                              stroke="var(--chart-4)"
+                              strokeWidth={2}
+                              fill="url(#region-s)"
+                              type="monotone"
+                              dot={{
+                                r: 4,
+                                strokeWidth: 2,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-4)",
+                              }}
+                              activeDot={{
+                                r: 6,
+                                strokeWidth: 2,
+                                stroke: "var(--surface)",
+                                fill: "var(--chart-4)",
+                              }}
+                            />
+                          </AreaChart>
+                        )}
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* end side-by-side grid */}
+
+            {/* ── Performance Score leaderboard (admin/ministry/federation only) ── */}
+            {role !== "cooperative" && nationalOverview ? (
+              <div className="space-y-6">
+                <TopBottomLeaderboard
+                  cooperatives={nationalOverview.cooperatives}
+                  sortByKpi="par30"
+                />
+
+                <Card title="Detailed Cooperative Compliance Grid" subtitle="Traffic light indicators across key operational KPIs">
+                  <div className="p-4 bg-surface rounded-lg">
+                    <KpiChipGrid
+                      cooperatives={nationalOverview.cooperatives.map(c => ({
+                        name: c.name,
+                        region: c.region,
+                        kpis: c.kpis,
+                      }))}
+                      kpiKeys={["par30", "capital_adequacy_ratio", "npl_ratio", "roa", "roe", "operating_expense_ratio"]}
+                      maxRows={15}
+                    />
+                  </div>
+                </Card>
+              </div>
+            ) : null}
+
+            {(role === "ministry" || role === "federation" || role === "apex") && nationalOverview && (
+              <div className="mt-6">
+                <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
+                  <div className="px-6 py-5 border-b border-border">
+                    <p className="text-sm font-bold text-foreground">National KPI Overview</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Traffic-light distribution across {nationalOverview.total_cooperatives}{" "}
+                      cooperatives
+                      {nationalOverview.cooperatives_with_data > 0 &&
+                        ` (${nationalOverview.cooperatives_with_data} with data)`}
+                    </p>
+                  </div>
+                  <div className="p-6">
+                    {nationalOverview.non_financial_summary.cooperatives_with_data > 0 && (
+                      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+                        {[
+                          [
+                            "Active members",
+                            nationalOverview.non_financial_summary.average_active_members_pct,
+                          ],
+                          [
+                            "Savings penetration",
+                            nationalOverview.non_financial_summary.average_savings_penetration_pct,
+                          ],
+                          [
+                            "Credit penetration",
+                            nationalOverview.non_financial_summary.average_credit_penetration_pct,
+                          ],
+                          [
+                            "FD penetration",
+                            nationalOverview.non_financial_summary.average_fd_penetration_pct,
+                          ],
+                          [
+                            "On-time repayment",
+                            nationalOverview.non_financial_summary.average_on_time_repayment_pct,
+                          ],
+                          [
+                            "Member dormancy",
+                            nationalOverview.non_financial_summary.average_dormancy_pct,
+                          ],
+                          [
+                            "AGM participation",
+                            nationalOverview.non_financial_summary.average_agm_participation_pct,
+                          ],
+                          [
+                            "Loans in arrears",
+                            nationalOverview.non_financial_summary.average_arrears_rate_pct,
+                          ],
+                          [
+                            "FD early withdrawals",
+                            nationalOverview.non_financial_summary.average_fd_early_withdrawal_pct,
+                          ],
+                        ].map(([label, value]) => (
+                          <div
+                            key={label as string}
+                            className="rounded-lg border border-border bg-muted/20 p-3"
+                          >
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                              {label as string}
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                              {(value as number).toFixed(1)}%
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </ResponsiveContainer>
+                    {Object.keys(nationalOverview?.distributions || {}).length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No financial data available for aggregation.
+                      </p>
+                    ) : (
+                      <div className="mt-8">
+                        <p className="text-sm font-bold text-foreground mb-4">Traffic Light Distribution by KPI</p>
+                        <ComplianceStackedBars distributions={nationalOverview?.distributions || {}} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-          </div>
-        )}
-        {/* end side-by-side grid */}
-
-        {/* ── Performance Score leaderboard (admin/ministry/federation only) ── */}
-        {role !== "cooperative" && nationalOverview ? (
-          <div className="space-y-6">
-            <TopBottomLeaderboard
-              cooperatives={nationalOverview.cooperatives}
-              sortByKpi="par30"
-            />
-            
-            <Card title="Detailed Cooperative Compliance Grid" subtitle="Traffic light indicators across key operational KPIs">
-              <div className="p-4 bg-surface rounded-lg">
-                <KpiChipGrid
-                  cooperatives={nationalOverview.cooperatives.map(c => ({
-                    name: c.name,
-                    region: c.region,
-                    kpis: c.kpis,
-                  }))}
-                  kpiKeys={["par30", "capital_adequacy_ratio", "npl_ratio", "roa", "roe", "operating_expense_ratio"]}
-                  maxRows={15}
-                />
-              </div>
-            </Card>
-          </div>
-        ) : null}
-
-        {(role === "ministry" || role === "federation" || role === "apex") && nationalOverview && (
-          <div className="mt-6">
-            <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
-              <div className="px-6 py-5 border-b border-border">
-                <p className="text-sm font-bold text-foreground">National KPI Overview</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Traffic-light distribution across {nationalOverview.total_cooperatives}{" "}
-                  cooperatives
-                  {nationalOverview.cooperatives_with_data > 0 &&
-                    ` (${nationalOverview.cooperatives_with_data} with data)`}
-                </p>
-              </div>
-              <div className="p-6">
-                {nationalOverview.non_financial_summary.cooperatives_with_data > 0 && (
-                  <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
-                    {[
-                      [
-                        "Active members",
-                        nationalOverview.non_financial_summary.average_active_members_pct,
-                      ],
-                      [
-                        "Savings penetration",
-                        nationalOverview.non_financial_summary.average_savings_penetration_pct,
-                      ],
-                      [
-                        "Credit penetration",
-                        nationalOverview.non_financial_summary.average_credit_penetration_pct,
-                      ],
-                      [
-                        "FD penetration",
-                        nationalOverview.non_financial_summary.average_fd_penetration_pct,
-                      ],
-                      [
-                        "On-time repayment",
-                        nationalOverview.non_financial_summary.average_on_time_repayment_pct,
-                      ],
-                      [
-                        "Member dormancy",
-                        nationalOverview.non_financial_summary.average_dormancy_pct,
-                      ],
-                      [
-                        "AGM participation",
-                        nationalOverview.non_financial_summary.average_agm_participation_pct,
-                      ],
-                      [
-                        "Loans in arrears",
-                        nationalOverview.non_financial_summary.average_arrears_rate_pct,
-                      ],
-                      [
-                        "FD early withdrawals",
-                        nationalOverview.non_financial_summary.average_fd_early_withdrawal_pct,
-                      ],
-                    ].map(([label, value]) => (
-                      <div
-                        key={label as string}
-                        className="rounded-lg border border-border bg-muted/20 p-3"
-                      >
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          {label as string}
-                        </p>
-                        <p className="mt-1 text-lg font-bold text-foreground">
-                          {(value as number).toFixed(1)}%
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {Object.keys(nationalOverview?.distributions || {}).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No financial data available for aggregation.
-                  </p>
-                ) : (
-                  <div className="mt-8">
-                    <p className="text-sm font-bold text-foreground mb-4">Traffic Light Distribution by KPI</p>
-                    <ComplianceStackedBars distributions={nationalOverview?.distributions || {}} />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
             {role === "ministry" && (
               <div className="mt-6">
