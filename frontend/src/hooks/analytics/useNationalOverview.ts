@@ -77,12 +77,16 @@ const extractErrorMessage = (error: unknown): string => {
   return "Unable to load portfolio analytics.";
 };
 
-export const useNationalOverview = (enabled = true) =>
+export const useNationalOverview = (enabled = true, year?: number) =>
   useQuery<NationalOverviewResponse>({
-    queryKey: ["national-overview"],
+    queryKey: ["national-overview", year],
     enabled,
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/analytics/national-overview");
+      const { data, error } = await apiClient.GET("/api/v1/analytics/national-overview", {
+        params: {
+          query: year ? { reporting_year: year } : {},
+        },
+      });
       if (error) throw new Error(extractErrorMessage(error));
       if (!data) throw new Error("Portfolio analytics response was empty.");
       return data as NationalOverviewResponse;

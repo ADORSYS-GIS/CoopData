@@ -1644,7 +1644,7 @@ impl KeycloakService {
     pub async fn get_group_children(&self, group_id: &str) -> Result<Vec<KeycloakGroup>, AppError> {
         let token = self.get_cached_admin_token().await?;
         let url = format!(
-            "{}/groups/{}/children?briefRepresentation=false",
+            "{}/groups/{}/children?briefRepresentation=false&max=1000",
             self.realm_url(),
             group_id
         );
@@ -1680,9 +1680,12 @@ impl KeycloakService {
     /// Keycloak's `cooperation` group membership mapper emits paths like "/group-name".
     /// This method handles both forms transparently.
     pub async fn resolve_group(&self, id_or_path: &str) -> Result<KeycloakGroup, AppError> {
+        tracing::info!("resolve_group called with id_or_path: '{}'", id_or_path);
+        
         // If it looks like a UUID (no slashes), try direct lookup first
         let is_uuid = !id_or_path.contains('/') && id_or_path.len() == 36;
         if is_uuid {
+            tracing::info!("resolve_group: treating '{}' as UUID", id_or_path);
             return self.get_group_by_id(id_or_path).await;
         }
 
@@ -1698,7 +1701,7 @@ impl KeycloakService {
         // Search top-level groups for the first segment
         let top_name = segments[0];
         let url = format!(
-            "{}/groups?search={}&briefRepresentation=false",
+            "{}/groups?search={}&briefRepresentation=false&max=1000",
             self.realm_url(),
             top_name
         );
@@ -1724,30 +1727,58 @@ impl KeycloakService {
         }
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        let top = groups
+        let tops: Vec<KeycloakGroup> = groups
             .into_iter()
-            .find(|g| g.name == top_name)
-            .ok_or_else(|| {
-                AppError::NotFound(format!("Group not found for path segment: {}", top_name))
-            })?;
+            .filter(|g| g.name == top_name)
+            .collect();
+
+        tracing::info!("resolve_group: found {} top groups matching '{}'", tops.len(), top_name);
+
+        if tops.is_empty() {
+            return Err(AppError::NotFound(format!("Group not found for path segment: {}", top_name)));
+        }
 
         if segments.len() == 1 {
-            // Fetch full representation with subgroups
-            return self.get_group_by_id(&top.id).await;
+            // If only 1 segment, just return the first top group found
+            tracing::info!("resolve_group: 1 segment path, returning {:?}", tops[0].id);
+            return self.get_group_by_id(&tops[0].id).await;
         }
 
-        // Walk into subgroups for deeper paths
-        let mut current_id = top.id;
-        for seg in &segments[1..] {
-            let children = self.get_group_children(&current_id).await?;
-            let child = children
-                .into_iter()
-                .find(|g| g.name == *seg)
-                .ok_or_else(|| AppError::NotFound(format!("Subgroup not found: {}", seg)))?;
-            current_id = child.id;
+        // Try to walk into subgroups for deeper paths, trying each matching top-level group
+        for top in tops {
+            tracing::info!("resolve_group: checking top group {} ({})", top.name, top.id);
+            let mut current_id = top.id.clone();
+            let mut found_path = true;
+
+            for seg in &segments[1..] {
+                tracing::info!("resolve_group: looking for child segment '{}' in group {}", seg, current_id);
+                if let Ok(children) = self.get_group_children(&current_id).await {
+                    let child_names: Vec<_> = children.iter().map(|g| g.name.clone()).collect();
+                    tracing::info!("resolve_group: current group {} has {} children from API: {:?}", current_id, children.len(), child_names);
+                    
+                    if let Some(child) = children.into_iter().find(|g| g.name == *seg) {
+                        tracing::info!("resolve_group: found child '{}' ({})", seg, child.id);
+                        current_id = child.id;
+                    } else {
+                        tracing::warn!("resolve_group: child '{}' not found in group {}", seg, current_id);
+                        found_path = false;
+                        break;
+                    }
+                } else {
+                    tracing::warn!("resolve_group: failed to fetch children for group {}", current_id);
+                    found_path = false;
+                    break;
+                }
+            }
+
+            if found_path {
+                tracing::info!("resolve_group: success, returning {}", current_id);
+                return self.get_group_by_id(&current_id).await;
+            }
         }
 
-        self.get_group_by_id(&current_id).await
+        tracing::error!("resolve_group: failed to find complete path {:?}", segments);
+        Err(AppError::NotFound(format!("Subgroup not found: {}", segments.last().unwrap_or(&""))))
     }
 
     async fn get_group_by_name(

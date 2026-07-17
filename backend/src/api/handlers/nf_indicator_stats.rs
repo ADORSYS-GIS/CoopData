@@ -4,6 +4,7 @@ use axum::response::IntoResponse;
 use axum::Json;
 use std::sync::Arc;
 use std::{collections::BTreeMap, collections::HashSet};
+use chrono::Datelike;
 
 use crate::api::dto::non_financial::{NfStatisticsResponse, NfTrendPoint, NfTrendResponse};
 use crate::auth::claims::Claims;
@@ -139,6 +140,191 @@ pub async fn get_nf_trend(
     }
 
     Ok((StatusCode::OK, Json(NfTrendResponse { points })))
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+pub struct ConsolidatedNfStatsQueryParams {
+    pub reporting_year: Option<i32>,
+    pub federation_id: Option<String>,
+    pub apex_id: Option<String>,
+    pub cooperative_id: Option<String>,
+    pub region: Option<String>,
+    pub sector: Option<String>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/consolidated-nf-statistics",
+    params(ConsolidatedNfStatsQueryParams),
+    responses(
+        (status = 200, description = "Consolidated non-financial statistics", body = NfStatisticsResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_consolidated_nf_statistics(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ConsolidatedNfStatsQueryParams>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or_else(|| chrono::Utc::now().year());
+
+    let caller_coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let filter_coop_id = if let Some(ref cid_str) = params.cooperative_id {
+        if cid_str != "all" {
+            Some(uuid::Uuid::parse_str(cid_str).unwrap_or_default())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let filter_fed_id = if let Some(ref fid_str) = params.federation_id {
+        if fid_str != "all" {
+            Some(uuid::Uuid::parse_str(fid_str).unwrap_or_default())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let filter_apex_id = if let Some(ref aid_str) = params.apex_id {
+        if aid_str != "all" {
+            Some(uuid::Uuid::parse_str(aid_str).unwrap_or_default())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let coop_ids = crate::api::handlers::financial_statement::filter_cooperatives(
+        &state,
+        caller_coop_ids,
+        filter_coop_id,
+        params.region.clone(),
+        params.sector.clone(),
+        filter_fed_id,
+        filter_apex_id,
+    ).await?;
+
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids)
+        .await?;
+
+    let year_filtered: Vec<_> = submissions
+        .into_iter()
+        .filter(|s| {
+            s.reporting_year == year
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
+        })
+        .collect();
+
+    let mut consolidated_stats = crate::services::nf_indicator_engine::NfStatisticsResponse::default();
+
+    let mut coop_count = 0;
+    let mut total_active_pct = 0.0;
+    let mut total_dormancy_pct = 0.0;
+    let mut total_agm_pct = 0.0;
+    let mut total_savings_pen_pct = 0.0;
+    let mut total_credit_pen_pct = 0.0;
+    let mut total_on_time_pct = 0.0;
+    let mut total_arrears_pct = 0.0;
+    let mut total_fd_pen_pct = 0.0;
+    let mut total_early_wd_pct = 0.0;
+
+    for submission in year_filtered {
+        if let Ok(stats) = NfIndicatorEngine::compute_for_submission(
+            &state.db,
+            submission.cooperative_id,
+            Some(submission.id),
+        ).await {
+            coop_count += 1;
+            
+            // Sum up totals
+            consolidated_stats.membership.total += stats.membership.total;
+            consolidated_stats.membership.active += stats.membership.active;
+            consolidated_stats.membership.dormant += stats.membership.dormant;
+            consolidated_stats.membership.exited += stats.membership.exited;
+            consolidated_stats.membership.male += stats.membership.male;
+            consolidated_stats.membership.female += stats.membership.female;
+            consolidated_stats.membership.other += stats.membership.other;
+            consolidated_stats.membership.under_18 += stats.membership.under_18;
+            consolidated_stats.membership.age_18_35 += stats.membership.age_18_35;
+            consolidated_stats.membership.age_36_50 += stats.membership.age_36_50;
+            consolidated_stats.membership.over_50 += stats.membership.over_50;
+            consolidated_stats.membership.urban += stats.membership.urban;
+            consolidated_stats.membership.rural += stats.membership.rural;
+            consolidated_stats.membership.agm_attendance += stats.membership.agm_attendance;
+            consolidated_stats.membership.leadership_count += stats.membership.leadership_count;
+            consolidated_stats.membership.voting_count += stats.membership.voting_count;
+            
+            consolidated_stats.savings.total_accounts += stats.savings.total_accounts;
+            consolidated_stats.savings.active_accounts += stats.savings.active_accounts;
+            consolidated_stats.savings.dormant_accounts += stats.savings.dormant_accounts;
+            
+            consolidated_stats.loans.total_loans += stats.loans.total_loans;
+            consolidated_stats.loans.performing += stats.loans.performing;
+            consolidated_stats.loans.arrears += stats.loans.arrears;
+            consolidated_stats.loans.restructured += stats.loans.restructured;
+            consolidated_stats.loans.written_off += stats.loans.written_off;
+            
+            consolidated_stats.fixed_deposits.total_fds += stats.fixed_deposits.total_fds;
+            consolidated_stats.fixed_deposits.early_withdrawal_count += stats.fixed_deposits.early_withdrawal_count;
+            
+            consolidated_stats.farm_coop.total_coops += stats.farm_coop.total_coops;
+            consolidated_stats.farm_coop.active_producers += stats.farm_coop.active_producers;
+            consolidated_stats.farm_coop.using_planning += stats.farm_coop.using_planning;
+            consolidated_stats.farm_coop.using_shared_inputs += stats.farm_coop.using_shared_inputs;
+            consolidated_stats.farm_coop.with_offtake_agreement += stats.farm_coop.with_offtake_agreement;
+
+            // Recompute percentages for membership
+            let m = &mut consolidated_stats.membership;
+            m.active_pct = if m.total > 0 { (m.active as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.dormancy_pct = if m.total > 0 { (m.dormant as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.exit_pct = if m.total > 0 { (m.exited as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.male_pct = if m.total > 0 { (m.male as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.female_pct = if m.total > 0 { (m.female as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.other_pct = if m.total > 0 { (m.other as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.youth_pct = if m.total > 0 { ((m.under_18 + m.age_18_35) as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.adult_pct = if m.total > 0 { ((m.age_36_50 + m.over_50) as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.urban_pct = if m.total > 0 { (m.urban as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.rural_pct = if m.total > 0 { (m.rural as f64 / m.total as f64) * 100.0 } else { 0.0 };
+            m.agm_participation_pct = if m.total > 0 { (m.agm_attendance as f64 / m.total as f64) * 100.0 } else { 0.0 };
+
+            // Sum up other percentages to average later
+            total_agm_pct += stats.membership.agm_participation_pct;
+            
+            total_savings_pen_pct += stats.savings.savings_penetration_pct;
+            total_credit_pen_pct += stats.loans.credit_penetration_pct;
+            total_on_time_pct += stats.loans.on_time_repayment_pct;
+            total_arrears_pct += stats.loans.arrears_rate_pct;
+            
+            total_fd_pen_pct += stats.fixed_deposits.fd_penetration_pct;
+            total_early_wd_pct += stats.fixed_deposits.early_withdrawal_pct;
+        }
+    }
+
+    if coop_count > 0 {
+        let f_count = coop_count as f64;
+        
+        consolidated_stats.savings.savings_penetration_pct = total_savings_pen_pct / f_count;
+        
+        consolidated_stats.loans.credit_penetration_pct = total_credit_pen_pct / f_count;
+        consolidated_stats.loans.on_time_repayment_pct = total_on_time_pct / f_count;
+        consolidated_stats.loans.arrears_rate_pct = total_arrears_pct / f_count;
+        
+        consolidated_stats.fixed_deposits.fd_penetration_pct = total_fd_pen_pct / f_count;
+        consolidated_stats.fixed_deposits.early_withdrawal_pct = total_early_wd_pct / f_count;
+    }
+
+    let response: crate::api::dto::non_financial::NfStatisticsResponse = consolidated_stats.into();
+    Ok((StatusCode::OK, Json(response)))
 }
 
 fn average(values: &[f64]) -> f64 {

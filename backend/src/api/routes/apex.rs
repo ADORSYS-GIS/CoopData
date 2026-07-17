@@ -89,4 +89,9 @@ pub fn apex_routes() -> Router<AppState> {
             "/submissions/{submission_id}/files/{file_id}",
             get(serve_uploaded_file),
         )
+        // KPI computation for a specific submission (used in deep-dive analytics)
+        .route(
+            "/submissions/{id}/kpis",
+            get(handlers::financial_statement::get_submission_kpis),
+        )
 }

@@ -1,7 +1,8 @@
-use axum::extract::{Extension, State};
+use axum::extract::{Extension, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -16,9 +17,17 @@ use crate::services::kpi_engine::KpiEngine;
 use crate::services::nf_indicator_engine::NfIndicatorEngine;
 use crate::AppState;
 
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct NationalOverviewParams {
+    /// Filter analytics to a specific reporting year (e.g. 2026).
+    /// When omitted, uses the most recent approved submission per cooperative.
+    pub reporting_year: Option<i32>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/national-overview",
+    params(NationalOverviewParams),
     responses(
         (status = 200, description = "National dashboard overview", body = NationalOverviewResponse),
         (status = 401, description = "Unauthorized")
@@ -28,6 +37,7 @@ use crate::AppState;
 pub async fn get_national_overview(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<NationalOverviewParams>,
 ) -> AppResult<impl IntoResponse> {
     let coop_ids = resolve_caller_cooperative_ids(&state, &claims).await?;
 
@@ -48,7 +58,11 @@ pub async fn get_national_overview(
         .await?
         .into_iter()
         .filter(|submission| {
-            submission.status == crate::entities::enums::SubmissionStatus::Approved
+            let is_approved = submission.status == crate::entities::enums::SubmissionStatus::Approved;
+            let matches_year = params.reporting_year
+                .map(|year| submission.reporting_year == year)
+                .unwrap_or(true);
+            is_approved && matches_year
         })
         .collect();
     let submission_ids: Vec<_> = approved_submissions

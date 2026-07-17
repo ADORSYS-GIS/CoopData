@@ -62,6 +62,10 @@ pub fn shared_routes() -> Router<AppState> {
             "/analytics/nf-trend",
             get(crate::api::handlers::nf_indicator_stats::get_nf_trend),
         )
+        .route(
+            "/analytics/consolidated-nf-statistics",
+            get(crate::api::handlers::nf_indicator_stats::get_consolidated_nf_statistics),
+        )
 }
 
 async fn get_current_user_profile(

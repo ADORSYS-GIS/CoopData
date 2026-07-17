@@ -117,6 +117,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::financial_statement::get_ministry_stats,
         api_module::handlers::nf_indicator_stats::get_nf_statistics,
         api_module::handlers::nf_indicator_stats::get_nf_trend,
+        api_module::handlers::nf_indicator_stats::get_consolidated_nf_statistics,
         api_module::handlers::non_financial_indicator::list_catalog,
         api_module::handlers::non_financial_indicator::create_catalog_item,
         api_module::handlers::non_financial_indicator::update_catalog_item,

@@ -17,7 +17,7 @@ use crate::entities::loan;
 use crate::entities::member;
 use crate::entities::savings_account;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct MembershipStats {
     pub total: u64,
     pub active: u64,
@@ -50,7 +50,7 @@ pub struct MembershipStats {
     pub youth_in_governance_pct: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct SavingsStats {
     pub total_accounts: u64,
     pub active_accounts: u64,
@@ -71,7 +71,7 @@ pub struct SavingsStats {
     pub regular_savers_pct: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct LoanStats {
     pub total_loans: u64,
     pub active_loans: u64,
@@ -97,7 +97,7 @@ pub struct LoanStats {
     pub rural_borrower_pct: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct FixedDepositStats {
     pub total_fds: u64,
     pub active_fds: u64,
@@ -115,7 +115,7 @@ pub struct FixedDepositStats {
     pub concentration_risk_pct: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct FarmCoopStats {
     pub total_coops: u64,
     pub active_producers: u64,
@@ -136,7 +136,7 @@ pub struct FarmCoopStats {
     pub climate_mitigation_pct: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct NfStatisticsResponse {
     pub membership: MembershipStats,
     pub savings: SavingsStats,

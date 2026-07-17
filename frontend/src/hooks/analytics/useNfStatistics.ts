@@ -37,7 +37,10 @@ export interface SavingsStats {
   total_accounts: number;
   active_accounts: number;
   dormant_accounts: number;
+  /** Backend field: zero_balance_count (number of accounts with zero balance) */
   zero_balance_count: number;
+  /** Alias kept for backwards-compat in case some callers still use the old name */
+  zero_balance_accounts?: number;
   increasing_trend: number;
   stable_trend: number;
   declining_trend: number;
@@ -133,15 +136,42 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-export const useNfStatistics = (enabled = true) =>
+export interface NfStatisticsParams {
+  reportingYear?: number;
+  cooperativeId?: string;
+  region?: string;
+  sector?: string;
+  federationId?: string;
+  apexId?: string;
+}
+
+export const useNfStatistics = (isCooperative: boolean, params: NfStatisticsParams = {}, enabled = true) =>
   useQuery<NfStatisticsResponse>({
-    queryKey: ["nf-statistics"],
+    queryKey: ["nf-statistics", isCooperative, params],
     enabled,
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (apiClient as any).GET("/api/v1/cooperative/nf-statistics");
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as NfStatisticsResponse;
+      if (isCooperative) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (apiClient as any).GET("/api/v1/cooperative/nf-statistics");
+        if (error) throw new Error(extractErrorMessage(error));
+        return data as NfStatisticsResponse;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (apiClient as any).GET("/api/v1/analytics/consolidated-nf-statistics", {
+          params: {
+            query: {
+              reporting_year: params.reportingYear,
+              cooperative_id: params.cooperativeId,
+              region: params.region !== "all" ? params.region : undefined,
+              sector: params.sector !== "all" ? params.sector : undefined,
+              federation_id: params.federationId !== "all" ? params.federationId : undefined,
+              apex_id: params.apexId !== "all" ? params.apexId : undefined,
+            } as Record<string, unknown>,
+          },
+        });
+        if (error) throw new Error(extractErrorMessage(error));
+        return data as NfStatisticsResponse;
+      }
     },
     staleTime: 2 * 60 * 1000,
   });

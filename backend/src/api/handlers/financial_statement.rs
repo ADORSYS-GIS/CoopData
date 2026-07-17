@@ -43,14 +43,16 @@ pub(crate) async fn filter_cooperatives(
     federation_id: Option<Uuid>,
     apex_id: Option<Uuid>,
 ) -> AppResult<Vec<Uuid>> {
-    if let Some(target_id) = cooperative_id {
-        if !caller_coop_ids.contains(&target_id) {
-            return Err(AppError::Forbidden("Access denied to this cooperative".into()));
-        }
-        return Ok(vec![target_id]);
-    }
-
     let coops = state.cooperative_repo.find_by_ids(caller_coop_ids).await?;
+
+    if let Some(target_id) = cooperative_id {
+        // The frontend sends Keycloak Group IDs from the dropdown, but caller_coop_ids are Postgres IDs.
+        // We must check if target_id matches either the internal Postgres ID or the Keycloak Group ID.
+        if let Some(coop) = coops.iter().find(|c| c.id == target_id || c.keycloak_group_id == Some(target_id)) {
+            return Ok(vec![coop.id]);
+        }
+        return Err(AppError::Forbidden("Access denied to this cooperative".into()));
+    }
 
     let filtered = coops
         .into_iter()
@@ -501,6 +503,13 @@ pub async fn export_submission(
     let kpi_set = crate::services::KpiEngine::compute(&line_items);
     let kpis = kpi_set.to_vec();
 
+    let analytics = crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
+        &state.db,
+        submission.cooperative_id,
+        Some(submission.id),
+    )
+    .await?;
+
     let reference = submission
         .reference
         .clone()
@@ -515,9 +524,9 @@ pub async fn export_submission(
 
     use axum::response::Response;
     let response: Response = match format.as_str() {
-        "xlsx" => build_xlsx_response(&line_items, &kpis, &reference)?.into_response(),
-        "csv" => build_csv_response(&line_items, &reference)?.into_response(),
-        "pdf" => build_pdf_response(&line_items, &kpis, &reference)?.into_response(),
+        "xlsx" => build_xlsx_response(&line_items, &kpis, &analytics, &reference)?.into_response(),
+        "csv" => build_csv_response(&line_items, &analytics, &reference)?.into_response(),
+        "pdf" => build_pdf_response(&line_items, &kpis, &analytics, &reference)?.into_response(),
         _ => unreachable!(),
     };
     Ok(response)
@@ -526,6 +535,7 @@ pub async fn export_submission(
 fn build_xlsx_response(
     line_items: &[crate::entities::balance_sheet_line_item::Model],
     kpis: &[crate::services::kpi_engine::KpiValue],
+    analytics: &crate::services::nf_indicator_engine::NfStatisticsResponse,
     reference: &str,
 ) -> AppResult<impl IntoResponse> {
     use rust_xlsxwriter::Workbook;
@@ -604,6 +614,40 @@ fn build_xlsx_response(
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
     }
 
+    // ── Sheet 3: Analytics & Demographics ─────────────────────────────────────
+    let ws3 = workbook
+        .add_worksheet()
+        .set_name("Analytics")
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let analytics_headers = ["Category", "Metric", "Value", "Percentage"];
+    for (col, h) in analytics_headers.iter().enumerate() {
+        ws3.write_string(0, col as u16, *h)
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    }
+    
+    let mut row = 1;
+    let mut write_metric = |category: &str, metric: &str, val: u64, pct: Option<f64>| -> AppResult<()> {
+        ws3.write_string(row, 0, category).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws3.write_string(row, 1, metric).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        ws3.write_number(row, 2, val as f64).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        if let Some(p) = pct {
+            ws3.write_string(row, 3, format!("{p:.1}%").as_str()).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        }
+        row += 1;
+        Ok(())
+    };
+
+    write_metric("Membership", "Total Members", analytics.membership.total, None)?;
+    write_metric("Membership", "Active Members", analytics.membership.active, Some(analytics.membership.active_pct))?;
+    write_metric("Membership", "Male", analytics.membership.male, Some(analytics.membership.male_pct))?;
+    write_metric("Membership", "Female", analytics.membership.female, Some(analytics.membership.female_pct))?;
+    write_metric("Loans", "Total Loans", analytics.loans.total_loans, None)?;
+    write_metric("Loans", "Performing", analytics.loans.performing, Some(analytics.loans.on_time_repayment_pct))?;
+    write_metric("Loans", "Arrears", analytics.loans.arrears, Some(analytics.loans.arrears_rate_pct))?;
+    write_metric("Savings", "Total Accounts", analytics.savings.total_accounts, None)?;
+    write_metric("Savings", "Active Accounts", analytics.savings.active_accounts, Some(analytics.savings.active_savers_pct))?;
+
     let bytes = workbook
         .save_to_buffer()
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
@@ -622,6 +666,7 @@ fn build_xlsx_response(
 
 fn build_csv_response(
     line_items: &[crate::entities::balance_sheet_line_item::Model],
+    analytics: &crate::services::nf_indicator_engine::NfStatisticsResponse,
     reference: &str,
 ) -> AppResult<impl IntoResponse> {
     use rust_decimal::prelude::ToPrimitive;
@@ -659,6 +704,27 @@ fn build_csv_response(
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
     }
 
+    // Append Analytics Data as rows
+    writer.write_record(["", "", "", "", "", "", "", "", ""]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    writer.write_record(["ANALYTICS", "Category", "Metric", "Value", "Percentage", "", "", "", ""]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    
+    let mut write_csv_metric = |cat: &str, met: &str, val: u64, pct: Option<f64>| -> AppResult<()> {
+        let pct_str = pct.map(|p| format!("{p:.1}%")).unwrap_or_default();
+        writer.write_record(["", cat, met, &val.to_string(), &pct_str, "", "", "", ""])
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        Ok(())
+    };
+    
+    write_csv_metric("Membership", "Total Members", analytics.membership.total, None)?;
+    write_csv_metric("Membership", "Active Members", analytics.membership.active, Some(analytics.membership.active_pct))?;
+    write_csv_metric("Membership", "Male", analytics.membership.male, Some(analytics.membership.male_pct))?;
+    write_csv_metric("Membership", "Female", analytics.membership.female, Some(analytics.membership.female_pct))?;
+    write_csv_metric("Loans", "Total Loans", analytics.loans.total_loans, None)?;
+    write_csv_metric("Loans", "Performing", analytics.loans.performing, Some(analytics.loans.on_time_repayment_pct))?;
+    write_csv_metric("Loans", "Arrears", analytics.loans.arrears, Some(analytics.loans.arrears_rate_pct))?;
+    write_csv_metric("Savings", "Total Accounts", analytics.savings.total_accounts, None)?;
+    write_csv_metric("Savings", "Active Accounts", analytics.savings.active_accounts, Some(analytics.savings.active_savers_pct))?;
+
     let data = writer
         .into_inner()
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
@@ -678,6 +744,7 @@ fn build_csv_response(
 fn build_pdf_response(
     line_items: &[crate::entities::balance_sheet_line_item::Model],
     kpis: &[crate::services::kpi_engine::KpiValue],
+    analytics: &crate::services::nf_indicator_engine::NfStatisticsResponse,
     reference: &str,
 ) -> AppResult<impl IntoResponse> {
     use printpdf::*;
@@ -726,6 +793,24 @@ fn build_pdf_response(
         current_layer.use_text(text, 9.0, Mm(20.0), Mm(y), &font);
         y -= 5.0;
     }
+
+    y -= 10.0;
+    check_page(&doc, &mut y, &mut current_layer);
+    current_layer.use_text("Non-Financial Analytics & Demographics", 14.0, Mm(20.0), Mm(y), &font_bold);
+    y -= 8.0;
+
+    let mut write_pdf_metric = |doc: &PdfDocumentReference, y: &mut f64, layer: &mut PdfLayerReference, text: String| {
+        check_page(doc, y, layer);
+        layer.use_text(text, 10.0, Mm(20.0), Mm(*y), &font);
+        *y -= 6.0;
+    };
+    
+    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Total Members: {}", analytics.membership.total));
+    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Active Members: {} ({:.1}%)", analytics.membership.active, analytics.membership.active_pct));
+    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Female Members: {} ({:.1}%)", analytics.membership.female, analytics.membership.female_pct));
+    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Total Loans: {}", analytics.loans.total_loans));
+    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Performing Loans: {} ({:.1}%)", analytics.loans.performing, analytics.loans.on_time_repayment_pct));
+    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Total Savings Accounts: {}", analytics.savings.total_accounts));
 
     let bytes = doc.save_to_bytes().map_err(|e| AppError::InternalServerError(e.to_string()))?;
     
