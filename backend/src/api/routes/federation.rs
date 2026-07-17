@@ -76,6 +76,11 @@ pub fn federation_routes() -> Router<AppState> {
         )
         // Federation Stats
         .route("/stats", get(handlers::federation::get_federation_stats))
+        // Bulk export
+        .route(
+            "/submissions/export",
+            get(handlers::financial_statement::export_federation_submissions),
+        )
         // Submission review
         .route(
             "/submissions",

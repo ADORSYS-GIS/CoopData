@@ -1,12 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  Download,
-  FileText,
-  CheckCircle2,
-  X,
-  Loader2,
-  ChevronRight,
-} from "lucide-react";
+import { Download, FileText, CheckCircle2, X, Loader2, ChevronRight } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
 import { toast } from "sonner";
@@ -33,10 +26,11 @@ import { SelectionSummary } from "./selection-summary";
 import { ActiveStepPicker } from "./active-step-picker";
 
 interface ReportExportPanelProps {
+  submissionId?: string;
   className?: string;
 }
 
-export function ReportExportPanel({ className }: ReportExportPanelProps) {
+export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
   const role = useUserRole();
 
   // Modal state
@@ -56,22 +50,22 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
 
   // All submissions (raw, unfiltered — used to build the pickers)
   const cooperativeQuery = useCooperativeSubmissions(role === "cooperative");
-  const apexQuery        = useApexSubmissions(role === "apex");
-  const federationQuery  = useFederationSubmissions({ all: true, enabled: role === "federation" });
-  const ministryQuery    = useMinistrySubmissions({ all: true, enabled: role === "ministry" });
+  const apexQuery = useApexSubmissions(role === "apex");
+  const federationQuery = useFederationSubmissions({ all: true, enabled: role === "federation" });
+  const ministryQuery = useMinistrySubmissions({ all: true, enabled: role === "ministry" });
 
   const rawSubmissions = useMemo(() => {
     if (role === "cooperative") return cooperativeQuery.data ?? [];
-    if (role === "apex")        return apexQuery.data ?? [];
-    if (role === "federation")  return federationQuery.data ?? [];
-    if (role === "ministry")    return ministryQuery.data ?? [];
+    if (role === "apex") return apexQuery.data ?? [];
+    if (role === "federation") return federationQuery.data ?? [];
+    if (role === "ministry") return ministryQuery.data ?? [];
     return [];
   }, [role, cooperativeQuery.data, apexQuery.data, federationQuery.data, ministryQuery.data]);
 
   // Only submitted / approved can be exported
   const allSubmissions = useMemo(
     () => rawSubmissions.filter((s) => EXPORTABLE_STATUSES.includes(s.status.toLowerCase())),
-    [rawSubmissions]
+    [rawSubmissions],
   );
 
   const isLoadingSubmissions =
@@ -124,7 +118,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
   // Build apex picker list — derive from submissions for both federation & ministry
   const apexList = useMemo(() => {
     if (role === "cooperative" || role === "apex") return [];
-    
+
     const seen = new Map<string, { name: string; federationId?: string }>();
     rawSubmissions.forEach((s) => {
       if (s.apex_id) {
@@ -134,13 +128,13 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
         });
       }
     });
-    
+
     let list = Array.from(seen.entries()).map(([id, item]) => ({
       id,
       name: item.name,
       federationId: item.federationId,
     }));
-    
+
     if (role === "ministry" && selectedFedId) {
       list = list.filter((a) => a.federationId === selectedFedId);
     }
@@ -160,13 +154,13 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
         });
       }
     });
-    
+
     let list = Array.from(seen.entries()).map(([id, item]) => ({
       id,
       name: item.name,
       apexId: item.apexId,
     }));
-    
+
     if (selectedApexId) {
       list = list.filter((c) => c.apexId === selectedApexId);
     } else if (role === "ministry" && selectedFedId) {
@@ -205,7 +199,16 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
     if (needsSubmissionSelector && !selectedSubmissionId) return idx;
     if (needsSubmissionSelector) idx++;
     return idx; // format selection
-  }, [needsFedSelector, selectedFedId, needsApexSelector, selectedApexId, needsCoopSelector, selectedCoopId, needsSubmissionSelector, selectedSubmissionId]);
+  }, [
+    needsFedSelector,
+    selectedFedId,
+    needsApexSelector,
+    selectedApexId,
+    needsCoopSelector,
+    selectedCoopId,
+    needsSubmissionSelector,
+    selectedSubmissionId,
+  ]);
 
   const activeStepKey: string = steps[currentStepIndex]?.key ?? "format";
 
@@ -246,7 +249,7 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
 
     setIsExporting(true);
     try {
-      const token   = await getAccessToken();
+      const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
 
       let url = "";
@@ -260,9 +263,9 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
           queryParams.append("apex_id", selectedApexId);
         }
 
-        if (role === "apex")        url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
+        if (role === "apex") url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
         else if (role === "federation") url = `${baseUrl}/api/v1/federation/export?${queryParams}`;
-        else if (role === "ministry")   url = `${baseUrl}/api/v1/ministry/export?${queryParams}`;
+        else if (role === "ministry") url = `${baseUrl}/api/v1/ministry/export?${queryParams}`;
       }
 
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -339,7 +342,9 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                       {report.label}
                     </h4>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{report.description}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {report.description}
+                  </p>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   {report.formats.map((fmt) => {
@@ -379,7 +384,9 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                   <Download className="size-4 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold text-foreground">Export Report</h3>
+                  <h3 className="font-heading text-base font-bold text-foreground">
+                    Export Report
+                  </h3>
                   <p className="text-xs text-muted-foreground">{selectedOption.label}</p>
                 </div>
               </div>
@@ -478,15 +485,15 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                   <span>
                     {role === "ministry"
                       ? selectedOption.id === "federation-consolidated"
-                        ? `This report includes consolidated data for federation: ${federationList.find(f => f.id === selectedFedId)?.name || "selected federation"}.`
+                        ? `This report includes consolidated data for federation: ${federationList.find((f) => f.id === selectedFedId)?.name || "selected federation"}.`
                         : selectedOption.id === "apex-consolidated"
-                        ? `This report includes consolidated data for apex: ${apexList.find(a => a.id === selectedApexId)?.name || "selected apex"}.`
-                        : "This report includes data from all federations, apexes, and cooperatives nationwide."
+                          ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
+                          : "This report includes data from all federations, apexes, and cooperatives nationwide."
                       : role === "federation"
-                      ? selectedOption.id === "apex-consolidated"
-                        ? `This report includes consolidated data for apex: ${apexList.find(a => a.id === selectedApexId)?.name || "selected apex"}.`
-                        : "This report includes data from all apexes and cooperatives under your federation."
-                      : "This report includes data from all cooperatives under your apex organization."}
+                        ? selectedOption.id === "apex-consolidated"
+                          ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
+                          : "This report includes data from all apexes and cooperatives under your federation."
+                        : "This report includes data from all cooperatives under your apex organization."}
                   </span>
                 </div>
               )}
@@ -498,9 +505,13 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
               {(needsFedSelector || needsApexSelector || needsCoopSelector) && (
                 <div className="flex items-center gap-1 text-[11px] text-muted-foreground min-w-0 flex-wrap">
                   {needsFedSelector && (
-                    <span className={selectedFedId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                    <span
+                      className={
+                        selectedFedId ? "text-foreground font-medium truncate max-w-[80px]" : ""
+                      }
+                    >
                       {selectedFedId
-                        ? federationList.find((f) => f.id === selectedFedId)?.name ?? "Federation"
+                        ? (federationList.find((f) => f.id === selectedFedId)?.name ?? "Federation")
                         : "Federation"}
                     </span>
                   )}
@@ -508,9 +519,13 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                     <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
                   )}
                   {needsApexSelector && (selectedFedId || !needsFedSelector) && (
-                    <span className={selectedApexId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                    <span
+                      className={
+                        selectedApexId ? "text-foreground font-medium truncate max-w-[80px]" : ""
+                      }
+                    >
                       {selectedApexId
-                        ? apexList.find((a) => a.id === selectedApexId)?.name ?? "Apex"
+                        ? (apexList.find((a) => a.id === selectedApexId)?.name ?? "Apex")
                         : "Apex"}
                     </span>
                   )}
@@ -518,9 +533,14 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                     <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
                   )}
                   {needsCoopSelector && (selectedApexId || !needsApexSelector) && (
-                    <span className={selectedCoopId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                    <span
+                      className={
+                        selectedCoopId ? "text-foreground font-medium truncate max-w-[80px]" : ""
+                      }
+                    >
                       {selectedCoopId
-                        ? cooperativeList.find((c) => c.id === selectedCoopId)?.name ?? "Cooperative"
+                        ? (cooperativeList.find((c) => c.id === selectedCoopId)?.name ??
+                          "Cooperative")
                         : "Cooperative"}
                     </span>
                   )}
@@ -528,7 +548,13 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                     <ChevronRight className="size-3 shrink-0 text-muted-foreground/60" />
                   )}
                   {needsSubmissionSelector && selectedCoopId && (
-                    <span className={selectedSubmissionId ? "text-foreground font-medium truncate max-w-[80px]" : ""}>
+                    <span
+                      className={
+                        selectedSubmissionId
+                          ? "text-foreground font-medium truncate max-w-[80px]"
+                          : ""
+                      }
+                    >
                       {selectedSubmissionId
                         ? `${filteredSubmissions.find((s) => s.id === selectedSubmissionId)?.reporting_year} Report`
                         : "Submission"}
@@ -554,9 +580,13 @@ export function ReportExportPanel({ className }: ReportExportPanelProps) {
                   className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-40"
                 >
                   {isExporting ? (
-                    <><Loader2 className="size-3.5 animate-spin" /> Exporting…</>
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" /> Exporting…
+                    </>
                   ) : (
-                    <><Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}</>
+                    <>
+                      <Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}
+                    </>
                   )}
                 </button>
               </div>

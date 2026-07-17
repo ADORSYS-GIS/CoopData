@@ -92,7 +92,9 @@ export function ActiveStepPicker({
                     : "border-border hover:border-accent/40 hover:bg-muted/30"
                 }`}
               >
-                <Globe className={`size-4 shrink-0 ${selectedFedId === f.id ? "text-primary" : "text-muted-foreground"}`} />
+                <Globe
+                  className={`size-4 shrink-0 ${selectedFedId === f.id ? "text-primary" : "text-muted-foreground"}`}
+                />
                 <span className="font-medium truncate">{f.name}</span>
                 {selectedFedId === f.id && (
                   <CheckCircle2 className="size-4 ml-auto shrink-0 text-primary" />
@@ -132,7 +134,9 @@ export function ActiveStepPicker({
                     : "border-border hover:border-accent/40 hover:bg-muted/30"
                 }`}
               >
-                <Layers className={`size-4 shrink-0 ${selectedApexId === a.id ? "text-primary" : "text-muted-foreground"}`} />
+                <Layers
+                  className={`size-4 shrink-0 ${selectedApexId === a.id ? "text-primary" : "text-muted-foreground"}`}
+                />
                 <span className="font-medium truncate">{a.name}</span>
                 {selectedApexId === a.id && (
                   <CheckCircle2 className="size-4 ml-auto shrink-0 text-primary" />
@@ -172,7 +176,9 @@ export function ActiveStepPicker({
                     : "border-border hover:border-accent/40 hover:bg-muted/30"
                 }`}
               >
-                <Building2 className={`size-4 shrink-0 ${selectedCoopId === c.id ? "text-primary" : "text-muted-foreground"}`} />
+                <Building2
+                  className={`size-4 shrink-0 ${selectedCoopId === c.id ? "text-primary" : "text-muted-foreground"}`}
+                />
                 <span className="font-medium truncate">{c.name}</span>
                 {selectedCoopId === c.id && (
                   <CheckCircle2 className="size-4 ml-auto shrink-0 text-primary" />
@@ -199,7 +205,8 @@ export function ActiveStepPicker({
           <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
             <FileText className="size-4 shrink-0 mt-0.5" />
             <span>
-              No approved or submitted reports found for this cooperative. Only submitted and approved submissions can be exported.
+              No approved or submitted reports found for this cooperative. Only submitted and
+              approved submissions can be exported.
             </span>
           </div>
         ) : (
@@ -216,15 +223,24 @@ export function ActiveStepPicker({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">
-                    {sub.reporting_year} Financial Report
-                  </p>
-                  <p className={`text-[11px] mt-0.5 capitalize ${
-                    selectedSubmissionId === sub.id ? "text-primary/70" : "text-muted-foreground"
-                  }`}>
-                    {sub.status} · {sub.submitted_at
-                      ? new Date(sub.submitted_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                      : new Date(sub.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  <p className="font-semibold truncate">{sub.reporting_year} Financial Report</p>
+                  <p
+                    className={`text-[11px] mt-0.5 capitalize ${
+                      selectedSubmissionId === sub.id ? "text-primary/70" : "text-muted-foreground"
+                    }`}
+                  >
+                    {sub.status} ·{" "}
+                    {sub.submitted_at
+                      ? new Date(sub.submitted_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : new Date(sub.created_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
                   </p>
                 </div>
                 {selectedSubmissionId === sub.id && (
@@ -244,7 +260,9 @@ export function ActiveStepPicker({
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
           Export Format
         </label>
-        <div className={`grid gap-2 ${selectedOption.formats.length === 4 ? "grid-cols-4" : "grid-cols-2"}`}>
+        <div
+          className={`grid gap-2 ${selectedOption.formats.length === 4 ? "grid-cols-4" : "grid-cols-2"}`}
+        >
           {selectedOption.formats.map((fmt) => {
             const Icon = formatIcons[fmt];
             const isSelected = selectedFormat === fmt;

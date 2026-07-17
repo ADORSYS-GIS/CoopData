@@ -1214,6 +1214,61 @@ pub async fn delete_submission(
 
 // ── Stats handlers ────────────────────────────────────────────────────────────
 
+/// Compute average PAR30 and CAR from a list of approved submission IDs.
+/// Returns (average_par30, average_car) — None if no data.
+pub async fn compute_average_kpis(
+    state: &AppState,
+    submission_ids: Vec<Uuid>,
+) -> (Option<f64>, Option<f64>) {
+    if submission_ids.is_empty() {
+        return (None, None);
+    }
+
+    let all_fs = match state
+        .financial_statement_repo
+        .find_by_submission_ids(submission_ids)
+        .await
+    {
+        Ok(fs) => fs,
+        Err(_) => return (None, None),
+    };
+
+    let mut par30_values: Vec<f64> = Vec::new();
+    let mut car_values: Vec<f64> = Vec::new();
+
+    for fs in &all_fs {
+        let line_items = match state.line_item_repo.find_by_financial_statement(fs.id).await {
+            Ok(items) => items,
+            Err(_) => continue,
+        };
+        if line_items.is_empty() {
+            continue;
+        }
+
+        let kpi_set = crate::services::KpiEngine::compute(&line_items);
+
+        if let Some(kpi) = kpi_set.get_by_name("par30") {
+            par30_values.push(kpi.value);
+        }
+        if let Some(kpi) = kpi_set.get_by_name("capital_adequacy_ratio") {
+            car_values.push(kpi.value);
+        }
+    }
+
+    let avg_par30 = if par30_values.is_empty() {
+        None
+    } else {
+        Some(par30_values.iter().sum::<f64>() / par30_values.len() as f64)
+    };
+    let avg_car = if car_values.is_empty() {
+        None
+    } else {
+        Some(car_values.iter().sum::<f64>() / car_values.len() as f64)
+    };
+
+    (avg_par30, avg_car)
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/apex/stats",
@@ -1256,6 +1311,15 @@ pub async fn get_apex_stats(
         .filter(|s| s.status == SubmissionStatus::Rejected)
         .count() as u64;
 
+    // Compute average PAR30 and CAR from approved submissions
+    let approved_sub_ids: Vec<Uuid> = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .map(|s| s.id)
+        .collect();
+
+    let (average_par30, average_car) = compute_average_kpis(&state, approved_sub_ids).await;
+
     Ok((
         StatusCode::OK,
         Json(ApexStatsResponse {
@@ -1263,6 +1327,8 @@ pub async fn get_apex_stats(
             pending_submissions,
             approved_submissions,
             rejected_submissions,
+            average_par30,
+            average_car,
         }),
     ))
 }

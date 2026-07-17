@@ -13,6 +13,203 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/analytics/monthly-trend": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_monthly_trend",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year, defaults to current year",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "description": "Filter to a single cooperative",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monthly trend data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyTrendResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/national-overview": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_national_overview",
+        "responses": {
+          "200": {
+            "description": "National dashboard overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NationalOverviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/nf-trend": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_nf_trend",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission-period non-financial trend",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfTrendResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/region-compliance": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_region_compliance",
+        "responses": {
+          "200": {
+            "description": "Region compliance data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionComplianceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/sector-breakdown": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_sector_breakdown",
+        "responses": {
+          "200": {
+            "description": "Sector breakdown data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectorBreakdownResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/submission-activity": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_submission_activity",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year, defaults to current year",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission activity by month",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionActivityResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/apex/coop-profiles": {
       "get": {
         "tags": [
@@ -938,6 +1135,64 @@
         }
       }
     },
+    "/api/v1/benchmarks": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_benchmarks",
+        "parameters": [
+          {
+            "name": "kpi_name",
+            "in": "query",
+            "description": "KPI identifier e.g. par30, roa, capital_adequacy_ratio",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cooperative_type",
+            "in": "query",
+            "description": "Filter by cooperative type e.g. sacco",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year, defaults to current year",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Benchmark statistics for the requested KPI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid KPI name"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/extraction-jobs/{id}": {
       "get": {
         "tags": [
@@ -1129,6 +1384,32 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/nf-statistics": {
+      "get": {
+        "tags": [
+          "Non-Financial Statistics"
+        ],
+        "operationId": "get_nf_statistics",
+        "responses": {
+          "200": {
+            "description": "NF statistics for the caller's cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfStatisticsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative not found"
           }
         }
       }
@@ -2444,6 +2725,49 @@
         }
       }
     },
+    "/api/v1/cooperative/submissions/{id}/export": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "export_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Export format: xlsx or csv",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File download (xlsx or csv)"
+          },
+          "400": {
+            "description": "Invalid format parameter"
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission or financial statement not found"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/submissions/{id}/financial-statement": {
       "delete": {
         "tags": [
@@ -2481,6 +2805,44 @@
             "bearer": []
           }
         ]
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/kpis": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_submission_kpis",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Computed KPIs for submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionKpisResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission or financial statement not found"
+          }
+        }
       }
     },
     "/api/v1/cooperative/submissions/{id}/non-financial-indicators": {
@@ -4501,6 +4863,29 @@
         }
       }
     },
+    "/api/v1/ministry/stats": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "get_ministry_stats",
+        "responses": {
+          "200": {
+            "description": "Ministry-level dashboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinistryStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/ministry/submissions": {
       "get": {
         "tags": [
@@ -5328,6 +5713,18 @@
             "format": "int64",
             "minimum": 0
           },
+          "average_car": {
+            "type": "number",
+            "format": "double",
+            "description": "Average Capital Adequacy Ratio across all cooperatives with approved submissions",
+            "nullable": true
+          },
+          "average_par30": {
+            "type": "number",
+            "format": "double",
+            "description": "Average PAR30 across all cooperatives with approved submissions (None if no data)",
+            "nullable": true
+          },
           "pending_submissions": {
             "type": "integer",
             "format": "int64",
@@ -5441,6 +5838,76 @@
           "user_agent": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "BenchmarkQueryParams": {
+        "type": "object",
+        "required": [
+          "kpi_name"
+        ],
+        "properties": {
+          "cooperative_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpi_name": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "BenchmarkResponse": {
+        "type": "object",
+        "required": [
+          "kpi_name",
+          "reporting_year",
+          "sector_average",
+          "national_average",
+          "percentile_25",
+          "percentile_50",
+          "percentile_75",
+          "sample_count"
+        ],
+        "properties": {
+          "cooperative_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpi_name": {
+            "type": "string"
+          },
+          "national_average": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentile_25": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentile_50": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentile_75": {
+            "type": "number",
+            "format": "double"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sector_average": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -5608,6 +6075,117 @@
           "total_sum": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "CoopKpiRow": {
+        "type": "object",
+        "required": [
+          "cooperative_id",
+          "name",
+          "has_data",
+          "non_financial",
+          "kpis"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "has_data": {
+            "type": "boolean"
+          },
+          "institution_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpis": {
+            "type": "object",
+            "description": "KPI name → computed value",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/KpiValue"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "non_financial": {
+            "$ref": "#/components/schemas/CoopNfSummary"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "CoopNfSummary": {
+        "type": "object",
+        "required": [
+          "has_data",
+          "total_members",
+          "active_members_pct",
+          "savings_penetration_pct",
+          "credit_penetration_pct",
+          "fd_penetration_pct",
+          "on_time_repayment_pct",
+          "dormancy_pct",
+          "agm_participation_pct",
+          "arrears_rate_pct",
+          "fd_early_withdrawal_pct"
+        ],
+        "properties": {
+          "active_members_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "agm_participation_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "arrears_rate_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "credit_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "dormancy_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "fd_early_withdrawal_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "fd_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "has_data": {
+            "type": "boolean"
+          },
+          "on_time_repayment_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -6552,6 +7130,18 @@
           "Shiselweni"
         ]
       },
+      "ExportParams": {
+        "type": "object",
+        "required": [
+          "format"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "\"xlsx\" or \"csv\""
+          }
+        }
+      },
       "ExtractionJobResponse": {
         "type": "object",
         "required": [
@@ -6728,6 +7318,107 @@
           }
         }
       },
+      "FarmCoopStatsDto": {
+        "type": "object",
+        "required": [
+          "total_coops",
+          "active_producers",
+          "using_planning",
+          "using_shared_inputs",
+          "with_offtake_agreement",
+          "with_storage",
+          "with_processing",
+          "with_irrigation",
+          "with_climate_mitigation",
+          "active_producer_pct",
+          "planning_adoption_pct",
+          "shared_services_pct",
+          "formal_offtake_pct",
+          "storage_coverage_pct",
+          "processing_access_pct",
+          "irrigation_coverage_pct",
+          "climate_mitigation_pct"
+        ],
+        "properties": {
+          "active_producer_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "active_producers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "climate_mitigation_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "formal_offtake_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "irrigation_coverage_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "planning_adoption_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "processing_access_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "shared_services_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "storage_coverage_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_coops": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "using_planning": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "using_shared_inputs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "with_climate_mitigation": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "with_irrigation": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "with_offtake_agreement": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "with_processing": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "with_storage": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "FdStatus": {
         "type": "string",
         "enum": [
@@ -6778,20 +7469,46 @@
       "FederationStatsResponse": {
         "type": "object",
         "required": [
-          "total_apexes",
-          "total_members",
-          "federation"
+          "cooperative_count",
+          "submission_count",
+          "pending_review_count",
+          "approved_count",
+          "rejected_count"
         ],
         "properties": {
-          "federation": {
-            "$ref": "#/components/schemas/FederationResponse"
-          },
-          "total_apexes": {
+          "approved_count": {
             "type": "integer",
             "format": "int64",
             "minimum": 0
           },
-          "total_members": {
+          "average_car": {
+            "type": "number",
+            "format": "double",
+            "description": "Average Capital Adequacy Ratio across all approved submissions",
+            "nullable": true
+          },
+          "average_par30": {
+            "type": "number",
+            "format": "double",
+            "description": "Average PAR30 across all approved submissions in this federation",
+            "nullable": true
+          },
+          "cooperative_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pending_review_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rejected_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "submission_count": {
             "type": "integer",
             "format": "int64",
             "minimum": 0
@@ -6946,6 +7663,91 @@
           }
         }
       },
+      "FixedDepositStatsDto": {
+        "type": "object",
+        "required": [
+          "total_fds",
+          "active_fds",
+          "matured_fds",
+          "withdrawn_fds",
+          "rolled_over_fds",
+          "members_with_fds",
+          "early_withdrawal_count",
+          "single_depositor_count",
+          "total_balance",
+          "average_balance",
+          "fd_penetration_pct",
+          "early_withdrawal_pct",
+          "rollover_rate_pct",
+          "concentration_risk_pct"
+        ],
+        "properties": {
+          "active_fds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "average_balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "concentration_risk_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "early_withdrawal_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "early_withdrawal_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "fd_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "matured_fds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "members_with_fds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rolled_over_fds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rollover_rate_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "single_depositor_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_fds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "withdrawn_fds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "Gender": {
         "type": "string",
         "enum": [
@@ -7089,6 +7891,86 @@
             "type": "string",
             "description": "\"PENDING\" | \"ACCEPTED\" | \"EXPIRED\" — from Keycloak 26",
             "nullable": true
+          }
+        }
+      },
+      "KpiItemResponse": {
+        "type": "object",
+        "description": "A single computed KPI item for API responses.",
+        "required": [
+          "name",
+          "value",
+          "formatted",
+          "unit",
+          "description"
+        ],
+        "properties": {
+          "benchmark": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "formatted": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "\"green\" | \"amber\" | \"red\"",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "\"percent\" | \"currency\" | \"ratio\""
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "KpiValue": {
+        "type": "object",
+        "required": [
+          "name",
+          "value",
+          "formatted",
+          "unit",
+          "description"
+        ],
+        "properties": {
+          "benchmark": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "formatted": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Snake_case identifier matching frontend kpi-calculations.ts keys"
+          },
+          "status": {
+            "type": "string",
+            "description": "\"green\" | \"amber\" | \"red\"",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "\"percent\" | \"currency\" | \"ratio\""
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -7323,6 +8205,135 @@
           }
         }
       },
+      "LoanStatsDto": {
+        "type": "object",
+        "required": [
+          "total_loans",
+          "active_loans",
+          "performing",
+          "arrears",
+          "restructured",
+          "written_off",
+          "members_with_loans",
+          "youth_borrowers",
+          "women_borrowers",
+          "rural_borrowers",
+          "multiple_loan_count",
+          "large_borrower_count",
+          "total_balance",
+          "total_loan_amount",
+          "average_loan_size",
+          "on_time_repayment_pct",
+          "arrears_rate_pct",
+          "restructured_pct",
+          "credit_penetration_pct",
+          "youth_borrower_pct",
+          "women_borrower_pct",
+          "rural_borrower_pct"
+        ],
+        "properties": {
+          "active_loans": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "arrears": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "arrears_rate_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_loan_size": {
+            "type": "number",
+            "format": "double"
+          },
+          "credit_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "large_borrower_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "members_with_loans": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "multiple_loan_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "on_time_repayment_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "performing": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "restructured": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "restructured_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "rural_borrower_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "rural_borrowers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_loan_amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_loans": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "women_borrower_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "women_borrowers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "written_off": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "youth_borrower_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "youth_borrowers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "LoanStatus": {
         "type": "string",
         "enum": [
@@ -7370,6 +8381,310 @@
           "Dormant",
           "Exited"
         ]
+      },
+      "MembershipStatsDto": {
+        "type": "object",
+        "required": [
+          "total",
+          "active",
+          "dormant",
+          "exited",
+          "male",
+          "female",
+          "other",
+          "under_18",
+          "age_18_35",
+          "age_36_50",
+          "over_50",
+          "urban",
+          "rural",
+          "agm_attendance",
+          "leadership_count",
+          "voting_count",
+          "active_pct",
+          "dormancy_pct",
+          "exit_pct",
+          "male_pct",
+          "female_pct",
+          "other_pct",
+          "youth_pct",
+          "adult_pct",
+          "urban_pct",
+          "rural_pct",
+          "agm_participation_pct",
+          "women_in_governance_pct",
+          "youth_in_governance_pct"
+        ],
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "active_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "adult_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "age_18_35": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "age_36_50": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "agm_attendance": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "agm_participation_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "dormancy_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "dormant": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "exit_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "exited": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "female": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "female_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "leadership_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "male": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "male_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "other": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "other_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "over_50": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rural": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rural_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "under_18": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "urban": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "urban_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "voting_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "women_in_governance_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "youth_in_governance_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "youth_pct": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "MinistryStatsResponse": {
+        "type": "object",
+        "required": [
+          "total_cooperatives",
+          "total_submissions",
+          "pending_review_count",
+          "approved_count",
+          "rejected_count"
+        ],
+        "properties": {
+          "approved_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "average_car": {
+            "type": "number",
+            "format": "double",
+            "description": "National average Capital Adequacy Ratio across all approved submissions",
+            "nullable": true
+          },
+          "average_par30": {
+            "type": "number",
+            "format": "double",
+            "description": "National average PAR30 across all approved submissions",
+            "nullable": true
+          },
+          "pending_review_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rejected_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_cooperatives": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_submissions": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MonthlyTrendPoint": {
+        "type": "object",
+        "required": [
+          "month",
+          "month_label",
+          "savings",
+          "loans",
+          "assets"
+        ],
+        "properties": {
+          "assets": {
+            "type": "number",
+            "format": "double",
+            "description": "Total assets (COA 1999)."
+          },
+          "loans": {
+            "type": "number",
+            "format": "double",
+            "description": "Gross loan portfolio (COA 1201–1205)."
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month_label": {
+            "type": "string"
+          },
+          "savings": {
+            "type": "number",
+            "format": "double",
+            "description": "Member savings and deposits (COA 2101–2103)."
+          }
+        }
+      },
+      "MonthlyTrendResponse": {
+        "type": "object",
+        "required": [
+          "year",
+          "months"
+        ],
+        "properties": {
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthlyTrendPoint"
+            }
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NationalOverviewResponse": {
+        "type": "object",
+        "required": [
+          "total_cooperatives",
+          "cooperatives_with_data",
+          "non_financial_summary",
+          "distributions",
+          "cooperatives"
+        ],
+        "properties": {
+          "cooperatives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoopKpiRow"
+            },
+            "description": "Per-cooperative KPI breakdown"
+          },
+          "cooperatives_with_data": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "distributions": {
+            "type": "object",
+            "description": "KPI name → traffic light distribution",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TrafficLightDistribution"
+            }
+          },
+          "non_financial_summary": {
+            "$ref": "#/components/schemas/NfPortfolioSummary"
+          },
+          "total_cooperatives": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
       },
       "NfCreateMemberRequest": {
         "type": "object",
@@ -7613,6 +8928,171 @@
           },
           "sheet": {
             "type": "string"
+          }
+        }
+      },
+      "NfPortfolioSummary": {
+        "type": "object",
+        "required": [
+          "cooperatives_with_data",
+          "average_active_members_pct",
+          "average_savings_penetration_pct",
+          "average_credit_penetration_pct",
+          "average_fd_penetration_pct",
+          "average_on_time_repayment_pct",
+          "average_dormancy_pct",
+          "average_agm_participation_pct",
+          "average_arrears_rate_pct",
+          "average_fd_early_withdrawal_pct"
+        ],
+        "properties": {
+          "average_active_members_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_agm_participation_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_arrears_rate_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_credit_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_dormancy_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_fd_early_withdrawal_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_fd_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_on_time_repayment_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_savings_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "cooperatives_with_data": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "NfStatisticsResponse": {
+        "type": "object",
+        "required": [
+          "membership",
+          "savings",
+          "loans",
+          "fixed_deposits",
+          "farm_coop",
+          "computed_at"
+        ],
+        "properties": {
+          "computed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "farm_coop": {
+            "$ref": "#/components/schemas/FarmCoopStatsDto"
+          },
+          "fixed_deposits": {
+            "$ref": "#/components/schemas/FixedDepositStatsDto"
+          },
+          "loans": {
+            "$ref": "#/components/schemas/LoanStatsDto"
+          },
+          "membership": {
+            "$ref": "#/components/schemas/MembershipStatsDto"
+          },
+          "savings": {
+            "$ref": "#/components/schemas/SavingsStatsDto"
+          }
+        }
+      },
+      "NfTrendPoint": {
+        "type": "object",
+        "required": [
+          "reporting_year",
+          "cooperative_count",
+          "total_members",
+          "youth_members",
+          "women_members",
+          "active_members_pct",
+          "savings_penetration_pct",
+          "credit_penetration_pct",
+          "fd_penetration_pct",
+          "on_time_repayment_pct"
+        ],
+        "properties": {
+          "active_members_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "cooperative_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "credit_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "fd_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "on_time_repayment_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "savings_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "women_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "youth_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "NfTrendResponse": {
+        "type": "object",
+        "required": [
+          "points"
+        ],
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NfTrendPoint"
+            }
           }
         }
       },
@@ -8090,6 +9570,41 @@
           }
         }
       },
+      "RegionCompliancePoint": {
+        "type": "object",
+        "required": [
+          "name",
+          "score",
+          "coops"
+        ],
+        "properties": {
+          "coops": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "RegionComplianceResponse": {
+        "type": "object",
+        "required": [
+          "regions"
+        ],
+        "properties": {
+          "regions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionCompliancePoint"
+            }
+          }
+        }
+      },
       "ReviewActionRequest": {
         "type": "object",
         "properties": {
@@ -8299,6 +9814,236 @@
           }
         }
       },
+      "SavingsStatsDto": {
+        "type": "object",
+        "required": [
+          "total_accounts",
+          "active_accounts",
+          "dormant_accounts",
+          "zero_balance_count",
+          "increasing_trend",
+          "stable_trend",
+          "declining_trend",
+          "high_withdrawal_count",
+          "emergency_withdrawal_count",
+          "total_balance",
+          "average_balance",
+          "savings_penetration_pct",
+          "active_savers_pct",
+          "dormant_savings_pct",
+          "zero_balance_pct",
+          "increasing_trend_pct",
+          "regular_savers_pct"
+        ],
+        "properties": {
+          "active_accounts": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "active_savers_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "declining_trend": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "dormant_accounts": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "dormant_savings_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "emergency_withdrawal_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "high_withdrawal_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "increasing_trend": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "increasing_trend_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "regular_savers_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings_penetration_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "stable_trend": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_accounts": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "total_balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "zero_balance_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "zero_balance_pct": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SectorBreakdownPoint": {
+        "type": "object",
+        "required": [
+          "name",
+          "value",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SectorBreakdownResponse": {
+        "type": "object",
+        "required": [
+          "sectors"
+        ],
+        "properties": {
+          "sectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SectorBreakdownPoint"
+            }
+          }
+        }
+      },
+      "SubmissionActivityPoint": {
+        "type": "object",
+        "required": [
+          "month",
+          "month_label",
+          "submitted",
+          "approved",
+          "rejected",
+          "in_review"
+        ],
+        "properties": {
+          "approved": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "in_review": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month_label": {
+            "type": "string"
+          },
+          "rejected": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "submitted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "SubmissionActivityResponse": {
+        "type": "object",
+        "required": [
+          "year",
+          "months"
+        ],
+        "properties": {
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmissionActivityPoint"
+            }
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SubmissionKpisResponse": {
+        "type": "object",
+        "description": "Full KPI response for a submission.",
+        "required": [
+          "submission_id",
+          "reporting_year",
+          "computed_at",
+          "submission_status",
+          "kpis"
+        ],
+        "properties": {
+          "computed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiItemResponse"
+            }
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submission_status": {
+            "type": "string",
+            "description": "Reflects the submission's current status (draft / submitted / in_review / approved)"
+          }
+        }
+      },
       "SubmissionResponse": {
         "type": "object",
         "required": [
@@ -8501,6 +10246,57 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "TrafficLightDistribution": {
+        "type": "object",
+        "required": [
+          "green_pct",
+          "amber_pct",
+          "red_pct",
+          "no_data_pct",
+          "green_count",
+          "amber_count",
+          "red_count",
+          "no_data_count"
+        ],
+        "properties": {
+          "amber_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "amber_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "green_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "green_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "no_data_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "no_data_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "red_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "red_pct": {
+            "type": "number",
+            "format": "double"
           }
         }
       },

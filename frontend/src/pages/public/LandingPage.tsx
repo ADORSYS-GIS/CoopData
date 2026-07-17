@@ -285,8 +285,10 @@ function PartnerCarousel({ partners }: { partners: { src: string; alt: string }[
       className="relative overflow-hidden"
       style={{
         // Fade edges
-        maskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+        maskImage:
+          "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+        WebkitMaskImage:
+          "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
       }}
     >
       <div
@@ -302,10 +304,7 @@ function PartnerCarousel({ partners }: { partners: { src: string; alt: string }[
         }
       >
         {doubled.map((partner, i) => (
-          <div
-            key={i}
-            className="shrink-0 flex items-center justify-center px-2"
-          >
+          <div key={i} className="shrink-0 flex items-center justify-center px-2">
             <img
               src={partner.src}
               alt={partner.alt}

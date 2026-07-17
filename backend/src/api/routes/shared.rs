@@ -29,6 +29,43 @@ pub fn shared_routes() -> Router<AppState> {
             "/non-financial-indicators/catalog",
             get(crate::api::handlers::non_financial_indicator::list_catalog),
         )
+        // Benchmark analytics — accessible to all authenticated roles
+        .route(
+            "/benchmarks",
+            get(crate::api::handlers::financial_statement::get_benchmarks),
+        )
+        // Monthly trend analytics — accessible to all authenticated roles
+        .route(
+            "/analytics/monthly-trend",
+            get(crate::api::handlers::financial_statement::get_monthly_trend),
+        )
+        .route(
+            "/analytics/submission-activity",
+            get(crate::api::handlers::financial_statement::get_submission_activity),
+        )
+        // Region compliance analytics — accessible to all authenticated roles
+        .route(
+            "/analytics/region-compliance",
+            get(crate::api::handlers::financial_statement::get_region_compliance),
+        )
+        // Sector breakdown analytics — accessible to all authenticated roles
+        .route(
+            "/analytics/sector-breakdown",
+            get(crate::api::handlers::financial_statement::get_sector_breakdown),
+        )
+        // National overview — aggregated KPI traffic-light distribution
+        .route(
+            "/analytics/national-overview",
+            get(crate::api::handlers::national_overview::get_national_overview),
+        )
+        .route(
+            "/analytics/nf-trend",
+            get(crate::api::handlers::nf_indicator_stats::get_nf_trend),
+        )
+        .route(
+            "/analytics/consolidated-nf-statistics",
+            get(crate::api::handlers::nf_indicator_stats::get_consolidated_nf_statistics),
+        )
 }
 
 async fn get_current_user_profile(

@@ -101,7 +101,9 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <FileText className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              Submission: {filteredSubmissions.find((s) => s.id === selectedSubmissionId)?.reporting_year} Financial Report
+              Submission:{" "}
+              {filteredSubmissions.find((s) => s.id === selectedSubmissionId)?.reporting_year}{" "}
+              Financial Report
             </span>
           </div>
           <button

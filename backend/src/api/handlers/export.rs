@@ -17,8 +17,8 @@ use printpdf::{PdfDocument, Mm, Point, Line};
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
-use crate::entities::{submission, cooperative, balance_sheet_line_item, financial_statement, member, savings_account, loan, fixed_deposit};
-use crate::services::kpi_engine::{self, KpiResult};
+use crate::entities::{submission, cooperative, balance_sheet_line_item, financial_statement};
+use crate::services::kpi_engine::{KpiEngine, KpiValue as KpiResult};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ExportQuery {
@@ -94,11 +94,12 @@ impl PdfWriter {
     }
 }
 
-// Shared helper to compile data for a single cooperative submission
+// Shared helper to compile data for a single cooperative submission.
+// Returns the submission, cooperative, line items, and a ComputedKpiSet.
 async fn compile_export_data(
     state: &AppState,
     sub_id: Uuid,
-) -> AppResult<(submission::Model, cooperative::Model, Vec<balance_sheet_line_item::Model>, kpi_engine::CompleteKPIReport)> {
+) -> AppResult<(submission::Model, cooperative::Model, Vec<balance_sheet_line_item::Model>, crate::services::kpi_engine::ComputedKpiSet)> {
     let submission = state
         .submission_repo
         .find_by_id(sub_id)
@@ -111,7 +112,6 @@ async fn compile_export_data(
         .await?
         .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
 
-    // Load Balance Sheet & Line Items
     let fs = financial_statement::Entity::find()
         .filter(financial_statement::Column::SubmissionId.eq(sub_id))
         .one(&state.db)
@@ -123,40 +123,8 @@ async fn compile_export_data(
         .all(&state.db)
         .await?;
 
-    let values_map = crate::services::abnormality_detector::calculations::build_values_map(&line_items);
-
-    // Load other details
-    let members = member::Entity::find()
-        .filter(member::Column::SubmissionId.eq(sub_id))
-        .all(&state.db)
-        .await?;
-
-    let savings = savings_account::Entity::find()
-        .filter(savings_account::Column::SubmissionId.eq(sub_id))
-        .all(&state.db)
-        .await?;
-
-    let loans = loan::Entity::find()
-        .filter(loan::Column::SubmissionId.eq(sub_id))
-        .all(&state.db)
-        .await?;
-
-    let fds = fixed_deposit::Entity::find()
-        .filter(fixed_deposit::Column::SubmissionId.eq(sub_id))
-        .all(&state.db)
-        .await?;
-
-    // Compute KPIs
-    let gross_lp = values_map.get(&1200).and_then(|x| x.to_f64()).unwrap_or(0.0);
-    let report = kpi_engine::CompleteKPIReport {
-        financial: kpi_engine::calculate_financial_kpis(&values_map),
-        membership: kpi_engine::calculate_membership_kpis(&members, None),
-        savings: kpi_engine::calculate_savings_kpis(&savings, members.len()),
-        loans: kpi_engine::calculate_loan_kpis(&loans, members.len(), gross_lp),
-        fixed_deposits: kpi_engine::calculate_fd_kpis(&fds, members.len()),
-    };
-
-    Ok((submission, cooperative, line_items, report))
+    let kpis = KpiEngine::compute(&line_items);
+    Ok((submission, cooperative, line_items, kpis))
 }
 
 // Formatting helpers
@@ -197,7 +165,7 @@ pub async fn export_single_submission(
 ) -> AppResult<impl IntoResponse> {
     let allowed_coops = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let (submission, cooperative, line_items, report) = compile_export_data(&state, id).await?;
+    let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
 
     if !allowed_coops.contains(&submission.cooperative_id) {
         return Err(AppError::Forbidden("Access denied to this cooperative's submission".into()));
@@ -281,48 +249,26 @@ pub async fn export_single_submission(
                     Ok(())
                 };
 
-                // Write financial
-                let f = &report.financial;
+                // Write financial KPIs
+                let f = &kpis;
                 write_row("Financial Size", "Total Assets", &f.total_assets)?;
                 write_row("Financial Size", "Gross Loan Portfolio", &f.gross_loan_portfolio)?;
                 write_row("Financial Size", "Net Loan Portfolio", &f.net_loan_portfolio)?;
                 write_row("Financial Size", "Total Member Deposits", &f.total_member_deposits)?;
                 write_row("Financial Size", "Total Equity", &f.total_equity)?;
+                write_row("Financial Size", "Net Surplus", &f.net_surplus)?;
                 write_row("Portfolio Quality", "PAR 30", &f.par30)?;
-                write_row("Portfolio Quality", "PAR 60", &f.par60)?;
                 write_row("Portfolio Quality", "PAR 90", &f.par90)?;
                 write_row("Portfolio Quality", "NPL Ratio", &f.npl_ratio)?;
                 write_row("Portfolio Quality", "Loan Loss Coverage", &f.loan_loss_coverage)?;
                 write_row("Profitability", "ROA", &f.roa)?;
                 write_row("Profitability", "ROE", &f.roe)?;
-                write_row("Profitability", "Financial Revenue Ratio", &f.financial_revenue_ratio)?;
-                write_row("Profitability", "Financial Expense Ratio", &f.financial_expense_ratio)?;
                 write_row("Profitability", "Operating Expense Ratio", &f.operating_expense_ratio)?;
-                write_row("Profitability", "Cost of Funds", &f.cost_of_funds)?;
-                write_row("Profitability", "Yield on Portfolio", &f.yield_on_portfolio)?;
                 write_row("Profitability", "Net Interest Margin", &f.net_interest_margin)?;
                 write_row("Profitability", "Operational Self-Sufficiency", &f.operational_self_sufficiency)?;
-                write_row("Liquidity & Solvency", "Current Ratio", &f.current_ratio)?;
-                write_row("Liquidity & Solvency", "Cash Ratio", &f.cash_ratio)?;
                 write_row("Liquidity & Solvency", "Capital Adequacy Ratio", &f.capital_adequacy_ratio)?;
-                write_row("Liquidity & Solvency", "Debt to Equity", &f.debt_to_equity)?;
                 write_row("Liquidity & Solvency", "Liquid Funds Ratio", &f.liquid_funds_ratio)?;
                 write_row("Liquidity & Solvency", "Deposits to Loans", &f.deposits_to_loans)?;
-                write_row("Liquidity & Solvency", "Savings to Assets", &f.savings_to_assets)?;
-                write_row("Liquidity & Solvency", "Voluntary Savings Ratio", &f.voluntary_savings_ratio)?;
-
-                // Write membership
-                let m = &report.membership;
-                write_row("Membership", "Total Members", &m.total_members)?;
-                write_row("Membership", "Dormancy Rate", &m.dormancy_rate)?;
-                write_row("Membership", "Exit Rate", &m.exit_rate)?;
-                write_row("Membership", "Active Members Ratio", &m.active_members_ratio)?;
-                write_row("Membership", "AGM Participation Rate", &m.agm_participation_rate)?;
-                write_row("Membership", "Women Members Percent", &m.women_members_percent)?;
-                write_row("Membership", "Youth Members Percent", &m.youth_members_percent)?;
-                write_row("Membership", "Rural Members Percent", &m.rural_members_percent)?;
-                write_row("Membership", "Women In Governance", &m.women_in_governance_percent)?;
-                write_row("Membership", "Youth In Governance", &m.youth_in_governance_percent)?;
 
                 workbook.save_to_buffer().map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
@@ -370,7 +316,7 @@ pub async fn export_single_submission(
                 };
 
                 // Write a subset of key KPIs
-                let f = &report.financial;
+                let f = &kpis;
                 write_csv_kpi("Financial Size", "Total Assets", &f.total_assets);
                 write_csv_kpi("Financial Size", "Gross Loan Portfolio", &f.gross_loan_portfolio);
                 write_csv_kpi("Financial Size", "Total Equity", &f.total_equity);
@@ -448,7 +394,7 @@ pub async fn export_single_submission(
                     ]));
                 };
 
-                let f = &report.financial;
+                let f = &kpis;
                 add_kpi_docx_row(&mut kpi_rows, "Size", "Total Assets", &f.total_assets);
                 add_kpi_docx_row(&mut kpi_rows, "Size", "Gross Loan Portfolio", &f.gross_loan_portfolio);
                 add_kpi_docx_row(&mut kpi_rows, "Size", "Total Member Deposits", &f.total_member_deposits);
@@ -457,7 +403,7 @@ pub async fn export_single_submission(
                 add_kpi_docx_row(&mut kpi_rows, "Profitability", "ROA", &f.roa);
                 add_kpi_docx_row(&mut kpi_rows, "Profitability", "ROE", &f.roe);
                 add_kpi_docx_row(&mut kpi_rows, "Liquidity", "Capital Adequacy Ratio", &f.capital_adequacy_ratio);
-                add_kpi_docx_row(&mut kpi_rows, "Liquidity", "Current Ratio", &f.current_ratio);
+                add_kpi_docx_row(&mut kpi_rows, "Liquidity", "Liquid Funds Ratio", &f.liquid_funds_ratio);
 
                 doc = doc.add_table(Table::new(kpi_rows));
 
@@ -547,14 +493,13 @@ pub async fn export_single_submission(
                     w.current_y -= 5.5;
                 };
 
-                let f = &report.financial;
+                let f = &kpis;
                 add_pdf_kpi_row(&mut writer, "Capital Adequacy Ratio", &f.capital_adequacy_ratio);
                 add_pdf_kpi_row(&mut writer, "PAR 30", &f.par30);
-                add_pdf_kpi_row(&mut writer, "PAR 60", &f.par60);
+                add_pdf_kpi_row(&mut writer, "PAR 90", &f.par90);
                 add_pdf_kpi_row(&mut writer, "Loan Loss Coverage", &f.loan_loss_coverage);
                 add_pdf_kpi_row(&mut writer, "ROA", &f.roa);
                 add_pdf_kpi_row(&mut writer, "ROE", &f.roe);
-                add_pdf_kpi_row(&mut writer, "Current Ratio", &f.current_ratio);
                 add_pdf_kpi_row(&mut writer, "Liquid Funds Ratio", &f.liquid_funds_ratio);
                 add_pdf_kpi_row(&mut writer, "Operational Self-Sufficiency", &f.operational_self_sufficiency);
 
@@ -661,10 +606,10 @@ pub async fn export_bulk_consolidated(
                 summary_sheet.write(0, 0, "Consolidated Reporting Dashboard")?;
                 summary_sheet.write(1, 0, &format!("Exported on: {}", Utc::now().format("%Y-%m-%d")))?;
 
-                let total_assets: f64 = compiled_data.iter().map(|(_, _, _, r)| r.financial.total_assets.value).sum();
-                let total_loans: f64 = compiled_data.iter().map(|(_, _, _, r)| r.financial.gross_loan_portfolio.value).sum();
-                let total_deposits: f64 = compiled_data.iter().map(|(_, _, _, r)| r.financial.total_member_deposits.value).sum();
-                let total_members: f64 = compiled_data.iter().map(|(_, _, _, r)| r.membership.total_members.value).sum();
+                let total_assets: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_assets.value).sum();
+                let total_loans: f64 = compiled_data.iter().map(|(_, _, _, r)| r.gross_loan_portfolio.value).sum();
+                let total_deposits: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_member_deposits.value).sum();
+                let total_members: f64 = 0.0; // membership count not available in financial KPIs
 
                 summary_sheet.write_with_format(3, 0, "Metric", &header_format)?;
                 summary_sheet.write_with_format(3, 1, "Consolidated Total", &header_format)?;
@@ -688,10 +633,10 @@ pub async fn export_bulk_consolidated(
                     summary_sheet.write(row_idx, 0, &coop.name)?;
                     summary_sheet.write(row_idx, 1, sub.reporting_year)?;
                     summary_sheet.write(row_idx, 2, format!("{:?}", sub.status))?;
-                    summary_sheet.write(row_idx, 3, report.financial.total_assets.value)?;
-                    summary_sheet.write(row_idx, 4, report.financial.gross_loan_portfolio.value)?;
-                    summary_sheet.write(row_idx, 5, report.financial.total_member_deposits.value)?;
-                    summary_sheet.write(row_idx, 6, report.membership.total_members.value)?;
+                    summary_sheet.write(row_idx, 3, report.total_assets.value)?;
+                    summary_sheet.write(row_idx, 4, report.gross_loan_portfolio.value)?;
+                    summary_sheet.write(row_idx, 5, report.total_member_deposits.value)?;
+                    summary_sheet.write(row_idx, 6, 0_f64)?; // membership count not in financial KPIs
                     row_idx += 1;
                 }
 
@@ -713,10 +658,10 @@ pub async fn export_bulk_consolidated(
                 };
 
                 let mut r_idx = 1;
-                let cars: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.financial.capital_adequacy_ratio.value).collect();
-                let par30s: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.financial.par30.value).collect();
-                let roas: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.financial.roa.value).collect();
-                let roes: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.financial.roe.value).collect();
+                let cars: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.capital_adequacy_ratio.value).collect();
+                let par30s: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.par30.value).collect();
+                let roas: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.roa.value).collect();
+                let roes: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.roe.value).collect();
 
                 add_agg_row(kpi_agg_sheet, "Average Capital Adequacy Ratio", &cars, true, &mut r_idx)?;
                 add_agg_row(kpi_agg_sheet, "Average PAR 30 Ratio", &par30s, true, &mut r_idx)?;
@@ -758,7 +703,7 @@ pub async fn export_bulk_consolidated(
                         Ok(())
                     };
 
-                    let f = &report.financial;
+                    let f = report;
                     write_row("Financial Size", "Total Assets", &f.total_assets)?;
                     write_row("Financial Size", "Gross Loan Portfolio", &f.gross_loan_portfolio)?;
                     write_row("Financial Size", "Total Equity", &f.total_equity)?;
@@ -789,10 +734,10 @@ pub async fn export_bulk_consolidated(
                         coop.name.clone(),
                         sub.reporting_year.to_string(),
                         format!("{:?}", sub.status),
-                        report.financial.total_assets.value.to_string(),
-                        report.financial.gross_loan_portfolio.value.to_string(),
-                        report.financial.total_member_deposits.value.to_string(),
-                        report.membership.total_members.value.to_string(),
+                        report.total_assets.value.to_string(),
+                        report.gross_loan_portfolio.value.to_string(),
+                        report.total_member_deposits.value.to_string(),
+                        "0".to_string(),
                     ]).unwrap();
                 }
                 wtr.into_inner().unwrap()
@@ -829,7 +774,7 @@ pub async fn export_bulk_consolidated(
                             TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&coop.name))),
                             TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&sub.reporting_year.to_string()))),
                             TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&format!("{:?}", sub.status)))),
-                            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&report.financial.total_assets.value.to_string()))),
+                            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&report.total_assets.value.to_string()))),
                         ])
                     );
                 }
@@ -857,10 +802,10 @@ pub async fn export_bulk_consolidated(
                 writer.write_line(&format!("Exported on: {}", Utc::now().format("%Y-%m-%d")), 12.0, false);
                 writer.current_y -= 15.0;
 
-                let total_assets: f64 = compiled_data.iter().map(|(_, _, _, r)| r.financial.total_assets.value).sum();
-                let total_loans: f64 = compiled_data.iter().map(|(_, _, _, r)| r.financial.gross_loan_portfolio.value).sum();
-                let total_deposits: f64 = compiled_data.iter().map(|(_, _, _, r)| r.financial.total_member_deposits.value).sum();
-                let total_members: f64 = compiled_data.iter().map(|(_, _, _, r)| r.membership.total_members.value).sum();
+                let total_assets: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_assets.value).sum();
+                let total_loans: f64 = compiled_data.iter().map(|(_, _, _, r)| r.gross_loan_portfolio.value).sum();
+                let total_deposits: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_member_deposits.value).sum();
+                let total_members: f64 = 0.0;
 
                 writer.write_line(&format!("Total Consolidated Assets: {:.2}", total_assets), 12.0, false);
                 writer.current_y -= 8.0;
@@ -876,7 +821,7 @@ pub async fn export_bulk_consolidated(
 
                 for (sub, coop, _, report) in &compiled_data {
                     writer.check_page_break(20.0);
-                    let txt = format!("{} | Year: {} | Assets: {:.2} | Loans: {:.2}", coop.name, sub.reporting_year, report.financial.total_assets.value, report.financial.gross_loan_portfolio.value);
+                    let txt = format!("{} | Year: {} | Assets: {:.2} | Loans: {:.2}", coop.name, sub.reporting_year, report.total_assets.value, report.gross_loan_portfolio.value);
                     writer.write_line(&txt, 10.0, false);
                     writer.current_y -= 6.0;
                 }

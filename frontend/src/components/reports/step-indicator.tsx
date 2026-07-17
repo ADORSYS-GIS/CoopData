@@ -13,8 +13,8 @@ export function StepDot({ n, active, done }: StepDotProps) {
         done
           ? "bg-primary border-primary text-primary-foreground"
           : active
-          ? "bg-primary/10 border-primary text-primary"
-          : "bg-muted border-border text-muted-foreground"
+            ? "bg-primary/10 border-primary text-primary"
+            : "bg-muted border-border text-muted-foreground"
       }`}
     >
       {done ? <CheckCircle2 className="size-3.5" /> : n}

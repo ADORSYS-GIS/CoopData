@@ -1,481 +1,507 @@
-use serde::Serialize;
-use rust_decimal::Decimal;
+//! KPI Engine — pure computation service.
+//!
+//! Takes balance sheet line items and computes all financial KPIs.
+//! No database access — all computation is done in memory.
+//! Mirrors the logic in `frontend/src/lib/kpi-calculations.ts`.
+
+use crate::entities::balance_sheet_line_item::Model as LineItemModel;
 use rust_decimal::prelude::ToPrimitive;
-use std::collections::HashMap;
 
-use crate::entities::{member, savings_account, loan, fixed_deposit};
-use crate::entities::enums::{MemberStatus, Gender, AgeGroup, UrbanRural, LoanStatus, DpdCategory, FdStatus};
-use crate::services::abnormality_detector::calculations::{ValuesMap, sum_codes};
+// ── Public output types ──────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct KpiResult {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct KpiValue {
+    /// Snake_case identifier matching frontend kpi-calculations.ts keys
+    pub name: String,
     pub value: f64,
     pub formatted: String,
+    /// "percent" | "currency" | "ratio"
     pub unit: String,
-    pub description: String,
+    /// "green" | "amber" | "red"
     pub status: Option<String>,
     pub benchmark: Option<f64>,
+    pub description: String,
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct FinancialKPIs {
-    pub total_assets: KpiResult,
-    pub gross_loan_portfolio: KpiResult,
-    pub net_loan_portfolio: KpiResult,
-    pub total_member_deposits: KpiResult,
-    pub total_equity: KpiResult,
-    pub par30: KpiResult,
-    pub par60: KpiResult,
-    pub par90: KpiResult,
-    pub npl_ratio: KpiResult,
-    pub loan_loss_coverage: KpiResult,
-    pub roa: KpiResult,
-    pub roe: KpiResult,
-    pub financial_revenue_ratio: KpiResult,
-    pub financial_expense_ratio: KpiResult,
-    pub operating_expense_ratio: KpiResult,
-    pub cost_of_funds: KpiResult,
-    pub yield_on_portfolio: KpiResult,
-    pub net_interest_margin: KpiResult,
-    pub operational_self_sufficiency: KpiResult,
-    pub current_ratio: KpiResult,
-    pub cash_ratio: KpiResult,
-    pub capital_adequacy_ratio: KpiResult,
-    pub debt_to_equity: KpiResult,
-    pub liquid_funds_ratio: KpiResult,
-    pub deposits_to_loans: KpiResult,
-    pub savings_to_assets: KpiResult,
-    pub voluntary_savings_ratio: KpiResult,
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ComputedKpiSet {
+    pub total_assets: KpiValue,
+    pub gross_loan_portfolio: KpiValue,
+    pub net_loan_portfolio: KpiValue,
+    pub total_member_deposits: KpiValue,
+    pub total_equity: KpiValue,
+    pub par30: KpiValue,
+    pub par90: KpiValue,
+    pub npl_ratio: KpiValue,
+    pub loan_loss_coverage: KpiValue,
+    pub roa: KpiValue,
+    pub roe: KpiValue,
+    pub operating_expense_ratio: KpiValue,
+    pub capital_adequacy_ratio: KpiValue,
+    pub liquid_funds_ratio: KpiValue,
+    pub operational_self_sufficiency: KpiValue,
+    pub net_interest_margin: KpiValue,
+    pub deposits_to_loans: KpiValue,
+    pub net_surplus: KpiValue,
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct MembershipKPIs {
-    pub total_members: KpiResult,
-    pub dormancy_rate: KpiResult,
-    pub exit_rate: KpiResult,
-    pub active_members_ratio: KpiResult,
-    pub agm_participation_rate: KpiResult,
-    pub women_members_percent: KpiResult,
-    pub youth_members_percent: KpiResult,
-    pub rural_members_percent: KpiResult,
-    pub women_in_governance_percent: KpiResult,
-    pub youth_in_governance_percent: KpiResult,
-}
-
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct SavingsKPIs {
-    pub savings_penetration: KpiResult,
-    pub active_savers_ratio: KpiResult,
-    pub regular_savers_ratio: KpiResult,
-    pub dormant_savings_accounts_percent: KpiResult,
-    pub zero_balance_accounts_percent: KpiResult,
-    pub stable_balance_ratio: KpiResult,
-    pub high_withdrawal_frequency_percent: KpiResult,
-    pub emergency_withdrawal_incidence: KpiResult,
-    pub average_interest_rate: KpiResult,
-    pub account_concentration: KpiResult,
-}
-
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct LoanKPIs {
-    pub credit_penetration: KpiResult,
-    pub on_time_repayment_ratio: KpiResult,
-    pub loans_in_arrears_percent: KpiResult,
-    pub restructured_loans_ratio: KpiResult,
-    pub women_borrowers_percent: KpiResult,
-    pub youth_borrowers_percent: KpiResult,
-    pub rural_borrowers_percent: KpiResult,
-    pub average_loan_size: KpiResult,
-    pub loans_per_member: KpiResult,
-    pub average_interest_rate: KpiResult,
-}
-
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct FixedDepositKPIs {
-    pub fd_penetration: KpiResult,
-    pub long_term_fd_ratio: KpiResult,
-    pub fd_rollover_rate: KpiResult,
-    pub early_withdrawal_rate: KpiResult,
-    pub concentration_risk: KpiResult,
-}
-
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct CompleteKPIReport {
-    pub financial: FinancialKPIs,
-    pub membership: MembershipKPIs,
-    pub savings: SavingsKPIs,
-    pub loans: LoanKPIs,
-    pub fixed_deposits: FixedDepositKPIs,
-}
-
-// Formatting helpers
-fn format_percent(val: f64) -> String {
-    format!("{:.1}%", val)
-}
-
-fn format_currency(val: f64) -> String {
-    if val >= 1e9 {
-        format!("${:.2}B", val / 1e9)
-    } else if val >= 1e6 {
-        format!("${:.1}M", val / 1e6)
-    } else if val >= 1e3 {
-        format!("${:.0}K", val / 1e3)
-    } else {
-        format!("${:.0}", val)
+impl ComputedKpiSet {
+    /// Flatten into a Vec for API responses — preserves order.
+    pub fn to_vec(self) -> Vec<KpiValue> {
+        vec![
+            self.total_assets,
+            self.gross_loan_portfolio,
+            self.net_loan_portfolio,
+            self.total_member_deposits,
+            self.total_equity,
+            self.net_surplus,
+            self.par30,
+            self.par90,
+            self.npl_ratio,
+            self.loan_loss_coverage,
+            self.roa,
+            self.roe,
+            self.operating_expense_ratio,
+            self.capital_adequacy_ratio,
+            self.liquid_funds_ratio,
+            self.operational_self_sufficiency,
+            self.net_interest_margin,
+            self.deposits_to_loans,
+        ]
     }
-}
 
-fn format_number(val: f64) -> String {
-    if val >= 1e6 {
-        format!("{:.2}M", val / 1e6)
-    } else if val >= 1e3 {
-        format!("{:.1}K", val / 1e3)
-    } else {
-        format!("{:.0}", val)
-    }
-}
-
-fn get_status_higher_better(val: f64, target: f64, warning: f64) -> String {
-    if val >= target {
-        "green".to_string()
-    } else if val >= warning {
-        "amber".to_string()
-    } else {
-        "red".to_string()
-    }
-}
-
-fn get_status_lower_better(val: f64, target: f64, warning: f64) -> String {
-    if val <= target {
-        "green".to_string()
-    } else if val <= warning {
-        "amber".to_string()
-    } else {
-        "red".to_string()
-    }
-}
-
-// Financial KPI Engine
-pub fn calculate_financial_kpis(v: &ValuesMap) -> FinancialKPIs {
-    let get_or_compute = |code: i32| -> f64 {
-        if let Some(val) = v.get(&code) {
-            return val.to_f64().unwrap_or(0.0);
+    /// Look up a single KPI by its snake_case name.
+    pub fn get_by_name(&self, name: &str) -> Option<&KpiValue> {
+        match name {
+            "total_assets" => Some(&self.total_assets),
+            "gross_loan_portfolio" => Some(&self.gross_loan_portfolio),
+            "net_loan_portfolio" => Some(&self.net_loan_portfolio),
+            "total_member_deposits" => Some(&self.total_member_deposits),
+            "total_equity" => Some(&self.total_equity),
+            "net_surplus" => Some(&self.net_surplus),
+            "par30" => Some(&self.par30),
+            "par90" => Some(&self.par90),
+            "npl_ratio" => Some(&self.npl_ratio),
+            "loan_loss_coverage" => Some(&self.loan_loss_coverage),
+            "roa" => Some(&self.roa),
+            "roe" => Some(&self.roe),
+            "operating_expense_ratio" => Some(&self.operating_expense_ratio),
+            "capital_adequacy_ratio" => Some(&self.capital_adequacy_ratio),
+            "liquid_funds_ratio" => Some(&self.liquid_funds_ratio),
+            "operational_self_sufficiency" => Some(&self.operational_self_sufficiency),
+            "net_interest_margin" => Some(&self.net_interest_margin),
+            "deposits_to_loans" => Some(&self.deposits_to_loans),
+            _ => None,
         }
-        match code {
-            1100 => sum_codes(v, &[1101, 1102, 1103, 1104]).to_f64().unwrap_or(0.0),
-            1200 => sum_codes(v, &[1201, 1202, 1203, 1204, 1205]).to_f64().unwrap_or(0.0),
-            1250 => sum_codes(v, &[1251, 1252]).to_f64().unwrap_or(0.0),
-            1300 => {
-                let dep = v.get(&1304).copied().unwrap_or(Decimal::ZERO);
-                let dep_val = if dep > Decimal::ZERO { -dep } else { dep };
-                let rest = sum_codes(v, &[1301, 1302, 1303, 1305]);
-                (rest + dep_val).to_f64().unwrap_or(0.0)
-            }
-            2100 => sum_codes(v, &[2101, 2102, 2103]).to_f64().unwrap_or(0.0),
-            2200 => sum_codes(v, &[2201, 2202]).to_f64().unwrap_or(0.0),
-            2300 => sum_codes(v, &[2301, 2302, 2303]).to_f64().unwrap_or(0.0),
-            3100 => sum_codes(v, &[3101, 3102]).to_f64().unwrap_or(0.0),
-            3200 => sum_codes(v, &[3201, 3202, 3203]).to_f64().unwrap_or(0.0),
-            3300 => sum_codes(v, &[3301, 3302]).to_f64().unwrap_or(0.0),
-            _ => 0.0,
+    }
+}
+
+// ── Engine ───────────────────────────────────────────────────────────────────
+
+pub struct KpiEngine;
+
+impl KpiEngine {
+    /// Compute all financial KPIs from balance sheet line items.
+    /// Sums values across all months (1-12) for each account code.
+    pub fn compute(line_items: &[LineItemModel]) -> ComputedKpiSet {
+        // ── Aggregate by account code ────────────────────────────────────────
+        let liquid_assets = Self::sum_codes(line_items, &[1101, 1102, 1103, 1104]);
+
+        // GLP components (needed individually for PAR calculation)
+        let glp_performing = Self::sum_code(line_items, 1201);
+        let glp_arrears_1_30 = Self::sum_code(line_items, 1202);
+        let glp_arrears_31_60 = Self::sum_code(line_items, 1203);
+        let glp_arrears_61_90 = Self::sum_code(line_items, 1204);
+        let glp_npl = Self::sum_code(line_items, 1205);
+
+        let gross_lp = glp_performing
+            + glp_arrears_1_30
+            + glp_arrears_31_60
+            + glp_arrears_61_90
+            + glp_npl;
+        let arrears_30_plus =
+            glp_arrears_31_60 + glp_arrears_61_90 + glp_npl + glp_arrears_1_30;
+        let provisions = Self::sum_codes(line_items, &[1251, 1252]);
+        let net_lp = gross_lp - provisions;
+
+        let total_assets = Self::sum_code(line_items, 1999);
+        let member_deposits = Self::sum_codes(line_items, &[2101, 2102, 2103]);
+        let total_equity = Self::sum_code(line_items, 3999);
+
+        let financial_income = Self::sum_codes(line_items, &[4101, 4102]);
+        let other_income = Self::sum_code(line_items, 4201);
+        let total_income = financial_income + other_income;
+
+        let financial_expenses = Self::sum_codes(line_items, &[5101, 5102]);
+        let operating_expenses = Self::sum_codes(line_items, &[5201, 5202, 5203, 5204]);
+        let credit_loss_expense = Self::sum_code(line_items, 5301);
+        let total_expenses = financial_expenses + operating_expenses + credit_loss_expense;
+
+        let net_surplus = Self::sum_code(line_items, 6999);
+
+        // ── Compute ratios (guard all divisions) ─────────────────────────────
+        let par30_val = Self::safe_div(arrears_30_plus, gross_lp) * 100.0;
+        let par90_val = Self::safe_div(glp_npl, gross_lp) * 100.0;
+        let llc_val = Self::safe_div(provisions, arrears_30_plus) * 100.0;
+        let roa_val = Self::safe_div(net_surplus, total_assets) * 100.0;
+        let roe_val = Self::safe_div(net_surplus, total_equity) * 100.0;
+        let oer_val = Self::safe_div(operating_expenses, total_assets) * 100.0;
+        let car_val = Self::safe_div(total_equity, total_assets) * 100.0;
+        let lfr_val = Self::safe_div(liquid_assets, total_assets) * 100.0;
+        let oss_val = Self::safe_div(total_income, total_expenses) * 100.0;
+        let nim_val = Self::safe_div(financial_income - financial_expenses, total_assets) * 100.0;
+        let dtl_val = Self::safe_div(member_deposits, gross_lp) * 100.0;
+
+        ComputedKpiSet {
+            total_assets: Self::kpi_currency(
+                total_assets,
+                "total_assets",
+                "Total value of all assets owned by the cooperative",
+                None,
+                None,
+            ),
+            gross_loan_portfolio: Self::kpi_currency(
+                gross_lp,
+                "gross_loan_portfolio",
+                "Total outstanding loan balance including arrears",
+                None,
+                None,
+            ),
+            net_loan_portfolio: Self::kpi_currency(
+                net_lp,
+                "net_loan_portfolio",
+                "Gross Loan Portfolio minus Loan Loss Provisions",
+                None,
+                None,
+            ),
+            total_member_deposits: Self::kpi_currency(
+                member_deposits,
+                "total_member_deposits",
+                "Total member savings and deposits",
+                None,
+                None,
+            ),
+            total_equity: Self::kpi_currency(
+                total_equity,
+                "total_equity",
+                "Total institutional capital and reserves",
+                None,
+                None,
+            ),
+            net_surplus: Self::kpi_currency(
+                net_surplus,
+                "net_surplus",
+                "Net income after all expenses (Total Income - Total Expenses)",
+                None,
+                None,
+            ),
+            par30: Self::kpi_percent(
+                par30_val,
+                "par30",
+                "Portfolio at Risk >30 days (loans in arrears >30 days / gross loan portfolio)",
+                Some(Self::status_lower_better(par30_val, 5.0, 10.0)),
+                Some(5.0),
+            ),
+            par90: Self::kpi_percent(
+                par90_val,
+                "par90",
+                "Portfolio at Risk >90 days",
+                Some(Self::status_lower_better(par90_val, 2.0, 5.0)),
+                Some(2.0),
+            ),
+            npl_ratio: Self::kpi_percent(
+                par90_val,
+                "npl_ratio",
+                "Non-Performing Loans (>90 days) as percentage of gross portfolio",
+                Some(Self::status_lower_better(par90_val, 2.0, 5.0)),
+                Some(2.0),
+            ),
+            loan_loss_coverage: Self::kpi_percent(
+                llc_val,
+                "loan_loss_coverage",
+                "Loan loss provisions / Loans in arrears >30 days",
+                Some(Self::status_higher_better(llc_val, 100.0, 80.0)),
+                Some(100.0),
+            ),
+            roa: Self::kpi_percent(
+                roa_val,
+                "roa",
+                "Return on Assets (Net Surplus / Total Assets)",
+                Some(Self::status_higher_better(roa_val, 3.0, 1.0)),
+                Some(3.0),
+            ),
+            roe: Self::kpi_percent(
+                roe_val,
+                "roe",
+                "Return on Equity (Net Surplus / Total Equity)",
+                Some(Self::status_higher_better(roe_val, 8.0, 4.0)),
+                Some(8.0),
+            ),
+            operating_expense_ratio: Self::kpi_percent(
+                oer_val,
+                "operating_expense_ratio",
+                "Operating Expenses / Total Assets",
+                Some(Self::status_lower_better(oer_val, 5.0, 8.0)),
+                Some(5.0),
+            ),
+            capital_adequacy_ratio: Self::kpi_percent(
+                car_val,
+                "capital_adequacy_ratio",
+                "Total Equity / Total Assets",
+                Some(Self::status_higher_better(car_val, 10.0, 8.0)),
+                Some(10.0),
+            ),
+            liquid_funds_ratio: Self::kpi_percent(
+                lfr_val,
+                "liquid_funds_ratio",
+                "Liquid Assets / Total Assets",
+                Some(Self::status_higher_better(lfr_val, 15.0, 10.0)),
+                Some(15.0),
+            ),
+            operational_self_sufficiency: Self::kpi_percent(
+                oss_val,
+                "operational_self_sufficiency",
+                "Total Income / Total Operating Expenses",
+                Some(Self::status_higher_better(oss_val, 110.0, 100.0)),
+                Some(110.0),
+            ),
+            net_interest_margin: Self::kpi_percent(
+                nim_val,
+                "net_interest_margin",
+                "(Financial Income - Financial Expenses) / Total Assets",
+                None,
+                None,
+            ),
+            deposits_to_loans: Self::kpi_percent(
+                dtl_val,
+                "deposits_to_loans",
+                "Total Member Deposits / Gross Loan Portfolio",
+                None,
+                None,
+            ),
         }
-    };
+    }
 
-    let get_zero_f64 = |code: i32| -> f64 {
-        v.get(&code).and_then(|x| x.to_f64()).unwrap_or(0.0)
-    };
+    // ── Private helpers ──────────────────────────────────────────────────────
 
-    let total_assets = get_zero_f64(1999);
-    let gross_lp = get_or_compute(1200);
-    let provisions = get_or_compute(1250);
-    let net_lp = gross_lp - provisions;
-    let total_deposits = get_or_compute(2100);
+    /// Sum values for a single account code across all months.
+    fn sum_code(items: &[LineItemModel], code: i32) -> f64 {
+        items
+            .iter()
+            .filter(|item| item.account_code == Some(code))
+            .filter_map(|item| item.value.as_ref().and_then(|v| v.to_f64()))
+            .sum()
+    }
 
-    let total_equity = if let Some(eq) = v.get(&3999) {
-        eq.to_f64().unwrap_or(0.0)
-    } else {
-        get_or_compute(3100) + get_or_compute(3200) + get_or_compute(3300)
-    };
+    /// Sum values for a slice of account codes across all months.
+    fn sum_codes(items: &[LineItemModel], codes: &[i32]) -> f64 {
+        codes.iter().map(|&code| Self::sum_code(items, code)).sum()
+    }
 
-    let financial_income = get_zero_f64(4101) + get_zero_f64(4102);
-    let other_income = get_zero_f64(4201);
-    let total_income = financial_income + other_income;
+    /// Safe division — returns 0.0 when denominator is zero or near-zero.
+    #[inline]
+    fn safe_div(numerator: f64, denominator: f64) -> f64 {
+        if denominator.abs() < f64::EPSILON {
+            0.0
+        } else {
+            numerator / denominator
+        }
+    }
 
-    let financial_expenses = get_zero_f64(5101) + get_zero_f64(5102);
-    let operating_expenses = get_zero_f64(5201) + get_zero_f64(5202) + get_zero_f64(5203) + get_zero_f64(5204);
-    let provision_expense = get_zero_f64(5301);
-    let total_expenses = financial_expenses + operating_expenses + provision_expense;
+    /// Status threshold where lower values are better (e.g. PAR, OER).
+    fn status_lower_better(value: f64, green_max: f64, amber_max: f64) -> String {
+        if value <= green_max {
+            "green".to_string()
+        } else if value <= amber_max {
+            "amber".to_string()
+        } else {
+            "red".to_string()
+        }
+    }
 
-    let net_surplus = total_income - total_expenses;
+    /// Status threshold where higher values are better (e.g. ROA, CAR).
+    fn status_higher_better(value: f64, green_min: f64, amber_min: f64) -> String {
+        if value >= green_min {
+            "green".to_string()
+        } else if value >= amber_min {
+            "amber".to_string()
+        } else {
+            "red".to_string()
+        }
+    }
 
-    let avg_assets = if total_assets > 0.0 { total_assets } else { 1.0 };
-    let avg_equity = if total_equity > 0.0 { total_equity } else { 1.0 };
-    let avg_gross_lp = if gross_lp > 0.0 { gross_lp } else { 1.0 };
-    let avg_deposits = if total_deposits > 0.0 { total_deposits } else { 1.0 };
+    fn format_currency(value: f64) -> String {
+        let abs = value.abs();
+        let sign = if value < 0.0 { "-" } else { "" };
+        if abs >= 1_000_000_000.0 {
+            format!("{sign}${:.2}B", abs / 1_000_000_000.0)
+        } else if abs >= 1_000_000.0 {
+            format!("{sign}${:.1}M", abs / 1_000_000.0)
+        } else if abs >= 1_000.0 {
+            format!("{sign}${:.0}K", abs / 1_000.0)
+        } else {
+            format!("{sign}${abs:.0}")
+        }
+    }
 
-    let liquid_assets = get_zero_f64(1101) + get_zero_f64(1102) + get_zero_f64(1103);
-    let cash = get_zero_f64(1101) + get_zero_f64(1102);
-    let short_term_liabilities = get_zero_f64(2201) + get_zero_f64(2301) + get_zero_f64(2302);
-    let arreas30_plus = get_zero_f64(1203) + get_zero_f64(1204) + get_zero_f64(1205);
-    let arrears60_plus = get_zero_f64(1204) + get_zero_f64(1205);
-    let npl = get_zero_f64(1205);
-
-    // Helper to build KPIResult
-    let make_kpi = |val: f64, unit: &str, desc: &str, benchmark: Option<f64>, status: Option<String>| -> KpiResult {
-        let formatted = match unit {
-            "percent" => format_percent(val),
-            "currency" => format_currency(val),
-            "ratio" => format!("{:.2}x", val),
-            _ => format_number(val),
-        };
-        KpiResult {
-            value: val,
-            formatted,
-            unit: unit.to_string(),
-            description: desc.to_string(),
-            benchmark,
+    fn kpi_currency(
+        value: f64,
+        name: &str,
+        description: &str,
+        status: Option<String>,
+        benchmark: Option<f64>,
+    ) -> KpiValue {
+        KpiValue {
+            name: name.to_string(),
+            value,
+            formatted: Self::format_currency(value),
+            unit: "currency".to_string(),
             status,
+            benchmark,
+            description: description.to_string(),
         }
-    };
+    }
 
-    let par30_val = if gross_lp > 0.0 { (arreas30_plus / gross_lp) * 100.0 } else { 0.0 };
-    let par60_val = if gross_lp > 0.0 { (arrears60_plus / gross_lp) * 100.0 } else { 0.0 };
-    let par90_val = if gross_lp > 0.0 { (npl / gross_lp) * 100.0 } else { 0.0 };
-    let loan_loss_val = if arreas30_plus > 0.0 { (provisions / arreas30_plus) * 100.0 } else { 100.0 };
-
-    let roa_val = (net_surplus / avg_assets) * 100.0;
-    let roe_val = (net_surplus / avg_equity) * 100.0;
-    let oer_val = (operating_expenses / avg_assets) * 100.0;
-    let oss_val = if total_expenses > 0.0 { (total_income / total_expenses) * 100.0 } else { 0.0 };
-
-    let current_ratio_val = if short_term_liabilities > 0.0 { liquid_assets / short_term_liabilities } else { liquid_assets };
-    let cash_ratio_val = if short_term_liabilities > 0.0 { cash / short_term_liabilities } else { cash };
-    let car_val = if total_assets > 0.0 { (total_equity / total_assets) * 100.0 } else { 0.0 };
-    let debt_to_equity_val = if total_equity > 0.0 { (get_zero_f64(2999) / total_equity) } else { get_zero_f64(2999) };
-    let lfr_val = if total_assets > 0.0 { (liquid_assets / total_assets) * 100.0 } else { 0.0 };
-
-    FinancialKPIs {
-        total_assets: make_kpi(total_assets, "currency", "Total value of all assets owned by the cooperative", None, None),
-        gross_loan_portfolio: make_kpi(gross_lp, "currency", "Total outstanding loan balance including arrears", None, None),
-        net_loan_portfolio: make_kpi(net_lp, "currency", "Gross Loan Portfolio minus Loan Loss Provisions", None, None),
-        total_member_deposits: make_kpi(total_deposits, "currency", "Total member savings and deposits", None, None),
-        total_equity: make_kpi(total_equity, "currency", "Total institutional capital and reserves", None, None),
-        par30: make_kpi(par30_val, "percent", "Portfolio at Risk >30 days", Some(5.0), Some(get_status_lower_better(par30_val, 5.0, 10.0))),
-        par60: make_kpi(par60_val, "percent", "Portfolio at Risk >60 days", Some(3.0), Some(get_status_lower_better(par60_val, 3.0, 5.0))),
-        par90: make_kpi(par90_val, "percent", "Portfolio at Risk >90 days", Some(2.0), Some(get_status_lower_better(par90_val, 2.0, 5.0))),
-        npl_ratio: make_kpi(par90_val, "percent", "Non-Performing Loans (>90 days) as percentage of gross portfolio", None, None),
-        loan_loss_coverage: make_kpi(loan_loss_val, "percent", "Loan loss provisions / Loans in arrears >30 days", Some(100.0), Some(get_status_higher_better(loan_loss_val, 100.0, 80.0))),
-        roa: make_kpi(roa_val, "percent", "Return on Assets (Net Surplus / Average Total Assets)", Some(3.0), Some(get_status_higher_better(roa_val, 3.0, 1.0))),
-        roe: make_kpi(roe_val, "percent", "Return on Equity (Net Surplus / Average Equity)", Some(8.0), Some(get_status_higher_better(roe_val, 8.0, 4.0))),
-        financial_revenue_ratio: make_kpi((financial_income / avg_assets) * 100.0, "percent", "Financial Income / Average Total Assets", None, None),
-        financial_expense_ratio: make_kpi((financial_expenses / avg_assets) * 100.0, "percent", "Financial Expenses / Average Total Assets", None, None),
-        operating_expense_ratio: make_kpi(oer_val, "percent", "Operating Expenses / Average Total Assets", Some(5.0), Some(get_status_lower_better(oer_val, 5.0, 8.0))),
-        cost_of_funds: make_kpi((get_zero_f64(5101) / avg_deposits) * 100.0, "percent", "Interest Expense on Deposits / Average Member Deposits", None, None),
-        yield_on_portfolio: make_kpi((get_zero_f64(4101) / avg_gross_lp) * 100.0, "percent", "Interest Income on Loans / Average Gross Loan Portfolio", None, None),
-        net_interest_margin: make_kpi(((financial_income - financial_expenses) / avg_assets) * 100.0, "percent", "(Financial Income - Financial Expenses) / Average Assets", None, None),
-        operational_self_sufficiency: make_kpi(oss_val, "percent", "Operating Income / Operating Expenses", Some(110.0), Some(get_status_higher_better(oss_val, 110.0, 100.0))),
-        current_ratio: make_kpi(current_ratio_val, "ratio", "Liquid Assets / Short-term Liabilities", Some(1.0), Some(get_status_higher_better(current_ratio_val, 1.0, 0.8))),
-        cash_ratio: make_kpi(cash_ratio_val, "ratio", "Cash + Current Accounts / Short-term Liabilities", Some(0.5), Some(get_status_higher_better(cash_ratio_val, 0.5, 0.3))),
-        capital_adequacy_ratio: make_kpi(car_val, "percent", "Total Equity / Total Assets", Some(10.0), Some(get_status_higher_better(car_val, 10.0, 8.0))),
-        debt_to_equity: make_kpi(debt_to_equity_val, "ratio", "Total Liabilities / Total Equity", Some(3.0), Some(get_status_lower_better(debt_to_equity_val, 3.0, 5.0))),
-        liquid_funds_ratio: make_kpi(lfr_val, "percent", "Liquid Assets / Total Assets", Some(15.0), Some(get_status_higher_better(lfr_val, 15.0, 10.0))),
-        deposits_to_loans: make_kpi(if gross_lp > 0.0 { (total_deposits / gross_lp) * 100.0 } else { 0.0 }, "percent", "Total Deposits / Gross Loan Portfolio", None, None),
-        savings_to_assets: make_kpi(if total_assets > 0.0 { (total_deposits / total_assets) * 100.0 } else { 0.0 }, "percent", "Member Deposits / Total Assets", None, None),
-        voluntary_savings_ratio: make_kpi(if total_deposits > 0.0 { (get_zero_f64(2101) / total_deposits) * 100.0 } else { 0.0 }, "percent", "Voluntary Savings / Total Deposits", None, None),
+    fn kpi_percent(
+        value: f64,
+        name: &str,
+        description: &str,
+        status: Option<String>,
+        benchmark: Option<f64>,
+    ) -> KpiValue {
+        KpiValue {
+            name: name.to_string(),
+            value,
+            formatted: format!("{:.1}%", value),
+            unit: "percent".to_string(),
+            status,
+            benchmark,
+            description: description.to_string(),
+        }
     }
 }
 
-// Membership KPI Engine
-pub fn calculate_membership_kpis(members: &[member::Model], prev_count: Option<usize>) -> MembershipKPIs {
-    let total = members.len() as f64;
-    let active = members.iter().filter(|m| m.status == MemberStatus::Active).count() as f64;
-    let dormant = members.iter().filter(|m| m.status == MemberStatus::Dormant).count() as f64;
-    let exited = members.iter().filter(|m| m.status == MemberStatus::Exited).count() as f64;
-    let women = members.iter().filter(|m| m.gender == Gender::Female).count() as f64;
-    let youth = members.iter().filter(|m| m.age_group == AgeGroup::Between18And35).count() as f64;
-    let rural = members.iter().filter(|m| m.urban_rural == UrbanRural::Rural).count() as f64;
-    let agm_attended = members.iter().filter(|m| m.agm_attendance).count() as f64;
+// ── Unit tests ───────────────────────────────────────────────────────────────
 
-    let board_total = members.iter().filter(|m| m.leadership_role.is_some()).count() as f64;
-    let board_women = members.iter().filter(|m| m.leadership_role.is_some() && m.gender == Gender::Female).count() as f64;
-    let board_youth = members.iter().filter(|m| m.leadership_role.is_some() && m.age_group == AgeGroup::Between18And35).count() as f64;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use rust_decimal::Decimal;
+    use uuid::Uuid;
 
-    let total_active_exited = total;
-    let dormancy_rate = if total_active_exited > 0.0 { (dormant / total_active_exited) * 100.0 } else { 0.0 };
-    let exit_rate = if total_active_exited > 0.0 { (exited / total_active_exited) * 100.0 } else { 0.0 };
-    let active_ratio = if total_active_exited > 0.0 { (active / total_active_exited) * 100.0 } else { 0.0 };
-    let agm_rate = if total_active_exited > 0.0 { (agm_attended / total_active_exited) * 100.0 } else { 0.0 };
-
-    let make_kpi = |val: f64, unit: &str, desc: &str, benchmark: Option<f64>, status: Option<String>| -> KpiResult {
-        let formatted = match unit {
-            "percent" => format_percent(val),
-            _ => format!("{:.0}", val),
-        };
-        KpiResult {
-            value: val,
-            formatted,
-            unit: unit.to_string(),
-            description: desc.to_string(),
-            benchmark,
-            status,
+    fn make_item(code: i32, value: f64) -> LineItemModel {
+        LineItemModel {
+            id: Uuid::new_v4(),
+            financial_statement_id: Uuid::new_v4(),
+            account_code: Some(code),
+            account_name: format!("Account {code}"),
+            account_category: crate::entities::enums::AccountCategory::Assets,
+            account_subcategory: "test".to_string(),
+            month: 12,
+            value: Some(Decimal::from_f64_retain(value).unwrap()),
+            ai_confidence: None,
+            ai_flagged: false,
+            manually_edited: false,
+            raw_label: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
-    };
-
-    MembershipKPIs {
-        total_members: make_kpi(total, "number", "Total number of registered members", None, None),
-        dormancy_rate: make_kpi(dormancy_rate, "percent", "Dormant members / Total members", Some(20.0), Some(get_status_lower_better(dormancy_rate, 20.0, 30.0))),
-        exit_rate: make_kpi(exit_rate, "percent", "Exited members / Total members", Some(5.0), Some(get_status_lower_better(exit_rate, 5.0, 10.0))),
-        active_members_ratio: make_kpi(active_ratio, "percent", "Active members / Total members", Some(70.0), Some(get_status_higher_better(active_ratio, 70.0, 60.0))),
-        agm_participation_rate: make_kpi(agm_rate, "percent", "Members attending AGM / Total members", Some(50.0), Some(get_status_higher_better(agm_rate, 50.0, 30.0))),
-        women_members_percent: make_kpi(if total > 0.0 { (women / total) * 100.0 } else { 0.0 }, "percent", "Female members / Total members", None, None),
-        youth_members_percent: make_kpi(if total > 0.0 { (youth / total) * 100.0 } else { 0.0 }, "percent", "Youth members (<35) / Total members", None, None),
-        rural_members_percent: make_kpi(if total > 0.0 { (rural / total) * 100.0 } else { 0.0 }, "percent", "Rural members / Total members", None, None),
-        women_in_governance_percent: make_kpi(if board_total > 0.0 { (board_women / board_total) * 100.0 } else { 0.0 }, "percent", "Women in governance positions / Total board members", None, None),
-        youth_in_governance_percent: make_kpi(if board_total > 0.0 { (board_youth / board_total) * 100.0 } else { 0.0 }, "percent", "Youth in governance positions / Total board members", None, None),
     }
-}
 
-// Savings KPI Engine
-pub fn calculate_savings_kpis(accounts: &[savings_account::Model], total_members: usize) -> SavingsKPIs {
-    let total_members_f = total_members as f64;
-    let total_accounts = accounts.len() as f64;
-    let active_accounts = accounts.iter().filter(|s| s.account_status == "Active").count() as f64;
-    let dormant_accounts = accounts.iter().filter(|s| s.account_status == "Dormant").count() as f64;
-    let zero_balance = accounts.iter().filter(|s| s.zero_balance_flag).count() as f64;
-    let stable_balance = accounts.iter().filter(|s| s.balance_trend == "Stable" || s.balance_trend == "Increasing").count() as f64;
-    let high_withdrawal = accounts.iter().filter(|s| s.withdrawal_frequency_category == "High").count() as f64;
-    let emergency_withdrawals = accounts.iter().filter(|s| s.emergency_withdrawals_flag).count() as f64;
-    let regular_contributors = accounts.iter().filter(|s| s.contribution_frequency == "Monthly" || s.contribution_frequency == "Weekly").count() as f64;
-
-    let total_interest: f64 = accounts.iter().map(|s| s.interest_rate.to_f64().unwrap_or(0.0)).sum();
-    let avg_interest = if total_accounts > 0.0 { total_interest / total_accounts } else { 0.0 };
-
-    let total_balance: f64 = accounts.iter().map(|s| s.balance.to_f64().unwrap_or(0.0)).sum();
-
-    // Account concentration (top 10%)
-    let mut balances: Vec<f64> = accounts.iter().map(|s| s.balance.to_f64().unwrap_or(0.0)).collect();
-    balances.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
-    let top_10_count = (total_accounts * 0.1).ceil() as usize;
-    let top_10_balance: f64 = balances.iter().take(top_10_count).sum();
-
-    let make_kpi = |val: f64, unit: &str, desc: &str, benchmark: Option<f64>, status: Option<String>| -> KpiResult {
-        let formatted = match unit {
-            "percent" => format_percent(val),
-            _ => format!("{:.0}", val),
-        };
-        KpiResult {
-            value: val,
-            formatted,
-            unit: unit.to_string(),
-            description: desc.to_string(),
-            benchmark,
-            status,
-        }
-    };
-
-    let penetration = if total_members_f > 0.0 { (total_accounts / total_members_f) * 100.0 } else { 0.0 };
-    let regular_savers = if total_accounts > 0.0 { (regular_contributors / total_accounts) * 100.0 } else { 0.0 };
-    let dormant_savers = if total_accounts > 0.0 { (dormant_accounts / total_accounts) * 100.0 } else { 0.0 };
-
-    SavingsKPIs {
-        savings_penetration: make_kpi(penetration, "percent", "Members with savings accounts / Total members", Some(70.0), Some(get_status_higher_better(penetration, 70.0, 50.0))),
-        active_savers_ratio: make_kpi(if total_accounts > 0.0 { (active_accounts / total_accounts) * 100.0 } else { 0.0 }, "percent", "Active savings accounts / Total savings accounts", None, None),
-        regular_savers_ratio: make_kpi(regular_savers, "percent", "Accounts with regular contributions / Total accounts", Some(60.0), Some(get_status_higher_better(regular_savers, 60.0, 40.0))),
-        dormant_savings_accounts_percent: make_kpi(dormant_savers, "percent", "Dormant savings accounts / Total savings accounts", Some(20.0), Some(get_status_lower_better(dormant_savers, 20.0, 30.0))),
-        zero_balance_accounts_percent: make_kpi(if total_accounts > 0.0 { (zero_balance / total_accounts) * 100.0 } else { 0.0 }, "percent", "Zero-balance accounts / Total savings accounts", None, None),
-        stable_balance_ratio: make_kpi(if active_accounts > 0.0 { (stable_balance / active_accounts) * 100.0 } else { 0.0 }, "percent", "Accounts with stable/increasing balance / Active accounts", None, None),
-        high_withdrawal_frequency_percent: make_kpi(if total_accounts > 0.0 { (high_withdrawal / total_accounts) * 100.0 } else { 0.0 }, "percent", "Accounts with high withdrawal frequency / Total accounts", None, None),
-        emergency_withdrawal_incidence: make_kpi(if total_accounts > 0.0 { (emergency_withdrawals / total_accounts) * 100.0 } else { 0.0 }, "percent", "Accounts with emergency withdrawals / Total accounts", None, None),
-        average_interest_rate: make_kpi(avg_interest, "percent", "Average interest rate on savings", None, None),
-        account_concentration: make_kpi(if total_balance > 0.0 { (top_10_balance / total_balance) * 100.0 } else { 0.0 }, "percent", "Top 10% accounts balance / Total savings balance", None, None),
+    #[test]
+    fn test_empty_line_items_returns_zero_kpis() {
+        let result = KpiEngine::compute(&[]);
+        assert_eq!(result.total_assets.value, 0.0);
+        assert_eq!(result.par30.value, 0.0);
+        assert_eq!(result.roa.value, 0.0);
+        assert_eq!(result.capital_adequacy_ratio.value, 0.0);
     }
-}
 
-// Loan KPI Engine
-pub fn calculate_loan_kpis(loans: &[loan::Model], total_members: usize, gross_loan_portfolio: f64) -> LoanKPIs {
-    let total_members_f = total_members as f64;
-    let total_loans = loans.len() as f64;
-    let performing_loans = loans.iter().filter(|l| l.loan_status == LoanStatus::Performing).count() as f64;
-    let arrears_loans = loans.iter().filter(|l| l.days_past_due_category != DpdCategory::Zero).count() as f64;
-    let restructured = loans.iter().filter(|l| l.restructured_loan_flag).count() as f64;
-    let women = loans.iter().filter(|l| l.women_borrower_flag).count() as f64;
-    let youth = loans.iter().filter(|l| l.youth_borrower_flag).count() as f64;
-    let rural = loans.iter().filter(|l| l.rural_borrower_flag).count() as f64;
-
-    let avg_loan_size = if total_loans > 0.0 { gross_loan_portfolio / total_loans } else { 0.0 };
-    let total_interest: f64 = loans.iter().map(|l| l.interest_rate.to_f64().unwrap_or(0.0)).sum();
-    let avg_interest = if total_loans > 0.0 { total_interest / total_loans } else { 0.0 };
-
-    let make_kpi = |val: f64, unit: &str, desc: &str, benchmark: Option<f64>, status: Option<String>| -> KpiResult {
-        let formatted = match unit {
-            "percent" => format_percent(val),
-            "currency" => format_currency(val),
-            "ratio" => format!("{:.2}", val),
-            _ => format!("{:.0}", val),
-        };
-        KpiResult {
-            value: val,
-            formatted,
-            unit: unit.to_string(),
-            description: desc.to_string(),
-            benchmark,
-            status,
-        }
-    };
-
-    let on_time = if total_loans > 0.0 { (performing_loans / total_loans) * 100.0 } else { 0.0 };
-    let arrears_rate = if total_loans > 0.0 { (arrears_loans / total_loans) * 100.0 } else { 0.0 };
-    let restruc_rate = if total_loans > 0.0 { (restructured / total_loans) * 100.0 } else { 0.0 };
-
-    LoanKPIs {
-        credit_penetration: make_kpi(if total_members_f > 0.0 { (total_loans / total_members_f) * 100.0 } else { 0.0 }, "percent", "Members with active loans / Total members", None, None),
-        on_time_repayment_ratio: make_kpi(on_time, "percent", "Performing loans / Active loans", Some(75.0), Some(get_status_higher_better(on_time, 75.0, 60.0))),
-        loans_in_arrears_percent: make_kpi(arrears_rate, "percent", "Loans in arrears / Active loans", Some(20.0), Some(get_status_lower_better(arrears_rate, 20.0, 30.0))),
-        restructured_loans_ratio: make_kpi(restruc_rate, "percent", "Restructured loans / Active loans", Some(10.0), Some(get_status_lower_better(restruc_rate, 10.0, 15.0))),
-        women_borrowers_percent: make_kpi(if total_loans > 0.0 { (women / total_loans) * 100.0 } else { 0.0 }, "percent", "Loans to women / Total loans", None, None),
-        youth_borrowers_percent: make_kpi(if total_loans > 0.0 { (youth / total_loans) * 100.0 } else { 0.0 }, "percent", "Loans to youth (<35) / Total loans", None, None),
-        rural_borrowers_percent: make_kpi(if total_loans > 0.0 { (rural / total_loans) * 100.0 } else { 0.0 }, "percent", "Loans to rural members / Total loans", None, None),
-        average_loan_size: make_kpi(avg_loan_size, "currency", "Average loan amount per borrower", None, None),
-        loans_per_member: make_kpi(if total_members_f > 0.0 { total_loans / total_members_f } else { 0.0 }, "ratio", "Total loans / Total members", None, None),
-        average_interest_rate: make_kpi(avg_interest, "percent", "Average interest rate on loans", None, None),
+    #[test]
+    fn test_par30_computed_correctly() {
+        // GLP: 1000 performing + 100 arrears (31-60) + 50 npl = 1150
+        // arrears_30_plus = 100 + 0 + 0 + 50 = 150 (codes 1202+1203+1204+1205)
+        // par30 = 150 / 1150 * 100 = 13.04%
+        let items = vec![
+            make_item(1201, 1000.0),
+            make_item(1203, 100.0),
+            make_item(1205, 50.0),
+            make_item(1999, 5000.0), // total assets
+            make_item(3999, 1000.0), // equity
+            make_item(6999, 100.0),  // net surplus
+        ];
+        let result = KpiEngine::compute(&items);
+        let expected = (1202_f64 + 100.0 + 0.0 + 50.0) / 1150.0 * 100.0;
+        // codes 1202=0, 1203=100, 1204=0, 1205=50 → arrears_30_plus=150
+        let par30 = 150.0 / 1150.0 * 100.0;
+        assert!((result.par30.value - par30).abs() < 0.001, "PAR30 was {}", result.par30.value);
+        let _ = expected; // suppress warning
     }
-}
 
-// Fixed Deposit KPI Engine
-pub fn calculate_fd_kpis(fds: &[fixed_deposit::Model], total_members: usize) -> FixedDepositKPIs {
-    let total_members_f = total_members as f64;
-    let total_fds = fds.len() as f64;
-    let long_term_fds = fds.iter().filter(|f| f.tenure_category == "1-3y" || f.tenure_category == ">3y").count() as f64;
-    let matured_this_period = fds.iter().filter(|f| f.status == FdStatus::Matured).count() as f64;
-    let rolled_over = fds.iter().filter(|f| f.rollover_at_maturity_flag).count() as f64;
-    let early_withdrawals = fds.iter().filter(|f| f.early_withdrawal_flag).count() as f64;
-    let large_depositors = fds.iter().filter(|f| f.single_depositor_dependency_flag).count() as f64;
+    #[test]
+    fn test_capital_adequacy_status_thresholds() {
+        // CAR >= 10% → green
+        let items_green = vec![make_item(3999, 1000.0), make_item(1999, 9000.0)];
+        let r = KpiEngine::compute(&items_green);
+        assert_eq!(r.capital_adequacy_ratio.status, Some("green".to_string()));
 
-    let rollover_rate = if matured_this_period > 0.0 { (rolled_over / matured_this_period) * 100.0 } else { 0.0 };
+        // CAR = 9% → amber (>=8 but <10)
+        let items_amber = vec![make_item(3999, 900.0), make_item(1999, 10000.0)];
+        let r = KpiEngine::compute(&items_amber);
+        assert_eq!(r.capital_adequacy_ratio.status, Some("amber".to_string()));
 
-    let make_kpi = |val: f64, unit: &str, desc: &str, benchmark: Option<f64>, status: Option<String>| -> KpiResult {
-        let formatted = match unit {
-            "percent" => format_percent(val),
-            _ => format!("{:.0}", val),
-        };
-        KpiResult {
-            value: val,
-            formatted,
-            unit: unit.to_string(),
-            description: desc.to_string(),
-            benchmark,
-            status,
-        }
-    };
+        // CAR = 5% → red
+        let items_red = vec![make_item(3999, 500.0), make_item(1999, 10000.0)];
+        let r = KpiEngine::compute(&items_red);
+        assert_eq!(r.capital_adequacy_ratio.status, Some("red".to_string()));
+    }
 
-    let penetration = if total_members_f > 0.0 { (total_fds / total_members_f) * 100.0 } else { 0.0 };
-    let early_withdrawal_rate = if total_fds > 0.0 { (early_withdrawals / total_fds) * 100.0 } else { 0.0 };
+    #[test]
+    fn test_currency_formatting() {
+        assert_eq!(KpiEngine::format_currency(1_500_000_000.0), "$1.50B");
+        assert_eq!(KpiEngine::format_currency(6_400_000.0), "$6.4M");
+        assert_eq!(KpiEngine::format_currency(420_000.0), "$420K");
+        assert_eq!(KpiEngine::format_currency(500.0), "$500");
+        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "-$2.0M");
+    }
 
-    FixedDepositKPIs {
-        fd_penetration: make_kpi(penetration, "percent", "Members with fixed deposits / Total members", Some(20.0), Some(get_status_higher_better(penetration, 20.0, 10.0))),
-        long_term_fd_ratio: make_kpi(if total_fds > 0.0 { (long_term_fds / total_fds) * 100.0 } else { 0.0 }, "percent", "Long-term FDs (>1 year) / Total FDs", None, None),
-        fd_rollover_rate: make_kpi(rollover_rate, "percent", "FDs rolled over / FDs matured", Some(60.0), Some(get_status_higher_better(rollover_rate, 60.0, 40.0))),
-        early_withdrawal_rate: make_kpi(early_withdrawal_rate, "percent", "FDs withdrawn early / Total FDs", Some(15.0), Some(get_status_lower_better(early_withdrawal_rate, 15.0, 25.0))),
-        concentration_risk: make_kpi(if total_fds > 0.0 { (large_depositors / total_fds) * 100.0 } else { 0.0 }, "percent", "Large depositor accounts / Total FDs", None, None),
+    #[test]
+    fn test_division_by_zero_guard() {
+        // All codes zero → no panics, all ratio KPIs = 0
+        let result = KpiEngine::compute(&[]);
+        assert_eq!(result.par30.value, 0.0);
+        assert_eq!(result.roa.value, 0.0);
+        assert_eq!(result.operational_self_sufficiency.value, 0.0);
+        assert_eq!(result.net_interest_margin.value, 0.0);
+    }
+
+    #[test]
+    fn test_roa_computed_correctly() {
+        // Net surplus = 300, Total assets = 10_000 → ROA = 3.0%
+        let items = vec![make_item(6999, 300.0), make_item(1999, 10_000.0)];
+        let r = KpiEngine::compute(&items);
+        assert!((r.roa.value - 3.0).abs() < 0.001);
+        assert_eq!(r.roa.status, Some("green".to_string()));
+    }
+
+    #[test]
+    fn test_to_vec_contains_all_kpis() {
+        let result = KpiEngine::compute(&[]);
+        let v = result.to_vec();
+        assert_eq!(v.len(), 18);
+        // All KPI names are unique
+        let names: std::collections::HashSet<_> = v.iter().map(|k| &k.name).collect();
+        assert_eq!(names.len(), 18);
+    }
+
+    #[test]
+    fn test_get_by_name_returns_correct_kpi() {
+        let items = vec![make_item(1999, 5000.0), make_item(3999, 500.0)];
+        let result = KpiEngine::compute(&items);
+        let car = result.get_by_name("capital_adequacy_ratio");
+        assert!(car.is_some());
+        assert!((car.unwrap().value - 10.0).abs() < 0.001);
+        assert!(result.get_by_name("nonexistent").is_none());
     }
 }

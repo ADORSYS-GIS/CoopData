@@ -46,7 +46,7 @@ export const useApexSubmissions = (enabled = true) =>
 // ── Federation: submissions forwarded to federation tier ──────────────────────
 
 export const useFederationSubmissions = (
-  options: { all?: boolean; enabled?: boolean } | boolean = true
+  options: { all?: boolean; enabled?: boolean } | boolean = true,
 ) => {
   const all = typeof options === "object" ? options.all : undefined;
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
@@ -68,7 +68,7 @@ export const useFederationSubmissions = (
 // ── Ministry: all submissions ────────────────────────────────────────────────
 
 export const useMinistrySubmissions = (
-  options: { all?: boolean; enabled?: boolean } | boolean = true
+  options: { all?: boolean; enabled?: boolean } | boolean = true,
 ) => {
   const all = typeof options === "object" ? options.all : undefined;
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;

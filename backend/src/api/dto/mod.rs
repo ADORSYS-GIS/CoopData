@@ -7,6 +7,7 @@ pub mod federation;
 pub mod financial;
 pub mod invitation;
 pub mod member;
+pub mod national_overview;
 pub mod non_financial;
 pub mod non_financial_indicator;
 pub mod organization;
