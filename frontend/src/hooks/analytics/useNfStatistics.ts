@@ -145,7 +145,11 @@ export interface NfStatisticsParams {
   apexId?: string;
 }
 
-export const useNfStatistics = (isCooperative: boolean, params: NfStatisticsParams = {}, enabled = true) =>
+export const useNfStatistics = (
+  isCooperative: boolean,
+  params: NfStatisticsParams = {},
+  enabled = true,
+) =>
   useQuery<NfStatisticsResponse>({
     queryKey: ["nf-statistics", isCooperative, params],
     enabled,
@@ -157,18 +161,21 @@ export const useNfStatistics = (isCooperative: boolean, params: NfStatisticsPara
         return data as NfStatisticsResponse;
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (apiClient as any).GET("/api/v1/analytics/consolidated-nf-statistics", {
-          params: {
-            query: {
-              reporting_year: params.reportingYear,
-              cooperative_id: params.cooperativeId,
-              region: params.region !== "all" ? params.region : undefined,
-              sector: params.sector !== "all" ? params.sector : undefined,
-              federation_id: params.federationId !== "all" ? params.federationId : undefined,
-              apex_id: params.apexId !== "all" ? params.apexId : undefined,
-            } as Record<string, unknown>,
+        const { data, error } = await (apiClient as any).GET(
+          "/api/v1/analytics/consolidated-nf-statistics",
+          {
+            params: {
+              query: {
+                reporting_year: params.reportingYear,
+                cooperative_id: params.cooperativeId,
+                region: params.region !== "all" ? params.region : undefined,
+                sector: params.sector !== "all" ? params.sector : undefined,
+                federation_id: params.federationId !== "all" ? params.federationId : undefined,
+                apex_id: params.apexId !== "all" ? params.apexId : undefined,
+              } as Record<string, unknown>,
+            },
           },
-        });
+        );
         if (error) throw new Error(extractErrorMessage(error));
         return data as NfStatisticsResponse;
       }

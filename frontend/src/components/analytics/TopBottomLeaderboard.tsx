@@ -34,7 +34,10 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
   }
 
   const renderRow = (coop: CoopKpiRow, index: number) => (
-    <div key={coop.cooperative_id} className="flex items-center justify-between p-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+    <div
+      key={coop.cooperative_id}
+      className="flex items-center justify-between p-3 border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+    >
       <div className="flex items-center gap-3 overflow-hidden">
         <span className="text-xs font-bold text-muted-foreground w-4">{index + 1}.</span>
         <div className="truncate">
@@ -68,9 +71,7 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
           <ShieldCheck className="size-4 text-success" />
           <h3 className="font-bold text-sm text-success">Top 5 Performers</h3>
         </div>
-        <div className="flex-1 p-1">
-          {top5.map((c, i) => renderRow(c, i))}
-        </div>
+        <div className="flex-1 p-1">{top5.map((c, i) => renderRow(c, i))}</div>
       </div>
 
       {/* Bottom 5 */}
@@ -79,9 +80,7 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
           <Target className="size-4 text-destructive" />
           <h3 className="font-bold text-sm text-destructive">Watch List (Bottom 5)</h3>
         </div>
-        <div className="flex-1 p-1">
-          {bottom5.map((c, i) => renderRow(c, i))}
-        </div>
+        <div className="flex-1 p-1">{bottom5.map((c, i) => renderRow(c, i))}</div>
       </div>
     </div>
   );

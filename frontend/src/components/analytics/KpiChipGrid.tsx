@@ -66,11 +66,11 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
           { color: "#ef4444", label: "Risk" },
           { color: "#94a3b8", label: "No data" },
         ].map((l) => (
-          <span key={l.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <span
-              className="size-2.5 rounded-full shrink-0"
-              style={{ background: l.color }}
-            />
+          <span
+            key={l.label}
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+          >
+            <span className="size-2.5 rounded-full shrink-0" style={{ background: l.color }} />
             {l.label}
           </span>
         ))}
@@ -95,9 +95,15 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
         </thead>
         <tbody>
           {visible.map((coop) => (
-            <tr key={coop.name} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+            <tr
+              key={coop.name}
+              className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+            >
               <td className="py-2 pr-4">
-                <div className="font-medium text-foreground truncate max-w-[160px]" title={coop.name}>
+                <div
+                  className="font-medium text-foreground truncate max-w-[160px]"
+                  title={coop.name}
+                >
                   {coop.name}
                 </div>
                 {coop.region && (
@@ -114,10 +120,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
                       style={{ background: `${dot.bg}22` }}
                       title={kpi ? `${kpi.formatted} — ${dot.label}` : "No data"}
                     >
-                      <span
-                        className="size-2.5 rounded-full"
-                        style={{ background: dot.bg }}
-                      />
+                      <span className="size-2.5 rounded-full" style={{ background: dot.bg }} />
                     </span>
                   </td>
                 );

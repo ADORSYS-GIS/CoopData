@@ -31,7 +31,9 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
       name: "Loan Value ($K)",
       Total: Math.round(data.total_loan_amount / 1000),
       Outstanding: Math.round(data.total_balance / 1000),
-      Arrears: Math.round((data.total_balance * (data.arrears / Math.max(data.total_loans, 1))) / 1000),
+      Arrears: Math.round(
+        (data.total_balance * (data.arrears / Math.max(data.total_loans, 1))) / 1000,
+      ),
     },
   ];
 
@@ -43,8 +45,19 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={countData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+            <XAxis
+              dataKey="name"
+              stroke="var(--muted-foreground)"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="var(--muted-foreground)"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
             <Tooltip
               contentStyle={{
                 background: "var(--surface)",
@@ -69,8 +82,20 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={valueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}K`} />
+            <XAxis
+              dataKey="name"
+              stroke="var(--muted-foreground)"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="var(--muted-foreground)"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `$${v}K`}
+            />
             <Tooltip
               contentStyle={{
                 background: "var(--surface)",

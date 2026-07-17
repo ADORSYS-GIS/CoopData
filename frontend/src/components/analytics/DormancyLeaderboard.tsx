@@ -113,7 +113,8 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
                     <strong>{value.toFixed(1)}%</strong> dormant
                     <br />
                     <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-                      {entry?.total_members?.toLocaleString()} total members · {entry?.active_members_pct?.toFixed(1)}% active
+                      {entry?.total_members?.toLocaleString()} total members ·{" "}
+                      {entry?.active_members_pct?.toFixed(1)}% active
                     </span>
                   </span>,
                   "",

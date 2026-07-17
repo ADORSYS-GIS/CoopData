@@ -18,7 +18,11 @@ export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
     { name: "Exited", value: data.exited, fill: "var(--muted-foreground)" },
   ].filter((d) => d.value > 0);
 
-  const renderDoughnut = (title: string, pieData: any[], total: number) => (
+  const renderDoughnut = (
+    title: string,
+    pieData: { name: string; value: number; fill: string }[],
+    total: number,
+  ) => (
     <div className="flex flex-col items-center">
       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
         {title}
@@ -26,13 +30,7 @@ export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
       <div className="relative h-40 w-full flex items-center justify-center">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie
-              data={pieData}
-              dataKey="value"
-              innerRadius={50}
-              outerRadius={70}
-              paddingAngle={3}
-            >
+            <Pie data={pieData} dataKey="value" innerRadius={50} outerRadius={70} paddingAngle={3}>
               {pieData.map((d) => (
                 <Cell key={d.name} fill={d.fill} />
               ))}

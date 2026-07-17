@@ -123,11 +123,9 @@ const coopPerformanceMetrics: {
   desc: string;
 }[] = [];
 
-
 // ─────────────────────────────────────────────────────────────────────
 // Role-aware KPI metrics
 // ─────────────────────────────────────────────────────────────────────
-
 
 const kpiMetricsByRole: Record<
   Role,
@@ -297,11 +295,8 @@ function buildFiltersByRole(
       { id: "cooperative", label: "Cooperative", options: coopOptions },
     ];
   }
-  return [
-    { id: "year", label: "Reporting Year", options: yearOptions },
-  ];
+  return [{ id: "year", label: "Reporting Year", options: yearOptions }];
 }
-
 
 function filterByDateRange<T extends Record<string, unknown>>(
   data: T[],
@@ -319,7 +314,6 @@ function filterByDateRange<T extends Record<string, unknown>>(
     }
   });
 }
-
 
 // ─────────────────────────────────────────────────────────────────────
 // Analytics Page Component
@@ -404,7 +398,6 @@ export const AnalyticsPage: React.FC = () => {
     return buildFiltersByRole(role, federationsData, apexesData, cooperativesData);
   }, [role, federationsData, apexesData, cooperativesData]);
 
-
   const [showFilters, setShowFilters] = useState(false);
   const [period, setPeriod] = useState<"1D" | "5D" | "1M" | "1Y">("1Y");
   const [compPeriod, setCompPeriod] = useState<"Week" | "Month" | "Quarter" | "Year">("Year");
@@ -421,7 +414,14 @@ export const AnalyticsPage: React.FC = () => {
 
   const handleFilterChange = useCallback((filterId: string, value: string) => {
     // Map internal filterIds to the state keys
-    const key = filterId === "federation" ? "federationId" : filterId === "apex" ? "apexId" : filterId === "cooperative" ? "cooperativeId" : filterId;
+    const key =
+      filterId === "federation"
+        ? "federationId"
+        : filterId === "apex"
+          ? "apexId"
+          : filterId === "cooperative"
+            ? "cooperativeId"
+            : filterId;
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -441,7 +441,9 @@ export const AnalyticsPage: React.FC = () => {
   const apexStats = useApexStats(role === "apex").data;
   const federationStats = useFederationStats(role === "federation").data;
   const federationSubmissions = useFederationSubmissions(role === "federation").data ?? [];
-  const { data: apexSubmissionsData, isLoading: isApexSubmissionsLoading } = useApexSubmissions(role === "apex");
+  const { data: apexSubmissionsData, isLoading: isApexSubmissionsLoading } = useApexSubmissions(
+    role === "apex",
+  );
   const apexSubmissions = apexSubmissionsData ?? [];
 
   // ── Analytics data hooks (with dynamic filters!) ──
@@ -482,7 +484,11 @@ export const AnalyticsPage: React.FC = () => {
   // explicitly override to undefined when no approved submission for the year.
   // This defeats React Query's stale-cache problem: even when `enabled:false`,
   // RQ still returns the last cached value — so we must null it out manually.
-  const _nfStatsRaw = useNfStatistics(isCooperative, monthlyTrendParams, !!role && coopHasApprovedSubmission).data;
+  const _nfStatsRaw = useNfStatistics(
+    isCooperative,
+    monthlyTrendParams,
+    !!role && coopHasApprovedSubmission,
+  ).data;
   const nfStats = isCooperative && !coopHasApprovedSubmission ? undefined : _nfStatsRaw;
 
   // ── National Overview (aggregated KPI traffic-light for admin roles) ──
@@ -495,7 +501,8 @@ export const AnalyticsPage: React.FC = () => {
     monthlyTrendParams,
     !!role && coopHasApprovedSubmission,
   );
-  const monthlyTrendData = isCooperative && !coopHasApprovedSubmission ? undefined : _monthlyTrendRaw;
+  const monthlyTrendData =
+    isCooperative && !coopHasApprovedSubmission ? undefined : _monthlyTrendRaw;
 
   const { data: submissionActivityData } = useSubmissionActivity(currentYear, !!role);
 
@@ -512,12 +519,18 @@ export const AnalyticsPage: React.FC = () => {
   const hasSelectedCoop = isApex && filterValues.cooperativeId !== "all";
   const selectedCoopId = hasSelectedCoop ? filterValues.cooperativeId : null;
 
-  const deepDiveTrendParams = useMemo(() => ({
-    reportingYear: currentYear,
-    cooperativeId: selectedCoopId ?? undefined,
-  }), [currentYear, selectedCoopId]);
+  const deepDiveTrendParams = useMemo(
+    () => ({
+      reportingYear: currentYear,
+      cooperativeId: selectedCoopId ?? undefined,
+    }),
+    [currentYear, selectedCoopId],
+  );
 
-  const { data: deepDiveTrend, isLoading: isDeepDiveTrendLoading } = useMonthlyTrend(deepDiveTrendParams, !!selectedCoopId);
+  const { data: deepDiveTrend, isLoading: isDeepDiveTrendLoading } = useMonthlyTrend(
+    deepDiveTrendParams,
+    !!selectedCoopId,
+  );
   const { data: deepDiveNfStats, isLoading: isDeepDiveNfLoading } = useNfStatistics(
     false,
     { ...deepDiveTrendParams, region: "all", sector: "all", federationId: "all", apexId: "all" },
@@ -534,8 +547,8 @@ export const AnalyticsPage: React.FC = () => {
 
   // Gate all deep-dive data loading on submissions + trend + NF stats
   const deepDiveLoading = isDeepDiveTrendLoading || isDeepDiveNfLoading || isApexSubmissionsLoading;
-  const deepDiveHasNoData = !!selectedCoopId && !deepDiveLoading &&
-    (!deepDiveTrend?.months?.length && !deepDiveNfStats);
+  const deepDiveHasNoData =
+    !!selectedCoopId && !deepDiveLoading && !deepDiveTrend?.months?.length && !deepDiveNfStats;
 
   const deepDiveMonthly = useMemo(() => {
     if (!deepDiveTrend?.months) return [];
@@ -557,9 +570,10 @@ export const AnalyticsPage: React.FC = () => {
   const deepDiveSubmission = useMemo(() => {
     if (!selectedCoopId) return undefined;
     const approved = apexSubmissions.filter(
-      (s) => s.cooperative_id === selectedCoopId
-        && s.reporting_year === currentYear
-        && s.status.toLowerCase() === "approved",
+      (s) =>
+        s.cooperative_id === selectedCoopId &&
+        s.reporting_year === currentYear &&
+        s.status.toLowerCase() === "approved",
     );
     if (approved.length === 0) return undefined;
     return [...approved].sort((a, b) => b.reporting_year - a.reporting_year)[0];
@@ -568,10 +582,6 @@ export const AnalyticsPage: React.FC = () => {
   const { data: deepDiveKpis, isLoading: isDeepDiveKpisLoading } = useApexSubmissionKpis(
     deepDiveSubmission?.id,
   );
-
-
-
-
 
   // Filter state definition moved UP to top of component so it can feed hooks
 
@@ -641,13 +651,16 @@ export const AnalyticsPage: React.FC = () => {
   const consolidatedNetworkSummary: { label: string; value: string; sub: string }[] = [
     {
       label: "Network Cooperatives",
-      value: role === "ministry"
-        ? (ministryStats?.total_cooperatives ?? 0).toLocaleString()
-        : role === "federation"
-          ? (federationStats?.cooperative_count ?? 0).toLocaleString()
-          : role === "apex"
-            ? (apexStats?.total_cooperatives ?? 0).toLocaleString()
-            : myCoopProfile ? "1" : "—",
+      value:
+        role === "ministry"
+          ? (ministryStats?.total_cooperatives ?? 0).toLocaleString()
+          : role === "federation"
+            ? (federationStats?.cooperative_count ?? 0).toLocaleString()
+            : role === "apex"
+              ? (apexStats?.total_cooperatives ?? 0).toLocaleString()
+              : myCoopProfile
+                ? "1"
+                : "—",
       sub: "Total registered in network",
     },
     {
@@ -662,27 +675,28 @@ export const AnalyticsPage: React.FC = () => {
     },
     {
       label: "Approved Submissions",
-      value: role === "ministry"
-        ? (ministryStats?.approved_count ?? 0).toLocaleString()
-        : role === "federation"
-          ? (federationStats?.approved_count ?? 0).toLocaleString()
-          : role === "apex"
-            ? (apexStats?.approved_submissions ?? 0).toLocaleString()
-            : coopStats?.approved_submissions.toString() ?? "—",
+      value:
+        role === "ministry"
+          ? (ministryStats?.approved_count ?? 0).toLocaleString()
+          : role === "federation"
+            ? (federationStats?.approved_count ?? 0).toLocaleString()
+            : role === "apex"
+              ? (apexStats?.approved_submissions ?? 0).toLocaleString()
+              : (coopStats?.approved_submissions.toString() ?? "—"),
       sub: "Finalized returns",
     },
     {
       label: "Average Capital Adequacy",
       value: nationalOverview?.distributions?.["capital_adequacy_ratio"]
         ? `${Math.round((nationalOverview?.distributions?.["capital_adequacy_ratio"]?.green_pct ?? 0) + (nationalOverview?.distributions?.["capital_adequacy_ratio"]?.amber_pct ?? 0))}%`
-        : kpisData?.kpis.find((k) => k.name === "capital_adequacy_ratio")?.formatted ?? "—",
+        : (kpisData?.kpis.find((k) => k.name === "capital_adequacy_ratio")?.formatted ?? "—"),
       sub: "Target threshold: >10%",
     },
     {
       label: "Average NPL Ratio",
       value: nationalOverview?.distributions?.["npl_ratio"]
         ? `${Math.round(nationalOverview?.distributions?.["npl_ratio"]?.red_pct ?? 0)}% Risk`
-        : kpisData?.kpis.find((k) => k.name === "npl_ratio")?.formatted ?? "—",
+        : (kpisData?.kpis.find((k) => k.name === "npl_ratio")?.formatted ?? "—"),
       sub: "Non-performing loans",
     },
   ];
@@ -1095,7 +1109,9 @@ export const AnalyticsPage: React.FC = () => {
                 {yearFilter && (
                   <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold transition-all hover:bg-muted/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
                     <Calendar className="size-3.5 text-primary" />
-                    <span className="text-muted-foreground uppercase whitespace-nowrap">Reporting Year:</span>
+                    <span className="text-muted-foreground uppercase whitespace-nowrap">
+                      Reporting Year:
+                    </span>
                     <Select
                       value={filterValues.year}
                       onValueChange={(val) => handleFilterChange("year", val)}
@@ -1105,7 +1121,11 @@ export const AnalyticsPage: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {yearFilter.options.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="font-bold cursor-pointer">
+                          <SelectItem
+                            key={opt.value}
+                            value={opt.value}
+                            className="font-bold cursor-pointer"
+                          >
                             {opt.label}
                           </SelectItem>
                         ))}
@@ -1118,10 +1138,11 @@ export const AnalyticsPage: React.FC = () => {
                 {otherFilters.length > 0 && (
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${activeFilterCount > 0
+                    className={`press-feedback inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+                      activeFilterCount > 0
                         ? "border-primary bg-primary/5 text-primary"
                         : "border-border text-muted-foreground hover:bg-muted/50"
-                      }`}
+                    }`}
                   >
                     <Filter className="size-3.5" />
                     Filters
@@ -1199,24 +1220,26 @@ export const AnalyticsPage: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filters.filter((f) => f.id !== "year").map((filter) => (
-                <div key={filter.id}>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    {filter.label}
-                  </label>
-                  <select
-                    value={filterValues[filter.id] || "all"}
-                    onChange={(e) => handleFilterChange(filter.id, e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
-                  >
-                    {filter.options.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+              {filters
+                .filter((f) => f.id !== "year")
+                .map((filter) => (
+                  <div key={filter.id}>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                      {filter.label}
+                    </label>
+                    <select
+                      value={filterValues[filter.id] || "all"}
+                      onChange={(e) => handleFilterChange(filter.id, e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
+                    >
+                      {filter.options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
             </div>
           </Card>
         )}
@@ -1224,19 +1247,26 @@ export const AnalyticsPage: React.FC = () => {
         {hasSelectedCoop ? (
           /* ── Apex: Cooperative Deep Dive Panel ── */
           selectedCoopProfile && (
-            <div className="space-y-6 scroll-mt-4 animate-in fade-in zoom-in-95 duration-200" id="coop-deep-dive">
+            <div
+              className="space-y-6 scroll-mt-4 animate-in fade-in zoom-in-95 duration-200"
+              id="coop-deep-dive"
+            >
               {/* Header */}
               <div className="rounded-xl border border-primary/30 bg-primary/4 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="size-2 rounded-full bg-primary" />
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Cooperative Deep Dive</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      Cooperative Deep Dive
+                    </p>
                   </div>
                   <h2 className="font-heading text-xl font-bold text-foreground">
                     {selectedCoopProfile.display_name ?? selectedCoopProfile.name}
                   </h2>
                   <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
-                    <span className="capitalize">{selectedCoopProfile.institution_type ?? "—"}</span>
+                    <span className="capitalize">
+                      {selectedCoopProfile.institution_type ?? "—"}
+                    </span>
                     <span>·</span>
                     <span>{selectedCoopProfile.region ?? "—"}</span>
                     <span>·</span>
@@ -1247,10 +1277,13 @@ export const AnalyticsPage: React.FC = () => {
                         <span>Reg: {selectedCoopProfile.reg_no}</span>
                       </>
                     )}
-                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${selectedCoopProfile.status === "Active"
-                        ? "bg-success/10 text-success"
-                        : "bg-warning/15 text-warning-foreground"
-                      }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
+                        selectedCoopProfile.status === "Active"
+                          ? "bg-success/10 text-success"
+                          : "bg-warning/15 text-warning-foreground"
+                      }`}
+                    >
                       {selectedCoopProfile.status}
                     </span>
                   </div>
@@ -1280,21 +1313,52 @@ export const AnalyticsPage: React.FC = () => {
                 {deepDiveKpis ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-border">
                     {[
-                      { label: "Total Assets", kpi: "total_assets", icon: "💰", color: "text-primary" },
-                      { label: "Gross Loans", kpi: "gross_loan_portfolio", icon: "🏦", color: "text-foreground" },
-                      { label: "Member Deposits", kpi: "total_member_deposits", icon: "🏧", color: "text-foreground" },
-                      { label: "Net Surplus", kpi: "net_surplus", icon: "📈", color: "text-success" },
-                      { label: "NPL Ratio", kpi: "npl_ratio", icon: "⚠️", color: "text-warning-foreground" },
-                      { label: "Capital Adequacy", kpi: "capital_adequacy_ratio", icon: "🛡️", color: "text-foreground" },
+                      {
+                        label: "Total Assets",
+                        kpi: "total_assets",
+                        icon: "💰",
+                        color: "text-primary",
+                      },
+                      {
+                        label: "Gross Loans",
+                        kpi: "gross_loan_portfolio",
+                        icon: "🏦",
+                        color: "text-foreground",
+                      },
+                      {
+                        label: "Member Deposits",
+                        kpi: "total_member_deposits",
+                        icon: "🏧",
+                        color: "text-foreground",
+                      },
+                      {
+                        label: "Net Surplus",
+                        kpi: "net_surplus",
+                        icon: "📈",
+                        color: "text-success",
+                      },
+                      {
+                        label: "NPL Ratio",
+                        kpi: "npl_ratio",
+                        icon: "⚠️",
+                        color: "text-warning-foreground",
+                      },
+                      {
+                        label: "Capital Adequacy",
+                        kpi: "capital_adequacy_ratio",
+                        icon: "🛡️",
+                        color: "text-foreground",
+                      },
                     ].map(({ label, kpi, icon, color }) => {
                       const item = deepDiveKpis.kpis.find((k) => k.name === kpi);
-                      const statusColor = item?.status === "green"
-                        ? "text-success"
-                        : item?.status === "amber"
-                          ? "text-warning-foreground"
-                          : item?.status === "red"
-                            ? "text-destructive"
-                            : color;
+                      const statusColor =
+                        item?.status === "green"
+                          ? "text-success"
+                          : item?.status === "amber"
+                            ? "text-warning-foreground"
+                            : item?.status === "red"
+                              ? "text-destructive"
+                              : color;
                       return (
                         <div key={kpi} className="px-4 py-4 flex flex-col gap-1">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
@@ -1305,10 +1369,15 @@ export const AnalyticsPage: React.FC = () => {
                             {item?.formatted ?? "—"}
                           </p>
                           {item?.status && (
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${item.status === "green" ? "text-success" :
-                                item.status === "amber" ? "text-warning-foreground" :
-                                  "text-destructive"
-                              }`}>
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider ${
+                                item.status === "green"
+                                  ? "text-success"
+                                  : item.status === "amber"
+                                    ? "text-warning-foreground"
+                                    : "text-destructive"
+                              }`}
+                            >
                               {item.status}
                             </span>
                           )}
@@ -1316,12 +1385,15 @@ export const AnalyticsPage: React.FC = () => {
                       );
                     })}
                   </div>
-                ) : !isDeepDiveKpisLoading && !isApexSubmissionsLoading && (
-                  <p className="px-5 py-4 text-sm text-muted-foreground">
-                    {deepDiveSubmission
-                      ? `No financial KPIs available for the ${currentYear} submission.`
-                      : `No approved submission found for ${currentYear}.`}
-                  </p>
+                ) : (
+                  !isDeepDiveKpisLoading &&
+                  !isApexSubmissionsLoading && (
+                    <p className="px-5 py-4 text-sm text-muted-foreground">
+                      {deepDiveSubmission
+                        ? `No financial KPIs available for the ${currentYear} submission.`
+                        : `No approved submission found for ${currentYear}.`}
+                    </p>
+                  )
                 )}
               </div>
 
@@ -1329,24 +1401,34 @@ export const AnalyticsPage: React.FC = () => {
               {deepDiveLoading ? (
                 <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
                   <Loader2 className="size-8 mx-auto mb-3 text-primary opacity-60 animate-spin" />
-                  <p className="text-sm font-semibold text-muted-foreground">Loading {currentYear} analytics…</p>
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    Loading {currentYear} analytics…
+                  </p>
                 </div>
               ) : deepDiveHasNoData ? (
                 <div className="rounded-xl border border-dashed border-border bg-muted/10 p-12 text-center">
                   <Calendar className="size-10 mx-auto mb-3 text-muted-foreground opacity-30" />
                   {deepDiveAnySubmission ? (
                     <>
-                      <p className="text-base font-bold text-muted-foreground">Submission pending approval for {currentYear}</p>
+                      <p className="text-base font-bold text-muted-foreground">
+                        Submission pending approval for {currentYear}
+                      </p>
                       <p className="text-sm text-muted-foreground/70 mt-1">
-                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has a submission for {currentYear} but it has not been approved yet.
-                        Status: <span className="font-semibold capitalize">{deepDiveAnySubmission.status}</span>
+                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has a
+                        submission for {currentYear} but it has not been approved yet. Status:{" "}
+                        <span className="font-semibold capitalize">
+                          {deepDiveAnySubmission.status}
+                        </span>
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-base font-bold text-muted-foreground">No submission for {currentYear}</p>
+                      <p className="text-base font-bold text-muted-foreground">
+                        No submission for {currentYear}
+                      </p>
                       <p className="text-sm text-muted-foreground/70 mt-1">
-                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has not submitted a report for the {currentYear} reporting year.
+                        {selectedCoopProfile?.display_name ?? selectedCoopProfile?.name} has not
+                        submitted a report for the {currentYear} reporting year.
                       </p>
                     </>
                   )}
@@ -1358,147 +1440,256 @@ export const AnalyticsPage: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <>{deepDiveNfStats && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Total Members KPI */}
-                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="size-8 rounded-lg bg-primary/8 text-primary grid place-items-center">
-                          <Users className="size-4" />
+                <>
+                  {deepDiveNfStats && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* Total Members KPI */}
+                      <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="size-8 rounded-lg bg-primary/8 text-primary grid place-items-center">
+                            <Users className="size-4" />
+                          </div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Membership Summary
+                          </p>
                         </div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Membership Summary</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="font-heading text-2xl font-bold text-foreground num">
+                              {deepDiveNfStats.membership.total.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Total Members
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-heading text-2xl font-bold text-success num">
+                              {deepDiveNfStats.membership.active.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Active
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-heading text-lg font-bold text-warning-foreground num">
+                              {deepDiveNfStats.membership.dormant.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Dormant
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-heading text-lg font-bold text-muted-foreground num">
+                              {deepDiveNfStats.membership.exited.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Exited
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <p className="text-sm font-bold text-foreground">
+                              {deepDiveNfStats.membership.female_pct.toFixed(0)}%
+                            </p>
+                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                              Women
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-foreground">
+                              {deepDiveNfStats.membership.male_pct.toFixed(0)}%
+                            </p>
+                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                              Men
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-foreground">
+                              {deepDiveNfStats.membership.youth_pct.toFixed(0)}%
+                            </p>
+                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                              Youth
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="font-heading text-2xl font-bold text-foreground num">
-                            {deepDiveNfStats.membership.total.toLocaleString()}
-                          </p>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Total Members</p>
-                        </div>
-                        <div>
-                          <p className="font-heading text-2xl font-bold text-success num">
-                            {deepDiveNfStats.membership.active.toLocaleString()}
-                          </p>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Active</p>
-                        </div>
-                        <div>
-                          <p className="font-heading text-lg font-bold text-warning-foreground num">
-                            {deepDiveNfStats.membership.dormant.toLocaleString()}
-                          </p>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Dormant</p>
-                        </div>
-                        <div>
-                          <p className="font-heading text-lg font-bold text-muted-foreground num">
-                            {deepDiveNfStats.membership.exited.toLocaleString()}
-                          </p>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Exited</p>
-                        </div>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-2 text-center">
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.female_pct.toFixed(0)}%</p>
-                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Women</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.male_pct.toFixed(0)}%</p>
-                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Men</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{deepDiveNfStats.membership.youth_pct.toFixed(0)}%</p>
-                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Youth</p>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Gender Doughnut */}
-                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Gender Breakdown</p>
-                      <div className="h-40">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: "Women", value: deepDiveNfStats.membership.female_pct, fill: "var(--chart-1)" },
-                                { name: "Men", value: deepDiveNfStats.membership.male_pct, fill: "var(--chart-2)" },
-                                { name: "Other", value: deepDiveNfStats.membership.other_pct, fill: "var(--chart-3)" },
-                              ].filter(d => d.value > 0)}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={42}
-                              outerRadius={62}
-                              dataKey="value"
-                              strokeWidth={2}
-                              stroke="var(--surface)"
-                            >
-                              {["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"].map((c, i) => (
-                                <Cell key={i} fill={c} />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px" }}
-                              formatter={(v: number) => [`${v.toFixed(1)}%`]}
-                            />
-                            <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: "11px" }} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                      {/* Gender Doughnut */}
+                      <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                          Gender Breakdown
+                        </p>
+                        <div className="h-40">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  {
+                                    name: "Women",
+                                    value: deepDiveNfStats.membership.female_pct,
+                                    fill: "var(--chart-1)",
+                                  },
+                                  {
+                                    name: "Men",
+                                    value: deepDiveNfStats.membership.male_pct,
+                                    fill: "var(--chart-2)",
+                                  },
+                                  {
+                                    name: "Other",
+                                    value: deepDiveNfStats.membership.other_pct,
+                                    fill: "var(--chart-3)",
+                                  },
+                                ].filter((d) => d.value > 0)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={42}
+                                outerRadius={62}
+                                dataKey="value"
+                                strokeWidth={2}
+                                stroke="var(--surface)"
+                              >
+                                {["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"].map(
+                                  (c, i) => (
+                                    <Cell key={i} fill={c} />
+                                  ),
+                                )}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{
+                                  background: "var(--surface)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: "8px",
+                                  fontSize: "11px",
+                                }}
+                                formatter={(v: number) => [`${v.toFixed(1)}%`]}
+                              />
+                              <Legend
+                                iconType="circle"
+                                iconSize={7}
+                                wrapperStyle={{ fontSize: "11px" }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Membership Status Doughnut */}
-                    <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Membership Status</p>
-                      <div className="h-40">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: "Active", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.active / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--success)" },
-                                { name: "Dormant", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.dormant / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--chart-3)" },
-                                { name: "Exited", value: deepDiveNfStats.membership.total > 0 ? Math.round((deepDiveNfStats.membership.exited / deepDiveNfStats.membership.total) * 100) : 0, fill: "var(--chart-4)" },
-                              ].filter(d => d.value > 0)}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={42}
-                              outerRadius={62}
-                              dataKey="value"
-                              strokeWidth={2}
-                              stroke="var(--surface)"
-                            >
-                              {["var(--success)", "var(--chart-3)", "var(--chart-4)"].map((c, i) => (
-                                <Cell key={i} fill={c} />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px" }}
-                              formatter={(v: number) => [`${v}%`]}
-                            />
-                            <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: "11px" }} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                      {/* Membership Status Doughnut */}
+                      <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                          Membership Status
+                        </p>
+                        <div className="h-40">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  {
+                                    name: "Active",
+                                    value:
+                                      deepDiveNfStats.membership.total > 0
+                                        ? Math.round(
+                                            (deepDiveNfStats.membership.active /
+                                              deepDiveNfStats.membership.total) *
+                                              100,
+                                          )
+                                        : 0,
+                                    fill: "var(--success)",
+                                  },
+                                  {
+                                    name: "Dormant",
+                                    value:
+                                      deepDiveNfStats.membership.total > 0
+                                        ? Math.round(
+                                            (deepDiveNfStats.membership.dormant /
+                                              deepDiveNfStats.membership.total) *
+                                              100,
+                                          )
+                                        : 0,
+                                    fill: "var(--chart-3)",
+                                  },
+                                  {
+                                    name: "Exited",
+                                    value:
+                                      deepDiveNfStats.membership.total > 0
+                                        ? Math.round(
+                                            (deepDiveNfStats.membership.exited /
+                                              deepDiveNfStats.membership.total) *
+                                              100,
+                                          )
+                                        : 0,
+                                    fill: "var(--chart-4)",
+                                  },
+                                ].filter((d) => d.value > 0)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={42}
+                                outerRadius={62}
+                                dataKey="value"
+                                strokeWidth={2}
+                                stroke="var(--surface)"
+                              >
+                                {["var(--success)", "var(--chart-3)", "var(--chart-4)"].map(
+                                  (c, i) => (
+                                    <Cell key={i} fill={c} />
+                                  ),
+                                )}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{
+                                  background: "var(--surface)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: "8px",
+                                  fontSize: "11px",
+                                }}
+                                formatter={(v: number) => [`${v}%`]}
+                              />
+                              <Legend
+                                iconType="circle"
+                                iconSize={7}
+                                wrapperStyle={{ fontSize: "11px" }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                   {/* Portfolio Financial Trend (12 months) */}
                   {deepDiveMonthly.length > 0 && (
                     <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
                       <div className="flex items-center justify-between mb-5">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Portfolio Overview</p>
+                          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Portfolio Overview
+                          </p>
                           <p className="font-heading text-xl font-bold text-foreground mt-1">
-                            {formatNumber(deepDiveMonthly[deepDiveMonthly.length - 1]?.assets ?? 0)}K Total Assets
+                            {formatNumber(deepDiveMonthly[deepDiveMonthly.length - 1]?.assets ?? 0)}
+                            K Total Assets
                           </p>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />Assets</span>
-                          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />Loans</span>
-                          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />Savings</span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-0.5 rounded-full bg-[var(--chart-1)] inline-block" />
+                            Assets
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-0.5 rounded-full bg-[var(--chart-2)] inline-block" />
+                            Loans
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-0.5 rounded-full bg-[var(--chart-3)] inline-block" />
+                            Savings
+                          </span>
                         </div>
                       </div>
                       <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={deepDiveMonthly} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
+                          <AreaChart
+                            data={deepDiveMonthly}
+                            margin={{ top: 10, right: 24, left: -12, bottom: 0 }}
+                          >
                             <defs>
                               <linearGradient id="dd-assets" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.2} />
@@ -1513,16 +1704,78 @@ export const AnalyticsPage: React.FC = () => {
                                 <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
-                            <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} />
-                            <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)" }} tickFormatter={(v) => formatNumber(v as number)} />
+                            <CartesianGrid
+                              strokeDasharray="4 4"
+                              stroke="var(--border)"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="month"
+                              stroke="var(--muted-foreground)"
+                              fontSize={11}
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                            />
+                            <YAxis
+                              fontSize={11}
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: "var(--muted-foreground)" }}
+                              tickFormatter={(v) => formatNumber(v as number)}
+                            />
                             <Tooltip
-                              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", fontSize: "12px", padding: "10px 14px" }}
+                              contentStyle={{
+                                background: "var(--surface)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "10px",
+                                fontSize: "12px",
+                                padding: "10px 14px",
+                              }}
                               formatter={(v: number, name: string) => [`${formatNumber(v)}K`, name]}
                             />
-                            <Area type="monotone" dataKey="assets" stroke="var(--chart-1)" strokeWidth={2} fill="url(#dd-assets)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-1)", strokeWidth: 2 }} name="Assets" />
-                            <Area type="monotone" dataKey="loans" stroke="var(--chart-2)" strokeWidth={2} fill="url(#dd-loans)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-2)", strokeWidth: 2 }} name="Loans" />
-                            <Area type="monotone" dataKey="savings" stroke="var(--chart-3)" strokeWidth={2} fill="url(#dd-savings)" dot={{ r: 3, fill: "var(--surface)", stroke: "var(--chart-3)", strokeWidth: 2 }} name="Savings" />
+                            <Area
+                              type="monotone"
+                              dataKey="assets"
+                              stroke="var(--chart-1)"
+                              strokeWidth={2}
+                              fill="url(#dd-assets)"
+                              dot={{
+                                r: 3,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-1)",
+                                strokeWidth: 2,
+                              }}
+                              name="Assets"
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="loans"
+                              stroke="var(--chart-2)"
+                              strokeWidth={2}
+                              fill="url(#dd-loans)"
+                              dot={{
+                                r: 3,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-2)",
+                                strokeWidth: 2,
+                              }}
+                              name="Loans"
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="savings"
+                              stroke="var(--chart-3)"
+                              strokeWidth={2}
+                              fill="url(#dd-savings)"
+                              dot={{
+                                r: 3,
+                                fill: "var(--surface)",
+                                stroke: "var(--chart-3)",
+                                strokeWidth: 2,
+                              }}
+                              name="Savings"
+                            />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
@@ -1534,23 +1787,41 @@ export const AnalyticsPage: React.FC = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {/* Loan Status Breakdown */}
                       <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Loan Portfolio Health</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                          Loan Portfolio Health
+                        </p>
                         <div className="grid grid-cols-2 gap-3 mb-4">
                           <div className="rounded-lg bg-success/8 border border-success/20 p-3">
-                            <p className="font-heading text-xl font-bold text-success num">{deepDiveNfStats.loans.total_loans.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">Total Loans</p>
+                            <p className="font-heading text-xl font-bold text-success num">
+                              {deepDiveNfStats.loans.total_loans.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">
+                              Total Loans
+                            </p>
                           </div>
                           <div className="rounded-lg bg-muted/30 border border-border p-3">
-                            <p className="font-heading text-xl font-bold text-foreground num">{deepDiveNfStats.loans.performing.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Performing</p>
+                            <p className="font-heading text-xl font-bold text-foreground num">
+                              {deepDiveNfStats.loans.performing.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Performing
+                            </p>
                           </div>
                           <div className="rounded-lg bg-warning/8 border border-warning/20 p-3">
-                            <p className="font-heading text-xl font-bold text-warning-foreground num">{deepDiveNfStats.loans.arrears.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-warning-foreground/70 mt-1">In Arrears</p>
+                            <p className="font-heading text-xl font-bold text-warning-foreground num">
+                              {deepDiveNfStats.loans.arrears.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-warning-foreground/70 mt-1">
+                              In Arrears
+                            </p>
                           </div>
                           <div className="rounded-lg bg-destructive/8 border border-destructive/20 p-3">
-                            <p className="font-heading text-xl font-bold text-destructive num">{deepDiveNfStats.loans.written_off.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-destructive/70 mt-1">Written Off</p>
+                            <p className="font-heading text-xl font-bold text-destructive num">
+                              {deepDiveNfStats.loans.written_off.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-destructive/70 mt-1">
+                              Written Off
+                            </p>
                           </div>
                         </div>
                         {deepDiveNfStats.loans.total_loans > 0 && (
@@ -1558,13 +1829,20 @@ export const AnalyticsPage: React.FC = () => {
                             <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
                               <span>NPL Rate</span>
                               <span className="font-bold text-foreground">
-                                {((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100).toFixed(1)}%
+                                {(
+                                  (deepDiveNfStats.loans.arrears /
+                                    deepDiveNfStats.loans.total_loans) *
+                                  100
+                                ).toFixed(1)}
+                                %
                               </span>
                             </div>
                             <div className="h-2 rounded-full bg-muted overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-warning transition-all"
-                                style={{ width: `${Math.min((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100, 100)}%` }}
+                                style={{
+                                  width: `${Math.min((deepDiveNfStats.loans.arrears / deepDiveNfStats.loans.total_loans) * 100, 100)}%`,
+                                }}
                               />
                             </div>
                           </div>
@@ -1573,23 +1851,41 @@ export const AnalyticsPage: React.FC = () => {
 
                       {/* Savings Account Health */}
                       <div className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)]">
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Savings Portfolio Health</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                          Savings Portfolio Health
+                        </p>
                         <div className="grid grid-cols-2 gap-3 mb-4">
                           <div className="rounded-lg bg-primary/8 border border-primary/20 p-3">
-                            <p className="font-heading text-xl font-bold text-primary num">{deepDiveNfStats.savings.total_accounts.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mt-1">Total Accounts</p>
+                            <p className="font-heading text-xl font-bold text-primary num">
+                              {deepDiveNfStats.savings.total_accounts.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mt-1">
+                              Total Accounts
+                            </p>
                           </div>
                           <div className="rounded-lg bg-success/8 border border-success/20 p-3">
-                            <p className="font-heading text-xl font-bold text-success num">{deepDiveNfStats.savings.active_accounts.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">Active</p>
+                            <p className="font-heading text-xl font-bold text-success num">
+                              {deepDiveNfStats.savings.active_accounts.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-success/70 mt-1">
+                              Active
+                            </p>
                           </div>
                           <div className="rounded-lg bg-muted/30 border border-border p-3">
-                            <p className="font-heading text-xl font-bold text-foreground num">{deepDiveNfStats.savings.dormant_accounts.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Dormant</p>
+                            <p className="font-heading text-xl font-bold text-foreground num">
+                              {deepDiveNfStats.savings.dormant_accounts.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Dormant
+                            </p>
                           </div>
                           <div className="rounded-lg bg-muted/30 border border-border p-3">
-                            <p className="font-heading text-xl font-bold text-foreground num">{(deepDiveNfStats.savings.zero_balance_count ?? 0).toLocaleString()}</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Zero Balance</p>
+                            <p className="font-heading text-xl font-bold text-foreground num">
+                              {(deepDiveNfStats.savings.zero_balance_count ?? 0).toLocaleString()}
+                            </p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                              Zero Balance
+                            </p>
                           </div>
                         </div>
                         {deepDiveNfStats.savings.total_accounts > 0 && (
@@ -1597,13 +1893,20 @@ export const AnalyticsPage: React.FC = () => {
                             <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
                               <span>Account Utilisation</span>
                               <span className="font-bold text-foreground">
-                                {((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100).toFixed(1)}%
+                                {(
+                                  (deepDiveNfStats.savings.active_accounts /
+                                    deepDiveNfStats.savings.total_accounts) *
+                                  100
+                                ).toFixed(1)}
+                                %
                               </span>
                             </div>
                             <div className="h-2 rounded-full bg-muted overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-success transition-all"
-                                style={{ width: `${Math.min((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100, 100)}%` }}
+                                style={{
+                                  width: `${Math.min((deepDiveNfStats.savings.active_accounts / deepDiveNfStats.savings.total_accounts) * 100, 100)}%`,
+                                }}
                               />
                             </div>
                           </div>
@@ -1636,7 +1939,9 @@ export const AnalyticsPage: React.FC = () => {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       {item.label}
                     </p>
-                    <p className="font-heading text-2xl font-bold text-foreground num">{item.value}</p>
+                    <p className="font-heading text-2xl font-bold text-foreground num">
+                      {item.value}
+                    </p>
                     <p className="text-[11px] text-muted-foreground leading-tight">{item.sub}</p>
                   </div>
                 ))}
@@ -1682,29 +1987,30 @@ export const AnalyticsPage: React.FC = () => {
                         </div>
                         {kpi.status && (
                           <span
-                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${kpi.status === "green"
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              kpi.status === "green"
                                 ? "bg-success/10 text-success"
                                 : kpi.status === "red"
                                   ? "bg-destructive/10 text-destructive"
                                   : kpi.status === "amber"
                                     ? "bg-warning/15 text-warning-foreground"
                                     : "bg-muted/15 text-muted-foreground"
-                              }`}
+                            }`}
                           >
                             {kpi.status}
                           </span>
                         )}
                       </div>
-                      <p className={`font-heading text-xl font-bold num leading-none ${statusColor}`}>
+                      <p
+                        className={`font-heading text-xl font-bold num leading-none ${statusColor}`}
+                      >
                         {kpi.value}
                       </p>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1.5 leading-tight">
                         {kpi.label.replace(/_/g, " ")}
                       </p>
                       {kpi.change && (
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {kpi.change}
-                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{kpi.change}</p>
                       )}
                     </div>
                   );
@@ -1720,17 +2026,19 @@ export const AnalyticsPage: React.FC = () => {
               </div>
             ) : null}
 
-
-
             {/* ── Savings, Loans & Assets main chart ── */}
             <div className="grid lg:grid-cols-3 gap-6">
               {/* ── Premium Area/Line Chart with period selector ── */}
               <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] flex flex-col">
-                {!monthlyTrendData?.months?.length && (role === "cooperative" ? !coopHasApprovedSubmission : true) && periodSlice.length === 0 ? (
+                {!monthlyTrendData?.months?.length &&
+                (role === "cooperative" ? !coopHasApprovedSubmission : true) &&
+                periodSlice.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground min-h-[300px]">
                     <Activity className="size-8 mx-auto mb-3 opacity-40" />
                     <p className="text-sm font-semibold">No financial data yet</p>
-                    <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
+                    <p className="text-xs mt-1">
+                      Submit your monthly financials to see the trends.
+                    </p>
                   </div>
                 ) : (
                   <>
@@ -1766,10 +2074,11 @@ export const AnalyticsPage: React.FC = () => {
                           <button
                             key={p}
                             onClick={() => setPeriod(p)}
-                            className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${period === p
+                            className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
+                              period === p
                                 ? "bg-surface text-foreground shadow-sm"
                                 : "text-muted-foreground hover:text-foreground"
-                              }`}
+                            }`}
                           >
                             {p}
                           </button>
@@ -1779,7 +2088,10 @@ export const AnalyticsPage: React.FC = () => {
                     {/* Chart */}
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={periodSlice} margin={{ top: 10, right: 24, left: -12, bottom: 0 }}>
+                        <AreaChart
+                          data={periodSlice}
+                          margin={{ top: 10, right: 24, left: -12, bottom: 0 }}
+                        >
                           <defs>
                             <linearGradient id="grad-members-new" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
@@ -1794,7 +2106,11 @@ export const AnalyticsPage: React.FC = () => {
                               <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
+                          <CartesianGrid
+                            strokeDasharray="4 4"
+                            stroke="var(--border)"
+                            vertical={false}
+                          />
                           <XAxis
                             dataKey="month"
                             stroke="var(--muted-foreground)"
@@ -1865,7 +2181,12 @@ export const AnalyticsPage: React.FC = () => {
                             strokeDasharray="4 4"
                             strokeWidth={2}
                             fill="url(#grad-members-new)"
-                            dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-1)" }}
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-1)",
+                            }}
                             activeDot={{
                               r: 6,
                               strokeWidth: 2,
@@ -1882,7 +2203,12 @@ export const AnalyticsPage: React.FC = () => {
                             strokeDasharray="3 3"
                             strokeWidth={2}
                             fill="url(#grad-savings-new)"
-                            dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-2)" }}
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-2)",
+                            }}
                             activeDot={{
                               r: 6,
                               strokeWidth: 2,
@@ -1898,7 +2224,12 @@ export const AnalyticsPage: React.FC = () => {
                             stroke="var(--chart-3)"
                             strokeWidth={2}
                             fill="url(#grad-loans-new)"
-                            dot={{ r: 4, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-3)" }}
+                            dot={{
+                              r: 4,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--chart-3)",
+                            }}
                             activeDot={{
                               r: 6,
                               strokeWidth: 2,
@@ -1930,12 +2261,16 @@ export const AnalyticsPage: React.FC = () => {
                   : "Authorized portfolio financial balances"
               }
             >
-              {!monthlyTrendData?.months?.length && (role === "cooperative" ? !coopHasApprovedSubmission : true) && filteredMonthlyFinancials.length === 0 ? (
+              {!monthlyTrendData?.months?.length &&
+              (role === "cooperative" ? !coopHasApprovedSubmission : true) &&
+              filteredMonthlyFinancials.length === 0 ? (
                 <div className="flex items-center justify-center text-center text-muted-foreground min-h-[320px]">
                   <div>
                     <Activity className="size-8 mx-auto mb-3 opacity-40" />
                     <p className="text-sm font-semibold">No financial data yet</p>
-                    <p className="text-xs mt-1">Submit your monthly financials to see the trends.</p>
+                    <p className="text-xs mt-1">
+                      Submit your monthly financials to see the trends.
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -2013,7 +2348,11 @@ export const AnalyticsPage: React.FC = () => {
                           padding: "12px 16px",
                           boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
                         }}
-                        itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
+                        itemStyle={{
+                          color: "var(--foreground)",
+                          fontWeight: 500,
+                          lineHeight: "1.8",
+                        }}
                         labelStyle={{
                           fontWeight: "700",
                           color: "var(--foreground)",
@@ -2022,7 +2361,10 @@ export const AnalyticsPage: React.FC = () => {
                           borderBottom: "1px solid var(--border)",
                           paddingBottom: "6px",
                         }}
-                        formatter={(value: number, name: string) => [`$${value.toLocaleString()}K`, name]}
+                        formatter={(value: number, name: string) => [
+                          `$${value.toLocaleString()}K`,
+                          name,
+                        ]}
                         cursor={{ fill: "var(--muted)", opacity: 0.3 }}
                       />
                       <Legend
@@ -2079,7 +2421,12 @@ export const AnalyticsPage: React.FC = () => {
                         stroke="var(--chart-4)"
                         strokeWidth={2.5}
                         name="Net Variation"
-                        dot={{ r: 4.5, strokeWidth: 2, fill: "var(--surface)", stroke: "var(--chart-4)" }}
+                        dot={{
+                          r: 4.5,
+                          strokeWidth: 2,
+                          fill: "var(--surface)",
+                          stroke: "var(--chart-4)",
+                        }}
                         activeDot={{
                           r: 7,
                           strokeWidth: 2.5,
@@ -2158,7 +2505,10 @@ export const AnalyticsPage: React.FC = () => {
                         <span className="flex items-center gap-2 text-muted-foreground">
                           <span
                             className="size-2.5 rounded-sm shrink-0"
-                            style={{ background: "var(--accent)", opacity: sectorOpacities[i] ?? 0.3 }}
+                            style={{
+                              background: "var(--accent)",
+                              opacity: sectorOpacities[i] ?? 0.3,
+                            }}
                           />
                           {s.name}
                         </span>
@@ -2175,8 +2525,15 @@ export const AnalyticsPage: React.FC = () => {
                 >
                   <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={youthData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <BarChart
+                        data={youthData}
+                        margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--border)"
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="name"
                           stroke="var(--muted-foreground)"
@@ -2231,7 +2588,6 @@ export const AnalyticsPage: React.FC = () => {
               </div>
             )}
 
-
             {/* ── Non-Financial Core Components ── */}
             {nfStats && nfStats.membership.total > 0 && role === "cooperative" && (
               <div className="grid lg:grid-cols-2 gap-6">
@@ -2251,13 +2607,19 @@ export const AnalyticsPage: React.FC = () => {
 
             {role !== "cooperative" && nationalOverview && (
               <div className="grid lg:grid-cols-2 gap-6">
-                <Card title="Regional Financial Distribution" subtitle="Aggregate Assets, Loans & Deposits">
+                <Card
+                  title="Regional Financial Distribution"
+                  subtitle="Aggregate Assets, Loans & Deposits"
+                >
                   <div className="py-4">
                     <RegionalGroupedBar cooperatives={nationalOverview.cooperatives} />
                   </div>
                 </Card>
 
-                <Card title="Dormancy Leaderboard" subtitle="Cooperatives ranked by dormancy rate (Watch/Critical)">
+                <Card
+                  title="Dormancy Leaderboard"
+                  subtitle="Cooperatives ranked by dormancy rate (Watch/Critical)"
+                >
                   <div className="py-4">
                     <DormancyLeaderboard
                       data={nationalOverview.cooperatives
@@ -2287,7 +2649,8 @@ export const AnalyticsPage: React.FC = () => {
                       <Users className="size-8 opacity-30" />
                       <p className="mt-3 text-sm font-semibold">No reporting-period history yet</p>
                       <p className="mt-1 max-w-xs text-xs">
-                        Membership and inclusion trends appear after non-financial data is submitted.
+                        Membership and inclusion trends appear after non-financial data is
+                        submitted.
                       </p>
                     </div>
                   ) : (
@@ -2409,7 +2772,9 @@ export const AnalyticsPage: React.FC = () => {
                     </ResponsiveContainer>
                     <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
                       <span className="text-[20px] font-bold text-success leading-none">
-                        {filteredLoanPortfolio.find((item) => item.name === "Performing")?.value ?? 0}%
+                        {filteredLoanPortfolio.find((item) => item.name === "Performing")?.value ??
+                          0}
+                        %
                       </span>
                       <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mt-1">
                         Performing
@@ -2480,154 +2845,152 @@ export const AnalyticsPage: React.FC = () => {
               {(role === "cooperative"
                 ? coopComplianceTrend.length > 0
                 : filteredRegionCompliance.length > 0) && (
-                  <Card
-                    title={
-                      role === "cooperative"
-                        ? "Your Compliance Trend"
-                        : role === "ministry"
-                          ? "Regional Compliance Comparison"
-                          : role === "federation"
-                            ? "Regional Compliance in Your Federation"
-                            : "Regional Compliance Overview"
-                    }
-                    subtitle={
-                      role === "cooperative"
-                        ? "Monthly compliance score over the year"
-                        : "Compliance score by region"
-                    }
-                  >
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        {role === "cooperative" ? (
-                          <AreaChart
-                            data={coopComplianceTrend}
-                            margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
-                          >
-                            <defs>
-                              <linearGradient id="coop-comp" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
-                                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              stroke="var(--border)"
-                              vertical={false}
-                            />
-                            <XAxis
-                              dataKey="month"
-                              stroke="var(--muted-foreground)"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                            />
-                            <YAxis
-                              domain={[85, 100]}
-                              stroke="var(--muted-foreground)"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tickFormatter={(v) => `${v}%`}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                background: "var(--surface)",
-                                border: "1px solid var(--border)",
-                                borderRadius: "8px",
-                                fontSize: "12px",
-                                fontFamily: "var(--font-sans)",
-                                padding: "8px 12px",
-                                boxShadow: "var(--shadow-elev-2)",
-                              }}
-                              itemStyle={{ color: "var(--foreground)" }}
-                              labelStyle={{
-                                fontWeight: "600",
-                                color: "var(--foreground)",
-                                marginBottom: "4px",
-                              }}
-                              formatter={(value: number) => [`${value}%`]}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="score"
-                              stroke="var(--accent)"
-                              strokeWidth={2}
-                              fill="url(#coop-comp)"
-                              dot={{
-                                r: 3,
-                                strokeWidth: 2,
-                                fill: "var(--surface)",
-                                stroke: "var(--accent)",
-                              }}
-                              name="Compliance"
-                            />
-                          </AreaChart>
-                        ) : (
-                          <BarChart
-                            data={filteredRegionCompliance}
-                            layout="vertical"
-                            margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                          >
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              stroke="var(--border)"
-                              horizontal={false}
-                            />
-                            <XAxis
-                              type="number"
-                              domain={[80, 100]}
-                              stroke="var(--muted-foreground)"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              tickFormatter={(v) => `${v}%`}
-                            />
-                            <YAxis
-                              type="category"
-                              dataKey="name"
-                              stroke="var(--muted-foreground)"
-                              fontSize={11}
-                              fontFamily="var(--font-sans)"
-                              tickLine={false}
-                              axisLine={false}
-                              width={80}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                background: "var(--surface)",
-                                border: "1px solid var(--border)",
-                                borderRadius: "8px",
-                                fontSize: "12px",
-                                fontFamily: "var(--font-sans)",
-                                padding: "8px 12px",
-                                boxShadow: "var(--shadow-elev-2)",
-                              }}
-                              itemStyle={{ color: "var(--foreground)" }}
-                              labelStyle={{
-                                fontWeight: "600",
-                                color: "var(--foreground)",
-                                marginBottom: "4px",
-                              }}
-                              formatter={(value: number) => [`${value}%`]}
-                            />
-                            <Bar
-                              dataKey="score"
-                              fill="var(--chart-1)"
-                              radius={[0, 6, 6, 0]}
-                              barSize={24}
-                              name="Compliance %"
-                            />
-                          </BarChart>
-                        )}
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-                )}
-
-
+                <Card
+                  title={
+                    role === "cooperative"
+                      ? "Your Compliance Trend"
+                      : role === "ministry"
+                        ? "Regional Compliance Comparison"
+                        : role === "federation"
+                          ? "Regional Compliance in Your Federation"
+                          : "Regional Compliance Overview"
+                  }
+                  subtitle={
+                    role === "cooperative"
+                      ? "Monthly compliance score over the year"
+                      : "Compliance score by region"
+                  }
+                >
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {role === "cooperative" ? (
+                        <AreaChart
+                          data={coopComplianceTrend}
+                          margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="coop-comp" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
+                              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.01} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="var(--border)"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="month"
+                            stroke="var(--muted-foreground)"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <YAxis
+                            domain={[85, 100]}
+                            stroke="var(--muted-foreground)"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(v) => `${v}%`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                              fontFamily: "var(--font-sans)",
+                              padding: "8px 12px",
+                              boxShadow: "var(--shadow-elev-2)",
+                            }}
+                            itemStyle={{ color: "var(--foreground)" }}
+                            labelStyle={{
+                              fontWeight: "600",
+                              color: "var(--foreground)",
+                              marginBottom: "4px",
+                            }}
+                            formatter={(value: number) => [`${value}%`]}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="score"
+                            stroke="var(--accent)"
+                            strokeWidth={2}
+                            fill="url(#coop-comp)"
+                            dot={{
+                              r: 3,
+                              strokeWidth: 2,
+                              fill: "var(--surface)",
+                              stroke: "var(--accent)",
+                            }}
+                            name="Compliance"
+                          />
+                        </AreaChart>
+                      ) : (
+                        <BarChart
+                          data={filteredRegionCompliance}
+                          layout="vertical"
+                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="var(--border)"
+                            horizontal={false}
+                          />
+                          <XAxis
+                            type="number"
+                            domain={[80, 100]}
+                            stroke="var(--muted-foreground)"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(v) => `${v}%`}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            stroke="var(--muted-foreground)"
+                            fontSize={11}
+                            fontFamily="var(--font-sans)"
+                            tickLine={false}
+                            axisLine={false}
+                            width={80}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                              fontFamily: "var(--font-sans)",
+                              padding: "8px 12px",
+                              boxShadow: "var(--shadow-elev-2)",
+                            }}
+                            itemStyle={{ color: "var(--foreground)" }}
+                            labelStyle={{
+                              fontWeight: "600",
+                              color: "var(--foreground)",
+                              marginBottom: "4px",
+                            }}
+                            formatter={(value: number) => [`${value}%`]}
+                          />
+                          <Bar
+                            dataKey="score"
+                            fill="var(--chart-1)"
+                            radius={[0, 6, 6, 0]}
+                            barSize={24}
+                            name="Compliance %"
+                          />
+                        </BarChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              )}
             </div>
 
             {/* ── Period Comparison + Region Trend (admin only) ── */}
@@ -2654,10 +3017,11 @@ export const AnalyticsPage: React.FC = () => {
                         <button
                           key={p}
                           onClick={() => setCompPeriod(p)}
-                          className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${compPeriod === p
+                          className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
+                            compPeriod === p
                               ? "bg-surface text-foreground shadow-sm"
                               : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          }`}
                         >
                           {p}
                         </button>
@@ -2713,7 +3077,11 @@ export const AnalyticsPage: React.FC = () => {
                             padding: "12px 16px",
                             boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
                           }}
-                          itemStyle={{ color: "var(--foreground)", fontWeight: 500, lineHeight: "1.8" }}
+                          itemStyle={{
+                            color: "var(--foreground)",
+                            fontWeight: 500,
+                            lineHeight: "1.8",
+                          }}
                           labelStyle={{
                             fontWeight: "700",
                             color: "var(--foreground)",
@@ -3065,15 +3433,25 @@ export const AnalyticsPage: React.FC = () => {
                   sortByKpi="par30"
                 />
 
-                <Card title="Detailed Cooperative Compliance Grid" subtitle="Traffic light indicators across key operational KPIs">
+                <Card
+                  title="Detailed Cooperative Compliance Grid"
+                  subtitle="Traffic light indicators across key operational KPIs"
+                >
                   <div className="p-4 bg-surface rounded-lg">
                     <KpiChipGrid
-                      cooperatives={nationalOverview.cooperatives.map(c => ({
+                      cooperatives={nationalOverview.cooperatives.map((c) => ({
                         name: c.name,
                         region: c.region,
                         kpis: c.kpis,
                       }))}
-                      kpiKeys={["par30", "capital_adequacy_ratio", "npl_ratio", "roa", "roe", "operating_expense_ratio"]}
+                      kpiKeys={[
+                        "par30",
+                        "capital_adequacy_ratio",
+                        "npl_ratio",
+                        "roa",
+                        "roe",
+                        "operating_expense_ratio",
+                      ]}
                       maxRows={15}
                     />
                   </div>
@@ -3081,87 +3459,94 @@ export const AnalyticsPage: React.FC = () => {
               </div>
             ) : null}
 
-            {(role === "ministry" || role === "federation" || role === "apex") && nationalOverview && (
-              <div className="mt-6">
-                <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
-                  <div className="px-6 py-5 border-b border-border">
-                    <p className="text-sm font-bold text-foreground">National KPI Overview</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Traffic-light distribution across {nationalOverview.total_cooperatives}{" "}
-                      cooperatives
-                      {nationalOverview.cooperatives_with_data > 0 &&
-                        ` (${nationalOverview.cooperatives_with_data} with data)`}
-                    </p>
-                  </div>
-                  <div className="p-6">
-                    {nationalOverview.non_financial_summary.cooperatives_with_data > 0 && (
-                      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
-                        {[
-                          [
-                            "Active members",
-                            nationalOverview.non_financial_summary.average_active_members_pct,
-                          ],
-                          [
-                            "Savings penetration",
-                            nationalOverview.non_financial_summary.average_savings_penetration_pct,
-                          ],
-                          [
-                            "Credit penetration",
-                            nationalOverview.non_financial_summary.average_credit_penetration_pct,
-                          ],
-                          [
-                            "FD penetration",
-                            nationalOverview.non_financial_summary.average_fd_penetration_pct,
-                          ],
-                          [
-                            "On-time repayment",
-                            nationalOverview.non_financial_summary.average_on_time_repayment_pct,
-                          ],
-                          [
-                            "Member dormancy",
-                            nationalOverview.non_financial_summary.average_dormancy_pct,
-                          ],
-                          [
-                            "AGM participation",
-                            nationalOverview.non_financial_summary.average_agm_participation_pct,
-                          ],
-                          [
-                            "Loans in arrears",
-                            nationalOverview.non_financial_summary.average_arrears_rate_pct,
-                          ],
-                          [
-                            "FD early withdrawals",
-                            nationalOverview.non_financial_summary.average_fd_early_withdrawal_pct,
-                          ],
-                        ].map(([label, value]) => (
-                          <div
-                            key={label as string}
-                            className="rounded-lg border border-border bg-muted/20 p-3"
-                          >
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                              {label as string}
-                            </p>
-                            <p className="mt-1 text-lg font-bold text-foreground">
-                              {(value as number).toFixed(1)}%
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {Object.keys(nationalOverview?.distributions || {}).length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        No financial data available for aggregation.
+            {(role === "ministry" || role === "federation" || role === "apex") &&
+              nationalOverview && (
+                <div className="mt-6">
+                  <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
+                    <div className="px-6 py-5 border-b border-border">
+                      <p className="text-sm font-bold text-foreground">National KPI Overview</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Traffic-light distribution across {nationalOverview.total_cooperatives}{" "}
+                        cooperatives
+                        {nationalOverview.cooperatives_with_data > 0 &&
+                          ` (${nationalOverview.cooperatives_with_data} with data)`}
                       </p>
-                    ) : (
-                      <div className="mt-8">
-                        <p className="text-sm font-bold text-foreground mb-4">Traffic Light Distribution by KPI</p>
-                        <ComplianceStackedBars distributions={nationalOverview?.distributions || {}} />
-                      </div>
-                    )}
+                    </div>
+                    <div className="p-6">
+                      {nationalOverview.non_financial_summary.cooperatives_with_data > 0 && (
+                        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+                          {[
+                            [
+                              "Active members",
+                              nationalOverview.non_financial_summary.average_active_members_pct,
+                            ],
+                            [
+                              "Savings penetration",
+                              nationalOverview.non_financial_summary
+                                .average_savings_penetration_pct,
+                            ],
+                            [
+                              "Credit penetration",
+                              nationalOverview.non_financial_summary.average_credit_penetration_pct,
+                            ],
+                            [
+                              "FD penetration",
+                              nationalOverview.non_financial_summary.average_fd_penetration_pct,
+                            ],
+                            [
+                              "On-time repayment",
+                              nationalOverview.non_financial_summary.average_on_time_repayment_pct,
+                            ],
+                            [
+                              "Member dormancy",
+                              nationalOverview.non_financial_summary.average_dormancy_pct,
+                            ],
+                            [
+                              "AGM participation",
+                              nationalOverview.non_financial_summary.average_agm_participation_pct,
+                            ],
+                            [
+                              "Loans in arrears",
+                              nationalOverview.non_financial_summary.average_arrears_rate_pct,
+                            ],
+                            [
+                              "FD early withdrawals",
+                              nationalOverview.non_financial_summary
+                                .average_fd_early_withdrawal_pct,
+                            ],
+                          ].map(([label, value]) => (
+                            <div
+                              key={label as string}
+                              className="rounded-lg border border-border bg-muted/20 p-3"
+                            >
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                {label as string}
+                              </p>
+                              <p className="mt-1 text-lg font-bold text-foreground">
+                                {(value as number).toFixed(1)}%
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {Object.keys(nationalOverview?.distributions || {}).length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No financial data available for aggregation.
+                        </p>
+                      ) : (
+                        <div className="mt-8">
+                          <p className="text-sm font-bold text-foreground mb-4">
+                            Traffic Light Distribution by KPI
+                          </p>
+                          <ComplianceStackedBars
+                            distributions={nationalOverview?.distributions || {}}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {role === "ministry" && (
               <div className="mt-6">

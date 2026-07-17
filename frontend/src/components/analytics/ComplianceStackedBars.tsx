@@ -1,11 +1,4 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { TrafficLightDistribution } from "@/hooks/analytics/useNationalOverview";
 
 interface ComplianceStackedBarsProps {
@@ -49,7 +42,11 @@ export function ComplianceStackedBars({ distributions }: ComplianceStackedBarsPr
 
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+          >
             <XAxis type="number" domain={[0, 100]} hide />
             <YAxis
               type="category"
@@ -69,7 +66,11 @@ export function ComplianceStackedBars({ distributions }: ComplianceStackedBarsPr
                 fontSize: "12px",
               }}
               cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-              formatter={(value: number, name: string, props: any) => {
+              formatter={(
+                value: number,
+                name: string,
+                props: { payload: Record<string, number> },
+              ) => {
                 const count =
                   name === "Healthy"
                     ? props.payload.green_count
@@ -79,9 +80,21 @@ export function ComplianceStackedBars({ distributions }: ComplianceStackedBarsPr
                 return [`${value.toFixed(1)}% (${count} coops)`, name];
               }}
             />
-            <Bar dataKey="Healthy" stackId="a" fill="var(--success)" barSize={24} radius={[4, 0, 0, 4]} />
+            <Bar
+              dataKey="Healthy"
+              stackId="a"
+              fill="var(--success)"
+              barSize={24}
+              radius={[4, 0, 0, 4]}
+            />
             <Bar dataKey="Watch" stackId="a" fill="var(--warning)" barSize={24} />
-            <Bar dataKey="Risk" stackId="a" fill="var(--destructive)" barSize={24} radius={[0, 4, 4, 0]} />
+            <Bar
+              dataKey="Risk"
+              stackId="a"
+              fill="var(--destructive)"
+              barSize={24}
+              radius={[0, 4, 4, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -21,11 +21,11 @@ export function RegionalGroupedBar({ cooperatives }: RegionalGroupedBarProps) {
   cooperatives.forEach((coop) => {
     if (!coop.has_data) return;
     const region = coop.region ?? "Unknown";
-    
+
     if (!regionMap.has(region)) {
       regionMap.set(region, { Assets: 0, Loans: 0, Deposits: 0 });
     }
-    
+
     const curr = regionMap.get(region)!;
     curr.Assets += coop.kpis["total_assets"]?.value ?? 0;
     curr.Loans += coop.kpis["gross_loan_portfolio"]?.value ?? 0;
@@ -46,8 +46,20 @@ export function RegionalGroupedBar({ cooperatives }: RegionalGroupedBarProps) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-          <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}K`} />
+          <XAxis
+            dataKey="name"
+            stroke="var(--muted-foreground)"
+            fontSize={11}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            stroke="var(--muted-foreground)"
+            fontSize={11}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(v) => `$${v}K`}
+          />
           <Tooltip
             contentStyle={{
               background: "var(--surface)",

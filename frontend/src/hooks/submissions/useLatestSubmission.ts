@@ -21,7 +21,5 @@ export const useLatestSubmission = (reportingYear?: number): SubmissionResponse 
 
   if (approvedSubmissions.length === 0) return undefined;
 
-  return [...approvedSubmissions].sort(
-    (a, b) => b.reporting_year - a.reporting_year
-  )[0];
+  return [...approvedSubmissions].sort((a, b) => b.reporting_year - a.reporting_year)[0];
 };
