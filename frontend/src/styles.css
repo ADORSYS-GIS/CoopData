@@ -356,3 +356,50 @@
   opacity: 0;
   animation: heroPanelIn 700ms var(--ease-out-expo) 200ms forwards;
 }
+
+/* ── Shimmer (skeleton / AI extraction banner) ── */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    oklch(0.5 0.17 240 / 0.06) 0%,
+    oklch(0.5 0.17 240 / 0.18) 40%,
+    oklch(0.5 0.17 240 / 0.06) 80%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* ── Pulse glow (CTA / ready badge) ── */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.56 0.15 155 / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px oklch(0.56 0.15 155 / 0);
+  }
+}
+.pulse-glow-success {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ── Section card step number ── */
+.step-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}

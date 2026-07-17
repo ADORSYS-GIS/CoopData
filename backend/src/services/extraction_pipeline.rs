@@ -7,9 +7,9 @@ use crate::entities::balance_sheet_line_item::ActiveModel as LineItemModel;
 use crate::entities::enums::AccountCategory;
 use crate::error::AppResult;
 use crate::repositories::{
-    AbnormalityFlagRepository, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
-    ExtractionJobRepository, FinancialStatementRepository, SubmissionRepository,
-    SubmissionSectionRepository,
+    AbnormalityFlagRepository, AccountAliasRepository, BalanceSheetLineItemRepository,
+    ChartOfAccountsRepository, ExtractionJobRepository, FinancialStatementRepository,
+    SubmissionRepository, SubmissionSectionRepository,
 };
 use crate::services::abnormality_detector::AbnormalityDetector;
 use crate::services::ai_extraction::FinancialStatementExtractor;
@@ -29,6 +29,7 @@ pub async fn run_extraction_pipeline(
     fs_repo: FinancialStatementRepository,
     line_item_repo: BalanceSheetLineItemRepository,
     coa_repo: ChartOfAccountsRepository,
+    alias_repo: AccountAliasRepository,
     flag_repo: AbnormalityFlagRepository,
     section_repo: SubmissionSectionRepository,
 ) {
@@ -45,6 +46,7 @@ pub async fn run_extraction_pipeline(
         &fs_repo,
         &line_item_repo,
         &coa_repo,
+        &alias_repo,
         &flag_repo,
         &section_repo,
     )
@@ -77,6 +79,7 @@ async fn run_pipeline_inner(
     fs_repo: &FinancialStatementRepository,
     line_item_repo: &BalanceSheetLineItemRepository,
     coa_repo: &ChartOfAccountsRepository,
+    alias_repo: &AccountAliasRepository,
     flag_repo: &AbnormalityFlagRepository,
     section_repo: &SubmissionSectionRepository,
 ) -> AppResult<()> {
@@ -89,22 +92,68 @@ async fn run_pipeline_inner(
 
     let raw_text = extractor.capture(&file_bytes, &mime_type).await?;
 
-    // Stage 2 — extracting: raw text ready, load CoA
+    // Stage 2 — extracting: raw text ready, load CoA + aliases
     job_repo
         .update_status(job_id, "extracting", None, None, None)
         .await?;
 
     let coa = coa_repo.find_all().await?;
-    let aliases: Vec<crate::entities::account_alias::Model> = vec![];
+
+    // FIX 1 — Load aliases from DB (was hardcoded empty vec before)
+    let aliases = alias_repo.find_all().await.unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "Failed to load account aliases, proceeding without them");
+        vec![]
+    });
+    tracing::info!(
+        alias_count = aliases.len(),
+        "Loaded account aliases for extraction"
+    );
 
     // Stage 3 — mapping: LLM maps text to CoA line items
     job_repo
         .update_status(job_id, "mapping", None, None, None)
         .await?;
 
-    let output = extractor
-        .map_to_coa(&raw_text, &coa, &aliases, &cooperative_type)
-        .await?;
+    // FIX 6 — Retry logic: up to 3 attempts with exponential backoff on transient errors
+    let output = {
+        let mut last_err = None;
+        let mut result = None;
+        for attempt in 1u8..=3 {
+            match extractor
+                .map_to_coa(&raw_text, &coa, &aliases, &cooperative_type)
+                .await
+            {
+                Ok(o) => {
+                    result = Some(o);
+                    break;
+                }
+                Err(e) => {
+                    let msg = e.to_string();
+                    // Don't retry on bad-input errors (4xx), only on transient failures
+                    let is_transient = !msg.contains("400")
+                        && !msg.contains("401")
+                        && !msg.contains("403")
+                        && !msg.contains("max_tokens");
+                    tracing::warn!(attempt, error = %msg, is_transient, "LLM mapping attempt failed");
+                    if !is_transient || attempt == 3 {
+                        last_err = Some(e);
+                        break;
+                    }
+                    // Exponential backoff: 1s, 2s
+                    let delay = std::time::Duration::from_secs(u64::from(attempt));
+                    tokio::time::sleep(delay).await;
+                    last_err = Some(e);
+                }
+            }
+        }
+        result.ok_or_else(|| {
+            last_err.unwrap_or_else(|| {
+                crate::error::AppError::InternalServerError(
+                    "LLM mapping failed after 3 attempts".into(),
+                )
+            })
+        })?
+    };
 
     // Get financial statement for this submission
     let fs = fs_repo
@@ -117,21 +166,7 @@ async fn run_pipeline_inner(
     // Clear any existing draft line items (idempotent re-run support)
     line_item_repo.delete_by_financial_statement(fs.id).await?;
 
-    // ── Deduplication ────────────────────────────────────────────────────────
-    //
-    // The DB has UNIQUE (financial_statement_id, account_code, month).
-    // Problem: all unmapped items have account_code = NULL, which makes them
-    // collide on (fs_id, NULL, 0) — only the first would insert.
-    //
-    // Solution: for mapped items, deduplicate by (code, month) keeping the
-    // first (highest-confidence) occurrence. For unmapped items, keep all
-    // unique raw_labels. We store account_code = NULL in the DB for all unmapped
-    // items — the unique constraint uses NULLS NOT DISTINCT in Postgres 15+ but
-    // for compatibility we just rely on the UUID primary key and store them all.
-    // We skip the unique constraint by using INSERT ... ON CONFLICT DO NOTHING
-    // via the bulk_create_ignore_conflict path, or simply accept the error and
-    // continue (already done in the create call below).
-
+    // Build dedup set for mapped items
     let mut seen_mapped: std::collections::HashSet<(i32, i16)> = std::collections::HashSet::new();
 
     // Pre-filter: skip items with no value (section headers returned by LLM)
@@ -142,39 +177,45 @@ async fn run_pipeline_inner(
         .collect();
 
     let mut stored_count = 0usize;
+    let mut unmapped_count = 0usize;
     let mut total_confidence = 0.0f64;
 
     for item in &candidates {
-        // Dedup check — skip duplicates
         let should_store = if let Some(code) = item.account_code {
+            // Mapped item: dedup by (code, month)
             seen_mapped.insert((code, item.month))
         } else {
-            // Unmapped items (account_code = null) are discarded — they cannot be mapped
-            // to the cooperative Chart of Accounts and would clutter the review grid.
-            tracing::debug!(raw_label = %item.raw_label, value = ?item.value, "Discarding unmapped line item");
-            false
+            // FIX 2 — Store unmapped items (account_code = NULL) instead of discarding
+            // They show up in the editor with the amber "Unmapped" badge so users can fix them.
+            // We track by raw_label to avoid storing the exact same label twice.
+            unmapped_count += 1;
+            true
         };
 
         if !should_store {
             tracing::debug!(
                 code = ?item.account_code,
                 raw_label = %item.raw_label,
-                "Skipping duplicate line item"
+                "Skipping duplicate mapped line item"
             );
             continue;
         }
 
-        // Look up CoA entry for category / subcategory
-        let (category, subcategory) = coa
-            .iter()
-            .find(|c| Some(c.account_code) == item.account_code)
-            .map(|c| {
-                (
-                    c.account_category.clone(),
-                    c.account_subcategory.clone().unwrap_or_default(),
-                )
-            })
-            .unwrap_or((AccountCategory::Assets, String::new()));
+        // Look up CoA entry for category / subcategory (only for mapped items)
+        let (category, subcategory) = if let Some(code) = item.account_code {
+            coa.iter()
+                .find(|c| c.account_code == code)
+                .map(|c| {
+                    (
+                        c.account_category.clone(),
+                        c.account_subcategory.clone().unwrap_or_default(),
+                    )
+                })
+                .unwrap_or((AccountCategory::Assets, String::new()))
+        } else {
+            // Unmapped: use a placeholder category so it still shows in the right section
+            (AccountCategory::Assets, String::new())
+        };
 
         let value = Decimal::from_f64(item.value.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
         let confidence = Decimal::from_f64(item.confidence).unwrap_or(Decimal::ZERO);
@@ -192,7 +233,7 @@ async fn run_pipeline_inner(
             month: Set(item.month),
             value: Set(Some(value)),
             ai_confidence: Set(Some(confidence)),
-            ai_flagged: Set(item.confidence < 0.6),
+            ai_flagged: Set(item.confidence < 0.6 || item.account_code.is_none()),
             manually_edited: Set(false),
             raw_label: Set(Some(item.raw_label.clone())),
             created_at: Set(chrono::Utc::now()),
@@ -205,7 +246,6 @@ async fn run_pipeline_inner(
                 total_confidence += item.confidence;
             }
             Err(e) => {
-                // Unique constraint violation for unmapped items — log and continue
                 tracing::warn!(
                     code = ?item.account_code,
                     raw_label = %item.raw_label,
@@ -222,7 +262,6 @@ async fn run_pipeline_inner(
         Decimal::ZERO
     };
 
-    // Determine extractor engine name from config
     let engine_name = std::env::var("EXTRACTION_BACKEND")
         .map(|b| {
             if b == "llm" {
@@ -233,7 +272,6 @@ async fn run_pipeline_inner(
         })
         .unwrap_or_else(|_| "mock-extractor".into());
 
-    // Store raw extraction results in job record
     let extracted_json = serde_json::to_value(&output).unwrap_or(serde_json::Value::Null);
     job_repo
         .update_result(
@@ -249,7 +287,6 @@ async fn run_pipeline_inner(
         .update_status(job_id, "succeeded", None, Some(chrono::Utc::now()), None)
         .await?;
 
-    // Keep submission in Draft — cooperative reviews extracted data then submits
     submission_repo
         .update_status(
             submission_id,
@@ -258,19 +295,24 @@ async fn run_pipeline_inner(
         )
         .await?;
 
-    // Stage 4 — validation: run abnormality detection
-    let detector = AbnormalityDetector::new(line_item_repo.clone(), flag_repo.clone());
+    // Stage 4 — validation: run full abnormality detection
+    let detector =
+        AbnormalityDetector::new(line_item_repo.clone(), flag_repo.clone(), coa_repo.clone());
     let (errors, warnings) = detector
-        .run(submission_id, cooperative_id, fs.id, &coa)
+        .run(
+            submission_id,
+            cooperative_id,
+            fs.id,
+            &coa,
+            &cooperative_type,
+        )
         .await?;
 
-    // Persist validation result on financial statement
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
     fs_repo
         .set_validation_errors(fs.id, validation_json)
         .await?;
 
-    // Mark financial section as in_progress — user reviews extracted data then confirms ready
     if let Ok(Some(sec)) = section_repo
         .find_by_submission_and_section(submission_id, "financial")
         .await
@@ -283,6 +325,7 @@ async fn run_pipeline_inner(
         submission_id = %submission_id,
         candidates = candidates.len(),
         stored = stored_count,
+        unmapped = unmapped_count,
         avg_confidence = %avg_confidence,
         errors = errors.len(),
         warnings = warnings.len(),

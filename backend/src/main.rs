@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
     let extractor = create_extractor(&config);
-    let storage = ObjectStorageService::new(&config)?;
+    let storage = ObjectStorageService::new(&config).await?;
     let nf_excel_parser = CalamineNfParser::new();
 
     tracing::info!("Repositories and services initialized");

@@ -7,8 +7,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5: Testing & Polish
-- **Overall Progress**: 75%
+- **Current Phase**: Phase 13: Sprint 3 Epic 3 Complete
+- **Overall Progress**: 88%
 
 ---
 
@@ -341,32 +341,85 @@
   - [x] OpenAPI spec verified: all 4 new endpoints present
   - [x] Docker containers rebuilt + restarted, backend healthy on port 3000
 
-### Phase 8: AI Extraction Pipeline
-- [ ] `object_storage.rs` (MinIO/S3 via reqwest + env config)
-- [ ] `ai_extraction.rs` + `FinancialStatementExtractor` trait + mock impl
-- [ ] Multipart upload handler → file + extraction job; poll endpoint
-- [ ] OpenAPI annotations
+### Phase 8: AI Extraction Pipeline ✅
+- [x] `object_storage.rs` — LocalFileStorage + S3Storage backends
+- [x] `ai_extraction.rs` — `FinancialStatementExtractor` trait + `LlmExtractor` + `MockExtractor`
+- [x] Multipart upload handler (`upload_financial_statement`) → 202 + extraction job
+- [x] Extraction pipeline orchestrator (`extraction_pipeline.rs`)
+- [x] Poll endpoint `GET /api/v1/cooperative/extraction-jobs/{id}`
+- [x] OpenAPI annotations for all above
 
-### Phase 9: Submission & 4-Tier Review Workflow
-- [ ] `submission_workflow` service (state machine + authority matrix)
-- [ ] `submission_reviews` append; replace legacy `assessments` entity
-- [ ] Tier handlers (apex/federation/ministry approve/return/reject)
+### Phase 9: Submission & 4-Tier Review Workflow ✅
+- [x] `submission_workflow.rs` — state machine: submit, apex_approve/return, federation_approve/return, ministry_approve/reject
+- [x] `submission_reviews` append-only audit trail
+- [x] Tier handlers for apex, federation, ministry approve/return/reject
+- [x] Validation endpoint `POST /validate-extraction` re-runs abnormality detector
+- [x] Section status tracking (`submission_sections`)
 
-### Phase 10: Non-Financial Data
-- [ ] Members / savings / loans / fixed deposits entities→routes
-- [ ] Offline sync push/pull endpoints
+### Phase 10: Non-Financial Data ✅
+- [x] Members / savings / loans / fixed deposits / farm_coop entities, repos, handlers, routes
+- [x] `nf_excel_parser.rs` — calamine-based parser with strict column validation
+- [x] Upload endpoint + parse result endpoints
 
-### Phase 11: KPI Engine & Abnormality Detection
-- [ ] Port `frontend/src/lib/kpi-calculations.ts` → `kpi_engine.rs`
-- [ ] `abnormality_detector.rs` (rules in `docs/architecture.md` §9)
-- [ ] Compliance scoring + benchmark aggregation + nightly batch
+### Phase 11: KPI Engine & Abnormality Detection ✅
+- [x] `abnormality_detector.rs` — balance identity, roll-up reconciliation, confidence flags, portfolio sanity
+- [x] Auto-correct negative sign for codes 1251, 1252, 1304 (depreciation/provisions)
+- [x] `frontend/src/lib/kpi-calculations.ts` — full KPI library (financial + membership + savings + loan + FD)
 
-### Phase 12: Frontend Integration
-- [ ] Replace `lib/mock-data.ts` consumers with real hooks
-- [ ] Upload + AI-validation UI; per-tier review dashboards; offline sync queue
+### Phase 12: Frontend Integration ✅
+- [x] `FinancialStatementEditor.tsx` — real line items, confidence badges, inline editing, CoA dropdown
+- [x] `UploadFinancialStatement.tsx` — dropzone, polling, redirect on completion
+- [x] `SubmissionDetailPage.tsx` — full status, document viewer, section checklist, review history, tier actions
+- [x] `DataCollectionPage.tsx` — year selector, create submission, upload or manual entry, resume draft
 
-### Phase 13: Testing & Polish
-- [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow
+### Phase 13: Sprint 3 Epic 3 — AI Ingestion Completions ✅
+> **Completed 2026-07-14**
+
+- [x] **S3-T3 Backend** — `GET /api/v1/cooperative/chart-of-accounts` endpoint
+  - [x] `ChartOfAccountResponse` DTO + `From<CoaModel>` in `backend/src/api/dto/financial.rs`
+  - [x] `list_chart_of_accounts` handler in `backend/src/api/handlers/financial_statement.rs`
+  - [x] Wired to `cooperative_routes()` in `backend/src/api/routes/cooperative.rs`
+  - [x] Registered in `backend/src/api/openapi.rs` (paths + schemas)
+  - [x] `useChartOfAccounts()` + `useChartOfAccountsLeafs()` hooks in `frontend/src/hooks/submissions/useFinancialStatement.ts`
+  - [x] `FinancialStatementEditor` now uses live CoA from backend (falls back to static while loading)
+
+- [x] **S3-T2 Backend: AI Prompt Accuracy** — `backend/src/services/ai_extraction.rs`
+  - [x] **RULE 1** — Parent vs Child code: explicit examples, formula-code = parent rule
+  - [x] **RULE 2** — Negative values: 1251, 1252, 1304 always negative; parentheses = negative
+  - [x] **RULE 3** — Confidence calibration: 1.0/0.85/0.70/0.50/0.30/0.0 scale (not always 0.95)
+  - [x] **RULE 4** — Monthly data: month=1–12 extraction from multi-column sheets
+  - [x] **RULE 5** — Excel table structure: column/row structure preserved before LLM call
+  - [x] **RULE 6** — Completeness reminder: 25–40 items, don't skip any row
+  - [x] Comprehensive label→code mapping table (50+ explicit mappings)
+  - [x] `totals_reconciliation` instruction added to prompt
+
+- [x] **S3-T2 Backend: Excel Extractor** — `extract_excel_text()` rewritten
+  - [x] Detects month/period column headers (Jan/Feb/... or numeric 1–12)
+  - [x] Structured mode: emits `| Label | Col1 | Col2 | ... |` for multi-column sheets
+  - [x] Simple mode: `Label: value` pairs for single-value sheets
+  - [x] `cell_to_str()` helper avoids scientific notation for financial values
+
+- [x] **S3-T2 Backend: Abnormality Detector auto-correct** — `backend/src/services/abnormality_detector.rs`
+  - [x] Codes 1251, 1252, 1304 auto-negated if AI stored them as positive
+  - [x] Re-fetches line items after correction so all subsequent checks see fixed values
+
+- [x] **S3-T1 Frontend** — `frontend/src/pages/cooperative/DataCollectionPage.tsx` fully rewritten
+  - [x] Step 1: Year selector (current, -1, -2) + currency selector
+  - [x] Step 2: Upload card (UploadFinancialStatementWidget) OR Manual entry card side-by-side
+  - [x] Draft detection: resumes existing draft instead of creating duplicate
+  - [x] 409 conflict handling: graceful redirect to existing submission
+  - [x] Recent submissions list for quick resume
+  - [x] `useCreateSubmission` already existed in `useSubmissions.ts` — wired correctly
+
+- [x] **Bug fix** — `useDeleteFinancialStatement` was using a path not in the generated client types
+  - [x] Replaced with raw `fetch()` call using `getAccessToken()` (avoids stale types)
+
+- [x] **Bug fix** — `SubmissionDetailPage` was using `submission.file_id` which doesn't exist on the type
+  - [x] Fixed to use `extractionJob?.source_file_id` instead
+
+- [x] **Verification**
+  - [x] `cargo check` — 0 errors, 0 warnings
+  - [x] `tsc --noEmit --skipLibCheck` — 0 errors
 
 ---
 

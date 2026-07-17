@@ -9,6 +9,7 @@ pub mod object_storage;
 pub mod submission_workflow;
 pub mod verification_token;
 
+pub use ai_extraction::{Extractor, NfHeaderMapper};
 pub use audit::AuditService;
 pub use cache::CacheService;
 pub use keycloak::KeycloakService;
