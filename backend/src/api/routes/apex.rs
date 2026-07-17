@@ -19,6 +19,11 @@ pub fn apex_routes() -> Router<AppState> {
     Router::new()
         .route("/profile", get(handlers::cooperative::get_apex_profile))
         .route("/stats", get(handlers::submission::get_apex_stats))
+        // Bulk export
+        .route(
+            "/submissions/export",
+            get(handlers::financial_statement::export_apex_submissions),
+        )
         .route(
             "/cooperatives",
             post(handlers::cooperative::create_cooperative)
@@ -83,5 +88,10 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/submissions/{submission_id}/files/{file_id}",
             get(serve_uploaded_file),
+        )
+        // KPI computation for a specific submission (used in deep-dive analytics)
+        .route(
+            "/submissions/{id}/kpis",
+            get(handlers::financial_statement::get_submission_kpis),
         )
 }
