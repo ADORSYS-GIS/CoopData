@@ -78,7 +78,7 @@ enum StorageBackend {
 }
 
 impl ObjectStorageService {
-    pub fn new(config: &AppConfig) -> AppResult<Self> {
+    pub async fn new(config: &AppConfig) -> AppResult<Self> {
         if config.storage_type == "s3" {
             let region = s3::Region::Custom {
                 region: config.s3_region.clone(),
@@ -92,6 +92,40 @@ impl ObjectStorageService {
                 None,
             )
             .map_err(|e| AppError::ExternalServiceError(format!("S3 credentials error: {}", e)))?;
+
+            // Auto-create the S3/MinIO bucket if it does not exist
+            let bucket_config = s3::BucketConfiguration::default();
+            match s3::Bucket::create_with_path_style(
+                &config.s3_bucket,
+                region.clone(),
+                credentials.clone(),
+                bucket_config,
+            )
+            .await
+            {
+                Ok(_) => {
+                    tracing::info!("S3 bucket '{}' created successfully", config.s3_bucket);
+                }
+                Err(e) => {
+                    let err_str = e.to_string();
+                    if err_str.contains("BucketAlreadyExists")
+                        || err_str.contains("BucketAlreadyOwnedByYou")
+                        || err_str.contains("409")
+                    {
+                        tracing::info!(
+                            "S3 bucket '{}' already exists or owned by you, proceeding",
+                            config.s3_bucket
+                        );
+                    } else {
+                        tracing::warn!(
+                            "Could not auto-create S3 bucket '{}': {}. Proceeding anyway...",
+                            config.s3_bucket,
+                            err_str
+                        );
+                    }
+                }
+            }
+
             let bucket = s3::Bucket::new(&config.s3_bucket, region, credentials)
                 .map_err(|e| AppError::ExternalServiceError(format!("S3 bucket error: {}", e)))?;
             let bucket = bucket.with_path_style();

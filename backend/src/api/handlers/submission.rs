@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Extension, Json,
@@ -319,9 +319,7 @@ pub async fn validate_extraction(
         state.flag_repo.clone(),
         state.coa_repo.clone(),
     );
-    let (errors, warnings) = detector
-        .run(id, coop.id, fs.id, &coa, coop_type)
-        .await?;
+    let (errors, warnings) = detector.run(id, coop.id, fs.id, &coa, coop_type).await?;
 
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
     state
@@ -458,7 +456,9 @@ pub async fn list_apex_submissions(
         .filter(|s| s.status != SubmissionStatus::Draft)
         .map(|s| {
             let name = coop_map.get(&s.cooperative_id).cloned();
-            SubmissionResponse::from(s).with_cooperative_name(name)
+            SubmissionResponse::from(s)
+                .with_cooperative_name(name)
+                .with_apex_id(Some(apex_db_id))
         })
         .collect::<Vec<_>>();
 
@@ -705,9 +705,15 @@ pub async fn apex_return_submission(
 
 // ── Review handlers (Federation) ─────────────────────────────────────────────
 
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+pub struct SubmissionsQuery {
+    pub all: Option<bool>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/federation/submissions",
+    params(SubmissionsQuery),
     responses(
         (status = 200, description = "Submissions for federation review", body = Vec<SubmissionResponse>),
         (status = 403, description = "Forbidden")
@@ -717,6 +723,7 @@ pub async fn apex_return_submission(
 pub async fn list_federation_submissions(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<SubmissionsQuery>,
 ) -> AppResult<impl IntoResponse> {
     let org_id = claims.get_organization_id().ok_or_else(|| {
         AppError::Forbidden("Federation user has no organization associated".into())
@@ -732,7 +739,7 @@ pub async fn list_federation_submissions(
 
     let mut coop_ids: Vec<Uuid> = vec![];
     let mut coop_map: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
-    let mut apex_map: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
+    let mut apex_map: std::collections::HashMap<Uuid, (Uuid, String)> = std::collections::HashMap::new();
     for apex in &apexes {
         let apex_name = if apex.display_name.is_empty() {
             apex.organization_keycloak_id.clone()
@@ -747,26 +754,42 @@ pub async fn list_federation_submissions(
                 c.display_name.clone()
             };
             coop_map.insert(c.id, coop_name);
-            apex_map.insert(c.id, apex_name.clone());
+            apex_map.insert(c.id, (apex.id, apex_name.clone()));
             coop_ids.push(c.id);
         }
     }
 
-    let subs = state
-        .submission_repo
-        .find_by_cooperative_ids_and_tier(coop_ids, crate::entities::enums::ReviewTier::Federation)
-        .await?
+    let subs = if query.all.unwrap_or(false) {
+        state
+            .submission_repo
+            .find_by_cooperative_ids(coop_ids)
+            .await?
+            .into_iter()
+            .filter(|s| s.status != crate::entities::enums::SubmissionStatus::Draft)
+            .collect::<Vec<_>>()
+    } else {
+        state
+            .submission_repo
+            .find_by_cooperative_ids_and_tier(coop_ids, crate::entities::enums::ReviewTier::Federation)
+            .await?
+    };
+
+    let subs_mapped = subs
         .into_iter()
         .map(|s| {
             let name = coop_map.get(&s.cooperative_id).cloned();
-            let apex = apex_map.get(&s.cooperative_id).cloned();
+            let apex_info = apex_map.get(&s.cooperative_id);
+            let apex_name = apex_info.map(|x| x.1.clone());
+            let apex_id = apex_info.map(|x| x.0);
             SubmissionResponse::from(s)
                 .with_cooperative_name(name)
-                .with_apex_name(apex)
+                .with_apex_name(apex_name)
+                .with_apex_id(apex_id)
+                .with_federation_id(Some(federation.id))
         })
         .collect::<Vec<_>>();
 
-    Ok((StatusCode::OK, Json(subs)))
+    Ok((StatusCode::OK, Json(subs_mapped)))
 }
 
 #[utoipa::path(
@@ -846,6 +869,7 @@ pub async fn federation_return_submission(
 #[utoipa::path(
     get,
     path = "/api/v1/ministry/submissions",
+    params(SubmissionsQuery),
     responses(
         (status = 200, description = "Submissions for ministry review", body = Vec<SubmissionResponse>),
         (status = 403, description = "Forbidden")
@@ -854,11 +878,16 @@ pub async fn federation_return_submission(
 )]
 pub async fn list_ministry_submissions(
     State(state): State<AppState>,
+    Query(query): Query<SubmissionsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let subs = state
-        .submission_repo
-        .find_by_tier(crate::entities::enums::ReviewTier::Ministry)
-        .await?;
+    let subs = if query.all.unwrap_or(false) {
+        state.submission_repo.find_all_non_draft().await?
+    } else {
+        state
+            .submission_repo
+            .find_by_tier(crate::entities::enums::ReviewTier::Ministry)
+            .await?
+    };
 
     let coop_ids: Vec<Uuid> = subs.iter().map(|s| s.cooperative_id).collect();
     let coops = state
@@ -939,10 +968,17 @@ pub async fn list_ministry_submissions(
             let name = coop_map.get(&s.cooperative_id).cloned();
             let apex = coop_to_apex.get(&s.cooperative_id).cloned();
             let federation = coop_to_federation.get(&s.cooperative_id).cloned();
+            
+            let coop = coops.iter().find(|c| c.id == s.cooperative_id);
+            let apex_id = coop.map(|c| c.apex_id);
+            let federation_id = apex_id.and_then(|a_id| apex_to_fed_id.get(&a_id)).cloned();
+
             SubmissionResponse::from(s)
                 .with_cooperative_name(name)
                 .with_apex_name(apex)
                 .with_federation_name(federation)
+                .with_apex_id(apex_id)
+                .with_federation_id(federation_id)
         })
         .collect::<Vec<_>>();
 
@@ -1178,6 +1214,61 @@ pub async fn delete_submission(
 
 // ── Stats handlers ────────────────────────────────────────────────────────────
 
+/// Compute average PAR30 and CAR from a list of approved submission IDs.
+/// Returns (average_par30, average_car) — None if no data.
+pub async fn compute_average_kpis(
+    state: &AppState,
+    submission_ids: Vec<Uuid>,
+) -> (Option<f64>, Option<f64>) {
+    if submission_ids.is_empty() {
+        return (None, None);
+    }
+
+    let all_fs = match state
+        .financial_statement_repo
+        .find_by_submission_ids(submission_ids)
+        .await
+    {
+        Ok(fs) => fs,
+        Err(_) => return (None, None),
+    };
+
+    let mut par30_values: Vec<f64> = Vec::new();
+    let mut car_values: Vec<f64> = Vec::new();
+
+    for fs in &all_fs {
+        let line_items = match state.line_item_repo.find_by_financial_statement(fs.id).await {
+            Ok(items) => items,
+            Err(_) => continue,
+        };
+        if line_items.is_empty() {
+            continue;
+        }
+
+        let kpi_set = crate::services::KpiEngine::compute(&line_items);
+
+        if let Some(kpi) = kpi_set.get_by_name("par30") {
+            par30_values.push(kpi.value);
+        }
+        if let Some(kpi) = kpi_set.get_by_name("capital_adequacy_ratio") {
+            car_values.push(kpi.value);
+        }
+    }
+
+    let avg_par30 = if par30_values.is_empty() {
+        None
+    } else {
+        Some(par30_values.iter().sum::<f64>() / par30_values.len() as f64)
+    };
+    let avg_car = if car_values.is_empty() {
+        None
+    } else {
+        Some(car_values.iter().sum::<f64>() / car_values.len() as f64)
+    };
+
+    (avg_par30, avg_car)
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/apex/stats",
@@ -1220,6 +1311,15 @@ pub async fn get_apex_stats(
         .filter(|s| s.status == SubmissionStatus::Rejected)
         .count() as u64;
 
+    // Compute average PAR30 and CAR from approved submissions
+    let approved_sub_ids: Vec<Uuid> = subs
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .map(|s| s.id)
+        .collect();
+
+    let (average_par30, average_car) = compute_average_kpis(&state, approved_sub_ids).await;
+
     Ok((
         StatusCode::OK,
         Json(ApexStatsResponse {
@@ -1227,6 +1327,8 @@ pub async fn get_apex_stats(
             pending_submissions,
             approved_submissions,
             rejected_submissions,
+            average_par30,
+            average_car,
         }),
     ))
 }

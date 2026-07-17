@@ -101,6 +101,14 @@ pub fn ministry_routes() -> Router<AppState> {
             post(crate::api::handlers::submission::ministry_reject_submission),
         )
         .route(
+            "/submissions/{id}/export",
+            get(crate::api::handlers::export::export_single_submission),
+        )
+        .route(
+            "/export",
+            get(crate::api::handlers::export::export_bulk_consolidated),
+        )
+        .route(
             "/submissions/{submission_id}/files/{file_id}",
             get(serve_uploaded_file),
         )
@@ -119,5 +127,15 @@ pub fn ministry_routes() -> Router<AppState> {
         .route(
             "/non-financial-indicators/consolidate",
             get(crate::api::handlers::non_financial_indicator::consolidate_indicator),
+        )
+        // Dashboard stats
+        .route(
+            "/stats",
+            get(crate::api::handlers::financial_statement::get_ministry_stats),
+        )
+        // Bulk export
+        .route(
+            "/submissions/export",
+            get(crate::api::handlers::financial_statement::export_ministry_submissions),
         )
 }

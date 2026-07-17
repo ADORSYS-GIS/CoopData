@@ -94,13 +94,13 @@ test.describe("Cooperative user navigation", () => {
     await expect(page.getByRole("link", { name: /^Members$/ })).not.toBeVisible({ timeout: 10000 });
   });
 
-  test("should navigate to data collection via sidebar", async ({ page }) => {
+  test("should navigate to submissions via sidebar", async ({ page }) => {
     await page.goto("/app/dashboard");
     await page
-      .getByRole("link", { name: /Data Collection/ })
+      .getByRole("link", { name: /Submissions/ })
       .first()
       .click();
-    await expect(page).toHaveURL(/\/app\/data-collection/);
+    await expect(page).toHaveURL(/\/app\/submissions/);
   });
 
   test("should be denied access to federations page", async ({ page }) => {

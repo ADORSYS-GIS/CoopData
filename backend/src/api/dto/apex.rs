@@ -62,6 +62,10 @@ pub struct ApexStatsResponse {
     pub pending_submissions: u64,
     pub approved_submissions: u64,
     pub rejected_submissions: u64,
+    /// Average PAR30 across all cooperatives with approved submissions (None if no data)
+    pub average_par30: Option<f64>,
+    /// Average Capital Adequacy Ratio across all cooperatives with approved submissions
+    pub average_car: Option<f64>,
 }
 
 #[cfg(test)]

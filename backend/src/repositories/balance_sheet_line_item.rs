@@ -37,6 +37,22 @@ impl BalanceSheetLineItemRepository {
             .map_err(Into::into)
     }
 
+    pub async fn find_by_financial_statement_ids(
+        &self,
+        fs_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<balance_sheet_line_item::Model>> {
+        if fs_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        Entity::find()
+            .filter(Column::FinancialStatementId.is_in(fs_ids))
+            .order_by_asc(Column::Month)
+            .order_by_asc(Column::AccountCode)
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn create(&self, model: ActiveModel) -> AppResult<balance_sheet_line_item::Model> {
         model.insert(&self.db).await.map_err(Into::into)
     }

@@ -104,7 +104,10 @@ async fn run_pipeline_inner(
         tracing::warn!(error = %e, "Failed to load account aliases, proceeding without them");
         vec![]
     });
-    tracing::info!(alias_count = aliases.len(), "Loaded account aliases for extraction");
+    tracing::info!(
+        alias_count = aliases.len(),
+        "Loaded account aliases for extraction"
+    );
 
     // Stage 3 — mapping: LLM maps text to CoA line items
     job_repo
@@ -127,8 +130,10 @@ async fn run_pipeline_inner(
                 Err(e) => {
                     let msg = e.to_string();
                     // Don't retry on bad-input errors (4xx), only on transient failures
-                    let is_transient = !msg.contains("400") && !msg.contains("401")
-                        && !msg.contains("403") && !msg.contains("max_tokens");
+                    let is_transient = !msg.contains("400")
+                        && !msg.contains("401")
+                        && !msg.contains("403")
+                        && !msg.contains("max_tokens");
                     tracing::warn!(attempt, error = %msg, is_transient, "LLM mapping attempt failed");
                     if !is_transient || attempt == 3 {
                         last_err = Some(e);
@@ -142,9 +147,11 @@ async fn run_pipeline_inner(
             }
         }
         result.ok_or_else(|| {
-            last_err.unwrap_or_else(|| crate::error::AppError::InternalServerError(
-                "LLM mapping failed after 3 attempts".into(),
-            ))
+            last_err.unwrap_or_else(|| {
+                crate::error::AppError::InternalServerError(
+                    "LLM mapping failed after 3 attempts".into(),
+                )
+            })
         })?
     };
 
@@ -267,7 +274,13 @@ async fn run_pipeline_inner(
 
     let extracted_json = serde_json::to_value(&output).unwrap_or(serde_json::Value::Null);
     job_repo
-        .update_result(job_id, &raw_text, extracted_json, avg_confidence, &engine_name)
+        .update_result(
+            job_id,
+            &raw_text,
+            extracted_json,
+            avg_confidence,
+            &engine_name,
+        )
         .await?;
 
     job_repo
@@ -283,13 +296,22 @@ async fn run_pipeline_inner(
         .await?;
 
     // Stage 4 — validation: run full abnormality detection
-    let detector = AbnormalityDetector::new(line_item_repo.clone(), flag_repo.clone(), coa_repo.clone());
+    let detector =
+        AbnormalityDetector::new(line_item_repo.clone(), flag_repo.clone(), coa_repo.clone());
     let (errors, warnings) = detector
-        .run(submission_id, cooperative_id, fs.id, &coa, &cooperative_type)
+        .run(
+            submission_id,
+            cooperative_id,
+            fs.id,
+            &coa,
+            &cooperative_type,
+        )
         .await?;
 
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
-    fs_repo.set_validation_errors(fs.id, validation_json).await?;
+    fs_repo
+        .set_validation_errors(fs.id, validation_json)
+        .await?;
 
     if let Ok(Some(sec)) = section_repo
         .find_by_submission_and_section(submission_id, "financial")

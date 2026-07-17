@@ -1,22 +1,17 @@
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { Link } from "@tanstack/react-router";
 import {
-  COOPERATIVES as INITIAL_COOPERATIVES,
-  SUBMISSIONS as INITIAL_SUBMISSIONS,
-} from "@/lib/mock-data";
-import {
   Building2,
   Clock,
   CheckCircle2,
   XCircle,
-  MessageSquare,
   AlertTriangle,
-  Download,
   Filter,
   TrendingUp,
   BarChart3,
-  Loader2,
+  Download,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApexStats, useApexSubmissions } from "@/hooks/submissions/useSubmissions";
@@ -29,17 +24,7 @@ import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 // If approved, submission goes to Federation
 // Has dashboard, analytics, consolidated/individual reports
 // ─────────────────────────────────────────────────────────────────────
-export function ApexDashboard({
-  cooperatives: mockCooperatives,
-  setCooperatives,
-  submissions: mockSubmissions,
-  setSubmissions,
-}: {
-  cooperatives: typeof INITIAL_COOPERATIVES;
-  setCooperatives: React.Dispatch<React.SetStateAction<typeof INITIAL_COOPERATIVES>>;
-  submissions: typeof INITIAL_SUBMISSIONS;
-  setSubmissions: React.Dispatch<React.SetStateAction<typeof INITIAL_SUBMISSIONS>>;
-}) {
+export function ApexDashboard() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "verified" | "rejected">(
     "all",
   );
@@ -48,21 +33,10 @@ export function ApexDashboard({
   const { data: realSubmissions = [], isLoading: subsLoading } = useApexSubmissions();
   const { data: realCooperatives = [] } = useCooperatives();
 
-  void setCooperatives;
-  void setSubmissions;
-
   const pendingCount = stats?.pending_submissions ?? 0;
   const verifiedCount = stats?.approved_submissions ?? 0;
   const rejectedCount = stats?.rejected_submissions ?? 0;
   const totalCoops = stats?.total_cooperatives ?? realCooperatives.length;
-
-  const handleReviewAction = (
-    _id: string,
-    _coopName: string,
-    _action: "Verified" | "Rejected" | "Resubmit",
-  ) => {
-    toast.info("Review actions are available on the submission detail page");
-  };
 
   const filteredSubmissions = realSubmissions.filter((s) => {
     if (filterStatus === "all") return true;
@@ -118,8 +92,14 @@ export function ApexDashboard({
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statsLoading ? (
-            <div className="col-span-2 lg:col-span-4 flex items-center justify-center py-6">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <div className="col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-border bg-surface p-4 space-y-3">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-7 w-16" />
+                  <Skeleton className="h-2 w-24" />
+                </div>
+              ))}
             </div>
           ) : (
             <>
@@ -176,9 +156,24 @@ export function ApexDashboard({
           }
         >
           {subsLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-              <Loader2 className="size-6 mb-3 animate-spin" />
-              <p className="text-sm">Loading submissions…</p>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-10 rounded-full" />
+                      <Skeleton className="h-4 w-14 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-8 w-20 rounded-lg" />
+                </div>
+              ))}
             </div>
           ) : filteredSubmissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
@@ -189,9 +184,11 @@ export function ApexDashboard({
           ) : (
             <div className="space-y-3">
               {filteredSubmissions.slice(0, 8).map((sub) => (
-                <div
+                <Link
                   key={sub.id}
-                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4 card-edge hover-lift"
+                  to="/app/submissions/$id"
+                  params={{ id: sub.id }}
+                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4 card-edge hover-lift hover:border-primary/30 transition-all block"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -217,13 +214,9 @@ export function ApexDashboard({
 
                   {sub.status === "submitted" && (
                     <div className="flex items-center gap-2 shrink-0">
-                      <Link
-                        to="/app/submissions/$id"
-                        params={{ id: sub.id }}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1"
-                      >
+                      <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1">
                         <CheckCircle2 className="size-3.5" /> Review
-                      </Link>
+                      </div>
                     </div>
                   )}
 
@@ -250,7 +243,7 @@ export function ApexDashboard({
                       <AlertTriangle className="size-3.5" /> Changes Requested
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -280,76 +273,64 @@ export function ApexDashboard({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {realCooperatives.length > 0
-                  ? realCooperatives.slice(0, 6).map((coop) => (
-                      <tr key={coop.id} className="transition-colors hover:bg-muted/40">
-                        <td className="px-5 py-3 font-semibold">{coop.name}</td>
-                        <td className="px-5 py-3 text-muted-foreground">
-                          {coop.institution_type ?? "—"}
-                        </td>
-                        <td className="px-5 py-3 text-muted-foreground">{coop.region ?? "—"}</td>
-                        <td className="px-5 py-3">
-                          <span className="text-xs font-semibold text-success">Active</span>
-                        </td>
-                      </tr>
-                    ))
-                  : mockCooperatives.slice(0, 6).map((coop) => (
-                      <tr key={coop.id} className="transition-colors hover:bg-muted/40">
-                        <td className="px-5 py-3 font-semibold">{coop.name}</td>
-                        <td className="px-5 py-3 text-muted-foreground">{coop.sector}</td>
-                        <td className="px-5 py-3 text-muted-foreground">{coop.region}</td>
-                        <td className="px-5 py-3">
-                          <span
-                            className={`text-xs font-semibold ${
-                              coop.status === "Active"
-                                ? "text-success"
-                                : coop.status === "Suspended"
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
-                            }`}
-                          >
-                            {coop.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                {realCooperatives.length > 0 ? (
+                  realCooperatives.slice(0, 6).map((coop) => (
+                    <tr key={coop.id} className="transition-colors hover:bg-muted/40">
+                      <td className="px-5 py-3 font-semibold">{coop.name}</td>
+                      <td className="px-5 py-3 text-muted-foreground">
+                        {coop.institution_type ?? "—"}
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground">{coop.region ?? "—"}</td>
+                      <td className="px-5 py-3">
+                        <span className="text-xs font-semibold text-success">Active</span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                      <p className="text-sm font-semibold">No cooperatives yet</p>
+                      <p className="text-xs mt-1">Add a cooperative to get started.</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </Card>
 
-        {/* Quick Stats Cards — mock data for metrics without real endpoints */}
+        {/* ── Summary Stats (real data) ── */}
         <div className="grid md:grid-cols-3 gap-4">
-          <Card title="Compliance Rate" subtitle="Cooperatives in good standing">
+          <Card title="Approval Rate" subtitle="Approved vs total submissions">
             <div className="flex items-center gap-4 pt-2">
-              <div className="text-4xl font-bold text-success">87%</div>
-              <div className="text-xs text-muted-foreground">
-                <p>7 of {totalCoops} cooperatives verified</p>
-                <p className="mt-1 flex items-center gap-1 text-success">
-                  <TrendingUp className="size-3" /> +3.2% from last quarter
-                </p>
+              <div className="text-4xl font-bold text-success num">
+                {realSubmissions.length > 0
+                  ? `${((verifiedCount / realSubmissions.length) * 100).toFixed(0)}%`
+                  : "—"}
               </div>
-            </div>
-          </Card>
-          <Card title="Submissions This Month" subtitle="Data returns received">
-            <div className="flex items-center gap-4 pt-2">
-              <div className="text-4xl font-bold text-accent">{realSubmissions.length}</div>
               <div className="text-xs text-muted-foreground">
-                <p>Total submissions processed</p>
+                <p>
+                  {verifiedCount} of {realSubmissions.length} submissions approved
+                </p>
                 <p className="mt-1">{pendingCount} still pending review</p>
               </div>
             </div>
           </Card>
-          <Card title="Total Membership" subtitle="Across all cooperatives">
+          <Card title="Submissions" subtitle="All data returns received">
             <div className="flex items-center gap-4 pt-2">
-              <div className="text-4xl font-bold">
-                {(mockCooperatives.reduce((sum, c) => sum + c.members, 0) / 1000).toFixed(1)}K
-              </div>
+              <div className="text-4xl font-bold text-accent num">{realSubmissions.length}</div>
               <div className="text-xs text-muted-foreground">
-                <p>Registered cooperative members</p>
-                <p className="mt-1 flex items-center gap-1 text-success">
-                  <TrendingUp className="size-3" /> +5.8% growth
-                </p>
+                <p>Total submissions processed</p>
+                <p className="mt-1">{rejectedCount} rejected or returned</p>
+              </div>
+            </div>
+          </Card>
+          <Card title="Cooperatives" subtitle="Under this apex">
+            <div className="flex items-center gap-4 pt-2">
+              <div className="text-4xl font-bold num">{totalCoops}</div>
+              <div className="text-xs text-muted-foreground">
+                <p>Registered cooperatives</p>
+                <p className="mt-1">Analytics available in Analytics tab</p>
               </div>
             </div>
           </Card>

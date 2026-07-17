@@ -124,17 +124,27 @@ function getFlagExplanation(rule: string) {
     rule.toUpperCase().includes(k.replace(/_/g, " ").split(" ")[0]),
   );
   // Try direct prefix matches for known rule patterns
-  if (rule.includes("TOTAL_MISMATCH") || rule.includes("sum of")) return FLAG_EXPLANATIONS.TOTAL_MISMATCH;
-  if (rule.includes("BALANCE") || rule.includes("equation")) return FLAG_EXPLANATIONS.BALANCE_UNBALANCED;
-  if (rule.includes("MISSING_ACCOUNT") || rule.includes("missing")) return FLAG_EXPLANATIONS.MISSING_DATA;
-  if (rule.includes("LIQUIDITY_CRISIS") || rule.includes("Liquidity crisis")) return FLAG_EXPLANATIONS.LIQUIDITY_CRISIS;
-  if (rule.includes("LOW_LIQUIDITY") || rule.includes("10% minimum")) return FLAG_EXPLANATIONS.LOW_LIQUIDITY;
-  if (rule.includes("CASH_TOO_LOW") || rule.includes("Dangerously low")) return FLAG_EXPLANATIONS.CASH_TOO_LOW;
-  if (rule.includes("STATUTORY") || rule.includes("statutory")) return FLAG_EXPLANATIONS.STATUTORY_RESERVE_MISSING;
-  if (rule.includes("LEVERAGE") || rule.includes("Debt-to-Equity")) return FLAG_EXPLANATIONS.HIGH_LEVERAGE;
-  if (rule.includes("LOW_PROFITABILITY") || rule.includes("ROA")) return FLAG_EXPLANATIONS.LOW_PROFITABILITY;
+  if (rule.includes("TOTAL_MISMATCH") || rule.includes("sum of"))
+    return FLAG_EXPLANATIONS.TOTAL_MISMATCH;
+  if (rule.includes("BALANCE") || rule.includes("equation"))
+    return FLAG_EXPLANATIONS.BALANCE_UNBALANCED;
+  if (rule.includes("MISSING_ACCOUNT") || rule.includes("missing"))
+    return FLAG_EXPLANATIONS.MISSING_DATA;
+  if (rule.includes("LIQUIDITY_CRISIS") || rule.includes("Liquidity crisis"))
+    return FLAG_EXPLANATIONS.LIQUIDITY_CRISIS;
+  if (rule.includes("LOW_LIQUIDITY") || rule.includes("10% minimum"))
+    return FLAG_EXPLANATIONS.LOW_LIQUIDITY;
+  if (rule.includes("CASH_TOO_LOW") || rule.includes("Dangerously low"))
+    return FLAG_EXPLANATIONS.CASH_TOO_LOW;
+  if (rule.includes("STATUTORY") || rule.includes("statutory"))
+    return FLAG_EXPLANATIONS.STATUTORY_RESERVE_MISSING;
+  if (rule.includes("LEVERAGE") || rule.includes("Debt-to-Equity"))
+    return FLAG_EXPLANATIONS.HIGH_LEVERAGE;
+  if (rule.includes("LOW_PROFITABILITY") || rule.includes("ROA"))
+    return FLAG_EXPLANATIONS.LOW_PROFITABILITY;
   if (rule.includes("NPL") || rule.includes("Non-performing")) return FLAG_EXPLANATIONS.NPL_HIGH;
-  if (rule.includes("PROVISION") || rule.includes("provision")) return FLAG_EXPLANATIONS.UNDER_PROVISIONING;
+  if (rule.includes("PROVISION") || rule.includes("provision"))
+    return FLAG_EXPLANATIONS.UNDER_PROVISIONING;
   if (rule.includes("EQUITY") || rule.includes("equity")) return FLAG_EXPLANATIONS.LOW_EQUITY;
   return FLAG_EXPLANATIONS.DEFAULT;
 }
@@ -167,8 +177,7 @@ function FlagRow({
         ? "text-warning-foreground"
         : "text-muted-foreground";
 
-  const Icon =
-    severity === "error" ? AlertCircle : severity === "warning" ? AlertTriangle : Info;
+  const Icon = severity === "error" ? AlertCircle : severity === "warning" ? AlertTriangle : Info;
 
   return (
     <div className={`rounded-xl border ${colorCls}`}>
@@ -360,12 +369,23 @@ export const FinancialStatementEditor: React.FC<{
   // Live CoA from backend — same data the LLM uses, sorted by display_order
   const { data: liveCoaLeafs = [] } = useChartOfAccountsLeafs();
   // Build a live lookup map; fall back to static map while hook is loading
-  const COA_BY_CODE = liveCoaLeafs.length > 0
-    ? new Map(liveCoaLeafs.map((c) => [c.account_code, { code: c.account_code, name: c.account_name, category: c.account_category }]))
-    : STATIC_COA_BY_CODE;
-  const COA_OPTIONS = liveCoaLeafs.length > 0
-    ? liveCoaLeafs.map((c) => ({ code: c.account_code, name: c.account_name, category: c.account_category }))
-    : STATIC_COA_OPTIONS;
+  const COA_BY_CODE =
+    liveCoaLeafs.length > 0
+      ? new Map(
+          liveCoaLeafs.map((c) => [
+            c.account_code,
+            { code: c.account_code, name: c.account_name, category: c.account_category },
+          ]),
+        )
+      : STATIC_COA_BY_CODE;
+  const COA_OPTIONS =
+    liveCoaLeafs.length > 0
+      ? liveCoaLeafs.map((c) => ({
+          code: c.account_code,
+          name: c.account_name,
+          category: c.account_category,
+        }))
+      : STATIC_COA_OPTIONS;
 
   // Inline value editing
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
@@ -461,66 +481,6 @@ export const FinancialStatementEditor: React.FC<{
 
   return (
     <div className="space-y-4">
-      {/* Section status panel */}
-      {sections.length > 0 && (
-        <Card
-          title="Submission Sections"
-          subtitle={`${sections.filter((s) => s.status === "ready").length}/${sections.length} sections ready`}
-        >
-          <div className="space-y-2">
-            {sections.map((sec) => (
-              <div
-                key={sec.id}
-                className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-              >
-                <div className="flex items-center gap-2.5">
-                  <SectionIcon status={sec.status} />
-                  <span className="text-sm font-medium">
-                    {SECTION_LABELS[sec.section] ?? sec.section}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusPill
-                    tone={
-                      sec.status === "ready"
-                        ? "success"
-                        : sec.status === "in_progress"
-                          ? "warning"
-                          : "neutral"
-                    }
-                  >
-                    {sec.status === "ready"
-                      ? "Ready"
-                      : sec.status === "in_progress"
-                        ? "In Progress"
-                        : "Pending"}
-                  </StatusPill>
-                  {sec.section === "financial" && sec.status !== "ready" && isDraft && (
-                    <button
-                      onClick={handleMarkFinancialReady}
-                      disabled={updateSection.isPending || hasErrors}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50 transition-colors"
-                    >
-                      {updateSection.isPending ? (
-                        <Loader2 className="size-3 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="size-3" />
-                      )}
-                      Mark Ready
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {!allReady && isDraft && (
-              <p className="text-xs text-muted-foreground pt-1">
-                All sections must be ready before submitting to Apex.
-              </p>
-            )}
-          </div>
-        </Card>
-      )}
-
       {/* Validation panel */}
       {(validationErrors.length > 0 || validationWarnings.length > 0) && (
         <ValidationPanel
@@ -532,68 +492,51 @@ export const FinancialStatementEditor: React.FC<{
         />
       )}
 
-      {/* Action bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        {isDraft && validationErrors.length === 0 && validationWarnings.length === 0 && (
-          <button
-            onClick={handleValidate}
-            disabled={validate.isPending}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
-          >
-            {validate.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-            Re-validate
-          </button>
-        )}
-        {isDraft && (
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit || submit.isPending}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-          >
-            {submit.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Send className="size-4" />
-            )}
-            Submit to Apex
-          </button>
-        )}
-        {isDraft && (
-          <button
-            onClick={handleDelete}
-            disabled={deleteSubmission.isPending}
-            title="Permanently delete this draft submission and all its data"
-            className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-          >
-            {deleteSubmission.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Trash2 className="size-4" />
-            )}
-            Delete Draft
-          </button>
-        )}
-        {hasErrors && isDraft && (
-          <p className="text-xs text-destructive">
-            Resolve {validationErrors.length} error(s) before submitting
-          </p>
-        )}
-        {!hasErrors && !allReady && sections.length > 0 && isDraft && (
-          <p className="text-xs text-muted-foreground">
-            <Lock className="size-3 inline mr-1" />
-            {sections.filter((s) => s.status !== "ready").length} section(s) not ready
-          </p>
-        )}
-      </div>
-
       {/* Line items grid */}
       <Card
         title={`Financial Statement — ${fs?.reporting_year ?? ""}`}
         subtitle={`${items.length} items · ${items.filter((i) => !i.account_code).length} unmapped · ${items.filter((i) => (i.ai_confidence ?? 1) < 0.6).length} low confidence`}
+        action={
+          isDraft ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleValidate}
+                disabled={validate.isPending}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
+              >
+                {validate.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-3.5" />
+                )}
+                Re-validate
+              </button>
+
+              {financialSection && financialSection.status !== "ready" && (
+                <button
+                  onClick={handleMarkFinancialReady}
+                  disabled={updateSection.isPending || hasErrors}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  title={hasErrors ? "Resolve errors before marking ready" : ""}
+                >
+                  {updateSection.isPending ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="size-3.5" />
+                  )}
+                  Mark Section Ready
+                </button>
+              )}
+
+              {financialSection && financialSection.status === "ready" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-bold text-success">
+                  <CheckCircle2 className="size-3.5" />
+                  Section Ready
+                </span>
+              )}
+            </div>
+          ) : undefined
+        }
       >
         {itemsLoading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
