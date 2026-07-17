@@ -380,10 +380,46 @@ export const SubmissionDetailPage: React.FC = () => {
   const ministryReject = useMinistryReject();
   const [reviewComment, setReviewComment] = useState("");
   const [nfResult, setNfResult] = useState<NfUploadResponse | null>(null);
+  const [activeTab, setActiveTab] = useState("financial");
+  const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
   const { data: reviews } = useSubmissionReviews(id);
+
+  const params = { submission_id: id ?? "", page: 1, page_size: 1 };
+  const { data: membersData } = useMembers(id ? params : undefined);
+  const { data: savingsData } = useSavings(id ? params : undefined);
+  const { data: loansData } = useLoans(id ? params : undefined);
+  const { data: fdsData } = useFixedDeposits(id ? params : undefined);
+  const { data: farmCoopsData } = useFarmCoops(id ? params : undefined);
+
+  const hasUploadedData = (sectionKey: string): boolean => {
+    if (sectionKey === "financial") {
+      return !!submission?.financial_statement_id;
+    }
+    if (sectionKey === "indicators") {
+      return true;
+    }
+    if (sectionKey === "members") {
+      return (membersData?.total ?? 0) > 0 || (membersData?.data?.length ?? 0) > 0;
+    }
+    if (sectionKey === "savings") {
+      return (savingsData?.total ?? 0) > 0 || (savingsData?.data?.length ?? 0) > 0;
+    }
+    if (sectionKey === "loans") {
+      return (loansData?.total ?? 0) > 0 || (loansData?.data?.length ?? 0) > 0;
+    }
+    if (sectionKey === "fixed_deposits") {
+      return (fdsData?.total ?? 0) > 0 || (fdsData?.data?.length ?? 0) > 0;
+    }
+    if (sectionKey === "farm_coop") {
+      return (farmCoopsData?.total ?? 0) > 0 || (farmCoopsData?.data?.length ?? 0) > 0;
+    }
+    return false;
+  };
 
   const isExtracting =
     extractionJob && !["succeeded", "failed", "partial"].includes(extractionJob.status);
+
+  const updateSection = useUpdateSubmissionSection(id ?? "");
 
   if (!role) return null;
 
@@ -392,6 +428,12 @@ export const SubmissionDetailPage: React.FC = () => {
   const isCooperative = role === "cooperative";
   const allReady = sections?.every((s) => s.status === "ready") ?? false;
   const canSubmit = isDraft && allReady && isCooperative && !isExtracting;
+
+  const readyCount = sections?.filter((s) => s.status === "ready").length ?? 0;
+  const totalSectionsCount = sections?.length ?? 7;
+  const progressPercent = totalSectionsCount > 0 ? (readyCount / totalSectionsCount) * 100 : 0;
+  const remainingSections =
+    sections?.filter((s) => s.status !== "ready").map((s) => s.section.replace(/_/g, " ")) ?? [];
 
   const handleSubmit = async () => {
     if (!id) return;
@@ -441,14 +483,86 @@ export const SubmissionDetailPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
   };
 
+  const sectionMeta = [
+    {
+      key: "financial",
+      label: "Financial Statement",
+      description: "Upload and review audited financial statement",
+      tab: "financial",
+      icon: FileText,
+      pendingAction: "Upload File",
+      progressAction: "Review & Mark Ready",
+      readyAction: "View Statement",
+    },
+    {
+      key: "members",
+      label: "Membership Register",
+      description: "Register of active, youth, women, and rural members",
+      tab: "databases",
+      icon: Database,
+      pendingAction: "Upload Excel",
+      readyAction: "View Register",
+    },
+    {
+      key: "savings",
+      label: "Savings Ledger",
+      description: "Details of member savings accounts and frequencies",
+      tab: "databases",
+      icon: Database,
+      pendingAction: "Upload Excel",
+      readyAction: "View Savings",
+    },
+    {
+      key: "loans",
+      label: "Loan Book",
+      description: "Current loan status, balances, and risk classifications",
+      tab: "databases",
+      icon: Database,
+      pendingAction: "Upload Excel",
+      readyAction: "View Loans",
+    },
+    {
+      key: "fixed_deposits",
+      label: "Fixed Deposits",
+      description: "Term deposits, renewed accounts, and maturities",
+      tab: "databases",
+      icon: Database,
+      pendingAction: "Upload Excel",
+      readyAction: "View Deposits",
+    },
+    {
+      key: "farm_coop",
+      label: "Farm Cooperative Data",
+      description: "Production types, activities and compliance metrics",
+      tab: "databases",
+      icon: Database,
+      pendingAction: "Upload Excel",
+      readyAction: "View Farm Data",
+    },
+    {
+      key: "indicators",
+      label: "Non-Financial Indicators",
+      description: "Regulatory governance and operations indicators",
+      tab: "non-financial",
+      icon: BarChart3,
+      pendingAction: "Complete Ledger",
+      progressAction: "Complete Ledger",
+      readyAction: "View Ledger",
+    },
+  ];
+
   return (
-    <AppShell title="Submission Detail" subtitle="Upload data, validate, and submit to Apex">
-      <div className="mb-4">
+    <AppShell title="Submission Detail" subtitle="Review data, validate, and submit to Apex">
+      {/* Back nav */}
+      <div className="mb-6">
         <Link
           to="/app/submissions"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group"
         >
-          <ArrowLeft className="size-3.5" /> Back to Submissions
+          <div className="size-7 rounded-lg border border-border bg-surface grid place-items-center group-hover:border-border/80 group-hover:bg-muted transition-colors">
+            <ArrowLeft className="size-3.5" />
+          </div>
+          Back to Submissions
         </Link>
       </div>
 
@@ -469,105 +583,380 @@ export const SubmissionDetailPage: React.FC = () => {
 
       {submission && (
         <div className="space-y-5">
-          <Card
-            title={submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
-            subtitle={`Reporting year ${submission.reporting_year} · ${submission.current_tier} tier`}
-            action={
-              <StatusPill tone={statusTone(submission.status)}>
-                {statusLabel(submission.status)}
-              </StatusPill>
-            }
+          {/* ── Hero header ── */}
+          <div
+            className={`rounded-2xl border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden ${
+              submission.status === "approved"
+                ? "border-success/25"
+                : submission.status === "rejected"
+                  ? "border-destructive/25"
+                  : submission.status === "draft"
+                    ? "border-border"
+                    : "border-warning/25"
+            }`}
           >
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="size-3.5 shrink-0" />
-                {new Date(submission.created_at).toLocaleDateString()}
+            {/* Status top stripe */}
+            <div
+              className={`h-1 w-full ${
+                submission.status === "approved"
+                  ? "bg-success"
+                  : submission.status === "rejected"
+                    ? "bg-destructive"
+                    : submission.status === "draft"
+                      ? "bg-muted-foreground/20"
+                      : "bg-warning"
+              }`}
+            />
+            <div className="px-6 py-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="font-mono text-xl font-bold text-foreground tracking-tight">
+                      {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
+                    </h2>
+                    <StatusPill tone={statusTone(submission.status)}>
+                      {statusLabel(submission.status)}
+                    </StatusPill>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Reporting year{" "}
+                    <span className="font-semibold text-foreground">
+                      {submission.reporting_year}
+                    </span>
+                    {" · "}
+                    <span className="capitalize font-medium">{submission.current_tier}</span> tier
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 font-mono">
-                <Hash className="size-3.5 shrink-0" />
-                {submission.id.slice(0, 8)}
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="size-3.5 shrink-0" />
-                {submission.priority}
-              </div>
-              <div className="flex items-center gap-2">
-                <FileText className="size-3.5 shrink-0" />
-                <span className="capitalize">{submission.current_tier}</span>
+
+              {/* Metadata strip */}
+              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/40 pt-4 text-[12px] text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-muted-foreground/60" />
+                  <span>
+                    Created{" "}
+                    {new Date(submission.created_at).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="hidden sm:block h-3 w-px bg-border" />
+                <div className="flex items-center gap-1.5">
+                  <Hash className="size-3.5 text-muted-foreground/60" />
+                  <span className="font-mono text-foreground/80">{submission.id.slice(0, 8)}</span>
+                </div>
+                <div className="hidden sm:block h-3 w-px bg-border" />
+                <div className="flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-muted-foreground/60" />
+                  <span className="capitalize">{submission.priority} Priority</span>
+                </div>
+                <div className="hidden sm:block h-3 w-px bg-border" />
+                <div className="flex items-center gap-1.5">
+                  <FileText className="size-3.5 text-muted-foreground/60" />
+                  <span className="capitalize font-medium">{submission.current_tier} tier</span>
+                </div>
               </div>
             </div>
-          </Card>
+          </div>
 
+          {/* ── AI Extraction Banner — prominent and dismissable ── */}
           {isExtracting && (
-            <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
-              <Loader2 className="size-4 animate-spin text-accent shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">
-                  AI extraction in progress{" "}
-                  <span className="ml-2 text-xs text-muted-foreground font-normal">
-                    Status: {extractionJob?.status}
-                  </span>
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Parsing and mapping to Chart of Accounts…
-                </p>
+            <div className="relative overflow-hidden rounded-xl border border-accent/30 bg-accent/5 shimmer-bg">
+              <div className="relative flex items-start gap-4 px-5 py-4">
+                <div className="mt-0.5 shrink-0 flex size-10 items-center justify-center rounded-xl bg-accent/15 ring-1 ring-accent/25">
+                  <Loader2 className="size-5 animate-spin text-accent" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-foreground">
+                    AI is extracting your financial data
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                      <span className="size-1.5 rounded-full bg-accent animate-pulse" />
+                      {extractionJob?.status ?? "processing"}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Parsing the uploaded document and mapping values to the Chart of Accounts. This
+                    usually takes 15–30 seconds.
+                  </p>
+                  <div className="mt-3 h-1.5 w-full bg-accent/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent/60 rounded-full animate-pulse"
+                      style={{ width: "60%" }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {isCooperative && isDraft && (
-            <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-3">
-              {sections && sections.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {sections.map((s) => (
-                    <StatusPill key={s.section} tone={sectionStatusTone(s.status)}>
-                      {s.section.replace(/_/g, " ")} — {sectionStatusLabel(s.status)}
-                    </StatusPill>
-                  ))}
+            <div className="rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
+              {/* Card header */}
+              <div
+                className={`px-6 pt-5 pb-4 border-b border-border ${allReady ? "bg-success/5" : "bg-background"}`}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`size-9 rounded-xl grid place-items-center ${allReady ? "bg-success/15 text-success" : "bg-warning/10 text-warning-foreground"}`}
+                    >
+                      {allReady ? (
+                        <CheckCircle2 className="size-5" />
+                      ) : (
+                        <AlertCircle className="size-5" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-heading text-[14px] font-semibold text-foreground">
+                        Submission Readiness Center
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        All 7 sections must be marked{" "}
+                        <span className="font-semibold text-success">Ready</span> before submitting
+                        to the Apex
+                      </p>
+                    </div>
+                  </div>
+                  {/* Progress pill */}
+                  <div
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tabular-nums ${
+                      allReady ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {readyCount}/{totalSectionsCount} done
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 flex items-center gap-2 text-sm">
-                  {allReady ? (
-                    <>
-                      <CheckCircle2 className="size-4 text-success" />
-                      <span className="font-semibold text-success">
-                        All sections ready — you can submit
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="size-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        Complete all sections before submitting
-                      </span>
-                    </>
-                  )}
+
+                {/* Progress bar */}
+                <div className="mt-4">
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${
+                        allReady ? "bg-success pulse-glow-success" : "bg-accent"
+                      }`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
                 </div>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!canSubmit || submitMutation.isPending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  {submitMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
-                  Submit to Apex
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {deleteMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="size-4" />
-                  )}
-                  Delete Draft
-                </button>
+              </div>
+
+              {/* Section cards grid */}
+              <div className="p-5">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {sectionMeta.map((m, idx) => {
+                    const secObj = sections?.find((s) => s.section === m.key);
+                    const status = secObj?.status ?? "pending";
+                    const hasData = hasUploadedData(m.key);
+                    const isReady = status === "ready";
+                    const isInProgress = status === "in_progress" && hasData;
+                    const isPending =
+                      status === "pending" || (status === "in_progress" && !hasData);
+                    const Icon = m.icon;
+                    const isUpdatingThis = updateSection.isPending && updatingSectionKey === m.key;
+
+                    return (
+                      <div
+                        key={m.key}
+                        className={`group relative rounded-xl border p-4 transition-all duration-200 flex flex-col gap-3 ${
+                          isReady
+                            ? "border-success/25 bg-success/5 hover:border-success/40 hover:shadow-sm"
+                            : isInProgress
+                              ? "border-accent/25 bg-accent/5 hover:border-accent/40 hover:shadow-sm"
+                              : "border-border bg-muted/30 hover:border-border/80 hover:bg-muted/50"
+                        }`}
+                      >
+                        {/* Top row: icon + status + step number */}
+                        <div className="flex items-start justify-between">
+                          <div
+                            className={`size-9 rounded-lg grid place-items-center shrink-0 ${
+                              isReady
+                                ? "bg-success/15 text-success"
+                                : isInProgress
+                                  ? "bg-accent/15 text-accent"
+                                  : "bg-muted text-muted-foreground/70"
+                            }`}
+                          >
+                            {isReady ? (
+                              <CheckCircle2 className="size-4.5" />
+                            ) : (
+                              <Icon className="size-4.5" />
+                            )}
+                          </div>
+                          <span
+                            className={`step-bubble ${
+                              isReady
+                                ? "bg-success/15 text-success"
+                                : isInProgress
+                                  ? "bg-accent/10 text-accent"
+                                  : "bg-muted text-muted-foreground/50"
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                        </div>
+
+                        {/* Label + description */}
+                        <div className="flex-1">
+                          <h4
+                            className={`text-[12px] font-bold leading-snug ${
+                              isReady
+                                ? "text-success"
+                                : isInProgress
+                                  ? "text-foreground"
+                                  : "text-foreground/80"
+                            }`}
+                          >
+                            {m.label}
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                            {m.description}
+                          </p>
+                        </div>
+
+                        {/* Status badge + CTA */}
+                        <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-auto">
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide ${
+                              isReady
+                                ? "text-success"
+                                : isInProgress
+                                  ? "text-accent"
+                                  : "text-muted-foreground/70"
+                            }`}
+                          >
+                            <span
+                              className={`size-1.5 rounded-full ${
+                                isReady
+                                  ? "bg-success"
+                                  : isInProgress
+                                    ? "bg-accent animate-pulse"
+                                    : "bg-muted-foreground/40"
+                              }`}
+                            />
+                            {isReady ? "Ready" : isInProgress ? "In Progress" : "Pending"}
+                          </span>
+
+                          {isReady ? (
+                            <button
+                              onClick={() => {
+                                setActiveTab(m.tab);
+                                const el = document.getElementById("detail-tabs-list");
+                                if (el) el.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="text-[11px] font-semibold text-success hover:underline transition-colors"
+                            >
+                              View →
+                            </button>
+                          ) : isInProgress && m.key !== "financial" && m.key !== "indicators" ? (
+                            <button
+                              onClick={async () => {
+                                setUpdatingSectionKey(m.key);
+                                try {
+                                  await updateSection.mutateAsync({
+                                    section: m.key,
+                                    status: "ready",
+                                  });
+                                  toast.success(`${m.label} marked ready`);
+                                } catch (e) {
+                                  toast.error(e instanceof Error ? e.message : "Failed to update");
+                                } finally {
+                                  setUpdatingSectionKey(null);
+                                }
+                              }}
+                              disabled={updateSection.isPending}
+                              className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2.5 py-1 text-[11px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
+                            >
+                              {isUpdatingThis ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="size-3" />
+                              )}
+                              Mark Ready
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setActiveTab(m.tab);
+                                const el = document.getElementById("detail-tabs-list");
+                                if (el) el.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="text-[11px] font-semibold text-primary hover:underline transition-colors"
+                            >
+                              {isInProgress
+                                ? (m.progressAction ?? m.pendingAction)
+                                : m.pendingAction}{" "}
+                              →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer: remaining hint + actions */}
+                <div className="mt-5 pt-4 border-t border-border flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-sm min-w-0">
+                    {allReady ? (
+                      <>
+                        <CheckCircle2 className="size-4 text-success shrink-0" />
+                        <span className="font-semibold text-success text-xs sm:text-sm">
+                          All sections ready — you can submit now!
+                        </span>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="size-4 text-muted-foreground shrink-0" />
+                          <span className="text-muted-foreground text-xs font-semibold">
+                            Complete all sections to enable submission
+                          </span>
+                        </div>
+                        {remainingSections.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground/70 pl-6 capitalize">
+                            Remaining: {remainingSections.join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {deleteMutation.isPending ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                      Delete Draft
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={!canSubmit || submitMutation.isPending}
+                      title={
+                        !allReady ? "Please mark all 7 sections as ready to submit" : undefined
+                      }
+                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all shadow-sm ${
+                        canSubmit
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md"
+                          : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                      }`}
+                    >
+                      {submitMutation.isPending ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Send className="size-4" />
+                      )}
+                      Submit to Apex
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -623,33 +1012,59 @@ export const SubmissionDetailPage: React.FC = () => {
             )}
 
           {reviews && reviews.length > 0 && (
-            <Card title="Review History" subtitle="Actions recorded for this submission">
-              <div className="space-y-3">
-                {reviews.map((r) => (
+            <Card title="Review History" subtitle="Audit trail for this submission">
+              <div className="space-y-0">
+                {reviews.map((r, idx) => (
                   <div
                     key={r.id}
-                    className="flex gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5"
+                    className={`flex gap-4 ${idx < reviews.length - 1 ? "pb-4" : ""}`}
                   >
-                    <div className="shrink-0 mt-0.5">
-                      {r.action === "approve" ? (
-                        <CheckCircle2 className="size-4 text-success" />
-                      ) : r.action === "reject" ? (
-                        <XCircle className="size-4 text-destructive" />
-                      ) : (
-                        <ArrowLeft className="size-4 text-warning" />
+                    {/* Timeline rail */}
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`size-8 rounded-full grid place-items-center shrink-0 ring-2 ring-background ${
+                          r.action === "approve"
+                            ? "bg-success/15 text-success ring-success/10"
+                            : r.action === "reject"
+                              ? "bg-destructive/15 text-destructive ring-destructive/10"
+                              : "bg-warning/15 text-warning-foreground ring-warning/10"
+                        }`}
+                      >
+                        {r.action === "approve" ? (
+                          <CheckCircle2 className="size-4" />
+                        ) : r.action === "reject" ? (
+                          <XCircle className="size-4" />
+                        ) : (
+                          <ArrowLeft className="size-4" />
+                        )}
+                      </div>
+                      {idx < reviews.length - 1 && (
+                        <div className="w-px flex-1 bg-border/60 mt-1" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold capitalize">{r.action}</span>
-                        <span className="text-muted-foreground">·</span>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 pt-1 pb-2">
+                      <div className="flex items-center gap-2 flex-wrap text-xs mb-1">
+                        <span className="font-bold capitalize text-foreground">{r.action}</span>
+                        <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground capitalize">{r.tier} tier</span>
-                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground">
-                          {new Date(r.created_at).toLocaleString()}
+                          {new Date(r.created_at).toLocaleString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
-                      {r.comment && <p className="mt-1 text-sm text-foreground">{r.comment}</p>}
+                      {r.comment && (
+                        <p className="text-sm text-foreground bg-muted/40 rounded-lg px-3 py-2 mt-1.5 border border-border/60">
+                          {r.comment}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -657,23 +1072,45 @@ export const SubmissionDetailPage: React.FC = () => {
             </Card>
           )}
 
-          <Tabs defaultValue="financial" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg mb-4">
-              <TabsTrigger value="financial" className="flex items-center gap-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList id="detail-tabs-list" className="w-full grid grid-cols-3 mb-5 h-auto p-1">
+              <TabsTrigger value="financial" className="flex items-center gap-2 py-2.5">
                 <FileText className="size-4" />
-                Financial Statement
+                <span>Financial Statement</span>
               </TabsTrigger>
-              <TabsTrigger value="databases" className="flex items-center gap-2">
-                <Database className="size-4" />5 Databases
+              <TabsTrigger value="databases" className="flex items-center gap-2 py-2.5">
+                <Database className="size-4" />
+                <span>Non-Financial Information</span>
               </TabsTrigger>
-              <TabsTrigger value="non-financial" className="flex items-center gap-2">
+              <TabsTrigger value="non-financial" className="flex items-center gap-2 py-2.5">
                 <BarChart3 className="size-4" />
-                NF Ledger
+                <span>Non-Financial Indicators</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="financial" className="space-y-4">
-              {submission.file_id && (
+              {isExtracting && (
+                <Card
+                  title="AI Extraction in Progress"
+                  subtitle="Our AI engine is parsing and mapping the uploaded financial statement"
+                >
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="relative mb-4">
+                      <div className="size-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                      <FileText className="size-6 text-primary absolute inset-0 m-auto animate-pulse" />
+                    </div>
+                    <h3 className="text-base font-bold text-foreground">Processing Document</h3>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+                      This takes about 10-30 seconds. The page will automatically update once the
+                      extraction completes.
+                    </p>
+                    <div className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent capitalize">
+                      Status: {extractionJob?.status || "Running"}
+                    </div>
+                  </div>
+                </Card>
+              )}
+              {submission.extraction_job_id && extractionJob?.source_file_id && !isExtracting && (
                 <Card
                   title="Uploaded Document"
                   subtitle="Original financial statement file"
@@ -684,7 +1121,7 @@ export const SubmissionDetailPage: React.FC = () => {
                   }
                 >
                   <DocumentViewer
-                    src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${submission.file_id}`}
+                    src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${extractionJob.source_file_id}`}
                   />
                 </Card>
               )}
@@ -764,8 +1201,13 @@ function ReviewActionPanel({
   isPending: boolean;
 }) {
   const hasComment = comment.trim().length > 0;
+  const borderCls = onReject
+    ? "border-l-4 border-l-destructive/50"
+    : onReturn
+      ? "border-l-4 border-l-warning/60"
+      : "border-l-4 border-l-success/50";
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-3">
+    <div className={`rounded-xl border border-border bg-surface px-5 py-4 space-y-4 ${borderCls}`}>
       <div>
         <h3 className="text-sm font-bold text-foreground">{title}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
@@ -779,13 +1221,13 @@ function ReviewActionPanel({
             : "Add a comment (optional)…"
         }
         rows={2}
-        className="w-full rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
+        className="w-full rounded-xl border border-input bg-muted/30 px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 resize-none"
       />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={onApprove}
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-semibold text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
         >
           {isPending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -798,7 +1240,8 @@ function ReviewActionPanel({
           <button
             onClick={onReturn}
             disabled={isPending || !hasComment}
-            className="inline-flex items-center gap-2 rounded-xl border border-warning/30 px-4 py-2 text-sm font-semibold text-warning hover:bg-warning/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={!hasComment ? "A comment is required to return" : undefined}
+            className="inline-flex items-center gap-2 rounded-xl border border-warning/40 px-5 py-2.5 text-sm font-semibold text-warning-foreground hover:bg-warning/8 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -812,7 +1255,8 @@ function ReviewActionPanel({
           <button
             onClick={onReject}
             disabled={isPending || !hasComment}
-            className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={!hasComment ? "A comment is required to reject" : undefined}
+            className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -821,6 +1265,11 @@ function ReviewActionPanel({
             )}
             {rejectLabel}
           </button>
+        )}
+        {(onReturn || onReject) && !hasComment && (
+          <p className="text-[11px] text-muted-foreground ml-1">
+            A comment is required to send back
+          </p>
         )}
       </div>
     </div>
@@ -886,16 +1335,25 @@ function NfDatabasesTab({
       {isCooperative && isDraft && (
         <Card
           title="Upload Non-Financial Databases"
-          subtitle="Upload your Excel file, review all imported records, then mark each section ready"
+          subtitle="Upload your Excel file containing member, savings, loan, and farm data"
+          edge="primary"
         >
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {["NF MSHIP", "NF S", "NF LOANS", "NF FS", "NF FARM"].map((sheet) => (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { sheet: "NF MSHIP", label: "Members" },
+                { sheet: "NF S", label: "Savings" },
+                { sheet: "NF LOANS", label: "Loans" },
+                { sheet: "NF FS", label: "Fixed Deposits" },
+                { sheet: "NF FARM", label: "Farm Coop" },
+              ].map(({ sheet, label }) => (
                 <div
                   key={sheet}
-                  className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center text-xs font-semibold text-muted-foreground"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
                 >
-                  {sheet}
+                  <span className="font-mono">{sheet}</span>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span>{label}</span>
                 </div>
               ))}
             </div>
@@ -1152,7 +1610,7 @@ function NfTable({
             <button
               onClick={onMarkReady}
               disabled={isUpdating}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/30 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/25 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/15 disabled:opacity-50 transition-colors"
             >
               {isUpdating ? (
                 <Loader2 className="size-3 animate-spin" />
@@ -1164,7 +1622,7 @@ function NfTable({
           )}
           <button
             onClick={() => setOpen((o) => !o)}
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted/50"
           >
             {open ? "Collapse" : "Expand"}
           </button>

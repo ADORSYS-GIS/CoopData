@@ -70,7 +70,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
     system: ["/app/users", "/app/profile"],
   },
   cooperative: {
-    oversight: ["/app/dashboard", "/app/data-collection", "/app/submissions"],
+    oversight: ["/app/dashboard", "/app/submissions"],
     intelligence: ["/app/reports", "/app/analytics"],
   },
   apex: {

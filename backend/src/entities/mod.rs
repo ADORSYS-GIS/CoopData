@@ -5,6 +5,7 @@ pub mod assessment;
 pub mod audit_log;
 pub mod balance_sheet_line_item;
 pub mod chart_of_account;
+pub mod chart_of_accounts_coop_type;
 pub mod cooperative;
 pub mod enums;
 pub mod extraction_job;

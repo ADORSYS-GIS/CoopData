@@ -21,6 +21,8 @@ pub struct Model {
     pub formula: Option<String>,
     pub display_order: i32,
     pub baseline_active: bool,
+    #[sea_orm(nullable)]
+    pub description: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

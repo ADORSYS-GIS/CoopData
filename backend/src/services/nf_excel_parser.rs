@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use utoipa::ToSchema;
 
 use crate::entities::enums::{
@@ -9,9 +10,17 @@ use crate::entities::enums::{
     UrbanRural,
 };
 use crate::error::{AppError, AppResult};
+use crate::services::ai_extraction::NfHeaderMapper;
 
+// ── Trait ─────────────────────────────────────────────────────────────────────
+
+#[async_trait::async_trait]
 pub trait NfExcelParser: Send + Sync {
-    fn parse(&self, file_bytes: &[u8]) -> AppResult<NfParseResult>;
+    async fn parse(
+        &self,
+        file_bytes: &[u8],
+        mapper: Option<Arc<dyn NfHeaderMapper>>,
+    ) -> AppResult<NfParseResult>;
 }
 
 #[derive(Clone)]
@@ -29,9 +38,14 @@ impl Default for CalamineNfParser {
     }
 }
 
+#[async_trait::async_trait]
 impl NfExcelParser for CalamineNfParser {
-    fn parse(&self, file_bytes: &[u8]) -> AppResult<NfParseResult> {
-        parse_workbook(file_bytes)
+    async fn parse(
+        &self,
+        file_bytes: &[u8],
+        mapper: Option<Arc<dyn NfHeaderMapper>>,
+    ) -> AppResult<NfParseResult> {
+        parse_workbook(file_bytes, mapper).await
     }
 }
 
@@ -272,19 +286,39 @@ pub struct NfParseWarning {
     pub message: String,
 }
 
-fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
+async fn parse_workbook(
+    file_bytes: &[u8],
+    mapper: Option<Arc<dyn NfHeaderMapper>>,
+) -> AppResult<NfParseResult> {
     use calamine::{open_workbook_auto_from_rs, Reader};
 
     tracing::info!(
         bytes = file_bytes.len(),
+        ai_mapper = mapper.is_some(),
         "Starting non-financial Excel workbook parse"
     );
 
     let mut result = NfParseResult::default();
-    let mut workbook = open_workbook_auto_from_rs(std::io::Cursor::new(file_bytes.to_vec()))
-        .map_err(|e| AppError::BadRequest(format!("Failed to open Excel file: {}", e)))?;
 
-    let sheet_names: Vec<String> = workbook.sheet_names().to_vec();
+    // Calamine is sync — run it on the blocking thread pool
+    let file_bytes_owned = file_bytes.to_vec();
+    let sheets_data: HashMap<String, calamine::Range<calamine::Data>> =
+        tokio::task::spawn_blocking(move || {
+            let mut wb = open_workbook_auto_from_rs(std::io::Cursor::new(file_bytes_owned))
+                .map_err(|e| AppError::BadRequest(format!("Failed to open Excel file: {}", e)))?;
+            let sheet_names = wb.sheet_names().to_vec();
+            let mut out = HashMap::new();
+            for name in sheet_names {
+                if let Ok(range) = wb.worksheet_range(&name) {
+                    out.insert(name, range);
+                }
+            }
+            Ok::<_, AppError>(out)
+        })
+        .await
+        .map_err(|e| AppError::InternalServerError(format!("Workbook thread join error: {e}")))??;
+
+    let sheet_names: Vec<String> = sheets_data.keys().cloned().collect();
     tracing::info!(available_sheets = ?sheet_names, "Opened workbook");
 
     for sheet_name in &sheet_names {
@@ -292,22 +326,22 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
             SHEET_MEMBERS => {
                 result.sheets_found.push(SHEET_MEMBERS.to_string());
                 tracing::info!(sheet = SHEET_MEMBERS, "Processing members sheet");
-                if let Ok(range) = workbook.worksheet_range(SHEET_MEMBERS) {
-                    parse_members_sheet(&range, &mut result);
+                if let Some(range) = sheets_data.get(SHEET_MEMBERS) {
+                    parse_members_sheet(range, &mut result, mapper.as_deref()).await;
                 }
             }
             SHEET_SAVINGS => {
                 result.sheets_found.push(SHEET_SAVINGS.to_string());
                 tracing::info!(sheet = SHEET_SAVINGS, "Processing savings sheet");
-                if let Ok(range) = workbook.worksheet_range(SHEET_SAVINGS) {
-                    parse_savings_sheet(&range, &mut result);
+                if let Some(range) = sheets_data.get(SHEET_SAVINGS) {
+                    parse_savings_sheet(range, &mut result, mapper.as_deref()).await;
                 }
             }
             SHEET_LOANS => {
                 result.sheets_found.push(SHEET_LOANS.to_string());
                 tracing::info!(sheet = SHEET_LOANS, "Processing loans sheet");
-                if let Ok(range) = workbook.worksheet_range(SHEET_LOANS) {
-                    parse_loans_sheet(&range, &mut result);
+                if let Some(range) = sheets_data.get(SHEET_LOANS) {
+                    parse_loans_sheet(range, &mut result, mapper.as_deref()).await;
                 }
             }
             SHEET_FIXED_DEPOSITS => {
@@ -316,15 +350,15 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
                     sheet = SHEET_FIXED_DEPOSITS,
                     "Processing fixed deposits sheet"
                 );
-                if let Ok(range) = workbook.worksheet_range(SHEET_FIXED_DEPOSITS) {
-                    parse_fixed_deposits_sheet(&range, &mut result);
+                if let Some(range) = sheets_data.get(SHEET_FIXED_DEPOSITS) {
+                    parse_fixed_deposits_sheet(range, &mut result, mapper.as_deref()).await;
                 }
             }
             SHEET_FARM_COOP => {
                 result.sheets_found.push(SHEET_FARM_COOP.to_string());
                 tracing::info!(sheet = SHEET_FARM_COOP, "Processing farm coop sheet");
-                if let Ok(range) = workbook.worksheet_range(SHEET_FARM_COOP) {
-                    parse_farm_coop_sheet(&range, &mut result);
+                if let Some(range) = sheets_data.get(SHEET_FARM_COOP) {
+                    parse_farm_coop_sheet(range, &mut result, mapper.as_deref()).await;
                 }
             }
             other => {
@@ -360,61 +394,228 @@ fn parse_workbook(file_bytes: &[u8]) -> AppResult<NfParseResult> {
 
 use calamine::{Data, Range};
 
-fn build_column_map(
+/// Build a column index map from a header row.
+///
+/// Strategy (three-pass):
+/// 1. Exact lowercase match — free, instant.
+/// 2. Fuzzy built-in aliases (spaces↔underscores, common abbreviations).
+/// 3. LLM fallback — only if a mapper is provided AND there are still missing required columns.
+///
+/// Emits LOW-003-style `MAPPED` warnings for any column resolved via pass 2 or 3.
+/// Emits a `MISSING_HEADERS` error and returns `None` only when required columns are still
+/// unresolved after all passes.
+async fn build_column_map(
     header_row: &[Data],
     expected_headers: &[&str],
     sheet_name: &str,
     result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
 ) -> Option<HashMap<String, usize>> {
-    let mut map = HashMap::new();
-    let mut missing = Vec::new();
-
-    for (col_idx, header) in header_row.iter().enumerate() {
-        let name = match header {
-            Data::String(s) => s.trim().to_lowercase(),
+    // ── Pass 1: exact lowercase match ─────────────────────────────────────────
+    let actual_headers: Vec<String> = header_row
+        .iter()
+        .map(|cell| match cell {
+            Data::String(s) => s.trim().to_string(),
             Data::Int(i) => i.to_string(),
-            _ => continue,
-        };
-        map.insert(name, col_idx);
-    }
+            _ => String::new(),
+        })
+        .collect();
 
-    for &expected in expected_headers {
-        if !map.contains_key(expected) {
-            missing.push(expected.to_string());
+    let mut col_map: HashMap<String, usize> = HashMap::new();
+    for (idx, h) in actual_headers.iter().enumerate() {
+        if !h.is_empty() {
+            col_map.insert(h.to_lowercase(), idx);
         }
     }
 
-    if !missing.is_empty() {
+    let missing_after_exact: Vec<&str> = expected_headers
+        .iter()
+        .copied()
+        .filter(|&e| !col_map.contains_key(e))
+        .collect();
+
+    if missing_after_exact.is_empty() {
+        return Some(col_map);
+    }
+
+    tracing::info!(
+        sheet = sheet_name,
+        missing = ?missing_after_exact,
+        "Pass 1 (exact match) left missing columns — trying fuzzy aliases"
+    );
+
+    // ── Pass 2: built-in fuzzy aliases ────────────────────────────────────────
+    // Handles: spaces↔underscores, hyphens, capitalisation, and close typos
+    // (Levenshtein distance ≤ 2 on the normalised form).
+    let mut still_missing: Vec<&str> = Vec::new();
+
+    for &expected in &missing_after_exact {
+        // First try formatting normalisation only (zero cost, no false positives)
+        let formatting_match = col_map.iter().find_map(|(actual, &idx)| {
+            let normalised = actual.replace([' ', '-'], "_").replace("__", "_");
+            if normalised == expected {
+                Some((idx, actual.clone()))
+            } else {
+                None
+            }
+        });
+
+        if let Some((idx, actual_key)) = formatting_match {
+            result.warnings.push(NfParseWarning {
+                sheet: sheet_name.to_string(),
+                row: 0,
+                column: expected.to_string(),
+                rule: "MAPPED".to_string(),
+                message: format!(
+                    "ℹ️ MAPPED: '{}' was mapped to '{}' via formatting normalisation",
+                    actual_key, expected
+                ),
+            });
+            col_map.insert(expected.to_string(), idx);
+            continue;
+        }
+
+        // Levenshtein fallback: strip underscores from both sides and compare
+        // e.g. "memberess" vs "member_id" → "memberess" vs "memberid" → distance 3 (skip)
+        //      "mem_id"    vs "member_id" → "memid" vs "memberid"     → distance 4 (skip)
+        //      "member id" vs "member_id" → already caught above
+        //      "loan_id_"  vs "loan_id"   → distance 1 → map ✓
+        let typo_match = col_map.iter().find_map(|(actual, &idx)| {
+            let a = actual.replace('_', "");
+            let e = expected.replace('_', "");
+            if levenshtein(&a, &e) <= 2 && !a.is_empty() && !e.is_empty() {
+                Some((idx, actual.clone()))
+            } else {
+                None
+            }
+        });
+
+        if let Some((idx, actual_key)) = typo_match {
+            result.warnings.push(NfParseWarning {
+                sheet: sheet_name.to_string(),
+                row: 0,
+                column: expected.to_string(),
+                rule: "MAPPED".to_string(),
+                message: format!(
+                    "ℹ️ MAPPED: '{}' was mapped to '{}' via typo correction (fuzzy match)",
+                    actual_key, expected
+                ),
+            });
+            col_map.insert(expected.to_string(), idx);
+        } else {
+            still_missing.push(expected);
+        }
+    }
+
+    if still_missing.is_empty() {
+        return Some(col_map);
+    }
+
+    // ── Pass 3: LLM mapping ───────────────────────────────────────────────────
+    if let Some(m) = mapper {
+        tracing::info!(
+            sheet = sheet_name,
+            missing = ?still_missing,
+            "Pass 2 (fuzzy) left missing columns — calling LLM header mapper"
+        );
+
+        let non_empty_actuals: Vec<String> = actual_headers
+            .iter()
+            .filter(|h| !h.is_empty())
+            .cloned()
+            .collect();
+
+        let ai_map = m
+            .map_headers(sheet_name, &non_empty_actuals, expected_headers)
+            .await;
+
+        let mut still_missing_after_ai: Vec<&str> = Vec::new();
+
+        for &expected in &still_missing {
+            // The LLM returns { actual_header_lowercase → canonical }
+            // Find an entry where the value matches the expected canonical field
+            if let Some((actual_key, _)) = ai_map
+                .iter()
+                .find(|(_, canonical)| canonical.as_str() == expected)
+            {
+                // Find the column index for the original actual header
+                if let Some(&idx) = col_map.get(actual_key.as_str()) {
+                    result.warnings.push(NfParseWarning {
+                        sheet: sheet_name.to_string(),
+                        row: 0,
+                        column: expected.to_string(),
+                        rule: "MAPPED".to_string(),
+                        message: format!(
+                            "ℹ️ MAPPED: '{}' was mapped to '{}' via AI header mapping",
+                            actual_key, expected
+                        ),
+                    });
+                    col_map.insert(expected.to_string(), idx);
+                } else {
+                    still_missing_after_ai.push(expected);
+                }
+            } else {
+                still_missing_after_ai.push(expected);
+            }
+        }
+
+        if still_missing_after_ai.is_empty() {
+            return Some(col_map);
+        }
+
+        // Some required columns truly not found even after AI
         tracing::error!(
             sheet = sheet_name,
-            missing = ?missing,
-            "Missing required columns in sheet"
+            missing = ?still_missing_after_ai,
+            "Missing required columns after all mapping passes (incl. AI)"
         );
         result.errors.push(NfParseError {
             sheet: sheet_name.to_string(),
             row: 0,
             column: "headers".to_string(),
-            value: missing.join(", "),
+            value: still_missing_after_ai.join(", "),
             rule: "MISSING_HEADERS".to_string(),
-            message: format!("Missing required columns: {}", missing.join(", ")),
+            message: format!(
+                "Missing required columns (AI mapping attempted): {}",
+                still_missing_after_ai.join(", ")
+            ),
         });
         return None;
     }
 
-    Some(map)
+    // No mapper available — report missing as before
+    tracing::error!(
+        sheet = sheet_name,
+        missing = ?still_missing,
+        "Missing required columns in sheet (no AI mapper configured)"
+    );
+    result.errors.push(NfParseError {
+        sheet: sheet_name.to_string(),
+        row: 0,
+        column: "headers".to_string(),
+        value: still_missing.join(", "),
+        rule: "MISSING_HEADERS".to_string(),
+        message: format!("Missing required columns: {}", still_missing.join(", ")),
+    });
+    None
 }
 
-fn parse_members_sheet(range: &Range<Data>, result: &mut NfParseResult) {
+async fn parse_members_sheet(
+    range: &Range<Data>,
+    result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
+) {
     let mut rows = range.rows();
     let header_row = match rows.next() {
         Some(h) => h,
         None => return,
     };
 
-    let map = match build_column_map(header_row, MEMBERS_HEADERS, SHEET_MEMBERS, result) {
-        Some(m) => m,
-        None => return,
-    };
+    let map =
+        match build_column_map(header_row, MEMBERS_HEADERS, SHEET_MEMBERS, result, mapper).await {
+            Some(m) => m,
+            None => return,
+        };
 
     let mut row_index = 0usize;
     for row in rows {
@@ -560,17 +761,22 @@ fn parse_members_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     }
 }
 
-fn parse_savings_sheet(range: &Range<Data>, result: &mut NfParseResult) {
+async fn parse_savings_sheet(
+    range: &Range<Data>,
+    result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
+) {
     let mut rows = range.rows();
     let header_row = match rows.next() {
         Some(h) => h,
         None => return,
     };
 
-    let map = match build_column_map(header_row, SAVINGS_HEADERS, SHEET_SAVINGS, result) {
-        Some(m) => m,
-        None => return,
-    };
+    let map =
+        match build_column_map(header_row, SAVINGS_HEADERS, SHEET_SAVINGS, result, mapper).await {
+            Some(m) => m,
+            None => return,
+        };
 
     let mut row_index = 0usize;
     for row in rows {
@@ -661,14 +867,18 @@ fn parse_savings_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     }
 }
 
-fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
+async fn parse_loans_sheet(
+    range: &Range<Data>,
+    result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
+) {
     let mut rows = range.rows();
     let header_row = match rows.next() {
         Some(h) => h,
         None => return,
     };
 
-    let map = match build_column_map(header_row, LOANS_HEADERS, SHEET_LOANS, result) {
+    let map = match build_column_map(header_row, LOANS_HEADERS, SHEET_LOANS, result, mapper).await {
         Some(m) => m,
         None => return,
     };
@@ -821,14 +1031,20 @@ fn parse_loans_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     }
 }
 
-fn parse_fixed_deposits_sheet(range: &Range<Data>, result: &mut NfParseResult) {
+async fn parse_fixed_deposits_sheet(
+    range: &Range<Data>,
+    result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
+) {
     let mut rows = range.rows();
     let header_row = match rows.next() {
         Some(h) => h,
         None => return,
     };
 
-    let map = match build_column_map(header_row, FD_HEADERS, SHEET_FIXED_DEPOSITS, result) {
+    let map = match build_column_map(header_row, FD_HEADERS, SHEET_FIXED_DEPOSITS, result, mapper)
+        .await
+    {
         Some(m) => m,
         None => return,
     };
@@ -1111,14 +1327,26 @@ fn get_decimal_cell(row: &[Data], col: usize) -> Option<Decimal> {
     })
 }
 
-fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
+async fn parse_farm_coop_sheet(
+    range: &Range<Data>,
+    result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
+) {
     let mut rows = range.rows();
     let header_row = match rows.next() {
         Some(h) => h,
         None => return,
     };
 
-    let map = match build_column_map(header_row, FARM_COOP_HEADERS, SHEET_FARM_COOP, result) {
+    let map = match build_column_map(
+        header_row,
+        FARM_COOP_HEADERS,
+        SHEET_FARM_COOP,
+        result,
+        mapper,
+    )
+    .await
+    {
         Some(m) => m,
         None => return,
     };
@@ -1217,6 +1445,31 @@ fn parse_farm_coop_sheet(range: &Range<Data>, result: &mut NfParseResult) {
     }
 }
 
+/// Levenshtein edit distance between two strings.
+/// Used in pass 2 fuzzy matching to catch typos (e.g. "memberess" vs "memberid").
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let (m, n) = (a.len(), b.len());
+    let mut dp = vec![vec![0usize; n + 1]; m + 1];
+    for (i, row) in dp.iter_mut().enumerate().take(m + 1) {
+        row[0] = i;
+    }
+    for (j, cell) in dp[0].iter_mut().enumerate().take(n + 1) {
+        *cell = j;
+    }
+    for i in 1..=m {
+        for j in 1..=n {
+            dp[i][j] = if a[i - 1] == b[j - 1] {
+                dp[i - 1][j - 1]
+            } else {
+                1 + dp[i - 1][j].min(dp[i][j - 1]).min(dp[i - 1][j - 1])
+            };
+        }
+    }
+    dp[m][n]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1259,8 +1512,8 @@ mod tests {
         assert_eq!(date.unwrap().to_string(), "2024-01-15");
     }
 
-    #[test]
-    fn test_build_column_map_success() {
+    #[tokio::test]
+    async fn test_build_column_map_success() {
         let header_row = vec![
             Data::String("member_id".to_string()),
             Data::String("join_date".to_string()),
@@ -1272,7 +1525,9 @@ mod tests {
             &["member_id", "join_date", "status"],
             "TEST",
             &mut result,
-        );
+            None,
+        )
+        .await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
         let map = map.unwrap();
@@ -1280,8 +1535,8 @@ mod tests {
         assert_eq!(map.get("status"), Some(&2));
     }
 
-    #[test]
-    fn test_build_column_map_missing_header() {
+    #[tokio::test]
+    async fn test_build_column_map_missing_header() {
         let header_row = vec![
             Data::String("member_id".to_string()),
             Data::String("join_date".to_string()),
@@ -1292,14 +1547,16 @@ mod tests {
             &["member_id", "join_date", "status"],
             "TEST",
             &mut result,
-        );
+            None,
+        )
+        .await;
         assert!(map.is_none());
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].rule, "MISSING_HEADERS");
     }
 
-    #[test]
-    fn test_build_column_map_case_insensitive() {
+    #[tokio::test]
+    async fn test_build_column_map_case_insensitive() {
         let header_row = vec![
             Data::String("Member_ID".to_string()),
             Data::String("JOIN_DATE".to_string()),
@@ -1310,7 +1567,9 @@ mod tests {
             &["member_id", "join_date"],
             "TEST",
             &mut result,
-        );
+            None,
+        )
+        .await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
     }

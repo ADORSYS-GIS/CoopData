@@ -138,14 +138,19 @@ export const useDeleteFinancialStatement = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
-      const { error } = await apiClient.DELETE(
-        "/api/v1/cooperative/submissions/{id}/financial-statement",
-        { params: { path: { id: submissionId } } },
+      const { getAccessToken } = await import("@/services/shared/authService");
+      const token = await getAccessToken();
+      const base = import.meta.env.VITE_API_BASE_URL || "";
+      const res = await fetch(
+        `${base}/api/v1/cooperative/submissions/${submissionId}/financial-statement`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
       );
-      if (error) throw new Error(extractErrorMessage(error));
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as Record<string, string>)["message"] ?? `HTTP ${res.status}`);
+      }
     },
     onSuccess: (_data, submissionId) => {
-      // Invalidate the submission and its financial data so the upload form re-appears
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, submissionId] });
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
       queryClient.invalidateQueries({ queryKey: ["financial-statement"] });

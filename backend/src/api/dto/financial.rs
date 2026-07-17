@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::entities::balance_sheet_line_item::Model as LineItemModel;
+use crate::entities::chart_of_account::Model as CoaModel;
 use crate::entities::financial_statement::Model as FsModel;
 use crate::services::kpi_engine::KpiValue;
 
@@ -326,5 +327,38 @@ mod tests {
         assert!(json.contains("pending_review_count"));
         assert!(json.contains("average_par30"));
         assert!(json.contains("average_car"));
+    }
+}
+
+// ── Chart of Accounts DTO ─────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ChartOfAccountResponse {
+    pub account_code: i32,
+    pub account_name: String,
+    /// "assets" | "liabilities" | "equity" | "income" | "expenses" | "surplus"
+    pub account_category: String,
+    pub account_subcategory: Option<String>,
+    /// true for roll-up totals (1999, 2999, 3999, etc.)
+    pub is_total: bool,
+    /// true for display section headers (1000, 2000, etc.)
+    pub is_section_header: bool,
+    /// e.g. "1101+1102+1103+1104" — present only on total/parent codes
+    pub formula: Option<String>,
+    pub display_order: i32,
+}
+
+impl From<CoaModel> for ChartOfAccountResponse {
+    fn from(m: CoaModel) -> Self {
+        Self {
+            account_code: m.account_code,
+            account_name: m.account_name,
+            account_category: m.account_category.as_str().to_string(),
+            account_subcategory: m.account_subcategory,
+            is_total: m.is_total,
+            is_section_header: m.is_section_header,
+            formula: m.formula,
+            display_order: m.display_order,
+        }
     }
 }

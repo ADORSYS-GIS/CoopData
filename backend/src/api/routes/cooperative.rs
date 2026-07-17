@@ -10,7 +10,7 @@ use crate::api::dto::cooperative::CooperativeResponse;
 use crate::api::dto::member::MemberResponse;
 use crate::api::handlers::extraction::get_extraction_job;
 use crate::api::handlers::financial_statement::{
-    get_financial_statement, list_line_items, update_line_items,
+    get_financial_statement, list_chart_of_accounts, list_line_items, update_line_items,
     get_submission_kpis, export_submission,
 };
 use crate::api::handlers::nf_indicator_stats::get_nf_statistics;
@@ -142,6 +142,7 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/financial-statements/{id}/line-items",
             get(list_line_items).patch(update_line_items),
         )
+        .route("/chart-of-accounts", get(list_chart_of_accounts))
         .route("/extraction-jobs/{id}", get(get_extraction_job))
         // NF indicator statistics for the caller's cooperative
         .route(

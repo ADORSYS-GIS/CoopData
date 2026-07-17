@@ -57,8 +57,9 @@ impl TestApp {
         let loan_repo = LoanRepository::new(db.clone());
         let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
         let farm_coop_repo = FarmCoopRepository::new(db.clone());
-        let storage =
-            ObjectStorageService::new(&config).expect("Failed to create object storage service");
+        let storage = ObjectStorageService::new(&config)
+            .await
+            .expect("Failed to create object storage service");
         let nf_excel_parser = CalamineNfParser::new();
 
         let non_financial_indicator_catalog_repo =

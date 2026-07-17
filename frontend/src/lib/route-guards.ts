@@ -100,7 +100,6 @@ export const ROUTE_ACCESS: Record<string, Role[]> = {
   "/app/members": ["ministry"],
   "/app/apexes": ["federation"],
   "/app/cooperatives": ["apex"],
-  "/app/data-collection": ["cooperative"],
   "/app/submissions": ["ministry", "federation", "apex", "cooperative"],
   "/app/reports": ["ministry", "federation", "apex", "cooperative"],
   "/app/analytics": ["ministry", "federation", "apex", "cooperative"],

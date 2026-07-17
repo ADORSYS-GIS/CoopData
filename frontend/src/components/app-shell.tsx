@@ -47,7 +47,6 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/members", label: "Members", icon: UserPlus },
       { to: "/app/apexes", label: "Apexes", icon: Network },
       { to: "/app/cooperatives", label: "Cooperatives", icon: Building2 },
-      { to: "/app/data-collection", label: "Data Collection", icon: ClipboardList },
       { to: "/app/submissions", label: "Submissions", icon: Inbox },
     ],
   },

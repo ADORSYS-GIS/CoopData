@@ -27,7 +27,6 @@ import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
-import { Route as AppDataCollectionRouteImport } from './routes/app.data-collection'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
@@ -130,11 +129,6 @@ const AppDebugAuthRoute = AppDebugAuthRouteImport.update({
   path: '/debug-auth',
   getParentRoute: () => AppRoute,
 } as any)
-const AppDataCollectionRoute = AppDataCollectionRouteImport.update({
-  id: '/data-collection',
-  path: '/data-collection',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -204,7 +198,6 @@ export interface FileRoutesByFullPath {
   '/app/audit': typeof AppAuditRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/data-collection': typeof AppDataCollectionRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -235,7 +228,6 @@ export interface FileRoutesByTo {
   '/app/audit': typeof AppAuditRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/data-collection': typeof AppDataCollectionRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -267,7 +259,6 @@ export interface FileRoutesById {
   '/app/audit': typeof AppAuditRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/data-collection': typeof AppDataCollectionRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -301,7 +292,6 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/cooperatives'
     | '/app/dashboard'
-    | '/app/data-collection'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -332,7 +322,6 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/cooperatives'
     | '/app/dashboard'
-    | '/app/data-collection'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -363,7 +352,6 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/cooperatives'
     | '/app/dashboard'
-    | '/app/data-collection'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -521,13 +509,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDebugAuthRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/data-collection': {
-      id: '/app/data-collection'
-      path: '/data-collection'
-      fullPath: '/app/data-collection'
-      preLoaderRoute: typeof AppDataCollectionRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -628,7 +609,6 @@ interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppDataCollectionRoute: typeof AppDataCollectionRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
@@ -654,7 +634,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppDataCollectionRoute: AppDataCollectionRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,

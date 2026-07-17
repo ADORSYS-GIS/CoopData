@@ -250,6 +250,7 @@ pub async fn upload_financial_statement(
     let fs_repo_clone = state.financial_statement_repo.clone();
     let line_item_repo = state.line_item_repo.clone();
     let coa_repo = state.coa_repo.clone();
+    let alias_repo = state.account_alias_repo.clone();
     let flag_repo = state.flag_repo.clone();
     let section_repo = state.section_repo.clone();
 
@@ -267,6 +268,7 @@ pub async fn upload_financial_statement(
             fs_repo_clone,
             line_item_repo,
             coa_repo,
+            alias_repo,
             flag_repo,
             section_repo,
         )
