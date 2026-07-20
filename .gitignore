@@ -53,3 +53,7 @@ frontend/src/openapi-client/api.d.ts
 
 # Temporary directories
 worktrees/
+
+
+sources/
+source/
