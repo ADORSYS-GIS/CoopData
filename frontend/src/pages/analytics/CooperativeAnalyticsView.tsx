@@ -8,11 +8,19 @@ import { LoanDualBar } from "@/components/analytics/LoanDualBar";
 import { SavingsRadialGauges } from "@/components/analytics/SavingsRadialGauges";
 import { DormancyLeaderboard } from "@/components/analytics/DormancyLeaderboard";
 import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
+import { DepositConcentrationGauge } from "@/components/analytics/DepositConcentrationGauge";
+import { AgriResilienceRadar } from "@/components/analytics/AgriResilienceRadar";
+import { FinancialInclusionBar } from "@/components/analytics/FinancialInclusionBar";
+import { GovernanceFunnel } from "@/components/analytics/GovernanceFunnel";
+import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
 import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
+import { KpiScorecard } from "@/components/analytics/KpiScorecard";
+import { BenchmarkInsightPanel } from "@/components/analytics/BenchmarkInsightPanel";
+import { useBenchmarks } from "@/hooks/analytics/useBenchmarks";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -21,11 +29,17 @@ interface Props {
 export function CooperativeAnalyticsView({ filterValues }: Props) {
   const reportingYear = Number(filterValues.year);
 
+  const latestSubmissionArray = useLatestSubmission();
+  // Depending on whether useLatestSubmission returns an array or single item,
+  // we adapt based on what we see in the original code.
+  // The original view used: const latestSubmission = useLatestSubmission(reportingYear);
+  // Wait, my view file said `const latestSubmission = useLatestSubmission(reportingYear);`
+  // Actually, I'll stick exactly to the original hooks but add the UI.
+  // Let me match the original perfectly.
   const latestSubmission = useLatestSubmission(reportingYear);
   const submissionId = latestSubmission?.id;
   const coopId = latestSubmission?.cooperative_id;
-  const hasApprovedSubmission =
-    !!latestSubmission && latestSubmission.status === "approved";
+  const hasApprovedSubmission = !!latestSubmission && latestSubmission.status === "approved";
 
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId);
   const { data: trendData } = useMonthlyTrend(
@@ -38,6 +52,17 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     const map: Record<string, number> = {};
     kpisData?.kpis.forEach((k) => { map[k.name] = k.value; });
     return map;
+  }, [kpisData]);
+
+  const kpiGridMetrics = useMemo(() => {
+    if (!kpisData?.kpis) return [];
+    return kpisData.kpis.map((k: any) => ({
+      label: k.name.replace(/_/g, " "),
+      value: k.formatted || String(k.value),
+      tooltip: k.description || k.name,
+      trend: k.status === "green" ? "up" as const : k.status === "red" ? "down" as const : "neutral" as const,
+      trendValue: k.status === "green" ? "Healthy" : k.status === "amber" ? "Watch" : k.status === "red" ? "Risk" : "Neutral",
+    }));
   }, [kpisData]);
 
   const trendPoints = useMemo(
@@ -204,13 +229,18 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
   if (!latestSubmission) {
     return (
-      <Card title="No Submission Data">
+      <Card 
+        title="No Submission Data"
+        info="Analytics are derived from your latest data submission. You must submit data to view these charts."
+      >
         <p className="text-sm text-muted-foreground">
           No submission found for your cooperative. Submit financial data to unlock analytics.
         </p>
       </Card>
     );
   }
+
+  const isTrendEmpty = trendPoints.every(p => p.liquidity === 0 && p.savings === 0 && p.loans === 0);
 
   return (
     <div className="space-y-6">
@@ -220,10 +250,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         </div>
       ) : null}
 
-      {nfStats?.membership && membershipMetrics.length > 0 && (
-        <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">Membership Overview</h3>
-          <MetricsGridCards metrics={membershipMetrics} columns={4} />
+      {kpiGridMetrics.length > 0 && (
+        <div className="mb-6">
+          <KpiScorecard metrics={kpiGridMetrics} />
         </div>
       )}
 
@@ -231,6 +260,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         <Card
           title="Regulatory Compliance"
           subtitle="Core ratio thresholds (CAR ≥10%, Liquidity ≥15%, NPL ≤5%)"
+          info="Monitors your cooperative's compliance with critical financial regulations. Capital Adequacy ensures sufficient equity against risk, Liquidity measures cash available for short-term obligations, and NPL tracks loan defaults."
         >
           <ComplianceRadialGauges
             carValue={kpiMap["capital_adequacy_ratio"] ?? 0}
@@ -240,23 +270,92 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         </Card>
 
         {nfStats && (
-          <Card title="Savings Portfolio Health" subtitle="Account activity and penetration">
+          <Card 
+            title="Savings Portfolio Health" 
+            subtitle="Account activity and penetration"
+            info="Analyzes the vitality of your savings base. Savings Penetration shows the percentage of members holding savings, Regular Savers tracks consistent monthly deposits, and Active Savers indicates recent deposit activity."
+          >
             <SavingsRadialGauges data={nfStats.savings} />
           </Card>
         )}
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {trendPoints.length > 0 && (
+          <Card 
+            title="Financial Trend" 
+            subtitle="Assets, loans & savings over the reporting year"
+            info="Visualizes the month-over-month trajectory of your cooperative's core financial balances (Assets, Savings, and Loans) over the current reporting period."
+          >
+            {isTrendEmpty ? (
+              <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">
+                No historical trend data available yet
+              </div>
+            ) : (
+              <CoopTrendAreaChart data={trendPoints} />
+            )}
+          </Card>
+        )}
+
+        {kpisData && (
+          <Card 
+            title="Loan Provisioning Gap" 
+            subtitle="Unprotected at-risk capital visualization"
+            info="A waterfall breakdown of your gross loan portfolio. It highlights 'At-Risk Capital' by subtracting your loan loss provisions from your non-performing loans (arrears), showing potential unprotected losses."
+          >
+            <LoanProvisioningWaterfall 
+              glp={kpiMap["gross_loan_portfolio"] ?? 0} 
+              par30_pct={kpiMap["par30"] ?? 0} 
+              provisions_pct={kpiMap["loan_loss_coverage"] ?? 0} 
+            />
+          </Card>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {nfStats && (
+          <Card 
+            title="Liquidity Risk" 
+            subtitle="Term deposit concentration"
+            info="Assesses liquidity risk by examining the concentration of fixed (term) deposits. High concentration in a few accounts or short-term maturities can pose withdrawal risks."
+          >
+            <DepositConcentrationGauge stats={nfStats.fixed_deposits} />
+          </Card>
+        )}
+
+        {nfStats && (
+          <Card 
+            title="Democratic Engagement" 
+            subtitle="Member governance participation"
+            info="Measures the democratic health of the cooperative by tracking member participation in governance activities, such as voting in the Annual General Meeting (AGM)."
+          >
+            <GovernanceFunnel stats={nfStats.membership} />
+          </Card>
+        )}
+
+        {nfStats && (
+          <Card 
+            title="Financial Inclusion" 
+            subtitle="Credit access for target demographics"
+            info="Tracks the distribution of credit access across key demographics (e.g., Women, Youth) to ensure the cooperative is fulfilling its inclusive mandate."
+          >
+            <FinancialInclusionBar stats={nfStats.loans} />
+          </Card>
+        )}
+      </div>
+
+      {nfStats?.membership && membershipMetrics.length > 0 && (
+        <div>
+          <h3 className="text-sm font-bold text-foreground mb-3">Membership Overview</h3>
+          <MetricsGridCards metrics={membershipMetrics} columns={4} />
+        </div>
+      )}
 
       {nfStats?.savings && savingsMetrics.length > 0 && (
         <div>
           <h3 className="text-sm font-bold text-foreground mb-3">Savings Portfolio Metrics</h3>
           <MetricsGridCards metrics={savingsMetrics} columns={4} />
         </div>
-      )}
-
-      {trendPoints.length > 0 && (
-        <Card title="Financial Trend" subtitle="Assets, loans & savings over the reporting year">
-          <CoopTrendAreaChart data={trendPoints} />
-        </Card>
       )}
 
       {nfStats?.loans && loanMetrics.length > 0 && (
@@ -267,7 +366,11 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       )}
 
       {nfStats && (
-        <Card title="Loan Portfolio" subtitle="Performing vs. arrears breakdown">
+        <Card 
+          title="Loan Portfolio" 
+          subtitle="Performing vs. arrears breakdown"
+          info="A detailed breakdown of active loans, comparing performing loans (on-time) against loans in arrears (delayed payments), categorized by demographics."
+        >
           <LoanDualBar data={nfStats.loans} />
         </Card>
       )}
@@ -279,15 +382,34 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         </div>
       )}
 
-      {nfStats && (
-        <Card title="Membership Demographics" subtitle="Gender and activity distribution">
-          <GenderStatusDoughnuts data={nfStats.membership} />
-        </Card>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {nfStats && (
+          <Card 
+            title="Membership Demographics" 
+            subtitle="Gender and activity distribution"
+            info="Visualizes the demographic makeup of your member base, including gender ratios and the proportion of active versus dormant accounts."
+          >
+            <GenderStatusDoughnuts data={nfStats.membership} />
+          </Card>
+        )}
+        
+        {dormancyData.length > 0 && (
+          <Card 
+            title="Member Engagement Indicators"
+            info="A leaderboard showing the highest rates of member dormancy, helping identify areas where member re-engagement efforts are needed."
+          >
+            <DormancyLeaderboard data={dormancyData} />
+          </Card>
+        )}
+      </div>
 
-      {dormancyData.length > 0 && (
-        <Card title="Member Engagement Indicators">
-          <DormancyLeaderboard data={dormancyData} />
+      {nfStats && nfStats.farm_coop.total_coops > 0 && (
+        <Card 
+          title="Agricultural Resilience" 
+          subtitle="Physical and operational infrastructure scores"
+          info="A radar analysis evaluating the cooperative's agricultural infrastructure, including storage capacity, processing facilities, and mechanization levels."
+        >
+          <AgriResilienceRadar stats={nfStats.farm_coop} />
         </Card>
       )}
 

@@ -9,10 +9,13 @@ import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
-import { GenderStatusDoughnuts } from "@/components/analytics/GenderStatusDoughnuts";
-import { ComplianceStackedBars } from "@/components/analytics/ComplianceStackedBars";
+import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
+import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
+import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
+import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
+import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
@@ -20,9 +23,10 @@ import type { AnalyticsFilterValues } from "./analyticsTypes";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
+  onFilterChange: (id: string, value: string) => void;
 }
 
-export function MinistryAnalyticsView({ filterValues }: Props) {
+export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
   const year = Number(filterValues.year);
 
   const params = useMemo(
@@ -39,16 +43,68 @@ export function MinistryAnalyticsView({ filterValues }: Props) {
 
   const { data: overview, isLoading } = useNationalOverview(params);
   const { data: nfStats } = useNfStatistics(false, params);
+  const { data: networkTrend } = useMonthlyTrend(params, filterValues.cooperativeId === "all");
   const { data: ministryStats } = useMinistryStats();
 
+  const hasSelected = filterValues.cooperativeId !== "all";
   const coops = overview?.cooperatives ?? [];
   const nfSummary = overview?.non_financial_summary;
+
+  // Aggregate financial metrics for Loan Provisioning Gap at the national level
+  const aggMetrics = useMemo(() => {
+    let totalGLP = 0;
+    let sumPar30 = 0;
+    let sumProvisions = 0;
+    let countPar30 = 0;
+    let countProvisions = 0;
+
+    coops.forEach(c => {
+      const glp = c.kpis["gross_loan_portfolio"]?.value ?? 0;
+      const par30 = c.kpis["par30"]?.value;
+      const prov = c.kpis["loan_loss_coverage"]?.value;
+      
+      totalGLP += glp;
+      if (par30 !== undefined) {
+        sumPar30 += par30;
+        countPar30++;
+      }
+      if (prov !== undefined) {
+        sumProvisions += prov;
+        countProvisions++;
+      }
+    });
+
+    return {
+      totalGLP,
+      avgPar30: countPar30 > 0 ? sumPar30 / countPar30 : 0,
+      avgProvisions: countProvisions > 0 ? sumProvisions / countProvisions : 0,
+    };
+  }, [coops]);
+
+  const selectedCoopRow = useMemo(
+    () => coops.find((c) => c.cooperative_id === filterValues.cooperativeId),
+    [coops, filterValues.cooperativeId],
+  );
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground p-8">
         <Loader2 className="size-5 animate-spin" /> Loading national analytics…
       </div>
+    );
+  }
+
+  if (hasSelected && selectedCoopRow) {
+    return (
+      <CooperativeDeepDive
+        cooperativeId={selectedCoopRow.cooperative_id}
+        submissionId={selectedCoopRow.submission_id}
+        cooperativeName={selectedCoopRow.name}
+        cooperativeRegion={selectedCoopRow.region}
+        cooperativeType={selectedCoopRow.institution_type}
+        reportingYear={year}
+        onClose={() => onFilterChange("cooperativeId", "all")}
+      />
     );
   }
 
@@ -71,62 +127,49 @@ export function MinistryAnalyticsView({ filterValues }: Props) {
         </div>
       )}
 
+      <NetworkConsolidatedMetrics 
+        nfStats={nfStats}
+        networkTrend={networkTrend}
+        totalCooperatives={overview?.total_cooperatives ?? 0}
+        cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Macro distribution */}
         <Card
           title="National Portfolio Distribution"
           subtitle="Assets, loans and deposits by region"
+          info="Displays the aggregate financial balances distributed across different geographical regions."
         >
           <RegionalGroupedBar cooperatives={coops} />
         </Card>
 
-        {/* National demographics */}
-        {nfStats && (
-          <Card title="National Membership Demographics" subtitle="Gender and activity breakdown">
-            <GenderStatusDoughnuts data={nfStats.membership} />
+        {/* National loan gap */}
+        {coops.length > 0 && (
+          <Card title="National Loan Provisioning Gap" subtitle="Unprotected at-risk capital visualization" info="Visualizes the gap between the Gross Loan Portfolio, the Portfolio at Risk (PAR30), and the actual Loan Loss Provisions set aside to cover those risks.">
+            <LoanProvisioningWaterfall 
+              glp={aggMetrics.totalGLP} 
+              par30_pct={aggMetrics.avgPar30} 
+              provisions_pct={aggMetrics.avgProvisions} 
+            />
           </Card>
         )}
       </div>
 
-      {/* NF portfolio indicators */}
-      {nfSummary && (
-        <Card title="Portfolio NF Indicators" subtitle="Averaged across all cooperatives with data">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "Savings Penetration", value: nfSummary.average_savings_penetration_pct },
-              { label: "Credit Penetration", value: nfSummary.average_credit_penetration_pct },
-              { label: "FD Penetration", value: nfSummary.average_fd_penetration_pct },
-              { label: "On-time Repayment", value: nfSummary.average_on_time_repayment_pct },
-              { label: "Member Dormancy", value: nfSummary.average_dormancy_pct },
-              { label: "AGM Participation", value: nfSummary.average_agm_participation_pct },
-              { label: "Loans in Arrears", value: nfSummary.average_arrears_rate_pct },
-              { label: "FD Early Withdrawals", value: nfSummary.average_fd_early_withdrawal_pct },
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-lg border border-border bg-muted/20 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {label}
-                </p>
-                <p className="mt-1 text-lg font-bold text-foreground">{value.toFixed(1)}%</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
       {/* Top & bottom performers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="ROA Leaderboard" subtitle="Best and worst performing cooperatives by ROA">
+        <Card title="ROA Leaderboard" subtitle="Best and worst performing cooperatives by ROA" info="Highlights the cooperatives with the highest and lowest Return on Assets, indicating overall profitability and resource utilization.">
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
         </Card>
-        <Card title="CAR Leaderboard" subtitle="Capital adequacy leaders and laggards">
+        <Card title="CAR Leaderboard" subtitle="Capital adequacy leaders and laggards" info="Highlights the cooperatives with the highest and lowest Capital Adequacy Ratios, ensuring they maintain sufficient capital to absorb potential losses.">
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="capital_adequacy_ratio" />
         </Card>
       </div>
 
       {/* Traffic-light compliance distribution */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card title="National KPI Traffic-Light Distribution" subtitle="Proportion of cooperatives in each status band">
-          <ComplianceStackedBars distributions={overview.distributions} />
+        <Card title="National KPI Traffic-Light Distribution" subtitle="Proportion of cooperatives in each status band" info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators.">
+          <ComplianceDoughnutCharts distributions={overview.distributions} />
         </Card>
       )}
 

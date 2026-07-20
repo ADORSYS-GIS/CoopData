@@ -11,9 +11,10 @@ import { apiClient } from "@/openapi-client";
 const FEDERATIONS_KEY = "federations";
 
 /** List all federations (ministry only) */
-export const useFederations = () =>
+export const useFederations = (enabled = true) =>
   useQuery({
     queryKey: [FEDERATIONS_KEY],
+    enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations");
       if (error) throw error;

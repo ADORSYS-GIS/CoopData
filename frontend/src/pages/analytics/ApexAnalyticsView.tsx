@@ -10,15 +10,12 @@ import { Card } from "@/components/app-shell";
 import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { CoopScatterPlot } from "@/components/analytics/CoopScatterPlot";
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
-import { ComplianceStackedBars } from "@/components/analytics/ComplianceStackedBars";
-import { GenderStatusDoughnuts } from "@/components/analytics/GenderStatusDoughnuts";
-import { ComplianceRadialGauges } from "@/components/analytics/ComplianceRadialGauges";
-import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
+import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
+import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
+import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
-import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
-import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 
 interface Props {
@@ -41,49 +38,13 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
 
   const { data: overview, isLoading: overviewLoading } = useNationalOverview(params);
   const { data: nfStats } = useNfStatistics(false, params);
+  const { data: networkTrend } = useMonthlyTrend(params, filterValues.cooperativeId === "all");
   const coops = overview?.cooperatives ?? [];
 
-  // Per-coop deep-dive
   const hasSelected = filterValues.cooperativeId !== "all";
-  const { data: coopsList } = useCooperatives();
-  const selectedCoopProfile = useMemo(
-    () => (coopsList ?? []).find((c: { id: string }) => c.id === filterValues.cooperativeId),
-    [coopsList, filterValues.cooperativeId],
-  );
-
-  // Find the selected coop's submission_id from the overview rows
   const selectedCoopRow = useMemo(
     () => coops.find((c) => c.cooperative_id === filterValues.cooperativeId),
     [coops, filterValues.cooperativeId],
-  );
-  const { data: deepDiveKpis } = useCooperativeKpis(
-    hasSelected ? (selectedCoopRow?.submission_id ?? undefined) : undefined,
-  );
-  const { data: deepDiveTrend } = useMonthlyTrend(
-    { reportingYear: year, cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined },
-    hasSelected,
-  );
-  const { data: deepDiveNf } = useNfStatistics(
-    false,
-    { reportingYear: year, cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined },
-    hasSelected,
-  );
-
-  const kpiMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    deepDiveKpis?.kpis.forEach((k) => { map[k.name] = k.value; });
-    return map;
-  }, [deepDiveKpis]);
-
-  const trendPoints = useMemo(
-    () =>
-      (deepDiveTrend?.months ?? []).map((m) => ({
-        month: m.month_label,
-        liquidity: m.assets,
-        savings: m.savings,
-        loans: m.loans,
-      })),
-    [deepDiveTrend],
   );
 
   if (overviewLoading) {
@@ -95,82 +56,65 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   }
 
   /* ── Deep-dive: single cooperative selected ── */
-  if (hasSelected && selectedCoopProfile) {
+  if (hasSelected && selectedCoopRow) {
     return (
-      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="rounded-xl border border-primary/30 bg-primary/4 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
-              Cooperative Deep Dive
-            </p>
-            <h2 className="font-heading text-xl font-bold text-foreground">
-              {selectedCoopProfile.name}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              {selectedCoopProfile.institution_type} · {selectedCoopProfile.region}
-            </p>
-          </div>
-          <button
-            onClick={() => onFilterChange("cooperativeId", "all")}
-            className="press-feedback inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all"
-          >
-            <X className="size-3.5" />
-            Close Deep Dive
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card title="Regulatory Compliance" subtitle="CAR · Liquidity · NPL">
-            <ComplianceRadialGauges
-              carValue={kpiMap["capital_adequacy_ratio"] ?? 0}
-              liquidityValue={kpiMap["liquid_funds_ratio"] ?? 0}
-              nplValue={kpiMap["npl_ratio"] ?? 0}
-            />
-          </Card>
-          {trendPoints.length > 0 && (
-            <Card title="Financial Trend" subtitle="12-month assets, loans & savings">
-              <CoopTrendAreaChart data={trendPoints} />
-            </Card>
-          )}
-        </div>
-
-        {deepDiveNf && (
-          <Card title="Membership Demographics">
-            <GenderStatusDoughnuts data={deepDiveNf.membership} />
-          </Card>
-        )}
-      </div>
+      <CooperativeDeepDive
+        cooperativeId={selectedCoopRow.cooperative_id}
+        submissionId={selectedCoopRow.submission_id}
+        cooperativeName={selectedCoopRow.name}
+        cooperativeRegion={selectedCoopRow.region}
+        cooperativeType={selectedCoopRow.institution_type}
+        reportingYear={year}
+        onClose={() => onFilterChange("cooperativeId", "all")}
+      />
     );
   }
 
   /* ── Network overview ── */
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Risk vs Return Profile" subtitle="NPL ratio vs ROA per cooperative">
+      <NetworkConsolidatedMetrics 
+        nfStats={nfStats}
+        networkTrend={networkTrend}
+        totalCooperatives={overview?.total_cooperatives ?? 0}
+        cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <Card 
+          title="Risk vs Return Profile" 
+          subtitle="NPL ratio vs ROA per cooperative"
+          info="A scatter plot mapping the risk (Non-Performing Loans ratio) against the return (Return on Assets) for each cooperative in the network."
+        >
           <CoopScatterPlot data={coops} />
         </Card>
-        <Card title="Network Comparative Performance" subtitle="Radar across key KPI dimensions">
+        <Card 
+          title="Network Comparative Performance" 
+          subtitle="Radar across key KPI dimensions"
+          info="A radar chart visualizing average performance across multiple dimensions including Management Efficiency, Asset Quality, and Capital Adequacy."
+        >
           <ApexRadarChart data={coops} />
         </Card>
       </div>
 
-      <Card title="NPL Leaderboard" subtitle="Best and worst performing cooperatives by NPL ratio">
-        <TopBottomLeaderboard cooperatives={coops} sortByKpi="npl_ratio" />
-      </Card>
-
-      {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card title="Traffic Light Distribution" subtitle="KPI health across all cooperatives">
-          <ComplianceStackedBars distributions={overview.distributions} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <Card 
+          title="NPL Leaderboard" 
+          subtitle="Best and worst performing cooperatives by NPL ratio"
+          info="Highlights the cooperatives with the best and worst Non-Performing Loan ratios to identify excellence and areas requiring intervention."
+        >
+          <TopBottomLeaderboard cooperatives={coops} sortByKpi="npl_ratio" />
         </Card>
-      )}
-
-      {nfStats && (
-        <Card title="Network Demographics" subtitle="Aggregate membership profile">
-          <GenderStatusDoughnuts data={nfStats.membership} />
-        </Card>
-      )}
+        {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
+          <Card 
+            title="Traffic Light Distribution" 
+            subtitle="KPI health across all cooperatives"
+            info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators."
+          >
+            <ComplianceDoughnutCharts distributions={overview.distributions} />
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

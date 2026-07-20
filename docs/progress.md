@@ -449,9 +449,9 @@
 - [x] **18.3 Mock-path cleanup** — mock higher-level loan risk, regional member trend, submission timeline and zero-valued prior-period comparison UI no longer render; the cooperative leaderboard is derived from returned financial KPI statuses. Analytics hooks now use the generated OpenAPI client.
 - [x] **18.4 Financial semantics and activity** — monthly financial analytics now label COA 1999 correctly as total assets and aggregate approved submissions only. `GET /api/v1/analytics/submission-activity` replaces the invented timeliness series with submitted, approved, in-review and rejected activity by reporting month.
 - [x] **18.5 Approved drill-down and NF risk** — higher-tier institution comparison rows open the authorized approved submission detail; portfolio NF summaries now include dormancy, AGM participation, arrears and FD early-withdrawal risk alongside penetration and repayment measures.
-- [ ] Submission-period financial portfolio API with hierarchy scope enforcement
-- [ ] Cooperative, Apex, Federation and Ministry aggregate-to-detail analytics UI
-- [ ] Financial/NF indicator, scope and role-journey tests
+- [x] Submission-period financial portfolio API with hierarchy scope enforcement
+- [x] Cooperative, Apex, Federation and Ministry aggregate-to-detail analytics UI
+- [x] Financial/NF indicator, scope and role-journey tests
 
 ---
 

@@ -34,9 +34,10 @@ const normalizeArray = <T>(value: unknown): T[] => {
 
 // ─── Apex CRUD ───────────────────────────────────────────────────────────────
 
-export const useApexes = () =>
+export const useApexes = (enabled = true) =>
   useQuery({
     queryKey: [APEXES_KEY],
+    enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/federation/apexes");
       if (error) throw new Error(extractErrorMessage(error));

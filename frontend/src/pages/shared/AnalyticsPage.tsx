@@ -21,6 +21,9 @@ import { CooperativeAnalyticsView } from "../analytics/CooperativeAnalyticsView"
 import { ApexAnalyticsView } from "../analytics/ApexAnalyticsView";
 import { FederationAnalyticsView } from "../analytics/FederationAnalyticsView";
 import { MinistryAnalyticsView } from "../analytics/MinistryAnalyticsView";
+import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useFederations } from "@/hooks/federations/useFederations";
+import { useApexes } from "@/hooks/apexes/useApexes";
 import {
   titleByRole,
   subtitleByRole,
@@ -100,9 +103,55 @@ export const AnalyticsPage: React.FC = () => {
     });
   }, []);
 
-  if (!role) return null;
+  const { data: overview } = useNationalOverview(
+    { reportingYear: Number(filterValues.year) },
+    role !== "cooperative" && role !== undefined
+  );
 
-  const filters = FILTERS_BY_ROLE[role] ?? [];
+  const { data: federations } = useFederations(role === "ministry");
+  const { data: apexes } = useApexes(role === "federation");
+
+  const filters = React.useMemo(() => {
+    if (!role) return [];
+    const baseFilters = FILTERS_BY_ROLE[role] ?? [];
+    return baseFilters.map((filter) => {
+      if (filter.id === "federation" && federations) {
+        return {
+          ...filter,
+          options: [
+            { value: "all", label: "All Federations" },
+            // @ts-expect-error typing
+            ...federations.map((f: any) => ({ value: f.id, label: f.name })),
+          ],
+        };
+      }
+      if (filter.id === "apex" && apexes) {
+        return {
+          ...filter,
+          options: [
+            { value: "all", label: "All Apexes" },
+            // @ts-expect-error typing
+            ...apexes.map((a: any) => ({ value: a.id, label: a.name })),
+          ],
+        };
+      }
+      if (filter.id === "cooperative" && overview?.cooperatives) {
+        return {
+          ...filter,
+          options: [
+            { value: "all", label: "All Cooperatives" },
+            ...overview.cooperatives.map((c) => ({
+              value: c.cooperative_id,
+              label: c.name,
+            })),
+          ],
+        };
+      }
+      return filter;
+    });
+  }, [role, overview, federations, apexes]);
+
+  if (!role) return null;
 
   return (
     <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>
@@ -142,10 +191,10 @@ export const AnalyticsPage: React.FC = () => {
 
         {/* Role-specific dashboard */}
         {role === "ministry" && (
-          <MinistryAnalyticsView filterValues={filterValues} />
+          <MinistryAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
         )}
         {role === "federation" && (
-          <FederationAnalyticsView filterValues={filterValues} />
+          <FederationAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
         )}
         {role === "apex" && (
           <ApexAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />

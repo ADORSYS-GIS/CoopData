@@ -33,6 +33,8 @@ import { useSavings } from "@/hooks/non-financial/useSavings";
 import { useLoans } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
+import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
+import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 
 // ─────────────────────────────────────────────────────────────────────
 // COOPERATIVE DASHBOARD — real data only
@@ -57,6 +59,12 @@ export function CooperativeDashboard() {
   // Real KPI data from the latest submission
   const latestSubmission = useLatestSubmission();
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latestSubmission?.id);
+
+  const reportingYear = latestSubmission?.reporting_year ?? new Date().getFullYear();
+  const { data: trendData } = useMonthlyTrend(
+    { reportingYear, cooperativeId: latestSubmission?.cooperative_id },
+    !!latestSubmission && latestSubmission.status === "approved"
+  );
 
   // Real database record counts — page_size:1 to get just the total cheaply
   const { data: membersData } = useMembers({ page: 1, page_size: 1 });
@@ -148,6 +156,19 @@ export function CooperativeDashboard() {
     return labels[status] ?? status;
   };
 
+  const trendPoints = (trendData?.months ?? []).map((m) => ({
+    month: m.month_label,
+    liquidity: m.assets,
+    savings: m.savings,
+    loans: m.loans,
+  }));
+
+  const financialOverview = [
+    { name: "Total Assets", value: getKpi("total_assets")?.value ?? 0 },
+    { name: "Gross Loans", value: getKpi("gross_loan_portfolio")?.value ?? 0 },
+    { name: "Member Deposits", value: getKpi("total_member_deposits")?.value ?? 0 },
+  ];
+
   return (
     <AppShell
       title="Cooperative Workspace"
@@ -185,6 +206,7 @@ export function CooperativeDashboard() {
                 subtitle="All data returns"
                 icon={Database}
                 tone="primary"
+                info="The total number of data submissions created across all time periods."
               />
               <StatCard
                 label="Pending"
@@ -192,6 +214,7 @@ export function CooperativeDashboard() {
                 subtitle="Awaiting review"
                 icon={ShieldCheck}
                 tone="warning"
+                info="Submissions that have been filed but are pending review from Apex or Federation managers."
               />
               <StatCard
                 label="Approved"
@@ -199,6 +222,7 @@ export function CooperativeDashboard() {
                 subtitle="Finalized declarations"
                 icon={CheckCircle2}
                 tone="success"
+                info="Submissions that have been fully reviewed and approved by the regulatory hierarchy."
               />
               <StatCard
                 label="Rejected"
@@ -206,13 +230,18 @@ export function CooperativeDashboard() {
                 subtitle="Requires correction"
                 icon={TrendingDown}
                 tone="danger"
+                info="Submissions that failed validation and were returned for correction."
               />
             </>
           )}
         </div>
 
         {/* ── Database Status Grid ── */}
-        <Card title="Database Status" subtitle="Current state of your 5 cooperative databases">
+        <Card 
+          title="Database Status" 
+          subtitle="Current state of your 5 cooperative databases"
+          info="Live record count of the entities currently registered within your cooperative's internal ledgers."
+        >
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {databaseStatus.map((db) => (
               <div
@@ -242,70 +271,44 @@ export function CooperativeDashboard() {
           </div>
         </Card>
 
-        {/* ── Charts Row 1: Loan Portfolio Quality (from KPIs) ── */}
+        {/* ── Charts Row 1: Balance Breakdown & Portfolio Quality ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             className="lg:col-span-2"
-            title="Financial Statement Summary"
-            subtitle="Key balances from your latest submission"
+            title="Portfolio Balance Overview"
+            subtitle="Assets vs Loans vs Deposits"
+            info="A comparative breakdown of your cooperative's core financial pillars, showing capitalization (Assets), capital deployment (Loans), and liquidity (Deposits)."
           >
             {kpisLoading ? (
-              <div className="h-72 grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-surface p-4 space-y-2">
-                    <Skeleton className="h-2.5 w-16" />
-                    <Skeleton className="h-6 w-14" />
-                    <Skeleton className="h-2 w-10" />
-                  </div>
-                ))}
+              <div className="h-72 flex items-center justify-center">
+                <Skeleton className="h-48 w-full mx-6" />
               </div>
             ) : kpisData ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-                {[
-                  { label: "Total Assets", name: "total_assets" },
-                  { label: "Gross Loan Portfolio", name: "gross_loan_portfolio" },
-                  { label: "Member Deposits", name: "total_member_deposits" },
-                  { label: "Total Equity", name: "total_equity" },
-                  { label: "Net Surplus", name: "net_surplus" },
-                  { label: "Liquid Funds Ratio", name: "liquid_funds_ratio" },
-                ].map(({ label, name }) => {
-                  const kpi = kpisData.kpis.find((k) => k.name === name);
-                  return (
-                    <div key={name} className="rounded-xl border border-border bg-surface p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                        {label}
-                      </p>
-                      <p
-                        className={`font-heading text-xl font-bold num ${
-                          kpi?.status === "green"
-                            ? "text-success"
-                            : kpi?.status === "red"
-                              ? "text-destructive"
-                              : kpi?.status === "amber"
-                                ? "text-warning-foreground"
-                                : "text-foreground"
-                        }`}
-                      >
-                        {kpi?.formatted ?? "—"}
-                      </p>
-                      {kpi?.benchmark !== undefined && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Benchmark:{" "}
-                          {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="h-72 pt-4 pr-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={financialOverview} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} />
+                    <Tooltip
+                      cursor={{ fill: "var(--muted)", opacity: 0.2 }}
+                      contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--foreground)" }}
+                      formatter={(val: number) => [`$${val.toLocaleString()}`, "Amount"]}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {financialOverview.map((entry, index) => (
+                        <Cell key={index} fill={index === 0 ? "var(--primary)" : index === 1 ? "var(--accent)" : "var(--success)"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             ) : (
               <div className="h-72 flex flex-col items-center justify-center text-center text-muted-foreground gap-3">
                 <BarChart3 className="size-10 opacity-30" />
                 <div>
                   <p className="text-sm font-semibold">No financial data yet</p>
-                  <p className="text-xs mt-1">
-                    Upload a financial statement to see your data here.
-                  </p>
+                  <p className="text-xs mt-1">Upload a financial statement to see your data here.</p>
                 </div>
               </div>
             )}
@@ -314,6 +317,7 @@ export function CooperativeDashboard() {
           <Card
             title="Loan Portfolio Quality"
             subtitle={kpisData ? "Derived from PAR ratios" : "No data yet"}
+            info="Distribution of your loan portfolio across performing and non-performing categories, derived from Portfolio at Risk (PAR) metrics."
           >
             {kpisLoading ? (
               <div className="h-52 flex flex-col gap-3 pt-2">
@@ -382,9 +386,31 @@ export function CooperativeDashboard() {
           </Card>
         </div>
 
+        {/* ── Financial Growth Trend ── */}
+        <div className="grid lg:grid-cols-1 gap-6">
+          <Card 
+            title="Financial Growth Trend" 
+            subtitle="Assets, loans & savings over the reporting year"
+            info="Month-over-month trajectory of your cooperative's key financial balances, indicating growth and seasonal fluctuations."
+          >
+            {trendPoints.length > 0 ? (
+              <CoopTrendAreaChart data={trendPoints} />
+            ) : (
+               <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-center gap-2">
+                 <TrendingUp className="size-8 opacity-30" />
+                 <p className="text-sm">No trend data available for the year.</p>
+               </div>
+            )}
+          </Card>
+        </div>
+
         {/* ── Charts Row 2: OSS + Membership counts from real data ── */}
         <div className="grid lg:grid-cols-3 gap-6">
-          <Card title="Membership Summary" subtitle="Total members in your cooperative database">
+          <Card 
+            title="Membership Summary" 
+            subtitle="Total members in your cooperative database"
+            info="The total registered headcount of active members affiliated with this cooperative."
+          >
             <div className="flex flex-col gap-4 pt-2">
               {(membersData?.total ?? 0) > 0 ? (
                 <>
@@ -409,7 +435,11 @@ export function CooperativeDashboard() {
             </div>
           </Card>
 
-          <Card title="Database Coverage" subtitle="Records across all 5 databases">
+          <Card 
+            title="Database Coverage" 
+            subtitle="Records across all 5 databases"
+            info="A summary of the record counts present across all five required non-financial ledgers."
+          >
             <div className="flex flex-col gap-2 pt-2">
               {databaseStatus.map((db) => {
                 const hasData = db.records > 0;
@@ -433,6 +463,7 @@ export function CooperativeDashboard() {
           <Card
             title="Operational Self-Sufficiency"
             subtitle={kpisData ? "Income vs operating expenses" : "No data yet"}
+            info="Measures the extent to which operating revenues cover operating expenses. A value above 100% indicates profitability."
           >
             {kpisLoading ? (
               <div className="h-52 flex flex-col items-center gap-3 pt-4">
@@ -507,6 +538,7 @@ export function CooperativeDashboard() {
               ? `From your ${latestSubmission.reporting_year} submission · ${latestSubmission.status}`
               : "Extracted from your latest financial statement"
           }
+          info="A curated snapshot of critical financial and regulatory compliance indicators drawn from the most recent financial statement."
         >
           {kpisLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -577,7 +609,11 @@ export function CooperativeDashboard() {
         </Card>
 
         {/* ── Submission History ── */}
-        <Card title="Submission History" subtitle="Track review cycle statuses on your filings">
+        <Card 
+          title="Submission History" 
+          subtitle="Track review cycle statuses on your filings"
+          info="A chronological log of all past and present data declarations, their reference numbers, and their current position in the approval workflow."
+        >
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full border-collapse text-left text-sm">
               <thead>

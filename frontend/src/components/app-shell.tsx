@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   LayoutDashboard,
   Building2,
@@ -25,6 +26,7 @@ import {
   ScrollText,
   Users,
   Database,
+  Info,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
@@ -457,6 +459,7 @@ export function Card({
   title,
   subtitle,
   action,
+  info,
   children,
   className = "",
   edge = "none",
@@ -464,6 +467,7 @@ export function Card({
   title?: string;
   subtitle?: string;
   action?: ReactNode;
+  info?: string;
   children: ReactNode;
   className?: string;
   edge?: "accent" | "success" | "warning" | "danger" | "info" | "primary" | "none";
@@ -477,17 +481,29 @@ export function Card({
     >
       {(title || action) && (
         <header className="flex items-center justify-between gap-4 border-b border-border px-5 py-3.5">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             {title && (
-              <h3 className="font-heading text-[14px] font-semibold text-foreground truncate">
+              <h3 className="font-heading text-[14px] font-semibold text-foreground flex items-center gap-1.5 truncate">
                 {title}
+                {info && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                        <Info className="size-3.5 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors shrink-0" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
+                      <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{info}</p>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </h3>
             )}
             {subtitle && (
               <p className="text-[11px] text-muted-foreground truncate mt-0.5">{subtitle}</p>
             )}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
       <div className="p-5">{children}</div>
@@ -504,6 +520,7 @@ export function StatCard({
   label,
   value,
   subtitle,
+  info,
   tone = "primary",
   children,
 }: {
@@ -511,6 +528,7 @@ export function StatCard({
   label: string;
   value: string;
   subtitle?: string;
+  info?: string;
   tone?: "primary" | "success" | "warning" | "danger" | "info" | "accent";
   children?: ReactNode;
 }) {
@@ -564,9 +582,23 @@ export function StatCard({
       />
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground leading-tight max-w-[70%]">
-          {label}
-        </p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground leading-tight truncate">
+            {label}
+          </p>
+          {info && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors shrink-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
+                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{info}</p>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
         <div className={`size-8 rounded-lg grid place-items-center shrink-0 ${iconBadgeCls}`}>
           <Icon className="size-4" />
         </div>

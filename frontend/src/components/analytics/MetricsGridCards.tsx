@@ -1,5 +1,5 @@
 import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface MetricCard {
   label: string;
@@ -45,18 +45,16 @@ export function MetricsGridCards({ metrics, columns = 4 }: MetricsGridCardsProps
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               {metric.label}
             </p>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Info className="size-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <p className="text-xs">{metric.tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <Info className="size-3.5 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
+                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{metric.tooltip}</p>
+              </PopoverContent>
+            </Popover>
           </div>
           <p className="font-heading text-2xl font-bold text-foreground num leading-tight">
             {metric.value}
