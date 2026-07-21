@@ -10,8 +10,10 @@ use crate::api::dto::cooperative::CooperativeResponse;
 use crate::api::dto::member::MemberResponse;
 use crate::api::handlers::extraction::get_extraction_job;
 use crate::api::handlers::financial_statement::{
-    get_financial_statement, list_chart_of_accounts, list_line_items, update_line_items,
+    get_financial_statement, get_submission_kpis, list_chart_of_accounts, list_line_items,
+    update_line_items,
 };
+use crate::api::handlers::nf_indicator_stats::get_nf_statistics;
 use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
@@ -99,6 +101,11 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(get_submission).delete(delete_submission),
         )
         .route("/submissions/{id}/submit", post(submit_submission))
+        .route(
+            "/submissions/{id}/export",
+            get(crate::api::handlers::export::export_single_submission),
+        )
+        .route("/submissions/{id}/kpis", get(get_submission_kpis))
         .route("/submissions/{id}/sections", get(list_submission_sections))
         .route("/submissions/{id}/reviews", get(list_submission_reviews))
         .route(
@@ -140,6 +147,8 @@ pub fn cooperative_routes() -> Router<AppState> {
         )
         .route("/chart-of-accounts", get(list_chart_of_accounts))
         .route("/extraction-jobs/{id}", get(get_extraction_job))
+        // NF indicator statistics for the caller's cooperative
+        .route("/nf-statistics", get(get_nf_statistics))
 }
 
 async fn get_cooperative_profile(

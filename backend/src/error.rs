@@ -188,6 +188,12 @@ impl From<redis::RedisError> for AppError {
     }
 }
 
+impl From<rust_xlsxwriter::XlsxError> for AppError {
+    fn from(err: rust_xlsxwriter::XlsxError) -> Self {
+        AppError::InternalServerError(err.to_string())
+    }
+}
+
 /// Helper function to create a forbidden error with role requirements.
 pub fn forbidden_with_roles(
     message: impl Into<String>,

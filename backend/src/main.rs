@@ -62,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
     let non_financial_indicator_catalog_repo =
         NonFinancialIndicatorCatalogRepository::new(db.clone());
     let non_financial_indicator_entry_repo = NonFinancialIndicatorEntryRepository::new(db.clone());
+    let custom_kpi_repo = coop_data_backend::repositories::CustomKpiRepository::new(db.clone());
     let member_repo = MemberRepository::new(db.clone());
     let savings_account_repo = SavingsAccountRepository::new(db.clone());
     let loan_repo = LoanRepository::new(db.clone());
@@ -106,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
         section_repo,
         non_financial_indicator_catalog_repo,
         non_financial_indicator_entry_repo,
+        custom_kpi_repo,
         extractor,
         member_repo,
         savings_account_repo,

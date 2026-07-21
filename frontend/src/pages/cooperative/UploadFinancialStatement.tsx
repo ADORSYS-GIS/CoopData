@@ -19,17 +19,19 @@ export const UploadFinancialStatementWidget: React.FC<{
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
   const [dragOver, setDragOver] = useState(false);
-  const [reportingYear, setReportingYear] = useState(new Date().getFullYear());
-  const [currency, setCurrency] = useState("SZL");
   const [jobId, setJobId] = useState<string | null>(null);
   const [extractionFinished, setExtractionFinished] = useState(false);
 
   const upload = useUploadFinancialStatement(submissionId);
   const { data: job } = useExtractionJob(jobId);
-
-  const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
 
   const isTerminal = job && ["succeeded", "failed", "partial"].includes(job.status);
 
@@ -39,6 +41,11 @@ export const UploadFinancialStatementWidget: React.FC<{
       return;
     }
     setFile(f);
+    if (f.type.startsWith("image/")) {
+      setPreviewUrl(URL.createObjectURL(f));
+    } else {
+      setPreviewUrl(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -53,8 +60,6 @@ export const UploadFinancialStatementWidget: React.FC<{
     try {
       const result = await upload.mutateAsync({
         file,
-        reportingYear,
-        currency,
         submissionId,
       });
       setJobId(result.extraction_job_id);
@@ -150,23 +155,34 @@ export const UploadFinancialStatementWidget: React.FC<{
               }}
             />
             {file ? (
-              <div className="flex items-center justify-center gap-3">
-                <FileText className="size-8 text-primary shrink-0" />
-                <div className="text-left">
-                  <p className="text-sm font-semibold">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(file.size / 1024).toFixed(1)} KB
-                  </p>
+              <div className="flex flex-col items-center justify-center gap-4">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-h-48 rounded-lg object-contain border border-border shadow-sm"
+                  />
+                ) : (
+                  <FileText className="size-12 text-primary shrink-0" />
+                )}
+                <div className="flex items-center gap-3">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                      setPreviewUrl(null);
+                    }}
+                    className="ml-2 rounded-full p-1.5 hover:bg-muted transition-colors"
+                  >
+                    <X className="size-4 text-muted-foreground" />
+                  </button>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFile(null);
-                  }}
-                  className="ml-2 rounded-full p-1 hover:bg-muted transition-colors"
-                >
-                  <X className="size-3.5 text-muted-foreground" />
-                </button>
               </div>
             ) : (
               <>
@@ -177,39 +193,6 @@ export const UploadFinancialStatementWidget: React.FC<{
                 </p>
               </>
             )}
-          </div>
-
-          {/* Options */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                Reporting Year
-              </label>
-              <select
-                value={reportingYear}
-                onChange={(e) => setReportingYear(Number(e.target.value))}
-                className="w-full rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                Currency
-              </label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full rounded-lg border border-input bg-muted/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
-              >
-                <option value="SZL">SZL (Swazi Lilangeni)</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
           </div>
 
           {/* Actions */}

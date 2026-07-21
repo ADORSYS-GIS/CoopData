@@ -76,6 +76,11 @@ pub fn federation_routes() -> Router<AppState> {
         )
         // Federation Stats
         .route("/stats", get(handlers::federation::get_federation_stats))
+        // Bulk export
+        .route(
+            "/submissions/export",
+            get(handlers::financial_statement::export_federation_submissions),
+        )
         // Submission review
         .route(
             "/submissions",
@@ -92,6 +97,14 @@ pub fn federation_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/return",
             post(handlers::submission::federation_return_submission),
+        )
+        .route(
+            "/submissions/{id}/export",
+            get(crate::api::handlers::export::export_single_submission),
+        )
+        .route(
+            "/export",
+            get(crate::api::handlers::export::export_bulk_consolidated),
         )
         .route(
             "/submissions/{submission_id}/files/{file_id}",

@@ -37,6 +37,10 @@ pub struct FederationResponse {
     pub domains: Vec<DomainResponse>,
     pub contact_email: Option<String>,
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub apex_count: Option<u64>,
+    #[serde(default)]
+    pub cooperative_count: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -88,6 +92,8 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
                 .collect(),
             contact_email,
             created_at,
+            apex_count: None,
+            cooperative_count: None,
         }
     }
 }
@@ -103,9 +109,15 @@ impl From<crate::models::keycloak::KeycloakOrganizationDomain> for DomainRespons
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct FederationStatsResponse {
-    pub total_apexes: u64,
-    pub total_members: u64,
-    pub federation: FederationResponse,
+    pub cooperative_count: u64,
+    pub submission_count: u64,
+    pub pending_review_count: u64,
+    pub approved_count: u64,
+    pub rejected_count: u64,
+    /// Average PAR30 across all approved submissions in this federation
+    pub average_par30: Option<f64>,
+    /// Average Capital Adequacy Ratio across all approved submissions
+    pub average_car: Option<f64>,
 }
 
 #[cfg(test)]

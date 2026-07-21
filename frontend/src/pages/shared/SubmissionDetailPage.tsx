@@ -426,14 +426,17 @@ export const SubmissionDetailPage: React.FC = () => {
   const isReadOnly = submission ? submission.status !== "draft" || role !== "cooperative" : true;
   const isDraft = submission?.status === "draft";
   const isCooperative = role === "cooperative";
-  const allReady = sections?.every((s) => s.status === "ready") ?? false;
+  const requiredSections = sections?.filter((s) => s.section !== "farm_coop") ?? [];
+  const allReady =
+    requiredSections.length > 0 && requiredSections.every((s) => s.status === "ready");
   const canSubmit = isDraft && allReady && isCooperative && !isExtracting;
 
-  const readyCount = sections?.filter((s) => s.status === "ready").length ?? 0;
-  const totalSectionsCount = sections?.length ?? 7;
+  const readyCount = requiredSections.filter((s) => s.status === "ready").length;
+  const totalSectionsCount = requiredSections.length;
   const progressPercent = totalSectionsCount > 0 ? (readyCount / totalSectionsCount) * 100 : 0;
-  const remainingSections =
-    sections?.filter((s) => s.status !== "ready").map((s) => s.section.replace(/_/g, " ")) ?? [];
+  const remainingSections = requiredSections
+    .filter((s) => s.status !== "ready")
+    .map((s) => s.section.replace(/_/g, " "));
 
   const handleSubmit = async () => {
     if (!id) return;
@@ -532,7 +535,7 @@ export const SubmissionDetailPage: React.FC = () => {
     },
     {
       key: "farm_coop",
-      label: "Farm Cooperative Data",
+      label: "Farm Cooperative Data (Optional)",
       description: "Production types, activities and compliance metrics",
       tab: "databases",
       icon: Database,
@@ -627,6 +630,20 @@ export const SubmissionDetailPage: React.FC = () => {
                     <span className="capitalize font-medium">{submission.current_tier}</span> tier
                   </p>
                 </div>
+                {isCooperative && submission.status !== "approved" && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
+                    Delete Submission
+                  </button>
+                )}
               </div>
 
               {/* Metadata strip */}
@@ -713,7 +730,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         Submission Readiness Center
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        All 7 sections must be marked{" "}
+                        All 6 mandatory sections must be marked{" "}
                         <span className="font-semibold text-success">Ready</span> before submitting
                         to the Apex
                       </p>
@@ -750,9 +767,8 @@ export const SubmissionDetailPage: React.FC = () => {
                     const status = secObj?.status ?? "pending";
                     const hasData = hasUploadedData(m.key);
                     const isReady = status === "ready";
-                    const isInProgress = status === "in_progress" && hasData;
-                    const isPending =
-                      status === "pending" || (status === "in_progress" && !hasData);
+                    const isInProgress = !isReady && hasData;
+                    const isPending = !isReady && !hasData;
                     const Icon = m.icon;
                     const isUpdatingThis = updateSection.isPending && updatingSectionKey === m.key;
 
@@ -849,7 +865,7 @@ export const SubmissionDetailPage: React.FC = () => {
                             >
                               View →
                             </button>
-                          ) : isInProgress && m.key !== "financial" && m.key !== "indicators" ? (
+                          ) : isInProgress && m.key !== "financial" ? (
                             <button
                               onClick={async () => {
                                 setUpdatingSectionKey(m.key);
@@ -924,18 +940,20 @@ export const SubmissionDetailPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleteMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {deleteMutation.isPending ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-3.5" />
-                      )}
-                      Delete Draft
-                    </button>
+                    {submission?.status !== "approved" && (
+                      <button
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                        className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                        Delete Draft
+                      </button>
+                    )}
                     <button
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitMutation.isPending}

@@ -202,11 +202,15 @@ pub async fn get_apex(
         ));
     }
 
-    let group = state
+    let mut group = state
         .keycloak
         .get_group_by_id(&id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    if let Ok(children) = state.keycloak.get_group_children(&id).await {
+        group.sub_groups = children;
+    }
 
     Ok((StatusCode::OK, Json(ApexResponse::from(group))))
 }

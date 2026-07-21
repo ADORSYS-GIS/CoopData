@@ -1,11 +1,4 @@
-import {
-  COOPERATIVES as INITIAL_COOPERATIVES,
-  SUBMISSIONS as INITIAL_SUBMISSIONS,
-  ACTIVITY_FEED as INITIAL_ACTIVITY_FEED,
-  USERS as INITIAL_USERS,
-} from "@/lib/mock-data";
 import { useUserRole } from "@/lib/auth";
-import { useState } from "react";
 import { MinistryDashboard } from "@/components/dashboards/ministry-dashboard";
 import { FederationDashboard } from "@/components/dashboards/federation-dashboard";
 import { ApexDashboard } from "@/components/dashboards/apex-dashboard";
@@ -15,46 +8,18 @@ import { Navigate } from "@tanstack/react-router";
 export const DashboardPage: React.FC = () => {
   const role = useUserRole();
 
-  const [usersList] = useState(INITIAL_USERS);
-  const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
-  const [activities, setActivities] = useState(INITIAL_ACTIVITY_FEED);
-  const [cooperatives, setCooperatives] = useState(INITIAL_COOPERATIVES);
-
-  void usersList;
-
   if (!role) {
     return <Navigate to="/unauthorized" />;
   }
 
   switch (role) {
     case "ministry":
-      return <MinistryDashboard cooperatives={cooperatives} activities={activities} />;
+      return <MinistryDashboard />;
     case "federation":
-      return (
-        <FederationDashboard
-          submissions={submissions}
-          setSubmissions={setSubmissions}
-          activities={activities}
-          setActivities={setActivities}
-        />
-      );
+      return <FederationDashboard />;
     case "apex":
-      return (
-        <ApexDashboard
-          cooperatives={cooperatives}
-          setCooperatives={setCooperatives}
-          submissions={submissions}
-          setSubmissions={setSubmissions}
-        />
-      );
+      return <ApexDashboard />;
     case "cooperative":
-      return (
-        <CooperativeDashboard
-          submissions={submissions}
-          setSubmissions={setSubmissions}
-          activities={activities}
-          setActivities={setActivities}
-        />
-      );
+      return <CooperativeDashboard />;
   }
 };

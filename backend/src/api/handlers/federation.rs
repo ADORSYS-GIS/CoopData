@@ -155,8 +155,34 @@ pub async fn list_federations(State(state): State<AppState>) -> AppResult<impl I
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let federations: Vec<FederationResponse> =
-        orgs.into_iter().map(FederationResponse::from).collect();
+    let all_apexes = state.apex_repo.list_all().await.unwrap_or_default();
+    let all_coops = state.cooperative_repo.list_all().await.unwrap_or_default();
+
+    let federations: Vec<FederationResponse> = orgs
+        .into_iter()
+        .map(|org| {
+            let mut resp = FederationResponse::from(org);
+
+            // Find apexes belonging to this federation (using organization_keycloak_id which maps to federation Keycloak ID)
+            let org_apexes: Vec<_> = all_apexes
+                .iter()
+                .filter(|a| a.organization_keycloak_id == resp.id)
+                .collect();
+
+            let apex_count = org_apexes.len() as u64;
+
+            // Find cooperatives belonging to those apexes
+            let coop_count = all_coops
+                .iter()
+                .filter(|c| org_apexes.iter().any(|a| a.id == c.apex_id))
+                .count() as u64;
+
+            resp.apex_count = Some(apex_count);
+            resp.cooperative_count = Some(coop_count);
+            resp
+        })
+        .collect();
+
     Ok((StatusCode::OK, Json(federations)))
 }
 
@@ -858,51 +884,68 @@ pub async fn get_federation_stats(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    use crate::api::dto::apex::ApexResponse;
+    use crate::entities::enums::SubmissionStatus;
 
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 
-    let org = state
-        .keycloak
-        .get_organization_by_id(&org_id)
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let federation = state
+        .federation_repo
+        .find_by_keycloak_id(&org_id)
+        .await?
+        .ok_or_else(|| crate::error::AppError::NotFound("Federation not found".into()))?;
 
-    let all_groups = state
-        .keycloak
-        .get_groups(None)
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+    let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
 
-    let apexes: Vec<ApexResponse> = all_groups
-        .into_iter()
-        .filter(|g| {
-            g.attributes
-                .as_ref()
-                .and_then(|attrs| attrs.get("organization_id"))
-                .and_then(|vals| vals.first())
-                .map(|v| v.as_str())
-                .unwrap_or("")
-                == org_id
+    let mut coop_ids: Vec<Uuid> = Vec::new();
+    for apex in &apexes {
+        let coops = state.cooperative_repo.find_by_apex_id(apex.id).await?;
+        coop_ids.extend(coops.iter().map(|c| c.id));
+    }
+
+    let cooperative_count = coop_ids.len() as u64;
+
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids)
+        .await?;
+
+    let submission_count = submissions.len() as u64;
+    let pending_review_count = submissions
+        .iter()
+        .filter(|s| {
+            s.status != SubmissionStatus::Draft
+                && s.status != SubmissionStatus::Approved
+                && s.status != SubmissionStatus::Rejected
         })
-        .map(ApexResponse::from)
+        .count() as u64;
+    let approved_count = submissions
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .count() as u64;
+    let rejected_count = submissions
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Rejected)
+        .count() as u64;
+
+    let approved_sub_ids: Vec<Uuid> = submissions
+        .iter()
+        .filter(|s| s.status == SubmissionStatus::Approved)
+        .map(|s| s.id)
         .collect();
 
-    let total_apexes = apexes.len() as u64;
-
-    let mut total_members: u64 = 0;
-    for apex in &apexes {
-        if let Ok(members) = state.keycloak.get_group_members(&apex.id).await {
-            total_members += members.len() as u64;
-        }
-    }
+    let (average_par30, average_car) =
+        crate::api::handlers::submission::compute_average_kpis(&state, approved_sub_ids).await;
 
     Ok((
         StatusCode::OK,
         Json(FederationStatsResponse {
-            total_apexes,
-            total_members,
-            federation: FederationResponse::from(org),
+            cooperative_count,
+            submission_count,
+            pending_review_count,
+            approved_count,
+            rejected_count,
+            average_par30,
+            average_car,
         }),
     ))
 }

@@ -1,0 +1,203 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CoopData Production - Pre-built Images from GHCR
+# ─────────────────────────────────────────────────────────────────────────────
+# No local building. Backend + Frontend images pulled from GHCR.
+# Infrastructure images pulled from Docker Hub.
+# Requires: .env file (copy from .env.example), migrations/, keycloak/
+#
+# Usage:
+#   docker compose -f docker-compose.ghcr.yaml up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: coopdata-postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports: []
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: coopdata-redis
+    ports: []
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO (S3-compatible storage) ─────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: coopdata-minio
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Keycloak (OpenID Connect) ──────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak
+    command: start-dev --import-realm
+    env_file:
+      - .env
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: "8180"
+      KC_HOSTNAME: "${DOMAIN_NAME:-localhost}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      COOPDATA_SUPER_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_SUPER_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
+      COOPDATA_SUPER_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
+    ports:
+      - "127.0.0.1:8180:8180"
+    volumes:
+      - ./keycloak/realm-coopdata.json:/opt/keycloak/data/import/realm-coopdata.json:ro
+      - ./keycloak/themes/coopdata:/opt/keycloak/themes/coopdata:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8180'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # ── Keycloak Provisioning (creates admin users + SMTP config) ──────────────
+  keycloak-provision:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: coopdata-keycloak-provision
+    env_file:
+      - .env
+    environment:
+      KEYCLOAK_SERVER: http://keycloak:8180
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      COOPDATA_DGRV_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
+      COOPDATA_DGRV_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_DGRV_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
+      COOPDATA_DGRV_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
+      COOPDATA_MINISTRY_ADMIN_EMAIL: ${COOPDATA_MINISTRY_ADMIN_EMAIL:-admin@ministry.gov}
+      COOPDATA_MINISTRY_ADMIN_PASSWORD: ${COOPDATA_MINISTRY_ADMIN_PASSWORD:-Ministry@Admin2026!}
+      COOPDATA_MINISTRY_ADMIN_FIRSTNAME: ${COOPDATA_MINISTRY_ADMIN_FIRSTNAME:-Ministry}
+      COOPDATA_MINISTRY_ADMIN_LASTNAME: ${COOPDATA_MINISTRY_ADMIN_LASTNAME:-Administrator}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_FROM_DISPLAY: ${SMTP_FROM_DISPLAY:-CoopData}
+      SMTP_REPLY_TO: ${SMTP_REPLY_TO}
+      SMTP_ENVELOPE_FROM: ${SMTP_ENVELOPE_FROM}
+    volumes:
+      - ./keycloak/provision.sh:/opt/keycloak/data/import/provision.sh:ro
+    entrypoint: ["/bin/bash", "/opt/keycloak/data/import/provision.sh"]
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  # ── Backend (Rust/Axum) — image from GHCR ─────────────────────────────────
+  backend:
+    image: ghcr.io/adorsys-gis/coopdata-backend:latest
+    container_name: coopdata-backend
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_ISSUER_ALIASES: ${JWT_ISSUER_ALIASES}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      STORAGE_TYPE: ${STORAGE_TYPE:-s3}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_BUCKET: ${S3_BUCKET:-coopdata}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      EXTRACTION_BACKEND: ${EXTRACTION_BACKEND:-mock}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # ── Frontend (React SPA + Nginx) — image from GHCR ───────────────────────
+  frontend:
+    image: ghcr.io/adorsys-gis/coopdata-frontend:latest
+    container_name: coopdata-frontend
+    ports:
+      - "127.0.0.1:5174:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

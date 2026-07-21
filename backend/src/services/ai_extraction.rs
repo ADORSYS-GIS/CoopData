@@ -111,19 +111,20 @@ pub fn extract_excel_text(bytes: &[u8]) -> AppResult<String> {
                 continue;
             }
 
-            // Detect if the first non-empty row looks like a month/period header
+            // Detect if any of the first 20 non-empty rows look like a month/period header
             // (contains "Jan", "Feb", month numbers, or year-like values)
-            let first_row = &rows[0];
-            let has_column_headers = first_row.iter().skip(1).any(|cell| {
-                let s = cell_to_str(cell);
-                let lower = s.to_lowercase();
-                lower.contains("jan") || lower.contains("feb") || lower.contains("mar")
-                    || lower.contains("apr") || lower.contains("may") || lower.contains("jun")
-                    || lower.contains("jul") || lower.contains("aug") || lower.contains("sep")
-                    || lower.contains("oct") || lower.contains("nov") || lower.contains("dec")
-                    || lower.contains("month") || lower.contains("period")
-                    // numeric month headers like "1", "2" ... "12"
-                    || s.trim().parse::<u32>().map(|n| (1..=12).contains(&n)).unwrap_or(false)
+            let has_column_headers = rows.iter().take(20).any(|row| {
+                row.iter().skip(1).any(|cell| {
+                    let s = cell_to_str(cell);
+                    let lower = s.to_lowercase();
+                    lower.contains("jan") || lower.contains("feb") || lower.contains("mar")
+                        || lower.contains("apr") || lower.contains("may") || lower.contains("jun")
+                        || lower.contains("jul") || lower.contains("aug") || lower.contains("sep")
+                        || lower.contains("oct") || lower.contains("nov") || lower.contains("dec")
+                        || lower.contains("month") || lower.contains("period")
+                        // numeric month headers like "1", "2" ... "12"
+                        || s.trim().parse::<u32>().map(|n| (1..=12).contains(&n)).unwrap_or(false)
+                })
             });
 
             if has_column_headers {
@@ -282,20 +283,23 @@ RULE 3 — CONFIDENCE SCORING (be honest, not optimistic):
   - 0.00: Cannot map → set account_code to null
   Do NOT assign 0.95 to everything. Differentiate based on certainty.
 
-RULE 4 — MONTHLY DATA (for 12-column balance sheets):
-If the document has monthly columns (Jan, Feb, Mar, ..., Dec) OR a table with column headers:
-  - Extract EACH month as a SEPARATE line item
-  - Use month=1 for January, month=2 for February, ..., month=12 for December
-  - Use month=0 ONLY for annual total or when no monthly breakdown exists
-  - Example: "Cash on Hand: Jan=50000, Feb=48000" → TWO items:
-    {{account_code:1101, month:1, value:50000}} AND {{account_code:1101, month:2, value:48000}}
+RULE 4 — MONTHLY DATA (13-COLUMN MONTHLY BALANCE SHEETS):
+If the document has monthly columns (e.g., Dec 2021, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec 2022) OR a table with month/period headers:
+  - Extract EACH monthly cell as a SEPARATE line item
+  - Use month=0 for Dec prior year (e.g., "Dec 2021" baseline prior year-end column)
+  - Use month=1 for January, month=2 for February, ..., month=12 for December (e.g., "Dec 2022")
+  - Example row: "Cash & Cash Equivalents | 213,165 | 277,410 | 362,919 | ..." emits 13 items:
+    {{"account_code":1101, "month":0, "value":213165, "raw_label":"Cash & Cash Equivalents"}}
+    {{"account_code":1101, "month":1, "value":277410, "raw_label":"Cash & Cash Equivalents"}}
+    {{"account_code":1101, "month":2, "value":362919, "raw_label":"Cash & Cash Equivalents"}} ... up to month=12
+  - Use month=0 ONLY for baseline prior year-end or when no monthly breakdown exists.
 
 RULE 5 — EXCEL TABLE STRUCTURE:
-If the raw text contains table-structured data with Row/Column notation:
-  - Row headers (column A) are LABELS
-  - Column headers are typically MONTHS or PERIODS
-  - Map each cell at intersection of label-row and month-column as a separate line item
-  - Do NOT discard column data — every column with a numeric header is a month
+If the raw text contains table-structured data with Row/Column notation or Pipe separators (|):
+  - Row headers (Column A / leftmost column) are account LABELS
+  - Column headers are MONTHS or PERIODS (Dec prior year, Jan .. Dec current year)
+  - Map each cell at the intersection of label-row and month-column as a separate line item with its corresponding month (0 to 12)
+  - Do NOT discard column data — every column with a month or date header must produce a line item
 
 RULE 6 — EXTRACTION COMPLETENESS:
   - Extract EVERY single numeric value — do NOT skip any row
