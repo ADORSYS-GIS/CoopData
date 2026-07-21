@@ -12,10 +12,10 @@ export const leadershipAndManagementSchema = z.object({
   supervisory_committee_male: z.coerce.number().min(0),
   supervisory_committee_female: z.coerce.number().min(0),
 
-  chair_education: z.string().min(1, 'Required'),
-  vice_chair_education: z.string().min(1, 'Required'),
-  treasurer_education: z.string().min(1, 'Required'),
-  secretary_education: z.string().min(1, 'Required'),
+  chair_education: z.string().optional().default(''),
+  vice_chair_education: z.string().optional().default(''),
+  treasurer_education: z.string().optional().default(''),
+  secretary_education: z.string().optional().default(''),
 
   staff_manager_male: z.coerce.number().min(0),
   staff_manager_female: z.coerce.number().min(0),
@@ -28,18 +28,18 @@ export const leadershipAndManagementSchema = z.object({
   staff_support_male: z.coerce.number().min(0),
   staff_support_female: z.coerce.number().min(0),
 
-  manager_academic_level: z.string().min(1, 'Required'),
-  manager_coop_training_level: z.string().min(1, 'Required'),
+  manager_academic_level: z.string().optional().default(''),
+  manager_coop_training_level: z.string().optional().default(''),
 
   members_trained_last_year: z.coerce.number().min(0),
   leaders_trained_last_year: z.coerce.number().min(0),
   staff_trained_last_year: z.coerce.number().min(0),
-  training_sponsor: z.string().min(1, 'Required'),
-  training_quality_rating: z.string().min(1, 'Required'),
+  training_sponsor: z.string().optional().default(''),
+  training_quality_rating: z.string().optional().default(''),
 
-  member_training_needs: z.array(z.string()).min(1, 'At least one need required'),
-  leader_training_needs: z.array(z.string()).min(1, 'At least one need required'),
-  staff_training_needs: z.array(z.string()).min(1, 'At least one need required'),
+  member_training_needs: z.array(z.string()).optional().default([]),
+  leader_training_needs: z.array(z.string()).optional().default([]),
+  staff_training_needs: z.array(z.string()).optional().default([]),
   willing_to_cover_training_cost_pct: z.coerce.number().min(0).max(100),
 
   registered_members_male: z.coerce.number().min(0),
@@ -53,12 +53,12 @@ export const leadershipAndManagementSchema = z.object({
   active_members_36_60: z.coerce.number().min(0),
   active_members_61_plus: z.coerce.number().min(0),
 
-  society_status: z.string().min(1, 'Required'),
+  society_status: z.string().optional().default(''),
   dormant_members_male: z.coerce.number().min(0),
   dormant_members_female: z.coerce.number().min(0),
 
-  dormancy_reasons: z.array(z.string()),
-  dormancy_effect: z.string().min(1, 'Required'),
+  dormancy_reasons: z.array(z.string()).optional().default([]),
+  dormancy_effect: z.string().optional().default(''),
 
   management_tools: z.array(z.string()),
   governance_tools: z.array(z.string()),
@@ -148,7 +148,7 @@ export const financialLoanPortfolioSchema = z.object({
   fees_penalties: z.coerce.number().min(0),
   fees_others: z.coerce.number().min(0),
   
-  interest_rate_method: z.string().min(1, 'Required'),
+  interest_rate_method: z.string().optional().default(''),
 });
 
 export const activityIncomeSchema = z.object({

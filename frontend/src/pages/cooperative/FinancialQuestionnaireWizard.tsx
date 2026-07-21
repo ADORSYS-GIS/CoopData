@@ -280,8 +280,128 @@ export const FinancialQuestionnaireWizard: React.FC<{
 
   const { total, filled } = calculateProgress();
 
+  const STEP_FIELDS: Record<number, string[]> = {
+    0: [
+      "leadership_and_management.board_members_male",
+      "leadership_and_management.board_members_female",
+      "leadership_and_management.exec_committee_male",
+      "leadership_and_management.exec_committee_female",
+      "leadership_and_management.credit_committee_male",
+      "leadership_and_management.credit_committee_female",
+      "leadership_and_management.education_committee_male",
+      "leadership_and_management.education_committee_female",
+      "leadership_and_management.supervisory_committee_male",
+      "leadership_and_management.supervisory_committee_female",
+    ],
+    1: [
+      "leadership_and_management.staff_manager_male",
+      "leadership_and_management.staff_manager_female",
+      "leadership_and_management.staff_ass_manager_male",
+      "leadership_and_management.staff_ass_manager_female",
+      "leadership_and_management.staff_acc_male",
+      "leadership_and_management.staff_acc_female",
+      "leadership_and_management.staff_other_mgmt_male",
+      "leadership_and_management.staff_other_mgmt_female",
+      "leadership_and_management.staff_support_male",
+      "leadership_and_management.staff_support_female",
+    ],
+    2: [
+      "leadership_and_management.members_trained_last_year",
+      "leadership_and_management.leaders_trained_last_year",
+      "leadership_and_management.staff_trained_last_year",
+      "leadership_and_management.willing_to_cover_training_cost_pct",
+    ],
+    3: [
+      "leadership_and_management.registered_members_male",
+      "leadership_and_management.registered_members_female",
+      "leadership_and_management.active_members_male",
+      "leadership_and_management.active_members_female",
+      "leadership_and_management.active_members_youth_17_under",
+      "leadership_and_management.active_members_18_25",
+      "leadership_and_management.active_members_26_35",
+      "leadership_and_management.active_members_36_60",
+      "leadership_and_management.active_members_61_plus",
+      "leadership_and_management.dormant_members_male",
+      "leadership_and_management.dormant_members_female",
+    ],
+    4: [
+      "leadership_and_management.management_tools",
+      "leadership_and_management.governance_tools",
+    ],
+    5: [
+      "leadership_and_management.agm_attendance_male",
+      "leadership_and_management.agm_attendance_female",
+    ],
+    6: [
+      "leadership_and_management.financial_products.0",
+      "leadership_and_management.non_financial_products.0",
+    ],
+    7: [
+      "capitalization.share_nominal_value",
+      "capitalization.share_capital_contribution_per_member",
+      "capitalization.total_share_capital_male",
+      "capitalization.total_share_capital_female",
+      "capitalization.borrowed_funds",
+      "capitalization.donations_grants",
+      "capitalization.accumulated_statutory_reserves_book_value",
+      "capitalization.actual_accumulated_statutory_reserves",
+      "capitalization.retained_earnings",
+    ],
+    8: [
+      "savings_portfolio.depositors_male",
+      "savings_portfolio.depositors_female",
+      "savings_portfolio.total_savings_male",
+      "savings_portfolio.total_savings_female",
+      "savings_portfolio.invested_in_bank",
+      "savings_portfolio.invested_in_shares",
+      "savings_portfolio.other_investments",
+    ],
+    9: [
+      "loan_portfolio.loans_issued_male",
+      "loan_portfolio.loans_issued_female",
+      "loan_portfolio.loans_issued_coops",
+      "loan_portfolio.value_issued_male",
+      "loan_portfolio.value_issued_female",
+      "loan_portfolio.value_issued_coops",
+    ],
+    11: [
+      "periodic_financial_reporting.current_total_income",
+      "periodic_financial_reporting.current_expenditure",
+      "periodic_financial_reporting.current_net_income",
+      "periodic_financial_reporting.total_current_assets",
+      "periodic_financial_reporting.total_equity",
+    ],
+  };
+
   const handleNext = async () => {
-    // In a real app, validate specific step fields here using trigger()
+    const fieldsToValidate = STEP_FIELDS[currentStep] || [];
+    if (fieldsToValidate.length > 0) {
+      const isValid = await trigger(fieldsToValidate as any);
+      if (!isValid) {
+        if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+          window.navigator.vibrate([100, 50, 100]);
+        }
+        
+        toast.error("Please fill in valid values for this step before continuing.");
+        
+        const firstErrorField = fieldsToValidate.find(f => {
+          const parts = f.split('.');
+          return parts.reduce((acc, p) => acc && (acc as any)[p], errors);
+        }) || fieldsToValidate[0];
+        
+        if (firstErrorField) {
+          const inputEl = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement | null;
+          if (inputEl) {
+            inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            inputEl.focus();
+          } else {
+            form.setFocus(firstErrorField as any);
+          }
+        }
+        return;
+      }
+    }
+
     setCompletedSteps(prev => Array.from(new Set([...prev, STEPS[currentStep].id])));
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(curr => curr + 1);
@@ -310,6 +430,60 @@ export const FinancialQuestionnaireWizard: React.FC<{
     }
   };
 
+  const onError = (errors: any) => {
+    console.error("Financial questionnaire validation errors:", errors);
+    
+    const getErrorPaths = (obj: any, prefix = ""): string[] => {
+      let paths: string[] = [];
+      for (const key in obj) {
+        if (!obj[key]) continue;
+        const currentPath = prefix ? `${prefix}.${key}` : key;
+        if (obj[key].message || obj[key].type) {
+          paths.push(currentPath);
+        } else if (typeof obj[key] === "object") {
+          paths.push(...getErrorPaths(obj[key], currentPath));
+        }
+      }
+      return paths;
+    };
+
+    const errorPaths = getErrorPaths(errors);
+    if (errorPaths.length > 0) {
+      const firstErrorPath = errorPaths[0];
+      
+      let targetStep = 0;
+      for (const stepIdxStr in STEP_FIELDS) {
+        const stepIdx = Number(stepIdxStr);
+        if (STEP_FIELDS[stepIdx]?.includes(firstErrorPath)) {
+          targetStep = stepIdx;
+          break;
+        }
+      }
+      if (firstErrorPath.startsWith("capitalization")) targetStep = 7;
+      else if (firstErrorPath.startsWith("savings_portfolio")) targetStep = 8;
+      else if (firstErrorPath.startsWith("loan_portfolio")) targetStep = 9;
+      else if (firstErrorPath.startsWith("other_activities_income")) targetStep = 10;
+      else if (firstErrorPath.startsWith("periodic_financial_reporting")) targetStep = 11;
+      else if (firstErrorPath.startsWith("qualitative_assessment")) targetStep = 12;
+
+      setCurrentStep(targetStep);
+
+      setTimeout(() => {
+        const inputEl = document.querySelector(`[name="${firstErrorPath}"]`) as HTMLElement | null;
+        if (inputEl) {
+          inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          inputEl.focus();
+        } else {
+          form.setFocus(firstErrorPath as any);
+        }
+      }, 100);
+
+      toast.error(`Please fix validation error on Step ${targetStep + 1} (${STEPS[targetStep]?.title}): ${firstErrorPath}`);
+    } else {
+      toast.error("Form submission failed validation. Please check any un-filled required fields.");
+    }
+  };
+
   return (
     <WizardLayout
       title="Financial Questionnaire"
@@ -323,7 +497,7 @@ export const FinancialQuestionnaireWizard: React.FC<{
       isSubmitting={isSubmitting}
     >
       <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit, onError)}>
           <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
 
             {/* STEP 1: Leadership & Governance */}

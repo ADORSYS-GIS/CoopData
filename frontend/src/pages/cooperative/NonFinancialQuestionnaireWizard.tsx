@@ -229,7 +229,116 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
 
   const { total, filled } = calculateProgress();
 
-  const handleNext = () => {
+  const STEP_FIELDS: Record<number, string[]> = {
+    0: [
+      "basic_data.registered_members_male",
+      "basic_data.registered_members_female",
+      "basic_data.active_members_male",
+      "basic_data.active_members_female",
+      "basic_data.active_members_17_under_male",
+      "basic_data.active_members_17_under_female",
+      "basic_data.active_members_18_25_male",
+      "basic_data.active_members_18_25_female",
+      "basic_data.active_members_26_35_male",
+      "basic_data.active_members_26_35_female",
+      "basic_data.active_members_36_60_male",
+      "basic_data.active_members_36_60_female",
+      "basic_data.active_members_61_plus_male",
+      "basic_data.active_members_61_plus_female",
+    ],
+    1: [
+      "basic_data.board_members_male",
+      "basic_data.board_members_female",
+      "basic_data.exec_committee_male",
+      "basic_data.exec_committee_female",
+      "basic_data.credit_committee_male",
+      "basic_data.credit_committee_female",
+      "basic_data.education_committee_male",
+      "basic_data.education_committee_female",
+      "basic_data.supervisory_committee_male",
+      "basic_data.supervisory_committee_female",
+    ],
+    2: [
+      "basic_data.staff_manager_male",
+      "basic_data.staff_manager_female",
+      "basic_data.staff_ass_manager_male",
+      "basic_data.staff_ass_manager_female",
+      "basic_data.staff_acc_male",
+      "basic_data.staff_acc_female",
+      "basic_data.staff_other_mgmt_male",
+      "basic_data.staff_other_mgmt_female",
+      "basic_data.staff_support_male",
+      "basic_data.staff_support_female",
+    ],
+    3: [
+      "basic_data.member_joining_fee",
+      "basic_data.annual_subscription_fee",
+      "basic_data.share_nominal_value",
+      "basic_data.share_capital_contribution_per_member",
+      "basic_data.total_share_capital_male",
+      "basic_data.total_share_capital_female",
+      "basic_data.borrowed_funds",
+      "basic_data.donations_grants",
+      "basic_data.statutory_reserve_book_value",
+      "basic_data.actual_statutory_reserves",
+    ],
+    5: [
+      "member_empowerment.members_trained_last_year",
+      "member_empowerment.leaders_trained_last_year",
+      "member_empowerment.staff_trained_last_year",
+      "member_empowerment.willing_to_cover_training_cost_pct",
+    ],
+    8: [
+      "main_threats.owed_to_creditors_outsiders",
+      "main_threats.owed_to_creditors_members",
+      "main_threats.outstanding_owed_to_banks",
+      "main_threats.outstanding_owed_by_members",
+      "main_threats.outstanding_payments_to_members",
+      "main_threats.number_of_competitors",
+      "main_threats.disputes_resolved",
+      "main_threats.disputes_unresolved",
+    ],
+    9: [
+      "savings_portfolio.depositors_male",
+      "savings_portfolio.depositors_female",
+      "savings_portfolio.total_savings_male",
+      "savings_portfolio.total_savings_female",
+      "savings_portfolio.invested_in_bank",
+      "savings_portfolio.invested_in_shares",
+      "savings_portfolio.other_investments",
+    ],
+    10: [
+      "loan_portfolio.loans_issued_male",
+      "loan_portfolio.loans_issued_female",
+      "loan_portfolio.loans_issued_coops",
+    ],
+    11: [
+      "periodic_reporting.current_total_income",
+      "periodic_reporting.current_expenditure",
+      "periodic_reporting.current_net_income",
+      "periodic_reporting.total_current_assets",
+      "periodic_reporting.total_liabilities",
+      "periodic_reporting.total_equity",
+    ],
+  };
+
+  const handleNext = async () => {
+    const fieldsToValidate = STEP_FIELDS[currentStep] || [];
+    if (fieldsToValidate.length > 0) {
+      const isValid = await trigger(fieldsToValidate as any);
+      if (!isValid) {
+        toast.error("Please complete the required fields in this step before continuing.");
+        const firstErrorField = fieldsToValidate.find(f => {
+          const parts = f.split('.');
+          return parts.reduce((acc, p) => acc && (acc as any)[p], errors);
+        });
+        if (firstErrorField) {
+          form.setFocus(firstErrorField as any);
+        }
+        return;
+      }
+    }
+
     setCompletedSteps(prev => Array.from(new Set([...prev, STEPS[currentStep].id])));
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(curr => curr + 1);
@@ -258,6 +367,62 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
     }
   };
 
+  const onError = (errors: any) => {
+    console.error("Non-financial questionnaire validation errors:", errors);
+
+    const getErrorPaths = (obj: any, prefix = ""): string[] => {
+      let paths: string[] = [];
+      for (const key in obj) {
+        if (!obj[key]) continue;
+        const currentPath = prefix ? `${prefix}.${key}` : key;
+        if (obj[key].message || obj[key].type) {
+          paths.push(currentPath);
+        } else if (typeof obj[key] === "object") {
+          paths.push(...getErrorPaths(obj[key], currentPath));
+        }
+      }
+      return paths;
+    };
+
+    const errorPaths = getErrorPaths(errors);
+    if (errorPaths.length > 0) {
+      const firstErrorPath = errorPaths[0];
+
+      let targetStep = 0;
+      for (const stepIdxStr in STEP_FIELDS) {
+        const stepIdx = Number(stepIdxStr);
+        if (STEP_FIELDS[stepIdx]?.includes(firstErrorPath)) {
+          targetStep = stepIdx;
+          break;
+        }
+      }
+      if (firstErrorPath.startsWith("member_empowerment")) targetStep = 5;
+      else if (firstErrorPath.startsWith("main_activity_performance")) targetStep = 6;
+      else if (firstErrorPath.startsWith("other_activities_income")) targetStep = 7;
+      else if (firstErrorPath.startsWith("main_threats")) targetStep = 8;
+      else if (firstErrorPath.startsWith("savings_portfolio")) targetStep = 9;
+      else if (firstErrorPath.startsWith("loan_portfolio")) targetStep = 10;
+      else if (firstErrorPath.startsWith("periodic_reporting")) targetStep = 11;
+      else if (firstErrorPath.startsWith("qualitative_assessment")) targetStep = 12;
+
+      setCurrentStep(targetStep);
+
+      setTimeout(() => {
+        const inputEl = document.querySelector(`[name="${firstErrorPath}"]`) as HTMLElement | null;
+        if (inputEl) {
+          inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          inputEl.focus();
+        } else {
+          form.setFocus(firstErrorPath as any);
+        }
+      }, 100);
+
+      toast.error(`Please fix validation error on Step ${targetStep + 1} (${STEPS[targetStep]?.title}): ${firstErrorPath}`);
+    } else {
+      toast.error("Form submission failed validation. Please check any un-filled required fields.");
+    }
+  };
+
   return (
     <WizardLayout
       title="Non-Financial Questionnaire"
@@ -271,7 +436,7 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
       isSubmitting={isSubmitting}
     >
       <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit, onError)}>
           <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
           
           {/* STEP 1: Membership & Demographics */}
