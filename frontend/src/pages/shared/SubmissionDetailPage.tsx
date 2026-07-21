@@ -1154,7 +1154,14 @@ export const SubmissionDetailPage: React.FC = () => {
                 />
               )}
               {submission.data_entry_mode === "manual" && isCooperative && (
-                <FinancialQuestionnaireWizard submissionId={submission.id} onComplete={() => refetchSections()} />
+                <FinancialQuestionnaireWizard
+                  submissionId={submission.id}
+                  initialData={submission.metadata as any}
+                  onComplete={() => {
+                    refetchSections();
+                    setActiveTab("databases");
+                  }}
+                />
               )}
               {submission.data_entry_mode === "manual" && !isCooperative && (
                 <Card title="Financial Questionnaire" subtitle="Manually entered data">
@@ -1183,7 +1190,7 @@ export const SubmissionDetailPage: React.FC = () => {
 
             <TabsContent value="databases" className="space-y-4">
               {submission.data_entry_mode === "manual" && isCooperative ? (
-                <NonFinancialQuestionnaireWizard submissionId={submission.id} onComplete={() => refetchSections()} />
+                <NonFinancialQuestionnaireWizard submissionId={submission.id} initialData={submission.metadata as any} onComplete={() => refetchSections()} />
               ) : submission.data_entry_mode === "manual" && !isCooperative ? (
                 <Card title="Non-Financial Questionnaire" subtitle="Manually entered data">
                   <div className="p-10 text-center text-muted-foreground">

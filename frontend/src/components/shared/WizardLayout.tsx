@@ -19,6 +19,7 @@ interface WizardLayoutProps {
   onStepChange: (index: number) => void;
   children: React.ReactNode;
   isSubmitting?: boolean;
+  isEditing?: boolean;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -32,6 +33,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   onStepChange,
   children,
   isSubmitting = false,
+  isEditing = false,
 }) => {
   const progressPercent = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
 
@@ -62,7 +64,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             {steps.map((step, index) => {
               const isCurrent = index === currentStepIndex;
               const isCompleted = completedSteps.includes(step.id);
-              const isClickable = isCompleted || index <= currentStepIndex; // Can navigate back or to completed
+              const isClickable = isEditing || isCompleted || index <= currentStepIndex; // Can navigate back or to completed, or any if editing
 
               return (
                 <button

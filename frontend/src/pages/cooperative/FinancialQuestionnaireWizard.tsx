@@ -5,7 +5,7 @@ import { financialQuestionnaireSchema, FinancialQuestionnaireValues } from "@/sc
 import { WizardLayout, WizardSection, WizardRow } from "@/components/shared/WizardLayout";
 import { toast } from "sonner";
 import { apiClient } from "@/openapi-client";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 const STEPS = [
   { id: "leadership", title: "Leadership & Governance", description: "Board and committee compositions" },
@@ -166,7 +166,8 @@ const CheckboxGroup = ({ label, name, options }: { label: string, name: string, 
 export const FinancialQuestionnaireWizard: React.FC<{
   submissionId: string;
   onComplete: () => void;
-}> = ({ submissionId, onComplete }) => {
+  initialData?: any;
+}> = ({ submissionId, onComplete, initialData }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -174,7 +175,7 @@ export const FinancialQuestionnaireWizard: React.FC<{
   const form = useForm<FinancialQuestionnaireValues>({
     resolver: zodResolver(financialQuestionnaireSchema),
     mode: "onChange",
-    defaultValues: {
+    defaultValues: initialData || {
       submission_id: submissionId,
       leadership_and_management: {
         board_members_male: 0, board_members_female: 0,
@@ -414,6 +415,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
     }
   };
 
+  const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
+
   const onSubmit = async (data: FinancialQuestionnaireValues) => {
     setIsSubmitting(true);
     try {
@@ -421,14 +424,46 @@ export const FinancialQuestionnaireWizard: React.FC<{
         body: data as any,
       });
       if (error) throw new Error((error as any).message || "Submission failed");
-      toast.success("Financial Questionnaire submitted successfully");
-      onComplete();
+      toast.success("Financial Questionnaire submitted successfully!");
+      setIsSubmittedSuccess(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Submission failed");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isSubmittedSuccess) {
+    return (
+      <div className="bg-surface border border-border rounded-2xl p-10 text-center space-y-6 max-w-2xl mx-auto my-8 shadow-sm animate-in fade-in zoom-in-95">
+        <div className="size-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto ring-8 ring-success/5">
+          <CheckCircle2 className="size-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-foreground">Financial Questionnaire Saved & Submitted!</h2>
+          <p className="text-sm text-muted-foreground">
+            All 135 financial data points have been recorded. You can now proceed to complete the Non-Financial Operational Questionnaire.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          <button
+            type="button"
+            onClick={() => onComplete()}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            Proceed to Non-Financial Questionnaire <ArrowRight className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSubmittedSuccess(false)}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-sm font-semibold hover:bg-muted transition-colors text-foreground"
+          >
+            Edit / Review Submission
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const onError = (errors: any) => {
     console.error("Financial questionnaire validation errors:", errors);
@@ -468,6 +503,10 @@ export const FinancialQuestionnaireWizard: React.FC<{
 
       setCurrentStep(targetStep);
 
+      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate([100, 50, 100]);
+      }
+
       setTimeout(() => {
         const inputEl = document.querySelector(`[name="${firstErrorPath}"]`) as HTMLElement | null;
         if (inputEl) {
@@ -495,6 +534,7 @@ export const FinancialQuestionnaireWizard: React.FC<{
       completedFields={filled}
       onStepChange={setCurrentStep}
       isSubmitting={isSubmitting}
+      isEditing={!!initialData}
     >
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)}>
@@ -980,7 +1020,7 @@ export const FinancialQuestionnaireWizard: React.FC<{
                 type="submit"
                 className="inline-flex items-center gap-2 rounded-xl bg-success px-6 py-2 text-sm font-semibold text-success-foreground hover:bg-success/90 shadow-sm transition-colors"
               >
-                Submit Financial Questionnaire
+                {initialData ? "Save Changes" : "Submit Financial Questionnaire"}
               </button>
             )}
           </div>

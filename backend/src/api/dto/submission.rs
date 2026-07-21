@@ -83,6 +83,7 @@ pub struct SubmissionResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub federation_id: Option<Uuid>,
     pub data_entry_mode: Option<String>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 impl From<SubmissionModel> for SubmissionResponse {
@@ -109,6 +110,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             apex_id: None,
             federation_id: None,
             data_entry_mode: m.metadata.get("data_entry_mode").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            metadata: Some(m.metadata),
         }
     }
 }
