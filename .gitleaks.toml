@@ -4,7 +4,17 @@ title = "CoopData Gitleaks Configuration"
 useDefault = true
 
 [allowlist]
-description = "Allowlist dev Keycloak realm export client secret"
+description = "Allowlist dev secrets and documentation placeholders"
 regexes = [
     '''vR_NMIX8Al5SFswDBepZy_qXklvwyBC7srXzdOz8VP8''',
+    '''<strong-random-secret>''',
+    '''<strong-random-password>''',
+    '''<strong-random-key>''',
+    '''<client-secret-from-keycloak-console>''',
+    '''<app-password>''',
+    '''changeme-''',
+    '''<random-secret>''',
+]
+paths = [
+    '''docs/''',
 ]
