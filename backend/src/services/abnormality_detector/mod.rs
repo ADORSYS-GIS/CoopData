@@ -1,4 +1,4 @@
-mod calculations;
+pub mod calculations;
 mod flags;
 mod sum_checks;
 

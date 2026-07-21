@@ -47,6 +47,13 @@ impl ApexRepository {
             .map_err(AppError::DatabaseError)
     }
 
+    pub async fn list_all(&self) -> AppResult<Vec<apex::Model>> {
+        apex::Entity::find()
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
     pub async fn create(&self, model: apex::ActiveModel) -> AppResult<apex::Model> {
         model.insert(&self.db).await.map_err(|e| {
             if e.to_string().contains("duplicate") || e.to_string().contains("unique") {

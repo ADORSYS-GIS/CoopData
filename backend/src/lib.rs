@@ -18,7 +18,7 @@ pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    ExtractionJobRepository, FarmCoopRepository, FederationRepository,
+    CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, LoanRepository, MemberRepository,
     NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
@@ -57,6 +57,7 @@ pub struct AppState {
     // non-financial indicators
     pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
     pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,
+    pub custom_kpi_repo: crate::repositories::custom_kpi_repository::CustomKpiRepository,
     // services
     pub extractor: std::sync::Arc<dyn Extractor>,
     pub member_repo: MemberRepository,

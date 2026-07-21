@@ -6,12 +6,12 @@ use coop_data_backend::services::{cache::CacheService, CalamineNfParser, ObjectS
 use coop_data_backend::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppConfig, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
-    CooperativeRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
-    FinancialStatementRepository, FixedDepositRepository, KeycloakService, LoanRepository,
-    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
+    FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
+    LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -66,6 +66,7 @@ impl TestApp {
             NonFinancialIndicatorCatalogRepository::new(db.clone());
         let non_financial_indicator_entry_repo =
             NonFinancialIndicatorEntryRepository::new(db.clone());
+        let custom_kpi_repo = CustomKpiRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -97,6 +98,7 @@ impl TestApp {
             loan_repo,
             fixed_deposit_repo,
             farm_coop_repo,
+            custom_kpi_repo,
             storage,
             nf_excel_parser,
         };

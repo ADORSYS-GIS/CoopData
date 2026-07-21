@@ -168,6 +168,8 @@ async fn run_pipeline_inner(
 
     // Build dedup set for mapped items
     let mut seen_mapped: std::collections::HashSet<(i32, i16)> = std::collections::HashSet::new();
+    let mut seen_unmapped: std::collections::HashSet<(String, i16)> =
+        std::collections::HashSet::new();
 
     // Pre-filter: skip items with no value (section headers returned by LLM)
     let candidates: Vec<&crate::services::ai_extraction::ExtractedLineItem> = output
@@ -185,11 +187,12 @@ async fn run_pipeline_inner(
             // Mapped item: dedup by (code, month)
             seen_mapped.insert((code, item.month))
         } else {
-            // FIX 2 — Store unmapped items (account_code = NULL) instead of discarding
-            // They show up in the editor with the amber "Unmapped" badge so users can fix them.
-            // We track by raw_label to avoid storing the exact same label twice.
-            unmapped_count += 1;
-            true
+            // Unmapped item: dedup by (raw_label, month)
+            let is_new = seen_unmapped.insert((item.raw_label.to_lowercase(), item.month));
+            if is_new {
+                unmapped_count += 1;
+            }
+            is_new
         };
 
         if !should_store {

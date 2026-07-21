@@ -66,7 +66,7 @@ impl SubmissionWorkflow {
         let sections = self.section_repo.find_by_submission(submission_id).await?;
         let not_ready: Vec<String> = sections
             .iter()
-            .filter(|s| s.status != "ready")
+            .filter(|s| s.section != "farm_coop" && s.status != "ready")
             .map(|s| format!("{} ({})", s.section, s.status))
             .collect();
         if !not_ready.is_empty() {

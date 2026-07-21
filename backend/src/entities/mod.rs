@@ -7,6 +7,7 @@ pub mod balance_sheet_line_item;
 pub mod chart_of_account;
 pub mod chart_of_accounts_coop_type;
 pub mod cooperative;
+pub mod custom_kpi;
 pub mod enums;
 pub mod extraction_job;
 pub mod farm_coop;
@@ -32,6 +33,9 @@ pub use assessment::{
 pub use audit_log::{Column as AuditLogColumn, Entity as AuditLogEntity, Model as AuditLogModel};
 pub use cooperative::{
     Column as CooperativeColumn, Entity as CooperativeEntity, Model as CooperativeModel,
+};
+pub use custom_kpi::{
+    Column as CustomKpiColumn, Entity as CustomKpiEntity, Model as CustomKpiModel,
 };
 pub use farm_coop::{Column as FarmCoopColumn, Entity as FarmCoopEntity, Model as FarmCoopModel};
 pub use federation::{

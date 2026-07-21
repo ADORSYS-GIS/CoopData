@@ -11,13 +11,13 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
   return useMutation({
     mutationFn: async ({
       file,
-      reportingYear,
+      reportingYear = new Date().getFullYear(),
       accountingYear = "calendar",
       currency = "SZL",
       submissionId: sid,
     }: {
       file: File;
-      reportingYear: number;
+      reportingYear?: number;
       accountingYear?: string;
       currency?: string;
       submissionId?: string;

@@ -142,12 +142,12 @@ function createColumns(
     {
       accessorKey: "apexes",
       header: "Apexes",
-      cell: () => <span className="text-sm">3</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.apex_count ?? 0}</span>,
     },
     {
       accessorKey: "cooperatives",
       header: "Cooperatives",
-      cell: () => <span className="text-sm">12</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.cooperative_count ?? 0}</span>,
     },
     {
       accessorKey: "members",

@@ -95,6 +95,15 @@ impl SubmissionRepository {
             .map_err(Into::into)
     }
 
+    pub async fn find_all_non_draft(&self) -> AppResult<Vec<submission::Model>> {
+        Entity::find()
+            .filter(Column::Status.ne(SubmissionStatus::Draft))
+            .order_by_desc(Column::CreatedAt)
+            .all(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn find_by_cooperative_ids_and_tier(
         &self,
         cooperative_ids: Vec<Uuid>,

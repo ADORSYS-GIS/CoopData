@@ -1,9 +1,5 @@
 import { AppShell, Card, StatCard } from "@/components/app-shell";
-import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  SUBMISSIONS as INITIAL_SUBMISSIONS,
-  ACTIVITY_FEED as INITIAL_ACTIVITY_FEED,
-} from "@/lib/mock-data";
+import { Link } from "@tanstack/react-router";
 import {
   ResponsiveContainer,
   BarChart,
@@ -15,7 +11,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
   RadialBarChart,
   RadialBar,
 } from "recharts";
@@ -26,107 +21,109 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
   Database,
   BarChart3,
-  Loader2,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCooperativeStats, useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
+import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
+import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
+import { useMembers } from "@/hooks/non-financial/useMembers";
+import { useSavings } from "@/hooks/non-financial/useSavings";
+import { useLoans } from "@/hooks/non-financial/useLoans";
+import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
+import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
+import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
+import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 
 // ─────────────────────────────────────────────────────────────────────
-// COOPERATIVE DASHBOARD — Upload-first, no manual entry
-// Upload financial statement (PDF/image) → extract data
-// Upload Excel sheets for 5 databases → validate → submit
-// Rich visualizations: charts, graphs, KPIs, statistics
+// COOPERATIVE DASHBOARD — real data only
 // ─────────────────────────────────────────────────────────────────────
 
-// Monochromatic accent palette — single color with graduated opacity
 const accentColor = "var(--accent)";
 const accentOpacities = [1, 0.72, 0.48, 0.32, 0.18];
 
-const monthlySavings = [
-  { month: "Jan", savings: 420, loans: 310, deposits: 180 },
-  { month: "Feb", savings: 445, loans: 325, deposits: 195 },
-  { month: "Mar", savings: 470, loans: 340, deposits: 210 },
-  { month: "Apr", savings: 510, loans: 355, deposits: 225 },
-  { month: "May", savings: 540, loans: 370, deposits: 240 },
-  { month: "Jun", savings: 580, loans: 390, deposits: 260 },
-  { month: "Jul", savings: 610, loans: 405, deposits: 275 },
-  { month: "Aug", savings: 640, loans: 420, deposits: 290 },
-  { month: "Sep", savings: 670, loans: 435, deposits: 305 },
-  { month: "Oct", savings: 695, loans: 450, deposits: 320 },
-  { month: "Nov", savings: 720, loans: 465, deposits: 335 },
-  { month: "Dec", savings: 750, loans: 480, deposits: 350 },
+// Loan portfolio category labels mapped from KPI names
+const LOAN_PORTFOLIO_LABELS = [
+  { name: "Performing", kpiKey: null },
+  { name: "Watch List", kpiKey: null },
+  { name: "Substandard", kpiKey: null },
+  { name: "Doubtful", kpiKey: null },
+  { name: "Loss", kpiKey: null },
 ];
 
-const sectorBreakdown = [
-  { name: "Agricultural", value: 42, fill: "var(--accent)" },
-  { name: "Savings & Credit", value: 31, fill: "var(--accent)" },
-  { name: "Housing", value: 11, fill: "var(--accent)" },
-  { name: "Transport", value: 9, fill: "var(--accent)" },
-  { name: "Manufacturing", value: 7, fill: "var(--accent)" },
-];
-
-const sectorOpacities = [1, 0.78, 0.58, 0.42, 0.28];
-
-const loanPortfolio = [
-  { name: "Performing", value: 82, fill: accentColor },
-  { name: "Watch List", value: 9, fill: accentColor },
-  { name: "Substandard", value: 5, fill: accentColor },
-  { name: "Doubtful", value: 3, fill: accentColor },
-  { name: "Loss", value: 1, fill: accentColor },
-];
-
-const membershipTrend = [
-  { year: "2021", members: 7200, youth: 2400, women: 3800 },
-  { year: "2022", members: 7800, youth: 2700, women: 4200 },
-  { year: "2023", members: 8400, youth: 3100, women: 4500 },
-  { year: "2024", members: 8700, youth: 3300, women: 4700 },
-  { year: "2025", members: 8910, youth: 3370, women: 4810 },
-];
-
-const complianceRadial = [{ name: "Compliance", value: 96.4, fill: accentColor }];
-
-const databaseStatus = [
-  { name: "Membership", records: 8910, status: "Current", icon: Users, color: "text-foreground" },
-  { name: "Savings", records: 6400, status: "Current", icon: Wallet, color: "text-foreground" },
-  {
-    name: "Fixed Deposits",
-    records: 3200,
-    status: "Current",
-    icon: TrendingUp,
-    color: "text-foreground",
-  },
-  { name: "Loans", records: 4800, status: "Current", icon: BarChart3, color: "text-foreground" },
-  {
-    name: "Multi-purpose",
-    records: 1500,
-    status: "Pending",
-    icon: Database,
-    color: "text-foreground",
-  },
-];
-
-export function CooperativeDashboard({
-  submissions: _mockSubmissions,
-  setSubmissions,
-  activities,
-  setActivities,
-}: {
-  submissions: typeof INITIAL_SUBMISSIONS;
-  setSubmissions: React.Dispatch<React.SetStateAction<typeof INITIAL_SUBMISSIONS>>;
-  activities: typeof INITIAL_ACTIVITY_FEED;
-  setActivities: React.Dispatch<React.SetStateAction<typeof INITIAL_ACTIVITY_FEED>>;
-}) {
-  void setSubmissions;
-  void activities;
-  void setActivities;
-
-  const navigate = useNavigate();
-
+export function CooperativeDashboard() {
   const { data: stats, isLoading: statsLoading } = useCooperativeStats();
   const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
+
+  // Real KPI data from the latest submission
+  const latestSubmission = useLatestSubmission();
+  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latestSubmission?.id);
+
+  const reportingYear = latestSubmission?.reporting_year ?? new Date().getFullYear();
+  const { data: trendData } = useMonthlyTrend(
+    { reportingYear, cooperativeId: latestSubmission?.cooperative_id },
+    !!latestSubmission && latestSubmission.status === "approved",
+  );
+
+  // Real database record counts — page_size:1 to get just the total cheaply
+  const { data: membersData } = useMembers({ page: 1, page_size: 1 });
+  const { data: savingsData } = useSavings({ page: 1, page_size: 1 });
+  const { data: loansData } = useLoans({ page: 1, page_size: 1 });
+  const { data: fixedDepositsData } = useFixedDeposits({ page: 1, page_size: 1 });
+  const { data: farmCoopData } = useFarmCoops({ page: 1, page_size: 1 });
+
+  // Helper: find a KPI by name from the API response
+  const getKpi = (name: string) => kpisData?.kpis.find((k) => k.name === name);
+
+  // Database status from real counts
+  const databaseStatus = [
+    {
+      name: "Membership",
+      records: membersData?.total ?? 0,
+      status: (membersData?.total ?? 0) > 0 ? "Current" : "Empty",
+      icon: Users,
+    },
+    {
+      name: "Savings",
+      records: savingsData?.total ?? 0,
+      status: (savingsData?.total ?? 0) > 0 ? "Current" : "Empty",
+      icon: Wallet,
+    },
+    {
+      name: "Fixed Deposits",
+      records: fixedDepositsData?.total ?? 0,
+      status: (fixedDepositsData?.total ?? 0) > 0 ? "Current" : "Empty",
+      icon: TrendingUp,
+    },
+    {
+      name: "Loans",
+      records: loansData?.total ?? 0,
+      status: (loansData?.total ?? 0) > 0 ? "Current" : "Empty",
+      icon: BarChart3,
+    },
+    {
+      name: "Multi-purpose",
+      records: farmCoopData?.total ?? 0,
+      status: (farmCoopData?.total ?? 0) > 0 ? "Current" : "Empty",
+      icon: Database,
+    },
+  ];
+
+  // Build loan portfolio donut from real KPI data
+  const par30 = getKpi("par30")?.value ?? 0;
+  const par90 = getKpi("par90")?.value ?? 0;
+  const loanPortfolio = [
+    { name: "Performing", value: Math.max(0, 100 - par30) },
+    { name: "Watch List", value: Math.max(0, par30 - par90) },
+    { name: "Non-Performing", value: par90 },
+  ].filter((s) => s.value > 0);
+
+  // Build compliance radial from OSS KPI
+  const ossValue = getKpi("operational_self_sufficiency")?.value ?? 0;
+  const complianceRadial = [
+    { name: "Self-Sufficiency", value: Math.min(ossValue, 150), fill: accentColor },
+  ];
 
   const profile = {
     name: "My Cooperative",
@@ -159,6 +156,19 @@ export function CooperativeDashboard({
     return labels[status] ?? status;
   };
 
+  const trendPoints = (trendData?.months ?? []).map((m) => ({
+    month: m.month_label,
+    liquidity: m.assets,
+    savings: m.savings,
+    loans: m.loans,
+  }));
+
+  const financialOverview = [
+    { name: "Total Assets", value: getKpi("total_assets")?.value ?? 0 },
+    { name: "Gross Loans", value: getKpi("gross_loan_portfolio")?.value ?? 0 },
+    { name: "Member Deposits", value: getKpi("total_member_deposits")?.value ?? 0 },
+  ];
+
   return (
     <AppShell
       title="Cooperative Workspace"
@@ -179,8 +189,14 @@ export function CooperativeDashboard({
         {/* ── KPI Stats Row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statsLoading ? (
-            <div className="col-span-2 lg:col-span-4 flex items-center justify-center py-6">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <div className="col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-border bg-surface p-4 space-y-3">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-7 w-16" />
+                  <Skeleton className="h-2 w-24" />
+                </div>
+              ))}
             </div>
           ) : (
             <>
@@ -190,6 +206,7 @@ export function CooperativeDashboard({
                 subtitle="All data returns"
                 icon={Database}
                 tone="primary"
+                info="The total number of data submissions created across all time periods."
               />
               <StatCard
                 label="Pending"
@@ -197,6 +214,7 @@ export function CooperativeDashboard({
                 subtitle="Awaiting review"
                 icon={ShieldCheck}
                 tone="warning"
+                info="Submissions that have been filed but are pending review from Apex or Federation managers."
               />
               <StatCard
                 label="Approved"
@@ -204,6 +222,7 @@ export function CooperativeDashboard({
                 subtitle="Finalized declarations"
                 icon={CheckCircle2}
                 tone="success"
+                info="Submissions that have been fully reviewed and approved by the regulatory hierarchy."
               />
               <StatCard
                 label="Rejected"
@@ -211,13 +230,18 @@ export function CooperativeDashboard({
                 subtitle="Requires correction"
                 icon={TrendingDown}
                 tone="danger"
+                info="Submissions that failed validation and were returned for correction."
               />
             </>
           )}
         </div>
 
         {/* ── Database Status Grid ── */}
-        <Card title="Database Status" subtitle="Current state of your 5 cooperative databases">
+        <Card
+          title="Database Status"
+          subtitle="Current state of your 5 cooperative databases"
+          info="Live record count of the entities currently registered within your cooperative's internal ledgers."
+        >
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {databaseStatus.map((db) => (
               <div
@@ -225,12 +249,14 @@ export function CooperativeDashboard({
                 className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <db.icon className={`size-4 ${db.color}`} />
+                  <db.icon className="size-4 text-foreground" />
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                       db.status === "Current"
                         ? "bg-success/10 text-success"
-                        : "bg-warning/10 text-warning-foreground"
+                        : db.status === "Empty"
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-warning/10 text-warning-foreground"
                     }`}
                   >
                     {db.status}
@@ -245,283 +271,380 @@ export function CooperativeDashboard({
           </div>
         </Card>
 
-        {/* ── Charts Row 1: Savings/Loans/Deposits Stacked Bar + Membership Trend ── */}
+        {/* ── Charts Row 1: Balance Breakdown & Portfolio Quality ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             className="lg:col-span-2"
-            title="Savings, Loans & Deposits"
-            subtitle="Monthly trend — stacked view"
+            title="Portfolio Balance Overview"
+            subtitle="Assets vs Loans vs Deposits"
+            info="A comparative breakdown of your cooperative's core financial pillars, showing capitalization (Assets), capital deployment (Loans), and liquidity (Deposits)."
           >
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={monthlySavings}
-                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `$${v}K`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 10,
-                      fontSize: 12,
-                      boxShadow: "var(--shadow-elev-2)",
-                    }}
-                    formatter={(value: number) => [`$${value}K`]}
-                  />
-                  <Bar
-                    dataKey="savings"
-                    stackId="a"
-                    fill={accentColor}
-                    fillOpacity={1}
-                    radius={[0, 0, 0, 0]}
-                    name="Savings"
-                  />
-                  <Bar
-                    dataKey="loans"
-                    stackId="a"
-                    fill={accentColor}
-                    fillOpacity={0.6}
-                    radius={[0, 0, 0, 0]}
-                    name="Loans"
-                  />
-                  <Bar
-                    dataKey="deposits"
-                    stackId="a"
-                    fill={accentColor}
-                    fillOpacity={0.35}
-                    radius={[4, 4, 0, 0]}
-                    name="Deposits"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <Card title="Loan Portfolio Quality" subtitle="Risk distribution">
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={loanPortfolio}
-                    dataKey="value"
-                    innerRadius={45}
-                    outerRadius={75}
-                    paddingAngle={3}
-                  >
-                    {loanPortfolio.map((_, i) => (
-                      <Cell key={i} fill={accentColor} fillOpacity={accentOpacities[i] ?? 0.2} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 10,
-                      fontSize: 12,
-                    }}
-                    formatter={(value: number) => [`${value}%`]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <ul className="space-y-2 border-t border-border pt-3 mt-1">
-              {loanPortfolio.map((item, i) => (
-                <li key={item.name} className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <span
-                      className="size-2.5 rounded-sm shrink-0"
-                      style={{ background: accentColor, opacity: accentOpacities[i] ?? 0.2 }}
-                    />
-                    {item.name}
-                  </span>
-                  <span className="font-bold num text-foreground">{item.value}%</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-
-        {/* ── Charts Row 2: Membership Horizontal Bar + Sector Pie + Compliance Radial ── */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card title="Membership Growth" subtitle="5-year trend with demographics">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={membershipTrend}
-                  layout="vertical"
-                  margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="year"
-                    stroke="var(--muted-foreground)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    width={35}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 10,
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar
-                    dataKey="women"
-                    fill={accentColor}
-                    fillOpacity={0.5}
-                    radius={[0, 4, 4, 0]}
-                    name="Women"
-                    barSize={14}
-                  />
-                  <Bar
-                    dataKey="youth"
-                    fill={accentColor}
-                    fillOpacity={0.3}
-                    radius={[0, 4, 4, 0]}
-                    name="Youth"
-                    barSize={14}
-                  />
-                  <Bar
-                    dataKey="members"
-                    fill={accentColor}
-                    fillOpacity={1}
-                    radius={[0, 4, 4, 0]}
-                    name="Total"
-                    barSize={14}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <Card title="Sector Distribution" subtitle="Portfolio allocation by sector">
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={sectorBreakdown} dataKey="value" nameKey="name" outerRadius={80}>
-                    {sectorBreakdown.map((_, i) => (
-                      <Cell
-                        key={i}
-                        fill={sectorBreakdown[i].fill}
-                        fillOpacity={sectorOpacities[i]}
-                      />
-                    ))}
-                  </Pie>
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 10,
-                      fontSize: 12,
-                    }}
-                    formatter={(value: number) => [`${value}%`]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <Card title="Compliance Score" subtitle="Current rating">
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="60%"
-                  outerRadius="90%"
-                  data={complianceRadial}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <RadialBar
-                    dataKey="value"
-                    cornerRadius={10}
-                    fill={accentColor}
-                    background={{ fill: "var(--muted)" }}
-                  />
-                </RadialBarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-center -mt-4">
-              <p className="font-heading text-4xl font-bold text-foreground num">96.4%</p>
-              <p className="text-xs text-muted-foreground mt-1">Compliance score</p>
-              <div className="flex items-center justify-center gap-1 mt-2">
-                <ArrowUpRight className="size-3.5 text-success" />
-                <span className="text-xs font-semibold text-success">+2.1 pts</span>
-                <span className="text-xs text-muted-foreground">vs last quarter</span>
+            {kpisLoading ? (
+              <div className="h-72 flex items-center justify-center">
+                <Skeleton className="h-48 w-full mx-6" />
               </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* ── Statistics Grid Cards ── */}
-        <Card
-          title="Key Financial Metrics"
-          subtitle="Extracted from your latest financial statement"
-        >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: "Total Assets", value: "$6.4M", change: "+8.2%", up: true },
-              { label: "Total Savings", value: "$4.2M", change: "+5.1%", up: true },
-              { label: "Loan Portfolio", value: "$3.5M", change: "+3.7%", up: true },
-              { label: "Net Surplus", value: "$420K", change: "+12.4%", up: true },
-              { label: "NPL Ratio", value: "1.2%", change: "-0.3%", up: false },
-              { label: "Capital Ratio", value: "14.8%", change: "+1.1%", up: true },
-            ].map((metric) => (
-              <div
-                key={metric.label}
-                className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  {metric.label}
-                </p>
-                <p className="font-heading text-xl font-bold text-foreground num">{metric.value}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {metric.up ? (
-                    <ArrowUpRight className="size-3 text-success" />
-                  ) : (
-                    <ArrowDownRight className="size-3 text-success" />
-                  )}
-                  <span
-                    className={`text-xs font-semibold ${metric.up ? "text-success" : "text-success"}`}
+            ) : kpisData ? (
+              <div className="h-72 pt-4 pr-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={financialOverview}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
                   >
-                    {metric.change}
-                  </span>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                      tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "var(--muted)", opacity: 0.2 }}
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        color: "var(--foreground)",
+                      }}
+                      formatter={(val: number) => [`$${val.toLocaleString()}`, "Amount"]}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {financialOverview.map((entry, index) => (
+                        <Cell
+                          key={index}
+                          fill={
+                            index === 0
+                              ? "var(--primary)"
+                              : index === 1
+                                ? "var(--accent)"
+                                : "var(--success)"
+                          }
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-72 flex flex-col items-center justify-center text-center text-muted-foreground gap-3">
+                <BarChart3 className="size-10 opacity-30" />
+                <div>
+                  <p className="text-sm font-semibold">No financial data yet</p>
+                  <p className="text-xs mt-1">
+                    Upload a financial statement to see your data here.
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </Card>
+
+          <Card
+            title="Loan Portfolio Quality"
+            subtitle={kpisData ? "Derived from PAR ratios" : "No data yet"}
+            info="Distribution of your loan portfolio across performing and non-performing categories, derived from Portfolio at Risk (PAR) metrics."
+          >
+            {kpisLoading ? (
+              <div className="h-52 flex flex-col gap-3 pt-2">
+                <Skeleton className="h-36 w-36 rounded-full mx-auto" />
+                <div className="space-y-2 border-t border-border pt-3">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-4/5" />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+              </div>
+            ) : loanPortfolio.length > 0 ? (
+              <>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={loanPortfolio}
+                        dataKey="value"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={3}
+                      >
+                        {loanPortfolio.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={accentColor}
+                            fillOpacity={accentOpacities[i] ?? 0.2}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 10,
+                          fontSize: 12,
+                        }}
+                        formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="space-y-2 border-t border-border pt-3 mt-1">
+                  {loanPortfolio.map((item, i) => (
+                    <li key={item.name} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <span
+                          className="size-2.5 rounded-sm shrink-0"
+                          style={{ background: accentColor, opacity: accentOpacities[i] ?? 0.2 }}
+                        />
+                        {item.name}
+                      </span>
+                      <span className="font-bold num text-foreground">
+                        {item.value.toFixed(1)}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
+                <BarChart3 className="size-8 opacity-30" />
+                <p className="text-xs">Submit a financial statement to see loan quality data.</p>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ── Financial Growth Trend ── */}
+        <div className="grid lg:grid-cols-1 gap-6">
+          <Card
+            title="Financial Growth Trend"
+            subtitle="Assets, loans & savings over the reporting year"
+            info="Month-over-month trajectory of your cooperative's key financial balances, indicating growth and seasonal fluctuations."
+          >
+            {trendPoints.length > 0 ? (
+              <CoopTrendAreaChart data={trendPoints} />
+            ) : (
+              <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-center gap-2">
+                <TrendingUp className="size-8 opacity-30" />
+                <p className="text-sm">No trend data available for the year.</p>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ── Charts Row 2: OSS + Membership counts from real data ── */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Card
+            title="Membership Summary"
+            subtitle="Total members in your cooperative database"
+            info="The total registered headcount of active members affiliated with this cooperative."
+          >
+            <div className="flex flex-col gap-4 pt-2">
+              {(membersData?.total ?? 0) > 0 ? (
+                <>
+                  <div className="rounded-xl border border-border bg-surface p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Total Members
+                    </p>
+                    <p className="font-heading text-3xl font-bold text-foreground num mt-1">
+                      {(membersData?.total ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Demographic breakdown available in Data Collection.
+                  </p>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
+                  <Users className="size-8 opacity-30" />
+                  <p className="text-xs">No membership records uploaded yet.</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card
+            title="Database Coverage"
+            subtitle="Records across all 5 databases"
+            info="A summary of the record counts present across all five required non-financial ledgers."
+          >
+            <div className="flex flex-col gap-2 pt-2">
+              {databaseStatus.map((db) => {
+                const hasData = db.records > 0;
+                return (
+                  <div key={db.name} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <db.icon className="size-3.5 shrink-0" />
+                      {db.name}
+                    </span>
+                    <span
+                      className={`font-bold num ${hasData ? "text-foreground" : "text-muted-foreground"}`}
+                    >
+                      {hasData ? db.records.toLocaleString() : "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card
+            title="Operational Self-Sufficiency"
+            subtitle={kpisData ? "Income vs operating expenses" : "No data yet"}
+            info="Measures the extent to which operating revenues cover operating expenses. A value above 100% indicates profitability."
+          >
+            {kpisLoading ? (
+              <div className="h-52 flex flex-col items-center gap-3 pt-4">
+                <Skeleton className="h-36 w-36 rounded-full" />
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-2 w-24" />
+              </div>
+            ) : ossValue > 0 ? (
+              <>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="60%"
+                      outerRadius="90%"
+                      data={complianceRadial}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      <RadialBar
+                        dataKey="value"
+                        cornerRadius={10}
+                        fill={
+                          ossValue >= 110
+                            ? "var(--success)"
+                            : ossValue >= 100
+                              ? "var(--warning)"
+                              : "var(--destructive)"
+                        }
+                        background={{ fill: "var(--muted)" }}
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="text-center -mt-4">
+                  <p
+                    className={`font-heading text-4xl font-bold num ${
+                      ossValue >= 110
+                        ? "text-success"
+                        : ossValue >= 100
+                          ? "text-warning-foreground"
+                          : "text-destructive"
+                    }`}
+                  >
+                    {ossValue.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {ossValue >= 110
+                      ? "Fully self-sufficient"
+                      : ossValue >= 100
+                        ? "Breaking even"
+                        : "Below self-sufficiency"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Benchmark: 110%</p>
+                </div>
+              </>
+            ) : (
+              <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
+                <ShieldCheck className="size-8 opacity-30" />
+                <p className="text-xs">Submit a financial statement to see OSS data.</p>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ── Key Financial Metrics (real KPI data) ── */}
+        <Card
+          title="Key Financial Metrics"
+          subtitle={
+            latestSubmission
+              ? `From your ${latestSubmission.reporting_year} submission · ${latestSubmission.status}`
+              : "Extracted from your latest financial statement"
+          }
+          info="A curated snapshot of critical financial and regulatory compliance indicators drawn from the most recent financial statement."
+        >
+          {kpisLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-border bg-surface p-4 animate-pulse space-y-2"
+                >
+                  <div className="h-2.5 w-16 rounded bg-muted" />
+                  <div className="h-6 w-14 rounded bg-muted" />
+                  <div className="h-2 w-10 rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {(
+                [
+                  { label: "Total Assets", kpiName: "total_assets" },
+                  { label: "Gross Loans", kpiName: "gross_loan_portfolio" },
+                  { label: "Member Deposits", kpiName: "total_member_deposits" },
+                  { label: "Net Surplus", kpiName: "net_surplus" },
+                  { label: "NPL Ratio", kpiName: "npl_ratio" },
+                  {
+                    label: "Capital Adequacy",
+                    kpiName: "capital_adequacy_ratio",
+                  },
+                ] as const
+              ).map((metric) => {
+                const kpi = getKpi(metric.kpiName);
+                const statusColor =
+                  kpi?.status === "green"
+                    ? "text-success"
+                    : kpi?.status === "red"
+                      ? "text-destructive"
+                      : kpi?.status === "amber"
+                        ? "text-warning-foreground"
+                        : "text-foreground";
+
+                return (
+                  <div
+                    key={metric.label}
+                    className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {metric.label}
+                    </p>
+                    {kpi ? (
+                      <>
+                        <p className={`font-heading text-xl font-bold num ${statusColor}`}>
+                          {kpi.formatted}
+                        </p>
+                        {kpi.benchmark !== undefined && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Benchmark:{" "}
+                            {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="font-heading text-xl font-bold text-muted-foreground num">—</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         {/* ── Submission History ── */}
-        <Card title="Submission History" subtitle="Track review cycle statuses on your filings">
+        <Card
+          title="Submission History"
+          subtitle="Track review cycle statuses on your filings"
+          info="A chronological log of all past and present data declarations, their reference numbers, and their current position in the approval workflow."
+        >
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
@@ -534,12 +657,22 @@ export function CooperativeDashboard({
               </thead>
               <tbody className="divide-y divide-border">
                 {subsLoading ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      <Loader2 className="size-5 mx-auto mb-2 animate-spin" />
-                      <p className="text-xs">Loading submissions…</p>
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-5 py-3.5">
+                        <Skeleton className="h-3 w-20" />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Skeleton className="h-3 w-10" />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Skeleton className="h-3 w-24" />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Skeleton className="h-4 w-16 rounded-full" />
+                      </td>
+                    </tr>
+                  ))
                 ) : realSubmissions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
@@ -551,9 +684,6 @@ export function CooperativeDashboard({
                   realSubmissions.slice(0, 5).map((sub) => (
                     <tr
                       key={sub.id}
-                      onClick={() =>
-                        navigate({ to: "/app/submissions/$id", params: { id: sub.id } })
-                      }
                       className="hover:bg-muted/25 transition-colors duration-150 cursor-pointer"
                     >
                       <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">
