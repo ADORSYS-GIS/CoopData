@@ -138,4 +138,18 @@ pub fn ministry_routes() -> Router<AppState> {
             "/submissions/export",
             get(crate::api::handlers::financial_statement::export_ministry_submissions),
         )
+        // Custom KPIs
+        .route(
+            "/custom-kpis",
+            post(crate::api::handlers::custom_kpi::create_custom_kpi)
+                .get(crate::api::handlers::custom_kpi::list_custom_kpis),
+        )
+        .route(
+            "/custom-kpis/{id}",
+            delete(crate::api::handlers::custom_kpi::delete_custom_kpi),
+        )
+        .route(
+            "/custom-kpis/evaluate",
+            post(crate::api::handlers::custom_kpi::evaluate_custom_kpi),
+        )
 }

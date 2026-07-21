@@ -123,7 +123,7 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
               labelFormatter={(label) => `${label}`}
               cursor={{ fill: "var(--muted)", opacity: 0.3 }}
             />
-            <Bar dataKey="dormancy_pct" radius={[0, 6, 6, 0]} name="Dormancy %">
+            <Bar dataKey="dormancy_pct" radius={[0, 6, 6, 0]} name="Dormancy %" minPointSize={5}>
               {sorted.map((entry) => (
                 <Cell key={entry.fullName} fill={dormancyColor(entry.dormancy_pct)} />
               ))}

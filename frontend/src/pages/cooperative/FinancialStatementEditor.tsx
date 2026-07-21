@@ -387,6 +387,9 @@ export const FinancialStatementEditor: React.FC<{
         }))
       : STATIC_COA_OPTIONS;
 
+  // View mode: 'matrix' (13-month Balance Sheet view) vs 'list' (flat line items list)
+  const [viewMode, setViewMode] = useState<"matrix" | "list">("matrix");
+
   // Inline value editing
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -479,6 +482,56 @@ export const FinancialStatementEditor: React.FC<{
       ).slice(0, 12)
     : COA_OPTIONS.slice(0, 12);
 
+  // Pivot line items by Account (code or label) for 13-month Monthly Matrix view
+  const MONTH_HEADERS = [
+    { month: 0, label: "Dec (Prev)" },
+    { month: 1, label: "Jan" },
+    { month: 2, label: "Feb" },
+    { month: 3, label: "Mar" },
+    { month: 4, label: "Apr" },
+    { month: 5, label: "May" },
+    { month: 6, label: "Jun" },
+    { month: 7, label: "Jul" },
+    { month: 8, label: "Aug" },
+    { month: 9, label: "Sep" },
+    { month: 10, label: "Oct" },
+    { month: 11, label: "Nov" },
+    { month: 12, label: "Dec" },
+  ];
+
+  interface MatrixRow {
+    key: string;
+    account_code: number | null;
+    account_name: string;
+    account_category: string;
+    raw_label: string | null;
+    sampleItem: LineItemResponse;
+    itemsByMonth: Map<number, LineItemResponse>;
+  }
+
+  const matrixRowsMap = new Map<string, MatrixRow>();
+  items.forEach((item) => {
+    const key = item.account_code
+      ? `code_${item.account_code}`
+      : `label_${(item.raw_label || item.account_name).toLowerCase()}`;
+    if (!matrixRowsMap.has(key)) {
+      matrixRowsMap.set(key, {
+        key,
+        account_code: item.account_code,
+        account_name: item.account_code && COA_BY_CODE.get(item.account_code)
+          ? COA_BY_CODE.get(item.account_code)!.name
+          : item.account_name,
+        account_category: item.account_category,
+        raw_label: item.raw_label ?? null,
+        sampleItem: item,
+        itemsByMonth: new Map(),
+      });
+    }
+    matrixRowsMap.get(key)!.itemsByMonth.set(item.month, item);
+  });
+
+  const matrixRows = Array.from(matrixRowsMap.values());
+
   return (
     <div className="space-y-4">
       {/* Validation panel */}
@@ -497,45 +550,71 @@ export const FinancialStatementEditor: React.FC<{
         title={`Financial Statement — ${fs?.reporting_year ?? ""}`}
         subtitle={`${items.length} items · ${items.filter((i) => !i.account_code).length} unmapped · ${items.filter((i) => (i.ai_confidence ?? 1) < 0.6).length} low confidence`}
         action={
-          isDraft ? (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5 text-xs">
               <button
-                onClick={handleValidate}
-                disabled={validate.isPending}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
+                onClick={() => setViewMode("matrix")}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
+                  viewMode === "matrix"
+                    ? "bg-surface text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                {validate.isPending ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-3.5" />
-                )}
-                Re-validate
+                Monthly Matrix
               </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
+                  viewMode === "list"
+                    ? "bg-surface text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                List View ({items.length})
+              </button>
+            </div>
 
-              {financialSection && financialSection.status !== "ready" && (
+            {isDraft && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={handleMarkFinancialReady}
-                  disabled={updateSection.isPending || hasErrors}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                  title={hasErrors ? "Resolve errors before marking ready" : ""}
+                  onClick={handleValidate}
+                  disabled={validate.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
                 >
-                  {updateSection.isPending ? (
+                  {validate.isPending ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : (
-                    <CheckCircle2 className="size-3.5" />
+                    <RefreshCw className="size-3.5" />
                   )}
-                  Mark Section Ready
+                  Re-validate
                 </button>
-              )}
 
-              {financialSection && financialSection.status === "ready" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-bold text-success">
-                  <CheckCircle2 className="size-3.5" />
-                  Section Ready
-                </span>
-              )}
-            </div>
-          ) : undefined
+                {financialSection && financialSection.status !== "ready" && (
+                  <button
+                    onClick={handleMarkFinancialReady}
+                    disabled={updateSection.isPending || hasErrors}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    title={hasErrors ? "Resolve errors before marking ready" : ""}
+                  >
+                    {updateSection.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="size-3.5" />
+                    )}
+                    Mark Section Ready
+                  </button>
+                )}
+
+                {financialSection && financialSection.status === "ready" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-bold text-success">
+                    <CheckCircle2 className="size-3.5" />
+                    Section Ready
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         }
       >
         {itemsLoading ? (
@@ -547,13 +626,163 @@ export const FinancialStatementEditor: React.FC<{
           <div className="py-10 text-center text-muted-foreground">
             <p className="text-sm">No line items extracted yet.</p>
           </div>
+        ) : viewMode === "matrix" ? (
+          /* ── 13-Month Matrix Table View ── */
+          <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
+                  <th className="px-3 py-3 w-16 sticky left-0 bg-surface z-10 shadow-sm">Code</th>
+                  <th className="px-4 py-3 min-w-[200px] sticky left-16 bg-surface z-10 shadow-sm border-r border-border">Account Name</th>
+                  {MONTH_HEADERS.map((mh) => (
+                    <th key={mh.month} className="px-3 py-3 text-right min-w-[90px]">
+                      {mh.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border font-mono">
+                {matrixRows.map((row) => {
+                  const isUnmapped = !row.account_code;
+                  const isEditingCode = editingCodeId === row.sampleItem.id;
+                  const coaEntry = row.account_code ? COA_BY_CODE.get(row.account_code) : null;
+
+                  return (
+                    <tr
+                      key={row.key}
+                      className={`transition-colors ${
+                        isUnmapped ? "bg-warning/5 hover:bg-warning/10" : "hover:bg-muted/20"
+                      }`}
+                    >
+                      {/* Code column */}
+                      <td className="px-3 py-2 sticky left-0 bg-surface z-10 shadow-sm">
+                        {isEditingCode ? (
+                          <div className="relative">
+                            <input
+                              autoFocus
+                              type="text"
+                              placeholder="Code…"
+                              value={codeSearch}
+                              onChange={(e) => setCodeSearch(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                  setEditingCodeId(null);
+                                  setCodeSearch("");
+                                }
+                              }}
+                              className="w-20 rounded border border-ring bg-surface px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring/20 font-sans"
+                            />
+                            <div className="absolute left-0 top-7 z-20 w-64 rounded-lg border border-border bg-surface shadow-lg font-sans">
+                              {filteredCoaOptions.length === 0 ? (
+                                <p className="px-3 py-2 text-xs text-muted-foreground">No matches</p>
+                              ) : (
+                                filteredCoaOptions.map((opt) => (
+                                  <button
+                                    key={opt.code}
+                                    onMouseDown={() => assignCode(row.sampleItem, opt.code)}
+                                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted/50 transition-colors"
+                                  >
+                                    <span className="font-mono text-muted-foreground w-10 shrink-0">
+                                      {opt.code}
+                                    </span>
+                                    <span className="truncate">{opt.name}</span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => isDraft && setEditingCodeId(row.sampleItem.id)}
+                            className={`font-mono text-xs transition-colors ${
+                              isUnmapped
+                                ? "text-warning-foreground font-bold hover:underline cursor-pointer"
+                                : "text-muted-foreground cursor-default"
+                            }`}
+                            title={isUnmapped && isDraft ? "Click to assign account code" : ""}
+                          >
+                            {row.account_code ?? "NULL"}
+                          </button>
+                        )}
+                      </td>
+
+                      {/* Account Name */}
+                      <td className="px-4 py-2 sticky left-16 bg-surface z-10 shadow-sm border-r border-border font-sans">
+                        <p className="font-medium text-foreground text-xs truncate max-w-[220px]" title={coaEntry ? coaEntry.name : row.account_name}>
+                          {coaEntry ? coaEntry.name : row.account_name}
+                        </p>
+                        {row.raw_label && (
+                          <p className="text-[10px] text-muted-foreground italic truncate max-w-[220px]">
+                            {row.raw_label}
+                          </p>
+                        )}
+                      </td>
+
+                      {/* 13 Monthly Value Columns */}
+                      {MONTH_HEADERS.map((mh) => {
+                        const monthItem = row.itemsByMonth.get(mh.month);
+                        const isEditingValue = monthItem && editingValueId === monthItem.id;
+
+                        return (
+                          <td key={mh.month} className="px-3 py-2 text-right">
+                            {monthItem ? (
+                              isEditingValue ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  step="0.01"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") saveValue(monthItem);
+                                    if (e.key === "Escape") setEditingValueId(null);
+                                  }}
+                                  onBlur={() => saveValue(monthItem)}
+                                  className="w-24 rounded border border-ring bg-surface px-1.5 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-ring/20 font-mono"
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    if (!isDraft) return;
+                                    setEditingValueId(monthItem.id);
+                                    setEditValue(String(monthItem.value ?? ""));
+                                  }}
+                                  className={`inline-flex items-center gap-0.5 font-mono text-xs transition-colors group ${
+                                    isDraft ? "hover:text-primary cursor-pointer" : "cursor-default"
+                                  }`}
+                                >
+                                  {monthItem.value !== null && monthItem.value !== undefined
+                                    ? monthItem.value.toLocaleString("en-US", {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 2,
+                                      })
+                                    : "—"}
+                                  {isDraft && (
+                                    <Edit3 className="size-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                  )}
+                                </button>
+                              )
+                            ) : (
+                              <span className="text-muted-foreground/40 text-[11px]">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
+          /* ── Flat List View ── */
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
                   <th className="px-4 py-3 w-20">Code</th>
                   <th className="px-4 py-3">Account Name</th>
+                  <th className="px-4 py-3 w-20">Month</th>
                   <th className="px-4 py-3 hidden md:table-cell w-24">Category</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Source Label</th>
                   <th className="px-4 py-3 text-right w-32">Value</th>
@@ -580,7 +809,7 @@ export const FinancialStatementEditor: React.FC<{
                             : "hover:bg-muted/20"
                       }`}
                     >
-                      {/* Account code — click to assign if unmapped */}
+                      {/* Account code */}
                       <td className="px-4 py-2.5">
                         {isEditingCode ? (
                           <div className="relative">
@@ -641,12 +870,17 @@ export const FinancialStatementEditor: React.FC<{
                         </p>
                       </td>
 
+                      {/* Month column */}
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                        {item.month === 0 ? "Dec (Prev)" : `Month ${item.month}`}
+                      </td>
+
                       {/* Category */}
                       <td className="px-4 py-2.5 text-xs text-muted-foreground capitalize hidden md:table-cell">
                         {item.account_category}
                       </td>
 
-                      {/* Source label — what the AI read from the document */}
+                      {/* Source label */}
                       <td className="px-4 py-2.5 text-xs text-muted-foreground italic hidden lg:table-cell">
                         {item.raw_label ? (
                           <span className="max-w-[180px] truncate block" title={item.raw_label}>
@@ -657,7 +891,7 @@ export const FinancialStatementEditor: React.FC<{
                         )}
                       </td>
 
-                      {/* Value — inline editable */}
+                      {/* Value */}
                       <td className="px-4 py-2.5 text-right">
                         {isEditingValue ? (
                           <input
@@ -680,7 +914,9 @@ export const FinancialStatementEditor: React.FC<{
                               setEditingValueId(item.id);
                               setEditValue(String(item.value ?? ""));
                             }}
-                            className={`inline-flex items-center gap-1 font-mono text-xs transition-colors group ${isDraft ? "hover:text-primary cursor-pointer" : "cursor-default"}`}
+                            className={`inline-flex items-center gap-1 font-mono text-xs transition-colors group ${
+                              isDraft ? "hover:text-primary cursor-pointer" : "cursor-default"
+                            }`}
                           >
                             {item.value !== null && item.value !== undefined
                               ? item.value.toLocaleString("en-US", {

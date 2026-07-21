@@ -119,6 +119,10 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::nf_indicator_stats::get_nf_statistics,
         api_module::handlers::nf_indicator_stats::get_nf_trend,
         api_module::handlers::nf_indicator_stats::get_consolidated_nf_statistics,
+        api_module::handlers::custom_kpi::create_custom_kpi,
+        api_module::handlers::custom_kpi::list_custom_kpis,
+        api_module::handlers::custom_kpi::delete_custom_kpi,
+        api_module::handlers::custom_kpi::evaluate_custom_kpi,
         api_module::handlers::non_financial_indicator::list_catalog,
         api_module::handlers::non_financial_indicator::create_catalog_item,
         api_module::handlers::non_financial_indicator::update_catalog_item,
@@ -294,6 +298,10 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         crate::entities::enums::LoanStatus,
         crate::entities::enums::DpdCategory,
         crate::entities::enums::FdStatus,
+        api_module::dto::custom_kpi::CustomKpiDto,
+        api_module::dto::custom_kpi::CreateCustomKpiRequest,
+        api_module::dto::custom_kpi::EvaluateKpiRequest,
+        api_module::dto::custom_kpi::EvaluateKpiResponse,
     ))
 )]
 pub struct ApiDoc;

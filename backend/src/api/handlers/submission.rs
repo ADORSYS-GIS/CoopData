@@ -1205,6 +1205,12 @@ pub async fn delete_submission(
         ));
     }
 
+    if submission.status == crate::entities::enums::SubmissionStatus::Approved {
+        return Err(AppError::BadRequest(
+            "Cannot delete an approved submission".into(),
+        ));
+    }
+
     state.submission_repo.delete(id).await?;
 
     tracing::info!(submission_id = %id, status = %submission.status.as_str(), "Submission deleted");

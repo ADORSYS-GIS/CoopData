@@ -13,6 +13,219 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/analytics/consolidated-nf-statistics": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_consolidated_nf_statistics",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consolidated non-financial statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfStatisticsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/custom-kpis": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "list_custom_kpis",
+        "responses": {
+          "200": {
+            "description": "List of custom KPIs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomKpiDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "create_custom_kpi",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomKpiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Custom KPI created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomKpiDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid formula"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/custom-kpis/evaluate": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "evaluate_custom_kpi",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateKpiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateKpiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/custom-kpis/{id}": {
+      "delete": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "delete_custom_kpi",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the custom KPI to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Custom KPI deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/monthly-trend": {
       "get": {
         "tags": [
@@ -66,6 +279,67 @@
           "Analytics"
         ],
         "operationId": "get_national_overview",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Filter analytics to a specific reporting year (e.g. 2026).\nWhen omitted, uses the most recent approved submission per cooperative.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "National dashboard overview",
@@ -109,6 +383,44 @@
               "format": "uuid",
               "nullable": true
             }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
           }
         ],
         "responses": {
@@ -134,6 +446,56 @@
           "Analytics"
         ],
         "operationId": "get_region_compliance",
+        "parameters": [
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Region compliance data",
@@ -157,6 +519,56 @@
           "Analytics"
         ],
         "operationId": "get_sector_breakdown",
+        "parameters": [
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Sector breakdown data",
@@ -1110,31 +1522,6 @@
         }
       }
     },
-    "/api/v1/cooperative/chart-of-accounts": {
-      "get": {
-        "tags": [
-          "Cooperative"
-        ],
-        "summary": "GET /api/v1/cooperative/chart-of-accounts",
-        "description": "Returns the full seeded Chart of Accounts — used to populate account code dropdowns\nin the extraction editor. No scope restriction (reference data).",
-        "operationId": "list_chart_of_accounts",
-        "responses": {
-          "200": {
-            "description": "Full chart of accounts sorted by display_order",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ChartOfAccountResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/benchmarks": {
       "get": {
         "tags": [
@@ -1189,6 +1576,31 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/chart-of-accounts": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "summary": "GET /api/v1/cooperative/chart-of-accounts",
+        "description": "Returns the full seeded Chart of Accounts — used to populate account code dropdowns\nin the extraction editor. No scope restriction (reference data).",
+        "operationId": "list_chart_of_accounts",
+        "responses": {
+          "200": {
+            "description": "Full chart of accounts sorted by display_order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChartOfAccountResponse"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1394,6 +1806,18 @@
           "Non-Financial Statistics"
         ],
         "operationId": "get_nf_statistics",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "NF statistics for the caller's cooperative",
@@ -2721,49 +3145,6 @@
           },
           "404": {
             "description": "Not found"
-          }
-        }
-      }
-    },
-    "/api/v1/cooperative/submissions/{id}/export": {
-      "get": {
-        "tags": [
-          "Cooperative"
-        ],
-        "operationId": "export_submission",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Submission ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "description": "Export format: xlsx or csv",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File download (xlsx or csv)"
-          },
-          "400": {
-            "description": "Invalid format parameter"
-          },
-          "403": {
-            "description": "Access denied"
-          },
-          "404": {
-            "description": "Submission or financial statement not found"
           }
         }
       }
@@ -5670,6 +6051,34 @@
           "Over50"
         ]
       },
+      "AnalyticsFilterParams": {
+        "type": "object",
+        "properties": {
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "federation_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "ApexResponse": {
         "type": "object",
         "required": [
@@ -6085,12 +6494,21 @@
           "name",
           "has_data",
           "non_financial",
-          "kpis"
+          "kpis",
+          "custom_kpis"
         ],
         "properties": {
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "custom_kpis": {
+            "type": "object",
+            "description": "Custom KPI name → computed value",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
           },
           "has_data": {
             "type": "boolean"
@@ -6570,6 +6988,25 @@
           }
         }
       },
+      "CreateCustomKpiRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "formula"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "CreateFarmCoopRequest": {
         "type": "object",
         "properties": {
@@ -7046,6 +7483,35 @@
           }
         }
       },
+      "CustomKpiDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "formula",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "DeletePreviewResponse": {
         "type": "object",
         "required": [
@@ -7129,6 +7595,37 @@
           "Manzini",
           "Shiselweni"
         ]
+      },
+      "EvaluateKpiRequest": {
+        "type": "object",
+        "required": [
+          "formula"
+        ],
+        "properties": {
+          "formula": {
+            "type": "string"
+          }
+        }
+      },
+      "EvaluateKpiResponse": {
+        "type": "object",
+        "required": [
+          "value",
+          "is_valid"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_valid": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "ExportParams": {
         "type": "object",
@@ -7437,9 +7934,21 @@
           "domains"
         ],
         "properties": {
+          "apex_count": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "minimum": 0
+          },
           "contact_email": {
             "type": "string",
             "nullable": true
+          },
+          "cooperative_count": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "minimum": 0
           },
           "created_at": {
             "type": "string",
@@ -8594,6 +9103,39 @@
           }
         }
       },
+      "MonthlyTrendParams": {
+        "type": "object",
+        "properties": {
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "federation_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "MonthlyTrendPoint": {
         "type": "object",
         "required": [
@@ -8654,7 +9196,8 @@
           "cooperatives_with_data",
           "non_financial_summary",
           "distributions",
-          "cooperatives"
+          "cooperatives",
+          "custom_kpis"
         ],
         "properties": {
           "cooperatives": {
@@ -8668,6 +9211,14 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          },
+          "custom_kpis": {
+            "type": "object",
+            "description": "System-wide evaluated Custom KPIs",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
           },
           "distributions": {
             "type": "object",

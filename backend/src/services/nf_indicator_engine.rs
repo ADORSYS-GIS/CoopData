@@ -160,13 +160,20 @@ impl NfIndicatorEngine {
     pub async fn compute(
         db: &DatabaseConnection,
         cooperative_id: Uuid,
+        reporting_year: Option<i32>,
     ) -> crate::error::AppResult<NfStatisticsResponse> {
         use crate::entities::submission;
         use sea_orm::{QueryFilter, QueryOrder, EntityTrait, ColumnTrait};
 
-        let latest_approved = submission::Entity::find()
+        let mut query = submission::Entity::find()
             .filter(submission::Column::CooperativeId.eq(cooperative_id))
-            .filter(submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Approved))
+            .filter(submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Approved));
+
+        if let Some(year) = reporting_year {
+            query = query.filter(submission::Column::ReportingYear.eq(year));
+        }
+
+        let latest_approved = query
             .order_by_desc(submission::Column::ReportingYear)
             .one(db)
             .await?;

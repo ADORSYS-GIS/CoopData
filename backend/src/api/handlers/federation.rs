@@ -155,8 +155,34 @@ pub async fn list_federations(State(state): State<AppState>) -> AppResult<impl I
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let federations: Vec<FederationResponse> =
-        orgs.into_iter().map(FederationResponse::from).collect();
+    let all_apexes = state.apex_repo.list_all().await.unwrap_or_default();
+    let all_coops = state.cooperative_repo.list_all().await.unwrap_or_default();
+
+    let federations: Vec<FederationResponse> = orgs
+        .into_iter()
+        .map(|org| {
+            let mut resp = FederationResponse::from(org);
+            
+            // Find apexes belonging to this federation (using organization_keycloak_id which maps to federation Keycloak ID)
+            let org_apexes: Vec<_> = all_apexes
+                .iter()
+                .filter(|a| a.organization_keycloak_id == resp.id)
+                .collect();
+            
+            let apex_count = org_apexes.len() as u64;
+            
+            // Find cooperatives belonging to those apexes
+            let coop_count = all_coops
+                .iter()
+                .filter(|c| org_apexes.iter().any(|a| a.id == c.apex_id))
+                .count() as u64;
+
+            resp.apex_count = Some(apex_count);
+            resp.cooperative_count = Some(coop_count);
+            resp
+        })
+        .collect();
+
     Ok((StatusCode::OK, Json(federations)))
 }
 

@@ -212,19 +212,19 @@ pub async fn upload_non_financial(
 
     let now = chrono::Utc::now();
 
-    // Clear all existing NF data for this cooperative before re-importing.
+    // Clear all existing NF data for this submission before re-importing.
     // Order matters: delete child tables before members (FK constraints).
     state
         .savings_account_repo
-        .delete_by_cooperative(coop_id)
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
         .await?;
-    state.loan_repo.delete_by_cooperative(coop_id).await?;
+    state.loan_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
     state
         .fixed_deposit_repo
-        .delete_by_cooperative(coop_id)
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
         .await?;
-    state.farm_coop_repo.delete_by_cooperative(coop_id).await?;
-    state.member_repo.delete_by_cooperative(coop_id).await?;
+    state.farm_coop_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state.member_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
 
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     for record in &parse_result.members {

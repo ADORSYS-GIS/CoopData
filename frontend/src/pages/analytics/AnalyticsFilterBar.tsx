@@ -144,7 +144,8 @@ export function AnalyticsFilterBar({
                   <select
                     value={filterValues[sk] || "all"}
                     onChange={(e) => onFilterChange(sk, e.target.value)}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all"
+                    disabled={filter.disabled}
+                    className={`w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all ${filter.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {filter.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>

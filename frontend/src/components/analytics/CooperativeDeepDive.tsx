@@ -91,7 +91,7 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Regulatory Compliance" subtitle="CAR · Liquidity · NPL">
+        <Card title="Regulatory Compliance" subtitle="CAR · Liquidity · NPL" info="Monitors the cooperative's compliance with critical financial regulations. Capital Adequacy ensures sufficient equity against risk, Liquidity measures cash available for short-term obligations, and NPL tracks loan defaults.">
           <ComplianceRadialGauges
             carValue={kpiMap["capital_adequacy_ratio"] ?? 0}
             liquidityValue={kpiMap["liquid_funds_ratio"] ?? 0}
@@ -117,7 +117,7 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {deepDiveKpis && (
-          <Card title="Loan Provisioning Gap" subtitle="Unprotected at-risk capital visualization">
+          <Card title="Loan Provisioning Gap" subtitle="Unprotected at-risk capital visualization" info="A waterfall breakdown of the gross loan portfolio, highlighting 'At-Risk Capital' by subtracting loan loss provisions from non-performing loans, showing potential unprotected losses.">
             <LoanProvisioningWaterfall
               glp={kpiMap["gross_loan_portfolio"] ?? 0}
               par30_pct={kpiMap["par30"] ?? 0}
@@ -126,7 +126,7 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
           </Card>
         )}
         {deepDiveNf && (
-          <Card title="Membership Demographics">
+          <Card title="Membership Demographics" info="Visualizes the demographic makeup of the member base, including gender ratios and the proportion of active versus dormant accounts.">
             <GenderStatusDoughnuts data={deepDiveNf.membership} />
           </Card>
         )}
@@ -134,24 +134,24 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {deepDiveNf && (
-          <Card title="Liquidity Risk" subtitle="Term deposit concentration">
+          <Card title="Liquidity Risk" subtitle="Term deposit concentration" info="Assesses liquidity risk by examining the concentration of fixed (term) deposits. High concentration in a few accounts or short-term maturities can pose withdrawal risks.">
             <DepositConcentrationGauge stats={deepDiveNf.fixed_deposits} />
           </Card>
         )}
         {deepDiveNf && (
-          <Card title="Democratic Engagement" subtitle="Member governance participation">
+          <Card title="Democratic Engagement" subtitle="Member governance participation" info="Measures the democratic health of the cooperative by tracking member participation in governance activities, such as voting in the Annual General Meeting (AGM).">
             <GovernanceFunnel stats={deepDiveNf.membership} />
           </Card>
         )}
         {deepDiveNf && (
-          <Card title="Financial Inclusion" subtitle="Credit access for target demographics">
+          <Card title="Financial Inclusion" subtitle="Credit access for target demographics" info="Tracks the distribution of credit access across key demographics (e.g., Women, Youth) to ensure the cooperative is fulfilling its inclusive mandate.">
             <FinancialInclusionBar stats={deepDiveNf.loans} />
           </Card>
         )}
       </div>
 
       {deepDiveNf && deepDiveNf.farm_coop.total_coops > 0 && (
-        <Card title="Agricultural Resilience" subtitle="Physical and operational infrastructure scores">
+        <Card title="Agricultural Resilience" subtitle="Physical and operational infrastructure scores" info="A radar analysis evaluating the cooperative's agricultural infrastructure, including storage capacity, processing facilities, and mechanization levels.">
           <AgriResilienceRadar stats={deepDiveNf.farm_coop} />
         </Card>
       )}

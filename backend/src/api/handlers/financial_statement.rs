@@ -1287,7 +1287,12 @@ pub async fn get_monthly_trend(
         .collect();
 
     for item in &line_items {
-        let month_idx = (item.month - 1) as usize;
+        let month_idx = if item.month == 0 {
+            11 // Default to December for annual figures
+        } else {
+            (item.month - 1) as usize
+        };
+        
         if month_idx >= 12 {
             continue;
         }

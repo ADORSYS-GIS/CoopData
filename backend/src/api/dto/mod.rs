@@ -2,6 +2,7 @@ pub mod apex;
 pub mod audit;
 pub mod common;
 pub mod cooperative;
+pub mod custom_kpi;
 pub mod extraction;
 pub mod federation;
 pub mod financial;
@@ -20,6 +21,7 @@ pub use apex::*;
 pub use audit::*;
 pub use common::*;
 pub use cooperative::*;
+pub use custom_kpi::*;
 pub use federation::*;
 pub use invitation::*;
 pub use member::{

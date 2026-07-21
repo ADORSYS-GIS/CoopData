@@ -18,6 +18,7 @@ export interface FilterConfig {
   id: string;
   label: string;
   options: FilterOption[];
+  disabled?: boolean;
 }
 
 export const titleByRole: Record<Role, string> = {

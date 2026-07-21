@@ -114,6 +114,11 @@ pub async fn get_national_overview(
 
     // Compute KPIs per cooperative
     let ratio_names = [
+        "total_assets",
+        "gross_loan_portfolio",
+        "net_loan_portfolio",
+        "total_member_deposits",
+        "total_equity",
         "par30",
         "par90",
         "npl_ratio",
@@ -140,6 +145,8 @@ pub async fn get_national_overview(
             },
         );
     }
+
+    let custom_formulas = state.custom_kpi_repo.find_all().await?;
 
     let mut coop_rows: Vec<CoopKpiRow> = Vec::new();
     let mut nf_rows: Vec<CoopNfSummary> = Vec::new();
@@ -192,15 +199,34 @@ pub async fn get_national_overview(
             nf_rows.push(non_financial.clone());
         }
         let mut kpi_map = HashMap::new();
+        let mut eval_ctx: evalexpr::HashMapContext = evalexpr::HashMapContext::new();
+        use evalexpr::ContextWithMutableVariables;
+
         for name in &ratio_names {
             if let Some(kpi) = kpis.get_by_name(name) {
                 kpi_map.insert(name.to_string(), kpi.clone());
+                eval_ctx.set_value(name.to_string(), evalexpr::Value::Float(kpi.value)).unwrap();
                 if let Some(counts) = status_counts.get_mut(*name) {
                     match kpi.status.as_deref() {
                         Some("green") => counts.green += 1,
                         Some("amber") => counts.amber += 1,
                         Some("red") => counts.red += 1,
                         _ => counts.no_data += 1,
+                    }
+                }
+            } else {
+                eval_ctx.set_value(name.to_string(), evalexpr::Value::Float(0.0)).unwrap();
+            }
+        }
+
+        let mut custom_kpi_map = HashMap::new();
+        if !custom_formulas.is_empty() {
+            for formula_def in &custom_formulas {
+                if let Ok(expr) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&formula_def.formula) {
+                    if let Ok(res) = expr.eval_with_context(&eval_ctx) {
+                        if let Ok(num) = res.as_float() {
+                            custom_kpi_map.insert(formula_def.name.clone(), num);
+                        }
                     }
                 }
             }
@@ -219,6 +245,7 @@ pub async fn get_national_overview(
             has_data: !items.is_empty(),
             non_financial,
             kpis: kpi_map,
+            custom_kpis: custom_kpi_map,
         });
     }
 
@@ -264,6 +291,21 @@ pub async fn get_national_overview(
         "National overview computed"
     );
 
+    let mut system_wide_custom_kpis = HashMap::new();
+    for formula_def in &custom_formulas {
+        let mut sum = 0.0;
+        let mut count = 0;
+        for row in &coop_rows {
+            if let Some(&val) = row.custom_kpis.get(&formula_def.name) {
+                sum += val;
+                count += 1;
+            }
+        }
+        if count > 0 {
+            system_wide_custom_kpis.insert(formula_def.name.clone(), sum / count as f64);
+        }
+    }
+
     Ok((
         StatusCode::OK,
         Json(NationalOverviewResponse {
@@ -272,6 +314,7 @@ pub async fn get_national_overview(
             non_financial_summary,
             distributions,
             cooperatives: coop_rows,
+            custom_kpis: system_wide_custom_kpis,
         }),
     ))
 }

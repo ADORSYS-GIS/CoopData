@@ -12,6 +12,8 @@ pub struct NationalOverviewResponse {
     pub distributions: HashMap<String, TrafficLightDistribution>,
     /// Per-cooperative KPI breakdown
     pub cooperatives: Vec<CoopKpiRow>,
+    /// System-wide evaluated Custom KPIs
+    pub custom_kpis: HashMap<String, f64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -46,6 +48,8 @@ pub struct CoopKpiRow {
     pub non_financial: CoopNfSummary,
     /// KPI name → computed value
     pub kpis: HashMap<String, KpiValue>,
+    /// Custom KPI name → computed value
+    pub custom_kpis: HashMap<String, f64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]

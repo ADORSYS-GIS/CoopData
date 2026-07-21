@@ -23,10 +23,12 @@ export const useExtractionJob = (jobId: string | null) => {
       if (status && TERMINAL.includes(status)) return false;
       return 2000;
     },
-    // When extraction completes, refresh the submission so the FS editor appears
+    // When extraction completes, refresh submission and line items so FS editor appears
     select: (data) => {
       if (data?.status && TERMINAL.includes(data.status)) {
         void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+        void queryClient.invalidateQueries({ queryKey: ["line-items"] });
+        void queryClient.invalidateQueries({ queryKey: ["financial-statement"] });
         if (data.submission_id) {
           void queryClient.invalidateQueries({
             queryKey: ["cooperative-submissions", data.submission_id],

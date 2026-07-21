@@ -37,6 +37,10 @@ pub struct FederationResponse {
     pub domains: Vec<DomainResponse>,
     pub contact_email: Option<String>,
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub apex_count: Option<u64>,
+    #[serde(default)]
+    pub cooperative_count: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -88,6 +92,8 @@ impl From<crate::models::keycloak::KeycloakOrganization> for FederationResponse 
                 .collect(),
             contact_email,
             created_at,
+            apex_count: None,
+            cooperative_count: None,
         }
     }
 }

@@ -24,6 +24,7 @@ import { MinistryAnalyticsView } from "../analytics/MinistryAnalyticsView";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes } from "@/hooks/apexes/useApexes";
+import { useOrganizations } from "@/hooks/organizations/useOrganizations";
 import {
   titleByRole,
   subtitleByRole,
@@ -89,7 +90,17 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   const handleFilterChange = useCallback((id: string, value: string) => {
-    setFilterValues((prev) => ({ ...prev, [id]: value }));
+    setFilterValues((prev) => {
+      const next = { ...prev, [id]: value };
+      // Cascade resets
+      if (id === "federationId") {
+        next.apexId = "all";
+        next.cooperativeId = "all";
+      } else if (id === "apexId") {
+        next.cooperativeId = "all";
+      }
+      return next;
+    });
   }, []);
 
   const handleClear = useCallback(() => {
@@ -110,6 +121,15 @@ export const AnalyticsPage: React.FC = () => {
 
   const { data: federations } = useFederations(role === "ministry");
   const { data: apexes } = useApexes(role === "federation");
+  const { data: organizations } = useOrganizations(role === "ministry");
+
+  // For Ministry, apexes are sourced from organizations filtered by selected federation
+  const ministryApexes = React.useMemo(() => {
+    if (role !== "ministry" || !organizations?.data) return [];
+    return organizations.data.filter(
+      (org) => org.organization_type === "Apex" && org.federation_id === filterValues.federationId
+    );
+  }, [role, organizations, filterValues.federationId]);
 
   const filters = React.useMemo(() => {
     if (!role) return [];
@@ -120,24 +140,31 @@ export const AnalyticsPage: React.FC = () => {
           ...filter,
           options: [
             { value: "all", label: "All Federations" },
-            // @ts-expect-error typing
+            
             ...federations.map((f: any) => ({ value: f.id, label: f.name })),
           ],
         };
       }
-      if (filter.id === "apex" && apexes) {
+      if (filter.id === "apex") {
+        const isMinistry = role === "ministry";
+        const apexOptions = isMinistry ? ministryApexes : apexes;
+        const disabled = isMinistry && filterValues.federationId === "all";
+
         return {
           ...filter,
+          disabled,
           options: [
             { value: "all", label: "All Apexes" },
-            // @ts-expect-error typing
-            ...apexes.map((a: any) => ({ value: a.id, label: a.name })),
+            ...(apexOptions?.map((a: any) => ({ value: a.id, label: a.name })) || []),
           ],
         };
       }
       if (filter.id === "cooperative" && overview?.cooperatives) {
+        const disabled = (role === "ministry" || role === "federation") && filterValues.apexId === "all";
+
         return {
           ...filter,
+          disabled,
           options: [
             { value: "all", label: "All Cooperatives" },
             ...overview.cooperatives.map((c) => ({
@@ -149,7 +176,7 @@ export const AnalyticsPage: React.FC = () => {
       }
       return filter;
     });
-  }, [role, overview, federations, apexes]);
+  }, [role, overview, federations, apexes, ministryApexes, filterValues.federationId, filterValues.apexId]);
 
   if (!role) return null;
 
@@ -189,18 +216,24 @@ export const AnalyticsPage: React.FC = () => {
           />
         )}
 
-        {/* Role-specific dashboard */}
-        {role === "ministry" && (
-          <MinistryAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
-        )}
-        {role === "federation" && (
-          <FederationAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
-        )}
-        {role === "apex" && (
-          <ApexAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
-        )}
-        {role === "cooperative" && (
+        {/* Role-specific dashboard OR Cooperative deep-dive */}
+        {filterValues.cooperativeId !== "all" ? (
           <CooperativeAnalyticsView filterValues={filterValues} />
+        ) : (
+          <>
+            {role === "ministry" && (
+              <MinistryAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
+            )}
+            {role === "federation" && (
+              <FederationAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
+            )}
+            {role === "apex" && (
+              <ApexAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
+            )}
+            {role === "cooperative" && (
+              <CooperativeAnalyticsView filterValues={filterValues} />
+            )}
+          </>
         )}
       </div>
     </AppShell>

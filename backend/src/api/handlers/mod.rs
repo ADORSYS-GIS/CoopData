@@ -1,6 +1,7 @@
 pub mod apex;
 pub mod audit;
 pub mod cooperative;
+pub mod custom_kpi;
 pub mod export;
 pub mod extraction;
 pub mod federation;

@@ -156,7 +156,13 @@ export const useNfStatistics = (
     queryFn: async () => {
       if (isCooperative) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (apiClient as any).GET("/api/v1/cooperative/nf-statistics");
+        const { data, error } = await (apiClient as any).GET("/api/v1/cooperative/nf-statistics", {
+          params: {
+            query: {
+              reporting_year: params.reportingYear,
+            } as Record<string, unknown>,
+          },
+        });
         if (error) throw new Error(extractErrorMessage(error));
         return data as NfStatisticsResponse;
       } else {

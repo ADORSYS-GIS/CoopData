@@ -19,6 +19,7 @@ import {
   Network,
   ArrowUpRight,
   Filter,
+  Trash2,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -30,6 +31,7 @@ import {
   useFederationSubmissions,
   useMinistrySubmissions,
   useCreateSubmission,
+  useDeleteSubmission,
 } from "@/hooks/submissions/useSubmissions";
 import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
 
@@ -253,6 +255,8 @@ function SubmissionTable({
   showCoopColumn: boolean;
   onExport: () => void;
 }) {
+  const role = useUserRole();
+  const deleteSubmission = useDeleteSubmission();
   const canValidate = true;
 
   return (
@@ -405,10 +409,33 @@ function SubmissionTable({
                     <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status)}</StatusPill>
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 border border-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-150 group-hover:bg-primary/10">
-                      {canValidate && s.status !== "draft" ? "Review" : "Open"}
-                      <ArrowUpRight className="size-3" />
-                    </span>
+                    <div className="inline-flex items-center gap-2 justify-end">
+                      {role === "cooperative" && s.status !== "approved" && (
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm(`Are you sure you want to delete submission ${s.reference ?? s.id.slice(0, 8)}?`)) {
+                              try {
+                                await deleteSubmission.mutateAsync(s.id);
+                                toast.success("Submission deleted successfully");
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Failed to delete submission");
+                              }
+                            }
+                          }}
+                          disabled={deleteSubmission.isPending}
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Delete Submission"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 border border-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-150 group-hover:bg-primary/10">
+                        {canValidate && s.status !== "draft" ? "Review" : "Open"}
+                        <ArrowUpRight className="size-3" />
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))

@@ -6,8 +6,9 @@
  * full non-financial consolidation panel.
  */
 import { useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { Card } from "@/components/app-shell";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
 import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
@@ -15,6 +16,7 @@ import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDough
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
+import { CustomKpiBuilder } from "@/components/analytics/CustomKpiBuilder";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
@@ -114,13 +116,25 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
       {ministryStats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Total Cooperatives", value: ministryStats.total_cooperatives?.toLocaleString() ?? "—" },
-            { label: "Total Submissions", value: ministryStats.total_submissions?.toLocaleString() ?? "—" },
-            { label: "Pending Review", value: ministryStats.pending_review_count?.toLocaleString() ?? "—" },
-            { label: "Approved", value: ministryStats.approved_count?.toLocaleString() ?? "—" },
+            { label: "Total Cooperatives", value: ministryStats.total_cooperatives?.toLocaleString() ?? "—", tooltip: "Total number of registered cooperatives in the national cooperative registry." },
+            { label: "Total Submissions", value: ministryStats.total_submissions?.toLocaleString() ?? "—", tooltip: "Total number of data submissions received from all cooperatives across the country." },
+            { label: "Pending Review", value: ministryStats.pending_review_count?.toLocaleString() ?? "—", tooltip: "Submissions currently awaiting review and approval by authorized personnel." },
+            { label: "Approved", value: ministryStats.approved_count?.toLocaleString() ?? "—", tooltip: "Submissions that have been successfully reviewed and approved this reporting period." },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <div className="flex items-start justify-between mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                      <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
+                    <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{stat.tooltip}</p>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <p className="font-heading text-2xl font-bold text-foreground num mt-1">{stat.value}</p>
             </div>
           ))}
@@ -172,6 +186,9 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
           <ComplianceDoughnutCharts distributions={overview.distributions} />
         </Card>
       )}
+
+      {/* Custom KPI Builder Panel */}
+      <CustomKpiBuilder />
 
       {/* Full NF consolidation panel */}
       <NonFinancialConsolidation />

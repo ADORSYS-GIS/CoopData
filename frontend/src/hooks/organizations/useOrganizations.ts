@@ -10,7 +10,7 @@ import { apiClient } from "@/openapi-client";
 const ORGANIZATIONS_KEY = "organizations";
 
 /** List all organizations (ministry only, paginated) */
-export const useOrganizations = () =>
+export const useOrganizations = (enabled = true) =>
   useQuery({
     queryKey: [ORGANIZATIONS_KEY],
     queryFn: async () => {
@@ -18,6 +18,7 @@ export const useOrganizations = () =>
       if (error) throw error;
       return data;
     },
+    enabled,
   });
 
 /** Get a single organization by ID */

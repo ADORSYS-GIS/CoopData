@@ -22,9 +22,15 @@ pub struct NfTrendQueryParams {
     pub apex_id: Option<uuid::Uuid>,
 }
 
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+pub struct NfStatsQueryParams {
+    pub reporting_year: Option<i32>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/nf-statistics",
+    params(NfStatsQueryParams),
     responses(
         (status = 200, description = "NF statistics for the caller's cooperative", body = NfStatisticsResponse),
         (status = 403, description = "Forbidden"),
@@ -35,10 +41,11 @@ pub struct NfTrendQueryParams {
 pub async fn get_nf_statistics(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<NfStatsQueryParams>,
 ) -> AppResult<impl IntoResponse> {
     let coop =
         crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-    let stats = NfIndicatorEngine::compute(&state.db, coop.id).await?;
+    let stats = NfIndicatorEngine::compute(&state.db, coop.id, params.reporting_year).await?;
     Ok((StatusCode::OK, Json(NfStatisticsResponse::from(stats))))
 }
 
@@ -270,21 +277,48 @@ pub async fn get_consolidated_nf_statistics(
             consolidated_stats.savings.total_accounts += stats.savings.total_accounts;
             consolidated_stats.savings.active_accounts += stats.savings.active_accounts;
             consolidated_stats.savings.dormant_accounts += stats.savings.dormant_accounts;
+            consolidated_stats.savings.zero_balance_count += stats.savings.zero_balance_count;
+            consolidated_stats.savings.increasing_trend += stats.savings.increasing_trend;
+            consolidated_stats.savings.stable_trend += stats.savings.stable_trend;
+            consolidated_stats.savings.declining_trend += stats.savings.declining_trend;
+            consolidated_stats.savings.high_withdrawal_count += stats.savings.high_withdrawal_count;
+            consolidated_stats.savings.emergency_withdrawal_count += stats.savings.emergency_withdrawal_count;
+            consolidated_stats.savings.total_balance += stats.savings.total_balance;
             
             consolidated_stats.loans.total_loans += stats.loans.total_loans;
+            consolidated_stats.loans.active_loans += stats.loans.active_loans;
             consolidated_stats.loans.performing += stats.loans.performing;
             consolidated_stats.loans.arrears += stats.loans.arrears;
             consolidated_stats.loans.restructured += stats.loans.restructured;
             consolidated_stats.loans.written_off += stats.loans.written_off;
+            consolidated_stats.loans.members_with_loans += stats.loans.members_with_loans;
+            consolidated_stats.loans.youth_borrowers += stats.loans.youth_borrowers;
+            consolidated_stats.loans.women_borrowers += stats.loans.women_borrowers;
+            consolidated_stats.loans.rural_borrowers += stats.loans.rural_borrowers;
+            consolidated_stats.loans.multiple_loan_count += stats.loans.multiple_loan_count;
+            consolidated_stats.loans.large_borrower_count += stats.loans.large_borrower_count;
+            consolidated_stats.loans.total_balance += stats.loans.total_balance;
+            consolidated_stats.loans.total_loan_amount += stats.loans.total_loan_amount;
             
             consolidated_stats.fixed_deposits.total_fds += stats.fixed_deposits.total_fds;
+            consolidated_stats.fixed_deposits.active_fds += stats.fixed_deposits.active_fds;
+            consolidated_stats.fixed_deposits.matured_fds += stats.fixed_deposits.matured_fds;
+            consolidated_stats.fixed_deposits.withdrawn_fds += stats.fixed_deposits.withdrawn_fds;
+            consolidated_stats.fixed_deposits.rolled_over_fds += stats.fixed_deposits.rolled_over_fds;
+            consolidated_stats.fixed_deposits.members_with_fds += stats.fixed_deposits.members_with_fds;
             consolidated_stats.fixed_deposits.early_withdrawal_count += stats.fixed_deposits.early_withdrawal_count;
+            consolidated_stats.fixed_deposits.single_depositor_count += stats.fixed_deposits.single_depositor_count;
+            consolidated_stats.fixed_deposits.total_balance += stats.fixed_deposits.total_balance;
             
             consolidated_stats.farm_coop.total_coops += stats.farm_coop.total_coops;
             consolidated_stats.farm_coop.active_producers += stats.farm_coop.active_producers;
             consolidated_stats.farm_coop.using_planning += stats.farm_coop.using_planning;
             consolidated_stats.farm_coop.using_shared_inputs += stats.farm_coop.using_shared_inputs;
             consolidated_stats.farm_coop.with_offtake_agreement += stats.farm_coop.with_offtake_agreement;
+            consolidated_stats.farm_coop.with_storage += stats.farm_coop.with_storage;
+            consolidated_stats.farm_coop.with_processing += stats.farm_coop.with_processing;
+            consolidated_stats.farm_coop.with_irrigation += stats.farm_coop.with_irrigation;
+            consolidated_stats.farm_coop.with_climate_mitigation += stats.farm_coop.with_climate_mitigation;
 
             // Recompute percentages for membership
             let m = &mut consolidated_stats.membership;
@@ -324,6 +358,17 @@ pub async fn get_consolidated_nf_statistics(
         
         consolidated_stats.fixed_deposits.fd_penetration_pct = total_fd_pen_pct / f_count;
         consolidated_stats.fixed_deposits.early_withdrawal_pct = total_early_wd_pct / f_count;
+    }
+    
+    // Compute aggregate averages
+    if consolidated_stats.savings.total_accounts > 0 {
+        consolidated_stats.savings.average_balance = consolidated_stats.savings.total_balance / consolidated_stats.savings.total_accounts as f64;
+    }
+    if consolidated_stats.loans.active_loans > 0 {
+        consolidated_stats.loans.average_loan_size = consolidated_stats.loans.total_balance / consolidated_stats.loans.active_loans as f64;
+    }
+    if consolidated_stats.fixed_deposits.total_fds > 0 {
+        consolidated_stats.fixed_deposits.average_balance = consolidated_stats.fixed_deposits.total_balance / consolidated_stats.fixed_deposits.total_fds as f64;
     }
 
     let response: crate::api::dto::non_financial::NfStatisticsResponse = consolidated_stats.into();
