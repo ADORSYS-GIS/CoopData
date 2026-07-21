@@ -8,9 +8,15 @@ import { apiClient } from "@/openapi-client";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
 const STEPS = [
-  { id: "leadership", title: "Leadership & Management", description: "Board, committees, and staffing" },
+  { id: "leadership", title: "Leadership & Governance", description: "Board and committee compositions" },
+  { id: "staffing", title: "Staff Composition & Profile", description: "Manager and support staff breakdown" },
+  { id: "training", title: "Training & Empowerment", description: "Member and staff training metrics" },
+  { id: "membership", title: "Membership & Demographics", description: "Age distribution and dormancy" },
+  { id: "tools", title: "Management & Governance Tools", description: "Operational manuals and bylaws" },
+  { id: "compliance", title: "AGM & Audit Compliance", description: "AGM arrears and audit firm records" },
+  { id: "products", title: "Products & Services", description: "Financial and non-financial services" },
   { id: "capitalization", title: "Capitalization", description: "Shares, reserves, and retained earnings" },
-  { id: "savings", title: "Savings Portfolio", description: "Depositors and investments" },
+  { id: "savings", title: "Savings Portfolio", description: "Depositors and bank investments" },
   { id: "loans", title: "Loan Portfolio", description: "Issuance, delinquency, and fees" },
   { id: "income", title: "Other Activities Income", description: "Additional income streams" },
   { id: "periodic", title: "Periodic Reporting", description: "Incomes, assets, and liabilities" },
@@ -320,7 +326,7 @@ export const FinancialQuestionnaireWizard: React.FC<{
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
 
-            {/* STEP 1: Leadership & Management */}
+            {/* STEP 1: Leadership & Governance */}
             {currentStep === 0 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Board & Committees Composition">
@@ -354,7 +360,12 @@ export const FinancialQuestionnaireWizard: React.FC<{
                     <InputField type="text" label="Secretary Education Level" name="leadership_and_management.secretary_education" />
                   </WizardRow>
                 </WizardSection>
+              </div>
+            )}
 
+            {/* STEP 2: Staff Composition & Profile */}
+            {currentStep === 1 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Staff Composition & Management Profile">
                   <WizardRow>
                     <InputField label="Manager / CEO / GM (Male)" name="leadership_and_management.staff_manager_male" />
@@ -377,24 +388,44 @@ export const FinancialQuestionnaireWizard: React.FC<{
                     <InputField label="Other Support / Contract Staff (Female)" name="leadership_and_management.staff_support_female" />
                   </WizardRow>
                   <WizardRow>
-                    <InputField type="text" label="Manager Academic Level (None, Primary, Secondary, Tertiary)" name="leadership_and_management.manager_academic_level" />
-                    <InputField type="text" label="Manager Co-op Training Level (Accounting, Admin, etc)" name="leadership_and_management.manager_coop_training_level" />
+                    <SelectField
+                      label="Manager Academic Level"
+                      name="leadership_and_management.manager_academic_level"
+                      options={["None", "Informal", "Primary", "Secondary", "Tertiary"]}
+                    />
+                    <InputField type="text" label="Manager Co-op Training Level (e.g. Accounting, Admin)" name="leadership_and_management.manager_coop_training_level" />
                   </WizardRow>
                 </WizardSection>
+              </div>
+            )}
 
+            {/* STEP 3: Member & Staff Training */}
+            {currentStep === 2 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Member & Staff Training">
                   <WizardRow>
                     <InputField label="Members Trained Last Year" name="leadership_and_management.members_trained_last_year" />
                     <InputField label="Leaders Trained Last Year" name="leadership_and_management.leaders_trained_last_year" />
                     <InputField label="Staff Trained Last Year" name="leadership_and_management.staff_trained_last_year" />
                   </WizardRow>
-                  <WizardRow>
-                    <InputField type="text" label="Training Sponsor (SACCO, Govt, Apex, Others)" name="leadership_and_management.training_sponsor" />
-                    <InputField type="text" label="Training Quality Rating (Very Good, Good, Fair, Poor)" name="leadership_and_management.training_quality_rating" />
-                    <InputField label="Cost Covered by SACCO (%)" name="leadership_and_management.willing_to_cover_training_cost_pct" />
-                  </WizardRow>
+                  <RadioGroup
+                    label="Who sponsored most of these trainings?"
+                    name="leadership_and_management.training_sponsor"
+                    options={["SACCO", "The Government", "Apex", "Others specify"]}
+                  />
+                  <RadioGroup
+                    label="Rate overall quality of training provided"
+                    name="leadership_and_management.training_quality_rating"
+                    options={["Very Good", "Good", "Fair", "Poor", "Very Poor"]}
+                  />
+                  <InputField label="Cost Covered by SACCO (%)" name="leadership_and_management.willing_to_cover_training_cost_pct" />
                 </WizardSection>
+              </div>
+            )}
 
+            {/* STEP 4: Membership & Demographics */}
+            {currentStep === 3 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="SACCO Membership & Demographics">
                   <WizardRow>
                     <InputField label="Registered Members (Male)" name="leadership_and_management.registered_members_male" />
@@ -412,44 +443,48 @@ export const FinancialQuestionnaireWizard: React.FC<{
                     <InputField label="Active Members (61+ yrs)" name="leadership_and_management.active_members_61_plus" />
                   </WizardRow>
                   <WizardRow>
-                  <SelectField
-                    label="Society Status (PDF Item 15 d)"
-                    name="leadership_and_management.society_status"
-                    options={["Active", "Dormant", "New", "Under Liquidation"]}
-                  />
-                  <InputField label="Dormant Members (Male)" name="leadership_and_management.dormant_members_male" />
-                  <InputField label="Dormant Members (Female)" name="leadership_and_management.dormant_members_female" />
-                </WizardRow>
-
-                <div className="mt-4 space-y-4">
-                  <CheckboxGroup
-                    label="Item 17 a: THREE major reasons for member dormancy/drop out"
-                    name="leadership_and_management.dormancy_reasons"
-                    options={[
-                      "Loan default",
-                      "Lack of commitment and vision",
-                      "Lack of patience",
-                      "Conflict between members",
-                      "Lack of minimum requirements",
-                      "Shifted to other areas",
-                      "Joined other SACCO.",
-                      "Others specify",
-                    ]}
-                  />
-                  <RadioGroup
-                    label="Item 17 b: Main effect of member dormancy/dropout (Select one)"
-                    name="leadership_and_management.dormancy_effect"
-                    options={[
-                      "Had no effect",
-                      "Negative public image for SACCO",
-                      "Deprived SACCO of good membership",
-                      "Reduced business performance",
-                      "Other (specify)",
-                    ]}
-                  />
-                </div>
+                    <SelectField
+                      label="Society Status"
+                      name="leadership_and_management.society_status"
+                      options={["Active", "Dormant", "New", "Under Liquidation"]}
+                    />
+                    <InputField label="Dormant Members (Male)" name="leadership_and_management.dormant_members_male" />
+                    <InputField label="Dormant Members (Female)" name="leadership_and_management.dormant_members_female" />
+                  </WizardRow>
+                  <div className="mt-4 space-y-4">
+                    <CheckboxGroup
+                      label="Three Major Reasons for Member Dormancy / Dropout"
+                      name="leadership_and_management.dormancy_reasons"
+                      options={[
+                        "Loan default",
+                        "Lack of commitment and vision",
+                        "Lack of patience",
+                        "Conflict between members",
+                        "Lack of minimum requirements",
+                        "Shifted to other areas",
+                        "Joined other SACCO.",
+                        "Others specify",
+                      ]}
+                    />
+                    <RadioGroup
+                      label="Main Effect of Member Dormancy / Dropout"
+                      name="leadership_and_management.dormancy_effect"
+                      options={[
+                        "Had no effect",
+                        "Negative public image for SACCO",
+                        "Deprived SACCO of good membership",
+                        "Reduced business performance",
+                        "Other (specify)",
+                      ]}
+                    />
+                  </div>
                 </WizardSection>
+              </div>
+            )}
 
+            {/* STEP 5: Management & Governance Tools */}
+            {currentStep === 4 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Management & Governance Tools">
                   <CheckboxGroup
                     label="Management Tools in Place (Tick all that apply)"
@@ -481,7 +516,12 @@ export const FinancialQuestionnaireWizard: React.FC<{
                     />
                   </div>
                 </WizardSection>
+              </div>
+            )}
 
+            {/* STEP 6: AGM Compliance & Audit Compliance */}
+            {currentStep === 5 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="AGM Compliance & Audit Compliance">
                   <WizardRow>
                     <InputField label="AGM Arrears (Months)" name="leadership_and_management.agm_arrears_months" />
@@ -502,8 +542,38 @@ export const FinancialQuestionnaireWizard: React.FC<{
               </div>
             )}
 
-            {/* STEP 2: Capitalization */}
-            {currentStep === 1 && (
+            {/* STEP 7: Products & Services */}
+            {currentStep === 6 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                <WizardSection title="Financial & Non-Financial Products / Services">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Financial Services / Products Provided (Specify up to 5)</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <InputField type="text" label="Financial Product 1" name="leadership_and_management.financial_products.0" />
+                        <InputField type="text" label="Financial Product 2" name="leadership_and_management.financial_products.1" />
+                        <InputField type="text" label="Financial Product 3" name="leadership_and_management.financial_products.2" />
+                        <InputField type="text" label="Financial Product 4" name="leadership_and_management.financial_products.3" />
+                        <InputField type="text" label="Financial Product 5" name="leadership_and_management.financial_products.4" />
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-border">
+                      <label className="block text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Non-Financial Services / Products Provided (Specify up to 5)</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <InputField type="text" label="Non-Financial Product 1" name="leadership_and_management.non_financial_products.0" />
+                        <InputField type="text" label="Non-Financial Product 2" name="leadership_and_management.non_financial_products.1" />
+                        <InputField type="text" label="Non-Financial Product 3" name="leadership_and_management.non_financial_products.2" />
+                        <InputField type="text" label="Non-Financial Product 4" name="leadership_and_management.non_financial_products.3" />
+                        <InputField type="text" label="Non-Financial Product 5" name="leadership_and_management.non_financial_products.4" />
+                      </div>
+                    </div>
+                  </div>
+                </WizardSection>
+              </div>
+            )}
+
+            {/* STEP 8: Capitalization */}
+            {currentStep === 7 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Share Capital">
                   <WizardRow>
@@ -526,8 +596,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
               </div>
             )}
 
-            {/* STEP 3: Savings Portfolio */}
-            {currentStep === 2 && (
+            {/* STEP 9: Savings Portfolio */}
+            {currentStep === 8 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Depositors">
                   <WizardRow>
@@ -550,8 +620,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
               </div>
             )}
 
-            {/* STEP 4: Loan Portfolio */}
-            {currentStep === 3 && (
+            {/* STEP 10: Loan Portfolio */}
+            {currentStep === 9 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Loan Issuance">
                   <WizardRow>
@@ -613,8 +683,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
               </div>
             )}
 
-            {/* STEP 5: Other Activities Income */}
-            {currentStep === 4 && (
+            {/* STEP 11: Other Activities Income */}
+            {currentStep === 10 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Additional Income Streams">
                   <WizardRow>
@@ -627,8 +697,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
               </div>
             )}
 
-            {/* STEP 6: Periodic Financial Reporting */}
-            {currentStep === 5 && (
+            {/* STEP 12: Periodic Financial Reporting */}
+            {currentStep === 11 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Income & Expenditure">
                   <WizardRow>
@@ -652,8 +722,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
               </div>
             )}
 
-            {/* STEP 7: Qualitative Assessment */}
-            {currentStep === 6 && (
+            {/* STEP 13: Qualitative Assessment */}
+            {currentStep === 12 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <WizardSection title="Qualitative Feedback & Assessment">
                   <div className="space-y-4">

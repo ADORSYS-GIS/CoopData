@@ -8,8 +8,12 @@ import { apiClient } from "@/openapi-client";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
 const STEPS = [
-  { id: "basic", title: "Basic Data", description: "Demographics, committees, and fees" },
-  { id: "empowerment", title: "Member Empowerment", description: "Training metrics and needs" },
+  { id: "demographics", title: "Membership & Demographics", description: "Active & registered member breakdown" },
+  { id: "leadership", title: "Board & Committees", description: "Committee compositions and education" },
+  { id: "staffing", title: "Staffing & Governance", description: "Staff counts and meeting frequencies" },
+  { id: "fees_capital", title: "Fees & Capitalization", description: "Subscriptions, share values, and reserves" },
+  { id: "compliance", title: "Compliance & Audit Dates", description: "AGM attendance and last audit records" },
+  { id: "empowerment", title: "Member Empowerment", description: "Training metrics and quality ratings" },
   { id: "main_activity", title: "Main Activity", description: "Performance of primary coop activity" },
   { id: "other_activity", title: "Other Activities", description: "Secondary income sources" },
   { id: "threats", title: "Main Threats", description: "Liabilities, disputes, competitors" },
@@ -268,9 +272,9 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
     >
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
+          <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
           
-          {/* STEP 1: Basic Data */}
+          {/* STEP 1: Membership & Demographics */}
           {currentStep === 0 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Membership Register & Age Breakdown">
@@ -300,7 +304,12 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
                   <InputField type="text" label="Society Status (Active, Dormant, New, Liquidation)" name="basic_data.society_status" />
                 </WizardRow>
               </WizardSection>
-              
+            </div>
+          )}
+
+          {/* STEP 2: Board & Committees */}
+          {currentStep === 1 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Board & Committees Composition">
                 <WizardRow>
                   <InputField label="Board Members (Male)" name="basic_data.board_members_male" />
@@ -329,7 +338,12 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
                   <InputField type="text" label="Secretary Education" name="basic_data.secretary_education" />
                 </WizardRow>
               </WizardSection>
+            </div>
+          )}
 
+          {/* STEP 3: Staffing & Governance */}
+          {currentStep === 2 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Staffing & Governance Meetings">
                 <WizardRow>
                   <InputField label="Manager / CEO (Male)" name="basic_data.staff_manager_male" />
@@ -358,7 +372,12 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
                   <InputField type="text" label="Committee Meeting Frequency" name="basic_data.committee_meeting_frequency" />
                 </WizardRow>
               </WizardSection>
+            </div>
+          )}
 
+          {/* STEP 4: Fees & Capitalization */}
+          {currentStep === 3 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Fees, Subscriptions & Capitalization">
                  <WizardRow>
                   <InputField label="Member Joining Fee (E)" name="basic_data.member_joining_fee" />
@@ -377,7 +396,12 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
                   <InputField label="Actual Statutory Reserves (E)" name="basic_data.actual_statutory_reserves" />
                 </WizardRow>
               </WizardSection>
+            </div>
+          )}
 
+          {/* STEP 5: Compliance & Audit Dates */}
+          {currentStep === 4 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Compliance & Audit Dates">
                 <WizardRow>
                   <InputField type="text" label="Committee Elected Date" name="basic_data.committee_elected_date" />
@@ -402,8 +426,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 2: Member Empowerment */}
-          {currentStep === 1 && (
+          {/* STEP 6: Member Empowerment */}
+          {currentStep === 5 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Training Metrics">
                 <WizardRow>
@@ -420,8 +444,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 3: Main Activity Performance */}
-          {currentStep === 2 && (
+          {/* STEP 7: Main Activity Performance */}
+          {currentStep === 6 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Primary Operations">
                 <WizardRow>
@@ -438,8 +462,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 4: Other Activities Income */}
-          {currentStep === 3 && (
+          {/* STEP 8: Other Activities Income */}
+          {currentStep === 7 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Secondary Income Streams">
                 <WizardRow>
@@ -452,8 +476,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 5: Main Threats */}
-          {currentStep === 4 && (
+          {/* STEP 9: Main Threats */}
+          {currentStep === 8 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Liabilities & Disputes">
                 <WizardRow>
@@ -474,8 +498,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 6: Savings Portfolio */}
-          {currentStep === 5 && (
+          {/* STEP 10: Savings Portfolio */}
+          {currentStep === 9 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Depositors">
                 <WizardRow>
@@ -498,8 +522,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 7: Loan Portfolio */}
-          {currentStep === 6 && (
+          {/* STEP 11: Loan Portfolio */}
+          {currentStep === 10 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Loan Issuance & Delinquency">
                 <WizardRow>
@@ -525,8 +549,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 8: Periodic Reporting */}
-          {currentStep === 7 && (
+          {/* STEP 12: Periodic Reporting */}
+          {currentStep === 11 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Income & Expenditure">
                 <WizardRow>
@@ -546,8 +570,8 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             </div>
           )}
 
-          {/* STEP 9: Qualitative Assessment */}
-          {currentStep === 8 && (
+          {/* STEP 13: Qualitative Assessment */}
+          {currentStep === 12 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <WizardSection title="Qualitative Feedback & Assessment">
                 <div className="space-y-4">
@@ -603,7 +627,6 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
               </WizardSection>
             </div>
           )}
-
         </div>
 
         {/* Footer Navigation */}
