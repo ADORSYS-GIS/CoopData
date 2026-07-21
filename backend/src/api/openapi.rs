@@ -158,6 +158,8 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::non_financial::delete_farm_coop,
         api_module::handlers::export::export_single_submission,
         api_module::handlers::export::export_bulk_consolidated,
+        api_module::handlers::questionnaire::submit_financial_questionnaire,
+        api_module::handlers::questionnaire::submit_non_financial_questionnaire,
     ),
     components(schemas(
         api_module::dto::PaginationParams,
@@ -302,6 +304,24 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::custom_kpi::CreateCustomKpiRequest,
         api_module::dto::custom_kpi::EvaluateKpiRequest,
         api_module::dto::custom_kpi::EvaluateKpiResponse,
+        api_module::dto::questionnaire::FinancialQuestionnaireRequest,
+        api_module::dto::questionnaire::LeadershipAndManagement,
+        api_module::dto::questionnaire::Capitalization,
+        api_module::dto::questionnaire::FinancialSavingsPortfolio,
+        api_module::dto::questionnaire::ProductInterestRate,
+        api_module::dto::questionnaire::FinancialLoanPortfolio,
+        api_module::dto::questionnaire::ActivityIncome,
+        api_module::dto::questionnaire::PeriodicFinancialReporting,
+        api_module::dto::questionnaire::ReportFrequency,
+        api_module::dto::questionnaire::QualitativeAssessment,
+        api_module::dto::questionnaire::NonFinancialQuestionnaireRequest,
+        api_module::dto::questionnaire::BasicData,
+        api_module::dto::questionnaire::MemberEmpowerment,
+        api_module::dto::questionnaire::MainActivityPerformance,
+        api_module::dto::questionnaire::MainThreats,
+        api_module::dto::questionnaire::NonFinancialSavingsPortfolio,
+        api_module::dto::questionnaire::NonFinancialLoanPortfolio,
+        api_module::dto::questionnaire::NonFinancialPeriodicReporting,
     ))
 )]
 pub struct ApiDoc;

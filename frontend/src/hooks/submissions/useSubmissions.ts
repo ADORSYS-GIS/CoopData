@@ -4,7 +4,7 @@ import type { components } from "@/openapi-client/api";
 import { getAccessToken } from "@/services/shared/authService";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
-export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"];
+export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"] & { data_entry_mode?: string };
 
 const SUBMISSIONS_KEY = "cooperative-submissions";
 

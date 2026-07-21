@@ -12,6 +12,7 @@ pub mod national_overview;
 pub mod non_financial;
 pub mod non_financial_indicator;
 pub mod organization;
+pub mod questionnaire;
 pub mod submission;
 pub mod upload;
 pub mod user;
@@ -32,5 +33,6 @@ pub use member::{
 pub use non_financial::*;
 pub use non_financial_indicator::*;
 pub use organization::*;
+pub use questionnaire::*;
 pub use user::*;
 pub use verification::*;

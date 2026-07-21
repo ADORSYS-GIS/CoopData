@@ -88,11 +88,12 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [entryMode, setEntryMode] = useState<"upload" | "manual">("upload");
   const createSubmission = useCreateSubmission();
 
   const handleCreate = async () => {
     try {
-      const sub = await createSubmission.mutateAsync({ reporting_year: year });
+      const sub = await createSubmission.mutateAsync({ reporting_year: year, data_entry_mode: entryMode });
       toast.success(`Submission for ${year} created`);
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
@@ -145,6 +146,37 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
                 {y}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Data Entry Mode Selection */}
+        <div className="px-6 pb-2 mt-4">
+          <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+            Data Entry Mode
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setEntryMode("upload")}
+              className={`rounded-xl border py-3 px-2 text-sm font-bold transition-all duration-150 flex flex-col items-center justify-center gap-1 ${
+                entryMode === "upload"
+                  ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary"
+                  : "border-border bg-surface text-foreground hover:border-primary/40"
+              }`}
+            >
+              <FileText className="size-5 mb-1" />
+              Excel / PDF Upload
+            </button>
+            <button
+              onClick={() => setEntryMode("manual")}
+              className={`rounded-xl border py-3 px-2 text-sm font-bold transition-all duration-150 flex flex-col items-center justify-center gap-1 ${
+                entryMode === "manual"
+                  ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary"
+                  : "border-border bg-surface text-foreground hover:border-primary/40"
+              }`}
+            >
+              <Inbox className="size-5 mb-1" />
+              Manual Entry
+            </button>
           </div>
         </div>
 

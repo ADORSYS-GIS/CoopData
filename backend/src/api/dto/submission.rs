@@ -11,6 +11,7 @@ pub struct CreateSubmissionRequest {
     pub reporting_year: i32,
     #[serde(default = "default_priority")]
     pub priority: String,
+    pub data_entry_mode: Option<String>,
 }
 
 fn default_priority() -> String {
@@ -81,6 +82,7 @@ pub struct SubmissionResponse {
     /// Federation ID (populated for hierarchical filtering)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub federation_id: Option<Uuid>,
+    pub data_entry_mode: Option<String>,
 }
 
 impl From<SubmissionModel> for SubmissionResponse {
@@ -106,6 +108,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             federation_name: None,
             apex_id: None,
             federation_id: None,
+            data_entry_mode: m.metadata.get("data_entry_mode").and_then(|v| v.as_str()).map(|s| s.to_string()),
         }
     }
 }

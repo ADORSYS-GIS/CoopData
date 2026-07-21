@@ -453,6 +453,16 @@
 - [x] Cooperative, Apex, Federation and Ministry aggregate-to-detail analytics UI
 - [x] Financial/NF indicator, scope and role-journey tests
 
+### Phase 19: Epic 4 - Manual Questionnaire Entry (Issue #57) ✅
+
+> **Goal**: Provide a fallback "direct entry" wizard for non-digitalized cooperatives, routing manual JSON input directly into the standard verification and storage pipeline.
+
+- [x] **19.1 Backend DTOs & Handlers** — Create batch-save endpoints (`POST /api/v1/cooperative/questionnaire/{financial,non-financial}`) supporting full manual payloads mapping to entities.
+- [x] **19.2 Mode Selection & Locking** — Draft mode selection for Manual Questionnaire vs Upload with JSON metadata persistence.
+- [x] **19.3 Frontend Wizard Forms** — Build structured Stepper Wizards matching the paper Eswatini PDFs with progress bars, clean section titles, interactive `CheckboxGroup` controls, and focus state management.
+- [x] **19.4 Zod Validation & Parity** — React Hook Form + Zod schema validation across all form steps, achieving 100% rendering parity (135 Financial fields + 144 Non-Financial fields).
+- [x] **19.5 Review Flow Wiring & Abnormality Integration** — Manual questionnaire entries persist to DB and route directly into the standard `AbnormalityDetector` verification and storage pipeline.
+
 ---
 
 ## Token Management Strategy

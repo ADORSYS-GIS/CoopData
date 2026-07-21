@@ -43,6 +43,8 @@ import {
 import { useSubmitSubmission } from "@/hooks/submissions/useFinancialStatement";
 import { FinancialStatementEditor } from "@/pages/cooperative/FinancialStatementEditor";
 import { UploadFinancialStatementWidget } from "@/pages/cooperative/UploadFinancialStatement";
+import { FinancialQuestionnaireWizard } from "@/pages/cooperative/FinancialQuestionnaireWizard";
+import { NonFinancialQuestionnaireWizard } from "@/pages/cooperative/NonFinancialQuestionnaireWizard";
 import { NfUploadZone } from "@/components/non-financial/NfUploadZone";
 import { NfParseResults } from "@/components/non-financial/NfParseResults";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1143,7 +1145,7 @@ export const SubmissionDetailPage: React.FC = () => {
                   />
                 </Card>
               )}
-              {submission.financial_statement_id && (
+              {submission.financial_statement_id && submission.data_entry_mode !== "manual" && (
                 <FinancialStatementEditor
                   fsId={submission.financial_statement_id}
                   submissionId={submission.id}
@@ -1151,7 +1153,17 @@ export const SubmissionDetailPage: React.FC = () => {
                   isCooperative={isCooperative}
                 />
               )}
-              {!submission.financial_statement_id && !isExtracting && isCooperative && (
+              {submission.data_entry_mode === "manual" && isCooperative && (
+                <FinancialQuestionnaireWizard submissionId={submission.id} onComplete={() => refetchSections()} />
+              )}
+              {submission.data_entry_mode === "manual" && !isCooperative && (
+                <Card title="Financial Questionnaire" subtitle="Manually entered data">
+                  <div className="p-10 text-center text-muted-foreground">
+                    Manual Data Entry view is only supported for editing currently.
+                  </div>
+                </Card>
+              )}
+              {!submission.financial_statement_id && !isExtracting && isCooperative && submission.data_entry_mode !== "manual" && (
                 <Card
                   title="Financial Statement"
                   subtitle="Upload your audited balance sheet — data is extracted automatically"
@@ -1159,7 +1171,7 @@ export const SubmissionDetailPage: React.FC = () => {
                   <UploadFinancialStatementWidget submissionId={submission.id} />
                 </Card>
               )}
-              {!submission.financial_statement_id && !isExtracting && !isCooperative && (
+              {!submission.financial_statement_id && !isExtracting && !isCooperative && submission.data_entry_mode !== "manual" && (
                 <Card title="Financial Statement" subtitle="No document uploaded yet">
                   <div className="py-10 text-center text-muted-foreground">
                     <FileText className="size-10 mx-auto mb-3 opacity-30" />
@@ -1170,15 +1182,25 @@ export const SubmissionDetailPage: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="databases" className="space-y-4">
-              <NfDatabasesTab
-                submissionId={submission.id}
-                isReadOnly={isReadOnly}
-                isDraft={!!isDraft}
-                isCooperative={isCooperative}
-                sections={sections}
-                onUploadComplete={handleNfUploadComplete}
-                nfResult={nfResult}
-              />
+              {submission.data_entry_mode === "manual" && isCooperative ? (
+                <NonFinancialQuestionnaireWizard submissionId={submission.id} onComplete={() => refetchSections()} />
+              ) : submission.data_entry_mode === "manual" && !isCooperative ? (
+                <Card title="Non-Financial Questionnaire" subtitle="Manually entered data">
+                  <div className="p-10 text-center text-muted-foreground">
+                    Manual Data Entry view is only supported for editing currently.
+                  </div>
+                </Card>
+              ) : (
+                <NfDatabasesTab
+                  submissionId={submission.id}
+                  isReadOnly={isReadOnly}
+                  isDraft={!!isDraft}
+                  isCooperative={isCooperative}
+                  sections={sections}
+                  onUploadComplete={handleNfUploadComplete}
+                  nfResult={nfResult}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="non-financial" className="space-y-4">

@@ -190,3 +190,20 @@ All roles receive accurate financial and non-financial analytics with authorized
 3. Real role-specific cards, trends, comparisons and risk views.
 4. Aggregate-to-detail drill-down to cooperative, submission and raw records.
 5. Calculation, scope and role-journey verification.
+
+---
+
+## 12. Epic 4: Low-Digitalization Submission Flow (Manual Entry)
+
+For cooperatives lacking digital capabilities (unable to upload Excel or PDF), the platform provides a **Direct Questionnaire Form (Manual Entry)** directly within the platform.
+
+### Architecture & Consistency
+- **Unified Pipeline:** Manual submissions bypass the `CalamineNfParser` and AI `FinancialStatementExtractor` (since the input is already structured JSON). However, they map to the **exact same database entities** (`balance_sheet_line_item`, `member`, `loan`, etc.).
+- **Shared Validation:** Upon submission, manual entries trigger the exact same `AbnormalityDetector` engine as file uploads, ensuring 100% consistency in data rules and flagging.
+- **Shared Review:** Since manual entries save as "Draft" submissions in the DB just like file uploads, users are routed to the **exact same Submission Review screen** before final approval.
+
+### Frontend Flow
+1. **Mode Selection:** Users choose "Upload Documents" or "Enter Data Manually". Choosing a mode locks the draft to prevent conflicting dual-entry.
+2. **Tabbed Wizard:** The manual entry is split into tabs (Financial / Non-Financial) and divided into logical wizard steps mirroring the Eswatini physical questionnaire PDFs.
+3. **Real-Time Consistency Check:** Zod validation on the frontend enforces basic sum consistency and required fields to catch errors *before* the backend `AbnormalityDetector` runs.
+

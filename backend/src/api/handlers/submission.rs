@@ -81,20 +81,24 @@ pub async fn create_submission(
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
-    let model = ActiveModel {
-        id: Set(Uuid::new_v4()),
-        reference: Set(Some(reference)),
-        cooperative_id: Set(coop.id),
-        reporting_year: Set(body.reporting_year),
-        status: Set(crate::entities::enums::SubmissionStatus::Draft),
-        current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
-        submitted_by: Set(submitted_by),
-        submitted_at: Set(None),
-        last_reviewed_by: Set(None),
-        last_reviewed_at: Set(None),
-        rejection_reason: Set(None),
-        priority: Set(body.priority),
-        metadata: Set(serde_json::json!({})),
+        let mut meta = serde_json::json!({});
+        if let Some(mode) = &body.data_entry_mode {
+            meta["data_entry_mode"] = serde_json::Value::String(mode.clone());
+        }
+        let model = ActiveModel {
+            id: Set(Uuid::new_v4()),
+            reference: Set(Some(reference)),
+            cooperative_id: Set(coop.id),
+            reporting_year: Set(body.reporting_year),
+            status: Set(crate::entities::enums::SubmissionStatus::Draft),
+            current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
+            submitted_by: Set(submitted_by),
+            submitted_at: Set(None),
+            last_reviewed_by: Set(None),
+            last_reviewed_at: Set(None),
+            rejection_reason: Set(None),
+            priority: Set(body.priority),
+            metadata: Set(meta),
         created_at: Set(chrono::Utc::now()),
         updated_at: Set(chrono::Utc::now()),
     };

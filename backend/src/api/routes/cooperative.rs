@@ -15,6 +15,7 @@ use crate::api::handlers::financial_statement::{
 };
 use crate::api::handlers::nf_indicator_stats::get_nf_statistics;
 use crate::api::handlers::non_financial;
+use crate::api::handlers::questionnaire;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
     list_submission_reviews, list_submission_sections, submit_submission,
@@ -90,6 +91,15 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(non_financial::get_farm_coop)
                 .put(non_financial::update_farm_coop)
                 .delete(non_financial::delete_farm_coop),
+        )
+        // Manual Questionnaire Entry
+        .route(
+            "/questionnaire/financial",
+            post(questionnaire::submit_financial_questionnaire),
+        )
+        .route(
+            "/questionnaire/non-financial",
+            post(questionnaire::submit_non_financial_questionnaire),
         )
         // Submissions
         .route(
