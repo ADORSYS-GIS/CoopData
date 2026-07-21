@@ -163,11 +163,13 @@ impl NfIndicatorEngine {
         reporting_year: Option<i32>,
     ) -> crate::error::AppResult<NfStatisticsResponse> {
         use crate::entities::submission;
-        use sea_orm::{QueryFilter, QueryOrder, EntityTrait, ColumnTrait};
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
         let mut query = submission::Entity::find()
             .filter(submission::Column::CooperativeId.eq(cooperative_id))
-            .filter(submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Approved));
+            .filter(
+                submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Approved),
+            );
 
         if let Some(year) = reporting_year {
             query = query.filter(submission::Column::ReportingYear.eq(year));

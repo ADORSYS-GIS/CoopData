@@ -28,7 +28,7 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
   const arrearsAmount = glp * (par30_pct / 100);
   const performingAmount = glp - arrearsAmount;
   const provisionsAmount = arrearsAmount * (provisions_pct / 100);
-  
+
   // At-risk is whatever arrears are not covered by provisions
   const atRiskAmount = Math.max(0, arrearsAmount - provisionsAmount);
 
@@ -76,23 +76,28 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 25 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-          <XAxis 
-            dataKey="name" 
+          <XAxis
+            dataKey="name"
             tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 600 }}
             axisLine={false}
             tickLine={false}
             angle={-20}
             textAnchor="end"
           />
-          <YAxis 
+          <YAxis
             tickFormatter={formatCurrency}
             tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip 
+          <Tooltip
             cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-            contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", fontSize: "12px" }}
+            contentStyle={{
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              fontSize: "12px",
+            }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             formatter={(value: number, name: string, props: any) => {
               if (name === "transparent") return []; // hide transparent block from tooltip
               return [formatCurrency(props.payload.formatted), "Amount"];

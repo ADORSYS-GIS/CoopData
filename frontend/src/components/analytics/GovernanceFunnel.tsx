@@ -1,10 +1,4 @@
-import {
-  Funnel,
-  FunnelChart,
-  Tooltip,
-  LabelList,
-  ResponsiveContainer,
-} from "recharts";
+import { Funnel, FunnelChart, Tooltip, LabelList, ResponsiveContainer } from "recharts";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
 
 interface Props {
@@ -47,18 +41,33 @@ export function GovernanceFunnel({ stats }: Props) {
     <div className="h-[250px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <FunnelChart>
-          <Tooltip 
+          <Tooltip
             cursor={{ fill: "transparent" }}
-            contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", fontSize: "12px" }}
+            contentStyle={{
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              fontSize: "12px",
+            }}
             formatter={(val: number) => [val.toLocaleString(), "Members"]}
           />
-          <Funnel
-            dataKey="value"
-            data={data}
-            isAnimationActive
-          >
-            <LabelList position="right" fill="var(--foreground)" stroke="none" dataKey="name" fontSize={11} fontWeight="bold" />
-            <LabelList position="center" fill="#fff" stroke="none" dataKey="value" formatter={(val: number) => val.toLocaleString()} fontSize={12} fontWeight="bold" />
+          <Funnel dataKey="value" data={data} isAnimationActive>
+            <LabelList
+              position="right"
+              fill="var(--foreground)"
+              stroke="none"
+              dataKey="name"
+              fontSize={11}
+              fontWeight="bold"
+            />
+            <LabelList
+              position="center"
+              fill="#fff"
+              stroke="none"
+              dataKey="value"
+              formatter={(val: number) => val.toLocaleString()}
+              fontSize={12}
+              fontWeight="bold"
+            />
           </Funnel>
         </FunnelChart>
       </ResponsiveContainer>

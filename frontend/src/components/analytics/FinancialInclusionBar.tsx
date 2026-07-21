@@ -68,14 +68,23 @@ export function FinancialInclusionBar({ stats }: Props) {
           />
           <Tooltip
             cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-            contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", fontSize: "12px" }}
+            contentStyle={{
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              fontSize: "12px",
+            }}
             formatter={(val: number) => [`${val.toFixed(1)}%`, "Inclusion Share"]}
           />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32}>
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
-            <LabelList dataKey="value" position="right" formatter={(val: number) => `${val.toFixed(1)}%`} style={{ fill: "var(--muted-foreground)", fontSize: 11, fontWeight: "bold" }} />
+            <LabelList
+              dataKey="value"
+              position="right"
+              formatter={(val: number) => `${val.toFixed(1)}%`}
+              style={{ fill: "var(--muted-foreground)", fontSize: 11, fontWeight: "bold" }}
+            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

@@ -1,8 +1,6 @@
 import Keycloak from "keycloak-js";
 
-const keycloakUrl =
-  import.meta.env.VITE_KEYCLOAK_URL ||
-  `${window.location.origin}/auth`;
+const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || `${window.location.origin}/auth`;
 const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || "coop-data";
 const keycloakClientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID || "coopdata-frontend";
 

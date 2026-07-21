@@ -1681,7 +1681,7 @@ impl KeycloakService {
     /// This method handles both forms transparently.
     pub async fn resolve_group(&self, id_or_path: &str) -> Result<KeycloakGroup, AppError> {
         tracing::info!("resolve_group called with id_or_path: '{}'", id_or_path);
-        
+
         // If it looks like a UUID (no slashes), try direct lookup first
         let is_uuid = !id_or_path.contains('/') && id_or_path.len() == 36;
         if is_uuid {
@@ -1727,15 +1727,19 @@ impl KeycloakService {
         }
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        let tops: Vec<KeycloakGroup> = groups
-            .into_iter()
-            .filter(|g| g.name == top_name)
-            .collect();
+        let tops: Vec<KeycloakGroup> = groups.into_iter().filter(|g| g.name == top_name).collect();
 
-        tracing::info!("resolve_group: found {} top groups matching '{}'", tops.len(), top_name);
+        tracing::info!(
+            "resolve_group: found {} top groups matching '{}'",
+            tops.len(),
+            top_name
+        );
 
         if tops.is_empty() {
-            return Err(AppError::NotFound(format!("Group not found for path segment: {}", top_name)));
+            return Err(AppError::NotFound(format!(
+                "Group not found for path segment: {}",
+                top_name
+            )));
         }
 
         if segments.len() == 1 {
@@ -1746,26 +1750,46 @@ impl KeycloakService {
 
         // Try to walk into subgroups for deeper paths, trying each matching top-level group
         for top in tops {
-            tracing::info!("resolve_group: checking top group {} ({})", top.name, top.id);
+            tracing::info!(
+                "resolve_group: checking top group {} ({})",
+                top.name,
+                top.id
+            );
             let mut current_id = top.id.clone();
             let mut found_path = true;
 
             for seg in &segments[1..] {
-                tracing::info!("resolve_group: looking for child segment '{}' in group {}", seg, current_id);
+                tracing::info!(
+                    "resolve_group: looking for child segment '{}' in group {}",
+                    seg,
+                    current_id
+                );
                 if let Ok(children) = self.get_group_children(&current_id).await {
                     let child_names: Vec<_> = children.iter().map(|g| g.name.clone()).collect();
-                    tracing::info!("resolve_group: current group {} has {} children from API: {:?}", current_id, children.len(), child_names);
-                    
+                    tracing::info!(
+                        "resolve_group: current group {} has {} children from API: {:?}",
+                        current_id,
+                        children.len(),
+                        child_names
+                    );
+
                     if let Some(child) = children.into_iter().find(|g| g.name == *seg) {
                         tracing::info!("resolve_group: found child '{}' ({})", seg, child.id);
                         current_id = child.id;
                     } else {
-                        tracing::warn!("resolve_group: child '{}' not found in group {}", seg, current_id);
+                        tracing::warn!(
+                            "resolve_group: child '{}' not found in group {}",
+                            seg,
+                            current_id
+                        );
                         found_path = false;
                         break;
                     }
                 } else {
-                    tracing::warn!("resolve_group: failed to fetch children for group {}", current_id);
+                    tracing::warn!(
+                        "resolve_group: failed to fetch children for group {}",
+                        current_id
+                    );
                     found_path = false;
                     break;
                 }
@@ -1778,7 +1802,10 @@ impl KeycloakService {
         }
 
         tracing::error!("resolve_group: failed to find complete path {:?}", segments);
-        Err(AppError::NotFound(format!("Subgroup not found: {}", segments.last().unwrap_or(&""))))
+        Err(AppError::NotFound(format!(
+            "Subgroup not found: {}",
+            segments.last().unwrap_or(&"")
+        )))
     }
 
     async fn get_group_by_name(

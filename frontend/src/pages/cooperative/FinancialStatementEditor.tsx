@@ -517,10 +517,11 @@ export const FinancialStatementEditor: React.FC<{
     if (!matrixRowsMap.has(key)) {
       matrixRowsMap.set(key, {
         key,
-        account_code: item.account_code,
-        account_name: item.account_code && COA_BY_CODE.get(item.account_code)
-          ? COA_BY_CODE.get(item.account_code)!.name
-          : item.account_name,
+        account_code: item.account_code ?? null,
+        account_name:
+          item.account_code && COA_BY_CODE.get(item.account_code)
+            ? COA_BY_CODE.get(item.account_code)!.name
+            : item.account_name,
         account_category: item.account_category,
         raw_label: item.raw_label ?? null,
         sampleItem: item,
@@ -633,7 +634,9 @@ export const FinancialStatementEditor: React.FC<{
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
                   <th className="px-3 py-3 w-16 sticky left-0 bg-surface z-10 shadow-sm">Code</th>
-                  <th className="px-4 py-3 min-w-[200px] sticky left-16 bg-surface z-10 shadow-sm border-r border-border">Account Name</th>
+                  <th className="px-4 py-3 min-w-[200px] sticky left-16 bg-surface z-10 shadow-sm border-r border-border">
+                    Account Name
+                  </th>
                   {MONTH_HEADERS.map((mh) => (
                     <th key={mh.month} className="px-3 py-3 text-right min-w-[90px]">
                       {mh.label}
@@ -674,7 +677,9 @@ export const FinancialStatementEditor: React.FC<{
                             />
                             <div className="absolute left-0 top-7 z-20 w-64 rounded-lg border border-border bg-surface shadow-lg font-sans">
                               {filteredCoaOptions.length === 0 ? (
-                                <p className="px-3 py-2 text-xs text-muted-foreground">No matches</p>
+                                <p className="px-3 py-2 text-xs text-muted-foreground">
+                                  No matches
+                                </p>
                               ) : (
                                 filteredCoaOptions.map((opt) => (
                                   <button
@@ -708,7 +713,10 @@ export const FinancialStatementEditor: React.FC<{
 
                       {/* Account Name */}
                       <td className="px-4 py-2 sticky left-16 bg-surface z-10 shadow-sm border-r border-border font-sans">
-                        <p className="font-medium text-foreground text-xs truncate max-w-[220px]" title={coaEntry ? coaEntry.name : row.account_name}>
+                        <p
+                          className="font-medium text-foreground text-xs truncate max-w-[220px]"
+                          title={coaEntry ? coaEntry.name : row.account_name}
+                        >
                           {coaEntry ? coaEntry.name : row.account_name}
                         </p>
                         {row.raw_label && (

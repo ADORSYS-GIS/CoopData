@@ -252,8 +252,8 @@ pub struct SectorBreakdownPoint {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
     use crate::services::kpi_engine::KpiValue;
+    use chrono::Utc;
 
     fn sample_kpi_value(name: &str, value: f64) -> KpiValue {
         KpiValue {

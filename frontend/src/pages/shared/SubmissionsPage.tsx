@@ -415,12 +415,20 @@ function SubmissionTable({
                           type="button"
                           onClick={async (e) => {
                             e.stopPropagation();
-                            if (confirm(`Are you sure you want to delete submission ${s.reference ?? s.id.slice(0, 8)}?`)) {
+                            if (
+                              confirm(
+                                `Are you sure you want to delete submission ${s.reference ?? s.id.slice(0, 8)}?`,
+                              )
+                            ) {
                               try {
                                 await deleteSubmission.mutateAsync(s.id);
                                 toast.success("Submission deleted successfully");
                               } catch (err) {
-                                toast.error(err instanceof Error ? err.message : "Failed to delete submission");
+                                toast.error(
+                                  err instanceof Error
+                                    ? err.message
+                                    : "Failed to delete submission",
+                                );
                               }
                             }
                           }}

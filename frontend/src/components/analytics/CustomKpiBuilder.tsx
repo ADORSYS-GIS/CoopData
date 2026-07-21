@@ -44,7 +44,11 @@ export function CustomKpiBuilder() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [formula, setFormula] = useState("");
-  const [testResult, setTestResult] = useState<{ value: number; is_valid: boolean; error?: string | null } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    value: number;
+    is_valid: boolean;
+    error?: string | null;
+  } | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
   const handleTest = async () => {
@@ -95,7 +99,8 @@ export function CustomKpiBuilder() {
             Custom KPI Formulas
           </CardTitle>
           <CardDescription>
-            Define dynamic formulas mathematically derived from existing non-financial and financial data points.
+            Define dynamic formulas mathematically derived from existing non-financial and financial
+            data points.
           </CardDescription>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -158,26 +163,45 @@ export function CustomKpiBuilder() {
                   <Info className="h-3 w-3" /> Use standard math operators: +, -, *, /, (), ^
                 </p>
               </div>
-              
+
               {/* Test Action */}
               <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={handleTest} disabled={isEvaluating || !formula.trim()}>
-                  {isEvaluating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Test Formula"}
+                <Button
+                  variant="secondary"
+                  onClick={handleTest}
+                  disabled={isEvaluating || !formula.trim()}
+                >
+                  {isEvaluating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    "Test Formula"
+                  )}
                 </Button>
                 {testResult && (
-                  <div className={`flex items-center gap-1 text-sm ${testResult.is_valid ? 'text-green-600' : 'text-red-600'}`}>
+                  <div
+                    className={`flex items-center gap-1 text-sm ${testResult.is_valid ? "text-green-600" : "text-red-600"}`}
+                  >
                     {testResult.is_valid ? (
-                      <><Check className="h-4 w-4" /> Parsed OK</>
+                      <>
+                        <Check className="h-4 w-4" /> Parsed OK
+                      </>
                     ) : (
-                      <><X className="h-4 w-4" /> {testResult.error}</>
+                      <>
+                        <X className="h-4 w-4" /> {testResult.error}
+                      </>
                     )}
                   </div>
                 )}
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={isCreating || !name.trim() || !formula.trim()}>
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={isCreating || !name.trim() || !formula.trim()}
+              >
                 {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save KPI"}
               </Button>
             </DialogFooter>
@@ -193,39 +217,49 @@ export function CustomKpiBuilder() {
           <div className="text-center p-8 border-2 border-dashed rounded-lg text-muted-foreground">
             <Calculator className="h-10 w-10 mx-auto mb-2 opacity-50" />
             <p>No custom KPIs defined yet.</p>
-            <p className="text-sm mt-1">Click the button above to create your first dynamic indicator.</p>
+            <p className="text-sm mt-1">
+              Click the button above to create your first dynamic indicator.
+            </p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {kpis.map((kpi: any) => (
-              <Card key={kpi.id} className="relative overflow-hidden group border-muted">
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (confirm("Delete this Custom KPI?")) {
-                        deleteKpi(kpi.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold pr-8">{kpi.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {kpi.description || "No description"}
-                  </p>
-                  <div className="bg-muted p-2 rounded text-xs font-mono overflow-x-auto whitespace-nowrap">
-                    {kpi.formula}
+            {kpis.map(
+              (kpi: {
+                id: string;
+                name: string;
+                formula: string;
+                description?: string | null;
+                created_at: string;
+              }) => (
+                <Card key={kpi.id} className="relative overflow-hidden group border-muted">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm("Delete this Custom KPI?")) {
+                          deleteKpi(kpi.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold pr-8">{kpi.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {kpi.description || "No description"}
+                    </p>
+                    <div className="bg-muted p-2 rounded text-xs font-mono overflow-x-auto whitespace-nowrap">
+                      {kpi.formula}
+                    </div>
+                  </CardContent>
+                </Card>
+              ),
+            )}
           </div>
         )}
       </CardContent>

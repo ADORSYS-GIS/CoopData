@@ -168,7 +168,8 @@ async fn run_pipeline_inner(
 
     // Build dedup set for mapped items
     let mut seen_mapped: std::collections::HashSet<(i32, i16)> = std::collections::HashSet::new();
-    let mut seen_unmapped: std::collections::HashSet<(String, i16)> = std::collections::HashSet::new();
+    let mut seen_unmapped: std::collections::HashSet<(String, i16)> =
+        std::collections::HashSet::new();
 
     // Pre-filter: skip items with no value (section headers returned by LLM)
     let candidates: Vec<&crate::services::ai_extraction::ExtractedLineItem> = output

@@ -63,7 +63,7 @@ export function CooperativeDashboard() {
   const reportingYear = latestSubmission?.reporting_year ?? new Date().getFullYear();
   const { data: trendData } = useMonthlyTrend(
     { reportingYear, cooperativeId: latestSubmission?.cooperative_id },
-    !!latestSubmission && latestSubmission.status === "approved"
+    !!latestSubmission && latestSubmission.status === "approved",
   );
 
   // Real database record counts — page_size:1 to get just the total cheaply
@@ -237,8 +237,8 @@ export function CooperativeDashboard() {
         </div>
 
         {/* ── Database Status Grid ── */}
-        <Card 
-          title="Database Status" 
+        <Card
+          title="Database Status"
           subtitle="Current state of your 5 cooperative databases"
           info="Live record count of the entities currently registered within your cooperative's internal ledgers."
         >
@@ -286,18 +286,47 @@ export function CooperativeDashboard() {
             ) : kpisData ? (
               <div className="h-72 pt-4 pr-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={financialOverview} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                  <BarChart
+                    data={financialOverview}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                      tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
+                    />
                     <Tooltip
                       cursor={{ fill: "var(--muted)", opacity: 0.2 }}
-                      contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--foreground)" }}
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        color: "var(--foreground)",
+                      }}
                       formatter={(val: number) => [`$${val.toLocaleString()}`, "Amount"]}
                     />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {financialOverview.map((entry, index) => (
-                        <Cell key={index} fill={index === 0 ? "var(--primary)" : index === 1 ? "var(--accent)" : "var(--success)"} />
+                        <Cell
+                          key={index}
+                          fill={
+                            index === 0
+                              ? "var(--primary)"
+                              : index === 1
+                                ? "var(--accent)"
+                                : "var(--success)"
+                          }
+                        />
                       ))}
                     </Bar>
                   </BarChart>
@@ -308,7 +337,9 @@ export function CooperativeDashboard() {
                 <BarChart3 className="size-10 opacity-30" />
                 <div>
                   <p className="text-sm font-semibold">No financial data yet</p>
-                  <p className="text-xs mt-1">Upload a financial statement to see your data here.</p>
+                  <p className="text-xs mt-1">
+                    Upload a financial statement to see your data here.
+                  </p>
                 </div>
               </div>
             )}
@@ -388,26 +419,26 @@ export function CooperativeDashboard() {
 
         {/* ── Financial Growth Trend ── */}
         <div className="grid lg:grid-cols-1 gap-6">
-          <Card 
-            title="Financial Growth Trend" 
+          <Card
+            title="Financial Growth Trend"
             subtitle="Assets, loans & savings over the reporting year"
             info="Month-over-month trajectory of your cooperative's key financial balances, indicating growth and seasonal fluctuations."
           >
             {trendPoints.length > 0 ? (
               <CoopTrendAreaChart data={trendPoints} />
             ) : (
-               <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-center gap-2">
-                 <TrendingUp className="size-8 opacity-30" />
-                 <p className="text-sm">No trend data available for the year.</p>
-               </div>
+              <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-center gap-2">
+                <TrendingUp className="size-8 opacity-30" />
+                <p className="text-sm">No trend data available for the year.</p>
+              </div>
             )}
           </Card>
         </div>
 
         {/* ── Charts Row 2: OSS + Membership counts from real data ── */}
         <div className="grid lg:grid-cols-3 gap-6">
-          <Card 
-            title="Membership Summary" 
+          <Card
+            title="Membership Summary"
             subtitle="Total members in your cooperative database"
             info="The total registered headcount of active members affiliated with this cooperative."
           >
@@ -435,8 +466,8 @@ export function CooperativeDashboard() {
             </div>
           </Card>
 
-          <Card 
-            title="Database Coverage" 
+          <Card
+            title="Database Coverage"
             subtitle="Records across all 5 databases"
             info="A summary of the record counts present across all five required non-financial ledgers."
           >
@@ -609,8 +640,8 @@ export function CooperativeDashboard() {
         </Card>
 
         {/* ── Submission History ── */}
-        <Card 
-          title="Submission History" 
+        <Card
+          title="Submission History"
           subtitle="Track review cycle statuses on your filings"
           info="A chronological log of all past and present data declarations, their reference numbers, and their current position in the approval workflow."
         >

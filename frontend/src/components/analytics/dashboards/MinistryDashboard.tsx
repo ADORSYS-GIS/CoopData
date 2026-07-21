@@ -1,10 +1,13 @@
 import { RegionalGroupedBar } from "../RegionalGroupedBar";
 import { GenderStatusDoughnuts } from "../GenderStatusDoughnuts";
 import { type CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
 
 interface MinistryDashboardProps {
   cooperatives: CoopKpiRow[];
-  nfStats: any;
+  nfStats: {
+    membership: MembershipStats;
+  } | null;
 }
 
 export function MinistryDashboard({ cooperatives, nfStats }: MinistryDashboardProps) {

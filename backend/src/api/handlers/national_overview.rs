@@ -53,10 +53,14 @@ pub async fn get_national_overview(
         params.sector,
         params.federation_id,
         params.apex_id,
-    ).await?;
+    )
+    .await?;
 
     // Batch 1: fetch all cooperatives
-    let cooperatives = state.cooperative_repo.find_by_ids(filtered_coop_ids.clone()).await?;
+    let cooperatives = state
+        .cooperative_repo
+        .find_by_ids(filtered_coop_ids.clone())
+        .await?;
 
     // Batch 2: retain the latest approved financial statement per cooperative.
     // Draft and rejected submissions must not affect supervisory analytics.
@@ -67,8 +71,10 @@ pub async fn get_national_overview(
         .await?
         .into_iter()
         .filter(|submission| {
-            let is_approved = submission.status == crate::entities::enums::SubmissionStatus::Approved;
-            let matches_year = params.reporting_year
+            let is_approved =
+                submission.status == crate::entities::enums::SubmissionStatus::Approved;
+            let matches_year = params
+                .reporting_year
                 .map(|year| submission.reporting_year == year)
                 .unwrap_or(true);
             is_approved && matches_year
@@ -87,7 +93,9 @@ pub async fn get_national_overview(
         .collect();
     for submission in approved_submissions {
         if let Some(statement) = statements_by_submission.get(&submission.id) {
-            fs_map.entry(submission.cooperative_id).or_insert((statement.id, submission.id));
+            fs_map
+                .entry(submission.cooperative_id)
+                .or_insert((statement.id, submission.id));
         }
     }
 
@@ -205,7 +213,9 @@ pub async fn get_national_overview(
         for name in &ratio_names {
             if let Some(kpi) = kpis.get_by_name(name) {
                 kpi_map.insert(name.to_string(), kpi.clone());
-                eval_ctx.set_value(name.to_string(), evalexpr::Value::Float(kpi.value)).unwrap();
+                eval_ctx
+                    .set_value(name.to_string(), evalexpr::Value::Float(kpi.value))
+                    .unwrap();
                 if let Some(counts) = status_counts.get_mut(*name) {
                     match kpi.status.as_deref() {
                         Some("green") => counts.green += 1,
@@ -215,14 +225,18 @@ pub async fn get_national_overview(
                     }
                 }
             } else {
-                eval_ctx.set_value(name.to_string(), evalexpr::Value::Float(0.0)).unwrap();
+                eval_ctx
+                    .set_value(name.to_string(), evalexpr::Value::Float(0.0))
+                    .unwrap();
             }
         }
 
         let mut custom_kpi_map = HashMap::new();
         if !custom_formulas.is_empty() {
             for formula_def in &custom_formulas {
-                if let Ok(expr) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&formula_def.formula) {
+                if let Ok(expr) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(
+                    &formula_def.formula,
+                ) {
                     if let Ok(res) = expr.eval_with_context(&eval_ctx) {
                         if let Ok(num) = res.as_float() {
                             custom_kpi_map.insert(formula_def.name.clone(), num);

@@ -73,7 +73,7 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   /* ── Network overview ── */
   return (
     <div className="space-y-6">
-      <NetworkConsolidatedMetrics 
+      <NetworkConsolidatedMetrics
         nfStats={nfStats}
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
@@ -81,15 +81,15 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card 
-          title="Risk vs Return Profile" 
+        <Card
+          title="Risk vs Return Profile"
           subtitle="NPL ratio vs ROA per cooperative"
           info="A scatter plot mapping the risk (Non-Performing Loans ratio) against the return (Return on Assets) for each cooperative in the network."
         >
           <CoopScatterPlot data={coops} />
         </Card>
-        <Card 
-          title="Network Comparative Performance" 
+        <Card
+          title="Network Comparative Performance"
           subtitle="Radar across key KPI dimensions"
           info="A radar chart visualizing average performance across multiple dimensions including Management Efficiency, Asset Quality, and Capital Adequacy."
         >
@@ -98,16 +98,16 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card 
-          title="NPL Leaderboard" 
+        <Card
+          title="NPL Leaderboard"
           subtitle="Best and worst performing cooperatives by NPL ratio"
           info="Highlights the cooperatives with the best and worst Non-Performing Loan ratios to identify excellence and areas requiring intervention."
         >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="npl_ratio" />
         </Card>
         {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-          <Card 
-            title="Traffic Light Distribution" 
+          <Card
+            title="Traffic Light Distribution"
             subtitle="KPI health across all cooperatives"
             info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators."
           >

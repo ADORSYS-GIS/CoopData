@@ -162,15 +162,15 @@ pub async fn list_federations(State(state): State<AppState>) -> AppResult<impl I
         .into_iter()
         .map(|org| {
             let mut resp = FederationResponse::from(org);
-            
+
             // Find apexes belonging to this federation (using organization_keycloak_id which maps to federation Keycloak ID)
             let org_apexes: Vec<_> = all_apexes
                 .iter()
                 .filter(|a| a.organization_keycloak_id == resp.id)
                 .collect();
-            
+
             let apex_count = org_apexes.len() as u64;
-            
+
             // Find cooperatives belonging to those apexes
             let coop_count = all_coops
                 .iter()

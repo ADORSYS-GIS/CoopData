@@ -114,13 +114,9 @@ impl KpiEngine {
         let glp_arrears_61_90 = Self::sum_code(line_items, 1204);
         let glp_npl = Self::sum_code(line_items, 1205);
 
-        let gross_lp = glp_performing
-            + glp_arrears_1_30
-            + glp_arrears_31_60
-            + glp_arrears_61_90
-            + glp_npl;
-        let arrears_30_plus =
-            glp_arrears_31_60 + glp_arrears_61_90 + glp_npl + glp_arrears_1_30;
+        let gross_lp =
+            glp_performing + glp_arrears_1_30 + glp_arrears_31_60 + glp_arrears_61_90 + glp_npl;
+        let arrears_30_plus = glp_arrears_31_60 + glp_arrears_61_90 + glp_npl + glp_arrears_1_30;
         let provisions = Self::sum_codes(line_items, &[1251, 1252]);
         let net_lp = gross_lp - provisions;
 
@@ -435,7 +431,11 @@ mod tests {
         let expected = (1202_f64 + 100.0 + 0.0 + 50.0) / 1150.0 * 100.0;
         // codes 1202=0, 1203=100, 1204=0, 1205=50 → arrears_30_plus=150
         let par30 = 150.0 / 1150.0 * 100.0;
-        assert!((result.par30.value - par30).abs() < 0.001, "PAR30 was {}", result.par30.value);
+        assert!(
+            (result.par30.value - par30).abs() < 0.001,
+            "PAR30 was {}",
+            result.par30.value
+        );
         let _ = expected; // suppress warning
     }
 

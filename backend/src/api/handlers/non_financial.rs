@@ -218,13 +218,22 @@ pub async fn upload_non_financial(
         .savings_account_repo
         .delete_by_cooperative_and_submission(coop_id, submission_id)
         .await?;
-    state.loan_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state
+        .loan_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
     state
         .fixed_deposit_repo
         .delete_by_cooperative_and_submission(coop_id, submission_id)
         .await?;
-    state.farm_coop_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
-    state.member_repo.delete_by_cooperative_and_submission(coop_id, submission_id).await?;
+    state
+        .farm_coop_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
+    state
+        .member_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
 
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     for record in &parse_result.members {

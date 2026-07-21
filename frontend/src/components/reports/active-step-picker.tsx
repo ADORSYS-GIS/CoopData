@@ -1,4 +1,12 @@
-import { Loader2, Globe, CheckCircle2, Layers, Building2, FileText } from "lucide-react";
+import {
+  Loader2,
+  Globe,
+  CheckCircle2,
+  Layers,
+  Building2,
+  FileText,
+  type LucideIcon,
+} from "lucide-react";
 import { type ExportFormat } from "./types";
 
 interface ActiveStepPickerProps {
@@ -39,7 +47,7 @@ interface ActiveStepPickerProps {
   onSelectFormat: (format: ExportFormat) => void;
   isExporting: boolean;
 
-  formatIcons: Record<ExportFormat, any>;
+  formatIcons: Record<ExportFormat, LucideIcon>;
   formatLabels: Record<ExportFormat, string>;
 }
 

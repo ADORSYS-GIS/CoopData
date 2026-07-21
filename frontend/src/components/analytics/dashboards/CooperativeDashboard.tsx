@@ -2,17 +2,35 @@ import { ComplianceRadialGauges } from "../ComplianceRadialGauges";
 import { CoopTrendAreaChart } from "../CoopTrendAreaChart";
 import { GenderStatusDoughnuts } from "../GenderStatusDoughnuts";
 import { KpiChipGrid } from "../KpiChipGrid";
+import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
+
+interface KpiItem {
+  name: string;
+  value: number;
+  formatted: string;
+  unit: string;
+  status?: string | null;
+  description: string;
+}
+
+interface TrendPoint {
+  monthShort?: string;
+  month_label?: string;
+  assets: number;
+  savings: number;
+  loans: number;
+}
 
 interface CooperativeDashboardProps {
-  kpis: any;
-  trendData: any;
-  nfStats: any;
+  kpis: KpiItem[];
+  trendData: TrendPoint[];
+  nfStats: { membership: MembershipStats } | null;
 }
 
 export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDashboardProps) {
   // Extract values from kpis object
   const getKpi = (name: string) => {
-    return kpis?.find((k: any) => k.name === name)?.value || 0;
+    return kpis?.find((k) => k.name === name)?.value || 0;
   };
 
   const carValue = getKpi("capital_adequacy_ratio");
@@ -20,8 +38,8 @@ export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDa
   const nplValue = getKpi("npl_ratio");
 
   const formattedTrendData =
-    trendData?.map((m: any) => ({
-      month: m.monthShort,
+    trendData?.map((m) => ({
+      month: m.monthShort ?? m.month_label ?? "",
       liquidity: m.assets, // Using assets as proxy for liquidity in this mock/trend map
       savings: m.savings,
       loans: m.loans,

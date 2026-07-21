@@ -44,9 +44,10 @@ export function AnalyticsFilterBar({
   ).length;
 
   const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2].map(
-    (y) => ({ value: String(y), label: String(y) }),
-  );
+  const yearOptions = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2].map((y) => ({
+    value: String(y),
+    label: String(y),
+  }));
 
   const otherFilters = filters.filter((f) => f.id !== "year");
 
@@ -103,9 +104,14 @@ export function AnalyticsFilterBar({
               key={key}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold"
             >
-              <span className="text-[10px] uppercase tracking-wider opacity-60">{filter?.label}:</span>
+              <span className="text-[10px] uppercase tracking-wider opacity-60">
+                {filter?.label}:
+              </span>
               {option.label}
-              <button onClick={() => onFilterChange(key, "all")} className="hover:bg-primary/20 rounded-full p-0.5">
+              <button
+                onClick={() => onFilterChange(key, "all")}
+                className="hover:bg-primary/20 rounded-full p-0.5"
+              >
                 <X className="size-3" />
               </button>
             </span>
@@ -113,7 +119,10 @@ export function AnalyticsFilterBar({
         })}
 
         {activeCount > 0 && (
-          <button onClick={onClear} className="text-xs font-bold text-muted-foreground hover:text-foreground hover:underline">
+          <button
+            onClick={onClear}
+            className="text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
+          >
             Clear all
           </button>
         )}
@@ -129,7 +138,10 @@ export function AnalyticsFilterBar({
               <SlidersHorizontal className="size-4 text-primary" />
               <span className="font-heading font-bold text-sm">Filter Analytics</span>
             </div>
-            <button onClick={() => setShowFilters(false)} className="rounded-lg p-1 hover:bg-muted text-muted-foreground">
+            <button
+              onClick={() => setShowFilters(false)}
+              className="rounded-lg p-1 hover:bg-muted text-muted-foreground"
+            >
               <X className="size-4" />
             </button>
           </div>
@@ -145,10 +157,12 @@ export function AnalyticsFilterBar({
                     value={filterValues[sk] || "all"}
                     onChange={(e) => onFilterChange(sk, e.target.value)}
                     disabled={filter.disabled}
-                    className={`w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all ${filter.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring transition-all ${filter.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {filter.options.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 </div>

@@ -427,7 +427,8 @@ export const SubmissionDetailPage: React.FC = () => {
   const isDraft = submission?.status === "draft";
   const isCooperative = role === "cooperative";
   const requiredSections = sections?.filter((s) => s.section !== "farm_coop") ?? [];
-  const allReady = requiredSections.length > 0 && requiredSections.every((s) => s.status === "ready");
+  const allReady =
+    requiredSections.length > 0 && requiredSections.every((s) => s.status === "ready");
   const canSubmit = isDraft && allReady && isCooperative && !isExtracting;
 
   const readyCount = requiredSections.filter((s) => s.status === "ready").length;
@@ -940,18 +941,18 @@ export const SubmissionDetailPage: React.FC = () => {
 
                   <div className="flex items-center gap-2 shrink-0">
                     {submission?.status !== "approved" && (
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleteMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {deleteMutation.isPending ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-3.5" />
-                      )}
-                      Delete Draft
-                    </button>
+                      <button
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                        className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                        Delete Draft
+                      </button>
                     )}
                     <button
                       onClick={handleSubmit}

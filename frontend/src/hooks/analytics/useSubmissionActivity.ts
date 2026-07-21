@@ -30,9 +30,12 @@ export const useSubmissionActivity = (reportingYear: number, enabled = true) =>
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (apiClient as any).GET("/api/v1/analytics/submission-activity", {
-        params: { query: { reporting_year: reportingYear } },
-      });
+      const { data, error } = await (apiClient as any).GET(
+        "/api/v1/analytics/submission-activity",
+        {
+          params: { query: { reporting_year: reportingYear } },
+        },
+      );
       if (error) throw new Error(extractErrorMessage(error));
       if (!data) throw new Error("Submission activity response was empty.");
       return data as SubmissionActivityResponse;

@@ -1,24 +1,24 @@
+use axum::body::Body;
+use axum::response::Response;
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
     Extension,
 };
-use axum::response::Response;
-use axum::body::Body;
+use chrono::Utc;
+use docx_rs::{Docx, Paragraph, Run, Table, TableCell, TableRow};
+use printpdf::{Line, Mm, PdfDocument, Point};
+use rust_decimal::prelude::ToPrimitive;
+use rust_xlsxwriter::{Color, Format, Workbook};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::Utc;
-use rust_decimal::prelude::ToPrimitive;
-use sea_orm::{EntityTrait, QueryFilter, ColumnTrait};
-use rust_xlsxwriter::{Workbook, Format, Color};
-use docx_rs::{Docx, Paragraph, Run, Table, TableRow, TableCell};
-use printpdf::{PdfDocument, Mm, Point, Line};
 
 use crate::auth::claims::Claims;
+use crate::entities::{balance_sheet_line_item, cooperative, financial_statement, submission};
 use crate::error::{AppError, AppResult};
-use crate::AppState;
-use crate::entities::{submission, cooperative, balance_sheet_line_item, financial_statement};
 use crate::services::kpi_engine::{KpiEngine, KpiValue as KpiResult};
+use crate::AppState;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ExportQuery {
@@ -40,8 +40,12 @@ struct PdfWriter {
 impl PdfWriter {
     fn new(title: &str) -> Self {
         let (doc, page, layer) = PdfDocument::new(title, Mm(210.0), Mm(297.0), "Layer 1");
-        let font = doc.add_builtin_font(printpdf::BuiltinFont::Helvetica).unwrap();
-        let font_bold = doc.add_builtin_font(printpdf::BuiltinFont::HelveticaBold).unwrap();
+        let font = doc
+            .add_builtin_font(printpdf::BuiltinFont::Helvetica)
+            .unwrap();
+        let font_bold = doc
+            .add_builtin_font(printpdf::BuiltinFont::HelveticaBold)
+            .unwrap();
         Self {
             doc,
             current_page: page,
@@ -62,7 +66,10 @@ impl PdfWriter {
     }
 
     fn write_text(&mut self, text: &str, x: f32, size: f32, is_bold: bool) {
-        let layer = self.doc.get_page(self.current_page).get_layer(self.current_layer);
+        let layer = self
+            .doc
+            .get_page(self.current_page)
+            .get_layer(self.current_layer);
         layer.begin_text_section();
         layer.set_font(if is_bold { &self.font_bold } else { &self.font }, size);
         layer.set_text_cursor(Mm(x), Mm(self.current_y));
@@ -79,7 +86,10 @@ impl PdfWriter {
 
     fn draw_divider(&mut self) {
         self.check_page_break(5.0);
-        let layer = self.doc.get_page(self.current_page).get_layer(self.current_layer);
+        let layer = self
+            .doc
+            .get_page(self.current_page)
+            .get_layer(self.current_layer);
         let line_points = vec![
             (Point::new(Mm(20.0), Mm(self.current_y)), false),
             (Point::new(Mm(190.0), Mm(self.current_y)), false),
@@ -99,7 +109,12 @@ impl PdfWriter {
 async fn compile_export_data(
     state: &AppState,
     sub_id: Uuid,
-) -> AppResult<(submission::Model, cooperative::Model, Vec<balance_sheet_line_item::Model>, crate::services::kpi_engine::ComputedKpiSet)> {
+) -> AppResult<(
+    submission::Model,
+    cooperative::Model,
+    Vec<balance_sheet_line_item::Model>,
+    crate::services::kpi_engine::ComputedKpiSet,
+)> {
     let submission = state
         .submission_repo
         .find_by_id(sub_id)
@@ -163,19 +178,22 @@ pub async fn export_single_submission(
     Path(id): Path<Uuid>,
     Query(query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let allowed_coops = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let allowed_coops =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
 
     if !allowed_coops.contains(&submission.cooperative_id) {
-        return Err(AppError::Forbidden("Access denied to this cooperative's submission".into()));
+        return Err(AppError::Forbidden(
+            "Access denied to this cooperative's submission".into(),
+        ));
     }
 
     match query.format.to_lowercase().as_str() {
         "xlsx" => {
             let bytes = {
                 let mut workbook = Workbook::new();
-                
+
                 // Format setup
                 let header_format = Format::new()
                     .set_bold()
@@ -203,32 +221,56 @@ pub async fn export_single_submission(
                 sheet1.write(2, 0, "Status:")?;
                 sheet1.write(2, 1, format!("{:?}", submission.status))?;
 
-                let headers1 = ["Account Code", "Account Name", "Category", "Value (SZL)", "AI Confidence"];
+                let headers1 = [
+                    "Account Code",
+                    "Account Name",
+                    "Category",
+                    "Value (SZL)",
+                    "AI Confidence",
+                ];
                 for (c, h) in headers1.iter().enumerate() {
                     sheet1.write_with_format(4, c as u16, *h, &header_format)?;
                 }
 
-                let mut r = 5;
-                for item in &line_items {
+                for (r, item) in (5..).zip(line_items.iter()) {
                     if let Some(code) = item.account_code {
                         sheet1.write(r, 0, code)?;
                     }
                     sheet1.write(r, 1, &item.account_name)?;
                     sheet1.write(r, 2, format!("{:?}", item.account_category))?;
-                    sheet1.write(r, 3, item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0))?;
-                    sheet1.write(r, 4, item.ai_confidence.map(|v| v.to_f64().unwrap_or(0.0) / 100.0).unwrap_or(1.0))?;
-                    r += 1;
+                    sheet1.write(
+                        r,
+                        3,
+                        item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0),
+                    )?;
+                    sheet1.write(
+                        r,
+                        4,
+                        item.ai_confidence
+                            .map(|v| v.to_f64().unwrap_or(0.0) / 100.0)
+                            .unwrap_or(1.0),
+                    )?;
                 }
 
                 // SHEET 2: KPIs
                 let sheet2 = workbook.add_worksheet().set_name("KPIs")?;
-                let headers2 = ["Category", "KPI Name", "Description", "Value", "Benchmark", "Status"];
+                let headers2 = [
+                    "Category",
+                    "KPI Name",
+                    "Description",
+                    "Value",
+                    "Benchmark",
+                    "Status",
+                ];
                 for (c, h) in headers2.iter().enumerate() {
                     sheet2.write_with_format(0, c as u16, *h, &header_format)?;
                 }
 
                 let mut row = 1;
-                let mut write_row = |cat: &str, name: &str, kpi: &KpiResult| -> Result<(), rust_xlsxwriter::XlsxError> {
+                let mut write_row = |cat: &str,
+                                     name: &str,
+                                     kpi: &KpiResult|
+                 -> Result<(), rust_xlsxwriter::XlsxError> {
                     sheet2.write(row, 0, cat)?;
                     sheet2.write(row, 1, name)?;
                     sheet2.write(row, 2, &kpi.description)?;
@@ -252,35 +294,89 @@ pub async fn export_single_submission(
                 // Write financial KPIs
                 let f = &kpis;
                 write_row("Financial Size", "Total Assets", &f.total_assets)?;
-                write_row("Financial Size", "Gross Loan Portfolio", &f.gross_loan_portfolio)?;
-                write_row("Financial Size", "Net Loan Portfolio", &f.net_loan_portfolio)?;
-                write_row("Financial Size", "Total Member Deposits", &f.total_member_deposits)?;
+                write_row(
+                    "Financial Size",
+                    "Gross Loan Portfolio",
+                    &f.gross_loan_portfolio,
+                )?;
+                write_row(
+                    "Financial Size",
+                    "Net Loan Portfolio",
+                    &f.net_loan_portfolio,
+                )?;
+                write_row(
+                    "Financial Size",
+                    "Total Member Deposits",
+                    &f.total_member_deposits,
+                )?;
                 write_row("Financial Size", "Total Equity", &f.total_equity)?;
                 write_row("Financial Size", "Net Surplus", &f.net_surplus)?;
                 write_row("Portfolio Quality", "PAR 30", &f.par30)?;
                 write_row("Portfolio Quality", "PAR 90", &f.par90)?;
                 write_row("Portfolio Quality", "NPL Ratio", &f.npl_ratio)?;
-                write_row("Portfolio Quality", "Loan Loss Coverage", &f.loan_loss_coverage)?;
+                write_row(
+                    "Portfolio Quality",
+                    "Loan Loss Coverage",
+                    &f.loan_loss_coverage,
+                )?;
                 write_row("Profitability", "ROA", &f.roa)?;
                 write_row("Profitability", "ROE", &f.roe)?;
-                write_row("Profitability", "Operating Expense Ratio", &f.operating_expense_ratio)?;
-                write_row("Profitability", "Net Interest Margin", &f.net_interest_margin)?;
-                write_row("Profitability", "Operational Self-Sufficiency", &f.operational_self_sufficiency)?;
-                write_row("Liquidity & Solvency", "Capital Adequacy Ratio", &f.capital_adequacy_ratio)?;
-                write_row("Liquidity & Solvency", "Liquid Funds Ratio", &f.liquid_funds_ratio)?;
-                write_row("Liquidity & Solvency", "Deposits to Loans", &f.deposits_to_loans)?;
+                write_row(
+                    "Profitability",
+                    "Operating Expense Ratio",
+                    &f.operating_expense_ratio,
+                )?;
+                write_row(
+                    "Profitability",
+                    "Net Interest Margin",
+                    &f.net_interest_margin,
+                )?;
+                write_row(
+                    "Profitability",
+                    "Operational Self-Sufficiency",
+                    &f.operational_self_sufficiency,
+                )?;
+                write_row(
+                    "Liquidity & Solvency",
+                    "Capital Adequacy Ratio",
+                    &f.capital_adequacy_ratio,
+                )?;
+                write_row(
+                    "Liquidity & Solvency",
+                    "Liquid Funds Ratio",
+                    &f.liquid_funds_ratio,
+                )?;
+                write_row(
+                    "Liquidity & Solvency",
+                    "Deposits to Loans",
+                    &f.deposits_to_loans,
+                )?;
 
-                workbook.save_to_buffer().map_err(|e| AppError::InternalServerError(e.to_string()))?
+                workbook
+                    .save_to_buffer()
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
 
-            
             let filename = format!("submission_{}.xlsx", id);
             let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state.storage.store(&storage_key, &bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").await?;
+            state
+                .storage
+                .store(
+                    &storage_key,
+                    &bytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                .await?;
 
             let res = Response::builder()
-                .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Type",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -288,137 +384,293 @@ pub async fn export_single_submission(
         "csv" => {
             let bytes = {
                 let mut writer = csv::Writer::from_writer(vec![]);
-                writer.write_record(&["Record Type", "Code / Name", "Category", "Value", "Status / Confidence"]).unwrap();
+                writer
+                    .write_record([
+                        "Record Type",
+                        "Code / Name",
+                        "Category",
+                        "Value",
+                        "Status / Confidence",
+                    ])
+                    .unwrap();
 
                 // Write Balance Sheet
                 for item in &line_items {
                     let code_str = item.account_code.map(|c| c.to_string()).unwrap_or_default();
-                    let val_str = item.value.map(|v| v.to_string()).unwrap_or_else(|| "0".into());
-                    let conf_str = item.ai_confidence.map(|c| format!("{:.1}%", c)).unwrap_or_else(|| "100%".into());
-                    writer.write_record(&[
-                        "Balance Sheet Item",
-                        &code_str,
-                        &item.account_name,
-                        &val_str,
-                        &conf_str,
-                    ]).unwrap();
+                    let val_str = item
+                        .value
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "0".into());
+                    let conf_str = item
+                        .ai_confidence
+                        .map(|c| format!("{:.1}%", c))
+                        .unwrap_or_else(|| "100%".into());
+                    writer
+                        .write_record([
+                            "Balance Sheet Item",
+                            &code_str,
+                            &item.account_name,
+                            &val_str,
+                            &conf_str,
+                        ])
+                        .unwrap();
                 }
 
                 // Helper to write KPI row to CSV
                 let mut write_csv_kpi = |cat: &str, name: &str, kpi: &KpiResult| {
-                    writer.write_record(&[
-                        "KPI Metric",
-                        name,
-                        cat,
-                        &kpi.formatted,
-                        kpi.status.as_deref().unwrap_or(""),
-                    ]).unwrap();
+                    writer
+                        .write_record([
+                            "KPI Metric",
+                            name,
+                            cat,
+                            &kpi.formatted,
+                            kpi.status.as_deref().unwrap_or(""),
+                        ])
+                        .unwrap();
                 };
 
                 // Write a subset of key KPIs
                 let f = &kpis;
                 write_csv_kpi("Financial Size", "Total Assets", &f.total_assets);
-                write_csv_kpi("Financial Size", "Gross Loan Portfolio", &f.gross_loan_portfolio);
+                write_csv_kpi(
+                    "Financial Size",
+                    "Gross Loan Portfolio",
+                    &f.gross_loan_portfolio,
+                );
                 write_csv_kpi("Financial Size", "Total Equity", &f.total_equity);
                 write_csv_kpi("Portfolio Quality", "PAR 30", &f.par30);
                 write_csv_kpi("Profitability", "ROA", &f.roa);
                 write_csv_kpi("Profitability", "ROE", &f.roe);
-                write_csv_kpi("Liquidity & Solvency", "Capital Adequacy Ratio", &f.capital_adequacy_ratio);
+                write_csv_kpi(
+                    "Liquidity & Solvency",
+                    "Capital Adequacy Ratio",
+                    &f.capital_adequacy_ratio,
+                );
 
-                writer.into_inner().map_err(|e| AppError::InternalServerError(e.to_string()))?
+                writer
+                    .into_inner()
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
-            
+
             let filename = format!("submission_{}.csv", id);
             let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state.storage.store(&storage_key, &bytes, "text/csv").await?;
+            state
+                .storage
+                .store(&storage_key, &bytes, "text/csv")
+                .await?;
 
             let res = Response::builder()
                 .header("Content-Type", "text/csv")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
         }
         "docx" => {
-            let bytes = {
-                let mut doc = Docx::new()
-                    .add_paragraph(Paragraph::new().add_run(Run::new().bold().size(36).add_text("COOPERATIVE PERFORMANCE REPORT")))
-                    .add_paragraph(Paragraph::new().add_run(Run::new().size(24).add_text(format!("Cooperative: {}", cooperative.name))))
-                    .add_paragraph(Paragraph::new().add_run(Run::new().size(20).add_text(format!("Reporting Period: {}", submission.reporting_year))))
-                    .add_paragraph(Paragraph::new().add_run(Run::new().size(18).add_text(format!("Generated on: {}", Utc::now().format("%Y-%m-%d")))))
-                    .add_paragraph(Paragraph::new()); // blank line
+            let bytes =
+                {
+                    let mut doc =
+                        Docx::new()
+                            .add_paragraph(
+                                Paragraph::new().add_run(
+                                    Run::new()
+                                        .bold()
+                                        .size(36)
+                                        .add_text("COOPERATIVE PERFORMANCE REPORT"),
+                                ),
+                            )
+                            .add_paragraph(
+                                Paragraph::new().add_run(
+                                    Run::new()
+                                        .size(24)
+                                        .add_text(format!("Cooperative: {}", cooperative.name)),
+                                ),
+                            )
+                            .add_paragraph(Paragraph::new().add_run(Run::new().size(20).add_text(
+                                format!("Reporting Period: {}", submission.reporting_year),
+                            )))
+                            .add_paragraph(Paragraph::new().add_run(Run::new().size(18).add_text(
+                                format!("Generated on: {}", Utc::now().format("%Y-%m-%d")),
+                            )))
+                            .add_paragraph(Paragraph::new()); // blank line
 
-                // Balance Sheet Table
-                doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().bold().size(28).add_text("1. Balance Sheet Line Items")));
-                let mut bs_rows = vec![];
-                bs_rows.push(TableRow::new(vec![
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Account Code"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Account Name"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Category"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Value (SZL)"))),
-                ]));
-
-                for item in &line_items {
-                    let code_str = item.account_code.map(|c| c.to_string()).unwrap_or_default();
-                    let val_str = item.value.map(|v| format_currency(v.to_f64().unwrap_or(0.0))).unwrap_or_else(|| "$0".to_string());
+                    // Balance Sheet Table
+                    doc = doc.add_paragraph(
+                        Paragraph::new().add_run(
+                            Run::new()
+                                .bold()
+                                .size(28)
+                                .add_text("1. Balance Sheet Line Items"),
+                        ),
+                    );
+                    let mut bs_rows = vec![];
                     bs_rows.push(TableRow::new(vec![
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(code_str))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&item.account_name))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(format!("{:?}", item.account_category)))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(val_str))),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Account Code")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Account Name")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Category")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Value (SZL)")),
+                        ),
                     ]));
-                }
-                doc = doc.add_table(Table::new(bs_rows)).add_paragraph(Paragraph::new());
 
-                // KPIs Table
-                doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().bold().size(28).add_text("2. Key Performance Indicators (KPIs)")));
-                let mut kpi_rows = vec![];
-                kpi_rows.push(TableRow::new(vec![
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Category"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("KPI Name"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Description"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Value"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Benchmark"))),
-                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Status"))),
-                ]));
+                    for item in &line_items {
+                        let code_str = item.account_code.map(|c| c.to_string()).unwrap_or_default();
+                        let val_str = item
+                            .value
+                            .map(|v| format_currency(v.to_f64().unwrap_or(0.0)))
+                            .unwrap_or_else(|| "$0".to_string());
+                        bs_rows.push(TableRow::new(vec![
+                            TableCell::new().add_paragraph(
+                                Paragraph::new().add_run(Run::new().add_text(code_str)),
+                            ),
+                            TableCell::new().add_paragraph(
+                                Paragraph::new().add_run(Run::new().add_text(&item.account_name)),
+                            ),
+                            TableCell::new().add_paragraph(Paragraph::new().add_run(
+                                Run::new().add_text(format!("{:?}", item.account_category)),
+                            )),
+                            TableCell::new().add_paragraph(
+                                Paragraph::new().add_run(Run::new().add_text(val_str)),
+                            ),
+                        ]));
+                    }
+                    doc = doc
+                        .add_table(Table::new(bs_rows))
+                        .add_paragraph(Paragraph::new());
 
-                let mut add_kpi_docx_row = |rows: &mut Vec<TableRow>, cat: &str, name: &str, kpi: &KpiResult| {
-                    let bench_str = kpi.benchmark.map(|b| format!("{:.1}", b)).unwrap_or_default();
-                    rows.push(TableRow::new(vec![
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(cat.to_string()))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(name.to_string()))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&kpi.description))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&kpi.formatted))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(bench_str))),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(kpi.status.as_deref().unwrap_or("")))),
+                    // KPIs Table
+                    doc = doc.add_paragraph(
+                        Paragraph::new().add_run(
+                            Run::new()
+                                .bold()
+                                .size(28)
+                                .add_text("2. Key Performance Indicators (KPIs)"),
+                        ),
+                    );
+                    let mut kpi_rows = vec![];
+                    kpi_rows.push(TableRow::new(vec![
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Category")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("KPI Name")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Description")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Value")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Benchmark")),
+                        ),
+                        TableCell::new().add_paragraph(
+                            Paragraph::new().add_run(Run::new().bold().add_text("Status")),
+                        ),
                     ]));
+
+                    let add_kpi_docx_row =
+                        |rows: &mut Vec<TableRow>, cat: &str, name: &str, kpi: &KpiResult| {
+                            let bench_str = kpi
+                                .benchmark
+                                .map(|b| format!("{:.1}", b))
+                                .unwrap_or_default();
+                            rows.push(TableRow::new(vec![
+                                TableCell::new().add_paragraph(
+                                    Paragraph::new().add_run(Run::new().add_text(cat.to_string())),
+                                ),
+                                TableCell::new().add_paragraph(
+                                    Paragraph::new().add_run(Run::new().add_text(name.to_string())),
+                                ),
+                                TableCell::new().add_paragraph(
+                                    Paragraph::new().add_run(Run::new().add_text(&kpi.description)),
+                                ),
+                                TableCell::new().add_paragraph(
+                                    Paragraph::new().add_run(Run::new().add_text(&kpi.formatted)),
+                                ),
+                                TableCell::new().add_paragraph(
+                                    Paragraph::new().add_run(Run::new().add_text(bench_str)),
+                                ),
+                                TableCell::new().add_paragraph(Paragraph::new().add_run(
+                                    Run::new().add_text(kpi.status.as_deref().unwrap_or("")),
+                                )),
+                            ]));
+                        };
+
+                    let f = &kpis;
+                    add_kpi_docx_row(&mut kpi_rows, "Size", "Total Assets", &f.total_assets);
+                    add_kpi_docx_row(
+                        &mut kpi_rows,
+                        "Size",
+                        "Gross Loan Portfolio",
+                        &f.gross_loan_portfolio,
+                    );
+                    add_kpi_docx_row(
+                        &mut kpi_rows,
+                        "Size",
+                        "Total Member Deposits",
+                        &f.total_member_deposits,
+                    );
+                    add_kpi_docx_row(&mut kpi_rows, "Quality", "PAR 30", &f.par30);
+                    add_kpi_docx_row(
+                        &mut kpi_rows,
+                        "Quality",
+                        "Loan Loss Coverage",
+                        &f.loan_loss_coverage,
+                    );
+                    add_kpi_docx_row(&mut kpi_rows, "Profitability", "ROA", &f.roa);
+                    add_kpi_docx_row(&mut kpi_rows, "Profitability", "ROE", &f.roe);
+                    add_kpi_docx_row(
+                        &mut kpi_rows,
+                        "Liquidity",
+                        "Capital Adequacy Ratio",
+                        &f.capital_adequacy_ratio,
+                    );
+                    add_kpi_docx_row(
+                        &mut kpi_rows,
+                        "Liquidity",
+                        "Liquid Funds Ratio",
+                        &f.liquid_funds_ratio,
+                    );
+
+                    doc = doc.add_table(Table::new(kpi_rows));
+
+                    let mut buf = std::io::Cursor::new(Vec::new());
+                    doc.build()
+                        .pack(&mut buf)
+                        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                    buf.into_inner()
                 };
-
-                let f = &kpis;
-                add_kpi_docx_row(&mut kpi_rows, "Size", "Total Assets", &f.total_assets);
-                add_kpi_docx_row(&mut kpi_rows, "Size", "Gross Loan Portfolio", &f.gross_loan_portfolio);
-                add_kpi_docx_row(&mut kpi_rows, "Size", "Total Member Deposits", &f.total_member_deposits);
-                add_kpi_docx_row(&mut kpi_rows, "Quality", "PAR 30", &f.par30);
-                add_kpi_docx_row(&mut kpi_rows, "Quality", "Loan Loss Coverage", &f.loan_loss_coverage);
-                add_kpi_docx_row(&mut kpi_rows, "Profitability", "ROA", &f.roa);
-                add_kpi_docx_row(&mut kpi_rows, "Profitability", "ROE", &f.roe);
-                add_kpi_docx_row(&mut kpi_rows, "Liquidity", "Capital Adequacy Ratio", &f.capital_adequacy_ratio);
-                add_kpi_docx_row(&mut kpi_rows, "Liquidity", "Liquid Funds Ratio", &f.liquid_funds_ratio);
-
-                doc = doc.add_table(Table::new(kpi_rows));
-
-                let mut buf = std::io::Cursor::new(Vec::new());
-                doc.build().pack(&mut buf).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                buf.into_inner()
-            };
 
             let filename = format!("submission_{}.docx", id);
             let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state.storage.store(&storage_key, &bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
+            state
+                .storage
+                .store(
+                    &storage_key,
+                    &bytes,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                .await?;
 
             let res = Response::builder()
-                .header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Type",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -426,12 +678,20 @@ pub async fn export_single_submission(
         "pdf" => {
             let bytes = {
                 let mut writer = PdfWriter::new("Cooperative Report");
-                
+
                 // Header block
                 writer.write_line(&cooperative.name.to_uppercase(), 18.0, true);
                 writer.write_line("CoopData Performance & Compliance Report", 11.0, false);
-                writer.write_line(&format!("Reporting Period: {}", submission.reporting_year), 11.0, false);
-                writer.write_line(&format!("Generated on: {}", Utc::now().format("%Y-%m-%d")), 10.0, false);
+                writer.write_line(
+                    &format!("Reporting Period: {}", submission.reporting_year),
+                    11.0,
+                    false,
+                );
+                writer.write_line(
+                    &format!("Generated on: {}", Utc::now().format("%Y-%m-%d")),
+                    10.0,
+                    false,
+                );
                 writer.draw_divider();
 
                 // Balance Sheet Items Section
@@ -452,11 +712,17 @@ pub async fn export_single_submission(
                         continue;
                     }
                     writer.check_page_break(8.0);
-                    let code_str = item.account_code.map(|c| c.to_string()).unwrap_or_else(|| "N/A".into());
-                    let val_str = item.value.map(|v| format_currency(v.to_f64().unwrap_or(0.0))).unwrap_or_else(|| "$0".to_string());
-                    
+                    let code_str = item
+                        .account_code
+                        .map(|c| c.to_string())
+                        .unwrap_or_else(|| "N/A".into());
+                    let val_str = item
+                        .value
+                        .map(|v| format_currency(v.to_f64().unwrap_or(0.0)))
+                        .unwrap_or_else(|| "$0".to_string());
+
                     writer.write_text(&code_str, 20.0, 9.0, false);
-                    
+
                     let truncated_name = if item.account_name.len() > 30 {
                         format!("{}...", &item.account_name[..27])
                     } else {
@@ -465,7 +731,7 @@ pub async fn export_single_submission(
                     writer.write_text(&truncated_name, 45.0, 9.0, false);
                     writer.write_text(&format!("{:?}", item.account_category), 120.0, 9.0, false);
                     writer.write_text(&val_str, 160.0, 9.0, false);
-                    
+
                     writer.current_y -= 5.5;
                 }
 
@@ -483,9 +749,12 @@ pub async fn export_single_submission(
                 writer.write_text("Status", 160.0, 10.0, true);
                 writer.current_y -= 6.0;
 
-                let mut add_pdf_kpi_row = |w: &mut PdfWriter, name: &str, kpi: &KpiResult| {
+                let add_pdf_kpi_row = |w: &mut PdfWriter, name: &str, kpi: &KpiResult| {
                     w.check_page_break(8.0);
-                    let bench_str = kpi.benchmark.map(|b| format!("{:.1}", b)).unwrap_or_else(|| "N/A".into());
+                    let bench_str = kpi
+                        .benchmark
+                        .map(|b| format!("{:.1}", b))
+                        .unwrap_or_else(|| "N/A".into());
                     w.write_text(name, 20.0, 9.0, false);
                     w.write_text(&kpi.formatted, 100.0, 9.0, false);
                     w.write_text(&bench_str, 130.0, 9.0, false);
@@ -494,27 +763,45 @@ pub async fn export_single_submission(
                 };
 
                 let f = &kpis;
-                add_pdf_kpi_row(&mut writer, "Capital Adequacy Ratio", &f.capital_adequacy_ratio);
+                add_pdf_kpi_row(
+                    &mut writer,
+                    "Capital Adequacy Ratio",
+                    &f.capital_adequacy_ratio,
+                );
                 add_pdf_kpi_row(&mut writer, "PAR 30", &f.par30);
                 add_pdf_kpi_row(&mut writer, "PAR 90", &f.par90);
                 add_pdf_kpi_row(&mut writer, "Loan Loss Coverage", &f.loan_loss_coverage);
                 add_pdf_kpi_row(&mut writer, "ROA", &f.roa);
                 add_pdf_kpi_row(&mut writer, "ROE", &f.roe);
                 add_pdf_kpi_row(&mut writer, "Liquid Funds Ratio", &f.liquid_funds_ratio);
-                add_pdf_kpi_row(&mut writer, "Operational Self-Sufficiency", &f.operational_self_sufficiency);
+                add_pdf_kpi_row(
+                    &mut writer,
+                    "Operational Self-Sufficiency",
+                    &f.operational_self_sufficiency,
+                );
 
                 let mut buf = std::io::BufWriter::new(Vec::new());
-                writer.doc.save(&mut buf).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                buf.into_inner().map_err(|e| AppError::InternalServerError(e.to_string()))?
+                writer
+                    .doc
+                    .save(&mut buf)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                buf.into_inner()
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
 
             let filename = format!("submission_{}.pdf", id);
             let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state.storage.store(&storage_key, &bytes, "application/pdf").await?;
+            state
+                .storage
+                .store(&storage_key, &bytes, "application/pdf")
+                .await?;
 
             let res = Response::builder()
                 .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -541,10 +828,13 @@ pub async fn export_bulk_consolidated(
     Extension(claims): Extension<Arc<Claims>>,
     Query(query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let mut allowed_coops = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let mut allowed_coops =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
     if allowed_coops.is_empty() {
-        return Err(AppError::Forbidden("No cooperatives in your scope to export".into()));
+        return Err(AppError::Forbidden(
+            "No cooperatives in your scope to export".into(),
+        ));
     }
 
     if let Some(apex_id) = query.apex_id {
@@ -562,7 +852,9 @@ pub async fn export_bulk_consolidated(
     }
 
     if allowed_coops.is_empty() {
-        return Err(AppError::Forbidden("No cooperatives matching the selected hierarchical filter".into()));
+        return Err(AppError::Forbidden(
+            "No cooperatives matching the selected hierarchical filter".into(),
+        ));
     }
 
     // Compile all cooperative data once; shared by all format arms
@@ -604,11 +896,24 @@ pub async fn export_bulk_consolidated(
                 // 1. SHEET: Summary Dashboard
                 let summary_sheet = workbook.add_worksheet().set_name("Summary Dashboard")?;
                 summary_sheet.write(0, 0, "Consolidated Reporting Dashboard")?;
-                summary_sheet.write(1, 0, &format!("Exported on: {}", Utc::now().format("%Y-%m-%d")))?;
+                summary_sheet.write(
+                    1,
+                    0,
+                    format!("Exported on: {}", Utc::now().format("%Y-%m-%d")),
+                )?;
 
-                let total_assets: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_assets.value).sum();
-                let total_loans: f64 = compiled_data.iter().map(|(_, _, _, r)| r.gross_loan_portfolio.value).sum();
-                let total_deposits: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_member_deposits.value).sum();
+                let total_assets: f64 = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.total_assets.value)
+                    .sum();
+                let total_loans: f64 = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.gross_loan_portfolio.value)
+                    .sum();
+                let total_deposits: f64 = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.total_member_deposits.value)
+                    .sum();
                 let total_members: f64 = 0.0; // membership count not available in financial KPIs
 
                 summary_sheet.write_with_format(3, 0, "Metric", &header_format)?;
@@ -623,13 +928,20 @@ pub async fn export_bulk_consolidated(
                 summary_sheet.write(7, 1, total_members)?;
 
                 summary_sheet.write(9, 0, "Member Cooperatives Performance Directory")?;
-                let tbl_headers = ["Cooperative Name", "Reporting Year", "Status", "Assets", "Gross Portfolio", "Deposits", "Members"];
+                let tbl_headers = [
+                    "Cooperative Name",
+                    "Reporting Year",
+                    "Status",
+                    "Assets",
+                    "Gross Portfolio",
+                    "Deposits",
+                    "Members",
+                ];
                 for (c, h) in tbl_headers.iter().enumerate() {
                     summary_sheet.write_with_format(10, c as u16, *h, &header_format)?;
                 }
 
-                let mut row_idx = 11;
-                for (sub, coop, _, report) in &compiled_data {
+                for (row_idx, (sub, coop, _, report)) in (11..).zip(compiled_data.iter()) {
                     summary_sheet.write(row_idx, 0, &coop.name)?;
                     summary_sheet.write(row_idx, 1, sub.reporting_year)?;
                     summary_sheet.write(row_idx, 2, format!("{:?}", sub.status))?;
@@ -637,16 +949,29 @@ pub async fn export_bulk_consolidated(
                     summary_sheet.write(row_idx, 4, report.gross_loan_portfolio.value)?;
                     summary_sheet.write(row_idx, 5, report.total_member_deposits.value)?;
                     summary_sheet.write(row_idx, 6, 0_f64)?; // membership count not in financial KPIs
-                    row_idx += 1;
                 }
 
                 // 2. SHEET: KPI Aggregates
                 let kpi_agg_sheet = workbook.add_worksheet().set_name("KPI Aggregates")?;
                 kpi_agg_sheet.write_with_format(0, 0, "Metric Name", &header_format)?;
-                kpi_agg_sheet.write_with_format(0, 1, "Average / Mean Value Across Scope", &header_format)?;
+                kpi_agg_sheet.write_with_format(
+                    0,
+                    1,
+                    "Average / Mean Value Across Scope",
+                    &header_format,
+                )?;
 
-                let mut add_agg_row = |sheet: &mut rust_xlsxwriter::Worksheet, name: &str, values: &[f64], is_percent: bool, row: &mut u32| -> Result<(), rust_xlsxwriter::XlsxError> {
-                    let mean = if !values.is_empty() { values.iter().sum::<f64>() / values.len() as f64 } else { 0.0 };
+                let add_agg_row = |sheet: &mut rust_xlsxwriter::Worksheet,
+                                   name: &str,
+                                   values: &[f64],
+                                   is_percent: bool,
+                                   row: &mut u32|
+                 -> Result<(), rust_xlsxwriter::XlsxError> {
+                    let mean = if !values.is_empty() {
+                        values.iter().sum::<f64>() / values.len() as f64
+                    } else {
+                        0.0
+                    };
                     sheet.write(*row, 0, name)?;
                     if is_percent {
                         sheet.write(*row, 1, format!("{:.1}%", mean))?;
@@ -658,69 +983,131 @@ pub async fn export_bulk_consolidated(
                 };
 
                 let mut r_idx = 1;
-                let cars: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.capital_adequacy_ratio.value).collect();
-                let par30s: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.par30.value).collect();
-                let roas: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.roa.value).collect();
-                let roes: Vec<f64> = compiled_data.iter().map(|(_, _, _, r)| r.roe.value).collect();
+                let cars: Vec<f64> = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.capital_adequacy_ratio.value)
+                    .collect();
+                let par30s: Vec<f64> = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.par30.value)
+                    .collect();
+                let roas: Vec<f64> = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.roa.value)
+                    .collect();
+                let roes: Vec<f64> = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.roe.value)
+                    .collect();
 
-                add_agg_row(kpi_agg_sheet, "Average Capital Adequacy Ratio", &cars, true, &mut r_idx)?;
-                add_agg_row(kpi_agg_sheet, "Average PAR 30 Ratio", &par30s, true, &mut r_idx)?;
+                add_agg_row(
+                    kpi_agg_sheet,
+                    "Average Capital Adequacy Ratio",
+                    &cars,
+                    true,
+                    &mut r_idx,
+                )?;
+                add_agg_row(
+                    kpi_agg_sheet,
+                    "Average PAR 30 Ratio",
+                    &par30s,
+                    true,
+                    &mut r_idx,
+                )?;
                 add_agg_row(kpi_agg_sheet, "Average ROA", &roas, true, &mut r_idx)?;
                 add_agg_row(kpi_agg_sheet, "Average ROE", &roes, true, &mut r_idx)?;
 
                 // 3. Per-cooperative sheets
                 for (sub, coop, _, report) in &compiled_data {
-                    let sheet_name = if coop.name.len() > 30 { &coop.name[..30] } else { &coop.name };
+                    let sheet_name = if coop.name.len() > 30 {
+                        &coop.name[..30]
+                    } else {
+                        &coop.name
+                    };
                     let coop_sheet = workbook.add_worksheet().set_name(sheet_name)?;
 
-                    coop_sheet.write(0, 0, &format!("Cooperative: {}", coop.name))?;
-                    coop_sheet.write(1, 0, &format!("Reporting Period: {}", sub.reporting_year))?;
+                    coop_sheet.write(0, 0, format!("Cooperative: {}", coop.name))?;
+                    coop_sheet.write(1, 0, format!("Reporting Period: {}", sub.reporting_year))?;
 
-                    let kpi_headers = ["Category", "KPI Name", "Description", "Value", "Benchmark", "Status"];
+                    let kpi_headers = [
+                        "Category",
+                        "KPI Name",
+                        "Description",
+                        "Value",
+                        "Benchmark",
+                        "Status",
+                    ];
                     for (c, h) in kpi_headers.iter().enumerate() {
                         coop_sheet.write_with_format(3, c as u16, *h, &header_format)?;
                     }
 
                     let mut row = 4;
-                    let mut write_row = |cat: &str, name: &str, kpi: &KpiResult| -> Result<(), rust_xlsxwriter::XlsxError> {
-                        coop_sheet.write(row, 0, cat)?;
-                        coop_sheet.write(row, 1, name)?;
-                        coop_sheet.write(row, 2, &kpi.description)?;
-                        coop_sheet.write(row, 3, &kpi.formatted)?;
-                        if let Some(bench) = kpi.benchmark {
-                            coop_sheet.write(row, 4, bench)?;
-                        }
-                        if let Some(ref status) = kpi.status {
-                            let fmt = match status.as_str() {
-                                "green" => &green_format,
-                                "amber" => &amber_format,
-                                "red" => &red_format,
-                                _ => &Format::new(),
-                            };
-                            coop_sheet.write_with_format(row, 5, status.as_str(), fmt)?;
-                        }
-                        row += 1;
-                        Ok(())
-                    };
+                    let mut write_row =
+                        |cat: &str,
+                         name: &str,
+                         kpi: &KpiResult|
+                         -> Result<(), rust_xlsxwriter::XlsxError> {
+                            coop_sheet.write(row, 0, cat)?;
+                            coop_sheet.write(row, 1, name)?;
+                            coop_sheet.write(row, 2, &kpi.description)?;
+                            coop_sheet.write(row, 3, &kpi.formatted)?;
+                            if let Some(bench) = kpi.benchmark {
+                                coop_sheet.write(row, 4, bench)?;
+                            }
+                            if let Some(ref status) = kpi.status {
+                                let fmt = match status.as_str() {
+                                    "green" => &green_format,
+                                    "amber" => &amber_format,
+                                    "red" => &red_format,
+                                    _ => &Format::new(),
+                                };
+                                coop_sheet.write_with_format(row, 5, status.as_str(), fmt)?;
+                            }
+                            row += 1;
+                            Ok(())
+                        };
 
                     let f = report;
                     write_row("Financial Size", "Total Assets", &f.total_assets)?;
-                    write_row("Financial Size", "Gross Loan Portfolio", &f.gross_loan_portfolio)?;
+                    write_row(
+                        "Financial Size",
+                        "Gross Loan Portfolio",
+                        &f.gross_loan_portfolio,
+                    )?;
                     write_row("Financial Size", "Total Equity", &f.total_equity)?;
                     write_row("Portfolio Quality", "PAR 30", &f.par30)?;
                     write_row("Profitability", "ROA", &f.roa)?;
                     write_row("Profitability", "ROE", &f.roe)?;
-                    write_row("Liquidity & Solvency", "Capital Adequacy Ratio", &f.capital_adequacy_ratio)?;
+                    write_row(
+                        "Liquidity & Solvency",
+                        "Capital Adequacy Ratio",
+                        &f.capital_adequacy_ratio,
+                    )?;
                 }
 
-                workbook.save_to_buffer().map_err(|e| AppError::InternalServerError(e.to_string()))?
+                workbook
+                    .save_to_buffer()
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
             let filename = format!("consolidated_report_{}.xlsx", timestamp);
             let storage_key = format!("exports/consolidated/{}", filename);
-            state.storage.store(&storage_key, &bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").await?;
+            state
+                .storage
+                .store(
+                    &storage_key,
+                    &bytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                .await?;
             let res = Response::builder()
-                .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Type",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -728,7 +1115,16 @@ pub async fn export_bulk_consolidated(
         "csv" => {
             let bytes = {
                 let mut wtr = csv::Writer::from_writer(vec![]);
-                wtr.write_record(&["Cooperative Name", "Reporting Year", "Status", "Assets", "Gross Portfolio", "Deposits", "Members"]).unwrap();
+                wtr.write_record([
+                    "Cooperative Name",
+                    "Reporting Year",
+                    "Status",
+                    "Assets",
+                    "Gross Portfolio",
+                    "Deposits",
+                    "Members",
+                ])
+                .unwrap();
                 for (sub, coop, _, report) in &compiled_data {
                     wtr.write_record(&[
                         coop.name.clone(),
@@ -738,16 +1134,23 @@ pub async fn export_bulk_consolidated(
                         report.gross_loan_portfolio.value.to_string(),
                         report.total_member_deposits.value.to_string(),
                         "0".to_string(),
-                    ]).unwrap();
+                    ])
+                    .unwrap();
                 }
                 wtr.into_inner().unwrap()
             };
             let filename = format!("consolidated_report_{}.csv", timestamp);
             let storage_key = format!("exports/consolidated/{}", filename);
-            state.storage.store(&storage_key, &bytes, "text/csv").await?;
+            state
+                .storage
+                .store(&storage_key, &bytes, "text/csv")
+                .await?;
             let res = Response::builder()
                 .header("Content-Type", "text/csv")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -755,41 +1158,76 @@ pub async fn export_bulk_consolidated(
         "docx" => {
             let bytes = {
                 let mut docx = Docx::new();
-                docx = docx.add_paragraph(Paragraph::new().add_run(Run::new().add_text("Consolidated Report Dashboard").bold()));
-                docx = docx.add_paragraph(Paragraph::new().add_run(Run::new().add_text(&format!("Exported on: {}", Utc::now().format("%Y-%m-%d")))));
+                docx = docx.add_paragraph(
+                    Paragraph::new()
+                        .add_run(Run::new().add_text("Consolidated Report Dashboard").bold()),
+                );
+                docx = docx.add_paragraph(Paragraph::new().add_run(
+                    Run::new().add_text(format!("Exported on: {}", Utc::now().format("%Y-%m-%d"))),
+                ));
 
                 let mut table = Table::new(vec![]);
-                table = table.add_row(
-                    TableRow::new(vec![
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text("Cooperative Name").bold())),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text("Year").bold())),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text("Status").bold())),
-                        TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text("Assets").bold())),
-                    ])
-                );
+                table = table.add_row(TableRow::new(vec![
+                    TableCell::new().add_paragraph(
+                        Paragraph::new().add_run(Run::new().add_text("Cooperative Name").bold()),
+                    ),
+                    TableCell::new().add_paragraph(
+                        Paragraph::new().add_run(Run::new().add_text("Year").bold()),
+                    ),
+                    TableCell::new().add_paragraph(
+                        Paragraph::new().add_run(Run::new().add_text("Status").bold()),
+                    ),
+                    TableCell::new().add_paragraph(
+                        Paragraph::new().add_run(Run::new().add_text("Assets").bold()),
+                    ),
+                ]));
 
                 for (sub, coop, _, report) in &compiled_data {
-                    table = table.add_row(
-                        TableRow::new(vec![
-                            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&coop.name))),
-                            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&sub.reporting_year.to_string()))),
-                            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&format!("{:?}", sub.status)))),
-                            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&report.total_assets.value.to_string()))),
-                        ])
-                    );
+                    table =
+                        table.add_row(TableRow::new(vec![
+                            TableCell::new().add_paragraph(
+                                Paragraph::new().add_run(Run::new().add_text(&coop.name)),
+                            ),
+                            TableCell::new().add_paragraph(
+                                Paragraph::new()
+                                    .add_run(Run::new().add_text(sub.reporting_year.to_string())),
+                            ),
+                            TableCell::new().add_paragraph(
+                                Paragraph::new()
+                                    .add_run(Run::new().add_text(format!("{:?}", sub.status))),
+                            ),
+                            TableCell::new().add_paragraph(Paragraph::new().add_run(
+                                Run::new().add_text(report.total_assets.value.to_string()),
+                            )),
+                        ]));
                 }
                 docx = docx.add_table(table);
 
                 let mut buf = std::io::Cursor::new(Vec::new());
-                docx.build().pack(&mut buf).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                docx.build()
+                    .pack(&mut buf)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
                 buf.into_inner()
             };
             let filename = format!("consolidated_report_{}.docx", timestamp);
             let storage_key = format!("exports/consolidated/{}", filename);
-            state.storage.store(&storage_key, &bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
+            state
+                .storage
+                .store(
+                    &storage_key,
+                    &bytes,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                .await?;
             let res = Response::builder()
-                .header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Type",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -799,19 +1237,44 @@ pub async fn export_bulk_consolidated(
                 let mut writer = PdfWriter::new("Consolidated Report");
                 writer.write_line("Consolidated Reporting Dashboard", 16.0, true);
                 writer.current_y -= 10.0;
-                writer.write_line(&format!("Exported on: {}", Utc::now().format("%Y-%m-%d")), 12.0, false);
+                writer.write_line(
+                    &format!("Exported on: {}", Utc::now().format("%Y-%m-%d")),
+                    12.0,
+                    false,
+                );
                 writer.current_y -= 15.0;
 
-                let total_assets: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_assets.value).sum();
-                let total_loans: f64 = compiled_data.iter().map(|(_, _, _, r)| r.gross_loan_portfolio.value).sum();
-                let total_deposits: f64 = compiled_data.iter().map(|(_, _, _, r)| r.total_member_deposits.value).sum();
+                let total_assets: f64 = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.total_assets.value)
+                    .sum();
+                let total_loans: f64 = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.gross_loan_portfolio.value)
+                    .sum();
+                let total_deposits: f64 = compiled_data
+                    .iter()
+                    .map(|(_, _, _, r)| r.total_member_deposits.value)
+                    .sum();
                 let total_members: f64 = 0.0;
 
-                writer.write_line(&format!("Total Consolidated Assets: {:.2}", total_assets), 12.0, false);
+                writer.write_line(
+                    &format!("Total Consolidated Assets: {:.2}", total_assets),
+                    12.0,
+                    false,
+                );
                 writer.current_y -= 8.0;
-                writer.write_line(&format!("Total Consolidated Loans: {:.2}", total_loans), 12.0, false);
+                writer.write_line(
+                    &format!("Total Consolidated Loans: {:.2}", total_loans),
+                    12.0,
+                    false,
+                );
                 writer.current_y -= 8.0;
-                writer.write_line(&format!("Total Member Deposits: {:.2}", total_deposits), 12.0, false);
+                writer.write_line(
+                    &format!("Total Member Deposits: {:.2}", total_deposits),
+                    12.0,
+                    false,
+                );
                 writer.current_y -= 8.0;
                 writer.write_line(&format!("Total Members: {:.2}", total_members), 12.0, false);
                 writer.current_y -= 15.0;
@@ -821,19 +1284,34 @@ pub async fn export_bulk_consolidated(
 
                 for (sub, coop, _, report) in &compiled_data {
                     writer.check_page_break(20.0);
-                    let txt = format!("{} | Year: {} | Assets: {:.2} | Loans: {:.2}", coop.name, sub.reporting_year, report.total_assets.value, report.gross_loan_portfolio.value);
+                    let txt = format!(
+                        "{} | Year: {} | Assets: {:.2} | Loans: {:.2}",
+                        coop.name,
+                        sub.reporting_year,
+                        report.total_assets.value,
+                        report.gross_loan_portfolio.value
+                    );
                     writer.write_line(&txt, 10.0, false);
                     writer.current_y -= 6.0;
                 }
 
-                writer.doc.save_to_bytes().map_err(|e| AppError::InternalServerError(e.to_string()))?
+                writer
+                    .doc
+                    .save_to_bytes()
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
             let filename = format!("consolidated_report_{}.pdf", timestamp);
             let storage_key = format!("exports/consolidated/{}", filename);
-            state.storage.store(&storage_key, &bytes, "application/pdf").await?;
+            state
+                .storage
+                .store(&storage_key, &bytes, "application/pdf")
+                .await?;
             let res = Response::builder()
                 .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             Ok(res)
@@ -841,4 +1319,3 @@ pub async fn export_bulk_consolidated(
         _ => Err(AppError::BadRequest("Unsupported export format".into())),
     }
 }
-

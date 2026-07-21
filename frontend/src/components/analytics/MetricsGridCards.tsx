@@ -51,8 +51,13 @@ export function MetricsGridCards({ metrics, columns = 4 }: MetricsGridCardsProps
                   <Info className="size-3.5 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
-                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{metric.tooltip}</p>
+              <PopoverContent
+                side="top"
+                className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
+              >
+                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
+                  {metric.tooltip}
+                </p>
               </PopoverContent>
             </Popover>
           </div>
@@ -60,7 +65,9 @@ export function MetricsGridCards({ metrics, columns = 4 }: MetricsGridCardsProps
             {metric.value}
           </p>
           {metric.trend && metric.trendValue && (
-            <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${trendColors[metric.trend]}`}>
+            <div
+              className={`flex items-center gap-1 mt-2 text-xs font-semibold ${trendColors[metric.trend]}`}
+            >
               <span>{trendIcons[metric.trend]}</span>
               <span>{metric.trendValue}</span>
             </div>

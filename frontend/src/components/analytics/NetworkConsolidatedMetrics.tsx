@@ -14,7 +14,14 @@ import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
 
 export interface NetworkConsolidatedMetricsProps {
   nfStats?: NfStatisticsResponse;
-  networkTrend?: { months: any[] };
+  networkTrend?: {
+    months: {
+      month_label: string;
+      savings: number;
+      loans: number;
+      assets: number;
+    }[];
+  };
   totalCooperatives: number;
   cooperativesWithData: number;
 }
@@ -35,8 +42,6 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       })),
     [networkTrend],
   );
-
-
 
   const networkKpiGridMetrics = useMemo(() => {
     if (!nfStats) return [];
@@ -227,10 +232,25 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
           subtitle="Assets, loans & savings over the reporting year"
           info="Visualizes the month-over-month trajectory of the network's aggregated financial balances over the current reporting period."
         >
-          <CoopTrendAreaChart 
-            data={networkTrendPoints.length > 0 ? networkTrendPoints : [
-              "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-            ].map(m => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))} 
+          <CoopTrendAreaChart
+            data={
+              networkTrendPoints.length > 0
+                ? networkTrendPoints
+                : [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
+            }
           />
         </Card>
 
@@ -287,8 +307,8 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {nfStats && (
-          <Card 
-            title="Network Liquidity Risk" 
+          <Card
+            title="Network Liquidity Risk"
             subtitle="Term deposit concentration"
             info="Assesses aggregate liquidity risk by examining the concentration of fixed (term) deposits across the network."
           >
@@ -296,8 +316,8 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
           </Card>
         )}
         {nfStats && (
-          <Card 
-            title="Network Governance" 
+          <Card
+            title="Network Governance"
             subtitle="Aggregate democratic participation"
             info="Measures the democratic health of the network by tracking aggregate member participation in governance activities."
           >
@@ -305,8 +325,8 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
           </Card>
         )}
         {nfStats && (
-          <Card 
-            title="Financial Inclusion" 
+          <Card
+            title="Financial Inclusion"
             subtitle="Aggregate credit access"
             info="Tracks the distribution of credit access across key demographics to ensure the network is fulfilling its inclusive mandate."
           >

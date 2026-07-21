@@ -32,7 +32,10 @@ export function KpiScorecard({ metrics }: KpiScorecardProps) {
           return (
             <div key={colIndex} className="flex flex-col divide-y divide-border/50">
               {colMetrics.map((metric, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors group">
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors group"
+                >
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
                       {metric.label}
@@ -43,18 +46,25 @@ export function KpiScorecard({ metrics }: KpiScorecardProps) {
                           <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
-                        <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{metric.tooltip}</p>
+                      <PopoverContent
+                        side="top"
+                        className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
+                      >
+                        <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
+                          {metric.tooltip}
+                        </p>
                       </PopoverContent>
                     </Popover>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <p className="font-heading text-sm font-bold text-foreground num">
                       {metric.value}
                     </p>
                     {metric.trend && metric.trendValue && (
-                      <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${trendColors[metric.trend]} w-16 text-center`}>
+                      <span
+                        className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${trendColors[metric.trend]} w-16 text-center`}
+                      >
                         {metric.trendValue}
                       </span>
                     )}

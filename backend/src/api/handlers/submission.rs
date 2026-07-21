@@ -739,7 +739,8 @@ pub async fn list_federation_submissions(
 
     let mut coop_ids: Vec<Uuid> = vec![];
     let mut coop_map: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
-    let mut apex_map: std::collections::HashMap<Uuid, (Uuid, String)> = std::collections::HashMap::new();
+    let mut apex_map: std::collections::HashMap<Uuid, (Uuid, String)> =
+        std::collections::HashMap::new();
     for apex in &apexes {
         let apex_name = if apex.display_name.is_empty() {
             apex.organization_keycloak_id.clone()
@@ -770,7 +771,10 @@ pub async fn list_federation_submissions(
     } else {
         state
             .submission_repo
-            .find_by_cooperative_ids_and_tier(coop_ids, crate::entities::enums::ReviewTier::Federation)
+            .find_by_cooperative_ids_and_tier(
+                coop_ids,
+                crate::entities::enums::ReviewTier::Federation,
+            )
             .await?
     };
 
@@ -968,7 +972,7 @@ pub async fn list_ministry_submissions(
             let name = coop_map.get(&s.cooperative_id).cloned();
             let apex = coop_to_apex.get(&s.cooperative_id).cloned();
             let federation = coop_to_federation.get(&s.cooperative_id).cloned();
-            
+
             let coop = coops.iter().find(|c| c.id == s.cooperative_id);
             let apex_id = coop.map(|c| c.apex_id);
             let federation_id = apex_id.and_then(|a_id| apex_to_fed_id.get(&a_id)).cloned();
@@ -1243,7 +1247,11 @@ pub async fn compute_average_kpis(
     let mut car_values: Vec<f64> = Vec::new();
 
     for fs in &all_fs {
-        let line_items = match state.line_item_repo.find_by_financial_statement(fs.id).await {
+        let line_items = match state
+            .line_item_repo
+            .find_by_financial_statement(fs.id)
+            .await
+        {
             Ok(items) => items,
             Err(_) => continue,
         };

@@ -52,11 +52,11 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
     let countPar30 = 0;
     let countProvisions = 0;
 
-    coops.forEach(c => {
+    coops.forEach((c) => {
       const glp = c.kpis["gross_loan_portfolio"]?.value ?? 0;
       const par30 = c.kpis["par30"]?.value;
       const prov = c.kpis["loan_loss_coverage"]?.value;
-      
+
       totalGLP += glp;
       if (par30 !== undefined) {
         sumPar30 += par30;
@@ -104,7 +104,7 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
 
   return (
     <div className="space-y-6">
-      <NetworkConsolidatedMetrics 
+      <NetworkConsolidatedMetrics
         nfStats={nfStats}
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
@@ -131,7 +131,11 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
         </Card>
 
         {/* ROA leaderboard */}
-        <Card title="Profitability Ranking" subtitle="Best and worst ROA cooperatives" info="Highlights the cooperatives with the highest and lowest Return on Assets, indicating overall profitability and resource utilization.">
+        <Card
+          title="Profitability Ranking"
+          subtitle="Best and worst ROA cooperatives"
+          info="Highlights the cooperatives with the highest and lowest Return on Assets, indicating overall profitability and resource utilization."
+        >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
         </Card>
       </div>
@@ -147,11 +151,15 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
           </Card>
         )}
         {coops.length > 0 && (
-          <Card title="Network Loan Provisioning Gap" subtitle="Unprotected at-risk capital visualization" info="Visualizes the gap between the Gross Loan Portfolio, the Portfolio at Risk (PAR30), and the actual Loan Loss Provisions set aside to cover those risks.">
-            <LoanProvisioningWaterfall 
-              glp={aggMetrics.totalGLP} 
-              par30_pct={aggMetrics.avgPar30} 
-              provisions_pct={aggMetrics.avgProvisions} 
+          <Card
+            title="Network Loan Provisioning Gap"
+            subtitle="Unprotected at-risk capital visualization"
+            info="Visualizes the gap between the Gross Loan Portfolio, the Portfolio at Risk (PAR30), and the actual Loan Loss Provisions set aside to cover those risks."
+          >
+            <LoanProvisioningWaterfall
+              glp={aggMetrics.totalGLP}
+              par30_pct={aggMetrics.avgPar30}
+              provisions_pct={aggMetrics.avgProvisions}
             />
           </Card>
         )}
@@ -159,7 +167,11 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
 
       {/* Traffic-light compliance bars */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card title="Compliance Traffic-Light Distribution" subtitle="KPI health across the federation" info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators.">
+        <Card
+          title="Compliance Traffic-Light Distribution"
+          subtitle="KPI health across the federation"
+          info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators."
+        >
           <ComplianceDoughnutCharts distributions={overview.distributions} />
         </Card>
       )}

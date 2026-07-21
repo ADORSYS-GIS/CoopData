@@ -18,6 +18,7 @@ import { useUserRole } from "@/lib/auth";
 import type { DateRange } from "@/components/analytics/date-range-picker";
 import { AnalyticsFilterBar } from "../analytics/AnalyticsFilterBar";
 import { CooperativeAnalyticsView } from "../analytics/CooperativeAnalyticsView";
+import type { components } from "@/openapi-client/api";
 import { ApexAnalyticsView } from "../analytics/ApexAnalyticsView";
 import { FederationAnalyticsView } from "../analytics/FederationAnalyticsView";
 import { MinistryAnalyticsView } from "../analytics/MinistryAnalyticsView";
@@ -52,23 +53,38 @@ const SECTOR_OPTIONS: FilterConfig["options"] = [
   { value: "Manufacturing", label: "Manufacturing" },
 ];
 
-
 const FILTERS_BY_ROLE: Record<string, FilterConfig[]> = {
   ministry: [
-    { id: "federation", label: "Federation", options: [{ value: "all", label: "All Federations" }] },
+    {
+      id: "federation",
+      label: "Federation",
+      options: [{ value: "all", label: "All Federations" }],
+    },
     { id: "apex", label: "Apex", options: [{ value: "all", label: "All Apexes" }] },
-    { id: "cooperative", label: "Cooperative", options: [{ value: "all", label: "All Cooperatives" }] },
+    {
+      id: "cooperative",
+      label: "Cooperative",
+      options: [{ value: "all", label: "All Cooperatives" }],
+    },
     { id: "region", label: "Region", options: REGION_OPTIONS },
     { id: "sector", label: "Sector", options: SECTOR_OPTIONS },
   ],
   federation: [
     { id: "apex", label: "Apex", options: [{ value: "all", label: "All Apexes" }] },
-    { id: "cooperative", label: "Cooperative", options: [{ value: "all", label: "All Cooperatives" }] },
+    {
+      id: "cooperative",
+      label: "Cooperative",
+      options: [{ value: "all", label: "All Cooperatives" }],
+    },
     { id: "region", label: "Region", options: REGION_OPTIONS },
     { id: "sector", label: "Sector", options: SECTOR_OPTIONS },
   ],
   apex: [
-    { id: "cooperative", label: "Cooperative", options: [{ value: "all", label: "All Cooperatives" }] },
+    {
+      id: "cooperative",
+      label: "Cooperative",
+      options: [{ value: "all", label: "All Cooperatives" }],
+    },
     { id: "region", label: "Region", options: REGION_OPTIONS },
     { id: "sector", label: "Sector", options: SECTOR_OPTIONS },
   ],
@@ -116,7 +132,7 @@ export const AnalyticsPage: React.FC = () => {
 
   const { data: overview } = useNationalOverview(
     { reportingYear: Number(filterValues.year) },
-    role !== "cooperative" && role !== undefined
+    role !== "cooperative" && role !== undefined,
   );
 
   const { data: federations } = useFederations(role === "ministry");
@@ -127,7 +143,7 @@ export const AnalyticsPage: React.FC = () => {
   const ministryApexes = React.useMemo(() => {
     if (role !== "ministry" || !organizations?.data) return [];
     return organizations.data.filter(
-      (org) => org.organization_type === "Apex" && org.federation_id === filterValues.federationId
+      (org) => org.organization_type === "Apex" && org.federation_id === filterValues.federationId,
     );
   }, [role, organizations, filterValues.federationId]);
 
@@ -140,8 +156,11 @@ export const AnalyticsPage: React.FC = () => {
           ...filter,
           options: [
             { value: "all", label: "All Federations" },
-            
-            ...federations.map((f: any) => ({ value: f.id, label: f.name })),
+
+            ...federations.map((f: components["schemas"]["FederationResponse"]) => ({
+              value: f.id,
+              label: f.name,
+            })),
           ],
         };
       }
@@ -155,12 +174,16 @@ export const AnalyticsPage: React.FC = () => {
           disabled,
           options: [
             { value: "all", label: "All Apexes" },
-            ...(apexOptions?.map((a: any) => ({ value: a.id, label: a.name })) || []),
+            ...(apexOptions?.map((a: components["schemas"]["ApexResponse"]) => ({
+              value: a.id,
+              label: a.name,
+            })) || []),
           ],
         };
       }
       if (filter.id === "cooperative" && overview?.cooperatives) {
-        const disabled = (role === "ministry" || role === "federation") && filterValues.apexId === "all";
+        const disabled =
+          (role === "ministry" || role === "federation") && filterValues.apexId === "all";
 
         return {
           ...filter,
@@ -176,7 +199,15 @@ export const AnalyticsPage: React.FC = () => {
       }
       return filter;
     });
-  }, [role, overview, federations, apexes, ministryApexes, filterValues.federationId, filterValues.apexId]);
+  }, [
+    role,
+    overview,
+    federations,
+    apexes,
+    ministryApexes,
+    filterValues.federationId,
+    filterValues.apexId,
+  ]);
 
   if (!role) return null;
 
@@ -222,17 +253,21 @@ export const AnalyticsPage: React.FC = () => {
         ) : (
           <>
             {role === "ministry" && (
-              <MinistryAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
+              <MinistryAnalyticsView
+                filterValues={filterValues}
+                onFilterChange={handleFilterChange}
+              />
             )}
             {role === "federation" && (
-              <FederationAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
+              <FederationAnalyticsView
+                filterValues={filterValues}
+                onFilterChange={handleFilterChange}
+              />
             )}
             {role === "apex" && (
               <ApexAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
             )}
-            {role === "cooperative" && (
-              <CooperativeAnalyticsView filterValues={filterValues} />
-            )}
+            {role === "cooperative" && <CooperativeAnalyticsView filterValues={filterValues} />}
           </>
         )}
       </div>

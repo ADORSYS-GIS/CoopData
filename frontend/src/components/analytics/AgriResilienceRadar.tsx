@@ -55,7 +55,11 @@ export function AgriResilienceRadar({ stats }: Props) {
             fillOpacity={0.4}
           />
           <Tooltip
-            contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", fontSize: "12px" }}
+            contentStyle={{
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              fontSize: "12px",
+            }}
             formatter={(val: number) => [`${val.toFixed(1)}%`, "Coverage"]}
           />
         </RadarChart>

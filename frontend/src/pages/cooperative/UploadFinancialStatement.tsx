@@ -33,8 +33,6 @@ export const UploadFinancialStatementWidget: React.FC<{
   const upload = useUploadFinancialStatement(submissionId);
   const { data: job } = useExtractionJob(jobId);
 
-
-
   const isTerminal = job && ["succeeded", "failed", "partial"].includes(job.status);
 
   const handleFile = (f: File) => {
@@ -196,8 +194,6 @@ export const UploadFinancialStatementWidget: React.FC<{
               </>
             )}
           </div>
-
-
 
           {/* Actions */}
           <div className="flex items-center gap-3">

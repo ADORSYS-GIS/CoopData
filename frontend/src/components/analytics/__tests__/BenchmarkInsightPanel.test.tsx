@@ -201,10 +201,9 @@ describe("BenchmarkInsightPanel", () => {
     }
 
     const expander = screen.getByTestId("insight-expander");
-    const beforeText = expander.textContent ?? "";
+    expect(expander).toBeInTheDocument();
     fireEvent.click(expander);
-    const afterText = expander.textContent ?? "";
-    // Text content changed after click
-    expect(beforeText).not.toBe(afterText);
+    // After expanding, all insights are shown and the expander button disappears
+    expect(screen.queryByTestId("insight-expander")).not.toBeInTheDocument();
   });
 });

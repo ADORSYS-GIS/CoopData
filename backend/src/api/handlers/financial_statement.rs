@@ -4,24 +4,24 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use utoipa::IntoParams;
 use chrono::Datelike;
 use std::sync::Arc;
+use utoipa::IntoParams;
 use uuid::Uuid;
 
 use crate::api::dto::financial::{
-    BenchmarkQueryParams, BenchmarkResponse, ChartOfAccountResponse, ExportParams, FinancialStatementResponse,
-    KpiItemResponse, LineItemBulkUpdateRequest, LineItemResponse, MinistryStatsResponse,
-    MonthlyTrendPoint, MonthlyTrendResponse, RegionCompliancePoint, RegionComplianceResponse,
-    SectorBreakdownPoint, SectorBreakdownResponse, SubmissionActivityPoint,
-    SubmissionActivityResponse, SubmissionKpisResponse,
+    BenchmarkQueryParams, BenchmarkResponse, ChartOfAccountResponse, ExportParams,
+    FinancialStatementResponse, KpiItemResponse, LineItemBulkUpdateRequest, LineItemResponse,
+    MinistryStatsResponse, MonthlyTrendPoint, MonthlyTrendResponse, RegionCompliancePoint,
+    RegionComplianceResponse, SectorBreakdownPoint, SectorBreakdownResponse,
+    SubmissionActivityPoint, SubmissionActivityResponse, SubmissionKpisResponse,
 };
 use crate::auth::claims::Claims;
 
-use rust_decimal::prelude::ToPrimitive;
-use serde::Deserialize;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
+use rust_decimal::prelude::ToPrimitive;
+use serde::Deserialize;
 
 #[utoipa::path(
     get,
@@ -48,10 +48,15 @@ pub(crate) async fn filter_cooperatives(
     if let Some(target_id) = cooperative_id {
         // The frontend sends Keycloak Group IDs from the dropdown, but caller_coop_ids are Postgres IDs.
         // We must check if target_id matches either the internal Postgres ID or the Keycloak Group ID.
-        if let Some(coop) = coops.iter().find(|c| c.id == target_id || c.keycloak_group_id == Some(target_id)) {
+        if let Some(coop) = coops
+            .iter()
+            .find(|c| c.id == target_id || c.keycloak_group_id == Some(target_id))
+        {
             return Ok(vec![coop.id]);
         }
-        return Err(AppError::Forbidden("Access denied to this cooperative".into()));
+        return Err(AppError::Forbidden(
+            "Access denied to this cooperative".into(),
+        ));
     }
 
     let filtered = coops
@@ -248,7 +253,11 @@ pub async fn get_submission_kpis(
         .await?;
 
     let kpi_set = crate::services::KpiEngine::compute(&line_items);
-    let kpis: Vec<KpiItemResponse> = kpi_set.to_vec().into_iter().map(KpiItemResponse::from).collect();
+    let kpis: Vec<KpiItemResponse> = kpi_set
+        .to_vec()
+        .into_iter()
+        .map(KpiItemResponse::from)
+        .collect();
 
     tracing::info!(
         submission_id = %id,
@@ -429,7 +438,11 @@ pub async fn get_benchmarks(
     let key_clone = cache_key.clone();
     tokio::spawn(async move {
         if let Err(e) = cache_clone
-            .set(&key_clone, &result_clone, std::time::Duration::from_secs(3600))
+            .set(
+                &key_clone,
+                &result_clone,
+                std::time::Duration::from_secs(3600),
+            )
             .await
         {
             tracing::warn!(error = %e, "Failed to cache benchmark result");
@@ -503,12 +516,13 @@ pub async fn export_submission(
     let kpi_set = crate::services::KpiEngine::compute(&line_items);
     let kpis = kpi_set.to_vec();
 
-    let analytics = crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
-        &state.db,
-        submission.cooperative_id,
-        Some(submission.id),
-    )
-    .await?;
+    let analytics =
+        crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
+            &state.db,
+            submission.cooperative_id,
+            Some(submission.id),
+        )
+        .await?;
 
     let reference = submission
         .reference
@@ -538,8 +552,8 @@ fn build_xlsx_response(
     analytics: &crate::services::nf_indicator_engine::NfStatisticsResponse,
     reference: &str,
 ) -> AppResult<impl IntoResponse> {
-    use rust_xlsxwriter::Workbook;
     use axum::http::header;
+    use rust_xlsxwriter::Workbook;
 
     let mut workbook = Workbook::new();
 
@@ -549,7 +563,17 @@ fn build_xlsx_response(
         .set_name("Balance Sheet")
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-    let headers = ["Account Code", "Account Name", "Category", "Subcategory", "Month", "Value", "AI Confidence", "AI Flagged", "Manually Edited"];
+    let headers = [
+        "Account Code",
+        "Account Name",
+        "Category",
+        "Subcategory",
+        "Month",
+        "Value",
+        "AI Confidence",
+        "AI Flagged",
+        "Manually Edited",
+    ];
     for (col, h) in headers.iter().enumerate() {
         ws.write_string(0, col as u16, *h)
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
@@ -589,7 +613,15 @@ fn build_xlsx_response(
         .set_name("KPIs")
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-    let kpi_headers = ["KPI Name", "Value", "Formatted", "Unit", "Status", "Benchmark", "Description"];
+    let kpi_headers = [
+        "KPI Name",
+        "Value",
+        "Formatted",
+        "Unit",
+        "Status",
+        "Benchmark",
+        "Description",
+    ];
     for (col, h) in kpi_headers.iter().enumerate() {
         ws2.write_string(0, col as u16, *h)
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
@@ -625,40 +657,91 @@ fn build_xlsx_response(
         ws3.write_string(0, col as u16, *h)
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
     }
-    
-    let mut row = 1;
-    let mut write_metric = |category: &str, metric: &str, val: u64, pct: Option<f64>| -> AppResult<()> {
-        ws3.write_string(row, 0, category).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        ws3.write_string(row, 1, metric).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        ws3.write_number(row, 2, val as f64).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        if let Some(p) = pct {
-            ws3.write_string(row, 3, format!("{p:.1}%").as_str()).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        }
-        row += 1;
-        Ok(())
-    };
 
-    write_metric("Membership", "Total Members", analytics.membership.total, None)?;
-    write_metric("Membership", "Active Members", analytics.membership.active, Some(analytics.membership.active_pct))?;
-    write_metric("Membership", "Male", analytics.membership.male, Some(analytics.membership.male_pct))?;
-    write_metric("Membership", "Female", analytics.membership.female, Some(analytics.membership.female_pct))?;
+    let mut row = 1;
+    let mut write_metric =
+        |category: &str, metric: &str, val: u64, pct: Option<f64>| -> AppResult<()> {
+            ws3.write_string(row, 0, category)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            ws3.write_string(row, 1, metric)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            ws3.write_number(row, 2, val as f64)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            if let Some(p) = pct {
+                ws3.write_string(row, 3, format!("{p:.1}%").as_str())
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            }
+            row += 1;
+            Ok(())
+        };
+
+    write_metric(
+        "Membership",
+        "Total Members",
+        analytics.membership.total,
+        None,
+    )?;
+    write_metric(
+        "Membership",
+        "Active Members",
+        analytics.membership.active,
+        Some(analytics.membership.active_pct),
+    )?;
+    write_metric(
+        "Membership",
+        "Male",
+        analytics.membership.male,
+        Some(analytics.membership.male_pct),
+    )?;
+    write_metric(
+        "Membership",
+        "Female",
+        analytics.membership.female,
+        Some(analytics.membership.female_pct),
+    )?;
     write_metric("Loans", "Total Loans", analytics.loans.total_loans, None)?;
-    write_metric("Loans", "Performing", analytics.loans.performing, Some(analytics.loans.on_time_repayment_pct))?;
-    write_metric("Loans", "Arrears", analytics.loans.arrears, Some(analytics.loans.arrears_rate_pct))?;
-    write_metric("Savings", "Total Accounts", analytics.savings.total_accounts, None)?;
-    write_metric("Savings", "Active Accounts", analytics.savings.active_accounts, Some(analytics.savings.active_savers_pct))?;
+    write_metric(
+        "Loans",
+        "Performing",
+        analytics.loans.performing,
+        Some(analytics.loans.on_time_repayment_pct),
+    )?;
+    write_metric(
+        "Loans",
+        "Arrears",
+        analytics.loans.arrears,
+        Some(analytics.loans.arrears_rate_pct),
+    )?;
+    write_metric(
+        "Savings",
+        "Total Accounts",
+        analytics.savings.total_accounts,
+        None,
+    )?;
+    write_metric(
+        "Savings",
+        "Active Accounts",
+        analytics.savings.active_accounts,
+        Some(analytics.savings.active_savers_pct),
+    )?;
 
     let bytes = workbook
         .save_to_buffer()
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
     let filename = format!("{reference}.xlsx");
-    use axum::response::Response;
     use axum::body::Body;
+    use axum::response::Response;
     let response = Response::builder()
         .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+        .header(
+            header::CONTENT_TYPE,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{filename}\""),
+        )
         .body(Body::from(bytes))
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
     Ok(response)
@@ -669,8 +752,8 @@ fn build_csv_response(
     analytics: &crate::services::nf_indicator_engine::NfStatisticsResponse,
     reference: &str,
 ) -> AppResult<impl IntoResponse> {
-    use rust_decimal::prelude::ToPrimitive;
     use axum::http::header;
+    use rust_decimal::prelude::ToPrimitive;
 
     let mut writer = csv::Writer::from_writer(vec![]);
 
@@ -696,8 +779,16 @@ fn build_csv_response(
                 item.account_category.as_str().to_string(),
                 item.account_subcategory.clone(),
                 item.month.to_string(),
-                item.value.as_ref().and_then(|d| d.to_f64()).map(|v| format!("{v:.2}")).unwrap_or_default(),
-                item.ai_confidence.as_ref().and_then(|d| d.to_f64()).map(|v| format!("{v:.4}")).unwrap_or_default(),
+                item.value
+                    .as_ref()
+                    .and_then(|d| d.to_f64())
+                    .map(|v| format!("{v:.2}"))
+                    .unwrap_or_default(),
+                item.ai_confidence
+                    .as_ref()
+                    .and_then(|d| d.to_f64())
+                    .map(|v| format!("{v:.4}"))
+                    .unwrap_or_default(),
                 item.ai_flagged.to_string(),
                 item.manually_edited.to_string(),
             ])
@@ -705,37 +796,96 @@ fn build_csv_response(
     }
 
     // Append Analytics Data as rows
-    writer.write_record(["", "", "", "", "", "", "", "", ""]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-    writer.write_record(["ANALYTICS", "Category", "Metric", "Value", "Percentage", "", "", "", ""]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-    
-    let mut write_csv_metric = |cat: &str, met: &str, val: u64, pct: Option<f64>| -> AppResult<()> {
-        let pct_str = pct.map(|p| format!("{p:.1}%")).unwrap_or_default();
-        writer.write_record(["", cat, met, &val.to_string(), &pct_str, "", "", "", ""])
-            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        Ok(())
-    };
-    
-    write_csv_metric("Membership", "Total Members", analytics.membership.total, None)?;
-    write_csv_metric("Membership", "Active Members", analytics.membership.active, Some(analytics.membership.active_pct))?;
-    write_csv_metric("Membership", "Male", analytics.membership.male, Some(analytics.membership.male_pct))?;
-    write_csv_metric("Membership", "Female", analytics.membership.female, Some(analytics.membership.female_pct))?;
+    writer
+        .write_record(["", "", "", "", "", "", "", "", ""])
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    writer
+        .write_record([
+            "ANALYTICS",
+            "Category",
+            "Metric",
+            "Value",
+            "Percentage",
+            "",
+            "",
+            "",
+            "",
+        ])
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    let mut write_csv_metric =
+        |cat: &str, met: &str, val: u64, pct: Option<f64>| -> AppResult<()> {
+            let pct_str = pct.map(|p| format!("{p:.1}%")).unwrap_or_default();
+            writer
+                .write_record(["", cat, met, &val.to_string(), &pct_str, "", "", "", ""])
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            Ok(())
+        };
+
+    write_csv_metric(
+        "Membership",
+        "Total Members",
+        analytics.membership.total,
+        None,
+    )?;
+    write_csv_metric(
+        "Membership",
+        "Active Members",
+        analytics.membership.active,
+        Some(analytics.membership.active_pct),
+    )?;
+    write_csv_metric(
+        "Membership",
+        "Male",
+        analytics.membership.male,
+        Some(analytics.membership.male_pct),
+    )?;
+    write_csv_metric(
+        "Membership",
+        "Female",
+        analytics.membership.female,
+        Some(analytics.membership.female_pct),
+    )?;
     write_csv_metric("Loans", "Total Loans", analytics.loans.total_loans, None)?;
-    write_csv_metric("Loans", "Performing", analytics.loans.performing, Some(analytics.loans.on_time_repayment_pct))?;
-    write_csv_metric("Loans", "Arrears", analytics.loans.arrears, Some(analytics.loans.arrears_rate_pct))?;
-    write_csv_metric("Savings", "Total Accounts", analytics.savings.total_accounts, None)?;
-    write_csv_metric("Savings", "Active Accounts", analytics.savings.active_accounts, Some(analytics.savings.active_savers_pct))?;
+    write_csv_metric(
+        "Loans",
+        "Performing",
+        analytics.loans.performing,
+        Some(analytics.loans.on_time_repayment_pct),
+    )?;
+    write_csv_metric(
+        "Loans",
+        "Arrears",
+        analytics.loans.arrears,
+        Some(analytics.loans.arrears_rate_pct),
+    )?;
+    write_csv_metric(
+        "Savings",
+        "Total Accounts",
+        analytics.savings.total_accounts,
+        None,
+    )?;
+    write_csv_metric(
+        "Savings",
+        "Active Accounts",
+        analytics.savings.active_accounts,
+        Some(analytics.savings.active_savers_pct),
+    )?;
 
     let data = writer
         .into_inner()
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
     let filename = format!("{reference}.csv");
-    use axum::response::Response;
     use axum::body::Body;
+    use axum::response::Response;
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "text/csv")
-        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{filename}\""),
+        )
         .body(Body::from(data))
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
     Ok(response)
@@ -747,86 +897,176 @@ fn build_pdf_response(
     analytics: &crate::services::nf_indicator_engine::NfStatisticsResponse,
     reference: &str,
 ) -> AppResult<impl IntoResponse> {
-    use printpdf::*;
     use axum::http::header;
+    use printpdf::*;
 
-    let (doc, mut page1, mut layer1) = PdfDocument::new("Financial Statement Report", Mm(210.0), Mm(297.0), "Layer 1");
+    let (doc, mut page1, mut layer1) = PdfDocument::new(
+        "Financial Statement Report",
+        Mm(210.0),
+        Mm(297.0),
+        "Layer 1",
+    );
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
-    
-    let font = doc.add_builtin_font(BuiltinFont::Helvetica).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-    let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold).map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-    current_layer.use_text(format!("Financial Statement Report: {}", reference), 16.0, Mm(20.0), Mm(275.0), &font_bold);
-    
+    let font = doc
+        .add_builtin_font(BuiltinFont::Helvetica)
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+    let font_bold = doc
+        .add_builtin_font(BuiltinFont::HelveticaBold)
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    current_layer.use_text(
+        format!("Financial Statement Report: {}", reference),
+        16.0,
+        Mm(20.0),
+        Mm(275.0),
+        &font_bold,
+    );
+
     let mut y: f32 = 260.0;
-    
-    let mut check_page = |doc: &PdfDocumentReference, y: &mut f32, current_layer: &mut PdfLayerReference| {
-        if *y < 25.0 {
-            let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
-            page1 = new_page;
-            layer1 = new_layer;
-            *current_layer = doc.get_page(page1).get_layer(layer1);
-            *y = 275.0;
-        }
-    };
 
-    current_layer.use_text("Key Performance Indicators (KPIs)", 14.0, Mm(20.0), Mm(y), &font_bold);
+    let mut check_page =
+        |doc: &PdfDocumentReference, y: &mut f32, current_layer: &mut PdfLayerReference| {
+            if *y < 25.0 {
+                let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
+                page1 = new_page;
+                layer1 = new_layer;
+                *current_layer = doc.get_page(page1).get_layer(layer1);
+                *y = 275.0;
+            }
+        };
+
+    current_layer.use_text(
+        "Key Performance Indicators (KPIs)",
+        14.0,
+        Mm(20.0),
+        Mm(y),
+        &font_bold,
+    );
     y -= 8.0;
-    
+
     for kpi in kpis {
         check_page(&doc, &mut y, &mut current_layer);
-        let text = format!("{}: {} (Status: {})", kpi.name, kpi.formatted, kpi.status.as_deref().unwrap_or("—"));
+        let text = format!(
+            "{}: {} (Status: {})",
+            kpi.name,
+            kpi.formatted,
+            kpi.status.as_deref().unwrap_or("—")
+        );
         current_layer.use_text(text, 10.0, Mm(20.0), Mm(y), &font);
         y -= 6.0;
     }
-    
+
     y -= 10.0;
     check_page(&doc, &mut y, &mut current_layer);
     current_layer.use_text("Line Items Summary", 14.0, Mm(20.0), Mm(y), &font_bold);
     y -= 8.0;
-    
+
     for item in line_items {
         check_page(&doc, &mut y, &mut current_layer);
         use rust_decimal::prelude::ToPrimitive;
-        let val_str = item.value.as_ref().and_then(|d| d.to_f64()).map(|v| format!("{v:.2}")).unwrap_or_default();
-        let text = format!("{} - {}: {}", item.account_code.unwrap_or_default(), item.account_name, val_str);
+        let val_str = item
+            .value
+            .as_ref()
+            .and_then(|d| d.to_f64())
+            .map(|v| format!("{v:.2}"))
+            .unwrap_or_default();
+        let text = format!(
+            "{} - {}: {}",
+            item.account_code.unwrap_or_default(),
+            item.account_name,
+            val_str
+        );
         current_layer.use_text(text, 9.0, Mm(20.0), Mm(y), &font);
         y -= 5.0;
     }
 
     y -= 10.0;
     check_page(&doc, &mut y, &mut current_layer);
-    current_layer.use_text("Non-Financial Analytics & Demographics", 14.0, Mm(20.0), Mm(y), &font_bold);
+    current_layer.use_text(
+        "Non-Financial Analytics & Demographics",
+        14.0,
+        Mm(20.0),
+        Mm(y),
+        &font_bold,
+    );
     y -= 8.0;
 
-    let mut write_pdf_metric = |doc: &PdfDocumentReference, y: &mut f32, layer: &mut PdfLayerReference, text: String| {
-        check_page(doc, y, layer);
-        layer.use_text(text, 10.0, Mm(20.0), Mm(*y), &font);
-        *y -= 6.0;
-    };
-    
-    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Total Members: {}", analytics.membership.total));
-    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Active Members: {} ({:.1}%)", analytics.membership.active, analytics.membership.active_pct));
-    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Female Members: {} ({:.1}%)", analytics.membership.female, analytics.membership.female_pct));
-    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Total Loans: {}", analytics.loans.total_loans));
-    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Performing Loans: {} ({:.1}%)", analytics.loans.performing, analytics.loans.on_time_repayment_pct));
-    write_pdf_metric(&doc, &mut y, &mut current_layer, format!("Total Savings Accounts: {}", analytics.savings.total_accounts));
+    let mut write_pdf_metric =
+        |doc: &PdfDocumentReference, y: &mut f32, layer: &mut PdfLayerReference, text: String| {
+            check_page(doc, y, layer);
+            layer.use_text(text, 10.0, Mm(20.0), Mm(*y), &font);
+            *y -= 6.0;
+        };
 
-    let bytes = doc.save_to_bytes().map_err(|e| AppError::InternalServerError(e.to_string()))?;
-    
+    write_pdf_metric(
+        &doc,
+        &mut y,
+        &mut current_layer,
+        format!("Total Members: {}", analytics.membership.total),
+    );
+    write_pdf_metric(
+        &doc,
+        &mut y,
+        &mut current_layer,
+        format!(
+            "Active Members: {} ({:.1}%)",
+            analytics.membership.active, analytics.membership.active_pct
+        ),
+    );
+    write_pdf_metric(
+        &doc,
+        &mut y,
+        &mut current_layer,
+        format!(
+            "Female Members: {} ({:.1}%)",
+            analytics.membership.female, analytics.membership.female_pct
+        ),
+    );
+    write_pdf_metric(
+        &doc,
+        &mut y,
+        &mut current_layer,
+        format!("Total Loans: {}", analytics.loans.total_loans),
+    );
+    write_pdf_metric(
+        &doc,
+        &mut y,
+        &mut current_layer,
+        format!(
+            "Performing Loans: {} ({:.1}%)",
+            analytics.loans.performing, analytics.loans.on_time_repayment_pct
+        ),
+    );
+    write_pdf_metric(
+        &doc,
+        &mut y,
+        &mut current_layer,
+        format!(
+            "Total Savings Accounts: {}",
+            analytics.savings.total_accounts
+        ),
+    );
+
+    let bytes = doc
+        .save_to_bytes()
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
     let filename = format!("{reference}.pdf");
-    use axum::response::Response;
     use axum::body::Body;
+    use axum::response::Response;
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "application/pdf")
-        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{filename}\""),
+        )
         .body(Body::from(bytes))
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-        
+
     Ok(response)
 }
-
 
 // ── S4-T6: Ministry stats endpoint ───────────────────────────────────────────
 
@@ -846,11 +1086,7 @@ pub async fn get_ministry_stats(
     use crate::entities::enums::SubmissionStatus;
 
     // Count all cooperatives via cooperative_repo
-    let all_coops = state
-        .cooperative_repo
-        .list_all()
-        .await
-        .unwrap_or_default();
+    let all_coops = state.cooperative_repo.list_all().await.unwrap_or_default();
     let total_cooperatives = all_coops.len() as i64;
 
     let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
@@ -935,7 +1171,9 @@ pub async fn export_ministry_submissions(
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
     if format != "xlsx" && format != "csv" && format != "pdf" {
-        return Err(AppError::BadRequest("format must be 'xlsx', 'csv', or 'pdf'".into()));
+        return Err(AppError::BadRequest(
+            "format must be 'xlsx', 'csv', or 'pdf'".into(),
+        ));
     }
 
     let all_coops = state.cooperative_repo.list_all().await?;
@@ -964,12 +1202,18 @@ pub async fn export_federation_submissions(
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
     if format != "xlsx" && format != "csv" && format != "pdf" {
-        return Err(AppError::BadRequest("format must be 'xlsx', 'csv', or 'pdf'".into()));
+        return Err(AppError::BadRequest(
+            "format must be 'xlsx', 'csv', or 'pdf'".into(),
+        ));
     }
 
-    let org_id = claims.get_organization_id()
+    let org_id = claims
+        .get_organization_id()
         .ok_or_else(|| AppError::Forbidden("Federation user has no organization".into()))?;
-    let federation = state.federation_repo.find_by_keycloak_id(&org_id).await?
+    let federation = state
+        .federation_repo
+        .find_by_keycloak_id(&org_id)
+        .await?
         .ok_or_else(|| AppError::Forbidden("Federation not found".into()))?;
     let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
     let mut coop_ids = Vec::new();
@@ -1003,10 +1247,13 @@ pub async fn export_apex_submissions(
 ) -> AppResult<impl IntoResponse> {
     let format = params.format.to_lowercase();
     if format != "xlsx" && format != "csv" && format != "pdf" {
-        return Err(AppError::BadRequest("format must be 'xlsx', 'csv', or 'pdf'".into()));
+        return Err(AppError::BadRequest(
+            "format must be 'xlsx', 'csv', or 'pdf'".into(),
+        ));
     }
 
-    let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
     let coops = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
     let coop_ids: Vec<Uuid> = coops.iter().map(|c| c.id).collect();
     let coop_names: std::collections::HashMap<Uuid, String> =
@@ -1023,15 +1270,22 @@ async fn build_bulk_export(
     format: &str,
 ) -> AppResult<impl IntoResponse> {
     use crate::services::KpiEngine;
-    use rust_xlsxwriter::Workbook;
-    use axum::http::header;
     use axum::body::Body;
+    use axum::http::header;
     use axum::response::Response;
+    use rust_xlsxwriter::Workbook;
 
-    let submissions = state.submission_repo.find_by_cooperative_ids(coop_ids.to_vec()).await?;
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(coop_ids.to_vec())
+        .await?;
 
     let sub_ids: Vec<Uuid> = submissions.iter().map(|s| s.id).collect();
-    let fs_list = state.financial_statement_repo.find_by_submission_ids(sub_ids.clone()).await.unwrap_or_default();
+    let fs_list = state
+        .financial_statement_repo
+        .find_by_submission_ids(sub_ids.clone())
+        .await
+        .unwrap_or_default();
     let fs_map: std::collections::HashMap<Uuid, Uuid> =
         fs_list.iter().map(|fs| (fs.submission_id, fs.id)).collect();
 
@@ -1039,20 +1293,27 @@ async fn build_bulk_export(
     let mut rows: Vec<KpiRow> = Vec::new();
 
     for sub in &submissions {
-        let coop_name = coop_names.get(&sub.cooperative_id).cloned().unwrap_or_default();
+        let coop_name = coop_names
+            .get(&sub.cooperative_id)
+            .cloned()
+            .unwrap_or_default();
         let ref_str = sub.reference.clone().unwrap_or_else(|| sub.id.to_string());
         let status = format!("{:?}", sub.status);
 
         if let Some(&fs_id) = fs_map.get(&sub.id) {
-            let line_items = state.line_item_repo.find_by_financial_statement(fs_id).await.unwrap_or_default();
+            let line_items = state
+                .line_item_repo
+                .find_by_financial_statement(fs_id)
+                .await
+                .unwrap_or_default();
             let kpi_set = KpiEngine::compute(&line_items);
-            let find_kpi = |name: &str| -> f64 {
-                kpi_set.get_by_name(name)
-                    .map(|k| k.value)
-                    .unwrap_or(0.0)
-            };
+            let find_kpi =
+                |name: &str| -> f64 { kpi_set.get_by_name(name).map(|k| k.value).unwrap_or(0.0) };
             rows.push((
-                coop_name, ref_str, sub.reporting_year, status,
+                coop_name,
+                ref_str,
+                sub.reporting_year,
+                status,
                 find_kpi("total_assets"),
                 find_kpi("gross_loan_portfolio"),
                 find_kpi("par30"),
@@ -1061,7 +1322,18 @@ async fn build_bulk_export(
                 find_kpi("total_equity"),
             ));
         } else {
-            rows.push((coop_name, ref_str, sub.reporting_year, status, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+            rows.push((
+                coop_name,
+                ref_str,
+                sub.reporting_year,
+                status,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ));
         }
     }
 
@@ -1070,21 +1342,37 @@ async fn build_bulk_export(
     let response: Response = match format {
         "xlsx" => {
             let mut workbook = Workbook::new();
-            let ws = workbook.add_worksheet()
+            let ws = workbook
+                .add_worksheet()
                 .set_name("Submissions Summary")
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-            let headers = ["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"];
+            let headers = [
+                "Cooperative",
+                "Reference",
+                "Year",
+                "Status",
+                "Total Assets",
+                "Gross Loans",
+                "PAR30 %",
+                "ROA %",
+                "CAR %",
+                "Total Equity",
+            ];
             for (col, h) in headers.iter().enumerate() {
                 ws.write_string(0, col as u16, *h)
                     .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             }
             for (row, r) in rows.iter().enumerate() {
                 let rn = (row + 1) as u32;
-                ws.write_string(rn, 0, &r.0).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                ws.write_string(rn, 1, &r.1).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                ws.write_number(rn, 2, r.2 as f64).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                ws.write_string(rn, 3, &r.3).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_string(rn, 0, &r.0)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_string(rn, 1, &r.1)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_number(rn, 2, r.2 as f64)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                ws.write_string(rn, 3, &r.3)
+                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
                 let vals = [r.4, r.5, r.6, r.7, r.8, r.9];
                 for (col, val) in vals.iter().enumerate() {
                     ws.write_number(rn, (col + 4) as u16, *val)
@@ -1092,87 +1380,182 @@ async fn build_bulk_export(
                 }
             }
 
-            let bytes = workbook.save_to_buffer()
+            let bytes = workbook
+                .save_to_buffer()
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             let filename = format!("{tier}-submissions.xlsx");
             Response::builder()
                 .status(StatusCode::OK)
-                .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+                .header(
+                    header::CONTENT_TYPE,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                .header(
+                    header::CONTENT_DISPOSITION,
+                    format!("attachment; filename=\"{filename}\""),
+                )
                 .body(Body::from(bytes))
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?
         }
         "csv" => {
             let mut wtr = csv::Writer::from_writer(vec![]);
-            wtr.write_record(["Cooperative", "Reference", "Year", "Status", "Total Assets", "Gross Loans", "PAR30 %", "ROA %", "CAR %", "Total Equity"])
-                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            wtr.write_record([
+                "Cooperative",
+                "Reference",
+                "Year",
+                "Status",
+                "Total Assets",
+                "Gross Loans",
+                "PAR30 %",
+                "ROA %",
+                "CAR %",
+                "Total Equity",
+            ])
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             for r in &rows {
                 wtr.write_record([
-                    &r.0, &r.1, &r.2.to_string(), &r.3,
-                    &format_f64(r.4), &format_f64(r.5), &format_f64(r.6),
-                    &format_f64(r.7), &format_f64(r.8), &format_f64(r.9),
-                ]).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+                    &r.0,
+                    &r.1,
+                    &r.2.to_string(),
+                    &r.3,
+                    &format_f64(r.4),
+                    &format_f64(r.5),
+                    &format_f64(r.6),
+                    &format_f64(r.7),
+                    &format_f64(r.8),
+                    &format_f64(r.9),
+                ])
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             }
-            let bytes = wtr.into_inner().map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let bytes = wtr
+                .into_inner()
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             let filename = format!("{tier}-submissions.csv");
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "text/csv")
-                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+                .header(
+                    header::CONTENT_DISPOSITION,
+                    format!("attachment; filename=\"{filename}\""),
+                )
                 .body(Body::from(bytes))
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?
         }
         "pdf" => {
             use printpdf::*;
-            let (doc, mut page1, mut layer1) = PdfDocument::new(format!("{} Report", tier.to_uppercase()), Mm(297.0), Mm(210.0), "Layer 1");
+            let (doc, mut page1, mut layer1) = PdfDocument::new(
+                format!("{} Report", tier.to_uppercase()),
+                Mm(297.0),
+                Mm(210.0),
+                "Layer 1",
+            );
             let mut current_layer = doc.get_page(page1).get_layer(layer1);
-            let font = doc.add_builtin_font(BuiltinFont::Helvetica).map_err(|e| AppError::InternalServerError(e.to_string()))?;
-            let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let font = doc
+                .add_builtin_font(BuiltinFont::Helvetica)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let font_bold = doc
+                .add_builtin_font(BuiltinFont::HelveticaBold)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-            current_layer.use_text(format!("{} Consolidated Report", tier.to_uppercase()), 16.0, Mm(20.0), Mm(190.0), &font_bold);
-            
+            current_layer.use_text(
+                format!("{} Consolidated Report", tier.to_uppercase()),
+                16.0,
+                Mm(20.0),
+                Mm(190.0),
+                &font_bold,
+            );
+
             let mut y: f32 = 175.0;
-            let headers = ["Cooperative", "Year", "Status", "Assets", "GLP", "PAR30", "ROA", "CAR"];
+            let headers = [
+                "Cooperative",
+                "Year",
+                "Status",
+                "Assets",
+                "GLP",
+                "PAR30",
+                "ROA",
+                "CAR",
+            ];
             let x_positions = [20.0, 90.0, 110.0, 140.0, 170.0, 200.0, 230.0, 260.0];
-            
+
             for (i, h) in headers.iter().enumerate() {
                 current_layer.use_text(*h, 10.0, Mm(x_positions[i]), Mm(y), &font_bold);
             }
             y -= 6.0;
 
-            let mut check_page = |doc: &PdfDocumentReference, y: &mut f32, current_layer: &mut PdfLayerReference| {
-                if *y < 20.0 {
-                    let (new_page, new_layer) = doc.add_page(Mm(297.0), Mm(210.0), "Layer 1");
-                    page1 = new_page;
-                    layer1 = new_layer;
-                    *current_layer = doc.get_page(page1).get_layer(layer1);
-                    *y = 190.0;
-                }
-            };
+            let mut check_page =
+                |doc: &PdfDocumentReference, y: &mut f32, current_layer: &mut PdfLayerReference| {
+                    if *y < 20.0 {
+                        let (new_page, new_layer) = doc.add_page(Mm(297.0), Mm(210.0), "Layer 1");
+                        page1 = new_page;
+                        layer1 = new_layer;
+                        *current_layer = doc.get_page(page1).get_layer(layer1);
+                        *y = 190.0;
+                    }
+                };
 
             for row in &rows {
                 check_page(&doc, &mut y, &mut current_layer);
-                
-                let name = if row.0.len() > 30 { format!("{}...", &row.0[0..27]) } else { row.0.clone() };
-                
+
+                let name = if row.0.len() > 30 {
+                    format!("{}...", &row.0[0..27])
+                } else {
+                    row.0.clone()
+                };
+
                 current_layer.use_text(name, 9.0, Mm(x_positions[0]), Mm(y), &font);
                 current_layer.use_text(row.2.to_string(), 9.0, Mm(x_positions[1]), Mm(y), &font);
                 current_layer.use_text(row.3.clone(), 9.0, Mm(x_positions[2]), Mm(y), &font);
-                current_layer.use_text(format!("{:.1}M", row.4 / 1_000_000.0), 9.0, Mm(x_positions[3]), Mm(y), &font);
-                current_layer.use_text(format!("{:.1}M", row.5 / 1_000_000.0), 9.0, Mm(x_positions[4]), Mm(y), &font);
-                current_layer.use_text(format!("{:.1}%", row.6), 9.0, Mm(x_positions[5]), Mm(y), &font);
-                current_layer.use_text(format!("{:.1}%", row.7), 9.0, Mm(x_positions[6]), Mm(y), &font);
-                current_layer.use_text(format!("{:.1}%", row.8), 9.0, Mm(x_positions[7]), Mm(y), &font);
-                
+                current_layer.use_text(
+                    format!("{:.1}M", row.4 / 1_000_000.0),
+                    9.0,
+                    Mm(x_positions[3]),
+                    Mm(y),
+                    &font,
+                );
+                current_layer.use_text(
+                    format!("{:.1}M", row.5 / 1_000_000.0),
+                    9.0,
+                    Mm(x_positions[4]),
+                    Mm(y),
+                    &font,
+                );
+                current_layer.use_text(
+                    format!("{:.1}%", row.6),
+                    9.0,
+                    Mm(x_positions[5]),
+                    Mm(y),
+                    &font,
+                );
+                current_layer.use_text(
+                    format!("{:.1}%", row.7),
+                    9.0,
+                    Mm(x_positions[6]),
+                    Mm(y),
+                    &font,
+                );
+                current_layer.use_text(
+                    format!("{:.1}%", row.8),
+                    9.0,
+                    Mm(x_positions[7]),
+                    Mm(y),
+                    &font,
+                );
+
                 y -= 5.0;
             }
 
-            let bytes = doc.save_to_bytes().map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let bytes = doc
+                .save_to_bytes()
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
             let filename = format!("{tier}-submissions.pdf");
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "application/pdf")
-                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
+                .header(
+                    header::CONTENT_DISPOSITION,
+                    format!("attachment; filename=\"{filename}\""),
+                )
                 .body(Body::from(bytes))
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?
         }
@@ -1183,7 +1566,11 @@ async fn build_bulk_export(
 }
 
 fn format_f64(v: f64) -> String {
-    if v == 0.0 { String::new() } else { format!("{:.2}", v) }
+    if v == 0.0 {
+        String::new()
+    } else {
+        format!("{:.2}", v)
+    }
 }
 
 // ── Monthly trend analytics endpoint ─────────────────────────────────────────
@@ -1208,8 +1595,7 @@ pub struct AnalyticsFilterParams {
 }
 
 const MONTH_LABELS: [&str; 12] = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
 const SAVINGS_ACCOUNT_CODES: [i32; 3] = [2101, 2102, 2103];
@@ -1249,7 +1635,8 @@ pub async fn get_monthly_trend(
         params.sector,
         params.federation_id,
         params.apex_id,
-    ).await?;
+    )
+    .await?;
 
     let submissions = state
         .submission_repo
@@ -1292,7 +1679,7 @@ pub async fn get_monthly_trend(
         } else {
             (item.month - 1) as usize
         };
-        
+
         if month_idx >= 12 {
             continue;
         }
@@ -1317,10 +1704,7 @@ pub async fn get_monthly_trend(
         "Monthly trend computed"
     );
 
-    Ok((
-        StatusCode::OK,
-        Json(MonthlyTrendResponse { year, months }),
-    ))
+    Ok((StatusCode::OK, Json(MonthlyTrendResponse { year, months })))
 }
 
 #[utoipa::path(
@@ -1358,7 +1742,10 @@ pub async fn get_submission_activity(
         })
         .collect();
 
-    for submission in submissions.iter().filter(|submission| submission.reporting_year == year) {
+    for submission in submissions
+        .iter()
+        .filter(|submission| submission.reporting_year == year)
+    {
         let activity_at = submission.submitted_at.unwrap_or(submission.created_at);
         let month_index = activity_at.month0() as usize;
         let point = &mut months[month_index];
@@ -1407,7 +1794,8 @@ pub async fn get_region_compliance(
         params.sector,
         params.federation_id,
         params.apex_id,
-    ).await?;
+    )
+    .await?;
 
     let cooperatives = state.cooperative_repo.find_by_ids(coop_ids.clone()).await?;
 
@@ -1460,12 +1848,13 @@ pub async fn get_region_compliance(
             }
         })
         .collect();
-    regions.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    regions.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
-    Ok((
-        StatusCode::OK,
-        Json(RegionComplianceResponse { regions }),
-    ))
+    Ok((StatusCode::OK, Json(RegionComplianceResponse { regions })))
 }
 
 // ── Sector breakdown analytics endpoint ─────────────────────────────────────
@@ -1498,18 +1887,15 @@ pub async fn get_sector_breakdown(
         params.sector,
         params.federation_id,
         params.apex_id,
-    ).await?;
+    )
+    .await?;
 
     let cooperatives = state.cooperative_repo.find_by_ids(coop_ids).await?;
 
-    let mut sector_map: std::collections::HashMap<String, i64> =
-        std::collections::HashMap::new();
+    let mut sector_map: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
 
     for coop in &cooperatives {
-        let sector = coop
-            .sector
-            .clone()
-            .unwrap_or_else(|| "Other".to_string());
+        let sector = coop.sector.clone().unwrap_or_else(|| "Other".to_string());
         *sector_map.entry(sector).or_insert(0) += 1;
     }
 
@@ -1523,10 +1909,7 @@ pub async fn get_sector_breakdown(
         .collect();
     sectors.sort_by_key(|s: &SectorBreakdownPoint| std::cmp::Reverse(s.value));
 
-    Ok((
-        StatusCode::OK,
-        Json(SectorBreakdownResponse { sectors }),
-    ))
+    Ok((StatusCode::OK, Json(SectorBreakdownResponse { sectors })))
 }
 
 /// GET /api/v1/cooperative/chart-of-accounts

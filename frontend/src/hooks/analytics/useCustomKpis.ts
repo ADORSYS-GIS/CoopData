@@ -18,7 +18,8 @@ export function useCustomKpis() {
       const { data, error } = await apiClient.POST("/api/v1/analytics/custom-kpis", {
         body: payload,
       });
-      if (error) throw new Error((error as any)?.message || "Failed to create Custom KPI");
+      if (error)
+        throw new Error((error as { message?: string })?.message || "Failed to create Custom KPI");
       return data;
     },
     onSuccess: () => {

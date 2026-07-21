@@ -492,8 +492,13 @@ export function Card({
                         <Info className="size-3.5 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors shrink-0" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
-                      <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{info}</p>
+                    <PopoverContent
+                      side="top"
+                      className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
+                    >
+                      <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
+                        {info}
+                      </p>
                     </PopoverContent>
                   </Popover>
                 )}
@@ -593,8 +598,13 @@ export function StatCard({
                   <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors shrink-0" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl">
-                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">{info}</p>
+              <PopoverContent
+                side="top"
+                className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
+              >
+                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
+                  {info}
+                </p>
               </PopoverContent>
             </Popover>
           )}
