@@ -564,20 +564,20 @@ These must be set in /opt/coopdata/.env on the server.
 
 # ── Database ────────────────────────────────────────────────────────────────
 POSTGRES_USER=coopdata
-POSTGRES_PASSWORD=<strong-random-password>
+POSTGRES_PASSWORD=changeme-postgres-password
 POSTGRES_DB=coopdata
-DATABASE_URL=postgresql://coopdata:<strong-random-password>@postgres:5432/coopdata
+DATABASE_URL=postgresql://coopdata:changeme-postgres-password@postgres:5432/coopdata
 
 # ── Redis ────────────────────────────────────────────────────────────────────
 REDIS_URL=redis://redis:6379
 
 # ── Keycloak ─────────────────────────────────────────────────────────────────
 KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=<strong-random-password>
+KEYCLOAK_ADMIN_PASSWORD=changeme-keycloak-admin-password
 KEYCLOAK_URL=http://keycloak:8180                          # internal Docker URL
 KEYCLOAK_REALM=coop-data
 KEYCLOAK_CLIENT_ID=coopdata-backend
-KEYCLOAK_CLIENT_SECRET=<client-secret-from-keycloak-console>
+KEYCLOAK_CLIENT_SECRET=changeme-keycloak-client-secret
 
 # ── Backend ───────────────────────────────────────────────────────────────────
 HOST=0.0.0.0
@@ -592,8 +592,8 @@ ENVIRONMENT=production
 STORAGE_TYPE=s3
 S3_ENDPOINT=http://minio:9000
 S3_BUCKET=coopdata-uploads
-S3_ACCESS_KEY=<strong-random-key>
-S3_SECRET_KEY=<strong-random-secret>
+S3_ACCESS_KEY=changeme-minio-access-key
+S3_SECRET_KEY=changeme-minio-secret-key
 S3_REGION=us-east-1
 
 # ── SMTP ──────────────────────────────────────────────────────────────────────
@@ -601,9 +601,9 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_STARTTLS=true
 SMTP_AUTH=true
-SMTP_USER=<your-email@gmail.com>
-SMTP_PASSWORD=<app-password>
-SMTP_FROM=<your-email@gmail.com>
+SMTP_USER=changeme-email@gmail.com
+SMTP_PASSWORD=changeme-app-password
+SMTP_FROM=changeme-email@gmail.com
 SMTP_FROM_DISPLAY=CoopData
 
 # ── Frontend (build args — baked into the image) ──────────────────────────────
