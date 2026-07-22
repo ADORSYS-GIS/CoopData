@@ -167,7 +167,8 @@ export const FinancialQuestionnaireWizard: React.FC<{
   submissionId: string;
   onComplete: () => void;
   initialData?: any;
-}> = ({ submissionId, onComplete, initialData }) => {
+  readOnly?: boolean;
+}> = ({ submissionId, onComplete, initialData, readOnly = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -514,6 +515,7 @@ export const FinancialQuestionnaireWizard: React.FC<{
     >
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)}>
+          <fieldset disabled={readOnly}>
           <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
 
             {/* STEP 1: Leadership & Governance */}
@@ -973,17 +975,17 @@ export const FinancialQuestionnaireWizard: React.FC<{
           </div>
 
           {/* Footer Navigation */}
-          <div className="flex items-center justify-between mt-6">
-            <button
-              type="button"
-              onClick={handlePrev}
-              disabled={currentStep === 0}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50 transition-colors"
-            >
-              <ArrowLeft className="size-4" /> Previous
-            </button>
+          {currentStep < STEPS.length - 1 ? (
+            <div className="flex items-center justify-between mt-6">
+              <button
+                type="button"
+                onClick={handlePrev}
+                disabled={currentStep === 0}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50 transition-colors"
+              >
+                <ArrowLeft className="size-4" /> Previous
+              </button>
 
-            {currentStep < STEPS.length - 1 ? (
               <button
                 type="button"
                 onClick={handleNext}
@@ -991,15 +993,46 @@ export const FinancialQuestionnaireWizard: React.FC<{
               >
                 Continue <ArrowRight className="size-4" />
               </button>
-            ) : (
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 rounded-xl bg-success px-6 py-2 text-sm font-semibold text-success-foreground hover:bg-success/90 shadow-sm transition-colors"
-              >
-                {initialData ? "Save Changes" : "Save & Mark Ready for Submission"}
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <>
+              {currentStep === STEPS.length - 1 && !readOnly && (
+                <div className="flex justify-between items-center mt-12 pt-6 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(curr => curr - 1)}
+                    className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    <ArrowLeft className="size-4" />
+                    Previous
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95"
+                  >
+                    {isSubmitting ? "Saving..." : "Save & Mark Ready for Submission"}
+                  </button>
+                </div>
+              )}
+
+              {/* Navigation for readonly mode on last step */}
+              {currentStep === STEPS.length - 1 && readOnly && (
+                <div className="flex justify-start items-center mt-12 pt-6 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(curr => curr - 1)}
+                    className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    <ArrowLeft className="size-4" />
+                    Previous
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          
+          </fieldset>
         </form>
       </FormProvider>
     </WizardLayout>

@@ -36,7 +36,7 @@ const InputField = ({ label, name, type = "number" }: { label: string, name: str
       <label className="block text-xs font-semibold mb-1 text-muted-foreground">{label}</label>
       <input
         type={type}
-        {...register(name)}
+        {...register(name, { valueAsNumber: type === "number" })}
         className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
       />
       {error && (
@@ -111,13 +111,13 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
   submissionId: string;
   onComplete: () => void;
   initialData?: any;
-}> = ({ submissionId, onComplete, initialData }) => {
+  readOnly?: boolean;
+}> = ({ submissionId, onComplete, initialData, readOnly = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<NonFinancialQuestionnaireValues>({
-    resolver: zodResolver(nonFinancialQuestionnaireSchema),
     mode: "onChange",
     defaultValues: initialData || {
       submission_id: submissionId,
@@ -357,8 +357,30 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
   const onSubmit = async (data: NonFinancialQuestionnaireValues) => {
     setIsSubmitting(true);
     try {
+      const cleanData = (obj: any): any => {
+        if (Array.isArray(obj)) return obj.map(cleanData);
+        if (obj !== null && typeof obj === 'object') {
+          const res: any = {};
+          const textFields = ['reference', 'priority', 'rejection_reason', 'manager_gender', 'manager_academic_level', 'manager_coop_training_level', 'society_status', 'last_audit_date', 'last_inspection_date', 'last_mgmt_report_date', 'last_budget_date', 'last_committee_profile_date', 'last_audit_firm', 'chair_education', 'vice_chair_education', 'treasurer_education', 'secretary_education', 'committee_elected_date', 'committee_oriented_date', 'agm_last_held_date', 'training_sponsor', 'training_quality_rating', 'respondent_comments', 'interest_rate_method', 'activity_name', 'unit_of_measure', 'report_name', 'frequency', 'committee_meeting_frequency', 'last_distribution_date'];
+          
+          for (const k in obj) {
+            if (typeof obj[k] === 'number' && isNaN(obj[k])) {
+              res[k] = 0;
+            } else if (obj[k] === "") {
+              res[k] = textFields.includes(k) ? "" : 0;
+            } else {
+              res[k] = cleanData(obj[k]);
+            }
+          }
+          return res;
+        }
+        return obj;
+      };
+      
+      const payload = cleanData(data);
+
       const { error } = await apiClient.POST("/api/v1/cooperative/questionnaire/non-financial", {
-        body: data as any,
+        body: payload as any,
       });
       if (error) throw new Error((error as any).message || "Submission failed");
       toast.success("Non-Financial Questionnaire Saved & Ready for Submission!");
@@ -454,6 +476,7 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
     >
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)}>
+          <fieldset disabled={readOnly}>
           <div className="bg-surface border border-border rounded-xl p-6 min-h-[400px]">
           
           {/* STEP 1: Membership & Demographics */}
@@ -640,6 +663,10 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
                   <InputField label="Total Expenses (E)" name="main_activity_performance.0.total_expenses" />
                   <InputField label="Net Surplus (E)" name="main_activity_performance.0.net_surplus" />
                 </WizardRow>
+                <WizardRow>
+                  <InputField label="Distributed to Members" name="main_activity_performance.0.distributed_to_members" />
+                  <InputField type="text" label="Last Distribution Date" name="main_activity_performance.0.last_distribution_date" />
+                </WizardRow>
               </WizardSection>
             </div>
           )}
@@ -811,18 +838,16 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
           )}
         </div>
 
-        {/* Footer Navigation */}
-        <div className="flex items-center justify-between mt-6">
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50 transition-colors"
-          >
-            <ArrowLeft className="size-4" /> Previous
-          </button>
-          
-          {currentStep < STEPS.length - 1 ? (
+        {currentStep < STEPS.length - 1 ? (
+          <div className="flex items-center justify-between mt-6">
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={currentStep === 0}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50 transition-colors"
+            >
+              <ArrowLeft className="size-4" /> Previous
+            </button>
             <button
               type="button"
               onClick={handleNext}
@@ -830,15 +855,45 @@ export const NonFinancialQuestionnaireWizard: React.FC<{
             >
               Continue <ArrowRight className="size-4" />
             </button>
-          ) : (
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-success px-6 py-2 text-sm font-semibold text-success-foreground hover:bg-success/90 shadow-sm transition-colors"
-            >
-              {initialData ? "Save Changes" : "Save & Mark Ready for Submission"}
-            </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <>
+            {currentStep === STEPS.length - 1 && !readOnly && (
+              <div className="flex justify-between items-center mt-12 pt-6 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(curr => curr - 1)}
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <ArrowLeft className="size-4" />
+                  Previous
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95"
+                >
+                  {isSubmitting ? "Saving..." : "Save & Mark Ready for Submission"}
+                </button>
+              </div>
+            )}
+
+            {currentStep === STEPS.length - 1 && readOnly && (
+              <div className="flex justify-start items-center mt-12 pt-6 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(curr => curr - 1)}
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <ArrowLeft className="size-4" />
+                  Previous
+                </button>
+              </div>
+            )}
+          </>
+        )}
+          
+          </fieldset>
         </form>
       </FormProvider>
     </WizardLayout>

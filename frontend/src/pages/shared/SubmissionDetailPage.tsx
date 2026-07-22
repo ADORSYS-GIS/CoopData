@@ -1158,6 +1158,7 @@ export const SubmissionDetailPage: React.FC = () => {
                 <FinancialQuestionnaireWizard
                   submissionId={submission.id}
                   initialData={(submission.metadata as any)?.financial_questionnaire}
+                  readOnly={isReadOnly}
                   onComplete={() => {
                     void refetchSubmission();
                     refetchSections();
@@ -1166,11 +1167,12 @@ export const SubmissionDetailPage: React.FC = () => {
                 />
               )}
               {submission.data_entry_mode === "manual" && !isCooperative && (
-                <Card title="Financial Questionnaire" subtitle="Manually entered data">
-                  <div className="p-10 text-center text-muted-foreground">
-                    Manual Data Entry view is only supported for editing currently.
-                  </div>
-                </Card>
+                <FinancialQuestionnaireWizard
+                  submissionId={submission.id}
+                  initialData={(submission.metadata as any)?.financial_questionnaire}
+                  readOnly={true}
+                  onComplete={() => {}}
+                />
               )}
               {!submission.financial_statement_id &&
                 !isExtracting &&
@@ -1203,17 +1205,19 @@ export const SubmissionDetailPage: React.FC = () => {
                 <NonFinancialQuestionnaireWizard
                   submissionId={submission.id}
                   initialData={(submission.metadata as any)?.non_financial_questionnaire}
+                  readOnly={isReadOnly}
                   onComplete={() => {
                     void refetchSubmission();
                     refetchSections();
                   }}
                 />
               ) : submission.data_entry_mode === "manual" && !isCooperative ? (
-                <Card title="Non-Financial Questionnaire" subtitle="Manually entered data">
-                  <div className="p-10 text-center text-muted-foreground">
-                    Manual Data Entry view is only supported for editing currently.
-                  </div>
-                </Card>
+                <NonFinancialQuestionnaireWizard
+                  submissionId={submission.id}
+                  initialData={(submission.metadata as any)?.non_financial_questionnaire}
+                  readOnly={true}
+                  onComplete={() => {}}
+                />
               ) : (
                 <NfDatabasesTab
                   submissionId={submission.id}
