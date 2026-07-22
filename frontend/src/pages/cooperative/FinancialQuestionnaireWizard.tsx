@@ -421,8 +421,39 @@ export const FinancialQuestionnaireWizard: React.FC<{
   const onSubmit = async (data: FinancialQuestionnaireValues) => {
     setIsSubmitting(true);
     try {
+      const cleanData = (obj: any): any => {
+        if (Array.isArray(obj)) return obj.map(cleanData);
+        if (obj !== null && typeof obj === 'object') {
+          const res: any = {};
+          const textFields = [
+            'chair_education', 'vice_chair_education', 'treasurer_education', 'secretary_education',
+            'manager_academic_level', 'manager_coop_training_level', 'training_sponsor',
+            'training_quality_rating', 'society_status', 'dormancy_effect',
+            'last_audit_date', 'last_inspection_date', 'last_mgmt_report_date',
+            'last_budget_date', 'last_committee_profile_date', 'last_audit_firm',
+            'product_name', 'activity_name', 'report_name', 'frequency'
+          ];
+          
+          for (const k in obj) {
+            if (typeof obj[k] === 'number' && isNaN(obj[k])) {
+              res[k] = 0;
+            } else if (obj[k] === "") {
+              res[k] = textFields.includes(k) ? "" : 0;
+            } else if (typeof obj[k] === 'string' && !isNaN(Number(obj[k])) && !textFields.includes(k)) {
+              res[k] = Number(obj[k]);
+            } else {
+              res[k] = cleanData(obj[k]);
+            }
+          }
+          return res;
+        }
+        return obj;
+      };
+      
+      const payload = cleanData(data);
+
       const { error } = await apiClient.POST("/api/v1/cooperative/questionnaire/financial", {
-        body: data as any,
+        body: payload as any,
       });
       if (error) throw new Error((error as any).message || "Submission failed");
       toast.success("Financial Questionnaire Saved & Ready for Submission!");
