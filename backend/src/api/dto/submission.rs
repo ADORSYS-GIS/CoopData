@@ -109,7 +109,11 @@ impl From<SubmissionModel> for SubmissionResponse {
             federation_name: None,
             apex_id: None,
             federation_id: None,
-            data_entry_mode: m.metadata.get("data_entry_mode").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            data_entry_mode: m
+                .metadata
+                .get("data_entry_mode")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
             metadata: Some(m.metadata),
         }
     }

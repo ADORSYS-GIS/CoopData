@@ -833,7 +833,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "coopdata-backend-secret-2026",
       "redirectUris": [],
       "webOrigins": [],
       "notBefore": 0,

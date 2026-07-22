@@ -30,12 +30,12 @@ pub struct LeadershipAndManagement {
     pub education_committee_female: i32,
     pub supervisory_committee_male: i32,
     pub supervisory_committee_female: i32,
-    
+
     pub chair_education: String,
     pub vice_chair_education: String,
     pub treasurer_education: String,
     pub secretary_education: String,
-    
+
     pub staff_manager_male: i32,
     pub staff_manager_female: i32,
     pub staff_ass_manager_male: i32,
@@ -46,55 +46,55 @@ pub struct LeadershipAndManagement {
     pub staff_other_mgmt_female: i32,
     pub staff_support_male: i32,
     pub staff_support_female: i32,
-    
+
     pub manager_academic_level: String,
     pub manager_coop_training_level: String,
-    
+
     pub members_trained_last_year: i32,
     pub leaders_trained_last_year: i32,
     pub staff_trained_last_year: i32,
     pub training_sponsor: String,
     pub training_quality_rating: String,
-    
+
     pub member_training_needs: Vec<String>,
     pub leader_training_needs: Vec<String>,
     pub staff_training_needs: Vec<String>,
     pub willing_to_cover_training_cost_pct: f64,
-    
+
     pub registered_members_male: i32,
     pub registered_members_female: i32,
     pub active_members_male: i32,
     pub active_members_female: i32,
-    
+
     pub active_members_youth_17_under: i32,
     pub active_members_18_25: i32,
     pub active_members_26_35: i32,
     pub active_members_36_60: i32,
     pub active_members_61_plus: i32,
-    
+
     pub society_status: String,
     pub dormant_members_male: i32,
     pub dormant_members_female: i32,
-    
+
     pub dormancy_reasons: Vec<String>,
     pub dormancy_effect: String,
-    
+
     pub management_tools: Vec<String>,
     pub governance_tools: Vec<String>,
-    
+
     pub agm_up_to_date: bool,
     pub agm_arrears_months: Option<i32>,
     pub agm_arrears_reasons: Option<Vec<String>>,
     pub agm_attendance_male: i32,
     pub agm_attendance_female: i32,
-    
+
     pub last_audit_date: Option<String>,
     pub last_inspection_date: Option<String>,
     pub last_mgmt_report_date: Option<String>,
     pub last_budget_date: Option<String>,
     pub last_committee_profile_date: Option<String>,
     pub last_audit_firm: Option<String>,
-    
+
     pub financial_products: Vec<String>,
     pub non_financial_products: Vec<String>,
 }
@@ -138,39 +138,39 @@ pub struct FinancialLoanPortfolio {
     pub value_issued_male: f64,
     pub value_issued_female: f64,
     pub value_issued_coops: f64,
-    
+
     pub outstanding_accounts_male: i32,
     pub outstanding_accounts_female: i32,
     pub outstanding_accounts_coops: i32,
     pub outstanding_value_male: f64,
     pub outstanding_value_female: f64,
     pub outstanding_value_coops: f64,
-    
+
     pub delinquent_accounts_male: i32,
     pub delinquent_accounts_female: i32,
     pub delinquent_accounts_coops: i32,
     pub delinquent_value_male: f64,
     pub delinquent_value_female: f64,
     pub delinquent_value_coops: f64,
-    
+
     pub delinquent_value_0_30_days: f64,
     pub delinquent_value_31_365_days: f64,
-    
+
     pub provision_0_30_days: f64,
     pub provision_31_365_days: f64,
-    
+
     pub written_off_value: f64,
     pub recovered_loans_12_months: f64,
-    
+
     pub average_loan_term_months: f64,
     pub average_interest_rate_pct: f64,
-    
+
     pub fees_stationery: f64,
     pub fees_application: f64,
     pub fees_loan_protection: f64,
     pub fees_penalties: f64,
     pub fees_others: f64,
-    
+
     pub interest_rate_method: String,
 }
 
@@ -185,7 +185,7 @@ pub struct ActivityIncome {
 #[derive(Debug, Deserialize, Serialize, ToSchema, Clone)]
 pub struct PeriodicFinancialReporting {
     pub report_frequencies: Vec<ReportFrequency>,
-    
+
     pub current_total_income: f64,
     pub last_total_income: f64,
     pub current_expenditure: f64,
@@ -194,13 +194,13 @@ pub struct PeriodicFinancialReporting {
     pub last_net_income: f64,
     pub current_surplus_distr: f64,
     pub last_surplus_distr: f64,
-    
+
     pub non_current_assets: f64,
     pub total_current_assets: f64,
     pub current_liabilities: f64,
     pub long_term_liabilities: f64,
     pub total_equity: f64,
-    
+
     pub accumulated_reserves_book_value: f64,
     pub actual_reserves_in_bank: f64,
 }
@@ -244,7 +244,7 @@ pub struct BasicData {
     pub registered_members_female: i32,
     pub active_members_male: i32,
     pub active_members_female: i32,
-    
+
     pub active_members_17_under_male: i32,
     pub active_members_17_under_female: i32,
     pub active_members_18_25_male: i32,
@@ -255,7 +255,7 @@ pub struct BasicData {
     pub active_members_36_60_female: i32,
     pub active_members_61_plus_male: i32,
     pub active_members_61_plus_female: i32,
-    
+
     pub board_members_male: i32,
     pub board_members_female: i32,
     pub exec_committee_male: i32,
@@ -266,42 +266,42 @@ pub struct BasicData {
     pub education_committee_female: i32,
     pub supervisory_committee_male: i32,
     pub supervisory_committee_female: i32,
-    
+
     pub chair_education: String,
     pub vice_chair_education: String,
     pub treasurer_education: String,
     pub secretary_education: String,
-    
+
     pub committee_elected_date: Option<String>,
     pub committee_oriented_date: Option<String>,
     pub agm_last_held_date: Option<String>,
     pub agm_attendance_male: i32,
     pub agm_attendance_female: i32,
-    
+
     pub member_joining_fee: f64,
     pub annual_subscription_fee: f64,
     pub share_nominal_value: f64,
     pub share_capital_contribution_per_member: f64,
     pub total_share_capital_male: f64,
     pub total_share_capital_female: f64,
-    
+
     pub borrowed_funds: f64,
     pub donations_grants: f64,
     pub statutory_reserve_book_value: f64,
     pub actual_statutory_reserves: f64,
-    
+
     pub manager_gender: String,
     pub manager_academic_level: String,
     pub manager_coop_training_level: String,
     pub society_status: String,
-    
+
     pub last_audit_date: Option<String>,
     pub last_inspection_date: Option<String>,
     pub last_mgmt_report_date: Option<String>,
     pub last_budget_date: Option<String>,
     pub last_committee_profile_date: Option<String>,
     pub last_audit_firm: Option<String>,
-    
+
     pub staff_manager_male: i32,
     pub staff_manager_female: i32,
     pub staff_ass_manager_male: i32,
@@ -312,7 +312,7 @@ pub struct BasicData {
     pub staff_other_mgmt_female: i32,
     pub staff_support_male: i32,
     pub staff_support_female: i32,
-    
+
     pub committee_meeting_frequency: String,
     pub meeting_purposes: Vec<String>,
 }
@@ -374,48 +374,48 @@ pub struct NonFinancialLoanPortfolio {
     pub value_issued_male: f64,
     pub value_issued_female: f64,
     pub value_issued_coops: f64,
-    
+
     pub outstanding_accounts_male: i32,
     pub outstanding_accounts_female: i32,
     pub outstanding_accounts_coops: i32,
-    
+
     pub outstanding_value_male: f64,
     pub outstanding_value_female: f64,
     pub outstanding_value_coops: f64,
-    
+
     pub delinquent_accounts_male: i32,
     pub delinquent_accounts_female: i32,
     pub delinquent_accounts_coops: i32,
-    
+
     pub delinquent_value_male: f64,
     pub delinquent_value_female: f64,
     pub delinquent_value_coops: f64,
-    
+
     pub delinquent_value_0_30_days: f64,
     pub delinquent_value_31_365_days: f64,
-    
+
     pub provision_0_30_days: f64,
     pub provision_31_365_days: f64,
-    
+
     pub written_off_value: f64,
     pub recovered_loans_12_months: f64,
-    
+
     pub average_loan_term_months: f64,
     pub average_interest_rate_pct: f64,
-    
+
     pub fees_stationery: f64,
     pub fees_application: f64,
     pub fees_loan_protection: f64,
     pub fees_penalties: f64,
     pub fees_others: f64,
-    
+
     pub interest_rate_method: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema, Clone)]
 pub struct NonFinancialPeriodicReporting {
     pub report_frequencies: Vec<ReportFrequency>,
-    
+
     pub current_total_income: f64,
     pub last_total_income: f64,
     pub current_expenditure: f64,
@@ -424,12 +424,12 @@ pub struct NonFinancialPeriodicReporting {
     pub last_net_income: f64,
     pub current_surplus_distr: f64,
     pub last_surplus_distr: f64,
-    
+
     pub non_current_assets: f64,
     pub total_current_assets: f64,
     pub total_liabilities: f64,
     pub total_equity: f64,
-    
+
     pub accumulated_reserves_book_value: f64,
     pub actual_reserves_in_bank: f64,
 }

@@ -369,6 +369,7 @@ export const SubmissionDetailPage: React.FC = () => {
     isLoading,
     isError,
     error,
+    refetch: refetchSubmission,
   } = useSubmission(id ?? "", role ?? undefined);
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
@@ -1156,8 +1157,9 @@ export const SubmissionDetailPage: React.FC = () => {
               {submission.data_entry_mode === "manual" && isCooperative && (
                 <FinancialQuestionnaireWizard
                   submissionId={submission.id}
-                  initialData={submission.metadata as any}
+                  initialData={(submission.metadata as any)?.financial_questionnaire}
                   onComplete={() => {
+                    void refetchSubmission();
                     refetchSections();
                     setActiveTab("databases");
                   }}
@@ -1170,27 +1172,42 @@ export const SubmissionDetailPage: React.FC = () => {
                   </div>
                 </Card>
               )}
-              {!submission.financial_statement_id && !isExtracting && isCooperative && submission.data_entry_mode !== "manual" && (
-                <Card
-                  title="Financial Statement"
-                  subtitle="Upload your audited balance sheet — data is extracted automatically"
-                >
-                  <UploadFinancialStatementWidget submissionId={submission.id} />
-                </Card>
-              )}
-              {!submission.financial_statement_id && !isExtracting && !isCooperative && submission.data_entry_mode !== "manual" && (
-                <Card title="Financial Statement" subtitle="No document uploaded yet">
-                  <div className="py-10 text-center text-muted-foreground">
-                    <FileText className="size-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">No financial statement uploaded for this submission.</p>
-                  </div>
-                </Card>
-              )}
+              {!submission.financial_statement_id &&
+                !isExtracting &&
+                isCooperative &&
+                submission.data_entry_mode !== "manual" && (
+                  <Card
+                    title="Financial Statement"
+                    subtitle="Upload your audited balance sheet — data is extracted automatically"
+                  >
+                    <UploadFinancialStatementWidget submissionId={submission.id} />
+                  </Card>
+                )}
+              {!submission.financial_statement_id &&
+                !isExtracting &&
+                !isCooperative &&
+                submission.data_entry_mode !== "manual" && (
+                  <Card title="Financial Statement" subtitle="No document uploaded yet">
+                    <div className="py-10 text-center text-muted-foreground">
+                      <FileText className="size-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">
+                        No financial statement uploaded for this submission.
+                      </p>
+                    </div>
+                  </Card>
+                )}
             </TabsContent>
 
             <TabsContent value="databases" className="space-y-4">
               {submission.data_entry_mode === "manual" && isCooperative ? (
-                <NonFinancialQuestionnaireWizard submissionId={submission.id} initialData={submission.metadata as any} onComplete={() => refetchSections()} />
+                <NonFinancialQuestionnaireWizard
+                  submissionId={submission.id}
+                  initialData={(submission.metadata as any)?.non_financial_questionnaire}
+                  onComplete={() => {
+                    void refetchSubmission();
+                    refetchSections();
+                  }}
+                />
               ) : submission.data_entry_mode === "manual" && !isCooperative ? (
                 <Card title="Non-Financial Questionnaire" subtitle="Manually entered data">
                   <div className="p-10 text-center text-muted-foreground">

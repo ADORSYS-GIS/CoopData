@@ -2,14 +2,17 @@ use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use std::sync::Arc;
+use sea_orm::ActiveModelTrait;
 use serde_json::json;
+use std::sync::Arc;
 
-use crate::api::dto::questionnaire::{FinancialQuestionnaireRequest, NonFinancialQuestionnaireRequest};
-use crate::api::dto::common::ErrorResponse;
+use crate::api::dto::questionnaire::{
+    FinancialQuestionnaireRequest, NonFinancialQuestionnaireRequest,
+};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
+use crate::services::questionnaire_converter;
 use crate::AppState;
 
 const QUESTIONNAIRE_TAG: &str = "Questionnaire";
@@ -33,38 +36,51 @@ pub async fn submit_financial_questionnaire(
     let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let submission_id = body.submission_id;
 
-    // Serialize payload to JSON for metadata persistence
-    let metadata_value = serde_json::to_value(&body)
-        .map_err(|e| AppError::BadRequest(format!("Failed to serialize questionnaire: {e}")))?;
+    let sub = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    // Save/update submission metadata in DB
-    if let Some(existing) = state.submissions.find_by_id(submission_id).await? {
-        let mut active: crate::entities::submission::ActiveModel = existing.into();
-        active.metadata = sea_orm::Set(metadata_value);
-        active.updated_at = sea_orm::Set(chrono::Utc::now());
-        active.update(&state.db).await?;
+    let mut existing_metadata = sub.metadata.clone();
+    let questionnaire_json = serde_json::to_value(&body)
+        .map_err(|e| AppError::BadRequest(format!("Failed to serialize questionnaire: {e}")))?;
+    existing_metadata["financial_questionnaire"] = questionnaire_json;
+
+    let metadata_value = existing_metadata;
+    let mut active: crate::entities::submission::ActiveModel = sub.clone().into();
+    active.metadata = sea_orm::Set(metadata_value);
+    active.updated_at = sea_orm::Set(chrono::Utc::now());
+    active.update(&state.db).await?;
+
+    let (fs_model, mut line_items) = questionnaire_converter::convert_financial_questionnaire(
+        &body,
+        submission_id,
+        coop_id,
+        sub.reporting_year,
+    );
+
+    let fs_id = if let Some(existing_fs) = state.financial_statement_repo.find_by_submission(submission_id).await? {
+        state.line_item_repo.delete_by_financial_statement(existing_fs.id).await?;
+        existing_fs.id
     } else {
-        let active = crate::entities::submission::ActiveModel {
-            id: sea_orm::Set(submission_id),
-            reference: sea_orm::Set(Some(format!("REF-FN-{}", &submission_id.to_string()[..8]))),
-            cooperative_id: sea_orm::Set(coop_id),
-            reporting_year: sea_orm::Set(chrono::Datelike::year(&chrono::Utc::now())),
-            status: sea_orm::Set(crate::entities::enums::SubmissionStatus::Draft),
-            current_tier: sea_orm::Set(crate::entities::enums::ReviewTier::Cooperative),
-            submitted_by: sea_orm::Set(uuid::Uuid::parse_str(&claims.sub).ok()),
-            submitted_at: sea_orm::Set(Some(chrono::Utc::now())),
-            last_reviewed_by: sea_orm::Set(None),
-            last_reviewed_at: sea_orm::Set(None),
-            rejection_reason: sea_orm::Set(None),
-            priority: sea_orm::Set("normal".into()),
-            metadata: sea_orm::Set(metadata_value),
-            created_at: sea_orm::Set(chrono::Utc::now()),
-            updated_at: sea_orm::Set(chrono::Utc::now()),
-        };
-        state.submissions.create(active).await?;
+        let fs = state.financial_statement_repo.create(fs_model).await?;
+        fs.id
+    };
+
+    for mut item in line_items {
+        item.financial_statement_id = sea_orm::Set(fs_id);
+        state.line_item_repo.create(item).await?;
     }
-    
-    // Log the audit event
+
+    if let Ok(Some(sec)) = state
+        .section_repo
+        .find_by_submission_and_section(submission_id, "financial")
+        .await
+    {
+        let _ = state.section_repo.update_status(sec.id, "ready").await;
+    }
+
     if let Err(e) = state
         .audit
         .log(
@@ -72,7 +88,7 @@ pub async fn submit_financial_questionnaire(
             "CREATE",
             "financial_questionnaire",
             Some(&submission_id.to_string()),
-            Some(json!({ "cooperative_id": coop_id })),
+            Some(json!({ "cooperative_id": coop_id, "fs_id": fs_id })),
             audit_ctx.ip_address.as_deref(),
             audit_ctx.user_agent.as_deref(),
         )
@@ -84,9 +100,10 @@ pub async fn submit_financial_questionnaire(
     Ok((
         StatusCode::CREATED,
         Json(json!({
-            "message": "Financial questionnaire submitted and metadata persisted successfully",
-            "submission_id": submission_id
-        }))
+            "message": "Financial questionnaire submitted and persisted successfully",
+            "submission_id": submission_id,
+            "financial_statement_id": fs_id
+        })),
     ))
 }
 
@@ -109,38 +126,41 @@ pub async fn submit_non_financial_questionnaire(
     let coop_id = state.cooperative_id_from_claims(&claims).await?;
     let submission_id = body.submission_id;
 
-    // Serialize payload to JSON for metadata persistence
-    let metadata_value = serde_json::to_value(&body)
-        .map_err(|e| AppError::BadRequest(format!("Failed to serialize questionnaire: {e}")))?;
+    let sub = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    // Save/update submission metadata in DB
-    if let Some(existing) = state.submissions.find_by_id(submission_id).await? {
-        let mut active: crate::entities::submission::ActiveModel = existing.into();
-        active.metadata = sea_orm::Set(metadata_value);
-        active.updated_at = sea_orm::Set(chrono::Utc::now());
-        active.update(&state.db).await?;
-    } else {
-        let active = crate::entities::submission::ActiveModel {
-            id: sea_orm::Set(submission_id),
-            reference: sea_orm::Set(Some(format!("REF-NF-{}", &submission_id.to_string()[..8]))),
-            cooperative_id: sea_orm::Set(coop_id),
-            reporting_year: sea_orm::Set(chrono::Datelike::year(&chrono::Utc::now())),
-            status: sea_orm::Set(crate::entities::enums::SubmissionStatus::Draft),
-            current_tier: sea_orm::Set(crate::entities::enums::ReviewTier::Cooperative),
-            submitted_by: sea_orm::Set(uuid::Uuid::parse_str(&claims.sub).ok()),
-            submitted_at: sea_orm::Set(Some(chrono::Utc::now())),
-            last_reviewed_by: sea_orm::Set(None),
-            last_reviewed_at: sea_orm::Set(None),
-            rejection_reason: sea_orm::Set(None),
-            priority: sea_orm::Set("normal".into()),
-            metadata: sea_orm::Set(metadata_value),
-            created_at: sea_orm::Set(chrono::Utc::now()),
-            updated_at: sea_orm::Set(chrono::Utc::now()),
-        };
-        state.submissions.create(active).await?;
+    let mut existing_metadata = sub.metadata.clone();
+    let questionnaire_json = serde_json::to_value(&body)
+        .map_err(|e| AppError::BadRequest(format!("Failed to serialize questionnaire: {e}")))?;
+    existing_metadata["non_financial_questionnaire"] = questionnaire_json;
+
+    let metadata_value = existing_metadata;
+    let mut active: crate::entities::submission::ActiveModel = sub.clone().into();
+    active.metadata = sea_orm::Set(metadata_value);
+    active.updated_at = sea_orm::Set(chrono::Utc::now());
+    active.update(&state.db).await?;
+
+    let nf_sections = &[
+        "members",
+        "savings",
+        "loans",
+        "fixed_deposits",
+        "farm_coop",
+        "indicators",
+    ];
+    for section_name in nf_sections {
+        if let Ok(Some(sec)) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, section_name)
+            .await
+        {
+            let _ = state.section_repo.update_status(sec.id, "ready").await;
+        }
     }
-    
-    // Log the audit event
+
     if let Err(e) = state
         .audit
         .log(
@@ -160,8 +180,8 @@ pub async fn submit_non_financial_questionnaire(
     Ok((
         StatusCode::CREATED,
         Json(json!({
-            "message": "Non-Financial questionnaire submitted and metadata persisted successfully",
+            "message": "Non-Financial questionnaire submitted and persisted successfully",
             "submission_id": submission_id
-        }))
+        })),
     ))
 }
