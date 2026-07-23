@@ -426,21 +426,18 @@ async fn backfill_computed_kpis(state: &AppState) -> coop_data_backend::AppResul
 
     let mut backfilled_count = 0;
     for sub in non_draft_subs {
-        let existing = state.kpi_record_repo.find_by_submission(sub.id).await?;
-        if existing.is_empty() {
-            tracing::info!(
-                "Backfilling KPIs for submission reference {:?}, year {}",
-                sub.reference,
-                sub.reporting_year
-            );
-            if let Err(e) = workflow
-                .compute_and_save_kpis(sub.id, sub.cooperative_id, sub.reporting_year)
-                .await
-            {
-                tracing::warn!("Failed to backfill KPIs for submission {}: {:?}", sub.id, e);
-            } else {
-                backfilled_count += 1;
-            }
+        tracing::info!(
+            "Refreshing KPIs for submission reference {:?}, year {}",
+            sub.reference,
+            sub.reporting_year
+        );
+        if let Err(e) = workflow
+            .compute_and_save_kpis(sub.id, sub.cooperative_id, sub.reporting_year)
+            .await
+        {
+            tracing::warn!("Failed to calculate KPIs for submission {}: {:?}", sub.id, e);
+        } else {
+            backfilled_count += 1;
         }
     }
 
