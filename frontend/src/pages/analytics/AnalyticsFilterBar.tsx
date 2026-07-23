@@ -44,7 +44,7 @@ export function AnalyticsFilterBar({
   ).length;
 
   const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2].map((y) => ({
+  const yearOptions = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map((y) => ({
     value: String(y),
     label: String(y),
   }));

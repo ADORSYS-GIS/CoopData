@@ -63,6 +63,7 @@ async fn main() -> anyhow::Result<()> {
         NonFinancialIndicatorCatalogRepository::new(db.clone());
     let non_financial_indicator_entry_repo = NonFinancialIndicatorEntryRepository::new(db.clone());
     let custom_kpi_repo = coop_data_backend::repositories::CustomKpiRepository::new(db.clone());
+    let kpi_record_repo = coop_data_backend::repositories::kpi_record::KpiRecordRepository::new(db.clone());
     let member_repo = MemberRepository::new(db.clone());
     let savings_account_repo = SavingsAccountRepository::new(db.clone());
     let loan_repo = LoanRepository::new(db.clone());
@@ -108,6 +109,7 @@ async fn main() -> anyhow::Result<()> {
         non_financial_indicator_catalog_repo,
         non_financial_indicator_entry_repo,
         custom_kpi_repo,
+        kpi_record_repo,
         extractor,
         member_repo,
         savings_account_repo,
@@ -117,6 +119,11 @@ async fn main() -> anyhow::Result<()> {
         storage,
         nf_excel_parser,
     };
+
+    // Backfill computed KPIs for existing submissions
+    if let Err(e) = backfill_computed_kpis(&state).await {
+        tracing::error!("Failed to backfill computed KPIs: {:?}", e);
+    }
 
     let app = create_app(state);
 
@@ -390,4 +397,47 @@ async fn seed_indicator_catalog(repo: &NonFinancialIndicatorCatalogRepository) {
         "Indicator catalog seeded with {} standard indicators",
         seeded
     );
+}
+
+async fn backfill_computed_kpis(state: &AppState) -> coop_data_backend::AppResult<()> {
+    use coop_data_backend::services::submission_workflow::SubmissionWorkflow;
+
+    let non_draft_subs = state.submission_repo.find_all_non_draft().await?;
+    if non_draft_subs.is_empty() {
+        return Ok(());
+    }
+
+    tracing::info!("Starting KPI backfill for {} non-draft submissions...", non_draft_subs.len());
+
+    let workflow = SubmissionWorkflow::new(
+        state.submission_repo.clone(),
+        state.review_repo.clone(),
+        state.flag_repo.clone(),
+        state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
+    );
+
+    let mut backfilled_count = 0;
+    for sub in non_draft_subs {
+        let existing = state.kpi_record_repo.find_by_submission(sub.id).await?;
+        if existing.is_empty() {
+            tracing::info!("Backfilling KPIs for submission reference {:?}, year {}", sub.reference, sub.reporting_year);
+            if let Err(e) = workflow.compute_and_save_kpis(sub.id, sub.cooperative_id, sub.reporting_year).await {
+                tracing::warn!("Failed to backfill KPIs for submission {}: {:?}", sub.id, e);
+            } else {
+                backfilled_count += 1;
+            }
+        }
+    }
+
+    if backfilled_count > 0 {
+        tracing::info!("KPI backfill completed. Backfilled {} submissions.", backfilled_count);
+    } else {
+        tracing::info!("KPI backfill completed. No submissions needed backfilling.");
+    }
+
+    Ok(())
 }

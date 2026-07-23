@@ -387,8 +387,6 @@ export const FinancialStatementEditor: React.FC<{
         }))
       : STATIC_COA_OPTIONS;
 
-  // View mode: 'matrix' (13-month Balance Sheet view) vs 'list' (flat line items list)
-  const [viewMode, setViewMode] = useState<"matrix" | "list">("matrix");
 
   // Inline value editing
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
@@ -552,30 +550,6 @@ export const FinancialStatementEditor: React.FC<{
         subtitle={`${items.length} items · ${items.filter((i) => !i.account_code).length} unmapped · ${items.filter((i) => (i.ai_confidence ?? 1) < 0.6).length} low confidence`}
         action={
           <div className="flex items-center gap-3">
-            {/* View Mode Toggle */}
-            <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5 text-xs">
-              <button
-                onClick={() => setViewMode("matrix")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
-                  viewMode === "matrix"
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Monthly Matrix
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
-                  viewMode === "list"
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                List View ({items.length})
-              </button>
-            </div>
-
             {isDraft && (
               <div className="flex items-center gap-2">
                 <button
@@ -627,7 +601,7 @@ export const FinancialStatementEditor: React.FC<{
           <div className="py-10 text-center text-muted-foreground">
             <p className="text-sm">No line items extracted yet.</p>
           </div>
-        ) : viewMode === "matrix" ? (
+        ) : (
           /* ── 13-Month Matrix Table View ── */
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full text-xs">
@@ -782,7 +756,8 @@ export const FinancialStatementEditor: React.FC<{
               </tbody>
             </table>
           </div>
-        ) : (
+        )}
+        {false && (
           /* ── Flat List View ── */
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full text-sm">

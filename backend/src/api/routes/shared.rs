@@ -59,6 +59,10 @@ pub fn shared_routes() -> Router<AppState> {
             get(crate::api::handlers::national_overview::get_national_overview),
         )
         .route(
+            "/analytics/comparative-statements",
+            get(crate::api::handlers::national_overview::get_comparative_statements),
+        )
+        .route(
             "/analytics/nf-trend",
             get(crate::api::handlers::nf_indicator_stats::get_nf_trend),
         )

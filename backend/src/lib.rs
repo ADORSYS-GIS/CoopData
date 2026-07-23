@@ -23,7 +23,7 @@ pub use repositories::{
     NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    UserRepository, KpiRecordRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
@@ -58,6 +58,7 @@ pub struct AppState {
     pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
     pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,
     pub custom_kpi_repo: crate::repositories::custom_kpi_repository::CustomKpiRepository,
+    pub kpi_record_repo: crate::repositories::kpi_record::KpiRecordRepository,
     // services
     pub extractor: std::sync::Arc<dyn Extractor>,
     pub member_repo: MemberRepository,

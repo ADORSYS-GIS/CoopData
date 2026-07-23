@@ -40,8 +40,15 @@ impl SubmissionRepository {
         &self,
         status: SubmissionStatus,
     ) -> AppResult<Vec<submission::Model>> {
-        Entity::find()
-            .filter(Column::Status.eq(status))
+        let query = if status == SubmissionStatus::Approved {
+            Entity::find().filter(
+                Column::Status.eq(SubmissionStatus::Approved)
+                    .or(Column::Status.eq(SubmissionStatus::Submitted))
+            )
+        } else {
+            Entity::find().filter(Column::Status.eq(status))
+        };
+        query
             .order_by_desc(Column::CreatedAt)
             .all(&self.db)
             .await

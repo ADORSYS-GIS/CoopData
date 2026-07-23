@@ -5,10 +5,14 @@ use axum::Json;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
+use chrono::Datelike;
+use rust_decimal::prelude::ToPrimitive;
+use uuid::Uuid;
 
 use crate::api::dto::national_overview::{
     CoopKpiRow, CoopNfSummary, KpiStatusCount, NationalOverviewResponse, NfPortfolioSummary,
-    TrafficLightDistribution,
+    TrafficLightDistribution, ComparativeStatementsParams, ComparativeStatementsResponse,
+    CooperativeStatementGrid, CooperativeLineItem,
 };
 use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::auth::claims::Claims;
@@ -72,7 +76,8 @@ pub async fn get_national_overview(
         .into_iter()
         .filter(|submission| {
             let is_approved =
-                submission.status == crate::entities::enums::SubmissionStatus::Approved;
+                submission.status == crate::entities::enums::SubmissionStatus::Approved
+                    || submission.status == crate::entities::enums::SubmissionStatus::Submitted;
             let matches_year = params
                 .reporting_year
                 .map(|year| submission.reporting_year == year)
@@ -99,7 +104,21 @@ pub async fn get_national_overview(
         }
     }
 
-    // Batch 3: fetch line items for all financial statements
+    // Batch 3.5: Fetch all computed kpi records in one query
+    let submission_ids_for_kpi: Vec<uuid::Uuid> = fs_map.values().map(|(_, submission_id)| *submission_id).collect();
+    let all_computed_records = state
+        .kpi_record_repo
+        .find_by_submission_ids(submission_ids_for_kpi)
+        .await
+        .unwrap_or_default();
+
+    // Group records by submission_id
+    let mut records_by_sub: HashMap<uuid::Uuid, Vec<crate::entities::kpi_record::Model>> = HashMap::new();
+    for rec in all_computed_records {
+        records_by_sub.entry(rec.submission_id).or_default().push(rec);
+    }
+
+    // Batch 3: fetch line items for all financial statements (needed only for fallback calculation)
     let fs_ids: Vec<_> = fs_map.values().map(|(id, _)| *id).collect();
     let all_line_items = if fs_ids.is_empty() {
         vec![]
@@ -161,58 +180,109 @@ pub async fn get_national_overview(
 
     for coop in &cooperatives {
         let fs_id = fs_map.get(&coop.id);
-        let items = fs_id
-            .and_then(|(financial_statement_id, _)| items_by_fs.get(financial_statement_id))
-            .map(|v| v.as_slice())
-            .unwrap_or(&[]);
+        let submission_id = fs_id.map(|(_, sub_id)| *sub_id);
+        let records_opt = submission_id.and_then(|sub_id| records_by_sub.get(&sub_id));
 
-        let kpis = KpiEngine::compute(items);
-        let non_financial = if let Some((_, submission_id)) = fs_id {
-            let statistics =
-                NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(*submission_id))
-                    .await?;
-            CoopNfSummary {
-                has_data: statistics.membership.total > 0
-                    || statistics.savings.total_accounts > 0
-                    || statistics.loans.total_loans > 0
-                    || statistics.fixed_deposits.total_fds > 0
-                    || statistics.farm_coop.total_coops > 0,
-                total_members: statistics.membership.total,
-                active_members_pct: statistics.membership.active_pct,
-                savings_penetration_pct: statistics.savings.savings_penetration_pct,
-                credit_penetration_pct: statistics.loans.credit_penetration_pct,
-                fd_penetration_pct: statistics.fixed_deposits.fd_penetration_pct,
-                on_time_repayment_pct: statistics.loans.on_time_repayment_pct,
-                dormancy_pct: statistics.membership.dormancy_pct,
-                agm_participation_pct: statistics.membership.agm_participation_pct,
-                arrears_rate_pct: statistics.loans.arrears_rate_pct,
-                fd_early_withdrawal_pct: statistics.fixed_deposits.early_withdrawal_pct,
+        let (kpi_map, non_financial) = if let Some(records) = records_opt {
+            let get_nf_val = |name: &str| {
+                records
+                    .iter()
+                    .find(|r| r.kpi_name == name)
+                    .map(|r| r.value)
+                    .unwrap_or(0.0)
+            };
+            let has_data = records.iter().any(|r| r.kpi_type == "non_financial");
+            let nf_summary = CoopNfSummary {
+                has_data,
+                total_members: get_nf_val("membership_total") as u64,
+                active_members_pct: get_nf_val("membership_active_pct"),
+                savings_penetration_pct: get_nf_val("savings_penetration_pct"),
+                credit_penetration_pct: get_nf_val("loans_credit_penetration_pct"),
+                fd_penetration_pct: get_nf_val("fds_fd_penetration_pct"),
+                on_time_repayment_pct: get_nf_val("loans_on_time_repayment_pct"),
+                dormancy_pct: get_nf_val("membership_dormancy_pct"),
+                agm_participation_pct: get_nf_val("membership_agm_participation_pct"),
+                arrears_rate_pct: get_nf_val("loans_arrears_rate_pct"),
+                fd_early_withdrawal_pct: get_nf_val("fds_early_withdrawal_pct"),
+            };
+
+            let mut kpi_map = HashMap::new();
+            for r in records {
+                if r.kpi_type == "financial" {
+                    kpi_map.insert(r.kpi_name.clone(), crate::services::kpi_engine::KpiValue {
+                        name: r.kpi_name.clone(),
+                        value: r.value,
+                        formatted: r.formatted.clone(),
+                        unit: r.unit.clone(),
+                        status: r.status.clone(),
+                        benchmark: None,
+                        description: r.description.clone(),
+                    });
+                }
             }
+            (kpi_map, nf_summary)
         } else {
-            CoopNfSummary {
-                has_data: false,
-                total_members: 0,
-                active_members_pct: 0.0,
-                savings_penetration_pct: 0.0,
-                credit_penetration_pct: 0.0,
-                fd_penetration_pct: 0.0,
-                on_time_repayment_pct: 0.0,
-                dormancy_pct: 0.0,
-                agm_participation_pct: 0.0,
-                arrears_rate_pct: 0.0,
-                fd_early_withdrawal_pct: 0.0,
+            // FALLBACK
+            let items = fs_id
+                .and_then(|(financial_statement_id, _)| items_by_fs.get(financial_statement_id))
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
+            let computed = KpiEngine::compute(items);
+            let mut kpi_map = HashMap::new();
+            for name in &ratio_names {
+                if let Some(kpi) = computed.get_by_name(name) {
+                    kpi_map.insert(name.to_string(), kpi.clone());
+                }
             }
+
+            let nf_summary = if let Some((_, sub_id)) = fs_id {
+                let statistics =
+                    NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(*sub_id))
+                        .await?;
+                CoopNfSummary {
+                    has_data: statistics.membership.total > 0
+                        || statistics.savings.total_accounts > 0
+                        || statistics.loans.total_loans > 0
+                        || statistics.fixed_deposits.total_fds > 0
+                        || statistics.farm_coop.total_coops > 0,
+                    total_members: statistics.membership.total,
+                    active_members_pct: statistics.membership.active_pct,
+                    savings_penetration_pct: statistics.savings.savings_penetration_pct,
+                    credit_penetration_pct: statistics.loans.credit_penetration_pct,
+                    fd_penetration_pct: statistics.fixed_deposits.fd_penetration_pct,
+                    on_time_repayment_pct: statistics.loans.on_time_repayment_pct,
+                    dormancy_pct: statistics.membership.dormancy_pct,
+                    agm_participation_pct: statistics.membership.agm_participation_pct,
+                    arrears_rate_pct: statistics.loans.arrears_rate_pct,
+                    fd_early_withdrawal_pct: statistics.fixed_deposits.early_withdrawal_pct,
+                }
+            } else {
+                CoopNfSummary {
+                    has_data: false,
+                    total_members: 0,
+                    active_members_pct: 0.0,
+                    savings_penetration_pct: 0.0,
+                    credit_penetration_pct: 0.0,
+                    fd_penetration_pct: 0.0,
+                    on_time_repayment_pct: 0.0,
+                    dormancy_pct: 0.0,
+                    agm_participation_pct: 0.0,
+                    arrears_rate_pct: 0.0,
+                    fd_early_withdrawal_pct: 0.0,
+                }
+            };
+            (kpi_map, nf_summary)
         };
+
         if non_financial.has_data {
             nf_rows.push(non_financial.clone());
         }
-        let mut kpi_map = HashMap::new();
+
         let mut eval_ctx: evalexpr::HashMapContext = evalexpr::HashMapContext::new();
         use evalexpr::ContextWithMutableVariables;
 
         for name in &ratio_names {
-            if let Some(kpi) = kpis.get_by_name(name) {
-                kpi_map.insert(name.to_string(), kpi.clone());
+            if let Some(kpi) = kpi_map.get(*name) {
                 eval_ctx
                     .set_value(name.to_string(), evalexpr::Value::Float(kpi.value))
                     .unwrap();
@@ -246,9 +316,11 @@ pub async fn get_national_overview(
             }
         }
 
+        let has_financial_data = fs_id.is_some() && (records_opt.is_some() || (fs_id.is_some() && items_by_fs.get(&fs_id.unwrap().0).map_or(false, |items| !items.is_empty())));
+
         coop_rows.push(CoopKpiRow {
             cooperative_id: coop.id,
-            submission_id: fs_id.map(|(_, submission_id)| *submission_id),
+            submission_id,
             name: coop.display_name.clone(),
             region: coop.region.as_ref().map(|r| r.as_str().to_string()),
             sector: coop.sector.clone(),
@@ -256,7 +328,7 @@ pub async fn get_national_overview(
                 .institution_type
                 .as_ref()
                 .map(|t| t.as_str().to_string()),
-            has_data: !items.is_empty(),
+            has_data: has_financial_data,
             non_financial,
             kpis: kpi_map,
             custom_kpis: custom_kpi_map,
@@ -346,4 +418,148 @@ fn average(rows: &[CoopNfSummary], selector: impl Fn(&CoopNfSummary) -> f64) -> 
     } else {
         rows.iter().map(selector).sum::<f64>() / rows.len() as f64
     }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/comparative-statements",
+    params(
+        ("reporting_year" = Option<i32>, Query, description = "Reporting year"),
+        ("cooperative_ids" = Option<String>, Query, description = "Comma-separated cooperative UUIDs to filter")
+    ),
+    responses(
+        (status = 200, description = "Comparative statements grid", body = ComparativeStatementsResponse),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_comparative_statements(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ComparativeStatementsParams>,
+) -> AppResult<impl IntoResponse> {
+    let year = params
+        .reporting_year
+        .unwrap_or_else(|| chrono::Utc::now().year());
+
+    // 1. Resolve user cooperative scope
+    let caller_coop_ids = resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    // 2. Filter cooperatives list if user explicitly requested specific ones
+    let selected_coop_ids = if let Some(ref ids_str) = params.cooperative_ids {
+        if ids_str.trim().is_empty() || ids_str == "all" {
+            caller_coop_ids.clone()
+        } else {
+            ids_str
+                .split(',')
+                .filter_map(|s| Uuid::parse_str(s.trim()).ok())
+                .filter(|id| caller_coop_ids.contains(id))
+                .collect::<Vec<Uuid>>()
+        }
+    } else {
+        caller_coop_ids.clone()
+    };
+
+    if selected_coop_ids.is_empty() {
+        return Ok((
+            StatusCode::OK,
+            Json(ComparativeStatementsResponse {
+                year,
+                grids: vec![],
+            }),
+        ));
+    }
+
+    // 3. Fetch all cooperatives to get their names
+    let cooperatives = state
+        .cooperative_repo
+        .find_by_ids(selected_coop_ids.clone())
+        .await?;
+
+    // 4. Fetch the submissions for the selected year and cooperatives
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(selected_coop_ids)
+        .await?;
+
+    let year_submissions: Vec<_> = submissions
+        .into_iter()
+        .filter(|s| {
+            s.reporting_year == year
+                && (s.status == crate::entities::enums::SubmissionStatus::Approved
+                    || s.status == crate::entities::enums::SubmissionStatus::Submitted)
+        })
+        .collect();
+
+    let submission_ids: Vec<Uuid> = year_submissions.iter().map(|s| s.id).collect();
+
+    // 5. Fetch financial statements
+    let financial_statements = state
+        .financial_statement_repo
+        .find_by_submission_ids(submission_ids.clone())
+        .await?;
+
+    let fs_ids: Vec<Uuid> = financial_statements.iter().map(|fs| fs.id).collect();
+
+    // 6. Fetch all line items for these financial statements
+    let line_items = if fs_ids.is_empty() {
+        vec![]
+    } else {
+        state
+            .line_item_repo
+            .find_by_financial_statement_ids(fs_ids)
+            .await?
+    };
+
+    // Group line items by financial_statement_id
+    let mut items_by_fs: HashMap<Uuid, Vec<crate::entities::balance_sheet_line_item::Model>> = HashMap::new();
+    for item in line_items {
+        items_by_fs.entry(item.financial_statement_id).or_default().push(item);
+    }
+
+    // Map financial statement ID to cooperative ID
+    let mut fs_to_coop: HashMap<Uuid, Uuid> = HashMap::new();
+    for fs in &financial_statements {
+        if let Some(sub) = year_submissions.iter().find(|s| s.id == fs.submission_id) {
+            fs_to_coop.insert(fs.id, sub.cooperative_id);
+        }
+    }
+
+    // Build the grids response
+    let mut grids = vec![];
+
+    for coop in cooperatives {
+        // Find if they have a financial statement for this year
+        let fs_opt = financial_statements.iter().find(|fs| {
+            fs_to_coop.get(&fs.id) == Some(&coop.id)
+        });
+
+        let mut grid_items = vec![];
+        if let Some(fs) = fs_opt {
+            if let Some(items) = items_by_fs.get(&fs.id) {
+                for item in items {
+                    grid_items.push(CooperativeLineItem {
+                        account_code: item.account_code,
+                        account_name: item.account_name.clone(),
+                        value: item.value.and_then(|v| v.to_f64()).unwrap_or(0.0),
+                        month: item.month as i32,
+                    });
+                }
+            }
+        }
+
+        grids.push(CooperativeStatementGrid {
+            cooperative_id: coop.id,
+            cooperative_name: coop.name,
+            line_items: grid_items,
+        });
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(ComparativeStatementsResponse {
+            year,
+            grids,
+        }),
+    ))
 }

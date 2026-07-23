@@ -52,8 +52,6 @@ fn compute_equity(v: &ValuesMap) -> Decimal {
         get_or_compute(v, 3100)
             + get_or_compute(v, 3200)
             + get_or_compute(v, 3300)
-            + get_zero(v, 3301)
-            + get_zero(v, 3302)
     })
 }
 

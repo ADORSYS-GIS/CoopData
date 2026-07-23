@@ -14,6 +14,8 @@ import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive"
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
+import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
+import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";

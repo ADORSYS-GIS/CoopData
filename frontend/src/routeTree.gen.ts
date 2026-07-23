@@ -29,6 +29,7 @@ import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
+import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
@@ -139,6 +140,11 @@ const AppCooperativesRoute = AppCooperativesRouteImport.update({
   path: '/cooperatives',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
+  id: '/benchmarking',
+  path: '/benchmarking',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -196,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/dashboard'
     | '/app/debug-auth'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/dashboard'
     | '/app/debug-auth'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/dashboard'
     | '/app/debug-auth'
@@ -523,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCooperativesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/benchmarking': {
+      id: '/app/benchmarking'
+      path: '/benchmarking'
+      fullPath: '/app/benchmarking'
+      preLoaderRoute: typeof AppBenchmarkingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/audit': {
       id: '/app/audit'
       path: '/audit'
@@ -607,6 +626,7 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppBenchmarkingRoute: typeof AppBenchmarkingRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
@@ -632,6 +652,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
+  AppBenchmarkingRoute: AppBenchmarkingRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,

@@ -16,6 +16,7 @@ pub mod financial_statement;
 pub mod fixed_deposit;
 pub mod loan;
 pub mod member;
+pub mod kpi_record;
 pub mod non_financial_indicator_catalog;
 pub mod non_financial_indicator_entry;
 pub mod organization;
@@ -44,6 +45,7 @@ pub use federation::{
 pub use fixed_deposit::{
     Column as FixedDepositColumn, Entity as FixedDepositEntity, Model as FixedDepositModel,
 };
+pub use kpi_record::{Column as KpiRecordColumn, Entity as KpiRecordEntity, Model as KpiRecordModel};
 pub use loan::{Column as LoanColumn, Entity as LoanEntity, Model as LoanModel};
 pub use member::{Column as MemberColumn, Entity as MemberEntity, Model as MemberModel};
 pub use non_financial_indicator_catalog::{

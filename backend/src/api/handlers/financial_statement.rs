@@ -241,29 +241,46 @@ pub async fn get_submission_kpis(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let fs = state
-        .financial_statement_repo
-        .find_by_submission(id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
+    let db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
+    let kpis: Vec<KpiItemResponse> = if !db_kpis.is_empty() {
+        db_kpis
+            .into_iter()
+            .filter(|r| r.kpi_type == "financial")
+            .map(|r| KpiItemResponse {
+                name: r.kpi_name,
+                value: r.value,
+                formatted: r.formatted,
+                unit: r.unit,
+                status: r.status,
+                benchmark: None,
+                description: r.description,
+            })
+            .collect()
+    } else {
+        let fs = state
+            .financial_statement_repo
+            .find_by_submission(id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
 
-    let line_items = state
-        .line_item_repo
-        .find_by_financial_statement(fs.id)
-        .await?;
+        let line_items = state
+            .line_item_repo
+            .find_by_financial_statement(fs.id)
+            .await?;
 
-    let kpi_set = crate::services::KpiEngine::compute(&line_items);
-    let kpis: Vec<KpiItemResponse> = kpi_set
-        .to_vec()
-        .into_iter()
-        .map(KpiItemResponse::from)
-        .collect();
+        let kpi_set = crate::services::KpiEngine::compute(&line_items);
+        kpi_set
+            .to_vec()
+            .into_iter()
+            .map(KpiItemResponse::from)
+            .collect()
+    };
 
     tracing::info!(
         submission_id = %id,
         kpi_count = kpis.len(),
         submission_status = %submission.status.as_str(),
-        "KPIs computed for submission"
+        "KPIs retrieved for submission"
     );
 
     Ok((
@@ -1106,7 +1123,7 @@ pub async fn get_ministry_stats(
         .count() as i64;
     let approved_count = all_submissions
         .iter()
-        .filter(|s| s.status == SubmissionStatus::Approved)
+        .filter(|s| s.status == SubmissionStatus::Approved || s.status == SubmissionStatus::Submitted)
         .count() as i64;
     let rejected_count = all_submissions
         .iter()
@@ -1123,7 +1140,7 @@ pub async fn get_ministry_stats(
     // Compute average PAR30 and CAR from approved submissions
     let approved_sub_ids: Vec<Uuid> = all_submissions
         .iter()
-        .filter(|s| s.status == SubmissionStatus::Approved)
+        .filter(|s| s.status == SubmissionStatus::Approved || s.status == SubmissionStatus::Submitted)
         .map(|s| s.id)
         .collect();
 
@@ -1598,8 +1615,8 @@ const MONTH_LABELS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-const SAVINGS_ACCOUNT_CODES: [i32; 3] = [2101, 2102, 2103];
-const LOANS_ACCOUNT_CODES: [i32; 5] = [1201, 1202, 1203, 1204, 1205];
+const SAVINGS_ACCOUNT_CODES: [i32; 4] = [2100, 2101, 2102, 2103];
+const LOANS_ACCOUNT_CODES: [i32; 6] = [1200, 1201, 1202, 1203, 1204, 1205];
 const TOTAL_ASSETS_ACCOUNT_CODES: [i32; 1] = [1999];
 
 #[utoipa::path(
@@ -1647,7 +1664,8 @@ pub async fn get_monthly_trend(
         .iter()
         .filter(|s| {
             s.reporting_year == year
-                && s.status == crate::entities::enums::SubmissionStatus::Approved
+                && (s.status == crate::entities::enums::SubmissionStatus::Approved
+                    || s.status == crate::entities::enums::SubmissionStatus::Submitted)
         })
         .collect();
 
@@ -1673,7 +1691,13 @@ pub async fn get_monthly_trend(
         })
         .collect();
 
+    let has_monthly_breakdown = line_items.iter().any(|item| item.month > 0);
+
     for item in &line_items {
+        if item.month == 0 && has_monthly_breakdown {
+            continue;
+        }
+
         let month_idx = if item.month == 0 {
             11 // Default to December for annual figures
         } else {
@@ -1826,7 +1850,9 @@ pub async fn get_region_compliance(
                 .as_ref()
                 .map(|r| r.as_str().to_string())
                 .unwrap_or_else(|| "Unknown".to_string());
-            if sub.status == crate::entities::enums::SubmissionStatus::Approved {
+            if sub.status == crate::entities::enums::SubmissionStatus::Approved
+                || sub.status == crate::entities::enums::SubmissionStatus::Submitted
+            {
                 *region_approved.entry(region).or_insert(0) += 1;
             }
         }

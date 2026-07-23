@@ -23,6 +23,7 @@ pub use common::*;
 pub use cooperative::*;
 pub use custom_kpi::*;
 pub use federation::*;
+pub use national_overview::*;
 pub use invitation::*;
 pub use member::{
     AddMemberRequest, ChangePasswordRequest, ChangePasswordResponse,

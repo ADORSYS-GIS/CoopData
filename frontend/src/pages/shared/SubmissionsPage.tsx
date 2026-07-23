@@ -131,8 +131,8 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
           <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
             Reporting Year
           </label>
-          <div className="grid grid-cols-4 gap-2">
-            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3].map((y) => (
+          <div className="grid grid-cols-5 gap-2">
+            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map((y) => (
               <button
                 key={y}
                 onClick={() => setYear(y)}

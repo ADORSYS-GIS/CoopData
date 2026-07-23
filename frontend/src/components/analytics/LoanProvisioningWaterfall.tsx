@@ -97,7 +97,6 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
               border: "1px solid var(--border)",
               fontSize: "12px",
             }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             formatter={(value: number, name: string, props: any) => {
               if (name === "transparent") return []; // hide transparent block from tooltip
               return [formatCurrency(props.payload.formatted), "Amount"];
