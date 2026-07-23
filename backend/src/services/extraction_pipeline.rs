@@ -166,42 +166,86 @@ async fn run_pipeline_inner(
     // Clear any existing draft line items (idempotent re-run support)
     line_item_repo.delete_by_financial_statement(fs.id).await?;
 
-    // Build dedup set for mapped items
-    let mut seen_mapped: std::collections::HashSet<(i32, i16)> = std::collections::HashSet::new();
-    let mut seen_unmapped: std::collections::HashSet<(String, i16)> =
-        std::collections::HashSet::new();
+    // Group and consolidate line items by account code/label and month to aggregate sub-accounts (like multiple PP&E components)
+    let mut mapped_grouped: std::collections::HashMap<
+        (i32, i16),
+        Vec<crate::services::ai_extraction::ExtractedLineItem>,
+    > = std::collections::HashMap::new();
+    let mut unmapped_grouped: std::collections::HashMap<
+        (String, i16),
+        Vec<crate::services::ai_extraction::ExtractedLineItem>,
+    > = std::collections::HashMap::new();
 
-    // Pre-filter: skip items with no value (section headers returned by LLM)
-    let candidates: Vec<&crate::services::ai_extraction::ExtractedLineItem> = output
-        .line_items
-        .iter()
-        .filter(|item| item.value.is_some())
-        .collect();
+    for item in &output.line_items {
+        if item.value.is_none() {
+            continue;
+        }
+        if let Some(code) = item.account_code {
+            mapped_grouped
+                .entry((code, item.month))
+                .or_default()
+                .push(item.clone());
+        } else {
+            unmapped_grouped
+                .entry((item.raw_label.to_lowercase(), item.month))
+                .or_default()
+                .push(item.clone());
+        }
+    }
+
+    let mut consolidated_items: Vec<crate::services::ai_extraction::ExtractedLineItem> = Vec::new();
+
+    for ((code, month), items) in mapped_grouped {
+        let total_value: f64 = items.iter().filter_map(|x| x.value).sum();
+        let avg_confidence: f64 =
+            items.iter().map(|x| x.confidence).sum::<f64>() / items.len() as f64;
+
+        let mut labels: Vec<String> = items.iter().map(|x| x.raw_label.clone()).collect();
+        labels.sort();
+        labels.dedup();
+        let raw_label = labels.join(" + ");
+
+        let account_name = items.iter().find_map(|x| x.account_name.clone());
+
+        consolidated_items.push(crate::services::ai_extraction::ExtractedLineItem {
+            account_code: Some(code),
+            account_name,
+            month,
+            value: Some(total_value),
+            confidence: avg_confidence,
+            raw_label,
+        });
+    }
+
+    for ((_, month), items) in unmapped_grouped {
+        let total_value: f64 = items.iter().filter_map(|x| x.value).sum();
+        let avg_confidence: f64 =
+            items.iter().map(|x| x.confidence).sum::<f64>() / items.len() as f64;
+
+        let mut labels: Vec<String> = items.iter().map(|x| x.raw_label.clone()).collect();
+        labels.sort();
+        labels.dedup();
+        let raw_label = labels.join(" + ");
+
+        let account_name = items.iter().find_map(|x| x.account_name.clone());
+
+        consolidated_items.push(crate::services::ai_extraction::ExtractedLineItem {
+            account_code: None,
+            account_name,
+            month,
+            value: Some(total_value),
+            confidence: avg_confidence,
+            raw_label,
+        });
+    }
 
     let mut stored_count = 0usize;
     let mut unmapped_count = 0usize;
     let mut total_confidence = 0.0f64;
 
-    for item in &candidates {
-        let should_store = if let Some(code) = item.account_code {
-            // Mapped item: dedup by (code, month)
-            seen_mapped.insert((code, item.month))
-        } else {
-            // Unmapped item: dedup by (raw_label, month)
-            let is_new = seen_unmapped.insert((item.raw_label.to_lowercase(), item.month));
-            if is_new {
-                unmapped_count += 1;
-            }
-            is_new
-        };
-
-        if !should_store {
-            tracing::debug!(
-                code = ?item.account_code,
-                raw_label = %item.raw_label,
-                "Skipping duplicate mapped line item"
-            );
-            continue;
+    for item in &consolidated_items {
+        if item.account_code.is_none() {
+            unmapped_count += 1;
         }
 
         // Look up CoA entry for category / subcategory (only for mapped items)
@@ -326,7 +370,7 @@ async fn run_pipeline_inner(
     tracing::info!(
         job_id = %job_id,
         submission_id = %submission_id,
-        candidates = candidates.len(),
+        consolidated = consolidated_items.len(),
         stored = stored_count,
         unmapped = unmapped_count,
         avg_confidence = %avg_confidence,

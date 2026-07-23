@@ -80,3 +80,30 @@ pub struct CoopNfSummary {
     pub arrears_rate_pct: f64,
     pub fd_early_withdrawal_pct: f64,
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct ComparativeStatementsParams {
+    pub reporting_year: Option<i32>,
+    pub cooperative_ids: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct CooperativeLineItem {
+    pub account_code: Option<i32>,
+    pub account_name: String,
+    pub value: f64,
+    pub month: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct CooperativeStatementGrid {
+    pub cooperative_id: Uuid,
+    pub cooperative_name: String,
+    pub line_items: Vec<CooperativeLineItem>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct ComparativeStatementsResponse {
+    pub year: i32,
+    pub grids: Vec<CooperativeStatementGrid>,
+}

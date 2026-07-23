@@ -3,6 +3,9 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { ComplianceRadialGauges } from "@/components/analytics/ComplianceRadialGauges";
 import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
+import { PortfolioOverviewChart } from "@/components/analytics/PortfolioOverviewChart";
+import { GenderParticipationChart } from "@/components/analytics/GenderParticipationChart";
+import { SavingsLoansDepositsChart } from "@/components/analytics/SavingsLoansDepositsChart";
 import { GenderStatusDoughnuts } from "@/components/analytics/GenderStatusDoughnuts";
 import { LoanDualBar } from "@/components/analytics/LoanDualBar";
 import { SavingsRadialGauges } from "@/components/analytics/SavingsRadialGauges";
@@ -17,9 +20,11 @@ import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
+import { useUserRole } from "@/lib/auth";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 import type { components } from "@/openapi-client/api";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
+import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { BenchmarkInsightPanel } from "@/components/analytics/BenchmarkInsightPanel";
 import { useBenchmarks } from "@/hooks/analytics/useBenchmarks";
 
@@ -29,25 +34,26 @@ interface Props {
 
 export function CooperativeAnalyticsView({ filterValues }: Props) {
   const reportingYear = Number(filterValues.year);
+  const role = useUserRole();
 
-  const latestSubmissionArray = useLatestSubmission();
-  // Depending on whether useLatestSubmission returns an array or single item,
-  // we adapt based on what we see in the original code.
-  // The original view used: const latestSubmission = useLatestSubmission(reportingYear);
-  // Wait, my view file said `const latestSubmission = useLatestSubmission(reportingYear);`
-  // Actually, I'll stick exactly to the original hooks but add the UI.
-  // Let me match the original perfectly.
-  const latestSubmission = useLatestSubmission(reportingYear);
+  const latestSubmission = useLatestSubmission(reportingYear, filterValues.cooperativeId);
   const submissionId = latestSubmission?.id;
   const coopId = latestSubmission?.cooperative_id;
-  const hasApprovedSubmission = !!latestSubmission && latestSubmission.status === "approved";
+  const hasApprovedSubmission =
+    !!latestSubmission &&
+    (latestSubmission.status === "approved" || latestSubmission.status === "submitted");
 
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId);
   const { data: trendData } = useMonthlyTrend(
     { reportingYear, cooperativeId: coopId },
     hasApprovedSubmission,
   );
-  const { data: nfStats } = useNfStatistics(true, { reportingYear }, hasApprovedSubmission);
+  const isCooperative = role === "cooperative";
+  const { data: nfStats } = useNfStatistics(
+    isCooperative,
+    { reportingYear, cooperativeId: coopId },
+    hasApprovedSubmission,
+  );
 
   const kpiMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -275,6 +281,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         </div>
       )}
 
+      {/* Benchmarking Comparison Tool */}
+      <CooperativeComparison reportingYear={reportingYear} />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
           title="Regulatory Compliance"
@@ -299,23 +308,69 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {trendPoints.length > 0 && (
-          <Card
-            title="Financial Trend"
-            subtitle="Assets, loans & savings over the reporting year"
-            info="Visualizes the month-over-month trajectory of your cooperative's core financial balances (Assets, Savings, and Loans) over the current reporting period."
-          >
-            {isTrendEmpty ? (
-              <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">
-                No historical trend data available yet
-              </div>
-            ) : (
-              <CoopTrendAreaChart data={trendPoints} />
-            )}
-          </Card>
-        )}
+      {/* Row 1: Portfolio Overview & Gender Participation */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        <div className="lg:col-span-3">
+          <PortfolioOverviewChart
+            data={
+              trendPoints.length > 0
+                ? trendPoints
+                : [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
+            }
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <GenderParticipationChart
+            data={
+              nfStats?.membership ?? {
+                total: 0,
+                male: 0,
+                female: 0,
+                other: 0,
+                male_pct: 0,
+                female_pct: 0,
+                other_pct: 0,
+              }
+            }
+          />
+        </div>
+      </div>
 
+      {/* Row 2: Savings Loans & Deposits grouped bar chart & Provisioning Waterfall */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <SavingsLoansDepositsChart
+          data={
+            trendPoints.length > 0
+              ? trendPoints
+              : [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
+          }
+        />
         {kpisData && (
           <Card
             title="Loan Provisioning Gap"

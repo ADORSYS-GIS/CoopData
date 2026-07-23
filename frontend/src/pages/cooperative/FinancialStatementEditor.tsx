@@ -387,9 +387,6 @@ export const FinancialStatementEditor: React.FC<{
         }))
       : STATIC_COA_OPTIONS;
 
-  // View mode: 'matrix' (13-month Balance Sheet view) vs 'list' (flat line items list)
-  const [viewMode, setViewMode] = useState<"matrix" | "list">("matrix");
-
   // Inline value editing
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -552,30 +549,6 @@ export const FinancialStatementEditor: React.FC<{
         subtitle={`${items.length} items · ${items.filter((i) => !i.account_code).length} unmapped · ${items.filter((i) => (i.ai_confidence ?? 1) < 0.6).length} low confidence`}
         action={
           <div className="flex items-center gap-3">
-            {/* View Mode Toggle */}
-            <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5 text-xs">
-              <button
-                onClick={() => setViewMode("matrix")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
-                  viewMode === "matrix"
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Monthly Matrix
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-colors ${
-                  viewMode === "list"
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                List View ({items.length})
-              </button>
-            </div>
-
             {isDraft && (
               <div className="flex items-center gap-2">
                 <button
@@ -627,7 +600,7 @@ export const FinancialStatementEditor: React.FC<{
           <div className="py-10 text-center text-muted-foreground">
             <p className="text-sm">No line items extracted yet.</p>
           </div>
-        ) : viewMode === "matrix" ? (
+        ) : (
           /* ── 13-Month Matrix Table View ── */
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full text-xs">
@@ -782,192 +755,8 @@ export const FinancialStatementEditor: React.FC<{
               </tbody>
             </table>
           </div>
-        ) : (
-          /* ── Flat List View ── */
-          <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
-                  <th className="px-4 py-3 w-20">Code</th>
-                  <th className="px-4 py-3">Account Name</th>
-                  <th className="px-4 py-3 w-20">Month</th>
-                  <th className="px-4 py-3 hidden md:table-cell w-24">Category</th>
-                  <th className="px-4 py-3 hidden lg:table-cell">Source Label</th>
-                  <th className="px-4 py-3 text-right w-32">Value</th>
-                  <th className="px-4 py-3 w-24">Confidence</th>
-                  <th className="px-4 py-3 w-24">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((item) => {
-                  const isUnmapped = !item.account_code;
-                  const isLowConf = (item.ai_confidence ?? 1) < 0.6;
-                  const isEditingValue = editingValueId === item.id;
-                  const isEditingCode = editingCodeId === item.id;
-                  const coaEntry = item.account_code ? COA_BY_CODE.get(item.account_code) : null;
-
-                  return (
-                    <tr
-                      key={item.id}
-                      className={`transition-colors ${
-                        isUnmapped
-                          ? "bg-warning/5 hover:bg-warning/10"
-                          : isLowConf
-                            ? "bg-destructive/5 hover:bg-destructive/10"
-                            : "hover:bg-muted/20"
-                      }`}
-                    >
-                      {/* Account code */}
-                      <td className="px-4 py-2.5">
-                        {isEditingCode ? (
-                          <div className="relative">
-                            <input
-                              autoFocus
-                              type="text"
-                              placeholder="Search code…"
-                              value={codeSearch}
-                              onChange={(e) => setCodeSearch(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  setEditingCodeId(null);
-                                  setCodeSearch("");
-                                }
-                              }}
-                              className="w-28 rounded border border-ring bg-surface px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring/20"
-                            />
-                            <div className="absolute left-0 top-7 z-10 w-64 rounded-lg border border-border bg-surface shadow-lg">
-                              {filteredCoaOptions.length === 0 ? (
-                                <p className="px-3 py-2 text-xs text-muted-foreground">
-                                  No matches
-                                </p>
-                              ) : (
-                                filteredCoaOptions.map((opt) => (
-                                  <button
-                                    key={opt.code}
-                                    onMouseDown={() => assignCode(item, opt.code)}
-                                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted/50 transition-colors"
-                                  >
-                                    <span className="font-mono text-muted-foreground w-10 shrink-0">
-                                      {opt.code}
-                                    </span>
-                                    <span className="truncate">{opt.name}</span>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => isDraft && setEditingCodeId(item.id)}
-                            className={`font-mono text-xs transition-colors ${
-                              isUnmapped
-                                ? "text-warning-foreground font-bold hover:underline cursor-pointer"
-                                : "text-muted-foreground cursor-default"
-                            }`}
-                            title={isUnmapped && isDraft ? "Click to assign account code" : ""}
-                          >
-                            {item.account_code ?? "NULL"}
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Account name */}
-                      <td className="px-4 py-2.5">
-                        <p className="font-medium text-foreground text-xs">
-                          {coaEntry ? coaEntry.name : item.account_name}
-                        </p>
-                      </td>
-
-                      {/* Month column */}
-                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                        {item.month === 0 ? "Dec (Prev)" : `Month ${item.month}`}
-                      </td>
-
-                      {/* Category */}
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground capitalize hidden md:table-cell">
-                        {item.account_category}
-                      </td>
-
-                      {/* Source label */}
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground italic hidden lg:table-cell">
-                        {item.raw_label ? (
-                          <span className="max-w-[180px] truncate block" title={item.raw_label}>
-                            {item.raw_label}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-
-                      {/* Value */}
-                      <td className="px-4 py-2.5 text-right">
-                        {isEditingValue ? (
-                          <input
-                            autoFocus
-                            type="number"
-                            step="0.01"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveValue(item);
-                              if (e.key === "Escape") setEditingValueId(null);
-                            }}
-                            onBlur={() => saveValue(item)}
-                            className="w-28 rounded border border-ring bg-surface px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-ring/20"
-                          />
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (!isDraft) return;
-                              setEditingValueId(item.id);
-                              setEditValue(String(item.value ?? ""));
-                            }}
-                            className={`inline-flex items-center gap-1 font-mono text-xs transition-colors group ${
-                              isDraft ? "hover:text-primary cursor-pointer" : "cursor-default"
-                            }`}
-                          >
-                            {item.value !== null && item.value !== undefined
-                              ? item.value.toLocaleString("en-US", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
-                              : "—"}
-                            {isDraft && (
-                              <Edit3 className="size-3 opacity-0 group-hover:opacity-60 transition-opacity" />
-                            )}
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Confidence */}
-                      <td className="px-4 py-2.5">
-                        <ConfidenceBadge confidence={item.ai_confidence ?? null} />
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-2.5">
-                        {item.manually_edited ? (
-                          <StatusPill tone="info">Edited</StatusPill>
-                        ) : isUnmapped ? (
-                          <StatusPill tone="warning">
-                            {isDraft ? "Assign ↑" : "Unmapped"}
-                          </StatusPill>
-                        ) : isLowConf ? (
-                          <StatusPill tone="danger">Review</StatusPill>
-                        ) : (
-                          <StatusPill tone="success">
-                            <CheckCircle2 className="size-3 mr-1 inline" />
-                            OK
-                          </StatusPill>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         )}
+        {/* ── Flat List View (disabled) ── */}
       </Card>
     </div>
   );

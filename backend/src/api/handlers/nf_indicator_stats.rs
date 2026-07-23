@@ -45,8 +45,43 @@ pub async fn get_nf_statistics(
 ) -> AppResult<impl IntoResponse> {
     let coop =
         crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-    let stats = NfIndicatorEngine::compute(&state.db, coop.id, params.reporting_year).await?;
-    Ok((StatusCode::OK, Json(NfStatisticsResponse::from(stats))))
+
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+    let mut query = crate::entities::submission::Entity::find()
+        .filter(crate::entities::submission::Column::CooperativeId.eq(coop.id))
+        .filter(
+            crate::entities::submission::Column::Status
+                .eq(crate::entities::enums::SubmissionStatus::Approved)
+                .or(crate::entities::submission::Column::Status
+                    .eq(crate::entities::enums::SubmissionStatus::Submitted)),
+        );
+
+    if let Some(year) = params.reporting_year {
+        query = query.filter(crate::entities::submission::Column::ReportingYear.eq(year));
+    }
+
+    let latest_approved = query
+        .order_by_desc(crate::entities::submission::Column::ReportingYear)
+        .one(&state.db)
+        .await?;
+
+    let stats = if let Some(sub) = latest_approved {
+        let db_records = state.kpi_record_repo.find_by_submission(sub.id).await?;
+        if !db_records.is_empty() {
+            NfStatisticsResponse::from(reconstruct_nf_stats(&db_records))
+        } else {
+            let s =
+                NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(sub.id)).await?;
+            NfStatisticsResponse::from(s)
+        }
+    } else {
+        let s =
+            NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(uuid::Uuid::nil()))
+                .await?;
+        NfStatisticsResponse::from(s)
+    };
+
+    Ok((StatusCode::OK, Json(stats)))
 }
 
 #[utoipa::path(
@@ -85,6 +120,7 @@ pub async fn get_nf_trend(
     let mut grouped: BTreeMap<i32, Vec<_>> = BTreeMap::new();
     for submission in submissions.into_iter().filter(|submission| {
         submission.status == crate::entities::enums::SubmissionStatus::Approved
+            || submission.status == crate::entities::enums::SubmissionStatus::Submitted
     }) {
         if params.reporting_year.map_or(true, |reporting_year| {
             submission.reporting_year == reporting_year
@@ -94,6 +130,26 @@ pub async fn get_nf_trend(
                 .or_default()
                 .push(submission);
         }
+    }
+
+    let all_sub_ids: Vec<uuid::Uuid> = grouped
+        .values()
+        .flat_map(|subs| subs.iter().map(|s| s.id))
+        .collect();
+    let all_computed_records = state
+        .kpi_record_repo
+        .find_by_submission_ids(all_sub_ids)
+        .await
+        .unwrap_or_default();
+    let mut records_by_sub: std::collections::HashMap<
+        uuid::Uuid,
+        Vec<crate::entities::kpi_record::Model>,
+    > = std::collections::HashMap::new();
+    for rec in all_computed_records {
+        records_by_sub
+            .entry(rec.submission_id)
+            .or_default()
+            .push(rec);
     }
 
     let mut points = Vec::with_capacity(grouped.len());
@@ -110,12 +166,16 @@ pub async fn get_nf_trend(
 
         for submission in submissions {
             cooperative_ids.insert(submission.cooperative_id);
-            let stats = NfIndicatorEngine::compute_for_submission(
-                &state.db,
-                submission.cooperative_id,
-                Some(submission.id),
-            )
-            .await?;
+            let stats = if let Some(records) = records_by_sub.get(&submission.id) {
+                reconstruct_nf_stats(records)
+            } else {
+                NfIndicatorEngine::compute_for_submission(
+                    &state.db,
+                    submission.cooperative_id,
+                    Some(submission.id),
+                )
+                .await?
+            };
             total_members += stats.membership.total;
             youth_members += stats.membership.under_18 + stats.membership.age_18_35;
             women_members += stats.membership.female;
@@ -234,9 +294,28 @@ pub async fn get_consolidated_nf_statistics(
         .into_iter()
         .filter(|s| {
             s.reporting_year == year
-                && s.status == crate::entities::enums::SubmissionStatus::Approved
+                && (s.status == crate::entities::enums::SubmissionStatus::Approved
+                    || s.status == crate::entities::enums::SubmissionStatus::Submitted)
         })
         .collect();
+
+    let year_filtered_ids: Vec<uuid::Uuid> = year_filtered.iter().map(|s| s.id).collect();
+    let all_computed_records = state
+        .kpi_record_repo
+        .find_by_submission_ids(year_filtered_ids)
+        .await
+        .unwrap_or_default();
+
+    let mut records_by_sub: std::collections::HashMap<
+        uuid::Uuid,
+        Vec<crate::entities::kpi_record::Model>,
+    > = std::collections::HashMap::new();
+    for rec in all_computed_records {
+        records_by_sub
+            .entry(rec.submission_id)
+            .or_default()
+            .push(rec);
+    }
 
     let mut consolidated_stats =
         crate::services::nf_indicator_engine::NfStatisticsResponse::default();
@@ -250,13 +329,18 @@ pub async fn get_consolidated_nf_statistics(
     let mut total_early_wd_pct = 0.0;
 
     for submission in year_filtered {
-        if let Ok(stats) = NfIndicatorEngine::compute_for_submission(
-            &state.db,
-            submission.cooperative_id,
-            Some(submission.id),
-        )
-        .await
-        {
+        let stats_res = if let Some(records) = records_by_sub.get(&submission.id) {
+            Ok(reconstruct_nf_stats(records))
+        } else {
+            NfIndicatorEngine::compute_for_submission(
+                &state.db,
+                submission.cooperative_id,
+                Some(submission.id),
+            )
+            .await
+        };
+
+        if let Ok(stats) = stats_res {
             coop_count += 1;
 
             // Sum up totals
@@ -412,6 +496,42 @@ pub async fn get_consolidated_nf_statistics(
         consolidated_stats.fixed_deposits.early_withdrawal_pct = total_early_wd_pct / f_count;
     }
 
+    // Recompute savings rates
+    let total_accounts = consolidated_stats.savings.total_accounts as f64;
+    if total_accounts > 0.0 {
+        consolidated_stats.savings.active_savers_pct =
+            (consolidated_stats.savings.active_accounts as f64 / total_accounts) * 100.0;
+        consolidated_stats.savings.zero_balance_pct =
+            (consolidated_stats.savings.zero_balance_count as f64 / total_accounts) * 100.0;
+        consolidated_stats.savings.regular_savers_pct =
+            (consolidated_stats.savings.increasing_trend as f64 / total_accounts) * 100.0;
+    }
+
+    // Recompute loans borrower percentages
+    let active_loans = consolidated_stats.loans.active_loans as f64;
+    if active_loans > 0.0 {
+        consolidated_stats.loans.youth_borrower_pct =
+            (consolidated_stats.loans.youth_borrowers as f64 / active_loans) * 100.0;
+        consolidated_stats.loans.women_borrower_pct =
+            (consolidated_stats.loans.women_borrowers as f64 / active_loans) * 100.0;
+        consolidated_stats.loans.rural_borrower_pct =
+            (consolidated_stats.loans.rural_borrowers as f64 / active_loans) * 100.0;
+    }
+
+    // Recompute fixed deposits ratios
+    if consolidated_stats.fixed_deposits.matured_fds > 0 {
+        consolidated_stats.fixed_deposits.rollover_rate_pct =
+            (consolidated_stats.fixed_deposits.rolled_over_fds as f64
+                / consolidated_stats.fixed_deposits.matured_fds as f64)
+                * 100.0;
+    }
+    if consolidated_stats.fixed_deposits.active_fds > 0 {
+        consolidated_stats.fixed_deposits.concentration_risk_pct =
+            (consolidated_stats.fixed_deposits.single_depositor_count as f64
+                / consolidated_stats.fixed_deposits.active_fds as f64)
+                * 100.0;
+    }
+
     // Compute aggregate averages
     if consolidated_stats.savings.total_accounts > 0 {
         consolidated_stats.savings.average_balance = consolidated_stats.savings.total_balance
@@ -436,5 +556,130 @@ fn average(values: &[f64]) -> f64 {
         0.0
     } else {
         values.iter().sum::<f64>() / values.len() as f64
+    }
+}
+
+fn reconstruct_nf_stats(
+    records: &[crate::entities::kpi_record::Model],
+) -> crate::services::nf_indicator_engine::NfStatisticsResponse {
+    let get_val = |name: &str| -> f64 {
+        records
+            .iter()
+            .find(|r| r.kpi_name == name)
+            .map(|r| r.value)
+            .unwrap_or(0.0)
+    };
+
+    crate::services::nf_indicator_engine::NfStatisticsResponse {
+        membership: crate::services::nf_indicator_engine::MembershipStats {
+            total: get_val("membership_total") as u64,
+            active: get_val("membership_active") as u64,
+            dormant: get_val("membership_dormant") as u64,
+            exited: get_val("membership_exited") as u64,
+            male: get_val("membership_male") as u64,
+            female: get_val("membership_female") as u64,
+            other: get_val("membership_other") as u64,
+            under_18: get_val("membership_under_18") as u64,
+            age_18_35: get_val("membership_age_18_35") as u64,
+            age_36_50: get_val("membership_age_36_50") as u64,
+            over_50: get_val("membership_over_50") as u64,
+            urban: get_val("membership_urban") as u64,
+            rural: get_val("membership_rural") as u64,
+            agm_attendance: get_val("membership_agm_attendance") as u64,
+            leadership_count: get_val("membership_leadership_count") as u64,
+            voting_count: get_val("membership_voting_count") as u64,
+            active_pct: get_val("membership_active_pct"),
+            dormancy_pct: get_val("membership_dormancy_pct"),
+            exit_pct: get_val("membership_exit_pct"),
+            male_pct: get_val("membership_male_pct"),
+            female_pct: get_val("membership_female_pct"),
+            other_pct: get_val("membership_other_pct"),
+            youth_pct: get_val("membership_youth_pct"),
+            adult_pct: get_val("membership_adult_pct"),
+            urban_pct: get_val("membership_urban_pct"),
+            rural_pct: get_val("membership_rural_pct"),
+            agm_participation_pct: get_val("membership_agm_participation_pct"),
+            women_in_governance_pct: get_val("membership_women_in_governance_pct"),
+            youth_in_governance_pct: get_val("membership_youth_in_governance_pct"),
+        },
+        savings: crate::services::nf_indicator_engine::SavingsStats {
+            total_accounts: get_val("savings_total_accounts") as u64,
+            active_accounts: get_val("savings_active_accounts") as u64,
+            dormant_accounts: get_val("savings_dormant_accounts") as u64,
+            zero_balance_count: get_val("savings_zero_balance_count") as u64,
+            increasing_trend: get_val("savings_increasing_trend") as u64,
+            stable_trend: get_val("savings_stable_trend") as u64,
+            declining_trend: get_val("savings_declining_trend") as u64,
+            high_withdrawal_count: get_val("savings_high_withdrawal_count") as u64,
+            emergency_withdrawal_count: get_val("savings_emergency_withdrawal_count") as u64,
+            total_balance: get_val("savings_total_balance"),
+            average_balance: get_val("savings_average_balance"),
+            savings_penetration_pct: get_val("savings_penetration_pct"),
+            active_savers_pct: get_val("savings_active_savers_pct"),
+            dormant_savings_pct: get_val("savings_dormant_savings_pct"),
+            zero_balance_pct: get_val("savings_zero_balance_pct"),
+            increasing_trend_pct: get_val("savings_increasing_trend_pct"),
+            regular_savers_pct: get_val("savings_regular_savers_pct"),
+        },
+        loans: crate::services::nf_indicator_engine::LoanStats {
+            total_loans: get_val("loans_total_loans") as u64,
+            active_loans: get_val("loans_active_loans") as u64,
+            performing: get_val("loans_performing") as u64,
+            arrears: get_val("loans_arrears") as u64,
+            restructured: get_val("loans_restructured") as u64,
+            written_off: get_val("loans_written_off") as u64,
+            members_with_loans: get_val("loans_members_with_loans") as u64,
+            youth_borrowers: get_val("loans_youth_borrowers") as u64,
+            women_borrowers: get_val("loans_women_borrowers") as u64,
+            rural_borrowers: get_val("loans_rural_borrowers") as u64,
+            multiple_loan_count: get_val("loans_multiple_loan_count") as u64,
+            large_borrower_count: get_val("loans_large_borrower_count") as u64,
+            total_balance: get_val("loans_total_balance"),
+            total_loan_amount: get_val("loans_total_loan_amount"),
+            average_loan_size: get_val("loans_average_loan_size"),
+            on_time_repayment_pct: get_val("loans_on_time_repayment_pct"),
+            arrears_rate_pct: get_val("loans_arrears_rate_pct"),
+            restructured_pct: get_val("loans_restructured_pct"),
+            credit_penetration_pct: get_val("loans_credit_penetration_pct"),
+            youth_borrower_pct: get_val("loans_youth_borrower_pct"),
+            women_borrower_pct: get_val("loans_women_borrower_pct"),
+            rural_borrower_pct: get_val("loans_rural_borrower_pct"),
+        },
+        fixed_deposits: crate::services::nf_indicator_engine::FixedDepositStats {
+            total_fds: get_val("fds_total_fds") as u64,
+            active_fds: get_val("fds_active_fds") as u64,
+            matured_fds: get_val("fds_matured_fds") as u64,
+            withdrawn_fds: get_val("fds_withdrawn_fds") as u64,
+            rolled_over_fds: get_val("fds_rolled_over_fds") as u64,
+            members_with_fds: get_val("fds_members_with_fds") as u64,
+            early_withdrawal_count: get_val("fds_early_withdrawal_count") as u64,
+            single_depositor_count: get_val("fds_single_depositor_count") as u64,
+            total_balance: get_val("fds_total_balance"),
+            average_balance: get_val("fds_average_balance"),
+            fd_penetration_pct: get_val("fds_fd_penetration_pct"),
+            early_withdrawal_pct: get_val("fds_early_withdrawal_pct"),
+            rollover_rate_pct: get_val("fds_rollover_rate_pct"),
+            concentration_risk_pct: get_val("fds_concentration_risk_pct"),
+        },
+        farm_coop: crate::services::nf_indicator_engine::FarmCoopStats {
+            total_coops: get_val("farm_total_coops") as u64,
+            active_producers: get_val("farm_active_producers") as u64,
+            using_planning: get_val("farm_using_planning") as u64,
+            using_shared_inputs: get_val("farm_using_shared_inputs") as u64,
+            with_offtake_agreement: get_val("farm_with_offtake_agreement") as u64,
+            with_storage: get_val("farm_with_storage") as u64,
+            with_processing: get_val("farm_with_processing") as u64,
+            with_irrigation: get_val("farm_with_irrigation") as u64,
+            with_climate_mitigation: get_val("farm_with_climate_mitigation") as u64,
+            active_producer_pct: get_val("farm_active_producer_pct"),
+            planning_adoption_pct: get_val("farm_planning_adoption_pct"),
+            shared_services_pct: get_val("farm_shared_services_pct"),
+            formal_offtake_pct: get_val("farm_formal_offtake_pct"),
+            storage_coverage_pct: get_val("farm_storage_coverage_pct"),
+            processing_access_pct: get_val("farm_processing_access_pct"),
+            irrigation_coverage_pct: get_val("farm_irrigation_coverage_pct"),
+            climate_mitigation_pct: get_val("farm_climate_mitigation_pct"),
+        },
+        computed_at: chrono::Utc::now(),
     }
 }

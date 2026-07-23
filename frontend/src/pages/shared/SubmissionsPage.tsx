@@ -131,20 +131,22 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
           <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
             Reporting Year
           </label>
-          <div className="grid grid-cols-4 gap-2">
-            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3].map((y) => (
-              <button
-                key={y}
-                onClick={() => setYear(y)}
-                className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${
-                  year === y
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border bg-muted/30 text-foreground hover:border-primary/40 hover:bg-muted/60"
-                }`}
-              >
-                {y}
-              </button>
-            ))}
+          <div className="grid grid-cols-5 gap-2">
+            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map(
+              (y) => (
+                <button
+                  key={y}
+                  onClick={() => setYear(y)}
+                  className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${
+                    year === y
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border bg-muted/30 text-foreground hover:border-primary/40 hover:bg-muted/60"
+                  }`}
+                >
+                  {y}
+                </button>
+              ),
+            )}
           </div>
         </div>
 

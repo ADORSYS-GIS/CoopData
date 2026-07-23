@@ -8,7 +8,7 @@ use coop_data_backend::{
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
-    LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
+    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
     NonFinancialIndicatorEntryRepository, OrganizationRepository, SavingsAccountRepository,
     SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
     UploadedFileRepository, UserRepository,
@@ -67,6 +67,7 @@ impl TestApp {
         let non_financial_indicator_entry_repo =
             NonFinancialIndicatorEntryRepository::new(db.clone());
         let custom_kpi_repo = CustomKpiRepository::new(db.clone());
+        let kpi_record_repo = KpiRecordRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -99,6 +100,7 @@ impl TestApp {
             fixed_deposit_repo,
             farm_coop_repo,
             custom_kpi_repo,
+            kpi_record_repo,
             storage,
             nf_excel_parser,
         };

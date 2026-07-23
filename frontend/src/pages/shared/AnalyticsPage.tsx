@@ -22,6 +22,10 @@ import type { components } from "@/openapi-client/api";
 import { ApexAnalyticsView } from "../analytics/ApexAnalyticsView";
 import { FederationAnalyticsView } from "../analytics/FederationAnalyticsView";
 import { MinistryAnalyticsView } from "../analytics/MinistryAnalyticsView";
+import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
+import { PortfolioClassification } from "@/components/analytics/PortfolioClassification";
+import { ComparativeIncomeStatement } from "@/components/analytics/ComparativeIncomeStatement";
+import { FinancialIndicators } from "@/components/analytics/FinancialIndicators";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes } from "@/hooks/apexes/useApexes";
@@ -105,6 +109,10 @@ export const AnalyticsPage: React.FC = () => {
     to: new Date(),
   });
 
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "ranking" | "portfolio" | "income" | "indicators"
+  >("dashboard");
+
   const handleFilterChange = useCallback((id: string, value: string) => {
     setFilterValues((prev) => {
       const next = { ...prev, [id]: value };
@@ -157,7 +165,7 @@ export const AnalyticsPage: React.FC = () => {
           options: [
             { value: "all", label: "All Federations" },
 
-            ...federations.map((f: components["schemas"]["FederationResponse"]) => ({
+            ...federations.map((f: { id: string; name: string }) => ({
               value: f.id,
               label: f.name,
             })),
@@ -247,9 +255,80 @@ export const AnalyticsPage: React.FC = () => {
           />
         )}
 
-        {/* Role-specific dashboard OR Cooperative deep-dive */}
+        {/* Tab Selection (only for supervisor roles when no individual cooperative is selected) */}
+        {role !== "cooperative" && filterValues.cooperativeId === "all" && (
+          <div className="flex border-b border-border space-x-6">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+                activeTab === "dashboard"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Consolidated Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab("ranking")}
+              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+                activeTab === "ranking"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Cooperative Rankings
+            </button>
+            <button
+              onClick={() => setActiveTab("portfolio")}
+              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+                activeTab === "portfolio"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Portfolio Classification
+            </button>
+            <button
+              onClick={() => setActiveTab("income")}
+              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+                activeTab === "income"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Income Statement
+            </button>
+            <button
+              onClick={() => setActiveTab("indicators")}
+              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+                activeTab === "indicators"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Financial Indicators
+            </button>
+          </div>
+        )}
+
+        {/* Role-specific dashboard OR Cooperative deep-dive OR Tab content */}
         {filterValues.cooperativeId !== "all" ? (
           <CooperativeAnalyticsView filterValues={filterValues} />
+        ) : role !== "cooperative" && activeTab !== "dashboard" ? (
+          <>
+            {activeTab === "ranking" && (
+              <CooperativeRanking reportingYear={Number(filterValues.year)} />
+            )}
+            {activeTab === "portfolio" && (
+              <PortfolioClassification reportingYear={Number(filterValues.year)} />
+            )}
+            {activeTab === "income" && (
+              <ComparativeIncomeStatement reportingYear={Number(filterValues.year)} />
+            )}
+            {activeTab === "indicators" && (
+              <FinancialIndicators reportingYear={Number(filterValues.year)} />
+            )}
+          </>
         ) : (
           <>
             {role === "ministry" && (

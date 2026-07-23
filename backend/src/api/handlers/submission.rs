@@ -376,6 +376,9 @@ pub async fn submit_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow.submit(id, &claims).await?;
 
@@ -659,6 +662,9 @@ pub async fn apex_approve_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow.apex_approve(id, &claims, body.comment).await?;
     let updated = state
@@ -693,6 +699,9 @@ pub async fn apex_return_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow.apex_return(id, &claims, body.comment).await?;
     let updated = state
@@ -820,6 +829,9 @@ pub async fn federation_approve_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow
         .federation_approve(id, &claims, body.comment)
@@ -856,6 +868,9 @@ pub async fn federation_return_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow
         .federation_return(id, &claims, body.comment)
@@ -1013,6 +1028,9 @@ pub async fn ministry_approve_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow.ministry_approve(id, &claims, body.comment).await?;
     let updated = state
@@ -1047,6 +1065,9 @@ pub async fn ministry_reject_submission(
         state.flag_repo.clone(),
         state.section_repo.clone(),
         state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
     );
     workflow.ministry_reject(id, &claims, body.comment).await?;
     let updated = state

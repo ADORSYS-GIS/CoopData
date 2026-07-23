@@ -28,11 +28,26 @@ pub fn flag(
 
 pub type ValuesMap = HashMap<i32, Decimal>;
 
-pub fn build_values_map(line_items: &[balance_sheet_line_item::Model]) -> ValuesMap {
+pub fn build_values_map_for_month(
+    line_items: &[balance_sheet_line_item::Model],
+    month: i16,
+) -> ValuesMap {
+    let mut map: ValuesMap = HashMap::new();
+    for item in line_items {
+        if item.month == month {
+            if let (Some(code), Some(val)) = (item.account_code, item.value) {
+                *map.entry(code).or_default() += val;
+            }
+        }
+    }
+    map
+}
+
+pub fn build_presence_values_map(line_items: &[balance_sheet_line_item::Model]) -> ValuesMap {
     let mut map: ValuesMap = HashMap::new();
     for item in line_items {
         if let (Some(code), Some(val)) = (item.account_code, item.value) {
-            *map.entry(code).or_default() += val;
+            map.insert(code, val);
         }
     }
     map

@@ -3,6 +3,9 @@ import { Card } from "@/components/app-shell";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
 import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
 import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
+import { PortfolioOverviewChart } from "@/components/analytics/PortfolioOverviewChart";
+import { GenderParticipationChart } from "@/components/analytics/GenderParticipationChart";
+import { SavingsLoansDepositsChart } from "@/components/analytics/SavingsLoansDepositsChart";
 import { SavingsRadialGauges } from "@/components/analytics/SavingsRadialGauges";
 import { LoanDualBar } from "@/components/analytics/LoanDualBar";
 import { GenderStatusDoughnuts } from "@/components/analytics/GenderStatusDoughnuts";
@@ -74,6 +77,20 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         tooltip: "Aggregate outstanding loan portfolio across all cooperatives.",
         trend: "up" as const,
         trendValue: `${nfStats.loans.arrears_rate_pct.toFixed(1)}% Arrears`,
+      },
+      {
+        label: "Fixed Deposits",
+        value: `$${(nfStats.fixed_deposits.total_balance / 1000).toFixed(1)}K`,
+        tooltip: "Aggregate fixed term deposits held by all cooperatives.",
+        trend: "neutral" as const,
+        trendValue: `${nfStats.fixed_deposits.fd_penetration_pct.toFixed(1)}% Pen`,
+      },
+      {
+        label: "On-time Repayment",
+        value: `${nfStats.loans.on_time_repayment_pct.toFixed(1)}%`,
+        tooltip: "Aggregate percentage of loans repaid on schedule across the network.",
+        trend: "up" as const,
+        trendValue: "Healthy",
       },
     ];
   }, [nfStats, totalCooperatives, cooperativesWithData]);
@@ -226,13 +243,10 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card
-          title="Network Financial Trend"
-          subtitle="Assets, loans & savings over the reporting year"
-          info="Visualizes the month-over-month trajectory of the network's aggregated financial balances over the current reporting period."
-        >
-          <CoopTrendAreaChart
+      {/* Row 1: Portfolio Overview & Gender Participation */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        <div className="lg:col-span-3">
+          <PortfolioOverviewChart
             data={
               networkTrendPoints.length > 0
                 ? networkTrendPoints
@@ -252,8 +266,46 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
                   ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
             }
           />
-        </Card>
+        </div>
+        <div className="lg:col-span-2">
+          <GenderParticipationChart
+            data={
+              nfStats?.membership ?? {
+                total: 0,
+                male: 0,
+                female: 0,
+                other: 0,
+                male_pct: 0,
+                female_pct: 0,
+                other_pct: 0,
+              }
+            }
+          />
+        </div>
+      </div>
 
+      {/* Row 2: Monthly Breakdown & Savings Health */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <SavingsLoansDepositsChart
+          data={
+            networkTrendPoints.length > 0
+              ? networkTrendPoints
+              : [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
+          }
+        />
         {nfStats && (
           <Card
             title="Network Savings Portfolio Health"

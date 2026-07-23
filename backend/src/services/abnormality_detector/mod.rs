@@ -46,21 +46,53 @@ impl AbnormalityDetector {
             .find_by_financial_statement(fs_id)
             .await?;
 
-        let values = calculations::build_values_map(&line_items);
+        let presence_values = calculations::build_presence_values_map(&line_items);
 
         let mut all_flags = Vec::new();
 
-        all_flags.extend(sum_checks::run_sum_checks(coa, &values));
-
         let coop_type = CooperativeType::parse(cooperative_type).unwrap_or(CooperativeType::Other);
         let required_codes = self.coa_repo.find_required_by_coop_type(&coop_type).await?;
-        all_flags.extend(flags::check_missing_required(&required_codes, &values));
+        all_flags.extend(flags::check_missing_required(
+            &required_codes,
+            &presence_values,
+        ));
+        all_flags.extend(flags::run_low_flags(&presence_values));
 
-        all_flags.extend(flags::run_critical_flags(&values));
-        all_flags.extend(flags::run_high_flags(&values));
-        all_flags.extend(flags::run_medium_flags(&values));
-        all_flags.extend(flags::run_special_flags(&values));
-        all_flags.extend(flags::run_low_flags(&values));
+        for month in 0..=12 {
+            let month_values = calculations::build_values_map_for_month(&line_items, month as i16);
+            if month_values.is_empty() {
+                continue;
+            }
+
+            let month_label = match month {
+                0 => "Dec (Prev)",
+                1 => "Jan",
+                2 => "Feb",
+                3 => "Mar",
+                4 => "Apr",
+                5 => "May",
+                6 => "Jun",
+                7 => "Jul",
+                8 => "Aug",
+                9 => "Sep",
+                10 => "Oct",
+                11 => "Nov",
+                12 => "Dec",
+                _ => "Unknown Month",
+            };
+
+            let mut month_flags = Vec::new();
+            month_flags.extend(sum_checks::run_sum_checks(coa, &month_values));
+            month_flags.extend(flags::run_critical_flags(&month_values));
+            month_flags.extend(flags::run_high_flags(&month_values));
+            month_flags.extend(flags::run_medium_flags(&month_values));
+            month_flags.extend(flags::run_special_flags(&month_values));
+
+            for mut flag in month_flags {
+                flag.message = format!("{}: {}", month_label, flag.message);
+                all_flags.push(flag);
+            }
+        }
 
         // MED-014: rounding inconsistency (values with > 2 decimal places)
         for item in &line_items {

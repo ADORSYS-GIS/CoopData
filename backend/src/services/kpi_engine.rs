@@ -102,38 +102,108 @@ pub struct KpiEngine;
 
 impl KpiEngine {
     /// Compute all financial KPIs from balance sheet line items.
-    /// Sums values across all months (1-12) for each account code.
+    /// Filters to only use items matching the latest month present in the input.
     pub fn compute(line_items: &[LineItemModel]) -> ComputedKpiSet {
+        let max_month = line_items.iter().map(|item| item.month).max().unwrap_or(0);
+        let filtered_items: Vec<_> = line_items
+            .iter()
+            .filter(|item| item.month == max_month)
+            .cloned()
+            .collect();
+        let items = &filtered_items;
+
         // ── Aggregate by account code ────────────────────────────────────────
-        let liquid_assets = Self::sum_codes(line_items, &[1101, 1102, 1103, 1104]);
+        let liquid_assets = {
+            let parent = Self::sum_code(items, 1100);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                Self::sum_codes(items, &[1101, 1102, 1103, 1104])
+            }
+        };
 
         // GLP components (needed individually for PAR calculation)
-        let glp_performing = Self::sum_code(line_items, 1201);
-        let glp_arrears_1_30 = Self::sum_code(line_items, 1202);
-        let glp_arrears_31_60 = Self::sum_code(line_items, 1203);
-        let glp_arrears_61_90 = Self::sum_code(line_items, 1204);
-        let glp_npl = Self::sum_code(line_items, 1205);
+        let glp_performing = Self::sum_code(items, 1201);
+        let glp_arrears_1_30 = Self::sum_code(items, 1202);
+        let glp_arrears_31_60 = Self::sum_code(items, 1203);
+        let glp_arrears_61_90 = Self::sum_code(items, 1204);
+        let glp_npl = Self::sum_code(items, 1205);
 
-        let gross_lp =
-            glp_performing + glp_arrears_1_30 + glp_arrears_31_60 + glp_arrears_61_90 + glp_npl;
+        let gross_lp = {
+            let parent = Self::sum_code(items, 1200);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                glp_performing + glp_arrears_1_30 + glp_arrears_31_60 + glp_arrears_61_90 + glp_npl
+            }
+        };
         let arrears_30_plus = glp_arrears_31_60 + glp_arrears_61_90 + glp_npl + glp_arrears_1_30;
-        let provisions = Self::sum_codes(line_items, &[1251, 1252]);
+        let provisions = {
+            let parent = Self::sum_code(items, 1250);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                Self::sum_codes(items, &[1251, 1252])
+            }
+        };
         let net_lp = gross_lp - provisions;
 
-        let total_assets = Self::sum_code(line_items, 1999);
-        let member_deposits = Self::sum_codes(line_items, &[2101, 2102, 2103]);
-        let total_equity = Self::sum_code(line_items, 3999);
+        let total_assets = {
+            let parent = Self::sum_code(items, 1999);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                liquid_assets + gross_lp + provisions + Self::sum_code(items, 1300)
+            }
+        };
+        let member_deposits = {
+            let parent = Self::sum_code(items, 2100);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                Self::sum_codes(items, &[2101, 2102, 2103])
+            }
+        };
+        let total_equity = {
+            let parent = Self::sum_code(items, 3999);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                Self::sum_codes(items, &[3101, 3102, 3201, 3202, 3203, 3301, 3302])
+            }
+        };
 
-        let financial_income = Self::sum_codes(line_items, &[4101, 4102]);
-        let other_income = Self::sum_code(line_items, 4201);
-        let total_income = financial_income + other_income;
+        let financial_income = Self::sum_codes(items, &[4101, 4102]);
+        let other_income = Self::sum_code(items, 4201);
+        let total_income = {
+            let parent = Self::sum_code(items, 4999);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                financial_income + other_income
+            }
+        };
 
-        let financial_expenses = Self::sum_codes(line_items, &[5101, 5102]);
-        let operating_expenses = Self::sum_codes(line_items, &[5201, 5202, 5203, 5204]);
-        let credit_loss_expense = Self::sum_code(line_items, 5301);
-        let total_expenses = financial_expenses + operating_expenses + credit_loss_expense;
+        let financial_expenses = Self::sum_codes(items, &[5101, 5102]);
+        let operating_expenses = Self::sum_codes(items, &[5201, 5202, 5203, 5204]);
+        let credit_loss_expense = Self::sum_code(items, 5301);
+        let total_expenses = {
+            let parent = Self::sum_code(items, 5999);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                financial_expenses + operating_expenses + credit_loss_expense
+            }
+        };
 
-        let net_surplus = Self::sum_code(line_items, 6999);
+        let net_surplus = {
+            let parent = Self::sum_code(items, 6999);
+            if parent.abs() > 0.001 {
+                parent
+            } else {
+                Self::sum_code(items, 3302)
+            }
+        };
 
         // ── Compute ratios (guard all divisions) ─────────────────────────────
         let par30_val = Self::safe_div(arrears_30_plus, gross_lp) * 100.0;
@@ -503,5 +573,27 @@ mod tests {
         assert!(car.is_some());
         assert!((car.unwrap().value - 10.0).abs() < 0.001);
         assert!(result.get_by_name("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_compute_filters_latest_month() {
+        let mut item1_m1 = make_item(1999, 1000.0);
+        item1_m1.month = 1;
+        let mut item2_m1 = make_item(3999, 100.0);
+        item2_m1.month = 1;
+
+        let mut item1_m2 = make_item(1999, 5000.0);
+        item1_m2.month = 2;
+        let mut item2_m2 = make_item(3999, 500.0);
+        item2_m2.month = 2;
+
+        let items = vec![item1_m1, item2_m1, item1_m2, item2_m2];
+        let result = KpiEngine::compute(&items);
+
+        assert_eq!(result.total_assets.value, 5000.0);
+        assert_eq!(result.total_equity.value, 500.0);
+
+        let car = result.get_by_name("capital_adequacy_ratio").unwrap();
+        assert!((car.value - 10.0).abs() < 0.001);
     }
 }
