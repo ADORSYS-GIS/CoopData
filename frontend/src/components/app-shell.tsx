@@ -57,7 +57,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     id: "intelligence",
     label: "Intelligence",
     items: [
-      {to: "/app/reports", label: "Reports", icon: FileBarChart },
+      { to: "/app/reports", label: "Reports", icon: FileBarChart },
       { to: "/app/analytics", label: "Analytics", icon: PieChart },
       { to: "/app/benchmarking", label: "Benchmarking", icon: Scale },
     ],

@@ -17,7 +17,9 @@ impl KpiRecordRepository {
         if records.is_empty() {
             return Ok(());
         }
-        kpi_record::Entity::insert_many(records).exec(&self.db).await?;
+        kpi_record::Entity::insert_many(records)
+            .exec(&self.db)
+            .await?;
         Ok(())
     }
 
@@ -29,7 +31,10 @@ impl KpiRecordRepository {
         Ok(res.rows_affected)
     }
 
-    pub async fn find_by_submission(&self, submission_id: Uuid) -> AppResult<Vec<kpi_record::Model>> {
+    pub async fn find_by_submission(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Vec<kpi_record::Model>> {
         let records = kpi_record::Entity::find()
             .filter(kpi_record::Column::SubmissionId.eq(submission_id))
             .all(&self.db)
@@ -37,7 +42,10 @@ impl KpiRecordRepository {
         Ok(records)
     }
 
-    pub async fn find_by_submission_ids(&self, submission_ids: Vec<Uuid>) -> AppResult<Vec<kpi_record::Model>> {
+    pub async fn find_by_submission_ids(
+        &self,
+        submission_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<kpi_record::Model>> {
         if submission_ids.is_empty() {
             return Ok(vec![]);
         }
@@ -48,7 +56,10 @@ impl KpiRecordRepository {
         Ok(records)
     }
 
-    pub async fn find_by_cooperative_id(&self, cooperative_id: Uuid) -> AppResult<Vec<kpi_record::Model>> {
+    pub async fn find_by_cooperative_id(
+        &self,
+        cooperative_id: Uuid,
+    ) -> AppResult<Vec<kpi_record::Model>> {
         let records = kpi_record::Entity::find()
             .filter(kpi_record::Column::CooperativeId.eq(cooperative_id))
             .all(&self.db)
@@ -56,7 +67,10 @@ impl KpiRecordRepository {
         Ok(records)
     }
 
-    pub async fn find_by_cooperative_ids(&self, cooperative_ids: Vec<Uuid>) -> AppResult<Vec<kpi_record::Model>> {
+    pub async fn find_by_cooperative_ids(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<kpi_record::Model>> {
         if cooperative_ids.is_empty() {
             return Ok(vec![]);
         }

@@ -261,7 +261,9 @@ pub async fn get_submission_kpis(
             .financial_statement_repo
             .find_by_submission(id)
             .await?
-            .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
+            .ok_or_else(|| {
+                AppError::NotFound("No financial statement for this submission".into())
+            })?;
 
         let line_items = state
             .line_item_repo
@@ -1123,7 +1125,9 @@ pub async fn get_ministry_stats(
         .count() as i64;
     let approved_count = all_submissions
         .iter()
-        .filter(|s| s.status == SubmissionStatus::Approved || s.status == SubmissionStatus::Submitted)
+        .filter(|s| {
+            s.status == SubmissionStatus::Approved || s.status == SubmissionStatus::Submitted
+        })
         .count() as i64;
     let rejected_count = all_submissions
         .iter()
@@ -1140,7 +1144,9 @@ pub async fn get_ministry_stats(
     // Compute average PAR30 and CAR from approved submissions
     let approved_sub_ids: Vec<Uuid> = all_submissions
         .iter()
-        .filter(|s| s.status == SubmissionStatus::Approved || s.status == SubmissionStatus::Submitted)
+        .filter(|s| {
+            s.status == SubmissionStatus::Approved || s.status == SubmissionStatus::Submitted
+        })
         .map(|s| s.id)
         .collect();
 

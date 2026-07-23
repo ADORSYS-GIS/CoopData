@@ -39,7 +39,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   const latestSubmission = useLatestSubmission(reportingYear, filterValues.cooperativeId);
   const submissionId = latestSubmission?.id;
   const coopId = latestSubmission?.cooperative_id;
-  const hasApprovedSubmission = !!latestSubmission && (latestSubmission.status === "approved" || latestSubmission.status === "submitted");
+  const hasApprovedSubmission =
+    !!latestSubmission &&
+    (latestSubmission.status === "approved" || latestSubmission.status === "submitted");
 
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId);
   const { data: trendData } = useMonthlyTrend(

@@ -52,7 +52,10 @@ impl AbnormalityDetector {
 
         let coop_type = CooperativeType::parse(cooperative_type).unwrap_or(CooperativeType::Other);
         let required_codes = self.coa_repo.find_required_by_coop_type(&coop_type).await?;
-        all_flags.extend(flags::check_missing_required(&required_codes, &presence_values));
+        all_flags.extend(flags::check_missing_required(
+            &required_codes,
+            &presence_values,
+        ));
         all_flags.extend(flags::run_low_flags(&presence_values));
 
         for month in 0..=12 {

@@ -14,8 +14,8 @@ import {
 interface TrendDataPoint {
   month: string;
   liquidity: number; // mapped to Savings (1100)
-  loans: number;     // mapped to Loans (1200)
-  savings: number;   // mapped to Deposits (2100)
+  loans: number; // mapped to Loans (1200)
+  savings: number; // mapped to Deposits (2100)
 }
 
 interface SavingsLoansDepositsChartProps {
@@ -27,7 +27,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
   const formattedData = React.useMemo(() => {
     return data.map((item) => {
       // Calculate Net Variation: (Savings + Loans) - Deposits
-      const netVariation = (item.liquidity + item.loans) - item.savings;
+      const netVariation = item.liquidity + item.loans - item.savings;
       return {
         ...item,
         netVariation,
@@ -96,10 +96,10 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
                 name === "liquidity"
                   ? "Savings"
                   : name === "loans"
-                  ? "Loans"
-                  : name === "savings"
-                  ? "Deposits"
-                  : name,
+                    ? "Loans"
+                    : name === "savings"
+                      ? "Deposits"
+                      : name,
               ]}
             />
             <Legend

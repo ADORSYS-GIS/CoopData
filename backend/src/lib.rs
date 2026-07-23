@@ -19,11 +19,11 @@ pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
     CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
-    FinancialStatementRepository, FixedDepositRepository, LoanRepository, MemberRepository,
-    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
+    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository, KpiRecordRepository,
+    UserRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;

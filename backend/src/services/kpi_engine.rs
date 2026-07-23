@@ -589,10 +589,10 @@ mod tests {
 
         let items = vec![item1_m1, item2_m1, item1_m2, item2_m2];
         let result = KpiEngine::compute(&items);
-        
+
         assert_eq!(result.total_assets.value, 5000.0);
         assert_eq!(result.total_equity.value, 500.0);
-        
+
         let car = result.get_by_name("capital_adequacy_ratio").unwrap();
         assert!((car.value - 10.0).abs() < 0.001);
     }

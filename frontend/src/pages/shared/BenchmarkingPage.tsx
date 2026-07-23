@@ -31,9 +31,7 @@ export const BenchmarkingPage: React.FC = () => {
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Benchmarking Slicers
               </h3>
-              <p className="text-xs text-slate-500">
-                Filter comparison data by reporting period
-              </p>
+              <p className="text-xs text-slate-500">Filter comparison data by reporting period</p>
             </div>
           </div>
 

@@ -49,9 +49,7 @@ fn get_or_compute(v: &ValuesMap, code: i32) -> Decimal {
 
 fn compute_equity(v: &ValuesMap) -> Decimal {
     get_val(v, 3999).unwrap_or_else(|| {
-        get_or_compute(v, 3100)
-            + get_or_compute(v, 3200)
-            + get_or_compute(v, 3300)
+        get_or_compute(v, 3100) + get_or_compute(v, 3200) + get_or_compute(v, 3300)
     })
 }
 

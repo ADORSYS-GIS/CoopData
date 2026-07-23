@@ -46,12 +46,14 @@ pub async fn get_nf_statistics(
     let coop =
         crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
 
-    use sea_orm::{QueryOrder, EntityTrait, QueryFilter, ColumnTrait};
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
     let mut query = crate::entities::submission::Entity::find()
         .filter(crate::entities::submission::Column::CooperativeId.eq(coop.id))
         .filter(
-            crate::entities::submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Approved)
-                .or(crate::entities::submission::Column::Status.eq(crate::entities::enums::SubmissionStatus::Submitted))
+            crate::entities::submission::Column::Status
+                .eq(crate::entities::enums::SubmissionStatus::Approved)
+                .or(crate::entities::submission::Column::Status
+                    .eq(crate::entities::enums::SubmissionStatus::Submitted)),
         );
 
     if let Some(year) = params.reporting_year {
@@ -68,11 +70,14 @@ pub async fn get_nf_statistics(
         if !db_records.is_empty() {
             NfStatisticsResponse::from(reconstruct_nf_stats(&db_records))
         } else {
-            let s = NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(sub.id)).await?;
+            let s =
+                NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(sub.id)).await?;
             NfStatisticsResponse::from(s)
         }
     } else {
-        let s = NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(uuid::Uuid::nil())).await?;
+        let s =
+            NfIndicatorEngine::compute_for_submission(&state.db, coop.id, Some(uuid::Uuid::nil()))
+                .await?;
         NfStatisticsResponse::from(s)
     };
 
@@ -127,11 +132,24 @@ pub async fn get_nf_trend(
         }
     }
 
-    let all_sub_ids: Vec<uuid::Uuid> = grouped.values().flat_map(|subs| subs.iter().map(|s| s.id)).collect();
-    let all_computed_records = state.kpi_record_repo.find_by_submission_ids(all_sub_ids).await.unwrap_or_default();
-    let mut records_by_sub: std::collections::HashMap<uuid::Uuid, Vec<crate::entities::kpi_record::Model>> = std::collections::HashMap::new();
+    let all_sub_ids: Vec<uuid::Uuid> = grouped
+        .values()
+        .flat_map(|subs| subs.iter().map(|s| s.id))
+        .collect();
+    let all_computed_records = state
+        .kpi_record_repo
+        .find_by_submission_ids(all_sub_ids)
+        .await
+        .unwrap_or_default();
+    let mut records_by_sub: std::collections::HashMap<
+        uuid::Uuid,
+        Vec<crate::entities::kpi_record::Model>,
+    > = std::collections::HashMap::new();
     for rec in all_computed_records {
-        records_by_sub.entry(rec.submission_id).or_default().push(rec);
+        records_by_sub
+            .entry(rec.submission_id)
+            .or_default()
+            .push(rec);
     }
 
     let mut points = Vec::with_capacity(grouped.len());
@@ -288,9 +306,15 @@ pub async fn get_consolidated_nf_statistics(
         .await
         .unwrap_or_default();
 
-    let mut records_by_sub: std::collections::HashMap<uuid::Uuid, Vec<crate::entities::kpi_record::Model>> = std::collections::HashMap::new();
+    let mut records_by_sub: std::collections::HashMap<
+        uuid::Uuid,
+        Vec<crate::entities::kpi_record::Model>,
+    > = std::collections::HashMap::new();
     for rec in all_computed_records {
-        records_by_sub.entry(rec.submission_id).or_default().push(rec);
+        records_by_sub
+            .entry(rec.submission_id)
+            .or_default()
+            .push(rec);
     }
 
     let mut consolidated_stats =
@@ -475,25 +499,37 @@ pub async fn get_consolidated_nf_statistics(
     // Recompute savings rates
     let total_accounts = consolidated_stats.savings.total_accounts as f64;
     if total_accounts > 0.0 {
-        consolidated_stats.savings.active_savers_pct = (consolidated_stats.savings.active_accounts as f64 / total_accounts) * 100.0;
-        consolidated_stats.savings.zero_balance_pct = (consolidated_stats.savings.zero_balance_count as f64 / total_accounts) * 100.0;
-        consolidated_stats.savings.regular_savers_pct = (consolidated_stats.savings.increasing_trend as f64 / total_accounts) * 100.0;
+        consolidated_stats.savings.active_savers_pct =
+            (consolidated_stats.savings.active_accounts as f64 / total_accounts) * 100.0;
+        consolidated_stats.savings.zero_balance_pct =
+            (consolidated_stats.savings.zero_balance_count as f64 / total_accounts) * 100.0;
+        consolidated_stats.savings.regular_savers_pct =
+            (consolidated_stats.savings.increasing_trend as f64 / total_accounts) * 100.0;
     }
 
     // Recompute loans borrower percentages
     let active_loans = consolidated_stats.loans.active_loans as f64;
     if active_loans > 0.0 {
-        consolidated_stats.loans.youth_borrower_pct = (consolidated_stats.loans.youth_borrowers as f64 / active_loans) * 100.0;
-        consolidated_stats.loans.women_borrower_pct = (consolidated_stats.loans.women_borrowers as f64 / active_loans) * 100.0;
-        consolidated_stats.loans.rural_borrower_pct = (consolidated_stats.loans.rural_borrowers as f64 / active_loans) * 100.0;
+        consolidated_stats.loans.youth_borrower_pct =
+            (consolidated_stats.loans.youth_borrowers as f64 / active_loans) * 100.0;
+        consolidated_stats.loans.women_borrower_pct =
+            (consolidated_stats.loans.women_borrowers as f64 / active_loans) * 100.0;
+        consolidated_stats.loans.rural_borrower_pct =
+            (consolidated_stats.loans.rural_borrowers as f64 / active_loans) * 100.0;
     }
 
     // Recompute fixed deposits ratios
     if consolidated_stats.fixed_deposits.matured_fds > 0 {
-        consolidated_stats.fixed_deposits.rollover_rate_pct = (consolidated_stats.fixed_deposits.rolled_over_fds as f64 / consolidated_stats.fixed_deposits.matured_fds as f64) * 100.0;
+        consolidated_stats.fixed_deposits.rollover_rate_pct =
+            (consolidated_stats.fixed_deposits.rolled_over_fds as f64
+                / consolidated_stats.fixed_deposits.matured_fds as f64)
+                * 100.0;
     }
     if consolidated_stats.fixed_deposits.active_fds > 0 {
-        consolidated_stats.fixed_deposits.concentration_risk_pct = (consolidated_stats.fixed_deposits.single_depositor_count as f64 / consolidated_stats.fixed_deposits.active_fds as f64) * 100.0;
+        consolidated_stats.fixed_deposits.concentration_risk_pct =
+            (consolidated_stats.fixed_deposits.single_depositor_count as f64
+                / consolidated_stats.fixed_deposits.active_fds as f64)
+                * 100.0;
     }
 
     // Compute aggregate averages
@@ -523,7 +559,9 @@ fn average(values: &[f64]) -> f64 {
     }
 }
 
-fn reconstruct_nf_stats(records: &[crate::entities::kpi_record::Model]) -> crate::services::nf_indicator_engine::NfStatisticsResponse {
+fn reconstruct_nf_stats(
+    records: &[crate::entities::kpi_record::Model],
+) -> crate::services::nf_indicator_engine::NfStatisticsResponse {
     let get_val = |name: &str| -> f64 {
         records
             .iter()

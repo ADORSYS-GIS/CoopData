@@ -97,9 +97,13 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
               border: "1px solid var(--border)",
               fontSize: "12px",
             }}
-            formatter={(value: number, name: string, props: any) => {
-              if (name === "transparent") return []; // hide transparent block from tooltip
-              return [formatCurrency(props.payload.formatted), "Amount"];
+            formatter={(
+              value: number,
+              name: string,
+              props: { payload?: { formatted: string } },
+            ) => {
+              if (name === "transparent" || !props.payload) return [];
+              return [formatCurrency(Number(props.payload.formatted)), "Amount"];
             }}
           />
           <Bar dataKey="transparent" stackId="a" fill="transparent" />

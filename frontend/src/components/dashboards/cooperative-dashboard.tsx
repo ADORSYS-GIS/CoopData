@@ -63,7 +63,8 @@ export function CooperativeDashboard() {
   const reportingYear = latestSubmission?.reporting_year ?? new Date().getFullYear();
   const { data: trendData } = useMonthlyTrend(
     { reportingYear, cooperativeId: latestSubmission?.cooperative_id },
-    !!latestSubmission && (latestSubmission.status === "approved" || latestSubmission.status === "submitted"),
+    !!latestSubmission &&
+      (latestSubmission.status === "approved" || latestSubmission.status === "submitted"),
   );
 
   // Real database record counts — page_size:1 to get just the total cheaply

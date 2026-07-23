@@ -50,8 +50,18 @@ const INCOME_STATEMENT_ROWS: IncomeStatementRow[] = [
     computeFormula: (coop) => (coop[4101] || 0) + (coop[4102] || 0) + (coop[4201] || 0),
   },
   { label: "FINANCIAL EXPENSES", isHeader: true, codes: [] },
-  { label: "(-) Interest Paid on Member Deposits", subLabel: "Code 5101", codes: [5101], multiplier: -1 },
-  { label: "(-) Interest Paid on Borrowings", subLabel: "Code 5102", codes: [5102], multiplier: -1 },
+  {
+    label: "(-) Interest Paid on Member Deposits",
+    subLabel: "Code 5101",
+    codes: [5101],
+    multiplier: -1,
+  },
+  {
+    label: "(-) Interest Paid on Borrowings",
+    subLabel: "Code 5102",
+    codes: [5102],
+    multiplier: -1,
+  },
   {
     label: "NET INTEREST MARGIN",
     isHeader: true,
@@ -64,10 +74,25 @@ const INCOME_STATEMENT_ROWS: IncomeStatementRow[] = [
   },
   { label: "OPERATING & GENERAL EXPENSES", isHeader: true, codes: [] },
   { label: "(-) Personnel & Staff Expenses", subLabel: "Code 5201", codes: [5201], multiplier: -1 },
-  { label: "(-) Administrative & Rent Expenses", subLabel: "Code 5202", codes: [5202], multiplier: -1 },
-  { label: "(-) Depreciation & Amortization", subLabel: "Code 5203", codes: [5203], multiplier: -1 },
+  {
+    label: "(-) Administrative & Rent Expenses",
+    subLabel: "Code 5202",
+    codes: [5202],
+    multiplier: -1,
+  },
+  {
+    label: "(-) Depreciation & Amortization",
+    subLabel: "Code 5203",
+    codes: [5203],
+    multiplier: -1,
+  },
   { label: "(-) Other General Expenses", subLabel: "Code 5204", codes: [5204], multiplier: -1 },
-  { label: "(-) Provision for Credit Losses", subLabel: "Code 5301", codes: [5301], multiplier: -1 },
+  {
+    label: "(-) Provision for Credit Losses",
+    subLabel: "Code 5301",
+    codes: [5301],
+    multiplier: -1,
+  },
   {
     label: "NET SURPLUS / LOSS OF THE PERIOD",
     isHeader: true,
@@ -151,9 +176,7 @@ export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeS
       {/* Excel Blue Banner with Slicers */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">
-            Income Statement Comparison
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight">Income Statement Comparison</h2>
           <p className="text-xs text-blue-200/80 mt-1 font-medium">
             Comparative Audit Spreadsheet Grid & Operational Surplus ({reportingYear})
           </p>
@@ -194,7 +217,10 @@ export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeS
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="clear_all_custom_option" className="text-xs font-bold text-red-600">
+                  <SelectItem
+                    value="clear_all_custom_option"
+                    className="text-xs font-bold text-red-600"
+                  >
                     Reset Selection (All)
                   </SelectItem>
                   {coopMatrices.map((coop) => (
@@ -224,19 +250,28 @@ export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeS
           <span className="font-bold block mb-1">Income Statement Mapping:</span>
           The cooperative's revenues and operational costs are mapped to standard account codes:
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
-            <li><strong>Total Revenues</strong>: Mapped to account code 4101 (Interest on Loans), 4102 (Interest on Investments), and 4201 (Other Revenues).</li>
-            <li><strong>Financial Expenses</strong>: Mapped to account codes 5101 (Deposits Interest) and 5102 (Borrowing Interest).</li>
-            <li><strong>Net Interest Margin</strong>: Net difference between Financial Revenues and Financial Expenses.</li>
-            <li><strong>Operating Expenses</strong>: Mapped to account codes 5201 (Personnel), 5202 (Administrative), 5203 (Depreciation), 5204 (Other General), and 5301 (Provisions).</li>
+            <li>
+              <strong>Total Revenues</strong>: Mapped to account code 4101 (Interest on Loans), 4102
+              (Interest on Investments), and 4201 (Other Revenues).
+            </li>
+            <li>
+              <strong>Financial Expenses</strong>: Mapped to account codes 5101 (Deposits Interest)
+              and 5102 (Borrowing Interest).
+            </li>
+            <li>
+              <strong>Net Interest Margin</strong>: Net difference between Financial Revenues and
+              Financial Expenses.
+            </li>
+            <li>
+              <strong>Operating Expenses</strong>: Mapped to account codes 5201 (Personnel), 5202
+              (Administrative), 5203 (Depreciation), 5204 (Other General), and 5301 (Provisions).
+            </li>
           </ul>
         </div>
       </div>
 
       {/* Grid Comparative Table */}
-      <Card
-        title="Income Statement Spreadsheet Grid"
-        subtitle="Side-by-side comparison sheet"
-      >
+      <Card title="Income Statement Spreadsheet Grid" subtitle="Side-by-side comparison sheet">
         {filteredMatrices.length > 0 ? (
           <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left text-xs border-collapse">
@@ -246,7 +281,10 @@ export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeS
                     Category
                   </th>
                   {filteredMatrices.map((coop) => (
-                    <th key={coop.id} className="py-3 px-4 text-right min-w-[160px] font-semibold text-foreground">
+                    <th
+                      key={coop.id}
+                      className="py-3 px-4 text-right min-w-[160px] font-semibold text-foreground"
+                    >
                       {coop.name}
                     </th>
                   ))}
@@ -263,9 +301,15 @@ export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeS
                         {filteredMatrices.map((coop) => {
                           const val = row.computeFormula
                             ? row.computeFormula(coop.codeValues)
-                            : row.codes.reduce((sum, code) => sum + (coop.codeValues[code] || 0), 0);
+                            : row.codes.reduce(
+                                (sum, code) => sum + (coop.codeValues[code] || 0),
+                                0,
+                              );
                           return (
-                            <td key={coop.id} className="py-2.5 px-4 text-right font-bold text-foreground">
+                            <td
+                              key={coop.id}
+                              className="py-2.5 px-4 text-right font-bold text-foreground"
+                            >
                               {formatCurrency(val)}
                             </td>
                           );
@@ -280,7 +324,10 @@ export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeS
                         {row.label}
                       </td>
                       {filteredMatrices.map((coop) => {
-                        const rawSum = row.codes.reduce((sum, code) => sum + (coop.codeValues[code] || 0), 0);
+                        const rawSum = row.codes.reduce(
+                          (sum, code) => sum + (coop.codeValues[code] || 0),
+                          0,
+                        );
                         const val = rawSum * (row.multiplier || 1);
                         return (
                           <td key={coop.id} className="py-2 px-4 text-right text-slate-700">

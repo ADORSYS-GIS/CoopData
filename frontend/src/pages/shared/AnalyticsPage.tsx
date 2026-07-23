@@ -109,7 +109,9 @@ export const AnalyticsPage: React.FC = () => {
     to: new Date(),
   });
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "ranking" | "portfolio" | "income" | "indicators">("dashboard");
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "ranking" | "portfolio" | "income" | "indicators"
+  >("dashboard");
 
   const handleFilterChange = useCallback((id: string, value: string) => {
     setFilterValues((prev) => {
@@ -163,7 +165,10 @@ export const AnalyticsPage: React.FC = () => {
           options: [
             { value: "all", label: "All Federations" },
 
-            ...federations.map((f: any) => ({ value: f.id, label: f.name })),
+            ...federations.map((f: { id: string; name: string }) => ({
+              value: f.id,
+              label: f.name,
+            })),
           ],
         };
       }

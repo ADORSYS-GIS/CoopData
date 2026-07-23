@@ -36,17 +36,22 @@ export const useLatestSubmission = (
   const submissions = useMemo(() => {
     if (isCoop) return coopSubmissions;
 
-    const allSubs = isApex
-      ? apexSubmissions
-      : isFed
-        ? fedSubmissions
-        : minSubmissions;
+    const allSubs = isApex ? apexSubmissions : isFed ? fedSubmissions : minSubmissions;
 
     if (cooperativeId && cooperativeId !== "all") {
       return allSubs.filter((sub) => sub.cooperative_id === cooperativeId);
     }
     return allSubs;
-  }, [isCoop, isApex, isFed, minSubmissions, coopSubmissions, apexSubmissions, fedSubmissions, cooperativeId]);
+  }, [
+    isCoop,
+    isApex,
+    isFed,
+    minSubmissions,
+    coopSubmissions,
+    apexSubmissions,
+    fedSubmissions,
+    cooperativeId,
+  ]);
 
   const approvedSubmissions = useMemo(() => {
     return submissions.filter((sub) => {

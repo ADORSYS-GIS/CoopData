@@ -35,14 +35,19 @@ interface IndicatorRow {
   isHeader?: boolean;
   unit: "%" | "SZL" | "ratio";
   computeFormula: (
-    kpis: Record<string, any>,
-    accounts: Record<number, number>
+    kpis: Record<string, { value: number }>,
+    accounts: Record<number, number>,
   ) => number | null;
 }
 
 const INDICATOR_ROWS: IndicatorRow[] = [
   // 1. Patrimonial Sufficiency
-  { label: "PATRIMONIAL SUFFICIENCY (SUFICIENCIA PATRIMONIAL)", isHeader: true, unit: "%", computeFormula: () => null },
+  {
+    label: "PATRIMONIAL SUFFICIENCY (SUFICIENCIA PATRIMONIAL)",
+    isHeader: true,
+    unit: "%",
+    computeFormula: () => null,
+  },
   {
     label: "  Capital Adequacy Ratio: Total Equity / Total Assets",
     unit: "%",
@@ -50,7 +55,12 @@ const INDICATOR_ROWS: IndicatorRow[] = [
   },
 
   // 2. Asset Quality
-  { label: "ASSET STRUCTURE & QUALITY (ESTRUCTURA Y CALIDAD DE ACTIVOS)", isHeader: true, unit: "%", computeFormula: () => null },
+  {
+    label: "ASSET STRUCTURE & QUALITY (ESTRUCTURA Y CALIDAD DE ACTIVOS)",
+    isHeader: true,
+    unit: "%",
+    computeFormula: () => null,
+  },
   {
     label: "  Earning Assets / Total Assets",
     unit: "%",
@@ -71,7 +81,12 @@ const INDICATOR_ROWS: IndicatorRow[] = [
   },
 
   // 3. Delinquency
-  { label: "DELINQUENCY RATIOS (INDICES DE MOROSIDAD)", isHeader: true, unit: "%", computeFormula: () => null },
+  {
+    label: "DELINQUENCY RATIOS (INDICES DE MOROSIDAD)",
+    isHeader: true,
+    unit: "%",
+    computeFormula: () => null,
+  },
   {
     label: "  Total Delinquency Ratio (NPL Ratio)",
     unit: "%",
@@ -93,7 +108,12 @@ const INDICATOR_ROWS: IndicatorRow[] = [
   },
 
   // 4. Provision Coverage
-  { label: "PROVISION COVERAGE FOR ARREARS", isHeader: true, unit: "%", computeFormula: () => null },
+  {
+    label: "PROVISION COVERAGE FOR ARREARS",
+    isHeader: true,
+    unit: "%",
+    computeFormula: () => null,
+  },
   {
     label: "  Loan Loss Provisions / Total Arrears (Coverage)",
     unit: "%",
@@ -101,7 +121,12 @@ const INDICATOR_ROWS: IndicatorRow[] = [
   },
 
   // 5. Operating Efficiency
-  { label: "MICROECONOMIC EFFICIENCY (EFICIENCIA MICROECONOMICA)", isHeader: true, unit: "%", computeFormula: () => null },
+  {
+    label: "MICROECONOMIC EFFICIENCY (EFICIENCIA MICROECONOMICA)",
+    isHeader: true,
+    unit: "%",
+    computeFormula: () => null,
+  },
   {
     label: "  Operating Expense Ratio: Operating Expenses / Total Assets",
     unit: "%",
@@ -111,7 +136,11 @@ const INDICATOR_ROWS: IndicatorRow[] = [
     label: "  Operating Expenses / Net Interest Margin",
     unit: "%",
     computeFormula: (kpis, accounts) => {
-      const opex = (accounts[5201] || 0) + (accounts[5202] || 0) + (accounts[5203] || 0) + (accounts[5204] || 0);
+      const opex =
+        (accounts[5201] || 0) +
+        (accounts[5202] || 0) +
+        (accounts[5203] || 0) +
+        (accounts[5204] || 0);
       const inc = (accounts[4101] || 0) + (accounts[4102] || 0);
       const exp = (accounts[5101] || 0) + (accounts[5102] || 0);
       const margin = inc - exp;
@@ -138,7 +167,12 @@ const INDICATOR_ROWS: IndicatorRow[] = [
   },
 
   // 7. Liquidity & Intermediation
-  { label: "FINANCIAL INTERMEDIATION & LIQUIDITY (LIQUIDEZ)", isHeader: true, unit: "%", computeFormula: () => null },
+  {
+    label: "FINANCIAL INTERMEDIATION & LIQUIDITY (LIQUIDEZ)",
+    isHeader: true,
+    unit: "%",
+    computeFormula: () => null,
+  },
   {
     label: "  Liquid Funds Ratio: Liquid Assets / Total Assets",
     unit: "%",
@@ -190,7 +224,7 @@ export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps)
 
       // Match calculated KPIs from overview
       const overviewCoop = overview?.cooperatives.find(
-        (c) => c.cooperative_id === grid.cooperative_id
+        (c) => c.cooperative_id === grid.cooperative_id,
       );
       const kpis = overviewCoop?.kpis || {};
 
@@ -232,9 +266,7 @@ export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps)
       {/* Excel Blue Banner with Slicers */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">
-            Financial Indicators
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight">Financial Indicators</h2>
           <p className="text-xs text-blue-200/80 mt-1 font-medium">
             Supervisory Audits, Financial Ratios & Performance Indicators ({reportingYear})
           </p>
@@ -275,7 +307,10 @@ export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps)
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="clear_all_custom_option" className="text-xs font-bold text-red-600">
+                  <SelectItem
+                    value="clear_all_custom_option"
+                    className="text-xs font-bold text-red-600"
+                  >
                     Reset Selection (All)
                   </SelectItem>
                   {coopMatrices.map((coop) => (
@@ -305,10 +340,22 @@ export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps)
           <span className="font-bold block mb-1">Financial Ratios & Mappings:</span>
           This dashboard aggregates key prudential and efficiency ratios:
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
-            <li><strong>Capital Adequacy Ratio</strong>: Measures solvency by comparing institutional equity to total assets.</li>
-            <li><strong>Delinquency / NPL</strong>: Outstanding loans in arrears past 90 days relative to gross portfolio.</li>
-            <li><strong>ROA / ROE</strong>: Profitability metrics comparing net surplus to assets and equity.</li>
-            <li><strong>Operating Efficiency</strong>: Operational overhead cost weight relative to interest spreads.</li>
+            <li>
+              <strong>Capital Adequacy Ratio</strong>: Measures solvency by comparing institutional
+              equity to total assets.
+            </li>
+            <li>
+              <strong>Delinquency / NPL</strong>: Outstanding loans in arrears past 90 days relative
+              to gross portfolio.
+            </li>
+            <li>
+              <strong>ROA / ROE</strong>: Profitability metrics comparing net surplus to assets and
+              equity.
+            </li>
+            <li>
+              <strong>Operating Efficiency</strong>: Operational overhead cost weight relative to
+              interest spreads.
+            </li>
           </ul>
         </div>
       </div>
@@ -327,7 +374,10 @@ export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps)
                     Financial Indicator / Key Ratios
                   </th>
                   {filteredMatrices.map((coop) => (
-                    <th key={coop.id} className="py-3 px-4 text-right min-w-[160px] font-semibold text-foreground">
+                    <th
+                      key={coop.id}
+                      className="py-3 px-4 text-right min-w-[160px] font-semibold text-foreground"
+                    >
                       {coop.name}
                     </th>
                   ))}
@@ -342,9 +392,11 @@ export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps)
                           {row.label}
                         </td>
                         {filteredMatrices.map((coop) => (
-                          <td key={coop.id} className="py-2.5 px-4 text-right font-bold text-foreground">
-                            {/* Empty value for categories */}
-                            -
+                          <td
+                            key={coop.id}
+                            className="py-2.5 px-4 text-right font-bold text-foreground"
+                          >
+                            {/* Empty value for categories */}-
                           </td>
                         ))}
                       </tr>

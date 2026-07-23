@@ -21,11 +21,14 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
   ].filter((item) => item.value > 0);
 
   // Fallback if no members are populated in the database
-  const finalChartData = chartData.length > 0 ? chartData : [
-    { name: "Women", value: 50.0, color: "#0284c7" },
-    { name: "Men", value: 40.0, color: "#16a34a" },
-    { name: "Non-binary / Undisclosed", value: 10.0, color: "#ea580c" },
-  ];
+  const finalChartData =
+    chartData.length > 0
+      ? chartData
+      : [
+          { name: "Women", value: 50.0, color: "#0284c7" },
+          { name: "Men", value: 40.0, color: "#16a34a" },
+          { name: "Non-binary / Undisclosed", value: 10.0, color: "#ea580c" },
+        ];
 
   const primaryPct = data.female_pct > 0 ? data.female_pct : 50.0;
 

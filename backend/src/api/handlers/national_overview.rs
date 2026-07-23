@@ -2,17 +2,17 @@ use axum::extract::{Extension, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use chrono::Datelike;
+use rust_decimal::prelude::ToPrimitive;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
-use chrono::Datelike;
-use rust_decimal::prelude::ToPrimitive;
 use uuid::Uuid;
 
 use crate::api::dto::national_overview::{
-    CoopKpiRow, CoopNfSummary, KpiStatusCount, NationalOverviewResponse, NfPortfolioSummary,
-    TrafficLightDistribution, ComparativeStatementsParams, ComparativeStatementsResponse,
-    CooperativeStatementGrid, CooperativeLineItem,
+    ComparativeStatementsParams, ComparativeStatementsResponse, CoopKpiRow, CoopNfSummary,
+    CooperativeLineItem, CooperativeStatementGrid, KpiStatusCount, NationalOverviewResponse,
+    NfPortfolioSummary, TrafficLightDistribution,
 };
 use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::auth::claims::Claims;
@@ -75,9 +75,9 @@ pub async fn get_national_overview(
         .await?
         .into_iter()
         .filter(|submission| {
-            let is_approved =
-                submission.status == crate::entities::enums::SubmissionStatus::Approved
-                    || submission.status == crate::entities::enums::SubmissionStatus::Submitted;
+            let is_approved = submission.status
+                == crate::entities::enums::SubmissionStatus::Approved
+                || submission.status == crate::entities::enums::SubmissionStatus::Submitted;
             let matches_year = params
                 .reporting_year
                 .map(|year| submission.reporting_year == year)
@@ -105,7 +105,10 @@ pub async fn get_national_overview(
     }
 
     // Batch 3.5: Fetch all computed kpi records in one query
-    let submission_ids_for_kpi: Vec<uuid::Uuid> = fs_map.values().map(|(_, submission_id)| *submission_id).collect();
+    let submission_ids_for_kpi: Vec<uuid::Uuid> = fs_map
+        .values()
+        .map(|(_, submission_id)| *submission_id)
+        .collect();
     let all_computed_records = state
         .kpi_record_repo
         .find_by_submission_ids(submission_ids_for_kpi)
@@ -113,9 +116,13 @@ pub async fn get_national_overview(
         .unwrap_or_default();
 
     // Group records by submission_id
-    let mut records_by_sub: HashMap<uuid::Uuid, Vec<crate::entities::kpi_record::Model>> = HashMap::new();
+    let mut records_by_sub: HashMap<uuid::Uuid, Vec<crate::entities::kpi_record::Model>> =
+        HashMap::new();
     for rec in all_computed_records {
-        records_by_sub.entry(rec.submission_id).or_default().push(rec);
+        records_by_sub
+            .entry(rec.submission_id)
+            .or_default()
+            .push(rec);
     }
 
     // Batch 3: fetch line items for all financial statements (needed only for fallback calculation)
@@ -209,15 +216,18 @@ pub async fn get_national_overview(
             let mut kpi_map = HashMap::new();
             for r in records {
                 if r.kpi_type == "financial" {
-                    kpi_map.insert(r.kpi_name.clone(), crate::services::kpi_engine::KpiValue {
-                        name: r.kpi_name.clone(),
-                        value: r.value,
-                        formatted: r.formatted.clone(),
-                        unit: r.unit.clone(),
-                        status: r.status.clone(),
-                        benchmark: None,
-                        description: r.description.clone(),
-                    });
+                    kpi_map.insert(
+                        r.kpi_name.clone(),
+                        crate::services::kpi_engine::KpiValue {
+                            name: r.kpi_name.clone(),
+                            value: r.value,
+                            formatted: r.formatted.clone(),
+                            unit: r.unit.clone(),
+                            status: r.status.clone(),
+                            benchmark: None,
+                            description: r.description.clone(),
+                        },
+                    );
                 }
             }
             (kpi_map, nf_summary)
@@ -316,7 +326,12 @@ pub async fn get_national_overview(
             }
         }
 
-        let has_financial_data = fs_id.is_some() && (records_opt.is_some() || (fs_id.is_some() && items_by_fs.get(&fs_id.unwrap().0).map_or(false, |items| !items.is_empty())));
+        let has_financial_data = fs_id.is_some()
+            && (records_opt.is_some()
+                || (fs_id.is_some()
+                    && items_by_fs
+                        .get(&fs_id.unwrap().0)
+                        .is_some_and(|items| !items.is_empty())));
 
         coop_rows.push(CoopKpiRow {
             cooperative_id: coop.id,
@@ -512,9 +527,13 @@ pub async fn get_comparative_statements(
     };
 
     // Group line items by financial_statement_id
-    let mut items_by_fs: HashMap<Uuid, Vec<crate::entities::balance_sheet_line_item::Model>> = HashMap::new();
+    let mut items_by_fs: HashMap<Uuid, Vec<crate::entities::balance_sheet_line_item::Model>> =
+        HashMap::new();
     for item in line_items {
-        items_by_fs.entry(item.financial_statement_id).or_default().push(item);
+        items_by_fs
+            .entry(item.financial_statement_id)
+            .or_default()
+            .push(item);
     }
 
     // Map financial statement ID to cooperative ID
@@ -530,9 +549,9 @@ pub async fn get_comparative_statements(
 
     for coop in cooperatives {
         // Find if they have a financial statement for this year
-        let fs_opt = financial_statements.iter().find(|fs| {
-            fs_to_coop.get(&fs.id) == Some(&coop.id)
-        });
+        let fs_opt = financial_statements
+            .iter()
+            .find(|fs| fs_to_coop.get(&fs.id) == Some(&coop.id));
 
         let mut grid_items = vec![];
         if let Some(fs) = fs_opt {
@@ -557,9 +576,6 @@ pub async fn get_comparative_statements(
 
     Ok((
         StatusCode::OK,
-        Json(ComparativeStatementsResponse {
-            year,
-            grids,
-        }),
+        Json(ComparativeStatementsResponse { year, grids }),
     ))
 }

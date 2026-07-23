@@ -73,9 +73,10 @@ export function CooperativeRanking({ reportingYear }: CooperativeRankingProps) {
       const lineItems = grid.line_items || [];
 
       // Filter by selected month if not "all"
-      const filtered = selectedMonth === "all"
-        ? lineItems
-        : lineItems.filter((item) => String(item.month) === selectedMonth);
+      const filtered =
+        selectedMonth === "all"
+          ? lineItems
+          : lineItems.filter((item) => String(item.month) === selectedMonth);
 
       // Sum values for the selected metric code
       const targetCode = parseInt(selectedMetric, 10);
@@ -87,7 +88,9 @@ export function CooperativeRanking({ reportingYear }: CooperativeRankingProps) {
         cooperative_id: grid.cooperative_id,
         name: grid.cooperative_name,
         value: sum,
-        region: overview?.cooperatives.find((c) => c.cooperative_id === grid.cooperative_id)?.region ?? "Unknown",
+        region:
+          overview?.cooperatives.find((c) => c.cooperative_id === grid.cooperative_id)?.region ??
+          "Unknown",
         status: "healthy",
       };
     });
@@ -191,15 +194,30 @@ export function CooperativeRanking({ reportingYear }: CooperativeRankingProps) {
         <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
         <div>
           <span className="font-bold block mb-1">Account Ranking Mapping:</span>
-          The comparative ranking aggregates the raw balance sheet items based on standard account codes:
+          The comparative ranking aggregates the raw balance sheet items based on standard account
+          codes:
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
-            <li><strong>Total Assets</strong>: Account code 1999.</li>
-            <li><strong>Gross Loans</strong>: Account code 1200.</li>
-            <li><strong>Liquid Assets</strong>: Account code 1100.</li>
-            <li><strong>Other Assets</strong>: Account code 1300.</li>
-            <li><strong>Member Deposits</strong>: Account code 2100.</li>
-            <li><strong>Total Liabilities</strong>: Account code 2999.</li>
-            <li><strong>Total Equity</strong>: Account code 3999.</li>
+            <li>
+              <strong>Total Assets</strong>: Account code 1999.
+            </li>
+            <li>
+              <strong>Gross Loans</strong>: Account code 1200.
+            </li>
+            <li>
+              <strong>Liquid Assets</strong>: Account code 1100.
+            </li>
+            <li>
+              <strong>Other Assets</strong>: Account code 1300.
+            </li>
+            <li>
+              <strong>Member Deposits</strong>: Account code 2100.
+            </li>
+            <li>
+              <strong>Total Liabilities</strong>: Account code 2999.
+            </li>
+            <li>
+              <strong>Total Equity</strong>: Account code 3999.
+            </li>
           </ul>
         </div>
       </div>
@@ -224,10 +242,14 @@ export function CooperativeRanking({ reportingYear }: CooperativeRankingProps) {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {rankedCoops.map((coop) => {
-                      const contribPct = totalSum > 0 ? (Math.max(0, coop.value) / totalSum) * 100 : 0;
+                      const contribPct =
+                        totalSum > 0 ? (Math.max(0, coop.value) / totalSum) * 100 : 0;
 
                       return (
-                        <tr key={coop.cooperative_id} className="hover:bg-muted/30 transition-colors">
+                        <tr
+                          key={coop.cooperative_id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
                           <td className="py-2.5 px-3 font-semibold text-foreground truncate max-w-[180px]">
                             {coop.name}
                           </td>
@@ -285,7 +307,7 @@ export function CooperativeRanking({ reportingYear }: CooperativeRankingProps) {
                         borderColor: "hsl(var(--border))",
                         borderRadius: "8px",
                       }}
-                      formatter={(val: any) => [
+                      formatter={(val: unknown) => [
                         `${Number(val).toFixed(2)}M`,
                         "Value (Millions)",
                       ]}

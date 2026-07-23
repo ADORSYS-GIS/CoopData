@@ -11,7 +11,7 @@ import {
   Cell,
 } from "recharts";
 import { useAuth } from "@/context/AuthContext";
-import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useNationalOverview, CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 import { Card } from "@/components/app-shell";
 import {
   Select,
@@ -52,7 +52,12 @@ const COMPARABLE_KPIS = [
   { key: "roa", label: "Return on Assets (ROA)", unit: "%", isNf: false },
   { key: "roe", label: "Return on Equity (ROE)", unit: "%", isNf: false },
   { key: "operating_expense_ratio", label: "Operating Expense Ratio", unit: "%", isNf: false },
-  { key: "operational_self_sufficiency", label: "Operational Self-Sufficiency", unit: "%", isNf: false },
+  {
+    key: "operational_self_sufficiency",
+    label: "Operational Self-Sufficiency",
+    unit: "%",
+    isNf: false,
+  },
   { key: "net_interest_margin", label: "Net Interest Margin", unit: "%", isNf: false },
   { key: "deposits_to_loans", label: "Deposits to Loans Ratio", unit: "%", isNf: false },
 
@@ -86,13 +91,21 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   }, [cooperatives]);
 
   // Helper to extract a value for a KPI (financial or non-financial) from a cooperative row
-  const getCoopKpiValue = (coop: any, kpi: typeof COMPARABLE_KPIS[number]) => {
+  const getCoopKpiValue = (
+    coop: CoopKpiRow | Record<string, unknown>,
+    kpi: (typeof COMPARABLE_KPIS)[number],
+  ) => {
     if (!coop) return 0;
     if (kpi.isNf) {
-      return (coop.non_financial as any)?.[kpi.key] ?? 0;
-    } else {
-      return coop.kpis[kpi.key]?.value ?? 0;
+      return (
+        ((coop as Record<string, unknown>)["non_financial"] as Record<string, number>)?.[kpi.key] ??
+        0
+      );
     }
+    return (
+      ((coop as Record<string, unknown>)["kpis"] as Record<string, { value: number }>)?.[kpi.key]
+        ?.value ?? 0
+    );
   };
 
   // Determine initial selected cooperative
@@ -171,7 +184,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     if (!kpiInfo) return [];
 
     const coopVal = getCoopKpiValue(selectedCoop, kpiInfo);
-    
+
     let targetVal = 0;
     if (compareTarget.isAverage) {
       targetVal = systemAverages[selectedKpi] ?? 0;
@@ -213,7 +226,8 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground opacity-60 mb-2" />
         <h4 className="text-sm font-bold text-foreground">No Benchmarking Data</h4>
         <p className="text-xs text-muted-foreground mt-1">
-          Once cooperatives submit approved or submitted statements, comparative statistics will generate.
+          Once cooperatives submit approved or submitted statements, comparative statistics will
+          generate.
         </p>
       </div>
     );
@@ -231,11 +245,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">
               Select Cooperative
             </label>
-            <Select
-              value={activeCoopId}
-              onValueChange={setSelectedCoopId}
-              disabled={isCoopUser}
-            >
+            <Select value={activeCoopId} onValueChange={setSelectedCoopId} disabled={isCoopUser}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose cooperative to benchmark..." />
               </SelectTrigger>
@@ -313,7 +323,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                         borderColor: "hsl(var(--border))",
                         borderRadius: "8px",
                       }}
-                      formatter={(val: any) => [
+                      formatter={(val: unknown) => [
                         formatValue(Number(val), activeKpiInfo.unit),
                         activeKpiInfo.label,
                       ]}
@@ -341,7 +351,10 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       {selectedCoop.name}
                     </span>
                     <p className="font-heading text-2xl font-bold text-foreground num mt-0.5">
-                      {formatValue(getCoopKpiValue(selectedCoop, activeKpiInfo), activeKpiInfo.unit)}
+                      {formatValue(
+                        getCoopKpiValue(selectedCoop, activeKpiInfo),
+                        activeKpiInfo.unit,
+                      )}
                     </p>
                   </div>
 
@@ -367,19 +380,26 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
               <div className="mt-4 pt-4 border-t border-border">
                 {(() => {
                   const coopVal = getCoopKpiValue(selectedCoop, activeKpiInfo);
-                  
+
                   let targetVal = 0;
                   if (compareTarget.isAverage) {
                     targetVal = systemAverages[selectedKpi] ?? 0;
                   } else {
                     targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
                   }
-                  
+
                   const diff = coopVal - targetVal;
                   const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
-                  
+
                   // Lower is better for NPL, PAR, and dormancy indicators
-                  const isPositiveIndicator = !["npl_ratio", "par30", "par90", "dormancy_pct", "arrears_rate_pct", "fd_early_withdrawal_pct"].includes(selectedKpi);
+                  const isPositiveIndicator = ![
+                    "npl_ratio",
+                    "par30",
+                    "par90",
+                    "dormancy_pct",
+                    "arrears_rate_pct",
+                    "fd_early_withdrawal_pct",
+                  ].includes(selectedKpi);
                   const isBetter = isPositiveIndicator ? diff >= 0 : diff <= 0;
 
                   return (
@@ -401,7 +421,8 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                         </p>
                         <p className="text-[11px] opacity-80 mt-1 leading-normal">
                           {isBetter ? "Performing " : "Standing "}
-                          {Math.abs(percentDiff).toFixed(1)}% {isBetter ? "above" : "below"} the selected target for this reporting period.
+                          {Math.abs(percentDiff).toFixed(1)}% {isBetter ? "above" : "below"} the
+                          selected target for this reporting period.
                         </p>
                       </div>
                     </div>
@@ -433,19 +454,26 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
               <tbody className="divide-y divide-border">
                 {COMPARABLE_KPIS.map((kpi) => {
                   const coopVal = getCoopKpiValue(selectedCoop, kpi);
-                  
+
                   let targetVal = 0;
                   if (compareTarget.isAverage) {
                     targetVal = systemAverages[kpi.key] ?? 0;
                   } else {
                     targetVal = getCoopKpiValue(compareTarget, kpi);
                   }
-                  
+
                   const diff = coopVal - targetVal;
                   const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
 
                   // Direction indicators
-                  const isPositiveIndicator = !["npl_ratio", "par30", "par90", "dormancy_pct", "arrears_rate_pct", "fd_early_withdrawal_pct"].includes(kpi.key);
+                  const isPositiveIndicator = ![
+                    "npl_ratio",
+                    "par30",
+                    "par90",
+                    "dormancy_pct",
+                    "arrears_rate_pct",
+                    "fd_early_withdrawal_pct",
+                  ].includes(kpi.key);
                   const isBetter = isPositiveIndicator ? diff >= 0 : diff <= 0;
 
                   return (

@@ -160,7 +160,11 @@ const CLASSIFICATION_ROWS: ClassificationRow[] = [
     isHeader: true,
     codes: [],
     computeFormula: (coop) =>
-      (coop[1201] || 0) + (coop[1202] || 0) + (coop[1203] || 0) + (coop[1204] || 0) + (coop[1205] || 0),
+      (coop[1201] || 0) +
+      (coop[1202] || 0) +
+      (coop[1203] || 0) +
+      (coop[1204] || 0) +
+      (coop[1205] || 0),
   },
 
   // 6. Provisions
@@ -173,7 +177,11 @@ const CLASSIFICATION_ROWS: ClassificationRow[] = [
     codes: [],
     computeFormula: (coop) => {
       const gross =
-        (coop[1201] || 0) + (coop[1202] || 0) + (coop[1203] || 0) + (coop[1204] || 0) + (coop[1205] || 0);
+        (coop[1201] || 0) +
+        (coop[1202] || 0) +
+        (coop[1203] || 0) +
+        (coop[1204] || 0) +
+        (coop[1205] || 0);
       const provs = (coop[1250] || 0) + (coop[1251] || 0) + (coop[1252] || 0);
       return gross - provs;
     },
@@ -247,9 +255,7 @@ export function PortfolioClassification({ reportingYear }: PortfolioClassificati
       {/* Excel Blue Banner with Slicers */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">
-            Portfolio Classification Statistics
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight">Portfolio Classification Statistics</h2>
           <p className="text-xs text-blue-200/80 mt-1 font-medium">
             Maturity Aging Brackets & Category Breakdown ({reportingYear})
           </p>
@@ -290,7 +296,10 @@ export function PortfolioClassification({ reportingYear }: PortfolioClassificati
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="clear_all_custom_option" className="text-xs font-bold text-red-600">
+                  <SelectItem
+                    value="clear_all_custom_option"
+                    className="text-xs font-bold text-red-600"
+                  >
                     Reset Selection (All)
                   </SelectItem>
                   {coopMatrices.map((coop) => (
@@ -320,12 +329,23 @@ export function PortfolioClassification({ reportingYear }: PortfolioClassificati
           <span className="font-bold block mb-1">Spreadsheet Account Mapping:</span>
           The cooperative's raw credit portfolio is mapped to the standard chart of accounts:
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
-            <li><strong>Total Performing Loans</strong>: Mapped to account code 1201.</li>
-            <li><strong>Total Arrears / Past Due</strong>: Sum of account codes 1202 (1-30 days), 1203 (31-60 days), and 1204 (61-90 days).</li>
-            <li><strong>Total Non-Performing</strong>: Mapped to account code 1205 (non-performing loans &gt; 90 days).</li>
-            <li><strong>Loan Loss Provisions</strong>: Mapped to account code 1250.</li>
+            <li>
+              <strong>Total Performing Loans</strong>: Mapped to account code 1201.
+            </li>
+            <li>
+              <strong>Total Arrears / Past Due</strong>: Sum of account codes 1202 (1-30 days), 1203
+              (31-60 days), and 1204 (61-90 days).
+            </li>
+            <li>
+              <strong>Total Non-Performing</strong>: Mapped to account code 1205 (non-performing
+              loans &gt; 90 days).
+            </li>
+            <li>
+              <strong>Loan Loss Provisions</strong>: Mapped to account code 1250.
+            </li>
           </ul>
-          Note: Product-specific subcategories (Productive, Consumption, Microcredit, etc.) are consolidated into the main category totals in the standard chart of accounts.
+          Note: Product-specific subcategories (Productive, Consumption, Microcredit, etc.) are
+          consolidated into the main category totals in the standard chart of accounts.
         </div>
       </div>
 
@@ -343,7 +363,10 @@ export function PortfolioClassification({ reportingYear }: PortfolioClassificati
                     Category & Maturity
                   </th>
                   {filteredMatrices.map((coop) => (
-                    <th key={coop.id} className="py-3 px-4 text-right min-w-[160px] font-semibold text-foreground">
+                    <th
+                      key={coop.id}
+                      className="py-3 px-4 text-right min-w-[160px] font-semibold text-foreground"
+                    >
                       {coop.name}
                     </th>
                   ))}
@@ -360,9 +383,15 @@ export function PortfolioClassification({ reportingYear }: PortfolioClassificati
                         {filteredMatrices.map((coop) => {
                           const val = row.computeFormula
                             ? row.computeFormula(coop.codeValues)
-                            : row.codes.reduce((sum, code) => sum + (coop.codeValues[code] || 0), 0);
+                            : row.codes.reduce(
+                                (sum, code) => sum + (coop.codeValues[code] || 0),
+                                0,
+                              );
                           return (
-                            <td key={coop.id} className="py-2.5 px-4 text-right font-bold text-foreground">
+                            <td
+                              key={coop.id}
+                              className="py-2.5 px-4 text-right font-bold text-foreground"
+                            >
                               {formatCurrency(val)}
                             </td>
                           );
@@ -377,7 +406,10 @@ export function PortfolioClassification({ reportingYear }: PortfolioClassificati
                         {row.label}
                       </td>
                       {filteredMatrices.map((coop) => {
-                        const rawSum = row.codes.reduce((sum, code) => sum + (coop.codeValues[code] || 0), 0);
+                        const rawSum = row.codes.reduce(
+                          (sum, code) => sum + (coop.codeValues[code] || 0),
+                          0,
+                        );
                         const val = rawSum * (row.multiplier || 1);
                         return (
                           <td key={coop.id} className="py-2 px-4 text-right text-slate-700">

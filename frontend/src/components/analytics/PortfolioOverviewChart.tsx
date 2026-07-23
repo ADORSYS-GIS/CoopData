@@ -14,8 +14,8 @@ import {
 interface TrendDataPoint {
   month: string;
   liquidity: number; // mapped to Savings (1100)
-  loans: number;     // mapped to Loans (1200)
-  savings: number;   // mapped to Deposits (2100)
+  loans: number; // mapped to Loans (1200)
+  savings: number; // mapped to Deposits (2100)
 }
 
 interface PortfolioOverviewChartProps {
@@ -126,7 +126,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               iconType="circle"
               iconSize={8}
             />
-            
+
             {/* Savings (Liquid Assets) - Dotted line with area fill */}
             <Area
               yAxisId="left"

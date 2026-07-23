@@ -167,17 +167,29 @@ async fn run_pipeline_inner(
     line_item_repo.delete_by_financial_statement(fs.id).await?;
 
     // Group and consolidate line items by account code/label and month to aggregate sub-accounts (like multiple PP&E components)
-    let mut mapped_grouped: std::collections::HashMap<(i32, i16), Vec<crate::services::ai_extraction::ExtractedLineItem>> = std::collections::HashMap::new();
-    let mut unmapped_grouped: std::collections::HashMap<(String, i16), Vec<crate::services::ai_extraction::ExtractedLineItem>> = std::collections::HashMap::new();
+    let mut mapped_grouped: std::collections::HashMap<
+        (i32, i16),
+        Vec<crate::services::ai_extraction::ExtractedLineItem>,
+    > = std::collections::HashMap::new();
+    let mut unmapped_grouped: std::collections::HashMap<
+        (String, i16),
+        Vec<crate::services::ai_extraction::ExtractedLineItem>,
+    > = std::collections::HashMap::new();
 
     for item in &output.line_items {
         if item.value.is_none() {
             continue;
         }
         if let Some(code) = item.account_code {
-            mapped_grouped.entry((code, item.month)).or_default().push(item.clone());
+            mapped_grouped
+                .entry((code, item.month))
+                .or_default()
+                .push(item.clone());
         } else {
-            unmapped_grouped.entry((item.raw_label.to_lowercase(), item.month)).or_default().push(item.clone());
+            unmapped_grouped
+                .entry((item.raw_label.to_lowercase(), item.month))
+                .or_default()
+                .push(item.clone());
         }
     }
 
@@ -185,13 +197,14 @@ async fn run_pipeline_inner(
 
     for ((code, month), items) in mapped_grouped {
         let total_value: f64 = items.iter().filter_map(|x| x.value).sum();
-        let avg_confidence: f64 = items.iter().map(|x| x.confidence).sum::<f64>() / items.len() as f64;
-        
+        let avg_confidence: f64 =
+            items.iter().map(|x| x.confidence).sum::<f64>() / items.len() as f64;
+
         let mut labels: Vec<String> = items.iter().map(|x| x.raw_label.clone()).collect();
         labels.sort();
         labels.dedup();
         let raw_label = labels.join(" + ");
-        
+
         let account_name = items.iter().find_map(|x| x.account_name.clone());
 
         consolidated_items.push(crate::services::ai_extraction::ExtractedLineItem {
@@ -206,8 +219,9 @@ async fn run_pipeline_inner(
 
     for ((_, month), items) in unmapped_grouped {
         let total_value: f64 = items.iter().filter_map(|x| x.value).sum();
-        let avg_confidence: f64 = items.iter().map(|x| x.confidence).sum::<f64>() / items.len() as f64;
-        
+        let avg_confidence: f64 =
+            items.iter().map(|x| x.confidence).sum::<f64>() / items.len() as f64;
+
         let mut labels: Vec<String> = items.iter().map(|x| x.raw_label.clone()).collect();
         labels.sort();
         labels.dedup();
