@@ -6,12 +6,6 @@
 
 ---
 
-## 1. Data Flow Difference
-
-| Aspect | Upload (Excel/PDF) | Manual Questionnaire |
-|---|---|---|
-| **Financial data** | Extraction pipeline → LLM maps to CoA codes → `balance_sheet_line_items` | `FinancialQuestionnaireRequest` → `questionnaire_converter.rs` → 28 line items → same table |
-| **Non-financial data** | `nf_excel_parser.rs` → 5 sheets parsed → individual records in `members`, `savings_accounts`, `loans`, `fixed_deposits`, `farm_coop` | `NonFinancialQuestionnaireRequest` → stored as JSON blob in `submissions.metadata["non_financial_questionnaire"]` — **no individual records created** |
 
 ---
 
@@ -84,15 +78,6 @@
 | `net_interest_margin` | ((4101+4102)-(5101+5102))/1999 | ✅ | ⚠️ 5102 missing | **Inflated** |
 | `deposits_to_loans` | (2101+2102+2103)/GLP | ✅ | ⚠️ Deposits understated, GLP understated | **Unreliable** |
 
-### 2.1 Known Bug: 4101 Double-Count
-
-In `questionnaire_converter.rs`:
-- Line 70-77: `PFR.current_total_income` → account_code `4101`
-- Line 298-306: `activities.annual_income` → account_code `4101` (separate line item)
-
-KpiEngine line 127 uses `sum_codes(&[4101, 4102])` — adds **both** 4101 values. If the cooperative reports total income in PFR AND separately lists activity incomes, those incomes are double-counted.
-
-**Impact**: Inflates `financial_income` → inflates `operational_self_sufficiency` and `net_interest_margin`.
 
 ---
 
@@ -185,7 +170,50 @@ All require individual records from the 5 NF tables:
 
 ---
 
-## 6. Conclusion
+## 6. Questionnaire Field vs Digital Pipeline Overlap
+
+### 6.1 Field Counts by Questionnaire
+
+| Questionnaire | Total Fields on PDF | Maps to Digital Pipeline | Unique to Manual Form |
+|---|---|---|---|
+| **Financial** | ~141 | ~34 (24%) | ~107 (76%) |
+| **Non-Financial** | ~133 | ~33 (25%) | ~100 (75%) |
+| **Combined** | ~274 | ~67 (24%) | ~207 (76%) |
+
+> Counts are individual data-entry fields (text inputs, numbers, checkboxes). Multi-value lists (e.g. "training needs", "management tools") and repeated sub-forms (e.g. "other activities") counted once.
+
+### 6.2 What Maps (Derivable from Digital Upload)
+
+**From KpiEngine (balance_sheet_line_items)** → 24 financial fields
+
+Share capital, borrowed funds, donations/grants, statutory reserves, retained earnings, invested in bank/shares/other, outstanding loan values, delinquent values (0-30 and 31-365), provisions (0-30 and 31-365), written-off value, fees (5 types summed), activity expenditure, total income, net income, non-current assets, total current assets, current liabilities, long-term liabilities, total equity.
+
+**From NfIndicatorEngine (members table)** → 9 membership fields
+
+Total members (male+female), active members (male+female), members under 18, members 36-60, members 61+, dormant members (male+female), AGM attendance (male+female).
+
+**From NfIndicatorEngine (loans/savings tables)** → 2 fields
+
+Outstanding owed by members, total savings balance.
+
+### 6.3 What Does NOT Map (Unique to Manual Form)
+
+| Category | Count | Examples |
+|---|---|---|
+| Committee & staff composition | ~40 | Board/exec/credit/education/supervisory by gender; all staff roles by gender |
+| Education & training | ~14 | Chair/vice/treasurer/secretary education; manager levels; training counts, sponsor, quality, needs |
+| Governance & compliance dates | ~10 | Last audit, inspection, mgmt report, budget, committee profile, audit firm |
+| Products offered | ~2 | Financial & non-financial product lists |
+| Share structure & fees | ~4 | Share nominal value, per-member contribution, joining fee, subscription fee |
+| Loan gender disaggregation | ~16 | Loans issued, outstanding, delinquent accounts/values broken by male/female/coop |
+| Loan terms & recoveries | ~4 | Average loan term, average interest rate, recovered loans, rate method |
+| Year-over-year comparison | ~6 | Last year's income, expenditure, net income, surplus distribution |
+| Activity-level financials | ~8 | Per-activity income/expense/surplus, output, unit of measure, distribution |
+| Threats & disputes | ~6 | Creditor breakdowns, competitors, resolved/unresolved disputes |
+| Qualitative / free-text | ~5 | Success reasons, challenges, recommendations, comments |
+| Non-financial engine stats | ~84 | All NfIndicatorEngine stats (membership detail, savings stats, loan stats, FD stats, farm coop stats) |
+
+### 6.4 KPI Coverage Summary (Backend Engines)
 
 | Dimension | Upload Coverage | Manual Coverage |
 |---|---|---|
@@ -197,4 +225,6 @@ All require individual records from the 5 NF tables:
 | Frontend NF KPIs | 32+ | 0 |
 | Ministry NF indicators | 0 (unused) | 0 (unused) |
 
-**The manual questionnaire captures valuable aggregate data but the system has no bridge** to convert it into the record-level structures that the KPI and NF indicator engines require. The financial half works mostly (with known drift); the non-financial half returns empty results.
+### 6.5 Key Takeaway
+
+**~76% of the manual questionnaire fields provide information that the digital upload pipeline cannot produce.** These are primarily governance, staff, training, activity-level financials, qualitative assessments, and gender-disaggregated breakdowns. The remaining **~24% overlap** — mostly aggregate financial figures and basic membership counts — could be auto-populated from the digital submission, reducing data entry effort.
