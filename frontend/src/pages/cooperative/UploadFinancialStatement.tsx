@@ -114,6 +114,10 @@ export const UploadFinancialStatementWidget: React.FC<{
                 ? `Confidence: ${(job.confidence * 100).toFixed(0)}%`
                 : "Parsing document…"}
             </p>
+            <p className="text-xs text-muted-foreground/80 mt-1 font-medium">
+              This process takes about 1 minute to 1 minute 30 seconds. Please do not close or
+              refresh this page.
+            </p>
           </div>
         </div>
       )}
