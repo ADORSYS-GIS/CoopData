@@ -361,34 +361,16 @@ SPECIFIC LABEL → CODE MAPPINGS (memorize):
 "Total Expenses" → 5999
 "Net surplus" / "Net deficit" / "Net income" / "Profit or loss" → 6999
 
-Return ONLY a JSON object with this exact structure (no markdown, no explanation):
-{{
-  "line_items": [
-    {{
-      "account_code": 1101,
-      "account_name": "CASH ON HAND",
-      "confidence": 1.0,
-      "raw_label": "Cash on Hand",
-      "values": {{
-        "0": 213165.0,
-        "1": 277410.0,
-        "2": 362919.0
-      }}
-    }}
-  ],
-  "totals_reconciliation": {{
-    "assets_total": null,
-    "liabilities_total": null,
-    "equity_total": null,
-    "net_surplus": null
-  }}
-}}
+Return ONLY a MINIFIED, SINGLE-LINE JSON object (no pretty-printing, no newlines, no indentation, no spaces in formatting, no markdown fences) with this exact structure. Minifying is absolutely critical to avoid token truncation:
+{{"line_items":[{{"account_code":1101,"account_name":"CASH ON HAND","confidence":1.0,"raw_label":"Cash on Hand","values":{{"0":213165.0,"1":277410.0,"2":362919.0}}}}],"totals_reconciliation":{{"assets_total":null,"liabilities_total":null,"equity_total":null,"net_surplus":null}}}}
 
 Fill totals_reconciliation from the grand total rows in the document:
   assets_total → the value next to "Total Assets" or equivalent
   liabilities_total → the value next to "Total Liabilities" or equivalent
   equity_total → the value next to "Total Equity" or equivalent
   net_surplus → the value next to "Net Surplus/Deficit" or equivalent
+
+Ensure all columns (0 to 12) for all rows are fully extracted, and ensure that all equity codes such as General Reserve (3202), Risk/Capital Adequacy Reserve (3203), Accumulated Surplus (3301), and Current Year Surplus (3302) are mapped and not omitted.
 
 Do NOT invent values. Only extract values that appear in the raw text."#
     )
@@ -608,47 +590,27 @@ impl LlmExtractor {
         let data_url = format!("data:{mime_type};base64,{b64}");
 
         let vision_prompt = "You are a precise OCR system for cooperative financial statements.\n\
-                 Your job is to extract EVERY single row from this financial statement image with ZERO omissions.\n\
-                 \n\
-                 INSTRUCTIONS:\n\
-                 1. Scan the image from top to bottom, left to right.\n\
-                 2. Detect if the image has MULTIPLE COLUMNS of numeric data (e.g. monthly columns Jan-Dec, or quarterly columns).\n\
-                 3. If the image has multiple columns, output a PIPE-SEPARATED table preserving ALL columns:\n\
-                    LABEL | Col1Header | Col2Header | Col3Header | ...\n\
-                    RowLabel | value1 | value2 | value3 | ...\n\
-                    Example:\n\
-                    Account | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec\n\
-                    Cash on Hand | 500 | 520 | 510 | 530 | 540 | 550 | 560 | 570 | 580 | 590 | 600 | 610\n\
-                    Total Assets | 9,270 | 9,500 | 9,800 | 10,000 | 10,200 | 10,500 | 10,700 | 10,900 | 11,000 | 11,200 | 11,400 | 11,600\n\
-                 4. If the image has a SINGLE column of values, output: LABEL: VALUE\n\
-                 5. Include EVERY individual line item (Cash, Inventories, PP&E, Accounts Payable, Share Capital, etc.)\n\
-                 6. Include EVERY subtotal row (Total current assets, Total noncurrent assets, Total current liabilities, etc.)\n\
-                 7. Include EVERY total row (Total assets, Total liabilities, Total equity, Total liabilities and equity)\n\
-                 8. Include section headers as context lines (ASSETS, Current assets, Noncurrent assets, LIABILITIES AND EQUITY, etc.)\n\
-                 9. Preserve negative values in parentheses as negative numbers: (1,000) → -1000\n\
-                 10. Preserve the exact numeric values including ALL digits and commas.\n\
-                 11. Do NOT summarize, do NOT skip rows, do NOT combine rows, do NOT round.\n\
-                 12. Do NOT collapse multiple columns into a single value — preserve EVERY column.\n\
-                 13. A typical balance sheet has 25-40 rows — make sure you output ALL of them.\n\
-                 \n\
-                 Output format for single-column data (one row per line):\n\
-                 LABEL: VALUE\n\
-                 \n\
-                 Output format for multi-column data (pipe-separated):\n\
-                 LABEL | Header1 | Header2 | Header3\n\
-                 RowLabel | value1 | value2 | value3\n\
-                 \n\
-                 Example single-column:\n\
-                 Cash and cash equivalents: 500\n\
-                 Short-term investments: 1,100\n\
-                 Total current assets: 9,270\n\
-                 Total assets: 52,484\n\
-                 \n\
-                 Example multi-column:\n\
-                 Account | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec\n\
-                 Cash on Hand | 500 | 520 | 510 | 530 | 540 | 550 | 560 | 570 | 580 | 590 | 600 | 610\n\
-                 Cash at Bank | 5000 | 5100 | 5200 | 5300 | 5400 | 5500 | 5600 | 5700 | 5800 | 5900 | 6000 | 6100\n\
-                 Total Assets | 9270 | 9500 | 9800 | 10000 | 10200 | 10500 | 10700 | 10900 | 11000 | 11200 | 11400 | 11600";
+                  Your job is to extract EVERY single row from this financial statement image with ZERO omissions.\n\
+                  \n\
+                  INSTRUCTIONS:\n\
+                  1. Scan the image from top to bottom, left to right.\n\
+                  2. Detect if the image has MULTIPLE COLUMNS of numeric data (e.g. monthly columns Jan-Dec, or quarterly columns).\n\
+                  3. Output the extracted data as a raw comma-separated CSV. Do NOT format as a markdown table, do NOT pad with spaces, do NOT use pipes.\n\
+                  4. The first line of the CSV must be the column headers (e.g., Code, Account Name, Jan, Feb, ..., Dec).\n\
+                  5. Include EVERY individual line item (Cash, Inventories, PP&E, Accounts Payable, Share Capital, etc.)\n\
+                  6. Include EVERY subtotal row (Total liquid assets, Total member shares, Total Retained Earnings, etc.)\n\
+                  7. Include EVERY total row (Total assets, Total liabilities, Total equity, Total liabilities and equity)\n\
+                  8. Include section headers as context lines (ASSETS, LIABILITIES, MEMBERS' EQUITY, etc.)\n\
+                  9. Preserve negative values in parentheses as negative numbers: (1,000) → -1000\n\
+                  10. Preserve the exact numeric values including ALL digits. Remove commas inside numbers to prevent CSV alignment issues (e.g. 52,000 → 52000).\n\
+                  11. Do NOT summarize, do NOT skip rows, do NOT combine rows, do NOT round.\n\
+                  12. A typical balance sheet has 25-45 rows — make sure you output ALL of them from top to bottom.\n\
+                  \n\
+                  CSV Format example:\n\
+                  Code,Account Name,Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec\n\
+                  1101,Cash on Hand,52000,52416,52835,53258,53684,54114,54546,54983,55423,55866,56313,56764\n\
+                  1102,Cash at Bank - Current Account,145000,146740,148501,150283,152086,153911,155758,157627,159519,161433,163370,165331\n\
+                  1999,TOTAL ASSETS,1827300,1852032,1877126,1902586,1928419,1954631,1981228,2008215,2035599,2063386,2091582,2120194";
 
         let body = serde_json::json!({
             "model": self.vision_model,
@@ -851,7 +813,8 @@ impl LlmExtractor {
 
                 // Best-effort JSON repair: try to close incomplete JSON
                 if let Some(repaired) = repair_truncated_json(cleaned) {
-                    if let Ok(compact) = serde_json::from_str::<CompactExtractionOutput>(&repaired) {
+                    if let Ok(compact) = serde_json::from_str::<CompactExtractionOutput>(&repaired)
+                    {
                         let output = convert_compact(compact);
                         tracing::info!(
                             items = output.line_items.len(),

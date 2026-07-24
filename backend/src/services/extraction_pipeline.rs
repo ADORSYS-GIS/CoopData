@@ -66,7 +66,7 @@ pub async fn run_extraction_pipeline(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn run_pipeline_inner(
+pub async fn run_pipeline_inner(
     job_id: Uuid,
     submission_id: Uuid,
     cooperative_id: Uuid,

@@ -32,6 +32,7 @@ export interface CoopKpiRow {
   has_data: boolean;
   non_financial: CoopNfSummary;
   kpis: Record<string, KpiValue>;
+  custom_kpis: Record<string, number>;
 }
 
 export interface CoopNfSummary {
@@ -67,6 +68,7 @@ export interface NationalOverviewResponse {
   non_financial_summary: NfPortfolioSummary;
   distributions: Record<string, TrafficLightDistribution>;
   cooperatives: CoopKpiRow[];
+  custom_kpis: Record<string, number>;
 }
 
 export interface NationalOverviewParams {

@@ -1,8 +1,10 @@
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Extension;
 use axum::Json;
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -13,10 +15,17 @@ use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
 use evalexpr::{ContextWithMutableVariables, HashMapContext};
+use rust_decimal::prelude::ToPrimitive;
+
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct EvaluateKpiParams {
+    pub cooperative_id: Option<uuid::Uuid>,
+    pub submission_id: Option<uuid::Uuid>,
+}
 
 #[utoipa::path(
     post,
-    path = "/api/v1/analytics/custom-kpis",
+    path = "/api/v1/ministry/custom-kpis",
     request_body = CreateCustomKpiRequest,
     responses(
         (status = 201, description = "Custom KPI created", body = CustomKpiDto),
@@ -45,13 +54,18 @@ pub async fn create_custom_kpi(
         )));
     }
 
+    let created_by = match state.user_repo.find_by_keycloak_id(&claims.sub).await {
+        Ok(Some(u)) => Some(u.id),
+        _ => None,
+    };
+
     let kpi = state
         .custom_kpi_repo
         .create(
             payload.name,
             payload.description,
             payload.formula,
-            Some(claims.sub.parse().unwrap()),
+            created_by,
         )
         .await?;
 
@@ -61,7 +75,7 @@ pub async fn create_custom_kpi(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/analytics/custom-kpis",
+    path = "/api/v1/ministry/custom-kpis",
     responses(
         (status = 200, description = "List of custom KPIs", body = Vec<CustomKpiDto>),
         (status = 401, description = "Unauthorized"),
@@ -87,7 +101,7 @@ pub async fn list_custom_kpis(
 
 #[utoipa::path(
     delete,
-    path = "/api/v1/analytics/custom-kpis/{id}",
+    path = "/api/v1/ministry/custom-kpis/{id}",
     params(
         ("id" = Uuid, Path, description = "ID of the custom KPI to delete")
     ),
@@ -116,7 +130,8 @@ pub async fn delete_custom_kpi(
 
 #[utoipa::path(
     post,
-    path = "/api/v1/analytics/custom-kpis/evaluate",
+    path = "/api/v1/ministry/custom-kpis/evaluate",
+    params(EvaluateKpiParams),
     request_body = EvaluateKpiRequest,
     responses(
         (status = 200, description = "Evaluation result", body = EvaluateKpiResponse),
@@ -126,7 +141,9 @@ pub async fn delete_custom_kpi(
     tag = "Analytics"
 )]
 pub async fn evaluate_custom_kpi(
+    State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<EvaluateKpiParams>,
     Json(payload): Json<EvaluateKpiRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
@@ -134,8 +151,6 @@ pub async fn evaluate_custom_kpi(
             "Only Ministry users can evaluate Custom KPIs".into(),
         ));
     }
-
-    let mut ctx: HashMapContext = HashMapContext::new();
 
     let expr =
         match evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&payload.formula) {
@@ -152,12 +167,15 @@ pub async fn evaluate_custom_kpi(
             }
         };
 
+    let mut ctx: HashMapContext = HashMapContext::new();
+
     let ratio_names = [
         "total_assets",
         "gross_loan_portfolio",
         "net_loan_portfolio",
         "total_member_deposits",
         "total_equity",
+        "net_surplus",
         "par30",
         "par90",
         "npl_ratio",
@@ -171,14 +189,131 @@ pub async fn evaluate_custom_kpi(
         "net_interest_margin",
         "deposits_to_loans",
     ];
-    for name in &ratio_names {
-        ctx.set_value(name.to_string(), evalexpr::Value::Float(100.0))
-            .unwrap();
+
+    let catalog_items = state
+        .non_financial_indicator_catalog_repo
+        .find_all()
+        .await
+        .unwrap_or_default();
+
+    let use_real_data = params.cooperative_id.is_some() || params.submission_id.is_some();
+
+    let raw_account_codes = [
+        1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252,
+        1300, 1301, 1302, 1303, 1304, 1305, 1999, 2100, 2101, 2102, 2103, 2200, 2201, 2202,
+        2300, 2301, 2302, 2303, 2999, 3100, 3101, 3102, 3200, 3201, 3202, 3203, 3300, 3301,
+        3302, 3999, 4101, 4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999,
+        6999,
+    ];
+
+    if use_real_data {
+        let mut kpi_values: HashMap<String, f64> = HashMap::new();
+        let mut target_sub_id: Option<Uuid> = None;
+
+        if let Some(submission_id) = params.submission_id {
+            target_sub_id = Some(submission_id);
+        } else if let Some(cooperative_id) = params.cooperative_id {
+            let submissions = state
+                .submission_repo
+                .find_by_cooperative_ids(vec![cooperative_id])
+                .await
+                .unwrap_or_default();
+            let approved: Vec<_> = submissions
+                .into_iter()
+                .filter(|s| {
+                    s.status == crate::entities::enums::SubmissionStatus::Approved
+                        || s.status == crate::entities::enums::SubmissionStatus::Submitted
+                })
+                .collect();
+            if let Some(latest) = approved
+                .iter()
+                .max_by_key(|s| (s.reporting_year, s.created_at))
+            {
+                target_sub_id = Some(latest.id);
+            }
+        }
+
+        // Initialize all raw codes to 0.0 for compiler safety
+        for code in &raw_account_codes {
+            ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(0.0))
+                .unwrap();
+        }
+
+        if let Some(submission_id) = target_sub_id {
+            // Load and insert raw account code values
+            if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(submission_id).await {
+                if let Ok(line_items) = state.line_item_repo.find_by_financial_statement(fs.id).await {
+                    for item in line_items {
+                        if let Some(code) = item.account_code {
+                            ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(item.value))
+                                .unwrap();
+                        }
+                    }
+                }
+            }
+
+            let records = state
+                .kpi_record_repo
+                .find_by_submission(submission_id)
+                .await
+                .unwrap_or_default();
+            for rec in &records {
+                kpi_values.insert(rec.kpi_name.clone(), rec.value);
+            }
+
+            if let Ok(entries) = state
+                .non_financial_indicator_entry_repo
+                .find_by_submission_id(submission_id)
+                .await
+            {
+                for entry in entries {
+                    if let Some(cat) = catalog_items.iter().find(|c| c.id == entry.catalog_id) {
+                        let val_f64 = if let Some(val) = entry.value_numeric {
+                            val.to_f64().unwrap_or(0.0)
+                        } else if let Some(val) = entry.value_boolean {
+                            if val { 1.0 } else { 0.0 }
+                        } else {
+                            0.0
+                        };
+                        kpi_values.insert(cat.indicator_name.clone(), val_f64);
+                    }
+                }
+            }
+        }
+
+        for name in &ratio_names {
+            let val = kpi_values.get(*name).copied().unwrap_or(0.0);
+            ctx.set_value(name.to_string(), evalexpr::Value::Float(val))
+                .unwrap();
+        }
+
+        for cat in &catalog_items {
+            let val = kpi_values.get(&cat.indicator_name).copied().unwrap_or(0.0);
+            ctx.set_value(cat.indicator_name.clone(), evalexpr::Value::Float(val))
+                .unwrap();
+        }
+    } else {
+        for name in &ratio_names {
+            ctx.set_value(name.to_string(), evalexpr::Value::Float(100.0))
+                .unwrap();
+        }
+        for cat in &catalog_items {
+            ctx.set_value(cat.indicator_name.clone(), evalexpr::Value::Float(100.0))
+                .unwrap();
+        }
+        for code in &raw_account_codes {
+            ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(100.0))
+                .unwrap();
+        }
     }
 
     match expr.eval_with_context(&ctx) {
         Ok(v) => {
-            let num = v.as_float().unwrap_or(0.0);
+            let num = match v {
+                evalexpr::Value::Float(f) => f,
+                evalexpr::Value::Int(i) => i as f64,
+                _ => 0.0,
+            };
             Ok((
                 StatusCode::OK,
                 Json(EvaluateKpiResponse {

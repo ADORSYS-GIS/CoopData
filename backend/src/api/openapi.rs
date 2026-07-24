@@ -52,6 +52,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::apex::remove_apex_member,
         api_module::handlers::apex::update_apex_member,
         api_module::handlers::apex::resend_apex_member_verification,
+        api_module::handlers::apex::ministry_list_apexes,
         api_module::handlers::cooperative::create_cooperative,
         api_module::handlers::cooperative::list_cooperatives,
         api_module::handlers::cooperative::get_cooperative,

@@ -695,7 +695,8 @@ export const SubmissionDetailPage: React.FC = () => {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Parsing the uploaded document and mapping values to the Chart of Accounts. This
-                    usually takes 15–30 seconds.
+                    process takes about 1 minute to 1 minute 30 seconds. Please do not close or
+                    refresh this page.
                   </p>
                   <div className="mt-3 h-1.5 w-full bg-accent/10 rounded-full overflow-hidden">
                     <div
@@ -1119,8 +1120,9 @@ export const SubmissionDetailPage: React.FC = () => {
                     </div>
                     <h3 className="text-base font-bold text-foreground">Processing Document</h3>
                     <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                      This takes about 10-30 seconds. The page will automatically update once the
-                      extraction completes.
+                      This process takes about 1 minute to 1 minute 30 seconds. The page will
+                      automatically update once the extraction completes. Please do not close or
+                      refresh this page.
                     </p>
                     <div className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent capitalize">
                       Status: {extractionJob?.status || "Running"}

@@ -260,7 +260,6 @@ pub async fn get_submission(
 }
 
 use crate::api::dto::upload::{AbnormalityFlagResponse, ReviewActionRequest};
-use crate::services::abnormality_detector::AbnormalityDetector;
 use crate::services::submission_workflow::SubmissionWorkflow;
 
 // ── Validate extraction (re-run Stage 3) ────────────────────────────────────
@@ -294,38 +293,78 @@ pub async fn validate_extraction(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let fs = state
-        .financial_statement_repo
-        .find_by_submission(id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Financial statement not found".into()))?;
+    let files = state.uploaded_file_repo.find_by_submission(id).await?;
+    let file = files
+        .first()
+        .ok_or_else(|| AppError::NotFound("No uploaded file found for this submission".into()))?;
 
-    let removed = state
-        .line_item_repo
-        .delete_unmapped_by_financial_statement(fs.id)
-        .await?;
-    if removed > 0 {
-        tracing::info!(submission_id = %id, removed, "Discarded unmapped line items");
-    }
+    // Download the original file from S3/MinIO
+    let file_bytes = state.storage.get_object(&file.storage_key).await?;
 
-    let coa = state.coa_repo.find_all().await?;
+    // Create a new extraction job record to track this re-validation run
+    let job_id = Uuid::new_v4();
+    let job_model = crate::entities::extraction_job::ActiveModel {
+        id: Set(job_id),
+        submission_id: Set(id),
+        source_file_id: Set(file.id),
+        status: Set("queued".to_string()),
+        engine: Set(None),
+        raw_text: Set(None),
+        extracted_json: Set(None),
+        confidence: Set(None),
+        error_message: Set(None),
+        started_at: Set(None),
+        completed_at: Set(None),
+        created_at: Set(chrono::Utc::now()),
+    };
+    state.extraction_job_repo.create(job_model).await?;
+
     let coop_type = coop
         .institution_type
         .as_ref()
-        .map(|t| t.as_str())
-        .unwrap_or("other");
-    let detector = AbnormalityDetector::new(
-        state.line_item_repo.clone(),
-        state.flag_repo.clone(),
-        state.coa_repo.clone(),
-    );
-    let (errors, warnings) = detector.run(id, coop.id, fs.id, &coa, coop_type).await?;
+        .map(|t| t.as_str().to_string())
+        .unwrap_or_else(|| "sacco".to_string());
 
-    let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
-    state
-        .financial_statement_repo
-        .set_validation_errors(fs.id, validation_json)
-        .await?;
+    let extractor = Arc::clone(&state.extractor);
+
+    // Call the extraction pipeline synchronously to completely rebuild the line items
+    if let Err(e) = crate::services::extraction_pipeline::run_pipeline_inner(
+        job_id,
+        id,
+        coop.id,
+        file_bytes,
+        file.mime_type.clone().unwrap_or_default(),
+        coop_type,
+        extractor,
+        &state.extraction_job_repo,
+        &state.submission_repo,
+        &state.financial_statement_repo,
+        &state.line_item_repo,
+        &state.coa_repo,
+        &state.account_alias_repo,
+        &state.flag_repo,
+        &state.section_repo,
+    )
+    .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            job_id = %job_id,
+            error = %e,
+            "Re-extraction pipeline failed during validate-extraction call"
+        );
+        let _ = state
+            .extraction_job_repo
+            .update_status(
+                job_id,
+                "failed",
+                None,
+                Some(chrono::Utc::now()),
+                Some(e.to_string()),
+            )
+            .await;
+        return Err(e);
+    }
 
     // Recompute and save KPIs to database so analytics and benchmarking are in sync
     let workflow = SubmissionWorkflow::new(

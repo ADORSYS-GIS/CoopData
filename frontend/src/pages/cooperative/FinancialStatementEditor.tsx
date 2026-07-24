@@ -532,6 +532,19 @@ export const FinancialStatementEditor: React.FC<{
 
   return (
     <div className="space-y-4">
+      {validate.isPending && (
+        <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
+          <Loader2 className="size-4 animate-spin text-accent shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">Running AI extraction & re-validation</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              This process takes about 1 minute to 1 minute 30 seconds. Please do not close or
+              refresh this page.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Validation panel */}
       {(validationErrors.length > 0 || validationWarnings.length > 0) && (
         <ValidationPanel

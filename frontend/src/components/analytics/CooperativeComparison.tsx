@@ -62,38 +62,234 @@ const KPI_GROUPS = {
 // Complete KPI List (Financial + Non-Financial) with group classifications
 const COMPARABLE_KPIS = [
   // --- Financial Balances ---
-  { key: "total_assets", label: "Total Assets", unit: "SZL", isNf: false, group: "balances", description: "Total value of all assets owned by the cooperative" },
-  { key: "gross_loan_portfolio", label: "Gross Loan Portfolio", unit: "SZL", isNf: false, group: "balances", description: "Total outstanding loan balance including arrears" },
-  { key: "net_loan_portfolio", label: "Net Loan Portfolio", unit: "SZL", isNf: false, group: "balances", description: "Gross Loan Portfolio minus Loan Loss Provisions" },
-  { key: "total_member_deposits", label: "Total Member Deposits", unit: "SZL", isNf: false, group: "balances", description: "Total member savings and deposits" },
-  { key: "total_equity", label: "Total Equity", unit: "SZL", isNf: false, group: "balances", description: "Total institutional capital and reserves" },
-  { key: "net_surplus", label: "Net Surplus/Deficit", unit: "SZL", isNf: false, group: "balances", description: "Net income after all expenses (Total Income - Total Expenses)" },
+  {
+    key: "total_assets",
+    label: "Total Assets",
+    unit: "SZL",
+    isNf: false,
+    group: "balances",
+    description: "Total value of all assets owned by the cooperative",
+  },
+  {
+    key: "gross_loan_portfolio",
+    label: "Gross Loan Portfolio",
+    unit: "SZL",
+    isNf: false,
+    group: "balances",
+    description: "Total outstanding loan balance including arrears",
+  },
+  {
+    key: "net_loan_portfolio",
+    label: "Net Loan Portfolio",
+    unit: "SZL",
+    isNf: false,
+    group: "balances",
+    description: "Gross Loan Portfolio minus Loan Loss Provisions",
+  },
+  {
+    key: "total_member_deposits",
+    label: "Total Member Deposits",
+    unit: "SZL",
+    isNf: false,
+    group: "balances",
+    description: "Total member savings and deposits",
+  },
+  {
+    key: "total_equity",
+    label: "Total Equity",
+    unit: "SZL",
+    isNf: false,
+    group: "balances",
+    description: "Total institutional capital and reserves",
+  },
+  {
+    key: "net_surplus",
+    label: "Net Surplus/Deficit",
+    unit: "SZL",
+    isNf: false,
+    group: "balances",
+    description: "Net income after all expenses (Total Income - Total Expenses)",
+  },
 
   // --- Financial Ratios & Risk ---
-  { key: "capital_adequacy_ratio", label: "Capital Adequacy Ratio (CAR)", unit: "%", isNf: false, group: "ratios", description: "Total institutional capital / Total Assets (Standard benchmark: 10%+)" },
-  { key: "liquid_funds_ratio", label: "Liquid Funds Ratio", unit: "%", isNf: false, group: "ratios", description: "Liquid assets / Total Assets (Standard benchmark: 15%+)" },
-  { key: "npl_ratio", label: "Non-Performing Loans (NPL) Ratio", unit: "%", isNf: false, group: "ratios", description: "Loans in arrears >90 days / gross loan portfolio (Standard target: <5%)" },
-  { key: "par30", label: "Portfolio at Risk (PAR30)", unit: "%", isNf: false, group: "ratios", description: "Loans in arrears >30 days / gross loan portfolio (Standard target: <5%)" },
-  { key: "par90", label: "Portfolio at Risk (PAR90)", unit: "%", isNf: false, group: "ratios", description: "Loans in arrears >90 days / gross loan portfolio" },
-  { key: "loan_loss_coverage", label: "Loan Loss Coverage Ratio", unit: "%", isNf: false, group: "ratios", description: "Loan loss provisions / Loans in arrears >30 days (Standard target: 100%)" },
-  { key: "roa", label: "Return on Assets (ROA)", unit: "%", isNf: false, group: "ratios", description: "Return on Assets (Net Surplus / Total Assets) (Target: 3%+)" },
-  { key: "roe", label: "Return on Equity (ROE)", unit: "%", isNf: false, group: "ratios", description: "Return on Equity (Net Surplus / Total Equity)" },
-  { key: "operating_expense_ratio", label: "Operating Expense Ratio", unit: "%", isNf: false, group: "ratios", description: "Operating expenses / Total Assets" },
-  { key: "operational_self_sufficiency", label: "Operational Self-Sufficiency", unit: "%", isNf: false, group: "ratios", description: "Total operating income / Total expenses (Target: 100%+)" },
-  { key: "net_interest_margin", label: "Net Interest Margin", unit: "%", isNf: false, group: "ratios", description: "Net interest income / Total Assets" },
-  { key: "deposits_to_loans", label: "Deposits to Loans Ratio", unit: "%", isNf: false, group: "ratios", description: "Total member deposits / Gross loan portfolio" },
+  {
+    key: "capital_adequacy_ratio",
+    label: "Capital Adequacy Ratio (CAR)",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Total institutional capital / Total Assets (Standard benchmark: 10%+)",
+  },
+  {
+    key: "liquid_funds_ratio",
+    label: "Liquid Funds Ratio",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Liquid assets / Total Assets (Standard benchmark: 15%+)",
+  },
+  {
+    key: "npl_ratio",
+    label: "Non-Performing Loans (NPL) Ratio",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Loans in arrears >90 days / gross loan portfolio (Standard target: <5%)",
+  },
+  {
+    key: "par30",
+    label: "Portfolio at Risk (PAR30)",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Loans in arrears >30 days / gross loan portfolio (Standard target: <5%)",
+  },
+  {
+    key: "par90",
+    label: "Portfolio at Risk (PAR90)",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Loans in arrears >90 days / gross loan portfolio",
+  },
+  {
+    key: "loan_loss_coverage",
+    label: "Loan Loss Coverage Ratio",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Loan loss provisions / Loans in arrears >30 days (Standard target: 100%)",
+  },
+  {
+    key: "roa",
+    label: "Return on Assets (ROA)",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Return on Assets (Net Surplus / Total Assets) (Target: 3%+)",
+  },
+  {
+    key: "roe",
+    label: "Return on Equity (ROE)",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Return on Equity (Net Surplus / Total Equity)",
+  },
+  {
+    key: "operating_expense_ratio",
+    label: "Operating Expense Ratio",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Operating expenses / Total Assets",
+  },
+  {
+    key: "operational_self_sufficiency",
+    label: "Operational Self-Sufficiency",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Total operating income / Total expenses (Target: 100%+)",
+  },
+  {
+    key: "net_interest_margin",
+    label: "Net Interest Margin",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Net interest income / Total Assets",
+  },
+  {
+    key: "deposits_to_loans",
+    label: "Deposits to Loans Ratio",
+    unit: "%",
+    isNf: false,
+    group: "ratios",
+    description: "Total member deposits / Gross loan portfolio",
+  },
 
   // --- Non-Financial Metrics ---
-  { key: "total_members", label: "Total Members", unit: "count", isNf: true, group: "non_financial", description: "Total number of registered members" },
-  { key: "active_members_pct", label: "Active Members %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of members actively transacting" },
-  { key: "savings_penetration_pct", label: "Savings Penetration %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of members holding savings accounts" },
-  { key: "credit_penetration_pct", label: "Credit Penetration %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of members with active loans" },
-  { key: "fd_penetration_pct", label: "FD Penetration %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of members holding fixed deposits" },
-  { key: "on_time_repayment_pct", label: "On-time Repayment %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of loan repayments received on time" },
-  { key: "dormancy_pct", label: "Dormancy Rate %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of inactive member accounts" },
-  { key: "agm_participation_pct", label: "AGM Participation %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of members participating in the AGM" },
-  { key: "arrears_rate_pct", label: "Loan Arrears Rate %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of loan portfolio in arrears" },
-  { key: "fd_early_withdrawal_pct", label: "FD Early Withdrawal %", unit: "%", isNf: true, group: "non_financial", description: "Percentage of fixed deposits withdrawn prematurely" },
+  {
+    key: "total_members",
+    label: "Total Members",
+    unit: "count",
+    isNf: true,
+    group: "non_financial",
+    description: "Total number of registered members",
+  },
+  {
+    key: "active_members_pct",
+    label: "Active Members %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of members actively transacting",
+  },
+  {
+    key: "savings_penetration_pct",
+    label: "Savings Penetration %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of members holding savings accounts",
+  },
+  {
+    key: "credit_penetration_pct",
+    label: "Credit Penetration %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of members with active loans",
+  },
+  {
+    key: "fd_penetration_pct",
+    label: "FD Penetration %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of members holding fixed deposits",
+  },
+  {
+    key: "on_time_repayment_pct",
+    label: "On-time Repayment %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of loan repayments received on time",
+  },
+  {
+    key: "dormancy_pct",
+    label: "Dormancy Rate %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of inactive member accounts",
+  },
+  {
+    key: "agm_participation_pct",
+    label: "AGM Participation %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of members participating in the AGM",
+  },
+  {
+    key: "arrears_rate_pct",
+    label: "Loan Arrears Rate %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of loan portfolio in arrears",
+  },
+  {
+    key: "fd_early_withdrawal_pct",
+    label: "FD Early Withdrawal %",
+    unit: "%",
+    isNf: true,
+    group: "non_financial",
+    description: "Percentage of fixed deposits withdrawn prematurely",
+  },
 ] as const;
 
 export function CooperativeComparison({ reportingYear }: CooperativeComparisonProps) {
@@ -142,6 +338,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   const [compareTargetId, setCompareTargetId] = useState<string>("national_average");
   const [selectedKpi, setSelectedKpi] = useState<string>("capital_adequacy_ratio");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [activeGroupFilter, setActiveGroupFilter] = useState<string | null>(null);
 
   // Keep state synced with default when data loads
   React.useEffect(() => {
@@ -157,31 +354,84 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return cooperatives.find((c) => c.cooperative_id === activeCoopId);
   }, [cooperatives, activeCoopId]);
 
-  // Selected target details (National Average or Coop B)
+  // Available regions derived from data
+  const availableRegions = useMemo(() => {
+    const regions = new Set<string>();
+    cooperativesWithData.forEach((c) => {
+      if (c.region) regions.add(c.region);
+    });
+    return Array.from(regions).sort();
+  }, [cooperativesWithData]);
+
+  // Selected target details (National Average, Regional Average, or Coop B)
   const compareTarget = useMemo(() => {
     if (compareTargetId === "national_average") {
-      return { name: "National Average", isAverage: true };
+      return {
+        name: "National Average",
+        isAverage: true,
+        isRegional: false,
+        region: null as string | null,
+      };
+    }
+    if (compareTargetId.startsWith("region_avg_")) {
+      const region = compareTargetId.replace("region_avg_", "");
+      return { name: `${region} Region Avg`, isAverage: true, isRegional: true, region };
     }
     const coop = cooperatives.find((c) => c.cooperative_id === compareTargetId);
-    return coop ? { ...coop, isAverage: false } : { name: "National Average", isAverage: true };
+    return coop
+      ? { ...coop, isAverage: false, isRegional: false, region: coop.region ?? null }
+      : {
+          name: "National Average",
+          isAverage: true,
+          isRegional: false,
+          region: null as string | null,
+        };
   }, [cooperatives, compareTargetId]);
 
-  // Dynamic system averages for comparable KPIs
+  // Dynamic system averages for comparable KPIs (national)
   const systemAverages = useMemo(() => {
     const averages: Record<string, number> = {};
     COMPARABLE_KPIS.forEach((kpi) => {
       const validValues = cooperativesWithData
         .map((c) => getCoopKpiValue(c, kpi))
         .filter((val): val is number => val !== undefined && !isNaN(val));
-
-      if (validValues.length > 0) {
-        averages[kpi.key] = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-      } else {
-        averages[kpi.key] = 0;
-      }
+      averages[kpi.key] =
+        validValues.length > 0
+          ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
+          : 0;
     });
     return averages;
   }, [cooperativesWithData]);
+
+  // Regional averages keyed by region name → kpi key → average value
+  const regionalAverages = useMemo(() => {
+    const result: Record<string, Record<string, number>> = {};
+    availableRegions.forEach((region) => {
+      const regionCoops = cooperativesWithData.filter((c) => c.region === region);
+      const kpiAverages: Record<string, number> = {};
+      COMPARABLE_KPIS.forEach((kpi) => {
+        const vals = regionCoops
+          .map((c) => getCoopKpiValue(c, kpi))
+          .filter((v): v is number => v !== undefined && !isNaN(v));
+        kpiAverages[kpi.key] = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+      });
+      result[region] = kpiAverages;
+    });
+    return result;
+  }, [cooperativesWithData, availableRegions]);
+
+  // Helper to get comparison value for a KPI based on selected compare target
+  const getCompareValue = (kpiKey: string): number => {
+    if (compareTarget.isRegional && compareTarget.region) {
+      return regionalAverages[compareTarget.region]?.[kpiKey] ?? 0;
+    }
+    if (compareTarget.isAverage) {
+      return systemAverages[kpiKey] ?? 0;
+    }
+    const kpiInfo = COMPARABLE_KPIS.find((k) => k.key === kpiKey);
+    if (!kpiInfo) return 0;
+    return getCoopKpiValue(compareTarget, kpiInfo);
+  };
 
   // Formatting helper
   const formatValue = (val: number, unit: string) => {
@@ -205,48 +455,37 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     if (!selectedCoop || !selectedCoop.has_data) return [];
     const kpiInfo = COMPARABLE_KPIS.find((k) => k.key === selectedKpi);
     if (!kpiInfo) return [];
-
     const coopVal = getCoopKpiValue(selectedCoop, kpiInfo);
-
-    let targetVal = 0;
-    if (compareTarget.isAverage) {
-      targetVal = systemAverages[selectedKpi] ?? 0;
-    } else {
-      targetVal = getCoopKpiValue(compareTarget, kpiInfo);
-    }
-
+    const targetVal = getCompareValue(selectedKpi);
     return [
-      {
-        name: selectedCoop.name,
-        Value: coopVal,
-        color: "#3b82f6",
-      },
-      {
-        name: compareTarget.name,
-        Value: targetVal,
-        color: "#10b981",
-      },
+      { name: selectedCoop.name, Value: coopVal, color: "#3b82f6" },
+      { name: compareTarget.name, Value: targetVal, color: "#10b981" },
     ];
-  }, [selectedCoop, selectedKpi, systemAverages, compareTarget]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCoop, selectedKpi, compareTarget, systemAverages, regionalAverages]);
 
   const activeKpiInfo = useMemo(() => {
     return COMPARABLE_KPIS.find((k) => k.key === selectedKpi);
   }, [selectedKpi]);
 
-  // Filtered KPIs for matrix table based on query
+  // Filtered KPIs for matrix table (search + group filter)
   const filteredKpis = useMemo(() => {
-    return COMPARABLE_KPIS.filter(
-      (kpi) =>
+    return COMPARABLE_KPIS.filter((kpi) => {
+      const matchesSearch =
         kpi.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        kpi.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [searchQuery]);
+        kpi.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesGroup = activeGroupFilter === null || kpi.group === activeGroupFilter;
+      return matchesSearch && matchesGroup;
+    });
+  }, [searchQuery, activeGroupFilter]);
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 text-slate-500 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-sm">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-        <span className="text-sm font-medium tracking-wide">Assembling performance statistics...</span>
+        <span className="text-sm font-medium tracking-wide">
+          Assembling performance statistics...
+        </span>
       </div>
     );
   }
@@ -256,9 +495,12 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return (
       <div className="text-center py-20 border-2 border-dashed rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-800">
         <ShieldAlert className="mx-auto h-12 w-12 text-slate-400 opacity-60 mb-3" />
-        <h4 className="text-base font-bold text-slate-900 dark:text-white">No Benchmarking Data Available</h4>
+        <h4 className="text-base font-bold text-slate-900 dark:text-white">
+          No Benchmarking Data Available
+        </h4>
         <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-          Once cooperatives submit approved or submitted statements for {reportingYear}, comparative benchmarks will auto-generate here.
+          Once cooperatives submit approved or submitted statements for {reportingYear}, comparative
+          benchmarks will auto-generate here.
         </p>
       </div>
     );
@@ -299,7 +541,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                 <SelectValue placeholder="Select target..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="national_average">National Average</SelectItem>
+                {/* System-wide averages */}
+                <SelectItem value="national_average">🌍 National Average (All Coops)</SelectItem>
+                {/* Per-region averages */}
+                {availableRegions.map((region) => (
+                  <SelectItem key={`region_avg_${region}`} value={`region_avg_${region}`}>
+                    📍 {region} Region Average
+                  </SelectItem>
+                ))}
+                {/* Individual cooperative peers */}
                 {cooperativesWithData
                   .filter((c) => c.cooperative_id !== activeCoopId)
                   .map((c) => (
@@ -333,7 +583,9 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         {selectedCoop && !selectedCoop.has_data ? (
           <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2">
             <AlertCircle className="size-4 shrink-0 text-amber-500" />
-            <span>The selected cooperative has no submitted data for the year {reportingYear}.</span>
+            <span>
+              The selected cooperative has no submitted data for the year {reportingYear}.
+            </span>
           </div>
         ) : selectedCoop && activeKpiInfo ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -344,23 +596,35 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                   <ArrowRightLeft className="size-3.5 text-primary" />
                   Visual Benchmark
                 </h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">{activeKpiInfo.description}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {activeKpiInfo.description}
+                </p>
               </div>
               <div className="flex-1 w-full h-[220px] mt-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }} barSize={50}>
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                    barSize={50}
+                  >
                     <defs>
                       <linearGradient id="colorCoop" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.85}/>
-                        <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.85}/>
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.85} />
+                        <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.85} />
                       </linearGradient>
                       <linearGradient id="colorPeer" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.85}/>
-                        <stop offset="95%" stopColor="#047857" stopOpacity={0.85}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.85} />
+                        <stop offset="95%" stopColor="#047857" stopOpacity={0.85} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.06} stroke="currentColor" />
-                    <XAxis dataKey="name" stroke="currentColor" fontSize={11} opacity={0.6} tickLine={false} />
+                    <XAxis
+                      dataKey="name"
+                      stroke="currentColor"
+                      fontSize={11}
+                      opacity={0.6}
+                      tickLine={false}
+                    />
                     <YAxis stroke="currentColor" fontSize={11} opacity={0.6} tickLine={false} />
                     <ChartTooltip
                       cursor={{ fill: "rgba(148, 163, 184, 0.05)", radius: 8 }}
@@ -373,14 +637,22 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       labelStyle={{ color: "#fff", fontWeight: "bold", fontSize: "11px" }}
                       itemStyle={{ color: "#94a3b8", fontSize: "11px" }}
                       formatter={(val: unknown) => [
-                        <span className="text-white font-bold">{formatValue(Number(val), activeKpiInfo.unit)}</span>,
+                        <span className="text-white font-bold">
+                          {formatValue(Number(val), activeKpiInfo.unit)}
+                        </span>,
                         activeKpiInfo.label,
                       ]}
                     />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                    <Legend
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                    />
                     <Bar dataKey="Value" radius={[6, 6, 0, 0]}>
                       {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={index === 0 ? "url(#colorCoop)" : "url(#colorPeer)"} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={index === 0 ? "url(#colorCoop)" : "url(#colorPeer)"}
+                        />
                       ))}
                     </Bar>
                   </BarChart>
@@ -414,11 +686,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                     <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5">
                       {(() => {
                         let targetVal = 0;
-                        if (compareTarget.isAverage) {
-                          targetVal = systemAverages[selectedKpi] ?? 0;
-                        } else {
-                          targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
-                        }
+                        targetVal = getCompareValue(selectedKpi);
                         return formatValue(targetVal, activeKpiInfo.unit);
                       })()}
                     </p>
@@ -430,12 +698,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                 {(() => {
                   const coopVal = getCoopKpiValue(selectedCoop, activeKpiInfo);
 
-                  let targetVal = 0;
-                  if (compareTarget.isAverage) {
-                    targetVal = systemAverages[selectedKpi] ?? 0;
-                  } else {
-                    targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
-                  }
+                  const targetVal = getCompareValue(selectedKpi);
 
                   const diff = coopVal - targetVal;
                   const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
@@ -470,8 +733,10 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                         </p>
                         <p className="text-[11px] opacity-80 mt-1.5 leading-normal">
                           {isBetter ? "Performing " : "Standing "}
-                          <span className="font-bold">{Math.abs(percentDiff).toFixed(1)}%</span> {isBetter ? "above" : "below"} the
-                          selected peer average.
+                          <span className="font-bold">
+                            {Math.abs(percentDiff).toFixed(1)}%
+                          </span>{" "}
+                          {isBetter ? "above" : "below"} the selected peer average.
                         </p>
                       </div>
                     </div>
@@ -489,31 +754,95 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           title="Benchmarking KPI Matrix"
           subtitle={`Detailed financial and operational ratios mapped side-by-side with comparison delta`}
         >
-          {/* Search bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search KPI or ratios..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-slate-700 dark:text-slate-350"
-              />
+          {/* Search + Group Filter toolbar */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 w-full">
+            {/* Search and Dropdown Controls */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              {/* Search input */}
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search KPI or ratio..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-slate-700 dark:text-slate-350"
+                />
+              </div>
+
+              {/* Group select dropdown */}
+              <Select
+                value={activeGroupFilter || "all"}
+                onValueChange={(val) => setActiveGroupFilter(val === "all" ? null : val)}
+              >
+                <SelectTrigger className="w-full sm:w-60 h-9 text-xs bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-350">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">
+                    📁 All Categories ({COMPARABLE_KPIS.length})
+                  </SelectItem>
+                  {Object.entries(KPI_GROUPS).map(([key, group]) => {
+                    const count = COMPARABLE_KPIS.filter((kpi) => kpi.group === key).length;
+                    return (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        {group.label} ({count})
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex gap-2 text-slate-500">
+
+            {/* Group filter chips (clickable) */}
+            <div className="flex flex-wrap gap-2">
+              {/* All button */}
+              <button
+                onClick={() => setActiveGroupFilter(null)}
+                className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                  activeGroupFilter === null
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/50"
+                }`}
+              >
+                All
+                <span
+                  className={`text-[9px] px-1 rounded ${
+                    activeGroupFilter === null
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {COMPARABLE_KPIS.length}
+                </span>
+              </button>
+
               {Object.entries(KPI_GROUPS).map(([key, group]) => {
                 const count = COMPARABLE_KPIS.filter((kpi) => kpi.group === key).length;
                 const Icon = group.icon;
+                const isActive = activeGroupFilter === key;
                 return (
-                  <div
+                  <button
                     key={key}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400"
+                    onClick={() => setActiveGroupFilter(isActive ? null : key)}
+                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                      isActive
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/50"
+                    }`}
                   >
                     <Icon className="size-3" />
                     <span>{group.label}</span>
-                    <span className="text-[9px] bg-slate-200/50 dark:bg-slate-800/80 px-1 rounded text-slate-600 dark:text-slate-400">{count}</span>
-                  </div>
+                    <span
+                      className={`text-[9px] px-1 rounded ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -541,7 +870,10 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                     <React.Fragment key={groupKey}>
                       {/* Group Divider */}
                       <tr className="bg-slate-50/30 dark:bg-slate-950/10">
-                        <td colSpan={5} className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        <td
+                          colSpan={5}
+                          className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                        >
                           <div className="flex items-center gap-1.5 font-sans">
                             <div className={`p-1 rounded ${groupInfo.colorClass}`}>
                               <GroupIcon className="size-3.5" />
@@ -554,12 +886,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       {groupKpis.map((kpi) => {
                         const coopVal = getCoopKpiValue(selectedCoop, kpi);
 
-                        let targetVal = 0;
-                        if (compareTarget.isAverage) {
-                          targetVal = systemAverages[kpi.key] ?? 0;
-                        } else {
-                          targetVal = getCoopKpiValue(compareTarget, kpi);
-                        }
+                        const targetVal = getCompareValue(kpi.key);
 
                         const diff = coopVal - targetVal;
                         const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
@@ -579,7 +906,9 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                           <tr
                             key={kpi.key}
                             className={`group hover:bg-slate-50/30 dark:hover:bg-slate-900/10 transition-colors ${
-                              selectedKpi === kpi.key ? "bg-primary/5 dark:bg-primary/5 font-semibold" : ""
+                              selectedKpi === kpi.key
+                                ? "bg-primary/5 dark:bg-primary/5 font-semibold"
+                                : ""
                             }`}
                           >
                             <td className="py-3 px-4 text-slate-800 dark:text-slate-300">
@@ -614,7 +943,9 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                               }`}
                             >
                               {diff > 0 ? "+" : ""}
-                              {kpi.unit === "%" ? `${diff.toFixed(2)}%` : formatValue(diff, kpi.unit)}
+                              {kpi.unit === "%"
+                                ? `${diff.toFixed(2)}%`
+                                : formatValue(diff, kpi.unit)}
                               {targetVal > 0 && (
                                 <span className="text-[9px] ml-1 opacity-70 font-normal">
                                   ({diff > 0 ? "+" : ""}

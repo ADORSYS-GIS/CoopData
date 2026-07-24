@@ -29,6 +29,11 @@ use crate::AppState;
 /// All routes are prefixed with `/api/v1/ministry`.
 pub fn ministry_routes() -> Router<AppState> {
     Router::new()
+        // Apex list for ministry
+        .route(
+            "/apexes",
+            get(crate::api::handlers::apex::ministry_list_apexes),
+        )
         // Federation CRUD
         .route(
             "/federations",

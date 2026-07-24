@@ -238,7 +238,36 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
       )}
 
       {/* Custom KPI Builder Panel */}
-      <CustomKpiBuilder />
+      <CustomKpiBuilder cooperatives={coops} customKpiValues={overview?.custom_kpis} />
+
+      {/* System-wide Custom KPI Averages */}
+      {overview?.custom_kpis && Object.keys(overview.custom_kpis).length > 0 && (
+        <Card
+          title="Custom KPI System Averages"
+          subtitle="National averages for ministry-defined custom indicators"
+          info="These values represent the system-wide average of each custom KPI formula evaluated across all cooperatives with data."
+        >
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Object.entries(overview.custom_kpis).map(([name, value]) => (
+              <div
+                key={name}
+                className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/30 to-white p-4 hover:shadow-md hover:border-violet-300 transition-all duration-200"
+              >
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-400 to-indigo-400 rounded-t-xl" />
+                <p className="text-xs font-semibold text-violet-700 uppercase tracking-wider mb-1">
+                  {name.replace(/_/g, " ")}
+                </p>
+                <p className="text-2xl font-bold text-foreground tabular-nums">
+                  {value >= 1000
+                    ? value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+                    : value.toFixed(2)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">National Average</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Full NF consolidation panel */}
       <NonFinancialConsolidation />
