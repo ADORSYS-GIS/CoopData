@@ -36,116 +36,7 @@ import {
 import { getAccessToken } from "@/services/shared/authService";
 import { useState, useRef, useEffect } from "react";
 
-// ─── Category config ─────────────────────────────────────────────────────────
 
-const CATEGORIES_BY_ROLE: Record<
-  Role,
-  {
-    tag: string;
-    count: number;
-    title: string;
-    desc: string;
-    icon: React.FC<{ className?: string }>;
-    gradient: string;
-  }[]
-> = {
-  ministry: [
-    {
-      tag: "National",
-      count: 24,
-      title: "National Snapshot",
-      desc: "Aggregated views across all sectors and regions — federation-level intelligence.",
-      icon: Landmark,
-      gradient: "from-violet-500/10 to-purple-500/5",
-    },
-    {
-      tag: "Regional",
-      count: 18,
-      title: "Regional Performance",
-      desc: "Per-region deep dives with comparative benchmarks and penetration metrics.",
-      icon: BarChart3,
-      gradient: "from-blue-500/10 to-cyan-500/5",
-    },
-    {
-      tag: "Compliance",
-      count: 12,
-      title: "Compliance & Audit",
-      desc: "Filing rates, late submission flags, and systemic risk indicators by type.",
-      icon: ShieldCheck,
-      gradient: "from-emerald-500/10 to-teal-500/5",
-    },
-  ],
-  federation: [
-    {
-      tag: "Federation",
-      count: 16,
-      title: "Federation Overview",
-      desc: "Aggregated data across all apexes and cooperatives under your federation.",
-      icon: TrendingUp,
-      gradient: "from-violet-500/10 to-purple-500/5",
-    },
-    {
-      tag: "Apex",
-      count: 12,
-      title: "Apex Performance",
-      desc: "Per-apex deep dives with comparative benchmarks and submission metrics.",
-      icon: Network,
-      gradient: "from-blue-500/10 to-cyan-500/5",
-    },
-    {
-      tag: "Compliance",
-      count: 8,
-      title: "Compliance & Audit",
-      desc: "Filing rates, late submissions, and compliance indicators across your federation.",
-      icon: ShieldCheck,
-      gradient: "from-emerald-500/10 to-teal-500/5",
-    },
-  ],
-  apex: [
-    {
-      tag: "Apex",
-      count: 10,
-      title: "Apex Overview",
-      desc: "Aggregated data for all cooperatives under your apex organization.",
-      icon: TrendingUp,
-      gradient: "from-violet-500/10 to-purple-500/5",
-    },
-    {
-      tag: "Cooperative",
-      count: 14,
-      title: "Cooperative Reports",
-      desc: "Individual and comparative reports for cooperatives under your supervision.",
-      icon: Building2,
-      gradient: "from-blue-500/10 to-cyan-500/5",
-    },
-    {
-      tag: "Compliance",
-      count: 6,
-      title: "Compliance Tracking",
-      desc: "Submission status, compliance rates, and review outcomes for your cooperatives.",
-      icon: ShieldCheck,
-      gradient: "from-emerald-500/10 to-teal-500/5",
-    },
-  ],
-  cooperative: [
-    {
-      tag: "My Reports",
-      count: 8,
-      title: "My Submissions",
-      desc: "Reports generated from your submitted financial statements and databases.",
-      icon: FileBarChart2,
-      gradient: "from-violet-500/10 to-purple-500/5",
-    },
-    {
-      tag: "Analytics",
-      count: 4,
-      title: "Performance Analytics",
-      desc: "Trends, growth patterns, and key performance indicators for your cooperative.",
-      icon: PieChart,
-      gradient: "from-blue-500/10 to-cyan-500/5",
-    },
-  ],
-};
 
 const titleByRole: Record<Role, string> = {
   ministry: "Reporting Center",
@@ -314,7 +205,6 @@ export const ReportsPage: React.FC = () => {
   const ministryQuery = useMinistrySubmissions({ all: true, enabled: role === "ministry" });
 
   if (!role) return null;
-  const categories = CATEGORIES_BY_ROLE[role];
 
   const submissions = (() => {
     if (role === "cooperative") return cooperativeQuery.data ?? [];
@@ -372,53 +262,16 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>
-      <div className="space-y-8">
-        {/* ── Category cards ── */}
-        <div
-          className={`grid gap-4 ${categories.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}
-        >
-          {categories.map((c) => {
-            const Icon = c.icon;
-            return (
-              <button
-                key={c.title}
-                onClick={() => toast.info(`Opening ${c.title} reports…`)}
-                className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${c.gradient} p-5 text-left transition-all hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5 press-feedback`}
-              >
-                <div className="pointer-events-none absolute -right-6 -top-6 size-24 rounded-full bg-accent/10 blur-2xl transition-all group-hover:bg-accent/20" />
-                <div className="relative">
-                  <div className="flex items-start justify-between mb-4">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
-                      <Sparkles className="size-2.5" />
-                      {c.tag}
-                    </span>
-                    <span className="text-xs font-mono font-medium text-muted-foreground">
-                      {c.count} reports
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="size-10 rounded-xl bg-background/60 backdrop-blur-sm border border-border/60 grid place-items-center shrink-0 text-accent group-hover:bg-accent group-hover:text-white group-hover:border-accent transition-all">
-                      <Icon className="size-5" />
-                    </div>
-                    <h3 className="font-heading font-bold text-foreground text-[15px] leading-tight">
-                      {c.title}
-                    </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-4">{c.desc}</p>
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-accent group-hover:gap-2 transition-all">
-                    Browse reports <ArrowUpRight className="size-3.5" />
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+      <div className="relative min-h-[calc(100vh-10rem)]">
+        {/* ── Page Background Watermark ── */}
+        <FileBarChart2 className="pointer-events-none fixed -bottom-24 -right-24 size-[500px] text-blue-500/5 rotate-12 z-0" />
+        
+        <div className="relative z-10 space-y-8">
+          {/* ── Export panel ── */}
+          <ReportExportPanel />
 
-        {/* ── Export panel ── */}
-        <ReportExportPanel />
-
-        {/* ── Recent Submissions ── */}
-        <div className="rounded-2xl border border-border bg-surface overflow-hidden">
+          {/* ── Recent Submissions ── */}
+          <div className="rounded-2xl border border-border bg-surface overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
               <h2 className="font-heading font-bold text-foreground text-[15px]">
@@ -526,6 +379,7 @@ export const ReportsPage: React.FC = () => {
             </>
           )}
         </div>
+      </div>
       </div>
     </AppShell>
   );

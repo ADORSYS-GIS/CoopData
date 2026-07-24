@@ -15,43 +15,19 @@ export interface ReportExportOption {
 
 export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
   {
-    id: "national-consolidated",
-    label: "National Consolidated Report",
-    description: "Aggregated data across all federations, apexes, and cooperatives nationwide.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
-    availableTo: ["ministry"],
-  },
-  {
-    id: "federation-consolidated",
-    label: "Federation Consolidated Report",
-    description: "Aggregated data for all apexes and cooperatives under your federation.",
-    scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
-    availableTo: ["ministry", "federation"],
-  },
-  {
-    id: "apex-consolidated",
-    label: "Apex Consolidated Report",
-    description: "Aggregated data for all cooperatives under your apex organization.",
+    id: "consolidated-report",
+    label: "Consolidated Performance Report",
+    description: "Comprehensive multi-sheet workbook and executive summary aggregating data for all cooperatives within your jurisdiction.",
     scope: "consolidated",
     formats: ["pdf", "xlsx", "csv", "docx"],
     availableTo: ["ministry", "federation", "apex"],
   },
   {
     id: "cooperative-individual",
-    label: "Cooperative Individual Report",
-    description: "Detailed financial statement and database report for a single cooperative.",
+    label: "Cooperative Financial Report",
+    description: "Detailed financial statement, KPIs, and demographic database report for a single cooperative.",
     scope: "individual",
     formats: ["pdf", "xlsx", "csv", "docx"],
-    availableTo: ["ministry", "federation", "apex", "cooperative"],
-  },
-  {
-    id: "membership-report",
-    label: "Membership Demographics Report",
-    description: "Gender participation, youth engagement, and membership statistics.",
-    scope: "consolidated",
-    formats: ["xlsx"],
     availableTo: ["ministry", "federation", "apex", "cooperative"],
   },
 ];

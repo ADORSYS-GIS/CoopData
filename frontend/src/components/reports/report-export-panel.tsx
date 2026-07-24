@@ -356,11 +356,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${SCOPE_COLORS[report.scope]}`}
-                    >
-                      {SCOPE_LABELS[report.scope]}
-                    </span>
                     <h4 className="font-heading font-bold text-sm text-foreground truncate">
                       {report.label}
                     </h4>
