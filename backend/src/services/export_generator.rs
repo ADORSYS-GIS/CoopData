@@ -220,6 +220,106 @@ impl ExportGenerator {
             &f.deposits_to_loans,
         )?;
 
+        // SHEET 3: Financial Position (Phase B)
+        let sheet3 = workbook.add_worksheet().set_name("Financial Position")?;
+        let headers3 = ["Category", "Total (SZL)"];
+        for (c, h) in headers3.iter().enumerate() {
+            sheet3.write_with_format(0, c as u16, *h, &header_format)?;
+        }
+        sheet3.write(1, 0, "Total Assets")?;
+        sheet3.write(1, 1, &kpis.total_assets.formatted)?;
+        sheet3.write(2, 0, "Total Member Deposits")?;
+        sheet3.write(2, 1, &kpis.total_member_deposits.formatted)?;
+        sheet3.write(3, 0, "Total Equity")?;
+        sheet3.write(3, 1, &kpis.total_equity.formatted)?;
+
+        // SHEET 4: Portfolio Quality (Phase B)
+        let sheet4 = workbook.add_worksheet().set_name("Portfolio Quality")?;
+        let headers4 = ["Metric", "Value", "Status"];
+        for (c, h) in headers4.iter().enumerate() {
+            sheet4.write_with_format(0, c as u16, *h, &header_format)?;
+        }
+        sheet4.write(1, 0, "Gross Loan Portfolio")?;
+        sheet4.write(1, 1, &kpis.gross_loan_portfolio.formatted)?;
+        sheet4.write(2, 0, "PAR 30")?;
+        sheet4.write(2, 1, &kpis.par30.formatted)?;
+        sheet4.write(3, 0, "PAR 90")?;
+        sheet4.write(3, 1, &kpis.par90.formatted)?;
+        sheet4.write(4, 0, "NPL Ratio")?;
+        sheet4.write(4, 1, &kpis.npl_ratio.formatted)?;
+
+        // SHEET 5: Benchmarks (Phase B)
+        let sheet5 = workbook.add_worksheet().set_name("Benchmarks")?;
+        let headers5 = ["KPI Name", "Your Value", "Benchmark Target", "Status"];
+        for (c, h) in headers5.iter().enumerate() {
+            sheet5.write_with_format(0, c as u16, *h, &header_format)?;
+        }
+        let mut r5 = 1;
+        let mut write_b_row = |name: &str, kpi: &crate::services::kpi_engine::KpiValue| -> Result<(), rust_xlsxwriter::XlsxError> {
+            sheet5.write(r5, 0, name)?;
+            sheet5.write(r5, 1, &kpi.formatted)?;
+            if let Some(b) = kpi.benchmark {
+                sheet5.write(r5, 2, b)?;
+            } else {
+                sheet5.write(r5, 2, "N/A")?;
+            }
+            if let Some(ref status) = kpi.status {
+                let fmt = match status.as_str() {
+                    "green" => &green_format,
+                    "amber" => &amber_format,
+                    "red" => &red_format,
+                    _ => &Format::new(),
+                };
+                sheet5.write_with_format(r5, 3, status.as_str(), fmt)?;
+            }
+            r5 += 1;
+            Ok(())
+        };
+        write_b_row("PAR 30", &kpis.par30)?;
+        write_b_row("PAR 90", &kpis.par90)?;
+        write_b_row("NPL Ratio", &kpis.npl_ratio)?;
+        write_b_row("ROA", &kpis.roa)?;
+        write_b_row("ROE", &kpis.roe)?;
+        write_b_row("Capital Adequacy Ratio", &kpis.capital_adequacy_ratio)?;
+
+        // SHEET 6: Loan Portfolio Allocation (Phase B Stub)
+        let sheet6 = workbook.add_worksheet().set_name("Loan Allocation")?;
+        sheet6.write_with_format(0, 0, "Loan Product Type", &header_format)?;
+        sheet6.write_with_format(0, 1, "Volume (SZL)", &header_format)?;
+        sheet6.write(1, 0, "All Loans (Aggregated)")?;
+        sheet6.write(1, 1, &kpis.gross_loan_portfolio.formatted)?;
+
+        // SHEET 7: Deposit Concentration (Phase B Stub)
+        let sheet7 = workbook.add_worksheet().set_name("Deposit Concentration")?;
+        sheet7.write_with_format(0, 0, "Account Category", &header_format)?;
+        sheet7.write_with_format(0, 1, "Balance (SZL)", &header_format)?;
+        sheet7.write(1, 0, "Total Member Deposits")?;
+        sheet7.write(1, 1, &kpis.total_member_deposits.formatted)?;
+
+        // SHEET 8: Governance & Engagement (Phase B Stub)
+        let sheet8 = workbook.add_worksheet().set_name("Governance")?;
+        sheet8.write_with_format(0, 0, "Metric", &header_format)?;
+        sheet8.write_with_format(0, 1, "Status/Count", &header_format)?;
+        sheet8.write(1, 0, "Data pending NF demographic mapping")?;
+        sheet8.write(1, 1, "N/A")?;
+
+        // SHEET 9: Regulatory Compliance Buffer
+        let sheet9 = workbook.add_worksheet().set_name("Regulatory Buffer")?;
+        let headers9 = ["Regulation Metric", "Current Value", "Buffer Status"];
+        for (c, h) in headers9.iter().enumerate() {
+            sheet9.write_with_format(0, c as u16, *h, &header_format)?;
+        }
+        sheet9.write(1, 0, "Capital Adequacy (>10%)")?;
+        sheet9.write(1, 1, &kpis.capital_adequacy_ratio.formatted)?;
+        sheet9.write(1, 2, if kpis.capital_adequacy_ratio.value > 10.0 { "Sufficient" } else { "Deficient" })?;
+
+        // SHEET 10: Peer Percentile Rankings (Phase B Stub)
+        let sheet10 = workbook.add_worksheet().set_name("Peer Rankings")?;
+        sheet10.write_with_format(0, 0, "Metric", &header_format)?;
+        sheet10.write_with_format(0, 1, "Percentile Rank", &header_format)?;
+        sheet10.write(1, 0, "Data pending benchmark percentile integration")?;
+        sheet10.write(1, 1, "N/A")?;
+
         workbook
             .save_to_buffer()
             .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
@@ -321,5 +421,138 @@ impl ExportGenerator {
         };
 
         Ok((submission, cooperative, line_items, kpis))
+    }
+
+    /// Spawns a background task to generate consolidated Apex exports
+    pub fn trigger_apex_export(state: AppState, apex_id: Uuid, reporting_year: i32) {
+        tokio::spawn(async move {
+            tracing::info!(
+                apex_id = %apex_id,
+                reporting_year = reporting_year,
+                "Starting background Apex export generation"
+            );
+
+            if let Err(e) = Self::generate_apex_formats(&state, apex_id, reporting_year).await {
+                tracing::error!(
+                    apex_id = %apex_id,
+                    error = %e,
+                    "Failed to generate Apex exports in the background"
+                );
+            } else {
+                tracing::info!(
+                    apex_id = %apex_id,
+                    "Successfully pre-baked Apex export formats"
+                );
+            }
+        });
+    }
+
+    async fn generate_apex_formats(state: &AppState, apex_id: Uuid, reporting_year: i32) -> AppResult<()> {
+        let (apex, coops) = Self::compile_apex_data(state, apex_id, reporting_year).await?;
+        
+        // 1. Generate XLSX
+        let xlsx_bytes = Self::generate_apex_excel(&apex, &coops, reporting_year)?;
+        let xlsx_filename = format!("apex_{}_{}.xlsx", apex_id, reporting_year);
+        let xlsx_key = format!("exports/apex/{}/{}", apex_id, xlsx_filename);
+        state
+            .storage
+            .store(
+                &xlsx_key,
+                &xlsx_bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn compile_apex_data(
+        state: &AppState,
+        apex_id: Uuid,
+        reporting_year: i32,
+    ) -> AppResult<(
+        crate::entities::apex::Model,
+        Vec<(crate::entities::cooperative::Model, Option<crate::entities::submission::Model>, Vec<crate::entities::kpi_record::Model>)>
+    )> {
+        let apex = state.apex_repo.find_by_id(apex_id).await?
+            .ok_or_else(|| crate::error::AppError::NotFound("Apex not found".into()))?;
+
+        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_id).await?;
+        let mut coops_data = Vec::new();
+
+        for coop in cooperatives {
+            let submissions = state.submission_repo.find_by_cooperative(coop.id).await?;
+            let submission = submissions.into_iter().find(|s| s.reporting_year == reporting_year);
+            
+            let mut kpis = Vec::new();
+            if let Some(ref sub) = submission {
+                kpis = state.kpi_record_repo.find_by_submission(sub.id).await?;
+            }
+            coops_data.push((coop, submission, kpis));
+        }
+
+        Ok((apex, coops_data))
+    }
+
+    pub fn generate_apex_excel(
+        apex: &crate::entities::apex::Model,
+        coops: &[(crate::entities::cooperative::Model, Option<crate::entities::submission::Model>, Vec<crate::entities::kpi_record::Model>)],
+        reporting_year: i32,
+    ) -> AppResult<Vec<u8>> {
+        use rust_xlsxwriter::{Color, Format, Workbook};
+        let mut workbook = Workbook::new();
+        let header_format = Format::new()
+            .set_bold()
+            .set_background_color(Color::RGB(0x1F4E78))
+            .set_font_color(Color::White);
+
+        // SHEET 1: Executive Dashboard (Phase C)
+        let sheet1 = workbook.add_worksheet().set_name("Executive Dashboard")?;
+        sheet1.write(0, 0, "Apex Name:")?;
+        sheet1.write(0, 1, &apex.display_name)?;
+        sheet1.write(1, 0, "Reporting Year:")?;
+        sheet1.write(1, 1, reporting_year)?;
+        sheet1.write(2, 0, "Total Cooperatives:")?;
+        sheet1.write(2, 1, coops.len() as u32)?;
+
+        // SHEET 2: Cooperative Detail (Phase C)
+        let sheet2 = workbook.add_worksheet().set_name("Cooperative Detail")?;
+        sheet2.write_with_format(0, 0, "Cooperative Name", &header_format)?;
+        sheet2.write_with_format(0, 1, "Submission Status", &header_format)?;
+        sheet2.write_with_format(0, 2, "Total Assets (SZL)", &header_format)?;
+        
+        for (r, (coop, sub, kpis)) in (1..).zip(coops.iter()) {
+            sheet2.write(r, 0, &coop.name)?;
+            if let Some(s) = sub {
+                sheet2.write(r, 1, format!("{:?}", s.status))?;
+            } else {
+                sheet2.write(r, 1, "Not Submitted")?;
+            }
+            let assets = kpis.iter().find(|k| k.kpi_name == "total_assets").map(|k| k.value).unwrap_or(0.0);
+            sheet2.write(r, 2, assets)?;
+        }
+
+        // SHEET 3: Filing Compliance (Phase C)
+        let sheet3 = workbook.add_worksheet().set_name("Filing Compliance")?;
+        sheet3.write_with_format(0, 0, "Metric", &header_format)?;
+        sheet3.write_with_format(0, 1, "Count", &header_format)?;
+        sheet3.write(1, 0, "Total Submitted")?;
+        sheet3.write(1, 1, coops.iter().filter(|(_, s, _)| s.is_some()).count() as u32)?;
+        
+        // SHEET 4: Risk Watch (Phase C)
+        let sheet4 = workbook.add_worksheet().set_name("Risk Watch")?;
+        sheet4.write(0, 0, "Data pending abnormality flags aggregation")?;
+
+        // SHEET 5: Per-Cooperative Detail (Phase C)
+        let sheet5 = workbook.add_worksheet().set_name("Per-Cooperative KPIs")?;
+        sheet5.write(0, 0, "Data embedded in Sheet 2")?;
+        
+        // SHEET 6: Filing Efficiency (Phase C)
+        let sheet6 = workbook.add_worksheet().set_name("Filing Efficiency")?;
+        sheet6.write(0, 0, "Data pending submission reviews aggregation")?;
+
+        workbook
+            .save_to_buffer()
+            .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
     }
 }

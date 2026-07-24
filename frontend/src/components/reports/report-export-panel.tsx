@@ -43,6 +43,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const [selectedApexId, setSelectedApexId] = useState<string>("");
   const [selectedCoopId, setSelectedCoopId] = useState<string>("");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("");
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -61,6 +62,15 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (role === "ministry") return ministryQuery.data ?? [];
     return [];
   }, [role, cooperativeQuery.data, apexQuery.data, federationQuery.data, ministryQuery.data]);
+
+  // Dynamically determine available reporting years
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    rawSubmissions.forEach((s) => {
+      if (s.reporting_year) years.add(s.reporting_year);
+    });
+    return Array.from(years).sort((a, b) => b - a).map(String);
+  }, [rawSubmissions]);
 
   // Only submitted / approved can be exported
   const allSubmissions = useMemo(
@@ -100,6 +110,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
   const needsCoopSelector = isIndividual && role !== "cooperative";
   const needsSubmissionSelector = isIndividual;
+  const needsYearSelector = !isIndividual;
 
   // Build federation picker list from RAW submissions
   const federationList = useMemo(() => {
@@ -185,9 +196,10 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsApexSelector) list.push({ key: "apex", label: "Apex" });
     if (needsCoopSelector) list.push({ key: "coop", label: "Cooperative" });
     if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
+    if (needsYearSelector) list.push({ key: "year", label: "Year" });
     list.push({ key: "format", label: "Format" });
     return list;
-  }, [needsFedSelector, needsApexSelector, needsCoopSelector, needsSubmissionSelector]);
+  }, [needsFedSelector, needsApexSelector, needsCoopSelector, needsSubmissionSelector, needsYearSelector]);
 
   const currentStepIndex = useMemo(() => {
     if (needsFedSelector && !selectedFedId) return 0;
@@ -198,6 +210,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsCoopSelector) idx++;
     if (needsSubmissionSelector && !selectedSubmissionId) return idx;
     if (needsSubmissionSelector) idx++;
+    if (needsYearSelector && !selectedYear) return idx;
+    if (needsYearSelector) idx++;
     return idx; // format selection
   }, [
     needsFedSelector,
@@ -208,6 +222,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     selectedCoopId,
     needsSubmissionSelector,
     selectedSubmissionId,
+    needsYearSelector,
+    selectedYear
   ]);
 
   const activeStepKey: string = steps[currentStepIndex]?.key ?? "format";
@@ -224,6 +240,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     setSelectedApexId("");
     setSelectedCoopId("");
     setSelectedSubmissionId("");
+    setSelectedYear("");
     setIsModalOpen(true);
   }
 
@@ -235,6 +252,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const isApexSelected = !needsApexSelector || !!selectedApexId;
   const isCoopSelected = !needsCoopSelector || !!selectedCoopId;
   const isSubmissionSelected = !needsSubmissionSelector || !!selectedSubmissionId;
+  const isYearSelected = !needsYearSelector || !!selectedYear;
 
   const canExport =
     !isExporting &&
@@ -242,7 +260,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     isFedSelected &&
     isApexSelected &&
     isCoopSelected &&
-    isSubmissionSelected;
+    isSubmissionSelected &&
+    isYearSelected;
 
   const handleExport = async () => {
     if (!selectedOption || !canExport) return;
@@ -261,6 +280,10 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
           queryParams.append("federation_id", selectedFedId);
         } else if (selectedOption.id === "apex-consolidated" && selectedApexId) {
           queryParams.append("apex_id", selectedApexId);
+        }
+        
+        if (selectedYear) {
+          queryParams.append("reporting_year", selectedYear);
         }
 
         if (role === "apex") url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
@@ -436,6 +459,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 onClearSubmission={() => {
                   setSelectedSubmissionId("");
                 }}
+                needsYearSelector={needsYearSelector}
+                selectedYear={selectedYear}
+                onClearYear={() => setSelectedYear("")}
               />
 
               {/* Active Step Picker */}
@@ -466,9 +492,10 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   }}
                   filteredSubmissions={filteredSubmissions}
                   selectedSubmissionId={selectedSubmissionId}
-                  onSelectSubmission={(id) => {
-                    setSelectedSubmissionId(id);
-                  }}
+                  onSelectSubmission={(id) => setSelectedSubmissionId(id)}
+                  availableYears={availableYears}
+                  selectedYear={selectedYear}
+                  onSelectYear={(year) => setSelectedYear(year)}
                   selectedOption={selectedOption}
                   selectedFormat={selectedFormat}
                   onSelectFormat={(fmt) => setSelectedFormat(fmt)}

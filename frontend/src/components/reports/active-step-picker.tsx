@@ -39,6 +39,11 @@ interface ActiveStepPickerProps {
   selectedSubmissionId: string;
   onSelectSubmission: (id: string) => void;
 
+  // Year Step (for consolidated reports)
+  availableYears: string[];
+  selectedYear: string;
+  onSelectYear: (year: string) => void;
+
   // Format Step
   selectedOption: {
     formats: ExportFormat[];
@@ -66,6 +71,9 @@ export function ActiveStepPicker({
   filteredSubmissions,
   selectedSubmissionId,
   onSelectSubmission,
+  availableYears,
+  selectedYear,
+  onSelectYear,
   selectedOption,
   selectedFormat,
   onSelectFormat,
@@ -252,6 +260,48 @@ export function ActiveStepPicker({
                   </p>
                 </div>
                 {selectedSubmissionId === sub.id && (
+                  <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (activeStepKey === "year") {
+    return (
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+          Select Reporting Year
+        </label>
+        {isLoadingSubmissions ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+            <Loader2 className="size-3.5 animate-spin" /> Loading years…
+          </div>
+        ) : availableYears.length === 0 ? (
+          <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
+            <FileText className="size-4 shrink-0 mt-0.5" />
+            <span>No data available to export for the selected organization.</span>
+          </div>
+        ) : (
+          <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
+            {availableYears.map((year) => (
+              <button
+                key={year}
+                type="button"
+                onClick={() => onSelectYear(year)}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all press-feedback ${
+                  selectedYear === year
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border hover:border-accent/40 hover:bg-muted/30"
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">{year} Consolidated Report</p>
+                </div>
+                {selectedYear === year && (
                   <CheckCircle2 className="size-4 shrink-0 text-primary" />
                 )}
               </button>

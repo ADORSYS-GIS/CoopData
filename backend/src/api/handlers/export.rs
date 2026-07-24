@@ -25,6 +25,7 @@ pub struct ExportQuery {
     pub format: String,
     pub federation_id: Option<Uuid>,
     pub apex_id: Option<Uuid>,
+    pub reporting_year: Option<i32>,
 }
 
 // Low-level helper to write a line with built-in Helvetica font in printpdf
@@ -717,6 +718,31 @@ pub async fn export_bulk_consolidated(
         return Err(AppError::Forbidden(
             "No cooperatives matching the selected hierarchical filter".into(),
         ));
+    }
+
+    // Phase C: If this is an Apex export for a specific year, check the bucket first!
+    if let (Some(apex_id), Some(year)) = (query.apex_id, query.reporting_year) {
+        if query.format.to_lowercase() == "xlsx" {
+            let filename = format!("apex_{}_{}.xlsx", apex_id, year);
+            let storage_key = format!("exports/apex/{}/{}", apex_id, filename);
+            
+            if let Ok(bytes) = state.storage.get_object(&storage_key).await {
+                tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
+                let res = Response::builder()
+                    .header(
+                        "Content-Type",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                    .header(
+                        "Content-Disposition",
+                        format!("attachment; filename=\"{}\"", filename),
+                    )
+                    .body(Body::from(bytes))
+                    .unwrap();
+                return Ok(res);
+            }
+            tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket MISS for Apex export, falling back to live generation");
+        }
     }
 
     // Compile all cooperative data once; shared by all format arms

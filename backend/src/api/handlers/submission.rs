@@ -1100,8 +1100,20 @@ pub async fn ministry_approve_submission(
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
 
-    // Phase A: Trigger background export generation
+    // Phase A: Trigger background export generation for the cooperative
     crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), id);
+
+    // Phase C: Trigger background export generation for the parent Apex
+    let coop = state
+        .cooperative_repo
+        .find_by_id(updated.cooperative_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+    crate::services::export_generator::ExportGenerator::trigger_apex_export(
+        state.clone(),
+        coop.apex_id,
+        updated.reporting_year,
+    );
 
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }

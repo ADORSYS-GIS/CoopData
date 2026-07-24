@@ -20,6 +20,10 @@ interface SelectionSummaryProps {
   selectedSubmissionId: string;
   filteredSubmissions: Array<{ id: string; reporting_year: number }>;
   onClearSubmission: () => void;
+
+  needsYearSelector: boolean;
+  selectedYear: string;
+  onClearYear: () => void;
 }
 
 export function SelectionSummary({
@@ -39,6 +43,9 @@ export function SelectionSummary({
   selectedSubmissionId,
   filteredSubmissions,
   onClearSubmission,
+  needsYearSelector,
+  selectedYear,
+  onClearYear,
 }: SelectionSummaryProps) {
   return (
     <div className="space-y-2">
@@ -109,6 +116,24 @@ export function SelectionSummary({
           <button
             type="button"
             onClick={onClearSubmission}
+            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+          >
+            Change
+          </button>
+        </div>
+      )}
+
+      {needsYearSelector && selectedYear && (
+        <div className="flex items-center justify-between border border-border/80 bg-muted/20 rounded-xl p-3 text-xs">
+          <div className="flex items-center gap-2">
+            <FileText className="size-3.5 text-muted-foreground" />
+            <span className="font-semibold text-foreground truncate max-w-[200px]">
+              Year: {selectedYear} Consolidated Report
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClearYear}
             className="text-primary hover:underline font-semibold text-[11px] shrink-0"
           >
             Change
