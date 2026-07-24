@@ -346,9 +346,8 @@ pub async fn get_national_overview(
             if let Some(items) = items_by_fs.get(fs_id) {
                 for item in items {
                     if let Some(code) = item.account_code {
-                        eval_ctx
-                            .set_value(format!("ac_{}", code), evalexpr::Value::Float(item.value))
-                            .unwrap();
+                            let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
+                            eval_ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(val)).unwrap();
                     }
                 }
             }
