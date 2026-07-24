@@ -14,6 +14,7 @@ A robust, secure, and multilingual web-based platform for data collection, analy
 | **API Docs** | utoipa 4 (OpenAPI 3 / Swagger UI) |
 | **Infra** | Docker Compose · Multi-stage builds · Non-root containers |
 
+
 ## Architecture
 
 ```
