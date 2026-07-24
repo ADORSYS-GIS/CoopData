@@ -15,6 +15,7 @@ A robust, secure, and multilingual web-based platform for data collection, analy
 | **Infra** | Docker Compose · Multi-stage builds · Non-root containers |
 
 
+
 ## Architecture
 
 ```
