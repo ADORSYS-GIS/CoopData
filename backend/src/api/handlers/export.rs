@@ -9,7 +9,6 @@ use chrono::Utc;
 use docx_rs::{Docx, Paragraph, Run, Table, TableCell, TableRow};
 use printpdf::{Line, Mm, PdfDocument, Point};
 use rust_decimal::prelude::ToPrimitive;
-use rust_xlsxwriter::{Color, Format, Workbook};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -204,7 +203,12 @@ pub async fn export_single_submission(
                 Err(_) => {
                     // Fallback to on-the-fly generation if the pre-baked file doesn't exist yet
                     let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
-                    crate::services::export_generator::ExportGenerator::generate_excel_fallback(&submission, &cooperative, &line_items, &kpis)?
+                    let generated_bytes = crate::services::export_generator::ExportGenerator::generate_excel_fallback(&submission, &cooperative, &line_items, &kpis)?;
+                    state
+                        .storage
+                        .store(&storage_key, &generated_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        .await?;
+                    generated_bytes
                 }
             };
 
