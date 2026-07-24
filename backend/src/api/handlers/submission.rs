@@ -1099,6 +1099,10 @@ pub async fn ministry_approve_submission(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Phase A: Trigger background export generation
+    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), id);
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 

@@ -181,7 +181,11 @@ pub async fn export_single_submission(
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
-    let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
     if !allowed_coops.contains(&submission.cooperative_id) {
         return Err(AppError::Forbidden(
@@ -191,182 +195,17 @@ pub async fn export_single_submission(
 
     match query.format.to_lowercase().as_str() {
         "xlsx" => {
-            let bytes = {
-                let mut workbook = Workbook::new();
-
-                // Format setup
-                let header_format = Format::new()
-                    .set_bold()
-                    .set_background_color(Color::RGB(0x1F4E78))
-                    .set_font_color(Color::White);
-
-                let green_format = Format::new()
-                    .set_background_color(Color::RGB(0xC6EFCE))
-                    .set_font_color(Color::RGB(0x006100));
-
-                let amber_format = Format::new()
-                    .set_background_color(Color::RGB(0xFFEB9C))
-                    .set_font_color(Color::RGB(0x9C6500));
-
-                let red_format = Format::new()
-                    .set_background_color(Color::RGB(0xFFC7CE))
-                    .set_font_color(Color::RGB(0x9C0006));
-
-                // SHEET 1: Balance Sheet
-                let sheet1 = workbook.add_worksheet().set_name("Balance Sheet")?;
-                sheet1.write(0, 0, "Cooperative Name:")?;
-                sheet1.write(0, 1, &cooperative.name)?;
-                sheet1.write(1, 0, "Reporting Year:")?;
-                sheet1.write(1, 1, submission.reporting_year)?;
-                sheet1.write(2, 0, "Status:")?;
-                sheet1.write(2, 1, format!("{:?}", submission.status))?;
-
-                let headers1 = [
-                    "Account Code",
-                    "Account Name",
-                    "Category",
-                    "Value (SZL)",
-                    "AI Confidence",
-                ];
-                for (c, h) in headers1.iter().enumerate() {
-                    sheet1.write_with_format(4, c as u16, *h, &header_format)?;
-                }
-
-                for (r, item) in (5..).zip(line_items.iter()) {
-                    if let Some(code) = item.account_code {
-                        sheet1.write(r, 0, code)?;
-                    }
-                    sheet1.write(r, 1, &item.account_name)?;
-                    sheet1.write(r, 2, format!("{:?}", item.account_category))?;
-                    sheet1.write(
-                        r,
-                        3,
-                        item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0),
-                    )?;
-                    sheet1.write(
-                        r,
-                        4,
-                        item.ai_confidence
-                            .map(|v| v.to_f64().unwrap_or(0.0) / 100.0)
-                            .unwrap_or(1.0),
-                    )?;
-                }
-
-                // SHEET 2: KPIs
-                let sheet2 = workbook.add_worksheet().set_name("KPIs")?;
-                let headers2 = [
-                    "Category",
-                    "KPI Name",
-                    "Description",
-                    "Value",
-                    "Benchmark",
-                    "Status",
-                ];
-                for (c, h) in headers2.iter().enumerate() {
-                    sheet2.write_with_format(0, c as u16, *h, &header_format)?;
-                }
-
-                let mut row = 1;
-                let mut write_row = |cat: &str,
-                                     name: &str,
-                                     kpi: &KpiResult|
-                 -> Result<(), rust_xlsxwriter::XlsxError> {
-                    sheet2.write(row, 0, cat)?;
-                    sheet2.write(row, 1, name)?;
-                    sheet2.write(row, 2, &kpi.description)?;
-                    sheet2.write(row, 3, &kpi.formatted)?;
-                    if let Some(bench) = kpi.benchmark {
-                        sheet2.write(row, 4, bench)?;
-                    }
-                    if let Some(ref status) = kpi.status {
-                        let fmt = match status.as_str() {
-                            "green" => &green_format,
-                            "amber" => &amber_format,
-                            "red" => &red_format,
-                            _ => &Format::new(),
-                        };
-                        sheet2.write_with_format(row, 5, status.as_str(), fmt)?;
-                    }
-                    row += 1;
-                    Ok(())
-                };
-
-                // Write financial KPIs
-                let f = &kpis;
-                write_row("Financial Size", "Total Assets", &f.total_assets)?;
-                write_row(
-                    "Financial Size",
-                    "Gross Loan Portfolio",
-                    &f.gross_loan_portfolio,
-                )?;
-                write_row(
-                    "Financial Size",
-                    "Net Loan Portfolio",
-                    &f.net_loan_portfolio,
-                )?;
-                write_row(
-                    "Financial Size",
-                    "Total Member Deposits",
-                    &f.total_member_deposits,
-                )?;
-                write_row("Financial Size", "Total Equity", &f.total_equity)?;
-                write_row("Financial Size", "Net Surplus", &f.net_surplus)?;
-                write_row("Portfolio Quality", "PAR 30", &f.par30)?;
-                write_row("Portfolio Quality", "PAR 90", &f.par90)?;
-                write_row("Portfolio Quality", "NPL Ratio", &f.npl_ratio)?;
-                write_row(
-                    "Portfolio Quality",
-                    "Loan Loss Coverage",
-                    &f.loan_loss_coverage,
-                )?;
-                write_row("Profitability", "ROA", &f.roa)?;
-                write_row("Profitability", "ROE", &f.roe)?;
-                write_row(
-                    "Profitability",
-                    "Operating Expense Ratio",
-                    &f.operating_expense_ratio,
-                )?;
-                write_row(
-                    "Profitability",
-                    "Net Interest Margin",
-                    &f.net_interest_margin,
-                )?;
-                write_row(
-                    "Profitability",
-                    "Operational Self-Sufficiency",
-                    &f.operational_self_sufficiency,
-                )?;
-                write_row(
-                    "Liquidity & Solvency",
-                    "Capital Adequacy Ratio",
-                    &f.capital_adequacy_ratio,
-                )?;
-                write_row(
-                    "Liquidity & Solvency",
-                    "Liquid Funds Ratio",
-                    &f.liquid_funds_ratio,
-                )?;
-                write_row(
-                    "Liquidity & Solvency",
-                    "Deposits to Loans",
-                    &f.deposits_to_loans,
-                )?;
-
-                workbook
-                    .save_to_buffer()
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
-            };
-
             let filename = format!("submission_{}.xlsx", id);
             let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state
-                .storage
-                .store(
-                    &storage_key,
-                    &bytes,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
-                .await?;
+
+            let bytes = match state.storage.get_object(&storage_key).await {
+                Ok(b) => b,
+                Err(_) => {
+                    // Fallback to on-the-fly generation if the pre-baked file doesn't exist yet
+                    let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
+                    crate::services::export_generator::ExportGenerator::generate_excel_fallback(&submission, &cooperative, &line_items, &kpis)?
+                }
+            };
 
             let res = Response::builder()
                 .header(
@@ -382,8 +221,15 @@ pub async fn export_single_submission(
             Ok(res)
         }
         "csv" => {
-            let bytes = {
-                let mut writer = csv::Writer::from_writer(vec![]);
+            let filename = format!("submission_{}.csv", id);
+            let storage_key = format!("exports/individual/{}/{}", id, filename);
+
+            let bytes = match state.storage.get_object(&storage_key).await {
+                Ok(b) => b,
+                Err(_) => {
+                    let (_submission, _cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
+                    let generated_bytes = {
+                        let mut writer = csv::Writer::from_writer(vec![]);
                 writer
                     .write_record([
                         "Record Type",
@@ -447,17 +293,18 @@ pub async fn export_single_submission(
                     &f.capital_adequacy_ratio,
                 );
 
-                writer
-                    .into_inner()
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
-            };
+                    writer
+                        .into_inner()
+                        .map_err(|e| AppError::InternalServerError(e.to_string()))?
+                };
 
-            let filename = format!("submission_{}.csv", id);
-            let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state
-                .storage
-                .store(&storage_key, &bytes, "text/csv")
-                .await?;
+                state
+                    .storage
+                    .store(&storage_key, &generated_bytes, "text/csv")
+                    .await?;
+                generated_bytes
+            }
+        };
 
             let res = Response::builder()
                 .header("Content-Type", "text/csv")
@@ -470,9 +317,15 @@ pub async fn export_single_submission(
             Ok(res)
         }
         "docx" => {
-            let bytes =
-                {
-                    let mut doc =
+            let filename = format!("submission_{}.docx", id);
+            let storage_key = format!("exports/individual/{}/{}", id, filename);
+
+            let bytes = match state.storage.get_object(&storage_key).await {
+                Ok(b) => b,
+                Err(_) => {
+                    let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
+                    let generated_bytes = {
+                        let mut doc =
                         Docx::new()
                             .add_paragraph(
                                 Paragraph::new().add_run(
@@ -651,16 +504,17 @@ pub async fn export_single_submission(
                     buf.into_inner()
                 };
 
-            let filename = format!("submission_{}.docx", id);
-            let storage_key = format!("exports/individual/{}/{}", id, filename);
-            state
-                .storage
-                .store(
-                    &storage_key,
-                    &bytes,
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
-                .await?;
+                state
+                    .storage
+                    .store(
+                        &storage_key,
+                        &generated_bytes,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                    .await?;
+                generated_bytes
+            }
+        };
 
             let res = Response::builder()
                 .header(
@@ -676,8 +530,15 @@ pub async fn export_single_submission(
             Ok(res)
         }
         "pdf" => {
-            let bytes = {
-                let mut writer = PdfWriter::new("Cooperative Report");
+            let filename = format!("submission_{}.pdf", id);
+            let storage_key = format!("exports/individual/{}/{}", id, filename);
+
+            let bytes = match state.storage.get_object(&storage_key).await {
+                Ok(b) => b,
+                Err(_) => {
+                    let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
+                    let generated_bytes = {
+                        let mut writer = PdfWriter::new("Cooperative Report");
 
                 // Header block
                 writer.write_line(&cooperative.name.to_uppercase(), 18.0, true);
@@ -789,12 +650,13 @@ pub async fn export_single_submission(
                     .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
 
-            let filename = format!("submission_{}.pdf", id);
-            let storage_key = format!("exports/individual/{}/{}", id, filename);
             state
                 .storage
-                .store(&storage_key, &bytes, "application/pdf")
+                .store(&storage_key, &generated_bytes, "application/pdf")
                 .await?;
+            generated_bytes
+            }
+        };
 
             let res = Response::builder()
                 .header("Content-Type", "application/pdf")
