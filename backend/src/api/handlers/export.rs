@@ -720,75 +720,72 @@ pub async fn export_bulk_consolidated(
         ));
     }
 
-    // Phase C: If this is an Apex export for a specific year, check the bucket first!
+    // Phase C/F: Apex bucket check — serve any pre-baked format
     if let (Some(apex_id), Some(year)) = (query.apex_id, query.reporting_year) {
-        if query.format.to_lowercase() == "xlsx" {
-            let filename = format!("apex_{}_{}.xlsx", apex_id, year);
+        let fmt = query.format.to_lowercase();
+        let (filename, content_type) = match fmt.as_str() {
+            "xlsx" => (format!("apex_{}_{}.xlsx", apex_id, year), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            "docx" => (format!("apex_{}_{}.docx", apex_id, year), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            "pdf"  => (format!("apex_{}_{}.pdf", apex_id, year),  "application/pdf"),
+            _ => ("".to_string(), ""),
+        };
+        if !filename.is_empty() {
             let storage_key = format!("exports/apex/{}/{}", apex_id, filename);
-            
             if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-                tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
+                tracing::info!(apex_id = %apex_id, reporting_year = year, format = %fmt, "Bucket HIT for Apex export");
                 let res = Response::builder()
-                    .header(
-                        "Content-Type",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    )
-                    .header(
-                        "Content-Disposition",
-                        format!("attachment; filename=\"{}\"", filename),
-                    )
+                    .header("Content-Type", content_type)
+                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
                     .body(Body::from(bytes))
                     .unwrap();
                 return Ok(res);
             }
-            tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket MISS for Apex export, falling back to live generation");
+            tracing::info!(apex_id = %apex_id, reporting_year = year, format = %fmt, "Bucket MISS for Apex export, falling back to live generation");
         }
     } else if let (Some(fed_id), Some(year)) = (query.federation_id, query.reporting_year) {
-        // Phase D: Federation bucket check
-        if query.format.to_lowercase() == "xlsx" {
-            let filename = format!("federation_{}_{}.xlsx", fed_id, year);
+        // Phase D/F: Federation bucket check — serve any pre-baked format
+        let fmt = query.format.to_lowercase();
+        let (filename, content_type) = match fmt.as_str() {
+            "xlsx" => (format!("federation_{}_{}.xlsx", fed_id, year), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            "docx" => (format!("federation_{}_{}.docx", fed_id, year), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            "pdf"  => (format!("federation_{}_{}.pdf", fed_id, year),  "application/pdf"),
+            _ => ("".to_string(), ""),
+        };
+        if !filename.is_empty() {
             let storage_key = format!("exports/federation/{}/{}", fed_id, filename);
-            
             if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-                tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
+                tracing::info!(federation_id = %fed_id, reporting_year = year, format = %fmt, "Bucket HIT for Federation export");
                 let res = Response::builder()
-                    .header(
-                        "Content-Type",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    )
-                    .header(
-                        "Content-Disposition",
-                        format!("attachment; filename=\"{}\"", filename),
-                    )
+                    .header("Content-Type", content_type)
+                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
                     .body(Body::from(bytes))
                     .unwrap();
                 return Ok(res);
             }
-            tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket MISS for Federation export, falling back to live generation");
+            tracing::info!(federation_id = %fed_id, reporting_year = year, format = %fmt, "Bucket MISS for Federation export, falling back to live generation");
         }
     } else if query.apex_id.is_none() && query.federation_id.is_none() {
         if let Some(year) = query.reporting_year {
-            // Phase E: Ministry bucket check
-            if query.format.to_lowercase() == "xlsx" {
-                let filename = format!("ministry_{}.xlsx", year);
+            // Phase E/F: Ministry bucket check — serve any pre-baked format
+            let fmt = query.format.to_lowercase();
+            let (filename, content_type) = match fmt.as_str() {
+                "xlsx" => (format!("ministry_{}.xlsx", year), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                "docx" => (format!("ministry_{}.docx", year), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+                "pdf"  => (format!("ministry_{}.pdf", year),  "application/pdf"),
+                _ => ("".to_string(), ""),
+            };
+            if !filename.is_empty() {
                 let storage_key = format!("exports/ministry/{}", filename);
-                
                 if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-                    tracing::info!(reporting_year = year, "Bucket HIT for Ministry export");
+                    tracing::info!(reporting_year = year, format = %fmt, "Bucket HIT for Ministry export");
                     let res = Response::builder()
-                        .header(
-                            "Content-Type",
-                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        )
-                        .header(
-                            "Content-Disposition",
-                            format!("attachment; filename=\"{}\"", filename),
-                        )
+                        .header("Content-Type", content_type)
+                        .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
                         .body(Body::from(bytes))
                         .unwrap();
                     return Ok(res);
                 }
-                tracing::info!(reporting_year = year, "Bucket MISS for Ministry export, falling back to live generation");
+                tracing::info!(reporting_year = year, format = %fmt, "Bucket MISS for Ministry export, falling back to live generation");
             }
         }
     }

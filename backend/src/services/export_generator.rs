@@ -29,28 +29,155 @@ impl ExportGenerator {
         });
     }
 
-    /// Generates XLSX, CSV, DOCX, and PDF formats and stores them in the bucket
+    /// Generates XLSX, DOCX, and PDF formats and stores them in the bucket
     async fn generate_all_formats(state: &AppState, submission_id: Uuid) -> AppResult<()> {
         let (submission, cooperative, line_items, kpis) =
             Self::compile_export_data(state, submission_id).await?;
 
         // 1. Generate XLSX
         let xlsx_bytes = Self::generate_excel_fallback(&submission, &cooperative, &line_items, &kpis)?;
-        let xlsx_filename = format!("submission_{}.xlsx", submission_id);
-        let xlsx_key = format!("exports/individual/{}/{}", submission_id, xlsx_filename);
-        state
-            .storage
-            .store(
-                &xlsx_key,
-                &xlsx_bytes,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-            .await?;
+        let xlsx_key = format!("exports/individual/{}/submission_{}.xlsx", submission_id, submission_id);
+        state.storage.store(&xlsx_key, &xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").await?;
 
-        // TODO: Generate other formats (CSV, DOCX, PDF) in Phase D.
+        // 2. Generate DOCX (Phase F)
+        let docx_bytes = Self::generate_cooperative_docx(&submission, &cooperative, &kpis)?;
+        let docx_key = format!("exports/individual/{}/submission_{}.docx", submission_id, submission_id);
+        state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
+
+        // 3. Generate PDF (Phase F)
+        let pdf_bytes = Self::generate_cooperative_pdf(&submission, &cooperative, &kpis)?;
+        let pdf_key = format!("exports/individual/{}/submission_{}.pdf", submission_id, submission_id);
+        state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
         Ok(())
     }
+
+    /// Generate an executive-summary DOCX for a single cooperative submission
+    fn generate_cooperative_docx(
+        submission: &crate::entities::submission::Model,
+        cooperative: &crate::entities::cooperative::Model,
+        kpis: &crate::services::kpi_engine::ComputedKpiSet,
+    ) -> AppResult<Vec<u8>> {
+        use docx_rs::{Docx, Paragraph, Run, Table, TableCell, TableRow};
+
+        let add_kpi_row = |kpi_rows: &mut Vec<TableRow>, category: &str, name: &str, val: &str, status: &str| {
+            kpi_rows.push(TableRow::new(vec![
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(category))),
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(name))),
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(val))),
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(status))),
+            ]));
+        };
+
+        let mut kpi_rows = vec![TableRow::new(vec![
+            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Category"))),
+            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("KPI"))),
+            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Value"))),
+            TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Status"))),
+        ])];
+
+        let f = kpis;
+        add_kpi_row(&mut kpi_rows, "Capital", "Capital Adequacy Ratio", &f.capital_adequacy_ratio.formatted, f.capital_adequacy_ratio.status.as_deref().unwrap_or("N/A"));
+        add_kpi_row(&mut kpi_rows, "Quality", "PAR 30", &f.par30.formatted, f.par30.status.as_deref().unwrap_or("N/A"));
+        add_kpi_row(&mut kpi_rows, "Quality", "PAR 90", &f.par90.formatted, f.par90.status.as_deref().unwrap_or("N/A"));
+        add_kpi_row(&mut kpi_rows, "Profitability", "ROA", &f.roa.formatted, f.roa.status.as_deref().unwrap_or("N/A"));
+        add_kpi_row(&mut kpi_rows, "Profitability", "ROE", &f.roe.formatted, f.roe.status.as_deref().unwrap_or("N/A"));
+        add_kpi_row(&mut kpi_rows, "Liquidity", "Liquid Funds Ratio", &f.liquid_funds_ratio.formatted, f.liquid_funds_ratio.status.as_deref().unwrap_or("N/A"));
+        add_kpi_row(&mut kpi_rows, "Sustainability", "Operational Self-Sufficiency", &f.operational_self_sufficiency.formatted, f.operational_self_sufficiency.status.as_deref().unwrap_or("N/A"));
+
+        let docx = Docx::new()
+            .add_paragraph(Paragraph::new().add_run(Run::new().bold().size(36).add_text("COOPERATIVE EXECUTIVE SUMMARY")))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(24).add_text(format!("Cooperative: {}", cooperative.name))))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(20).add_text(format!("Reporting Year: {}", submission.reporting_year))))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(18).add_text(format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")))))
+            .add_paragraph(Paragraph::new())
+            .add_paragraph(Paragraph::new().add_run(Run::new().bold().size(28).add_text("Key Performance Indicators")))
+            .add_table(Table::new(kpi_rows));
+
+        let mut buf = std::io::Cursor::new(Vec::new());
+        docx.build()
+            .pack(&mut buf)
+            .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))?;
+        Ok(buf.into_inner())
+    }
+
+    /// Generate an executive-summary PDF for a single cooperative submission
+    fn generate_cooperative_pdf(
+        submission: &crate::entities::submission::Model,
+        cooperative: &crate::entities::cooperative::Model,
+        kpis: &crate::services::kpi_engine::ComputedKpiSet,
+    ) -> AppResult<Vec<u8>> {
+        use printpdf::{Line, Mm, PdfDocument, Point};
+
+        let (doc, page, layer) = PdfDocument::new("Cooperative Executive Summary", Mm(210.0), Mm(297.0), "Layer 1");
+        let font = doc.add_builtin_font(printpdf::BuiltinFont::Helvetica).unwrap();
+        let font_bold = doc.add_builtin_font(printpdf::BuiltinFont::HelveticaBold).unwrap();
+
+        let current_layer = doc.get_page(page).get_layer(layer);
+
+        let mut y = 270.0f32;
+        let write_line = |layer: &printpdf::PdfLayerReference, text: &str, x: f32, cy: f32, size: f32, bold: bool| {
+            layer.begin_text_section();
+            layer.set_font(if bold { &font_bold } else { &font }, size);
+            layer.set_text_cursor(Mm(x), Mm(cy));
+            layer.write_text(text, if bold { &font_bold } else { &font });
+            layer.end_text_section();
+        };
+
+        write_line(&current_layer, &cooperative.name.to_uppercase(), 20.0, y, 16.0, true);
+        y -= 8.0;
+        write_line(&current_layer, "CoopData – Executive Summary Report", 20.0, y, 11.0, false);
+        y -= 6.0;
+        write_line(&current_layer, &format!("Reporting Year: {}", submission.reporting_year), 20.0, y, 10.0, false);
+        y -= 5.0;
+        write_line(&current_layer, &format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")), 20.0, y, 10.0, false);
+        y -= 8.0;
+
+        // Divider line
+        let line_pts = vec![
+            (Point::new(Mm(20.0), Mm(y)), false),
+            (Point::new(Mm(190.0), Mm(y)), false),
+        ];
+        let divider = Line { points: line_pts, is_closed: false };
+        current_layer.set_outline_thickness(0.8);
+        current_layer.add_line(divider);
+        y -= 8.0;
+
+        write_line(&current_layer, "Key Performance Indicators", 20.0, y, 13.0, true);
+        y -= 8.0;
+
+        // Column headers
+        write_line(&current_layer, "Category", 20.0, y, 9.0, true);
+        write_line(&current_layer, "KPI", 65.0, y, 9.0, true);
+        write_line(&current_layer, "Value", 140.0, y, 9.0, true);
+        write_line(&current_layer, "Status", 170.0, y, 9.0, true);
+        y -= 6.0;
+
+        let kpi_rows = [
+            ("Capital", "Capital Adequacy Ratio", &kpis.capital_adequacy_ratio),
+            ("Quality", "PAR 30", &kpis.par30),
+            ("Quality", "PAR 90", &kpis.par90),
+            ("Profitability", "ROA", &kpis.roa),
+            ("Profitability", "ROE", &kpis.roe),
+            ("Liquidity", "Liquid Funds Ratio", &kpis.liquid_funds_ratio),
+            ("Sustainability", "Op. Self-Sufficiency", &kpis.operational_self_sufficiency),
+        ];
+
+        for (cat, name, kpi) in &kpi_rows {
+            if y < 30.0 { break; }
+            write_line(&current_layer, cat, 20.0, y, 9.0, false);
+            write_line(&current_layer, name, 65.0, y, 9.0, false);
+            write_line(&current_layer, &kpi.formatted, 140.0, y, 9.0, false);
+            write_line(&current_layer, kpi.status.as_deref().unwrap_or("N/A"), 170.0, y, 9.0, false);
+            y -= 5.5;
+        }
+
+        let mut buf = std::io::BufWriter::new(Vec::new());
+        doc.save(&mut buf).map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))?;
+        buf.into_inner().map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
+    }
+
+
 
     pub fn generate_excel_fallback(
         submission: &crate::entities::submission::Model,
@@ -449,19 +576,21 @@ impl ExportGenerator {
 
     async fn generate_apex_formats(state: &AppState, apex_id: Uuid, reporting_year: i32) -> AppResult<()> {
         let (apex, coops) = Self::compile_apex_data(state, apex_id, reporting_year).await?;
-        
+
         // 1. Generate XLSX
         let xlsx_bytes = Self::generate_apex_excel(&apex, &coops, reporting_year)?;
-        let xlsx_filename = format!("apex_{}_{}.xlsx", apex_id, reporting_year);
-        let xlsx_key = format!("exports/apex/{}/{}", apex_id, xlsx_filename);
-        state
-            .storage
-            .store(
-                &xlsx_key,
-                &xlsx_bytes,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-            .await?;
+        let xlsx_key = format!("exports/apex/{}/apex_{}_{}.xlsx", apex_id, apex_id, reporting_year);
+        state.storage.store(&xlsx_key, &xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").await?;
+
+        // 2. Generate DOCX executive summary (Phase F)
+        let docx_bytes = Self::generate_consolidated_docx(&apex.display_name, reporting_year, coops.len(), "Apex")?;
+        let docx_key = format!("exports/apex/{}/apex_{}_{}.docx", apex_id, apex_id, reporting_year);
+        state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
+
+        // 3. Generate PDF executive summary (Phase F)
+        let pdf_bytes = Self::generate_consolidated_pdf(&apex.display_name, reporting_year, coops.len(), "Apex")?;
+        let pdf_key = format!("exports/apex/{}/apex_{}_{}.pdf", apex_id, apex_id, reporting_year);
+        state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
         Ok(())
     }
@@ -494,7 +623,88 @@ impl ExportGenerator {
         Ok((apex, coops_data))
     }
 
+    /// Shared: generate a consolidated executive-summary DOCX for Apex/Federation/Ministry
+    fn generate_consolidated_docx(
+        org_name: &str,
+        reporting_year: i32,
+        total_coops: usize,
+        tier: &str,
+    ) -> AppResult<Vec<u8>> {
+        use docx_rs::{Docx, Paragraph, Run};
+
+        let docx = Docx::new()
+            .add_paragraph(Paragraph::new().add_run(Run::new().bold().size(36).add_text(format!("{} EXECUTIVE SUMMARY", tier.to_uppercase()))))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(24).add_text(format!("Organization: {}", org_name))))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(20).add_text(format!("Reporting Year: {}", reporting_year))))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(18).add_text(format!("Total Cooperatives Covered: {}", total_coops))))
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(18).add_text(format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")))))
+            .add_paragraph(Paragraph::new())
+            .add_paragraph(Paragraph::new().add_run(Run::new().size(16).add_text(
+                "This executive summary provides a high-level overview. For full details, please refer to the accompanying Excel workbook."
+            )));
+
+        let mut buf = std::io::Cursor::new(Vec::new());
+        docx.build()
+            .pack(&mut buf)
+            .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))?;
+        Ok(buf.into_inner())
+    }
+
+    /// Shared: generate a consolidated executive-summary PDF for Apex/Federation/Ministry
+    fn generate_consolidated_pdf(
+        org_name: &str,
+        reporting_year: i32,
+        total_coops: usize,
+        tier: &str,
+    ) -> AppResult<Vec<u8>> {
+        use printpdf::{Line, Mm, PdfDocument, Point};
+
+        let (doc, page, layer) = PdfDocument::new(&format!("{} Executive Summary", tier), Mm(210.0), Mm(297.0), "Layer 1");
+        let font = doc.add_builtin_font(printpdf::BuiltinFont::Helvetica).unwrap();
+        let font_bold = doc.add_builtin_font(printpdf::BuiltinFont::HelveticaBold).unwrap();
+        let current_layer = doc.get_page(page).get_layer(layer);
+
+        let mut y = 270.0f32;
+
+        let write_text = |layer: &printpdf::PdfLayerReference, text: &str, x: f32, cy: f32, size: f32, bold: bool| {
+            layer.begin_text_section();
+            layer.set_font(if bold { &font_bold } else { &font }, size);
+            layer.set_text_cursor(Mm(x), Mm(cy));
+            layer.write_text(text, if bold { &font_bold } else { &font });
+            layer.end_text_section();
+        };
+
+        write_text(&current_layer, &format!("{} EXECUTIVE SUMMARY", tier.to_uppercase()), 20.0, y, 16.0, true);
+        y -= 8.0;
+        write_text(&current_layer, &format!("Organization: {}", org_name), 20.0, y, 11.0, false);
+        y -= 6.0;
+        write_text(&current_layer, &format!("Reporting Year: {}", reporting_year), 20.0, y, 10.0, false);
+        y -= 5.0;
+        write_text(&current_layer, &format!("Total Cooperatives Covered: {}", total_coops), 20.0, y, 10.0, false);
+        y -= 5.0;
+        write_text(&current_layer, &format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")), 20.0, y, 10.0, false);
+        y -= 8.0;
+
+        let line_pts = vec![
+            (Point::new(Mm(20.0), Mm(y)), false),
+            (Point::new(Mm(190.0), Mm(y)), false),
+        ];
+        let divider = Line { points: line_pts, is_closed: false };
+        current_layer.set_outline_thickness(0.8);
+        current_layer.add_line(divider);
+        y -= 8.0;
+
+        write_text(&current_layer, "This executive summary provides a high-level overview.", 20.0, y, 10.0, false);
+        y -= 5.0;
+        write_text(&current_layer, "For full details, refer to the accompanying Excel workbook.", 20.0, y, 10.0, false);
+
+        let mut buf = std::io::BufWriter::new(Vec::new());
+        doc.save(&mut buf).map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))?;
+        buf.into_inner().map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
+    }
+
     pub fn generate_apex_excel(
+
         apex: &crate::entities::apex::Model,
         coops: &[(crate::entities::cooperative::Model, Option<crate::entities::submission::Model>, Vec<crate::entities::kpi_record::Model>)],
         reporting_year: i32,
@@ -582,19 +792,22 @@ impl ExportGenerator {
 
     async fn generate_federation_formats(state: &AppState, federation_id: Uuid, reporting_year: i32) -> AppResult<()> {
         let (federation, apexes_data) = Self::compile_federation_data(state, federation_id, reporting_year).await?;
-        
+        let total_coops: usize = apexes_data.iter().map(|(_, coops)| coops.len()).sum();
+
         // 1. Generate XLSX
         let xlsx_bytes = Self::generate_federation_excel(&federation, &apexes_data, reporting_year)?;
-        let xlsx_filename = format!("federation_{}_{}.xlsx", federation_id, reporting_year);
-        let xlsx_key = format!("exports/federation/{}/{}", federation_id, xlsx_filename);
-        state
-            .storage
-            .store(
-                &xlsx_key,
-                &xlsx_bytes,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-            .await?;
+        let xlsx_key = format!("exports/federation/{}/federation_{}_{}.xlsx", federation_id, federation_id, reporting_year);
+        state.storage.store(&xlsx_key, &xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").await?;
+
+        // 2. Generate DOCX executive summary (Phase F)
+        let docx_bytes = Self::generate_consolidated_docx(&federation.display_name, reporting_year, total_coops, "Federation")?;
+        let docx_key = format!("exports/federation/{}/federation_{}_{}.docx", federation_id, federation_id, reporting_year);
+        state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
+
+        // 3. Generate PDF executive summary (Phase F)
+        let pdf_bytes = Self::generate_consolidated_pdf(&federation.display_name, reporting_year, total_coops, "Federation")?;
+        let pdf_key = format!("exports/federation/{}/federation_{}_{}.pdf", federation_id, federation_id, reporting_year);
+        state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
         Ok(())
     }
@@ -731,19 +944,22 @@ impl ExportGenerator {
 
     async fn generate_ministry_formats(state: &AppState, reporting_year: i32) -> AppResult<()> {
         let national_data = Self::compile_ministry_data(state, reporting_year).await?;
-        
+        let total_coops = national_data.len();
+
         // 1. Generate XLSX
         let xlsx_bytes = Self::generate_ministry_excel(&national_data, reporting_year)?;
-        let xlsx_filename = format!("ministry_{}.xlsx", reporting_year);
-        let xlsx_key = format!("exports/ministry/{}", xlsx_filename);
-        state
-            .storage
-            .store(
-                &xlsx_key,
-                &xlsx_bytes,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-            .await?;
+        let xlsx_key = format!("exports/ministry/ministry_{}.xlsx", reporting_year);
+        state.storage.store(&xlsx_key, &xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").await?;
+
+        // 2. Generate DOCX executive summary (Phase F)
+        let docx_bytes = Self::generate_consolidated_docx("National Ministry", reporting_year, total_coops, "Ministry")?;
+        let docx_key = format!("exports/ministry/ministry_{}.docx", reporting_year);
+        state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
+
+        // 3. Generate PDF executive summary (Phase F)
+        let pdf_bytes = Self::generate_consolidated_pdf("National Ministry", reporting_year, total_coops, "Ministry")?;
+        let pdf_key = format!("exports/ministry/ministry_{}.pdf", reporting_year);
+        state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
         Ok(())
     }
@@ -758,7 +974,9 @@ impl ExportGenerator {
             Vec<crate::entities::kpi_record::Model>,
         )>
     > {
-        let cooperatives = state.cooperative_repo.find_all().await?;
+        let cooperatives = crate::entities::cooperative::Entity::find()
+            .all(&state.db)
+            .await?;
         let mut national_data = Vec::new();
 
         for coop in cooperatives {
@@ -824,7 +1042,8 @@ impl ExportGenerator {
             entry.1 += assets;
         }
         for (r, (sector, (count, assets))) in (1..).zip(sector_map.into_iter()) {
-            sheet2.write(r, 0, &sector)?;
+            let sector_str = sector.as_ref().map(|s| s.as_str()).unwrap_or("").to_string();
+            sheet2.write(r, 0, &sector_str)?;
             sheet2.write(r, 1, count)?;
             sheet2.write(r, 2, assets)?;
         }
@@ -844,7 +1063,8 @@ impl ExportGenerator {
             entry.1 += assets;
         }
         for (r, (region, (count, assets))) in (1..).zip(region_map.into_iter()) {
-            sheet3.write(r, 0, &region)?;
+            let region_str = region.as_ref().map(|r| r.as_str()).unwrap_or("").to_string();
+            sheet3.write(r, 0, &region_str)?;
             sheet3.write(r, 1, count)?;
             sheet3.write(r, 2, assets)?;
         }
