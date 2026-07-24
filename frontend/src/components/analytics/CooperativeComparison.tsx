@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/context/AuthContext";
 import { useNationalOverview, CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
 import { Card } from "@/components/app-shell";
 import {
   Select,
@@ -29,12 +30,14 @@ import {
   CheckCircle,
   HelpCircle,
   Search,
-  BookOpen,
   Users,
   Percent,
   Coins,
   ShieldAlert,
+  Calendar,
 } from "lucide-react";
+import { createEmptyBalanceSheet, type BalanceSheet } from "@/lib/financial-data";
+import { calculateFinancialKPIs } from "@/lib/kpi-calculations";
 
 interface CooperativeComparisonProps {
   reportingYear: number;
@@ -292,12 +295,204 @@ const COMPARABLE_KPIS = [
   },
 ] as const;
 
+const MONTH_OPTIONS = [
+  { value: "annual", label: "Annual (Year-End)" },
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+function buildBalanceSheetFromLineItems(
+  items: { account_code?: number | null; value: number }[],
+): BalanceSheet {
+  const bs = createEmptyBalanceSheet();
+
+  for (const item of items) {
+    if (!item.account_code) continue;
+    const val = item.value;
+
+    switch (item.account_code) {
+      // Liquid Assets
+      case 1101:
+        bs.liquidAssets.cashOnHand = val;
+        break;
+      case 1102:
+        bs.liquidAssets.cashAtBankCurrent = val;
+        break;
+      case 1103:
+        bs.liquidAssets.cashAtBankSavings = val;
+        break;
+      case 1104:
+        bs.liquidAssets.shortTermInvestments = val;
+        break;
+
+      // Loan Portfolio
+      case 1201:
+        bs.loanPortfolio.performingLoanPortfolio = val;
+        break;
+      case 1202:
+        bs.loanPortfolio.loansInArrears_1_30 = val;
+        break;
+      case 1203:
+        bs.loanPortfolio.loansInArrears_31_60 = val;
+        break;
+      case 1204:
+        bs.loanPortfolio.loansInArrears_61_90 = val;
+        break;
+      case 1205:
+        bs.loanPortfolio.nonPerformingLoans = val;
+        break;
+
+      // Provisions
+      case 1251:
+        bs.loanLossProvisions.generalLoanLossProvision = val;
+        break;
+      case 1252:
+        bs.loanLossProvisions.specificLoanLossProvision = val;
+        break;
+
+      // Other Assets
+      case 1301:
+        bs.otherAssets.accountsReceivable = val;
+        break;
+      case 1302:
+        bs.otherAssets.prepaidExpenses = val;
+        break;
+      case 1303:
+        bs.otherAssets.fixedAssetsCost = val;
+        break;
+      case 1304:
+        bs.otherAssets.accumulatedDepreciation = val;
+        break;
+      case 1305:
+        bs.otherAssets.intangibleAssets = val;
+        break;
+
+      // Member Deposits
+      case 2101:
+        bs.memberDeposits.voluntarySavings = val;
+        break;
+      case 2102:
+        bs.memberDeposits.mandatorySavings = val;
+        break;
+      case 2103:
+        bs.memberDeposits.fixedTermDeposits = val;
+        break;
+
+      // Borrowings
+      case 2201:
+        bs.borrowings.shortTermBorrowings = val;
+        break;
+      case 2202:
+        bs.borrowings.longTermBorrowings = val;
+        break;
+
+      // Other Liabilities
+      case 2301:
+        bs.otherLiabilities.accountsPayable = val;
+        break;
+      case 2302:
+        bs.otherLiabilities.accruedExpenses = val;
+        break;
+      case 2303:
+        bs.otherLiabilities.deferredIncome = val;
+        break;
+
+      // Member Shares
+      case 3101:
+        bs.memberShares.permanentShareCapital = val;
+        break;
+      case 3102:
+        bs.memberShares.withdrawableShares = val;
+        break;
+
+      // Reserves
+      case 3201:
+        bs.reserves.statutoryReserve = val;
+        break;
+      case 3202:
+        bs.reserves.generalReserve = val;
+        break;
+      case 3203:
+        bs.reserves.riskCapitalAdequacyReserve = val;
+        break;
+
+      // Retained Earnings
+      case 3301:
+        bs.retainedEarnings.accumulatedSurplus = val;
+        break;
+      case 3302:
+        bs.retainedEarnings.currentYearSurplus = val;
+        break;
+
+      // Income
+      case 4101:
+        bs.financialIncome.interestIncomeLoans = val;
+        break;
+      case 4102:
+        bs.financialIncome.feesCommissionsIncome = val;
+        break;
+      case 4201:
+        bs.otherIncome.otherOperatingIncome = val;
+        break;
+
+      // Expenses
+      case 5101:
+        bs.financialExpenses.interestExpenseDeposits = val;
+        break;
+      case 5102:
+        bs.financialExpenses.interestExpenseBorrowings = val;
+        break;
+      case 5201:
+        bs.operatingExpenses.personnelCosts = val;
+        break;
+      case 5202:
+        bs.operatingExpenses.administrativeExpenses = val;
+        break;
+      case 5203:
+        bs.operatingExpenses.governanceExpenses = val;
+        break;
+      case 5204:
+        bs.operatingExpenses.depreciationAmortization = val;
+        break;
+      case 5301:
+        bs.creditLossExpense = val;
+        break;
+    }
+  }
+
+  return bs;
+}
+
 export function CooperativeComparison({ reportingYear }: CooperativeComparisonProps) {
   const { role, user } = useAuth();
   const isCoopUser = role === "cooperative";
 
-  // 1. Fetch national overview containing all cooperatives and their KPIs
-  const { data: overview, isLoading } = useNationalOverview({ reportingYear });
+  // State filters
+  const [selectedMonth, setSelectedMonth] = useState<string>("annual");
+  const [selectedCoopId, setSelectedCoopId] = useState<string>("");
+  const [compareTargetId, setCompareTargetId] = useState<string>("national_average");
+  const [selectedKpi, setSelectedKpi] = useState<string>("capital_adequacy_ratio");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // 1. Fetch national overview containing all cooperatives and their metadata
+  const { data: overview, isLoading: overviewLoading } = useNationalOverview({ reportingYear });
+
+  // 2. Fetch comparative statements containing raw monthly financial statements
+  const { data: statements, isLoading: statementsLoading } = useComparativeStatements({
+    reportingYear,
+  });
+
+  const isLoading = overviewLoading || statementsLoading;
 
   const cooperatives = useMemo(() => {
     return overview?.cooperatives ?? [];
@@ -308,23 +503,64 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return cooperatives.filter((c) => c.has_data);
   }, [cooperatives]);
 
-  // Helper to extract a value for a KPI from a cooperative row
-  const getCoopKpiValue = (
-    coop: CoopKpiRow | Record<string, unknown>,
-    kpi: (typeof COMPARABLE_KPIS)[number],
-  ) => {
-    if (!coop) return 0;
-    if (kpi.isNf) {
-      return (
-        ((coop as Record<string, unknown>)["non_financial"] as Record<string, number>)?.[kpi.key] ??
-        0
-      );
+  // Compute all financial KPIs in-memory for the selected month/period
+  const computedCoopKpis = useMemo(() => {
+    const kpiMap: Record<string, Record<string, number>> = {};
+    if (!statements?.grids) return kpiMap;
+
+    for (const grid of statements.grids) {
+      let filteredItems = grid.line_items;
+      if (selectedMonth === "annual") {
+        const maxMonth = grid.line_items.reduce((max, item) => Math.max(max, item.month), 12);
+        filteredItems = grid.line_items.filter((item) => item.month === maxMonth);
+      } else {
+        filteredItems = grid.line_items.filter((item) => item.month === Number(selectedMonth));
+      }
+
+      if (filteredItems.length === 0) continue;
+
+      const bs = buildBalanceSheetFromLineItems(filteredItems);
+      const kpis = calculateFinancialKPIs(bs);
+
+      const coopKpis: Record<string, number> = {};
+      COMPARABLE_KPIS.forEach((kpi) => {
+        if (!kpi.isNf) {
+          const camelKey = kpi.key.replace(/_([a-z0-9])/g, (_, g) => g.toUpperCase());
+          let val = (kpis as unknown as Record<string, { value: number }>)[camelKey]?.value ?? 0;
+          if (kpi.key === "net_surplus") {
+            const totalIncome =
+              bs.financialIncome.interestIncomeLoans +
+              bs.financialIncome.feesCommissionsIncome +
+              bs.otherIncome.otherOperatingIncome;
+            const totalExpenses =
+              bs.financialExpenses.interestExpenseDeposits +
+              bs.financialExpenses.interestExpenseBorrowings +
+              bs.operatingExpenses.personnelCosts +
+              bs.operatingExpenses.administrativeExpenses +
+              bs.operatingExpenses.governanceExpenses +
+              bs.operatingExpenses.depreciationAmortization +
+              bs.creditLossExpense;
+            val = totalIncome - totalExpenses;
+          }
+          coopKpis[kpi.key] = val;
+        }
+      });
+      kpiMap[grid.cooperative_id] = coopKpis;
     }
-    return (
-      ((coop as Record<string, unknown>)["kpis"] as Record<string, { value: number }>)?.[kpi.key]
-        ?.value ?? 0
-    );
-  };
+    return kpiMap;
+  }, [statements, selectedMonth]);
+
+  // Retrieve any KPI value (target, peer, or averages)
+  const getKpiValue = useCallback(
+    (coopId: string, kpi: (typeof COMPARABLE_KPIS)[number]) => {
+      if (kpi.isNf) {
+        const coop = cooperatives.find((c) => c.cooperative_id === coopId);
+        return (coop?.non_financial?.[kpi.key as keyof typeof coop.non_financial] as number) ?? 0;
+      }
+      return computedCoopKpis[coopId]?.[kpi.key] ?? 0;
+    },
+    [cooperatives, computedCoopKpis],
+  );
 
   // Determine initial selected cooperative
   const defaultCoopId = useMemo(() => {
@@ -333,11 +569,6 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     }
     return cooperativesWithData[0]?.cooperative_id ?? "all";
   }, [isCoopUser, user, cooperativesWithData]);
-
-  const [selectedCoopId, setSelectedCoopId] = useState<string>("");
-  const [compareTargetId, setCompareTargetId] = useState<string>("national_average");
-  const [selectedKpi, setSelectedKpi] = useState<string>("capital_adequacy_ratio");
-  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Keep state synced with default when data loads
   React.useEffect(() => {
@@ -353,31 +584,53 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return cooperatives.find((c) => c.cooperative_id === activeCoopId);
   }, [cooperatives, activeCoopId]);
 
-  // Selected target details (National Average or Coop B)
-  const compareTarget = useMemo(() => {
-    if (compareTargetId === "national_average") {
-      return { name: "National Average", isAverage: true };
-    }
-    const coop = cooperatives.find((c) => c.cooperative_id === compareTargetId);
-    return coop ? { ...coop, isAverage: false } : { name: "National Average", isAverage: true };
-  }, [cooperatives, compareTargetId]);
-
-  // Dynamic system averages for comparable KPIs
+  // System-wide averages for the selected period
   const systemAverages = useMemo(() => {
     const averages: Record<string, number> = {};
     COMPARABLE_KPIS.forEach((kpi) => {
       const validValues = cooperativesWithData
-        .map((c) => getCoopKpiValue(c, kpi))
-        .filter((val): val is number => val !== undefined && !isNaN(val));
+        .map((c) => getKpiValue(c.cooperative_id, kpi))
+        .filter((val) => val !== undefined && !isNaN(val));
 
-      if (validValues.length > 0) {
-        averages[kpi.key] = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-      } else {
-        averages[kpi.key] = 0;
-      }
+      averages[kpi.key] =
+        validValues.length > 0
+          ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
+          : 0;
     });
     return averages;
-  }, [cooperativesWithData]);
+  }, [cooperativesWithData, getKpiValue]);
+
+  // Region averages matching the selected cooperative's region
+  const regionAverages = useMemo(() => {
+    const averages: Record<string, number> = {};
+    if (!selectedCoop) return averages;
+
+    const regionCoops = cooperativesWithData.filter((c) => c.region === selectedCoop.region);
+
+    COMPARABLE_KPIS.forEach((kpi) => {
+      const validValues = regionCoops
+        .map((c) => getKpiValue(c.cooperative_id, kpi))
+        .filter((val) => val !== undefined && !isNaN(val));
+
+      averages[kpi.key] =
+        validValues.length > 0
+          ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
+          : 0;
+    });
+    return averages;
+  }, [selectedCoop, cooperativesWithData, getKpiValue]);
+
+  // Selected comparison target details
+  const compareTarget = useMemo(() => {
+    if (compareTargetId === "national_average") {
+      return { name: "National Average", isSpecial: true };
+    }
+    if (compareTargetId === "region_average") {
+      return { name: `${selectedCoop?.region ?? "Region"} Average`, isSpecial: true };
+    }
+    const coop = cooperatives.find((c) => c.cooperative_id === compareTargetId);
+    return coop ? { ...coop, isSpecial: false } : { name: "National Average", isSpecial: true };
+  }, [cooperatives, compareTargetId, selectedCoop]);
 
   // Formatting helper
   const formatValue = (val: number, unit: string) => {
@@ -402,13 +655,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     const kpiInfo = COMPARABLE_KPIS.find((k) => k.key === selectedKpi);
     if (!kpiInfo) return [];
 
-    const coopVal = getCoopKpiValue(selectedCoop, kpiInfo);
+    const coopVal = getKpiValue(selectedCoop.cooperative_id, kpiInfo);
 
     let targetVal = 0;
-    if (compareTarget.isAverage) {
+    if (compareTargetId === "national_average") {
       targetVal = systemAverages[selectedKpi] ?? 0;
+    } else if (compareTargetId === "region_average") {
+      targetVal = regionAverages[selectedKpi] ?? 0;
     } else {
-      targetVal = getCoopKpiValue(compareTarget, kpiInfo);
+      targetVal = getKpiValue(compareTargetId, kpiInfo);
     }
 
     return [
@@ -423,7 +678,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         color: "#10b981",
       },
     ];
-  }, [selectedCoop, selectedKpi, systemAverages, compareTarget]);
+  }, [
+    selectedCoop,
+    selectedKpi,
+    systemAverages,
+    regionAverages,
+    compareTargetId,
+    compareTarget,
+    computedCoopKpis,
+  ]);
 
   const activeKpiInfo = useMemo(() => {
     return COMPARABLE_KPIS.find((k) => k.key === selectedKpi);
@@ -465,6 +728,13 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     );
   }
 
+  const selectedCoopMonthItems =
+    statements?.grids
+      ?.find((g) => g.cooperative_id === activeCoopId)
+      ?.line_items?.filter(
+        (item) => selectedMonth === "annual" || item.month === Number(selectedMonth),
+      ) ?? [];
+
   return (
     <div className="space-y-6">
       <Card
@@ -472,7 +742,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         subtitle={`Compare SACCO performance metrics against national averages and peer organizations for the calendar year ${reportingYear}`}
         info="Compare standard PEARLS ratios, portfolio distributions, and non-financial data points side-by-side."
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
               <Users className="size-3.5 text-blue-500" /> Target Cooperative
@@ -501,6 +771,11 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="national_average">National Average</SelectItem>
+                {selectedCoop?.region && (
+                  <SelectItem value="region_average">
+                    {selectedCoop.region} Region Average
+                  </SelectItem>
+                )}
                 {cooperativesWithData
                   .filter((c) => c.cooperative_id !== activeCoopId)
                   .map((c) => (
@@ -508,6 +783,24 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       {c.name} ({c.region ?? "Unknown Region"})
                     </SelectItem>
                   ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+              <Calendar className="size-3.5 text-orange-500" /> Period / Month
+            </label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-full bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-850 hover:bg-slate-100/50 dark:hover:bg-slate-950/40 transition-colors">
+                <SelectValue placeholder="Choose month..." />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTH_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -531,11 +824,12 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           </div>
         </div>
 
-        {selectedCoop && !selectedCoop.has_data ? (
+        {selectedCoop && selectedCoopMonthItems.length === 0 ? (
           <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2">
             <AlertCircle className="size-4 shrink-0 text-amber-500" />
             <span>
-              The selected cooperative has no submitted data for the year {reportingYear}.
+              The selected cooperative has no statement data for the month of{" "}
+              {MONTH_OPTIONS.find((m) => m.value === selectedMonth)?.label} in {reportingYear}.
             </span>
           </div>
         ) : selectedCoop && activeKpiInfo ? (
@@ -545,7 +839,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1 flex items-center gap-1.5">
                   <ArrowRightLeft className="size-3.5 text-primary" />
-                  Visual Benchmark
+                  Visual Benchmark ({MONTH_OPTIONS.find((m) => m.value === selectedMonth)?.label})
                 </h4>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   {activeKpiInfo.description}
@@ -622,9 +916,9 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                     <span className="text-[10px] uppercase font-bold text-blue-500 tracking-wider">
                       {selectedCoop.name}
                     </span>
-                    <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5">
+                    <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5 font-mono">
                       {formatValue(
-                        getCoopKpiValue(selectedCoop, activeKpiInfo),
+                        getKpiValue(selectedCoop.cooperative_id, activeKpiInfo),
                         activeKpiInfo.unit,
                       )}
                     </p>
@@ -634,13 +928,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                     <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
                       {compareTarget.name}
                     </span>
-                    <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5">
+                    <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5 font-mono">
                       {(() => {
                         let targetVal = 0;
-                        if (compareTarget.isAverage) {
+                        if (compareTargetId === "national_average") {
                           targetVal = systemAverages[selectedKpi] ?? 0;
+                        } else if (compareTargetId === "region_average") {
+                          targetVal = regionAverages[selectedKpi] ?? 0;
                         } else {
-                          targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
+                          targetVal = getKpiValue(compareTargetId, activeKpiInfo);
                         }
                         return formatValue(targetVal, activeKpiInfo.unit);
                       })()}
@@ -651,13 +947,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
 
               <div className="mt-5">
                 {(() => {
-                  const coopVal = getCoopKpiValue(selectedCoop, activeKpiInfo);
+                  const coopVal = getKpiValue(selectedCoop.cooperative_id, activeKpiInfo);
 
                   let targetVal = 0;
-                  if (compareTarget.isAverage) {
+                  if (compareTargetId === "national_average") {
                     targetVal = systemAverages[selectedKpi] ?? 0;
+                  } else if (compareTargetId === "region_average") {
+                    targetVal = regionAverages[selectedKpi] ?? 0;
                   } else {
-                    targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
+                    targetVal = getKpiValue(compareTargetId, activeKpiInfo);
                   }
 
                   const diff = coopVal - targetVal;
@@ -691,12 +989,12 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                         <p className="text-xs font-bold leading-none">
                           {isBetter ? "Outperforming Peer Group" : "Performance Watch Required"}
                         </p>
-                        <p className="text-[11px] opacity-80 mt-1.5 leading-normal">
+                        <p className="text-[11px] opacity-85 mt-1.5 leading-normal">
                           {isBetter ? "Performing " : "Standing "}
                           <span className="font-bold">
                             {Math.abs(percentDiff).toFixed(1)}%
                           </span>{" "}
-                          {isBetter ? "above" : "below"} the selected peer average.
+                          {isBetter ? "above" : "below"} the selected peer.
                         </p>
                       </div>
                     </div>
@@ -709,10 +1007,10 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
       </Card>
 
       {/* KPI Comparison Matrix Table */}
-      {selectedCoop && selectedCoop.has_data && (
+      {selectedCoop && selectedCoop.has_data && selectedCoopMonthItems.length > 0 && (
         <Card
           title="Benchmarking KPI Matrix"
-          subtitle={`Detailed financial and operational ratios mapped side-by-side with comparison delta`}
+          subtitle={`Detailed financial and operational ratios mapped side-by-side with comparison deltas for ${MONTH_OPTIONS.find((m) => m.value === selectedMonth)?.label}`}
         >
           {/* Search bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -726,7 +1024,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                 className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-slate-700 dark:text-slate-350"
               />
             </div>
-            <div className="flex gap-2 text-slate-500">
+            <div className="flex gap-2 text-slate-500 flex-wrap">
               {Object.entries(KPI_GROUPS).map(([key, group]) => {
                 const count = COMPARABLE_KPIS.filter((kpi) => kpi.group === key).length;
                 const Icon = group.icon;
@@ -747,13 +1045,18 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           </div>
 
           <div className="overflow-x-auto border border-slate-100 dark:border-slate-800/60 rounded-xl">
-            <table className="w-full text-left text-xs border-collapse font-sans">
+            <table className="w-full text-left text-xs border-collapse font-sans min-w-[900px]">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-850 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-950/20">
-                  <th className="py-3 px-4">Metric/KPI</th>
+                  <th className="py-3 px-4 w-[280px]">Metric/KPI</th>
                   <th className="py-3 px-4 text-right">{selectedCoop.name}</th>
                   <th className="py-3 px-4 text-right">{compareTarget.name}</th>
-                  <th className="py-3 px-4 text-right">Variance</th>
+                  <th className="py-3 px-4 text-right">
+                    {selectedCoop.region || "Region"} Average
+                  </th>
+                  <th className="py-3 px-4 text-right">National Average</th>
+                  <th className="py-3 px-4 text-right">Peer Var</th>
+                  <th className="py-3 px-4 text-right">Region Var</th>
                   <th className="py-3 px-4 text-center">Status</th>
                 </tr>
               </thead>
@@ -769,7 +1072,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       {/* Group Divider */}
                       <tr className="bg-slate-50/30 dark:bg-slate-950/10">
                         <td
-                          colSpan={5}
+                          colSpan={8}
                           className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500"
                         >
                           <div className="flex items-center gap-1.5 font-sans">
@@ -782,19 +1085,28 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       </tr>
 
                       {groupKpis.map((kpi) => {
-                        const coopVal = getCoopKpiValue(selectedCoop, kpi);
+                        const coopVal = getKpiValue(selectedCoop.cooperative_id, kpi);
 
                         let targetVal = 0;
-                        if (compareTarget.isAverage) {
+                        if (compareTargetId === "national_average") {
                           targetVal = systemAverages[kpi.key] ?? 0;
+                        } else if (compareTargetId === "region_average") {
+                          targetVal = regionAverages[kpi.key] ?? 0;
                         } else {
-                          targetVal = getCoopKpiValue(compareTarget, kpi);
+                          targetVal = getKpiValue(compareTargetId, kpi);
                         }
 
-                        const diff = coopVal - targetVal;
-                        const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
+                        const regionVal = regionAverages[kpi.key] ?? 0;
+                        const nationalVal = systemAverages[kpi.key] ?? 0;
 
-                        // Direction indicators
+                        const diffPeer = coopVal - targetVal;
+                        const percentDiffPeer = targetVal > 0 ? (diffPeer / targetVal) * 100 : 0;
+
+                        const diffRegion = coopVal - regionVal;
+                        const percentDiffRegion =
+                          regionVal > 0 ? (diffRegion / regionVal) * 100 : 0;
+
+                        // Direction indicators: lower is better for risk/liability-oriented metrics
                         const isPositiveIndicator = ![
                           "npl_ratio",
                           "par30",
@@ -803,7 +1115,8 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                           "arrears_rate_pct",
                           "fd_early_withdrawal_pct",
                         ].includes(kpi.key);
-                        const isBetter = isPositiveIndicator ? diff >= 0 : diff <= 0;
+
+                        const isBetter = isPositiveIndicator ? diffPeer >= 0 : diffPeer <= 0;
 
                         return (
                           <tr
@@ -836,23 +1149,49 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                             <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
                               {formatValue(targetVal, kpi.unit)}
                             </td>
+                            <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
+                              {formatValue(regionVal, kpi.unit)}
+                            </td>
+                            <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
+                              {formatValue(nationalVal, kpi.unit)}
+                            </td>
                             <td
                               className={`py-3 px-4 text-right num font-semibold font-mono ${
-                                diff === 0
+                                diffPeer === 0
                                   ? "text-slate-450 dark:text-slate-500"
                                   : isBetter
                                     ? "text-emerald-600 dark:text-emerald-400"
                                     : "text-rose-600 dark:text-rose-400"
                               }`}
                             >
-                              {diff > 0 ? "+" : ""}
+                              {diffPeer > 0 ? "+" : ""}
                               {kpi.unit === "%"
-                                ? `${diff.toFixed(2)}%`
-                                : formatValue(diff, kpi.unit)}
+                                ? `${diffPeer.toFixed(2)}%`
+                                : formatValue(diffPeer, kpi.unit)}
                               {targetVal > 0 && (
                                 <span className="text-[9px] ml-1 opacity-70 font-normal">
-                                  ({diff > 0 ? "+" : ""}
-                                  {percentDiff.toFixed(1)}%)
+                                  ({diffPeer > 0 ? "+" : ""}
+                                  {percentDiffPeer.toFixed(1)}%)
+                                </span>
+                              )}
+                            </td>
+                            <td
+                              className={`py-3 px-4 text-right num font-semibold font-mono ${
+                                diffRegion === 0
+                                  ? "text-slate-450 dark:text-slate-500"
+                                  : (isPositiveIndicator ? diffRegion >= 0 : diffRegion <= 0)
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-rose-600 dark:text-rose-400"
+                              }`}
+                            >
+                              {diffRegion > 0 ? "+" : ""}
+                              {kpi.unit === "%"
+                                ? `${diffRegion.toFixed(2)}%`
+                                : formatValue(diffRegion, kpi.unit)}
+                              {regionVal > 0 && (
+                                <span className="text-[9px] ml-1 opacity-70 font-normal">
+                                  ({diffRegion > 0 ? "+" : ""}
+                                  {percentDiffRegion.toFixed(1)}%)
                                 </span>
                               )}
                             </td>
