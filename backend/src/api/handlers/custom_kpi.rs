@@ -245,7 +245,8 @@ pub async fn evaluate_custom_kpi(
                 if let Ok(line_items) = state.line_item_repo.find_by_financial_statement(fs.id).await {
                     for item in line_items {
                         if let Some(code) = item.account_code {
-                            ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(item.value))
+                            let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
+                            ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(val))
                                 .unwrap();
                         }
                     }

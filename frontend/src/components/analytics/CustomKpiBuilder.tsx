@@ -48,19 +48,35 @@ import { toast } from "sonner";
 interface VariableDef {
   name: string;
   label: string;
-  category: "assets" | "liabilities" | "equity" | "income" | "expenses" | "governance" | "membership" | "other";
+  category:
+    | "assets"
+    | "liabilities"
+    | "equity"
+    | "income"
+    | "expenses"
+    | "governance"
+    | "membership"
+    | "other";
   unit: "currency" | "percent" | "ratio";
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  assets: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
-  liabilities: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
-  equity: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-  income: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
-  expenses: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
-  governance: "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
-  membership: "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
-  other: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
+  assets:
+    "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
+  liabilities:
+    "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
+  equity:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+  income:
+    "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
+  expenses:
+    "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
+  governance:
+    "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
+  membership:
+    "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
+  other:
+    "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -82,6 +98,14 @@ const OPERATORS = [
   { symbol: "(", icon: null, label: "(" },
   { symbol: ")", icon: null, label: ")" },
 ];
+
+interface CustomKpiItem {
+  id: string;
+  name: string;
+  formula: string;
+  description?: string | null;
+  created_at: string;
+}
 
 interface Props {
   customKpiValues?: Record<string, number>;
@@ -113,69 +137,274 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
   const allVariables = useMemo(() => {
     const base: VariableDef[] = [
       // Assets
-      { name: "ac_1100", label: "Total Liquid Assets (1100)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1100",
+        label: "Total Liquid Assets (1100)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1101", label: "Cash on Hand (1101)", category: "assets", unit: "currency" },
-      { name: "ac_1102", label: "Cash at Bank - Current (1102)", category: "assets", unit: "currency" },
-      { name: "ac_1103", label: "Cash at Bank - Savings (1103)", category: "assets", unit: "currency" },
-      { name: "ac_1104", label: "Short-Term Investments (1104)", category: "assets", unit: "currency" },
-      { name: "ac_1200", label: "Gross Loan Portfolio (1200)", category: "assets", unit: "currency" },
-      { name: "ac_1201", label: "Performing Loan Portfolio (1201)", category: "assets", unit: "currency" },
-      { name: "ac_1202", label: "Loans in Arrears 1-30d (1202)", category: "assets", unit: "currency" },
-      { name: "ac_1203", label: "Loans in Arrears 31-60d (1203)", category: "assets", unit: "currency" },
-      { name: "ac_1204", label: "Loans in Arrears 61-90d (1204)", category: "assets", unit: "currency" },
-      { name: "ac_1205", label: "Non-Performing Loans (1205)", category: "assets", unit: "currency" },
-      { name: "ac_1250", label: "Loan Loss Provisions (1250)", category: "assets", unit: "currency" },
-      { name: "ac_1251", label: "General Loan Loss Prov (1251)", category: "assets", unit: "currency" },
-      { name: "ac_1252", label: "Specific Loan Loss Prov (1252)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1102",
+        label: "Cash at Bank - Current (1102)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1103",
+        label: "Cash at Bank - Savings (1103)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1104",
+        label: "Short-Term Investments (1104)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1200",
+        label: "Gross Loan Portfolio (1200)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1201",
+        label: "Performing Loan Portfolio (1201)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1202",
+        label: "Loans in Arrears 1-30d (1202)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1203",
+        label: "Loans in Arrears 31-60d (1203)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1204",
+        label: "Loans in Arrears 61-90d (1204)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1205",
+        label: "Non-Performing Loans (1205)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1250",
+        label: "Loan Loss Provisions (1250)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1251",
+        label: "General Loan Loss Prov (1251)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1252",
+        label: "Specific Loan Loss Prov (1252)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1300", label: "Total Other Assets (1300)", category: "assets", unit: "currency" },
-      { name: "ac_1301", label: "Accounts Receivable (1301)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1301",
+        label: "Accounts Receivable (1301)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1302", label: "Prepaid Expenses (1302)", category: "assets", unit: "currency" },
       { name: "ac_1303", label: "Fixed Assets Cost (1303)", category: "assets", unit: "currency" },
-      { name: "ac_1304", label: "Accumulated Depreciation (1304)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1304",
+        label: "Accumulated Depreciation (1304)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1305", label: "Intangible Assets (1305)", category: "assets", unit: "currency" },
       { name: "ac_1999", label: "TOTAL ASSETS (1999)", category: "assets", unit: "currency" },
 
       // Liabilities
-      { name: "ac_2100", label: "Member Deposits & Savings (2100)", category: "liabilities", unit: "currency" },
-      { name: "ac_2101", label: "Voluntary Savings Deposits (2101)", category: "liabilities", unit: "currency" },
-      { name: "ac_2102", label: "Mandatory Savings Deposits (2102)", category: "liabilities", unit: "currency" },
-      { name: "ac_2103", label: "Fixed Term Deposits (2103)", category: "liabilities", unit: "currency" },
-      { name: "ac_2200", label: "Total Borrowings (2200)", category: "liabilities", unit: "currency" },
-      { name: "ac_2201", label: "Short-Term Borrowings (2201)", category: "liabilities", unit: "currency" },
-      { name: "ac_2202", label: "Long-Term Borrowings (2202)", category: "liabilities", unit: "currency" },
-      { name: "ac_2300", label: "Total Other Liabilities (2300)", category: "liabilities", unit: "currency" },
-      { name: "ac_2301", label: "Accounts Payable (2301)", category: "liabilities", unit: "currency" },
-      { name: "ac_2302", label: "Accrued Expenses (2302)", category: "liabilities", unit: "currency" },
-      { name: "ac_2303", label: "Deferred Income (2303)", category: "liabilities", unit: "currency" },
-      { name: "ac_2999", label: "TOTAL LIABILITIES (2999)", category: "liabilities", unit: "currency" },
+      {
+        name: "ac_2100",
+        label: "Member Deposits & Savings (2100)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2101",
+        label: "Voluntary Savings Deposits (2101)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2102",
+        label: "Mandatory Savings Deposits (2102)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2103",
+        label: "Fixed Term Deposits (2103)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2200",
+        label: "Total Borrowings (2200)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2201",
+        label: "Short-Term Borrowings (2201)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2202",
+        label: "Long-Term Borrowings (2202)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2300",
+        label: "Total Other Liabilities (2300)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2301",
+        label: "Accounts Payable (2301)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2302",
+        label: "Accrued Expenses (2302)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2303",
+        label: "Deferred Income (2303)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2999",
+        label: "TOTAL LIABILITIES (2999)",
+        category: "liabilities",
+        unit: "currency",
+      },
 
       // Equity
-      { name: "ac_3100", label: "Total Member Shares (3100)", category: "equity", unit: "currency" },
-      { name: "ac_3101", label: "Permanent Share Capital (3101)", category: "equity", unit: "currency" },
-      { name: "ac_3102", label: "Withdrawable Shares (3102)", category: "equity", unit: "currency" },
+      {
+        name: "ac_3100",
+        label: "Total Member Shares (3100)",
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3101",
+        label: "Permanent Share Capital (3101)",
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3102",
+        label: "Withdrawable Shares (3102)",
+        category: "equity",
+        unit: "currency",
+      },
       { name: "ac_3200", label: "Total Reserves (3200)", category: "equity", unit: "currency" },
       { name: "ac_3201", label: "Statutory Reserve (3201)", category: "equity", unit: "currency" },
       { name: "ac_3202", label: "General Reserve (3202)", category: "equity", unit: "currency" },
       { name: "ac_3203", label: "Risk Reserve (3203)", category: "equity", unit: "currency" },
       { name: "ac_3300", label: "Retained Earnings (3300)", category: "equity", unit: "currency" },
-      { name: "ac_3301", label: "Accumulated Surplus (3301)", category: "equity", unit: "currency" },
-      { name: "ac_3302", label: "Current Year Surplus (3302)", category: "equity", unit: "currency" },
+      {
+        name: "ac_3301",
+        label: "Accumulated Surplus (3301)",
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3302",
+        label: "Current Year Surplus (3302)",
+        category: "equity",
+        unit: "currency",
+      },
       { name: "ac_3999", label: "TOTAL EQUITY (3999)", category: "equity", unit: "currency" },
 
       // Income
-      { name: "ac_4101", label: "Interest Income on Loans (4101)", category: "income", unit: "currency" },
-      { name: "ac_4102", label: "Fees & Commissions Income (4102)", category: "income", unit: "currency" },
-      { name: "ac_4201", label: "Other Operating Income (4201)", category: "income", unit: "currency" },
+      {
+        name: "ac_4101",
+        label: "Interest Income on Loans (4101)",
+        category: "income",
+        unit: "currency",
+      },
+      {
+        name: "ac_4102",
+        label: "Fees & Commissions Income (4102)",
+        category: "income",
+        unit: "currency",
+      },
+      {
+        name: "ac_4201",
+        label: "Other Operating Income (4201)",
+        category: "income",
+        unit: "currency",
+      },
       { name: "ac_4999", label: "TOTAL INCOME (4999)", category: "income", unit: "currency" },
 
       // Expenses
-      { name: "ac_5101", label: "Interest Exp on Deposits (5101)", category: "expenses", unit: "currency" },
-      { name: "ac_5102", label: "Interest Exp on Borrowings (5102)", category: "expenses", unit: "currency" },
+      {
+        name: "ac_5101",
+        label: "Interest Exp on Deposits (5101)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5102",
+        label: "Interest Exp on Borrowings (5102)",
+        category: "expenses",
+        unit: "currency",
+      },
       { name: "ac_5201", label: "Personnel Costs (5201)", category: "expenses", unit: "currency" },
-      { name: "ac_5202", label: "Administrative Expenses (5202)", category: "expenses", unit: "currency" },
-      { name: "ac_5203", label: "Governance Expenses (5203)", category: "expenses", unit: "currency" },
-      { name: "ac_5204", label: "Depreciation & Amort (5204)", category: "expenses", unit: "currency" },
-      { name: "ac_5301", label: "Loan Loss Prov Expense (5301)", category: "expenses", unit: "currency" },
+      {
+        name: "ac_5202",
+        label: "Administrative Expenses (5202)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5203",
+        label: "Governance Expenses (5203)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5204",
+        label: "Depreciation & Amort (5204)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5301",
+        label: "Loan Loss Prov Expense (5301)",
+        category: "expenses",
+        unit: "currency",
+      },
       { name: "ac_5999", label: "TOTAL EXPENSES (5999)", category: "expenses", unit: "currency" },
       { name: "ac_6999", label: "NET SURPLUS (6999)", category: "expenses", unit: "currency" },
     ];
@@ -292,8 +521,8 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
     );
 
     result.sort((a, b) => {
-      let valA: any = 0;
-      let valB: any = 0;
+      let valA: string | number = 0;
+      let valB: string | number = 0;
 
       if (sortField === "name") {
         valA = a.name.toLowerCase();
@@ -395,7 +624,18 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                   <Label className="text-sm font-semibold">Available Variables</Label>
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="w-full flex-wrap justify-start gap-1 bg-muted/50 p-1 rounded-lg h-auto">
-                      {(["assets", "liabilities", "equity", "income", "expenses", "governance", "membership", "other"] as const).map((cat) => (
+                      {(
+                        [
+                          "assets",
+                          "liabilities",
+                          "equity",
+                          "income",
+                          "expenses",
+                          "governance",
+                          "membership",
+                          "other",
+                        ] as const
+                      ).map((cat) => (
                         <TabsTrigger
                           key={cat}
                           value={cat}
@@ -405,36 +645,49 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         </TabsTrigger>
                       ))}
                     </TabsList>
-                    {(["assets", "liabilities", "equity", "income", "expenses", "governance", "membership", "other"] as const).map((cat) => (
+                    {(
+                      [
+                        "assets",
+                        "liabilities",
+                        "equity",
+                        "income",
+                        "expenses",
+                        "governance",
+                        "membership",
+                        "other",
+                      ] as const
+                    ).map((cat) => (
                       <TabsContent key={cat} value={cat} className="mt-2">
                         <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 border rounded-lg bg-muted/30">
-                          {allVariables.filter((v) => v.category === cat).map((v) => (
-                            <TooltipProvider key={v.name}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className={`cursor-pointer transition-all duration-150 hover:scale-105 active:scale-95 ${CATEGORY_COLORS[cat]}`}
-                                    onClick={() => insertVariable(v.name)}
-                                  >
-                                    {v.unit === "currency" && (
-                                      <DollarSign className="h-3 w-3 mr-0.5 opacity-60" />
-                                    )}
-                                    {v.unit === "percent" && (
-                                      <Percent className="h-3 w-3 mr-0.5 opacity-60" />
-                                    )}
-                                    {v.unit === "ratio" && (
-                                      <Hash className="h-3 w-3 mr-0.5 opacity-60" />
-                                    )}
-                                    {v.label}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs">
-                                  <code className="font-mono">{v.name}</code>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ))}
+                          {allVariables
+                            .filter((v) => v.category === cat)
+                            .map((v) => (
+                              <TooltipProvider key={v.name}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className={`cursor-pointer transition-all duration-150 hover:scale-105 active:scale-95 ${CATEGORY_COLORS[cat]}`}
+                                      onClick={() => insertVariable(v.name)}
+                                    >
+                                      {v.unit === "currency" && (
+                                        <DollarSign className="h-3 w-3 mr-0.5 opacity-60" />
+                                      )}
+                                      {v.unit === "percent" && (
+                                        <Percent className="h-3 w-3 mr-0.5 opacity-60" />
+                                      )}
+                                      {v.unit === "ratio" && (
+                                        <Hash className="h-3 w-3 mr-0.5 opacity-60" />
+                                      )}
+                                      {v.label}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    <code className="font-mono">{v.name}</code>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
                         </div>
                       </TabsContent>
                     ))}
@@ -653,7 +906,8 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         Cooperative Custom KPI Breakdown
                       </CardTitle>
                       <CardDescription>
-                        Evaluate and rank individual cooperative performances using your defined formulas.
+                        Evaluate and rank individual cooperative performances using your defined
+                        formulas.
                       </CardDescription>
                     </div>
                     <div className="w-full md:w-72">
@@ -671,39 +925,48 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     <table className="w-full text-sm text-left border-collapse">
                       <thead className="sticky top-0 bg-muted/95 backdrop-blur-sm border-b border-muted text-xs font-semibold uppercase tracking-wider text-muted-foreground z-10">
                         <tr>
-                          <th 
+                          <th
                             onClick={() => handleSort("name")}
                             className="p-4 cursor-pointer hover:bg-muted/100 hover:text-foreground transition-colors select-none whitespace-nowrap min-w-[220px]"
                           >
                             <div className="flex items-center gap-1">
                               Cooperative Name
-                              {sortField === "name" && (
-                                sortDirection === "asc" ? <ChevronUp className="h-4 w-4 text-violet-600" /> : <ChevronDown className="h-4 w-4 text-violet-600" />
-                              )}
+                              {sortField === "name" &&
+                                (sortDirection === "asc" ? (
+                                  <ChevronUp className="h-4 w-4 text-violet-600" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-violet-600" />
+                                ))}
                             </div>
                           </th>
-                          <th 
+                          <th
                             onClick={() => handleSort("region")}
                             className="p-4 cursor-pointer hover:bg-muted/100 hover:text-foreground transition-colors select-none whitespace-nowrap"
                           >
                             <div className="flex items-center gap-1">
                               Region
-                              {sortField === "region" && (
-                                sortDirection === "asc" ? <ChevronUp className="h-4 w-4 text-violet-600" /> : <ChevronDown className="h-4 w-4 text-violet-600" />
-                              )}
+                              {sortField === "region" &&
+                                (sortDirection === "asc" ? (
+                                  <ChevronUp className="h-4 w-4 text-violet-600" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-violet-600" />
+                                ))}
                             </div>
                           </th>
-                          {kpis.map((kpi: any) => (
-                            <th 
+                          {kpis.map((kpi: CustomKpiItem) => (
+                            <th
                               key={kpi.id}
                               onClick={() => handleSort(kpi.name)}
                               className="p-4 cursor-pointer hover:bg-muted/100 hover:text-foreground transition-colors text-right select-none whitespace-nowrap min-w-[140px]"
                             >
                               <div className="flex items-center justify-end gap-1">
                                 {kpi.name.replace(/_/g, " ")}
-                                {sortField === kpi.name && (
-                                  sortDirection === "asc" ? <ChevronUp className="h-4 w-4 text-violet-600" /> : <ChevronDown className="h-4 w-4 text-violet-600" />
-                                )}
+                                {sortField === kpi.name &&
+                                  (sortDirection === "asc" ? (
+                                    <ChevronUp className="h-4 w-4 text-violet-600" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4 text-violet-600" />
+                                  ))}
                               </div>
                             </th>
                           ))}
@@ -712,26 +975,39 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                       <tbody className="divide-y divide-muted bg-white/50">
                         {filteredAndSortedCooperatives.length === 0 ? (
                           <tr>
-                            <td colSpan={kpis.length + 2} className="p-8 text-center text-muted-foreground italic">
+                            <td
+                              colSpan={kpis.length + 2}
+                              className="p-8 text-center text-muted-foreground italic"
+                            >
                               No matching cooperatives found.
                             </td>
                           </tr>
                         ) : (
                           filteredAndSortedCooperatives.map((coop) => (
-                            <tr key={coop.cooperative_id} className="hover:bg-violet-50/20 dark:hover:bg-muted/20 transition-colors">
+                            <tr
+                              key={coop.cooperative_id}
+                              className="hover:bg-violet-50/20 dark:hover:bg-muted/20 transition-colors"
+                            >
                               <td className="p-4 font-semibold text-violet-950">{coop.name}</td>
                               <td className="p-4 text-muted-foreground">{coop.region || "—"}</td>
-                              {kpis.map((kpi: any) => {
+                              {kpis.map((kpi: CustomKpiItem) => {
                                 const val = coop.custom_kpis?.[kpi.name];
                                 const hasVal = val !== undefined && val !== null;
                                 return (
-                                  <td key={kpi.id} className="p-4 text-right font-mono font-bold text-violet-700">
+                                  <td
+                                    key={kpi.id}
+                                    className="p-4 text-right font-mono font-bold text-violet-700"
+                                  >
                                     {hasVal ? (
-                                      val >= 1000
-                                        ? val.toLocaleString(undefined, { maximumFractionDigits: 1 })
-                                        : val.toFixed(2)
+                                      val >= 1000 ? (
+                                        val.toLocaleString(undefined, { maximumFractionDigits: 1 })
+                                      ) : (
+                                        val.toFixed(2)
+                                      )
                                     ) : (
-                                      <span className="text-muted-foreground/40 font-normal italic text-xs">No Data</span>
+                                      <span className="text-muted-foreground/40 font-normal italic text-xs">
+                                        No Data
+                                      </span>
                                     )}
                                   </td>
                                 );
