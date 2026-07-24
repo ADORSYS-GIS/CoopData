@@ -357,14 +357,21 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   // Available regions derived from data
   const availableRegions = useMemo(() => {
     const regions = new Set<string>();
-    cooperativesWithData.forEach((c) => { if (c.region) regions.add(c.region); });
+    cooperativesWithData.forEach((c) => {
+      if (c.region) regions.add(c.region);
+    });
     return Array.from(regions).sort();
   }, [cooperativesWithData]);
 
   // Selected target details (National Average, Regional Average, or Coop B)
   const compareTarget = useMemo(() => {
     if (compareTargetId === "national_average") {
-      return { name: "National Average", isAverage: true, isRegional: false, region: null as string | null };
+      return {
+        name: "National Average",
+        isAverage: true,
+        isRegional: false,
+        region: null as string | null,
+      };
     }
     if (compareTargetId.startsWith("region_avg_")) {
       const region = compareTargetId.replace("region_avg_", "");
@@ -373,7 +380,12 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     const coop = cooperatives.find((c) => c.cooperative_id === compareTargetId);
     return coop
       ? { ...coop, isAverage: false, isRegional: false, region: coop.region ?? null }
-      : { name: "National Average", isAverage: true, isRegional: false, region: null as string | null };
+      : {
+          name: "National Average",
+          isAverage: true,
+          isRegional: false,
+          region: null as string | null,
+        };
   }, [cooperatives, compareTargetId]);
 
   // Dynamic system averages for comparable KPIs (national)
@@ -383,9 +395,10 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
       const validValues = cooperativesWithData
         .map((c) => getCoopKpiValue(c, kpi))
         .filter((val): val is number => val !== undefined && !isNaN(val));
-      averages[kpi.key] = validValues.length > 0
-        ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
-        : 0;
+      averages[kpi.key] =
+        validValues.length > 0
+          ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
+          : 0;
     });
     return averages;
   }, [cooperativesWithData]);
@@ -400,9 +413,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         const vals = regionCoops
           .map((c) => getCoopKpiValue(c, kpi))
           .filter((v): v is number => v !== undefined && !isNaN(v));
-        kpiAverages[kpi.key] = vals.length > 0
-          ? vals.reduce((s, v) => s + v, 0) / vals.length
-          : 0;
+        kpiAverages[kpi.key] = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
       });
       result[region] = kpiAverages;
     });
@@ -450,7 +461,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
       { name: selectedCoop.name, Value: coopVal, color: "#3b82f6" },
       { name: compareTarget.name, Value: targetVal, color: "#10b981" },
     ];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCoop, selectedKpi, compareTarget, systemAverages, regionalAverages]);
 
   const activeKpiInfo = useMemo(() => {
@@ -795,11 +806,13 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                 }`}
               >
                 All
-                <span className={`text-[9px] px-1 rounded ${
-                  activeGroupFilter === null
-                    ? "bg-white/20 text-white"
-                    : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
-                }`}>
+                <span
+                  className={`text-[9px] px-1 rounded ${
+                    activeGroupFilter === null
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
                   {COMPARABLE_KPIS.length}
                 </span>
               </button>
@@ -820,11 +833,13 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                   >
                     <Icon className="size-3" />
                     <span>{group.label}</span>
-                    <span className={`text-[9px] px-1 rounded ${
-                      isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
-                    }`}>
+                    <span
+                      className={`text-[9px] px-1 rounded ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
                       {count}
                     </span>
                   </button>

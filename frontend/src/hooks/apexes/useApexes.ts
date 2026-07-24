@@ -62,7 +62,6 @@ export const useMinistryApexes = (federationId?: string, enabled = true) =>
     retry: false,
   });
 
-
 export const useApex = (id: string) =>
   useQuery({
     queryKey: [APEXES_KEY, id],

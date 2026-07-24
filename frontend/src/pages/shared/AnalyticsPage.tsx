@@ -138,14 +138,17 @@ export const AnalyticsPage: React.FC = () => {
   }, []);
 
   // Build API params from current filter state
-  const filterParams = React.useMemo(() => ({
-    reportingYear: Number(filterValues.year),
-    cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
-    apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
-    federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
-    region: filterValues.region !== "all" ? filterValues.region : undefined,
-    sector: filterValues.sector !== "all" ? filterValues.sector : undefined,
-  }), [filterValues]);
+  const filterParams = React.useMemo(
+    () => ({
+      reportingYear: Number(filterValues.year),
+      cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
+      apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
+      federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
+      region: filterValues.region !== "all" ? filterValues.region : undefined,
+      sector: filterValues.sector !== "all" ? filterValues.sector : undefined,
+    }),
+    [filterValues],
+  );
 
   // Fetch cooperatives list scoped to current filters (for cooperative dropdown + tabs)
   const { data: overview } = useNationalOverview(

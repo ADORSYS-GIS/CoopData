@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
-import { useNationalOverview, type NationalOverviewParams } from "@/hooks/analytics/useNationalOverview";
+import {
+  useNationalOverview,
+  type NationalOverviewParams,
+} from "@/hooks/analytics/useNationalOverview";
 import { Card } from "@/components/app-shell";
 import {
   Select,
@@ -190,7 +193,10 @@ const CLASSIFICATION_ROWS: ClassificationRow[] = [
   },
 ];
 
-export function PortfolioClassification({ reportingYear, filterParams }: PortfolioClassificationProps) {
+export function PortfolioClassification({
+  reportingYear,
+  filterParams,
+}: PortfolioClassificationProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 

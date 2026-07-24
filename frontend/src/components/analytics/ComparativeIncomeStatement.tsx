@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
-import { useNationalOverview, type NationalOverviewParams } from "@/hooks/analytics/useNationalOverview";
+import {
+  useNationalOverview,
+  type NationalOverviewParams,
+} from "@/hooks/analytics/useNationalOverview";
 import { Card } from "@/components/app-shell";
 import {
   Select,
@@ -114,7 +117,10 @@ const INCOME_STATEMENT_ROWS: IncomeStatementRow[] = [
   },
 ];
 
-export function ComparativeIncomeStatement({ reportingYear, filterParams }: ComparativeIncomeStatementProps) {
+export function ComparativeIncomeStatement({
+  reportingYear,
+  filterParams,
+}: ComparativeIncomeStatementProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 
