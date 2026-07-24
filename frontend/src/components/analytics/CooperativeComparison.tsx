@@ -484,6 +484,9 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   const [selectedKpi, setSelectedKpi] = useState<string>("capital_adequacy_ratio");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  const showPeerColumn =
+    compareTargetId !== "national_average" && compareTargetId !== "region_average";
+
   // 1. Fetch national overview containing all cooperatives and their metadata
   const { data: overview, isLoading: overviewLoading } = useNationalOverview({ reportingYear });
 
@@ -1047,15 +1050,17 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           <div className="overflow-x-auto border border-slate-100 dark:border-slate-800/60 rounded-xl">
             <table className="w-full text-left text-xs border-collapse font-sans min-w-[900px]">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-850 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-950/20">
+                <tr className="border-b border-slate-100 dark:border-slate-850 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-950/20">
                   <th className="py-3 px-4 w-[280px]">Metric/KPI</th>
-                  <th className="py-3 px-4 text-right">{selectedCoop.name}</th>
-                  <th className="py-3 px-4 text-right">{compareTarget.name}</th>
+                  <th className="py-3 px-4 text-right text-slate-900 dark:text-white">
+                    {selectedCoop.name}
+                  </th>
+                  {showPeerColumn && <th className="py-3 px-4 text-right">{compareTarget.name}</th>}
                   <th className="py-3 px-4 text-right">
                     {selectedCoop.region || "Region"} Average
                   </th>
                   <th className="py-3 px-4 text-right">National Average</th>
-                  <th className="py-3 px-4 text-right">Peer Var</th>
+                  {showPeerColumn && <th className="py-3 px-4 text-right">Peer Var</th>}
                   <th className="py-3 px-4 text-right">Region Var</th>
                   <th className="py-3 px-4 text-center">Status</th>
                 </tr>
@@ -1072,8 +1077,8 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       {/* Group Divider */}
                       <tr className="bg-slate-50/30 dark:bg-slate-950/10">
                         <td
-                          colSpan={8}
-                          className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                          colSpan={showPeerColumn ? 8 : 6}
+                          className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-slate-700 dark:text-slate-300"
                         >
                           <div className="flex items-center gap-1.5 font-sans">
                             <div className={`p-1 rounded ${groupInfo.colorClass}`}>
@@ -1143,42 +1148,46 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-right num text-slate-900 dark:text-white font-medium font-mono">
+                            <td className="py-3 px-4 text-right num text-slate-950 dark:text-white font-semibold font-mono">
                               {formatValue(coopVal, kpi.unit)}
                             </td>
-                            <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
-                              {formatValue(targetVal, kpi.unit)}
-                            </td>
-                            <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
+                            {showPeerColumn && (
+                              <td className="py-3 px-4 text-right num text-slate-800 dark:text-slate-200 font-medium font-mono">
+                                {formatValue(targetVal, kpi.unit)}
+                              </td>
+                            )}
+                            <td className="py-3 px-4 text-right num text-slate-800 dark:text-slate-200 font-medium font-mono">
                               {formatValue(regionVal, kpi.unit)}
                             </td>
-                            <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
+                            <td className="py-3 px-4 text-right num text-slate-800 dark:text-slate-200 font-medium font-mono">
                               {formatValue(nationalVal, kpi.unit)}
                             </td>
+                            {showPeerColumn && (
+                              <td
+                                className={`py-3 px-4 text-right num font-bold font-mono ${
+                                  diffPeer === 0
+                                    ? "text-slate-600 dark:text-slate-400"
+                                    : isBetter
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : "text-rose-600 dark:text-rose-400"
+                                }`}
+                              >
+                                {diffPeer > 0 ? "+" : ""}
+                                {kpi.unit === "%"
+                                  ? `${diffPeer.toFixed(2)}%`
+                                  : formatValue(diffPeer, kpi.unit)}
+                                {targetVal > 0 && (
+                                  <span className="text-[9px] ml-1 opacity-70 font-normal">
+                                    ({diffPeer > 0 ? "+" : ""}
+                                    {percentDiffPeer.toFixed(1)}%)
+                                  </span>
+                                )}
+                              </td>
+                            )}
                             <td
-                              className={`py-3 px-4 text-right num font-semibold font-mono ${
-                                diffPeer === 0
-                                  ? "text-slate-450 dark:text-slate-500"
-                                  : isBetter
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-rose-600 dark:text-rose-400"
-                              }`}
-                            >
-                              {diffPeer > 0 ? "+" : ""}
-                              {kpi.unit === "%"
-                                ? `${diffPeer.toFixed(2)}%`
-                                : formatValue(diffPeer, kpi.unit)}
-                              {targetVal > 0 && (
-                                <span className="text-[9px] ml-1 opacity-70 font-normal">
-                                  ({diffPeer > 0 ? "+" : ""}
-                                  {percentDiffPeer.toFixed(1)}%)
-                                </span>
-                              )}
-                            </td>
-                            <td
-                              className={`py-3 px-4 text-right num font-semibold font-mono ${
+                              className={`py-3 px-4 text-right num font-bold font-mono ${
                                 diffRegion === 0
-                                  ? "text-slate-450 dark:text-slate-500"
+                                  ? "text-slate-650 dark:text-slate-405"
                                   : (isPositiveIndicator ? diffRegion >= 0 : diffRegion <= 0)
                                     ? "text-emerald-600 dark:text-emerald-400"
                                     : "text-rose-600 dark:text-rose-400"
