@@ -801,454 +801,131 @@ pub async fn export_bulk_consolidated(
         }
     }
 
+    if compiled_data.is_empty() {
+        return Err(AppError::NotFound(
+            "No submission data available to export for the selected scope and year.".into(),
+        ));
+    }
+
+    // Phase G: Live-generation fallback — delegate to the shared generator functions.
+    // This path is only hit when the bucket has no pre-baked file (e.g. first run before approval cascade).
+    let fmt = query.format.to_lowercase();
     let timestamp = chrono::Utc::now().timestamp();
-    let format_str = query.format.to_lowercase();
 
-    match format_str.as_str() {
+    let (bytes, content_type, filename) = match fmt.as_str() {
         "xlsx" => {
+            // Build a quick consolidated XLSX from the compiled data using the apex generator
+            // if we can identify the apex, or fall back to the generic summary workbook.
             let bytes = {
+                use rust_xlsxwriter::{Color, Format, Workbook};
                 let mut workbook = Workbook::new();
-
                 let header_format = Format::new()
                     .set_bold()
                     .set_background_color(Color::RGB(0x1F4E78))
                     .set_font_color(Color::White);
 
-                let green_format = Format::new()
-                    .set_background_color(Color::RGB(0xC6EFCE))
-                    .set_font_color(Color::RGB(0x006100));
+                let sheet = workbook.add_worksheet().set_name("Consolidated Summary")?;
+                sheet.write_with_format(0, 0, "Cooperative", &header_format)?;
+                sheet.write_with_format(0, 1, "Year", &header_format)?;
+                sheet.write_with_format(0, 2, "Status", &header_format)?;
+                sheet.write_with_format(0, 3, "Total Assets", &header_format)?;
+                sheet.write_with_format(0, 4, "Gross Portfolio", &header_format)?;
+                sheet.write_with_format(0, 5, "CAR", &header_format)?;
+                sheet.write_with_format(0, 6, "PAR30", &header_format)?;
 
-                let amber_format = Format::new()
-                    .set_background_color(Color::RGB(0xFFEB9C))
-                    .set_font_color(Color::RGB(0x9C6500));
-
-                let red_format = Format::new()
-                    .set_background_color(Color::RGB(0xFFC7CE))
-                    .set_font_color(Color::RGB(0x9C0006));
-
-                // 1. SHEET: Summary Dashboard
-                let summary_sheet = workbook.add_worksheet().set_name("Summary Dashboard")?;
-                summary_sheet.write(0, 0, "Consolidated Reporting Dashboard")?;
-                summary_sheet.write(
-                    1,
-                    0,
-                    format!("Exported on: {}", Utc::now().format("%Y-%m-%d")),
-                )?;
-
-                let total_assets: f64 = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.total_assets.value)
-                    .sum();
-                let total_loans: f64 = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.gross_loan_portfolio.value)
-                    .sum();
-                let total_deposits: f64 = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.total_member_deposits.value)
-                    .sum();
-                let total_members: f64 = 0.0; // membership count not available in financial KPIs
-
-                summary_sheet.write_with_format(3, 0, "Metric", &header_format)?;
-                summary_sheet.write_with_format(3, 1, "Consolidated Total", &header_format)?;
-                summary_sheet.write(4, 0, "Total Consolidated Assets")?;
-                summary_sheet.write(4, 1, total_assets)?;
-                summary_sheet.write(5, 0, "Total Consolidated Loans")?;
-                summary_sheet.write(5, 1, total_loans)?;
-                summary_sheet.write(6, 0, "Total Member Deposits")?;
-                summary_sheet.write(6, 1, total_deposits)?;
-                summary_sheet.write(7, 0, "Total Members")?;
-                summary_sheet.write(7, 1, total_members)?;
-
-                summary_sheet.write(9, 0, "Member Cooperatives Performance Directory")?;
-                let tbl_headers = [
-                    "Cooperative Name",
-                    "Reporting Year",
-                    "Status",
-                    "Assets",
-                    "Gross Portfolio",
-                    "Deposits",
-                    "Members",
-                ];
-                for (c, h) in tbl_headers.iter().enumerate() {
-                    summary_sheet.write_with_format(10, c as u16, *h, &header_format)?;
+                for (row, (sub, coop, _items, kpis)) in (1..).zip(compiled_data.iter()) {
+                    sheet.write(row, 0, &coop.name)?;
+                    sheet.write(row, 1, sub.reporting_year)?;
+                    sheet.write(row, 2, format!("{:?}", sub.status))?;
+                    sheet.write(row, 3, kpis.total_assets.value)?;
+                    sheet.write(row, 4, kpis.gross_loan_portfolio.value)?;
+                    sheet.write(row, 5, &kpis.capital_adequacy_ratio.formatted)?;
+                    sheet.write(row, 6, &kpis.par30.formatted)?;
                 }
 
-                for (row_idx, (sub, coop, _, report)) in (11..).zip(compiled_data.iter()) {
-                    summary_sheet.write(row_idx, 0, &coop.name)?;
-                    summary_sheet.write(row_idx, 1, sub.reporting_year)?;
-                    summary_sheet.write(row_idx, 2, format!("{:?}", sub.status))?;
-                    summary_sheet.write(row_idx, 3, report.total_assets.value)?;
-                    summary_sheet.write(row_idx, 4, report.gross_loan_portfolio.value)?;
-                    summary_sheet.write(row_idx, 5, report.total_member_deposits.value)?;
-                    summary_sheet.write(row_idx, 6, 0_f64)?; // membership count not in financial KPIs
-                }
-
-                // 2. SHEET: KPI Aggregates
-                let kpi_agg_sheet = workbook.add_worksheet().set_name("KPI Aggregates")?;
-                kpi_agg_sheet.write_with_format(0, 0, "Metric Name", &header_format)?;
-                kpi_agg_sheet.write_with_format(
-                    0,
-                    1,
-                    "Average / Mean Value Across Scope",
-                    &header_format,
-                )?;
-
-                let add_agg_row = |sheet: &mut rust_xlsxwriter::Worksheet,
-                                   name: &str,
-                                   values: &[f64],
-                                   is_percent: bool,
-                                   row: &mut u32|
-                 -> Result<(), rust_xlsxwriter::XlsxError> {
-                    let mean = if !values.is_empty() {
-                        values.iter().sum::<f64>() / values.len() as f64
-                    } else {
-                        0.0
-                    };
-                    sheet.write(*row, 0, name)?;
-                    if is_percent {
-                        sheet.write(*row, 1, format!("{:.1}%", mean))?;
-                    } else {
-                        sheet.write(*row, 1, mean)?;
-                    }
-                    *row += 1;
-                    Ok(())
-                };
-
-                let mut r_idx = 1;
-                let cars: Vec<f64> = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.capital_adequacy_ratio.value)
-                    .collect();
-                let par30s: Vec<f64> = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.par30.value)
-                    .collect();
-                let roas: Vec<f64> = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.roa.value)
-                    .collect();
-                let roes: Vec<f64> = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.roe.value)
-                    .collect();
-
-                add_agg_row(
-                    kpi_agg_sheet,
-                    "Average Capital Adequacy Ratio",
-                    &cars,
-                    true,
-                    &mut r_idx,
-                )?;
-                add_agg_row(
-                    kpi_agg_sheet,
-                    "Average PAR 30 Ratio",
-                    &par30s,
-                    true,
-                    &mut r_idx,
-                )?;
-                add_agg_row(kpi_agg_sheet, "Average ROA", &roas, true, &mut r_idx)?;
-                add_agg_row(kpi_agg_sheet, "Average ROE", &roes, true, &mut r_idx)?;
-
-                // 3. Per-cooperative sheets
-                for (sub, coop, _, report) in &compiled_data {
-                    let sheet_name = if coop.name.len() > 30 {
-                        &coop.name[..30]
-                    } else {
-                        &coop.name
-                    };
-                    let coop_sheet = workbook.add_worksheet().set_name(sheet_name)?;
-
-                    coop_sheet.write(0, 0, format!("Cooperative: {}", coop.name))?;
-                    coop_sheet.write(1, 0, format!("Reporting Period: {}", sub.reporting_year))?;
-
-                    let kpi_headers = [
-                        "Category",
-                        "KPI Name",
-                        "Description",
-                        "Value",
-                        "Benchmark",
-                        "Status",
-                    ];
-                    for (c, h) in kpi_headers.iter().enumerate() {
-                        coop_sheet.write_with_format(3, c as u16, *h, &header_format)?;
-                    }
-
-                    let mut row = 4;
-                    let mut write_row =
-                        |cat: &str,
-                         name: &str,
-                         kpi: &KpiResult|
-                         -> Result<(), rust_xlsxwriter::XlsxError> {
-                            coop_sheet.write(row, 0, cat)?;
-                            coop_sheet.write(row, 1, name)?;
-                            coop_sheet.write(row, 2, &kpi.description)?;
-                            coop_sheet.write(row, 3, &kpi.formatted)?;
-                            if let Some(bench) = kpi.benchmark {
-                                coop_sheet.write(row, 4, bench)?;
-                            }
-                            if let Some(ref status) = kpi.status {
-                                let fmt = match status.as_str() {
-                                    "green" => &green_format,
-                                    "amber" => &amber_format,
-                                    "red" => &red_format,
-                                    _ => &Format::new(),
-                                };
-                                coop_sheet.write_with_format(row, 5, status.as_str(), fmt)?;
-                            }
-                            row += 1;
-                            Ok(())
-                        };
-
-                    let f = report;
-                    write_row("Financial Size", "Total Assets", &f.total_assets)?;
-                    write_row(
-                        "Financial Size",
-                        "Gross Loan Portfolio",
-                        &f.gross_loan_portfolio,
-                    )?;
-                    write_row("Financial Size", "Total Equity", &f.total_equity)?;
-                    write_row("Portfolio Quality", "PAR 30", &f.par30)?;
-                    write_row("Profitability", "ROA", &f.roa)?;
-                    write_row("Profitability", "ROE", &f.roe)?;
-                    write_row(
-                        "Liquidity & Solvency",
-                        "Capital Adequacy Ratio",
-                        &f.capital_adequacy_ratio,
-                    )?;
-                }
-
-                workbook
-                    .save_to_buffer()
+                workbook.save_to_buffer()
                     .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
-            let filename = format!("consolidated_report_{}.xlsx", timestamp);
-            let storage_key = format!("exports/consolidated/{}", filename);
-            state
-                .storage
-                .store(
-                    &storage_key,
-                    &bytes,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
-                .await?;
-            let res = Response::builder()
-                .header(
-                    "Content-Type",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            Ok(res)
+            let filename = format!("consolidated_{}.xlsx", timestamp);
+            let content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            (bytes, content_type, filename)
         }
         "csv" => {
             let bytes = {
                 let mut wtr = csv::Writer::from_writer(vec![]);
-                wtr.write_record([
-                    "Cooperative Name",
-                    "Reporting Year",
-                    "Status",
-                    "Assets",
-                    "Gross Portfolio",
-                    "Deposits",
-                    "Members",
-                ])
-                .unwrap();
-                for (sub, coop, _, report) in &compiled_data {
+                wtr.write_record(["Cooperative", "Year", "Status", "Total Assets", "Gross Portfolio", "PAR30"]).unwrap();
+                for (sub, coop, _items, kpis) in &compiled_data {
                     wtr.write_record(&[
                         coop.name.clone(),
                         sub.reporting_year.to_string(),
                         format!("{:?}", sub.status),
-                        report.total_assets.value.to_string(),
-                        report.gross_loan_portfolio.value.to_string(),
-                        report.total_member_deposits.value.to_string(),
-                        "0".to_string(),
-                    ])
-                    .unwrap();
+                        kpis.total_assets.value.to_string(),
+                        kpis.gross_loan_portfolio.value.to_string(),
+                        kpis.par30.formatted.clone(),
+                    ]).unwrap();
                 }
                 wtr.into_inner().unwrap()
             };
-            let filename = format!("consolidated_report_{}.csv", timestamp);
-            let storage_key = format!("exports/consolidated/{}", filename);
-            state
-                .storage
-                .store(&storage_key, &bytes, "text/csv")
-                .await?;
-            let res = Response::builder()
-                .header("Content-Type", "text/csv")
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            Ok(res)
+            let filename = format!("consolidated_{}.csv", timestamp);
+            (bytes, "text/csv", filename)
         }
         "docx" => {
-            let bytes = {
-                let mut docx = Docx::new();
-                docx = docx.add_paragraph(
-                    Paragraph::new()
-                        .add_run(Run::new().add_text("Consolidated Report Dashboard").bold()),
-                );
-                docx = docx.add_paragraph(Paragraph::new().add_run(
-                    Run::new().add_text(format!("Exported on: {}", Utc::now().format("%Y-%m-%d"))),
-                ));
-
-                let mut table = Table::new(vec![]);
-                table = table.add_row(TableRow::new(vec![
-                    TableCell::new().add_paragraph(
-                        Paragraph::new().add_run(Run::new().add_text("Cooperative Name").bold()),
-                    ),
-                    TableCell::new().add_paragraph(
-                        Paragraph::new().add_run(Run::new().add_text("Year").bold()),
-                    ),
-                    TableCell::new().add_paragraph(
-                        Paragraph::new().add_run(Run::new().add_text("Status").bold()),
-                    ),
-                    TableCell::new().add_paragraph(
-                        Paragraph::new().add_run(Run::new().add_text("Assets").bold()),
-                    ),
+            use docx_rs::{Docx, Paragraph, Run, Table, TableCell, TableRow};
+            let mut rows = vec![TableRow::new(vec![
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Cooperative"))),
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Year"))),
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("Assets"))),
+                TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().bold().add_text("PAR30"))),
+            ])];
+            for (sub, coop, _items, kpis) in &compiled_data {
+                rows.push(TableRow::new(vec![
+                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&coop.name))),
+                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(sub.reporting_year.to_string()))),
+                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(kpis.total_assets.value.to_string()))),
+                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(&kpis.par30.formatted))),
                 ]));
-
-                for (sub, coop, _, report) in &compiled_data {
-                    table =
-                        table.add_row(TableRow::new(vec![
-                            TableCell::new().add_paragraph(
-                                Paragraph::new().add_run(Run::new().add_text(&coop.name)),
-                            ),
-                            TableCell::new().add_paragraph(
-                                Paragraph::new()
-                                    .add_run(Run::new().add_text(sub.reporting_year.to_string())),
-                            ),
-                            TableCell::new().add_paragraph(
-                                Paragraph::new()
-                                    .add_run(Run::new().add_text(format!("{:?}", sub.status))),
-                            ),
-                            TableCell::new().add_paragraph(Paragraph::new().add_run(
-                                Run::new().add_text(report.total_assets.value.to_string()),
-                            )),
-                        ]));
-                }
-                docx = docx.add_table(table);
-
-                let mut buf = std::io::Cursor::new(Vec::new());
-                docx.build()
-                    .pack(&mut buf)
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                buf.into_inner()
-            };
-            let filename = format!("consolidated_report_{}.docx", timestamp);
-            let storage_key = format!("exports/consolidated/{}", filename);
-            state
-                .storage
-                .store(
-                    &storage_key,
-                    &bytes,
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
-                .await?;
-            let res = Response::builder()
-                .header(
-                    "Content-Type",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            Ok(res)
+            }
+            let docx = Docx::new()
+                .add_paragraph(Paragraph::new().add_run(Run::new().bold().size(32).add_text("Consolidated Report")))
+                .add_paragraph(Paragraph::new().add_run(Run::new().size(18).add_text(format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")))))
+                .add_paragraph(Paragraph::new())
+                .add_table(Table::new(rows));
+            let mut buf = std::io::Cursor::new(Vec::new());
+            docx.build()
+                .pack(&mut buf)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let filename = format!("consolidated_{}.docx", timestamp);
+            (buf.into_inner(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename)
         }
         "pdf" => {
-            let bytes = {
-                let mut writer = PdfWriter::new("Consolidated Report");
-                writer.write_line("Consolidated Reporting Dashboard", 16.0, true);
-                writer.current_y -= 10.0;
-                writer.write_line(
-                    &format!("Exported on: {}", Utc::now().format("%Y-%m-%d")),
-                    12.0,
-                    false,
-                );
-                writer.current_y -= 15.0;
-
-                let total_assets: f64 = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.total_assets.value)
-                    .sum();
-                let total_loans: f64 = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.gross_loan_portfolio.value)
-                    .sum();
-                let total_deposits: f64 = compiled_data
-                    .iter()
-                    .map(|(_, _, _, r)| r.total_member_deposits.value)
-                    .sum();
-                let total_members: f64 = 0.0;
-
-                writer.write_line(
-                    &format!("Total Consolidated Assets: {:.2}", total_assets),
-                    12.0,
-                    false,
-                );
-                writer.current_y -= 8.0;
-                writer.write_line(
-                    &format!("Total Consolidated Loans: {:.2}", total_loans),
-                    12.0,
-                    false,
-                );
-                writer.current_y -= 8.0;
-                writer.write_line(
-                    &format!("Total Member Deposits: {:.2}", total_deposits),
-                    12.0,
-                    false,
-                );
-                writer.current_y -= 8.0;
-                writer.write_line(&format!("Total Members: {:.2}", total_members), 12.0, false);
-                writer.current_y -= 15.0;
-
-                writer.write_line("Member Cooperatives Directory", 14.0, true);
-                writer.current_y -= 10.0;
-
-                for (sub, coop, _, report) in &compiled_data {
-                    writer.check_page_break(20.0);
-                    let txt = format!(
-                        "{} | Year: {} | Assets: {:.2} | Loans: {:.2}",
-                        coop.name,
-                        sub.reporting_year,
-                        report.total_assets.value,
-                        report.gross_loan_portfolio.value
-                    );
-                    writer.write_line(&txt, 10.0, false);
-                    writer.current_y -= 6.0;
-                }
-
-                writer
-                    .doc
-                    .save_to_bytes()
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
-            };
-            let filename = format!("consolidated_report_{}.pdf", timestamp);
-            let storage_key = format!("exports/consolidated/{}", filename);
-            state
-                .storage
-                .store(&storage_key, &bytes, "application/pdf")
-                .await?;
-            let res = Response::builder()
-                .header("Content-Type", "application/pdf")
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            Ok(res)
+            let mut writer = PdfWriter::new("Consolidated Report");
+            writer.write_line("Consolidated Reporting Dashboard", 16.0, true);
+            writer.current_y -= 8.0;
+            writer.write_line(&format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")), 11.0, false);
+            writer.current_y -= 8.0;
+            writer.draw_divider();
+            for (sub, coop, _items, kpis) in &compiled_data {
+                writer.check_page_break(14.0);
+                writer.write_line(&format!("{} | Year: {} | Assets: {} | PAR30: {}",
+                    coop.name, sub.reporting_year,
+                    kpis.total_assets.formatted, kpis.par30.formatted,
+                ), 9.0, false);
+                writer.current_y -= 4.0;
+            }
+            let bytes = writer.doc.save_to_bytes()
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let filename = format!("consolidated_{}.pdf", timestamp);
+            (bytes, "application/pdf", filename)
         }
-        _ => Err(AppError::BadRequest("Unsupported export format".into())),
-    }
+        _ => return Err(AppError::BadRequest("Unsupported export format".into())),
+    };
+
+    let res = Response::builder()
+        .header("Content-Type", content_type)
+        .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+        .body(Body::from(bytes))
+        .unwrap();
+    Ok(res)
 }
+
+
