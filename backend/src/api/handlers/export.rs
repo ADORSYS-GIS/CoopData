@@ -743,6 +743,29 @@ pub async fn export_bulk_consolidated(
             }
             tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket MISS for Apex export, falling back to live generation");
         }
+    } else if let (Some(fed_id), Some(year)) = (query.federation_id, query.reporting_year) {
+        // Phase D: Federation bucket check
+        if query.format.to_lowercase() == "xlsx" {
+            let filename = format!("federation_{}_{}.xlsx", fed_id, year);
+            let storage_key = format!("exports/federation/{}/{}", fed_id, filename);
+            
+            if let Ok(bytes) = state.storage.get_object(&storage_key).await {
+                tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
+                let res = Response::builder()
+                    .header(
+                        "Content-Type",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                    .header(
+                        "Content-Disposition",
+                        format!("attachment; filename=\"{}\"", filename),
+                    )
+                    .body(Body::from(bytes))
+                    .unwrap();
+                return Ok(res);
+            }
+            tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket MISS for Federation export, falling back to live generation");
+        }
     }
 
     // Compile all cooperative data once; shared by all format arms

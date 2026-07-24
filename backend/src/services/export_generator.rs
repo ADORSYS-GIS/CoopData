@@ -555,4 +555,155 @@ impl ExportGenerator {
             .save_to_buffer()
             .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
     }
+
+    /// Spawns a background task to generate consolidated Federation exports
+    pub fn trigger_federation_export(state: AppState, federation_id: Uuid, reporting_year: i32) {
+        tokio::spawn(async move {
+            tracing::info!(
+                federation_id = %federation_id,
+                reporting_year = reporting_year,
+                "Starting background Federation export generation"
+            );
+
+            if let Err(e) = Self::generate_federation_formats(&state, federation_id, reporting_year).await {
+                tracing::error!(
+                    federation_id = %federation_id,
+                    error = %e,
+                    "Failed to generate Federation exports in the background"
+                );
+            } else {
+                tracing::info!(
+                    federation_id = %federation_id,
+                    "Successfully pre-baked Federation export formats"
+                );
+            }
+        });
+    }
+
+    async fn generate_federation_formats(state: &AppState, federation_id: Uuid, reporting_year: i32) -> AppResult<()> {
+        let (federation, apexes_data) = Self::compile_federation_data(state, federation_id, reporting_year).await?;
+        
+        // 1. Generate XLSX
+        let xlsx_bytes = Self::generate_federation_excel(&federation, &apexes_data, reporting_year)?;
+        let xlsx_filename = format!("federation_{}_{}.xlsx", federation_id, reporting_year);
+        let xlsx_key = format!("exports/federation/{}/{}", federation_id, xlsx_filename);
+        state
+            .storage
+            .store(
+                &xlsx_key,
+                &xlsx_bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn compile_federation_data(
+        state: &AppState,
+        federation_id: Uuid,
+        reporting_year: i32,
+    ) -> AppResult<(
+        crate::entities::federation::Model,
+        Vec<(
+            crate::entities::apex::Model,
+            Vec<(crate::entities::cooperative::Model, Option<crate::entities::submission::Model>, Vec<crate::entities::kpi_record::Model>)>
+        )>
+    )> {
+        let federation = state.federation_repo.find_by_id(federation_id).await?
+            .ok_or_else(|| crate::error::AppError::NotFound("Federation not found".into()))?;
+
+        let apexes = state.apex_repo.find_by_federation_id(federation_id).await?;
+        let mut apexes_data = Vec::new();
+
+        for apex in apexes {
+            let cooperatives = state.cooperative_repo.find_by_apex_id(apex.id).await?;
+            let mut coops_data = Vec::new();
+
+            for coop in cooperatives {
+                let submissions = state.submission_repo.find_by_cooperative(coop.id).await?;
+                let submission = submissions.into_iter().find(|s| s.reporting_year == reporting_year);
+                
+                let mut kpis = Vec::new();
+                if let Some(ref sub) = submission {
+                    kpis = state.kpi_record_repo.find_by_submission(sub.id).await?;
+                }
+                coops_data.push((coop, submission, kpis));
+            }
+            apexes_data.push((apex, coops_data));
+        }
+
+        Ok((federation, apexes_data))
+    }
+
+    pub fn generate_federation_excel(
+        federation: &crate::entities::federation::Model,
+        apexes_data: &[(
+            crate::entities::apex::Model,
+            Vec<(crate::entities::cooperative::Model, Option<crate::entities::submission::Model>, Vec<crate::entities::kpi_record::Model>)>
+        )],
+        reporting_year: i32,
+    ) -> AppResult<Vec<u8>> {
+        use rust_xlsxwriter::{Color, Format, Workbook};
+        let mut workbook = Workbook::new();
+        let header_format = Format::new()
+            .set_bold()
+            .set_background_color(Color::RGB(0x1F4E78))
+            .set_font_color(Color::White);
+
+        let total_apexes = apexes_data.len();
+        let total_coops: usize = apexes_data.iter().map(|(_, coops)| coops.len()).sum();
+
+        // SHEET 1: Executive Dashboard (Phase D)
+        let sheet1 = workbook.add_worksheet().set_name("Executive Dashboard")?;
+        sheet1.write(0, 0, "Federation Name:")?;
+        sheet1.write(0, 1, &federation.display_name)?;
+        sheet1.write(1, 0, "Reporting Year:")?;
+        sheet1.write(1, 1, reporting_year)?;
+        sheet1.write(2, 0, "Total Apexes:")?;
+        sheet1.write(2, 1, total_apexes as u32)?;
+        sheet1.write(3, 0, "Total Cooperatives:")?;
+        sheet1.write(3, 1, total_coops as u32)?;
+
+        // SHEET 2: Apex Comparison (Phase D)
+        let sheet2 = workbook.add_worksheet().set_name("Apex Comparison")?;
+        sheet2.write_with_format(0, 0, "Apex Name", &header_format)?;
+        sheet2.write_with_format(0, 1, "Total Coops", &header_format)?;
+        sheet2.write_with_format(0, 2, "Submitted Coops", &header_format)?;
+        sheet2.write_with_format(0, 3, "Total Assets (SZL)", &header_format)?;
+        
+        for (r, (apex, coops)) in (1..).zip(apexes_data.iter()) {
+            let submitted_count = coops.iter().filter(|(_, s, _)| s.is_some()).count();
+            let total_assets: f64 = coops.iter()
+                .flat_map(|(_, _, kpis)| kpis.iter())
+                .filter(|k| k.kpi_name == "total_assets")
+                .map(|k| k.value)
+                .sum();
+
+            sheet2.write(r, 0, &apex.display_name)?;
+            sheet2.write(r, 1, coops.len() as u32)?;
+            sheet2.write(r, 2, submitted_count as u32)?;
+            sheet2.write(r, 3, total_assets)?;
+        }
+
+        // SHEET 3: Filing Compliance (Phase D)
+        let sheet3 = workbook.add_worksheet().set_name("Filing Compliance")?;
+        sheet3.write(0, 0, "Data embedded in Apex Comparison")?;
+
+        // SHEET 4: PEARLS Analysis (Phase D)
+        let sheet4 = workbook.add_worksheet().set_name("PEARLS Analysis")?;
+        sheet4.write(0, 0, "Data pending PEARLS mapping and aggregation")?;
+
+        // SHEET 5: Social Impact (Phase D)
+        let sheet5 = workbook.add_worksheet().set_name("Social Impact")?;
+        sheet5.write(0, 0, "Data pending social metrics integration")?;
+
+        // SHEET 6: Risk & Efficiency (Phase D)
+        let sheet6 = workbook.add_worksheet().set_name("Risk & Efficiency")?;
+        sheet6.write(0, 0, "Data pending abnormality flags aggregation")?;
+
+        workbook
+            .save_to_buffer()
+            .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
+    }
 }

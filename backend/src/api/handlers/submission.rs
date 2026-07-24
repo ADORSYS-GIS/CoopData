@@ -1115,6 +1115,18 @@ pub async fn ministry_approve_submission(
         updated.reporting_year,
     );
 
+    // Phase D: Trigger background export generation for the parent Federation
+    let apex = state
+        .apex_repo
+        .find_by_id(coop.apex_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
+    crate::services::export_generator::ExportGenerator::trigger_federation_export(
+        state.clone(),
+        apex.federation_id,
+        updated.reporting_year,
+    );
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
