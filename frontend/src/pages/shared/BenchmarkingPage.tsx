@@ -11,9 +11,10 @@ import {
 import { Scale } from "lucide-react";
 
 export const BenchmarkingPage: React.FC = () => {
-  const [selectedYear, setSelectedYear] = useState<string>("2023");
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
 
-  const yearOptions = ["2023", "2024", "2025"];
+  const yearOptions = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
   return (
     <AppShell

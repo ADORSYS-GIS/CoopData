@@ -327,6 +327,28 @@ pub async fn validate_extraction(
         .set_validation_errors(fs.id, validation_json)
         .await?;
 
+    // Recompute and save KPIs to database so analytics and benchmarking are in sync
+    let workflow = SubmissionWorkflow::new(
+        state.submission_repo.clone(),
+        state.review_repo.clone(),
+        state.flag_repo.clone(),
+        state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
+    );
+    if let Err(e) = workflow
+        .compute_and_save_kpis(id, coop.id, submission.reporting_year)
+        .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            error = %e,
+            "Failed to compute and save KPIs during validation"
+        );
+    }
+
     let flags = state
         .flag_repo
         .find_by_submission(id)

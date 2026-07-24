@@ -285,26 +285,29 @@ RULE 3 — CONFIDENCE SCORING (be honest, not optimistic):
 
 RULE 4 — MONTHLY DATA (13-COLUMN MONTHLY BALANCE SHEETS):
 If the document has monthly columns (e.g., Dec 2021, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec 2022) OR a table with month/period headers:
-  - Extract EACH monthly cell as a SEPARATE line item
-  - Use month=0 for Dec prior year (e.g., "Dec 2021" baseline prior year-end column)
-  - Use month=1 for January, month=2 for February, ..., month=12 for December (e.g., "Dec 2022")
-  - Example row: "Cash & Cash Equivalents | 213,165 | 277,410 | 362,919 | ..." emits 13 items:
-    {{"account_code":1101, "month":0, "value":213165, "raw_label":"Cash & Cash Equivalents"}}
-    {{"account_code":1101, "month":1, "value":277410, "raw_label":"Cash & Cash Equivalents"}}
-    {{"account_code":1101, "month":2, "value":362919, "raw_label":"Cash & Cash Equivalents"}} ... up to month=12
-  - Use month=0 ONLY for baseline prior year-end or when no monthly breakdown exists.
+  - Return each row's values grouped together inside the "values" map of the row object.
+  - Map month number as a string key: e.g. "0" for Dec prior year baseline, "1" for January, "2" for February, ..., "12" for December.
+  - Do NOT output zero, null, or empty monthly cells. If a row has only zero or empty values across all months, you may skip the entire row from the "line_items" array.
+  - Example row: "Cash & Cash Equivalents | 213,165 | 277,410 | 362,919" emits:
+    {{
+      "account_code": 1101,
+      "account_name": "CASH ON HAND",
+      "confidence": 1.0,
+      "raw_label": "Cash & Cash Equivalents",
+      "values": {{"0": 213165.0, "1": 277410.0, "2": 362919.0}}
+    }}
 
 RULE 5 — EXCEL TABLE STRUCTURE:
 If the raw text contains table-structured data with Row/Column notation or Pipe separators (|):
   - Row headers (Column A / leftmost column) are account LABELS
   - Column headers are MONTHS or PERIODS (Dec prior year, Jan .. Dec current year)
-  - Map each cell at the intersection of label-row and month-column as a separate line item with its corresponding month (0 to 12)
-  - Do NOT discard column data — every column with a month or date header must produce a line item
+  - Map each cell at the intersection of label-row and month-column as an entry in the "values" map of that row.
+  - Do NOT discard column data — every column with a month or date header must produce an entry.
 
 RULE 6 — EXTRACTION COMPLETENESS:
   - Extract EVERY single numeric value — do NOT skip any row
   - Include individual items, subtotals, AND grand totals
-  - A typical balance sheet has 25-40 line items
+  - A typical balance sheet has 25-40 rows
   - Do NOT invent values — only extract what appears in the raw text
 
 ═══════════════════════════════════════════
@@ -363,11 +366,14 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
   "line_items": [
     {{
       "account_code": 1101,
-      "account_name": "Cash on Hand",
-      "month": 0,
-      "value": 50000.00,
-      "confidence": 0.85,
-      "raw_label": "Cash on Hand"
+      "account_name": "CASH ON HAND",
+      "confidence": 1.0,
+      "raw_label": "Cash on Hand",
+      "values": {{
+        "0": 213165.0,
+        "1": 277410.0,
+        "2": 362919.0
+      }}
     }}
   ],
   "totals_reconciliation": {{
@@ -731,6 +737,85 @@ impl LlmExtractor {
             .trim_end_matches("```")
             .trim();
 
+        // 1. Define compact format structs for parsing
+        #[derive(Serialize, Deserialize)]
+        struct CompactExtractionOutput {
+            line_items: Vec<CompactExtractedLineItem>,
+            totals_reconciliation: TotalsReconciliation,
+        }
+
+        #[derive(Serialize, Deserialize)]
+        struct CompactExtractedLineItem {
+            account_code: Option<i32>,
+            account_name: Option<String>,
+            confidence: f64,
+            raw_label: String,
+            values: std::collections::HashMap<String, Option<f64>>,
+        }
+
+        let convert_compact = |compact: CompactExtractionOutput| -> ExtractionOutput {
+            let mut flat_items = Vec::new();
+            for item in compact.line_items {
+                for (month_str, val) in item.values {
+                    if let Ok(month_num) = month_str.parse::<i16>() {
+                        flat_items.push(ExtractedLineItem {
+                            account_code: item.account_code,
+                            account_name: item.account_name.clone(),
+                            month: month_num,
+                            value: val,
+                            confidence: item.confidence,
+                            raw_label: item.raw_label.clone(),
+                        });
+                    }
+                }
+            }
+            ExtractionOutput {
+                line_items: flat_items,
+                totals_reconciliation: compact.totals_reconciliation,
+            }
+        };
+
+        // Try parsing as the compact format first
+        match serde_json::from_str::<CompactExtractionOutput>(cleaned) {
+            Ok(compact) => {
+                let output = convert_compact(compact);
+                tracing::info!(
+                    items = output.line_items.len(),
+                    mapped = output
+                        .line_items
+                        .iter()
+                        .filter(|i| i.account_code.is_some())
+                        .count(),
+                    unmapped = output
+                        .line_items
+                        .iter()
+                        .filter(|i| i.account_code.is_none())
+                        .count(),
+                    "=== COMPACT EXTRACTION PARSED SUCCESSFULLY ==="
+                );
+                for (i, item) in output.line_items.iter().enumerate() {
+                    tracing::info!(
+                        idx = i,
+                        code = ?item.account_code,
+                        name = ?item.account_name,
+                        raw_label = %item.raw_label,
+                        month = item.month,
+                        value = item.value,
+                        confidence = item.confidence,
+                        "  line_item[{i}]"
+                    );
+                }
+                return Ok(output);
+            }
+            Err(compact_err) => {
+                tracing::debug!(
+                    error = %compact_err,
+                    "Failed to parse as compact format, trying standard format"
+                );
+            }
+        }
+
+        // 2. Fallback to standard flat format
         match serde_json::from_str::<ExtractionOutput>(cleaned) {
             Ok(output) => {
                 tracing::info!(
@@ -745,7 +830,7 @@ impl LlmExtractor {
                         .iter()
                         .filter(|i| i.account_code.is_none())
                         .count(),
-                    "=== EXTRACTION PARSED SUCCESSFULLY ==="
+                    "=== FLAT EXTRACTION PARSED SUCCESSFULLY ==="
                 );
                 for (i, item) in output.line_items.iter().enumerate() {
                     tracing::info!(
@@ -753,6 +838,7 @@ impl LlmExtractor {
                         code = ?item.account_code,
                         name = ?item.account_name,
                         raw_label = %item.raw_label,
+                        month = item.month,
                         value = item.value,
                         confidence = item.confidence,
                         "  line_item[{i}]"
@@ -765,11 +851,33 @@ impl LlmExtractor {
 
                 // Best-effort JSON repair: try to close incomplete JSON
                 if let Some(repaired) = repair_truncated_json(cleaned) {
+                    if let Ok(compact) = serde_json::from_str::<CompactExtractionOutput>(&repaired)
+                    {
+                        let output = convert_compact(compact);
+                        tracing::info!(
+                            items = output.line_items.len(),
+                            "JSON repair succeeded (parsed as compact)"
+                        );
+                        for (i, item) in output.line_items.iter().enumerate() {
+                            tracing::info!(
+                                idx = i,
+                                code = ?item.account_code,
+                                name = ?item.account_name,
+                                raw_label = %item.raw_label,
+                                month = item.month,
+                                value = item.value,
+                                confidence = item.confidence,
+                                "  line_item[{i}] (repaired compact)"
+                            );
+                        }
+                        return Ok(output);
+                    }
+
                     match serde_json::from_str::<ExtractionOutput>(&repaired) {
                         Ok(output) => {
                             tracing::info!(
                                 items = output.line_items.len(),
-                                "JSON repair succeeded"
+                                "JSON repair succeeded (parsed as flat)"
                             );
                             for (i, item) in output.line_items.iter().enumerate() {
                                 tracing::info!(
@@ -777,9 +885,10 @@ impl LlmExtractor {
                                     code = ?item.account_code,
                                     name = ?item.account_name,
                                     raw_label = %item.raw_label,
+                                    month = item.month,
                                     value = item.value,
                                     confidence = item.confidence,
-                                    "  line_item[{i}] (repaired)"
+                                    "  line_item[{i}] (repaired flat)"
                                 );
                             }
                             return Ok(output);
