@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { useNationalOverview, type NationalOverviewParams } from "@/hooks/analytics/useNationalOverview";
 import { Card } from "@/components/app-shell";
 import {
   Select,
@@ -12,6 +13,7 @@ import { Loader2, Info } from "lucide-react";
 
 interface ComparativeIncomeStatementProps {
   reportingYear: number;
+  filterParams?: NationalOverviewParams;
 }
 
 const MONTH_OPTIONS = [
@@ -112,13 +114,29 @@ const INCOME_STATEMENT_ROWS: IncomeStatementRow[] = [
   },
 ];
 
-export function ComparativeIncomeStatement({ reportingYear }: ComparativeIncomeStatementProps) {
+export function ComparativeIncomeStatement({ reportingYear, filterParams }: ComparativeIncomeStatementProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 
-  const { data: comparative, isLoading } = useComparativeStatements({
+  // Fetch KPI dataset scoped by filters
+  const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({
     reportingYear,
+    ...filterParams,
   });
+
+  // Derive cooperative IDs from filtered overview for line-item fetch
+  const cooperativeIds = useMemo(() => {
+    if (!overview?.cooperatives?.length) return undefined;
+    return overview.cooperatives.map((c) => c.cooperative_id).join(",");
+  }, [overview?.cooperatives]);
+
+  // Fetch raw comparative statement line items (scoped to filtered coops)
+  const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
+    { reportingYear, cooperativeIds },
+    !!cooperativeIds,
+  );
+
+  const isLoading = isOverviewLoading || isCompLoading;
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";

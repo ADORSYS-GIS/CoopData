@@ -46,6 +46,23 @@ export const useApexes = (enabled = true) =>
     retry: false,
   });
 
+export const useMinistryApexes = (federationId?: string, enabled = true) =>
+  useQuery({
+    queryKey: [APEXES_KEY, "ministry", federationId],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ministry/apexes", {
+        params: {
+          query: federationId ? { federation_id: federationId } : undefined,
+        },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return normalizeArray<ApexResponse>(data);
+    },
+    retry: false,
+  });
+
+
 export const useApex = (id: string) =>
   useQuery({
     queryKey: [APEXES_KEY, id],

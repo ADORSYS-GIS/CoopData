@@ -8,7 +8,7 @@ import {
   CartesianGrid,
   Tooltip as ChartTooltip,
 } from "recharts";
-import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useNationalOverview, type NationalOverviewParams } from "@/hooks/analytics/useNationalOverview";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
 import { Card } from "@/components/app-shell";
 import {
@@ -22,6 +22,7 @@ import { Loader2, Info } from "lucide-react";
 
 interface CooperativeRankingProps {
   reportingYear: number;
+  filterParams?: NationalOverviewParams;
 }
 
 const MONTH_OPTIONS = [
@@ -50,17 +51,27 @@ const ACCOUNT_METRICS = [
   { key: "3999", label: "TOTAL EQUITY", isRawCode: true, unit: "SZL" },
 ];
 
-export function CooperativeRanking({ reportingYear }: CooperativeRankingProps) {
+export function CooperativeRanking({ reportingYear, filterParams }: CooperativeRankingProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedMetric, setSelectedMetric] = useState<string>("1999");
 
-  // Fetch KPI dataset
-  const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({ reportingYear });
-
-  // Fetch raw comparative statement line items
-  const { data: comparative, isLoading: isCompLoading } = useComparativeStatements({
+  // Fetch KPI dataset scoped by filters
+  const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({
     reportingYear,
+    ...filterParams,
   });
+
+  // Derive cooperative IDs from filtered overview for line-item fetch
+  const cooperativeIds = useMemo(() => {
+    if (!overview?.cooperatives?.length) return undefined;
+    return overview.cooperatives.map((c) => c.cooperative_id).join(",");
+  }, [overview?.cooperatives]);
+
+  // Fetch raw comparative statement line items (scoped to filtered coops)
+  const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
+    { reportingYear, cooperativeIds },
+    !!cooperativeIds,
+  );
 
   const activeMetricInfo = useMemo(() => {
     return ACCOUNT_METRICS.find((m) => m.key === selectedMetric);

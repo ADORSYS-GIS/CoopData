@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
-import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useNationalOverview, type NationalOverviewParams } from "@/hooks/analytics/useNationalOverview";
 import { Card } from "@/components/app-shell";
 import {
   Select,
@@ -13,6 +13,7 @@ import { Loader2, Info } from "lucide-react";
 
 interface FinancialIndicatorsProps {
   reportingYear: number;
+  filterParams?: NationalOverviewParams;
 }
 
 const MONTH_OPTIONS = [
@@ -189,17 +190,27 @@ const INDICATOR_ROWS: IndicatorRow[] = [
   },
 ];
 
-export function FinancialIndicators({ reportingYear }: FinancialIndicatorsProps) {
+export function FinancialIndicators({ reportingYear, filterParams }: FinancialIndicatorsProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 
-  // Fetch KPI dataset
-  const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({ reportingYear });
-
-  // Fetch raw comparative statement line items
-  const { data: comparative, isLoading: isCompLoading } = useComparativeStatements({
+  // Fetch KPI dataset scoped by filters
+  const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({
     reportingYear,
+    ...filterParams,
   });
+
+  // Derive cooperative IDs from filtered overview for line-item fetch
+  const cooperativeIds = useMemo(() => {
+    if (!overview?.cooperatives?.length) return undefined;
+    return overview.cooperatives.map((c) => c.cooperative_id).join(",");
+  }, [overview?.cooperatives]);
+
+  // Fetch raw comparative statement line items (scoped to filtered coops)
+  const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
+    { reportingYear, cooperativeIds },
+    !!cooperativeIds,
+  );
 
   const formatValue = (val: number | null, unit: string) => {
     if (val === null) return "-";

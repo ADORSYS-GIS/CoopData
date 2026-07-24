@@ -24,9 +24,6 @@ import { useUserRole } from "@/lib/auth";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 import type { components } from "@/openapi-client/api";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
-import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
-import { BenchmarkInsightPanel } from "@/components/analytics/BenchmarkInsightPanel";
-import { useBenchmarks } from "@/hooks/analytics/useBenchmarks";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -281,8 +278,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         </div>
       )}
 
-      {/* Benchmarking Comparison Tool */}
-      <CooperativeComparison reportingYear={reportingYear} />
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
