@@ -706,4 +706,163 @@ impl ExportGenerator {
             .save_to_buffer()
             .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
     }
+
+    /// Spawns a background task to generate consolidated Ministry exports
+    pub fn trigger_ministry_export(state: AppState, reporting_year: i32) {
+        tokio::spawn(async move {
+            tracing::info!(
+                reporting_year = reporting_year,
+                "Starting background Ministry export generation"
+            );
+
+            if let Err(e) = Self::generate_ministry_formats(&state, reporting_year).await {
+                tracing::error!(
+                    error = %e,
+                    "Failed to generate Ministry exports in the background"
+                );
+            } else {
+                tracing::info!(
+                    reporting_year = reporting_year,
+                    "Successfully pre-baked Ministry export formats"
+                );
+            }
+        });
+    }
+
+    async fn generate_ministry_formats(state: &AppState, reporting_year: i32) -> AppResult<()> {
+        let national_data = Self::compile_ministry_data(state, reporting_year).await?;
+        
+        // 1. Generate XLSX
+        let xlsx_bytes = Self::generate_ministry_excel(&national_data, reporting_year)?;
+        let xlsx_filename = format!("ministry_{}.xlsx", reporting_year);
+        let xlsx_key = format!("exports/ministry/{}", xlsx_filename);
+        state
+            .storage
+            .store(
+                &xlsx_key,
+                &xlsx_bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn compile_ministry_data(
+        state: &AppState,
+        reporting_year: i32,
+    ) -> AppResult<
+        Vec<(
+            crate::entities::cooperative::Model,
+            Option<crate::entities::submission::Model>,
+            Vec<crate::entities::kpi_record::Model>,
+        )>
+    > {
+        let cooperatives = state.cooperative_repo.find_all().await?;
+        let mut national_data = Vec::new();
+
+        for coop in cooperatives {
+            let submissions = state.submission_repo.find_by_cooperative(coop.id).await?;
+            let submission = submissions.into_iter().find(|s| s.reporting_year == reporting_year);
+            
+            let mut kpis = Vec::new();
+            if let Some(ref sub) = submission {
+                kpis = state.kpi_record_repo.find_by_submission(sub.id).await?;
+            }
+            national_data.push((coop, submission, kpis));
+        }
+
+        Ok(national_data)
+    }
+
+    pub fn generate_ministry_excel(
+        national_data: &[(
+            crate::entities::cooperative::Model,
+            Option<crate::entities::submission::Model>,
+            Vec<crate::entities::kpi_record::Model>,
+        )],
+        reporting_year: i32,
+    ) -> AppResult<Vec<u8>> {
+        use rust_xlsxwriter::{Color, Format, Workbook};
+        let mut workbook = Workbook::new();
+        let header_format = Format::new()
+            .set_bold()
+            .set_background_color(Color::RGB(0x1F4E78))
+            .set_font_color(Color::White);
+
+        let total_coops = national_data.len();
+        let submitted_coops = national_data.iter().filter(|(_, s, _)| s.is_some()).count();
+        let total_assets: f64 = national_data.iter()
+            .flat_map(|(_, _, kpis)| kpis.iter())
+            .filter(|k| k.kpi_name == "total_assets")
+            .map(|k| k.value)
+            .sum();
+
+        // SHEET 1: National Highlights
+        let sheet1 = workbook.add_worksheet().set_name("National Highlights")?;
+        sheet1.write(0, 0, "Reporting Year:")?;
+        sheet1.write(0, 1, reporting_year)?;
+        sheet1.write(1, 0, "Total Cooperatives Nationwide:")?;
+        sheet1.write(1, 1, total_coops as u32)?;
+        sheet1.write(2, 0, "Total Submitted:")?;
+        sheet1.write(2, 1, submitted_coops as u32)?;
+        sheet1.write(3, 0, "National Total Assets (SZL):")?;
+        sheet1.write(3, 1, total_assets)?;
+
+        // SHEET 2: Sector Overview
+        let sheet2 = workbook.add_worksheet().set_name("Sector Overview")?;
+        sheet2.write_with_format(0, 0, "Sector (Institution Type)", &header_format)?;
+        sheet2.write_with_format(0, 1, "Count", &header_format)?;
+        sheet2.write_with_format(0, 2, "Total Assets", &header_format)?;
+        
+        let mut sector_map = std::collections::HashMap::new();
+        for (coop, _, kpis) in national_data {
+            let sector = coop.institution_type.clone();
+            let assets: f64 = kpis.iter().filter(|k| k.kpi_name == "total_assets").map(|k| k.value).sum();
+            let entry = sector_map.entry(sector).or_insert((0, 0.0));
+            entry.0 += 1;
+            entry.1 += assets;
+        }
+        for (r, (sector, (count, assets))) in (1..).zip(sector_map.into_iter()) {
+            sheet2.write(r, 0, &sector)?;
+            sheet2.write(r, 1, count)?;
+            sheet2.write(r, 2, assets)?;
+        }
+
+        // SHEET 3: Regional Breakdown
+        let sheet3 = workbook.add_worksheet().set_name("Regional Breakdown")?;
+        sheet3.write_with_format(0, 0, "Region", &header_format)?;
+        sheet3.write_with_format(0, 1, "Count", &header_format)?;
+        sheet3.write_with_format(0, 2, "Total Assets", &header_format)?;
+        
+        let mut region_map = std::collections::HashMap::new();
+        for (coop, _, kpis) in national_data {
+            let region = coop.region.clone();
+            let assets: f64 = kpis.iter().filter(|k| k.kpi_name == "total_assets").map(|k| k.value).sum();
+            let entry = region_map.entry(region).or_insert((0, 0.0));
+            entry.0 += 1;
+            entry.1 += assets;
+        }
+        for (r, (region, (count, assets))) in (1..).zip(region_map.into_iter()) {
+            sheet3.write(r, 0, &region)?;
+            sheet3.write(r, 1, count)?;
+            sheet3.write(r, 2, assets)?;
+        }
+
+        // SHEETS 4-13: Stubs
+        workbook.add_worksheet().set_name("Risk Heatmap")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Market Concentration")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Capital Adequacy")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Portfolio Quality")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Financial Position")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Top Performers")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Audit Deficiencies")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Compliance Pivot")?.write(0, 0, "Stub")?;
+        workbook.add_worksheet().set_name("Federation Summary")?.write(0, 0, "Stub")?;
+        // Note: NDP Sector Mapping omitted per feasibility report
+
+        workbook
+            .save_to_buffer()
+            .map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
+    }
 }

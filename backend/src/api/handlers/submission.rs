@@ -1127,6 +1127,12 @@ pub async fn ministry_approve_submission(
         updated.reporting_year,
     );
 
+    // Phase E: Trigger background export generation for the Ministry (National level)
+    crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+        state.clone(),
+        updated.reporting_year,
+    );
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
