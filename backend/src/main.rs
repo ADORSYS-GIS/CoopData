@@ -435,7 +435,11 @@ async fn backfill_computed_kpis(state: &AppState) -> coop_data_backend::AppResul
             .compute_and_save_kpis(sub.id, sub.cooperative_id, sub.reporting_year)
             .await
         {
-            tracing::warn!("Failed to calculate KPIs for submission {}: {:?}", sub.id, e);
+            tracing::warn!(
+                "Failed to calculate KPIs for submission {}: {:?}",
+                sub.id,
+                e
+            );
         } else {
             backfilled_count += 1;
         }

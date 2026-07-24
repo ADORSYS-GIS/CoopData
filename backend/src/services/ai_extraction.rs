@@ -851,7 +851,8 @@ impl LlmExtractor {
 
                 // Best-effort JSON repair: try to close incomplete JSON
                 if let Some(repaired) = repair_truncated_json(cleaned) {
-                    if let Ok(compact) = serde_json::from_str::<CompactExtractionOutput>(&repaired) {
+                    if let Ok(compact) = serde_json::from_str::<CompactExtractionOutput>(&repaired)
+                    {
                         let output = convert_compact(compact);
                         tracing::info!(
                             items = output.line_items.len(),
