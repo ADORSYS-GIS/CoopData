@@ -241,42 +241,40 @@ pub async fn get_submission_kpis(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
-    let kpis: Vec<KpiItemResponse> = if !db_kpis.is_empty() {
-        db_kpis
-            .into_iter()
-            .filter(|r| r.kpi_type == "financial")
-            .map(|r| KpiItemResponse {
-                name: r.kpi_name,
-                value: r.value,
-                formatted: r.formatted,
-                unit: r.unit,
-                status: r.status,
-                benchmark: None,
-                description: r.description,
-            })
-            .collect()
-    } else {
-        let fs = state
-            .financial_statement_repo
-            .find_by_submission(id)
-            .await?
-            .ok_or_else(|| {
-                AppError::NotFound("No financial statement for this submission".into())
-            })?;
+    let mut db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
+    if db_kpis.is_empty() {
+        tracing::warn!(
+            submission_id = %id,
+            "KPI records missing from DB, auto-computing and saving on-the-fly"
+        );
+        let workflow = crate::services::submission_workflow::SubmissionWorkflow::new(
+            state.submission_repo.clone(),
+            state.review_repo.clone(),
+            state.flag_repo.clone(),
+            state.section_repo.clone(),
+            state.financial_statement_repo.clone(),
+            state.line_item_repo.clone(),
+            state.kpi_record_repo.clone(),
+            state.db.clone(),
+        );
+        if let Err(e) = workflow.compute_and_save_kpis(id, submission.cooperative_id, submission.reporting_year).await {
+            tracing::error!("Failed to auto-compute KPIs: {}", e);
+        }
+        db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
+    }
 
-        let line_items = state
-            .line_item_repo
-            .find_by_financial_statement(fs.id)
-            .await?;
-
-        let kpi_set = crate::services::KpiEngine::compute(&line_items);
-        kpi_set
-            .to_vec()
-            .into_iter()
-            .map(KpiItemResponse::from)
-            .collect()
-    };
+    let kpis: Vec<KpiItemResponse> = db_kpis
+        .into_iter()
+        .map(|r| KpiItemResponse {
+            name: r.kpi_name,
+            value: r.value,
+            formatted: r.formatted,
+            unit: r.unit,
+            status: r.status,
+            benchmark: None,
+            description: r.description,
+        })
+        .collect();
 
     tracing::info!(
         submission_id = %id,

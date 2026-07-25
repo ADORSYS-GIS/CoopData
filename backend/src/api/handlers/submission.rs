@@ -1100,6 +1100,18 @@ pub async fn ministry_approve_submission(
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
 
+    // Compute and persist KPIs on approval
+    if let Err(e) = workflow
+        .compute_and_save_kpis(id, updated.cooperative_id, updated.reporting_year)
+        .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            error = %e,
+            "Failed to compute and save KPIs during ministry approval"
+        );
+    }
+
     // Phase A: Trigger background export generation for the cooperative
     crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), id);
 

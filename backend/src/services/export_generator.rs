@@ -109,7 +109,7 @@ impl ExportGenerator {
         let token = state.keycloak.get_admin_token().await?;
 
         let print_url = format!(
-            "http://coopdata-frontend:80/print/cooperative/{}?token={}",
+            "http://frontend:80/print/cooperative/{}?token={}",
             submission_id, token
         );
 
@@ -460,17 +460,30 @@ impl ExportGenerator {
             .all(&state.db)
             .await?;
 
-        // 1. Try fetching from kpi_records table first
-        let db_kpis = state.kpi_record_repo.find_by_submission(sub_id).await?;
+        let mut db_kpis = state.kpi_record_repo.find_by_submission(sub_id).await?;
 
-        let kpis = if db_kpis.is_empty() {
-            // 2. Fallback to computing on the fly
+        if db_kpis.is_empty() {
             tracing::warn!(
                 submission_id = %sub_id,
-                "KPI records missing from DB during export, falling back to KpiEngine"
+                "KPI records missing from DB during export, auto-computing and saving on-the-fly"
             );
-            crate::services::kpi_engine::KpiEngine::compute(&line_items)
-        } else {
+            let workflow = crate::services::submission_workflow::SubmissionWorkflow::new(
+                state.submission_repo.clone(),
+                state.review_repo.clone(),
+                state.flag_repo.clone(),
+                state.section_repo.clone(),
+                state.financial_statement_repo.clone(),
+                state.line_item_repo.clone(),
+                state.kpi_record_repo.clone(),
+                state.db.clone(),
+            );
+            if let Err(e) = workflow.compute_and_save_kpis(sub_id, submission.cooperative_id, submission.reporting_year).await {
+                tracing::error!("Failed to auto-compute KPIs during export: {}", e);
+            }
+            db_kpis = state.kpi_record_repo.find_by_submission(sub_id).await?;
+        }
+
+        let kpis = {
             tracing::info!(
                 submission_id = %sub_id,
                 "Successfully read {} KPIs from database for export",
