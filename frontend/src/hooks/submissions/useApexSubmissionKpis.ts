@@ -12,11 +12,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
  * The backend authorises this by verifying the submission belongs to one of
  * the apex's cooperatives (resolve_caller_cooperative_ids).
  */
-export const useApexSubmissionKpis = (submissionId: string | undefined) =>
+export const useApexSubmissionKpis = (submissionId: string | undefined, tokenOverride?: string) =>
   useQuery<SubmissionKpisResponse>({
-    queryKey: ["apex-submission-kpis", submissionId],
+    queryKey: ["apex-submission-kpis", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = await getAccessToken();
+      const token = tokenOverride || await getAccessToken();
       const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis`, {
         headers: { Authorization: `Bearer ${token}` },
       });

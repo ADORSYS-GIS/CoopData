@@ -24,11 +24,12 @@ export const apiClient = createClient<paths>({
   },
 });
 
-// Auth interceptor — attaches Bearer token to every request
 apiClient.use({
   async onRequest({ request }) {
     try {
-      const token = await getAccessToken();
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryToken = urlParams.get("token");
+      const token = queryToken || await getAccessToken();
       request.headers.set("Authorization", `Bearer ${token}`);
     } catch {
       // Not authenticated — let the request proceed without token
@@ -42,7 +43,8 @@ apiClient.use({
     // Let the individual hooks/pages handle the error instead.
     if (response.status === 401) {
       const isAppRoute = window.location.pathname.startsWith("/app");
-      if (!isAppRoute) {
+      const isPrintRoute = window.location.pathname.startsWith("/print");
+      if (!isAppRoute && !isPrintRoute) {
         window.location.href = "/auth/login";
       }
     }

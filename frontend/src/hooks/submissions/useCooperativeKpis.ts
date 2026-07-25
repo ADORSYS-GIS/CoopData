@@ -28,11 +28,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
  * The submission_id should be the latest submission (highest reporting_year)
  * from useCooperativeSubmissions — regardless of status.
  */
-export const useCooperativeKpis = (submissionId: string | undefined) =>
+export const useCooperativeKpis = (submissionId: string | undefined, tokenOverride?: string) =>
   useQuery<SubmissionKpisResponse>({
-    queryKey: ["coop-kpis", submissionId],
+    queryKey: ["coop-kpis", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = await getAccessToken();
+      const token = tokenOverride || await getAccessToken();
       const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis`, {
         headers: { Authorization: `Bearer ${token}` },
       });

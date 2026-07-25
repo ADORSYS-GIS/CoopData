@@ -210,6 +210,15 @@ services:
       timeout: 5s
       retries: 5
 
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: coopdata-gotenberg
+    ports:
+      - "127.0.0.1:8081:3000"
+    environment:
+      - CHROMIUM_DISABLE_SANDBOX=true
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

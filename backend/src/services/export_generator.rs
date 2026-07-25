@@ -45,7 +45,7 @@ impl ExportGenerator {
         state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
 
         // 3. Generate PDF (Phase F)
-        let pdf_bytes = Self::generate_cooperative_pdf(&submission, &cooperative, &kpis)?;
+        let pdf_bytes = Self::generate_cooperative_pdf(state, submission_id).await?;
         let pdf_key = format!("exports/individual/{}/submission_{}.pdf", submission_id, submission_id);
         state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
@@ -102,79 +102,52 @@ impl ExportGenerator {
     }
 
     /// Generate an executive-summary PDF for a single cooperative submission
-    fn generate_cooperative_pdf(
-        submission: &crate::entities::submission::Model,
-        cooperative: &crate::entities::cooperative::Model,
-        kpis: &crate::services::kpi_engine::ComputedKpiSet,
+    pub(crate) async fn generate_cooperative_pdf(
+        state: &AppState,
+        submission_id: Uuid,
     ) -> AppResult<Vec<u8>> {
-        use printpdf::{Line, Mm, PdfDocument, Point};
+        let token = state.keycloak.get_admin_token().await?;
 
-        let (doc, page, layer) = PdfDocument::new("Cooperative Executive Summary", Mm(210.0), Mm(297.0), "Layer 1");
-        let font = doc.add_builtin_font(printpdf::BuiltinFont::Helvetica).unwrap();
-        let font_bold = doc.add_builtin_font(printpdf::BuiltinFont::HelveticaBold).unwrap();
+        let print_url = format!(
+            "http://coopdata-frontend:80/print/cooperative/{}?token={}",
+            submission_id, token
+        );
 
-        let current_layer = doc.get_page(page).get_layer(layer);
+        let form = reqwest::multipart::Form::new()
+            .text("url", print_url)
+            .text("waitExpression", "window.status === 'ready'")
+            .text("paperWidth", "8.27")
+            .text("paperHeight", "11.69")
+            .text("marginTop", "0")
+            .text("marginBottom", "0")
+            .text("marginLeft", "0")
+            .text("marginRight", "0");
 
-        let mut y = 270.0f32;
-        let write_line = |layer: &printpdf::PdfLayerReference, text: &str, x: f32, cy: f32, size: f32, bold: bool| {
-            layer.begin_text_section();
-            layer.set_font(if bold { &font_bold } else { &font }, size);
-            layer.set_text_cursor(Mm(x), Mm(cy));
-            layer.write_text(text, if bold { &font_bold } else { &font });
-            layer.end_text_section();
-        };
+        let response = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .build()
+            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to build HTTP client: {}", e)))?
+            .post("http://gotenberg:3000/forms/chromium/convert/url")
+            .multipart(form)
+            .send()
+            .await
+            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to connect to Gotenberg: {}", e)))?;
 
-        write_line(&current_layer, &cooperative.name.to_uppercase(), 20.0, y, 16.0, true);
-        y -= 8.0;
-        write_line(&current_layer, "CoopData – Executive Summary Report", 20.0, y, 11.0, false);
-        y -= 6.0;
-        write_line(&current_layer, &format!("Reporting Year: {}", submission.reporting_year), 20.0, y, 10.0, false);
-        y -= 5.0;
-        write_line(&current_layer, &format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")), 20.0, y, 10.0, false);
-        y -= 8.0;
-
-        // Divider line
-        let line_pts = vec![
-            (Point::new(Mm(20.0), Mm(y)), false),
-            (Point::new(Mm(190.0), Mm(y)), false),
-        ];
-        let divider = Line { points: line_pts, is_closed: false };
-        current_layer.set_outline_thickness(0.8);
-        current_layer.add_line(divider);
-        y -= 8.0;
-
-        write_line(&current_layer, "Key Performance Indicators", 20.0, y, 13.0, true);
-        y -= 8.0;
-
-        // Column headers
-        write_line(&current_layer, "Category", 20.0, y, 9.0, true);
-        write_line(&current_layer, "KPI", 65.0, y, 9.0, true);
-        write_line(&current_layer, "Value", 140.0, y, 9.0, true);
-        write_line(&current_layer, "Status", 170.0, y, 9.0, true);
-        y -= 6.0;
-
-        let kpi_rows = [
-            ("Capital", "Capital Adequacy Ratio", &kpis.capital_adequacy_ratio),
-            ("Quality", "PAR 30", &kpis.par30),
-            ("Quality", "PAR 90", &kpis.par90),
-            ("Profitability", "ROA", &kpis.roa),
-            ("Profitability", "ROE", &kpis.roe),
-            ("Liquidity", "Liquid Funds Ratio", &kpis.liquid_funds_ratio),
-            ("Sustainability", "Op. Self-Sufficiency", &kpis.operational_self_sufficiency),
-        ];
-
-        for (cat, name, kpi) in &kpi_rows {
-            if y < 30.0 { break; }
-            write_line(&current_layer, cat, 20.0, y, 9.0, false);
-            write_line(&current_layer, name, 65.0, y, 9.0, false);
-            write_line(&current_layer, &kpi.formatted, 140.0, y, 9.0, false);
-            write_line(&current_layer, kpi.status.as_deref().unwrap_or("N/A"), 170.0, y, 9.0, false);
-            y -= 5.5;
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(crate::error::AppError::InternalServerError(format!(
+                "Gotenberg returned error status {}: {}",
+                status, text
+            )));
         }
 
-        let mut buf = std::io::BufWriter::new(Vec::new());
-        doc.save(&mut buf).map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))?;
-        buf.into_inner().map_err(|e| crate::error::AppError::InternalServerError(e.to_string()))
+        let pdf_bytes = response
+            .bytes()
+            .await
+            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to read Gotenberg PDF response: {}", e)))?;
+
+        Ok(pdf_bytes.to_vec())
     }
 
 

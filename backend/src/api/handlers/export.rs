@@ -541,127 +541,14 @@ pub async fn export_single_submission(
             let bytes = match state.storage.get_object(&storage_key).await {
                 Ok(b) => b,
                 Err(_) => {
-                    let (submission, cooperative, line_items, kpis) = compile_export_data(&state, id).await?;
-                    let generated_bytes = {
-                        let mut writer = PdfWriter::new("Cooperative Report");
-
-                // Header block
-                writer.write_line(&cooperative.name.to_uppercase(), 18.0, true);
-                writer.write_line("CoopData Performance & Compliance Report", 11.0, false);
-                writer.write_line(
-                    &format!("Reporting Period: {}", submission.reporting_year),
-                    11.0,
-                    false,
-                );
-                writer.write_line(
-                    &format!("Generated on: {}", Utc::now().format("%Y-%m-%d")),
-                    10.0,
-                    false,
-                );
-                writer.draw_divider();
-
-                // Balance Sheet Items Section
-                writer.write_line("1. Key Balance Sheet Items", 14.0, true);
-                writer.current_y -= 2.0;
-
-                // Draw table columns header
-                writer.check_page_break(10.0);
-                writer.write_text("Code", 20.0, 10.0, true);
-                writer.write_text("Account Name", 45.0, 10.0, true);
-                writer.write_text("Category", 120.0, 10.0, true);
-                writer.write_text("Value", 160.0, 10.0, true);
-                writer.current_y -= 6.0;
-
-                for item in &line_items {
-                    // Filter down to display key items or only those with non-zero values to avoid extremely long PDFs
-                    if item.value.map(|v| v.is_zero()).unwrap_or(true) {
-                        continue;
-                    }
-                    writer.check_page_break(8.0);
-                    let code_str = item
-                        .account_code
-                        .map(|c| c.to_string())
-                        .unwrap_or_else(|| "N/A".into());
-                    let val_str = item
-                        .value
-                        .map(|v| format_currency(v.to_f64().unwrap_or(0.0)))
-                        .unwrap_or_else(|| "$0".to_string());
-
-                    writer.write_text(&code_str, 20.0, 9.0, false);
-
-                    let truncated_name = if item.account_name.len() > 30 {
-                        format!("{}...", &item.account_name[..27])
-                    } else {
-                        item.account_name.clone()
-                    };
-                    writer.write_text(&truncated_name, 45.0, 9.0, false);
-                    writer.write_text(&format!("{:?}", item.account_category), 120.0, 9.0, false);
-                    writer.write_text(&val_str, 160.0, 9.0, false);
-
-                    writer.current_y -= 5.5;
+                    let generated_bytes = crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(&state, id).await?;
+                    state
+                        .storage
+                        .store(&storage_key, &generated_bytes, "application/pdf")
+                        .await?;
+                    generated_bytes
                 }
-
-                writer.draw_divider();
-
-                // KPIs Section
-                writer.write_line("2. Compliance & Operational KPIs", 14.0, true);
-                writer.current_y -= 2.0;
-
-                // Columns headers
-                writer.check_page_break(10.0);
-                writer.write_text("KPI Name", 20.0, 10.0, true);
-                writer.write_text("Value", 100.0, 10.0, true);
-                writer.write_text("Benchmark", 130.0, 10.0, true);
-                writer.write_text("Status", 160.0, 10.0, true);
-                writer.current_y -= 6.0;
-
-                let add_pdf_kpi_row = |w: &mut PdfWriter, name: &str, kpi: &KpiResult| {
-                    w.check_page_break(8.0);
-                    let bench_str = kpi
-                        .benchmark
-                        .map(|b| format!("{:.1}", b))
-                        .unwrap_or_else(|| "N/A".into());
-                    w.write_text(name, 20.0, 9.0, false);
-                    w.write_text(&kpi.formatted, 100.0, 9.0, false);
-                    w.write_text(&bench_str, 130.0, 9.0, false);
-                    w.write_text(kpi.status.as_deref().unwrap_or("N/A"), 160.0, 9.0, true);
-                    w.current_y -= 5.5;
-                };
-
-                let f = &kpis;
-                add_pdf_kpi_row(
-                    &mut writer,
-                    "Capital Adequacy Ratio",
-                    &f.capital_adequacy_ratio,
-                );
-                add_pdf_kpi_row(&mut writer, "PAR 30", &f.par30);
-                add_pdf_kpi_row(&mut writer, "PAR 90", &f.par90);
-                add_pdf_kpi_row(&mut writer, "Loan Loss Coverage", &f.loan_loss_coverage);
-                add_pdf_kpi_row(&mut writer, "ROA", &f.roa);
-                add_pdf_kpi_row(&mut writer, "ROE", &f.roe);
-                add_pdf_kpi_row(&mut writer, "Liquid Funds Ratio", &f.liquid_funds_ratio);
-                add_pdf_kpi_row(
-                    &mut writer,
-                    "Operational Self-Sufficiency",
-                    &f.operational_self_sufficiency,
-                );
-
-                let mut buf = std::io::BufWriter::new(Vec::new());
-                writer
-                    .doc
-                    .save(&mut buf)
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-                buf.into_inner()
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
             };
-
-            state
-                .storage
-                .store(&storage_key, &generated_bytes, "application/pdf")
-                .await?;
-            generated_bytes
-            }
-        };
 
             let res = Response::builder()
                 .header("Content-Type", "application/pdf")
