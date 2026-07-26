@@ -22,12 +22,13 @@ interface Props {
 }
 
 export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOverride }) => {
-  const { data: submission, isLoading: subLoading } = useSubmission(submissionId);
+  const { data: submission, isLoading: subLoading } = useSubmission(submissionId, undefined, tokenOverride);
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId, tokenOverride);
 
   // Fetch only the single cooperative profile to prevent over-fetching (P2)
   const { data: cooperative, isLoading: coopLoading } = useCooperative(
-    submission?.cooperative_id ?? ""
+    submission?.cooperative_id ?? "",
+    tokenOverride
   );
 
   // Signal Gotenberg when loading is done and layout has rendered (P3)

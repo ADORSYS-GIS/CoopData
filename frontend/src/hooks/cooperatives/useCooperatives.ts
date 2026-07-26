@@ -45,12 +45,14 @@ export const useCooperatives = () =>
     retry: false,
   });
 
-export const useCooperative = (id: string) =>
+export const useCooperative = (id: string, tokenOverride?: string) =>
   useQuery({
     queryKey: [COOPERATIVES_KEY, id],
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}", {
         params: { path: { id } },
+        headers,
       });
       if (error) throw new Error(extractErrorMessage(error));
       return data as unknown as CooperativeResponse;

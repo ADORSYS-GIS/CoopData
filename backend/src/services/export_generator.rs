@@ -116,7 +116,7 @@ impl ExportGenerator {
 
         let form = reqwest::multipart::Form::new()
             .text("url", print_url)
-            .text("waitExpression", "window.status === 'ready'")
+            .text("waitForExpression", "window.status === 'ready'")
             .text("paperWidth", "8.27")
             .text("paperHeight", "11.69")
             .text("marginTop", "0")

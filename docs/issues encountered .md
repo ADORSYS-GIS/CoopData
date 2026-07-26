@@ -1,728 +1,354 @@
-#3: sonner-toaster-not-mounted
+#7: gotenberg-pdf-export-err-connection-refused
 
-# Postmortem: Federation CRUD Toasts Never Displayed (sonner `<Toaster />` Not Mounted)
+# Postmortem: Cooperative PDF Export Fails — Gotenberg Chromium ERR_CONNECTION_REFUSED
 
-**Date:** 2026-07-02  
-**Severity:** Medium — all toast/sonner notifications across the entire app were invisible  
-**Affected area:** Frontend — every `toast.success()`, `toast.error()` call across all pages  
-**Resolution:** Added `<Toaster richColors closeButton />` to `__root.tsx`
+**Date:** 2026-07-25
+**Severity:** High — Cooperative PDF export completely non-functional; returns 500 with "unstream error" PDF
+**Affected area:** Backend (export_generator.rs) + Gotenberg 8 service + Frontend (Vite config + Docker networking)
+**Resolution:** Root cause identified as Gotenberg 8 internal Chromium proxy (`--proxy-server=http://127.0.0.1:42181`) blocking all outbound connections. Three real bugs were also fixed along the way.
 
 ---
 
 ## 1. Symptom
 
-All mutation feedback calls (e.g., `toast.success("Federation created")`) compiled fine and ran without errors, but no toast ever appeared in the UI. The browser console showed no errors.
+When a user clicks **Export → PDF** on the Reports Page for a cooperative submission:
 
-## 2. Root Cause
+1. Backend logs show: `net::ERR_CONNECTION_REFUSED: loading failed` from Gotenberg
+2. User receives a PDF file containing the text "unstream error" instead of the actual report
+3. The background export (triggered on approval) also fails with the same error
+4. No pre-baked exports exist in S3 (confirmed via `mc ls`)
 
-The shadcn/ui `<Toaster />` wrapper (at `src/components/ui/sonner.tsx`) existed and was properly configured, but it was **never imported or mounted anywhere** in the component tree. Without a `<Toaster>` mounted in the React tree, sonner has no portal target to render into. All `toast.*()` calls resolve silently to no-ops.
-
-## 3. The Fix
-
-Added to `frontend/src/routes/__root.tsx`:
-
-```tsx
-import { Toaster } from "@/components/ui/sonner";
-// ...
-<QueryClientProvider client={queryClient}>
-  <Outlet />
-  <Toaster richColors closeButton />
-</QueryClientProvider>
+Backend error log:
+```
+ERROR coop_data_backend::services::export_generator:
+  Failed to generate exports in the background
+  submission_id=96824528-f182-47d2-a256-12082b7bd927
+  error=Internal server error: Gotenberg returned error status 400 Bad Request:
+    Chromium returned net::ERR_CONNECTION_REFUSED: loading failed
 ```
 
-## 4. Prevention
+## 2. Architecture Context
 
-Add a lint rule or integration test checking that `<Toaster />` is mounted. The shadcn/ui sonner component should be added to the root layout by default in all new projects.
+### The Full Export Chain
+
+```
+User clicks Export → PDF
+    ↓
+GET /api/v1/cooperative/submissions/{id}/export?format=pdf
+    ↓
+Backend checks S3 for pre-baked PDF → 404 (none exists)
+    ↓
+Backend calls Gotenberg HTTP API:
+  POST http://gotenberg:3000/forms/chromium/convert/url
+  -F "url=http://frontend:5173/print/cooperative/{id}?token={jwt}"
+  -F "waitExpression=window.status === 'ready'"
+    ↓
+Gotenberg's headless Chromium navigates to the URL
+    ↓
+React app renders CooperativeReportPrint (3-page report with Recharts)
+    ↓
+Chromium captures the rendered page as PDF
+    ↓
+PDF bytes returned → stored in S3 → returned to user
+```
+
+### The "Two Worlds" Docker Networking Concept
+
+Understanding this issue requires understanding Docker networking:
+
+| World | DNS Resolution | Used By |
+|-------|---------------|---------|
+| **Host World** (your laptop) | `localhost` | Your browser, curl on host |
+| **Internal Docker World** | Service names (`frontend`, `backend`, `keycloak`) | Containers talking to each other |
+
+This is the same pattern Keycloak uses:
+- `VITE_KEYCLOAK_URL=http://localhost:8180` — browser (Host World) uses `localhost`
+- `KEYCLOAK_URL=http://keycloak:8180` — backend (Docker World) uses service name
+
+Gotenberg lives entirely in the **Internal Docker World**:
+- Backend → Gotenberg: `http://gotenberg:3000` ✓ (works, same Docker network)
+- Gotenberg → Frontend: `http://frontend:5173` ✗ (fails — see root cause below)
+
+Key files:
+- `backend/src/services/export_generator.rs:100-140` — `generate_cooperative_pdf()`
+- `backend/src/config.rs:60` — `gotenberg_frontend_url` field
+- `frontend/src/pages/reports/CooperativeReportPrint.tsx` — React report component
+- `frontend/src/routes/print/cooperative/$id.tsx` — Print route
 
 ---
 
-#4: jwt-expiry-cached-token
+## 3. Bugs Found and Fixed (In Chronological Order)
 
-# Postmortem: Intermittent 401 Errors — Cached Access Token Fallback Without Expiry Check
+### Bug 1: Hardcoded Port — `http://frontend:80` in Production Code
 
-**Date:** 2026-07-02  
-**Severity:** High — users would randomly get 401 errors when their Keycloak access token expired but the refresh failed silently  
-**Affected area:** Frontend — `authService.ts` `getAccessToken()`  
-**Resolution:** Added JWT `exp` claim validation to the cached token fallback path
+**Observation:** `export_generator.rs:112` hardcoded `http://frontend:80` for the Gotenberg URL. But in the dev environment (`docker-compose.override.yml`), the frontend runs Vite on port 5173, not nginx on port 80.
+
+**Evidence:**
+```bash
+$ docker compose exec gotenberg curl http://frontend:80/
+→ connect to 172.18.0.11 port 80 failed: Connection refused
+```
+
+**Fix applied:**
+- Added `gotenberg_frontend_url` field to `AppConfig` in `backend/src/config.rs`
+- Reads from `GOTENBERG_FRONTEND_URL` env var, defaults to `http://frontend:80`
+- Changed `export_generator.rs:112` from hardcoded URL to `state.config.gotenberg_frontend_url`
+- Set `GOTENBERG_FRONTEND_URL=http://frontend:5173` in `docker-compose.override.yml`
+- Added to `docker-compose.yml` backend env section
+
+**Result:** ✅ Fixed the port mismatch. curl from Gotenberg now reaches the frontend on port 5173. But PDF generation still fails.
 
 ---
 
-## 1. Symptom
+### Bug 2: Vite 7 Host Protection — 403 Forbidden
 
-After navigating the app for ~5 minutes, API calls would start returning 401 errors. Refreshing the page fixed it because Keycloak's `check-sso` would re-authenticate.
+**Observation:** After fixing the port, testing from Gotenberg:
+```bash
+$ docker compose exec gotenberg curl http://frontend:5173/
+→ HTTP 403 Forbidden (Vite 7 blocks unknown Host headers)
 
-## 2. Root Cause
+$ docker compose exec gotenberg curl -H "Host: localhost:5173" http://frontend:5173/
+→ HTTP 200 OK (localhost header passes)
+```
 
-In `authService.ts`, `getAccessToken()` has a fallback path when `keycloak.updateToken()` fails (refresh token expired, network issue, etc.):
+Vite 7 added a security feature that rejects requests from unknown hostnames. Gotenberg sends `Host: frontend:5173` which Vite blocks.
 
+**Fix applied:**
+- Added `allowedHosts: true` to `vite.config.ts` server config
+- This tells Vite to accept requests from any Host header
+
+**Result:** ✅ curl from Gotenberg now returns 200 OK. But Gotenberg's Chromium still gets `ERR_CONNECTION_REFUSED`.
+
+---
+
+### Bug 3: API Calls Unreachable from Gotenberg's Browser
+
+**Observation:** When Gotenberg's Chromium loads the print page, the React component makes API calls to fetch submission data. These use:
 ```typescript
-} catch {
-  const cached = await loadCachedTokens();
-  if (cached?.token) {
-    return cached.token;  // <-- NO EXPIRY CHECK
-  }
-  throw new Error("Session expired. Please log in again.");
-}
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+// → "http://localhost:3000" (from docker-compose override)
 ```
 
-The cached token was returned without decoding the JWT to check `exp`. The `loadCachedTokens()` function only guards against tokens older than 24 hours — far too coarse for a 5-minute access token TTL. So a 5-minute-old expired token would pass the cache freshness check and be sent to the API, resulting in a 401.
+Inside Gotenberg's container, `localhost:3000` resolves to the **Gotenberg container itself** (which listens on port 3000 for its own API), not the backend. API calls fail silently → page shows "Failed to load report data".
 
-## 3. The Fix
+**Fix applied:**
+- Set `VITE_API_BASE_URL: ""` in `docker-compose.override.yml`
+- Empty string means API calls go through Vite's proxy (`/api` → `http://backend:3000`)
+- Verified the proxy works: `curl http://frontend:5173/api/v1/health → 200 OK`
 
-Added `isTokenExpired()` that decodes the JWT payload and checks `exp * 1000` against `Date.now()`:
-
-```typescript
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return Date.now() >= (payload.exp * 1000);
-  } catch {
-    return true; // malformed token — treat as expired
-  }
-}
-```
-
-Used in the `getAccessToken()` fallback:
-
-```typescript
-if (cached?.token && !isTokenExpired(cached.token)) {
-  return cached.token;
-}
-```
-
-## 4. Prevention
-
-- Always validate JWT `exp` when using cached tokens as fallback
-- Add a `staleTime` to React Query hooks to reduce unnecessary token checks via refetching
-- Consider using Keycloak's built-in token refresh (which handles this) as the primary path
+**Result:** ✅ All curl tests pass. But Gotenberg's actual Chromium request still fails.
 
 ---
 
-#5: route-guard-hardening
+### Bug 4 (Theory): Vite IPv6-Only Binding
 
-# Postmortem: Insufficient Route Guards on Ministry Pages
+**Hypothesis:** In Node v17+/v22, setting `host: true` in Vite may cause it to bind exclusively to the **IPv6** loopback address (`::`). Gotenberg's Chromium (running on Debian) resolves `frontend` to an **IPv4** address (`172.18.0.x`). If Vite is only listening on IPv6, Gotenberg gets `ERR_CONNECTION_REFUSED` on the IPv4 address.
 
-**Date:** 2026-07-02  
-**Severity:** Medium — 4 routes allowed non-ministry roles to access ministry-only pages  
-**Affected area:** Frontend — route guard configuration  
-**Resolution:** Changed guards from `requireAuth()` / broader roles to strict `requireRole("ministry")`
+**Fix proposed:** Changed `host: true` to `host: '0.0.0.0'` in `vite.config.ts` to force Vite to bind to all IPv4 addresses.
 
----
+**Result:** ❌ **Did NOT fix the issue.** This theory was disproven by earlier evidence:
+```bash
+# curl from inside Gotenberg uses IPv4 → 200 OK ✓
+$ docker compose exec gotenberg curl http://frontend:5173/ → 200 OK
 
-## 1. Symptom
-
-Users with federation, apex, or cooperative roles could access:
-- `/app/submissions` (no role check at all)
-- `/app/reports` (no role check)
-- `/app/analytics` (no role check)
-- `/app/users` (allowed ministry, federation, and apex)
-
-These pages are ministry-only and should have been guarded with `requireRole("ministry")`.
-
-## 2. Root Cause
-
-During initial route setup, many routes were configured with `requireAuth()` as a placeholder or with a too-permissive role set. The `ROUTE_ACCESS` map in `route-guards.ts` correctly documented the intended restrictions, but the actual `beforeLoad` guards in individual route files diverged from it. The `ROUTE_ACCESS` map is only documentation — it is never consumed by code.
-
-## 3. The Fix
-
-Changed the following route guard files:
-
-| Route file | Before | After |
-|---|---|---|
-| `app.submissions.tsx` | `requireAuth()` | `requireRole("ministry")` |
-| `app.reports.tsx` | `requireAuth()` | `requireRole("ministry")` |
-| `app.analytics.tsx` | `requireAuth()` | `requireRole("ministry")` |
-| `app.users.tsx` | `requireRole("ministry", "federation", "apex")` | `requireRole("ministry")` |
-
-## 4. Prevention
-
-- All ministry route files should use `requireRole("ministry")` consistently
-- Consider validating route guards against the `ROUTE_ACCESS` map with a lint rule or test
-
----
-
-#6: ministry-member-deletion
-
-# Postmortem: Ministry Could Not Remove Members From Federation
-
-**Date:** 2026-07-02  
-**Severity:** Medium — missing feature, ministry users had no way to remove federation members  
-**Affected area:** Backend + Frontend — ministry routes + MemberList.tsx  
-**Resolution:** Added `DELETE /api/v1/ministry/federations/{id}/members/{user_id}` endpoint and UI
-
----
-
-## 1. Symptom
-
-The MemberList page showed all members in a table but had only an inert "View Details" button. There was no way to remove a member from a federation at the ministry level.
-
-## 2. Root Cause
-
-The backend route file (`routes/ministry.rs`) had no DELETE endpoint for members. The Keycloak service already had `remove_user_from_organization()` implemented, but nobody had wired it to a route. The federation-level route file had a `remove_apex_member` endpoint (also TODO), but ministry had nothing.
-
-## 3. The Fix
-
-**Backend** (`backend/src/api/routes/ministry.rs`, `handlers/federation.rs`, `openapi.rs`):
-- Added `DELETE /federations/{id}/members/{user_id}` route
-- Created `remove_federation_member` handler calling `keycloak.remove_user_from_organization()`
-- Registered in OpenAPI spec
-
-**Frontend** (`frontend/src/hooks/federations/useFederations.ts`):
-- Added `useRemoveFederationMember()` mutation hook with query invalidation
-
-**Frontend** (`frontend/src/pages/ministry/MemberList.tsx`):
-- Replaced inert "View Details" with Trash2 icon button
-- Added AlertDialog confirmation ("Remove member? — This will permanently remove [name] from the federation...")
-- Added toast.success/toast.error for mutation feedback
-
----
-
-#1: axum-path-param-bug-postmortem
-
-# Postmortem: Silent 404 on All Parametric Routes (Axum Version Mismatch)
-
-**Date:** 2026-07-01  
-**Severity:** High — all `DELETE`, `GET /{id}`, `PATCH /{id}` endpoints were silently broken  
-**Affected area:** Backend — every route with a path parameter (`/federations/{id}`, `/users/{id}`, `/organizations/{id}`, etc.)  
-**Resolution:** Upgraded `axum` from `0.7` to `0.8` in `Cargo.toml`
-
----
-
-## 1. Symptom
-
-Clicking "Delete Federation" in the UI returned HTTP `404 Not Found`. The browser network tab showed:
-
+# If Vite were IPv6-only, curl would ALSO fail on IPv4
+# The fact that curl succeeds proves Vite IS listening on IPv4
 ```
-DELETE http://localhost:5174/api/v1/ministry/federations/5b5b93e4-9f40-4aa6-ab41-035591f912b1
-Status: 404 Not Found
+The real issue is Chromium's internal proxy (`--proxy-server`), not Vite's bind address. However, `host: '0.0.0.0'` is still better practice than `host: true` for explicitness.
+
+---
+
+## 4. The Real Showstopper: Gotenberg 8 Chromium Proxy
+
+### The Discovery
+
+After fixing all three bugs above, `curl` from inside Gotenberg returned 200 OK for everything:
+```bash
+$ docker compose exec gotenberg curl http://frontend:5173/ → 200 OK ✓
+$ docker compose exec gotenberg curl http://172.18.0.10:5173/ → 200 OK ✓
+$ docker compose exec gotenberg curl http://frontend:5173/api/v1/health → 200 OK ✓
 ```
 
-The backend access log confirmed the request arrived:
-
+But Gotenberg's actual PDF conversion still failed:
 ```
-method=DELETE uri=/api/v1/ministry/federations/5b5b93e4-... latency=0 ms status=404
-```
-
-Two things stood out immediately:
-
-1. The request **did reach the backend** — so nginx proxying was not the issue.
-2. The latency was **exactly 0 ms** — meaning no middleware ran, no handler was called, not even the JWT auth layer.
-
----
-
-## 2. Initial Red Herrings
-
-### 2.1 Suspicion: nginx proxy stripping `/api/` prefix
-
-The frontend runs in a Docker container on port `5174` behind nginx. When `proxy_pass` is configured with a trailing slash on the `location` block but no path on the upstream URL, nginx strips the matched prefix before forwarding.
-
-```nginx
-# What we had
-location /api/ {
-    proxy_pass http://coopdata-backend:3000;  # strips /api/
-}
+POST /forms/chromium/convert/url → net::ERR_CONNECTION_REFUSED ✗
 ```
 
-This would turn `DELETE /api/v1/ministry/federations/{id}` into `DELETE /v1/ministry/federations/{id}`, causing a 404.
-
-**Why this was wrong:** The backend logs showed the full path `/api/v1/ministry/federations/...` arriving intact, confirming nginx was passing it through correctly. The nginx config was reverted.
-
-### 2.2 Suspicion: Route not registered / import missing
-
-All route files were inspected. The `delete_federation` handler was imported and chained correctly:
-
-```rust
-.route(
-    "/federations/{id}",
-    get(get_federation)
-        .patch(update_federation)
-        .delete(delete_federation),
-)
-```
-
-Also confirmed: `patch` not being in `use axum::routing::{delete, get, post}` was noted, but `.patch()` here is a **method on `MethodRouter`**, not the standalone `patch()` function — so no import is needed and this compiled fine.
-
-### 2.3 Suspicion: Stale Docker image
-
-The image was built at `09:01`, and a commit touching the backend was made at `10:42`. Could the running binary be outdated?
-
-Checking `git show` on that commit revealed it only touched DTOs and the OpenAPI spec — not route files. The route definitions in the image were identical to HEAD. Dead end.
-
----
-
-## 3. The Actual Diagnosis
-
-### 3.1 The key observation: collection routes worked, parametric routes didn't
-
-Testing directly against the backend container (bypassing nginx entirely):
+**curl worked but Chromium didn't.** This pointed to a Chromium-specific issue. So we inspected the actual Chromium process:
 
 ```bash
-curl -X GET  http://localhost:3000/api/v1/ministry/federations        → 401 Unauthorized
-curl -X GET  http://localhost:3000/api/v1/ministry/federations/abc    → 404 Not Found
-curl -X DELETE http://localhost:3000/api/v1/ministry/federations/abc  → 404 Not Found
-curl -X GET  http://localhost:3000/api/v1/ministry/users              → 401 Unauthorized
-curl -X GET  http://localhost:3000/api/v1/ministry/users/abc          → 404 Not Found
+$ docker compose exec gotenberg ps aux | grep chromium
 ```
 
-The pattern was unambiguous:
+### The Smoking Gun
 
-| Route type | Result | Meaning |
-|---|---|---|
-| `/federations` (no param) | 401 | Route matched → auth middleware ran |
-| `/federations/{id}` (param) | 404 | Route **never matched** |
-| `/users` (no param) | 401 | Route matched → auth middleware ran |
-| `/users/{id}` (param) | 404 | Route **never matched** |
-
-**Every single parametric route across the entire router returned 404.** This ruled out any handler-level bug and pointed squarely at route registration.
-
-### 3.2 The smoking gun: Axum version vs. path param syntax
-
-```toml
-# Cargo.toml
-axum = { version = "0.7", features = ["macros", "multipart"] }
+Found this Chromium flag:
+```
+--proxy-server=http://127.0.0.1:42181
 ```
 
-```toml
-# Cargo.lock (resolved)
-name = "axum"
-version = "0.7.9"
-```
-
-The routes used:
-
-```rust
-.route("/federations/{id}", ...)
-.route("/users/{id}", ...)
-.route("/organizations/{id}", ...)
-```
-
-And this is the problem. **Axum 0.7 uses `:param` colon syntax. The `{param}` brace syntax was only introduced in Axum 0.8.**
-
-In Axum 0.7, the correct syntax is:
-
-```rust
-.route("/federations/:id", ...)  // ← Axum 0.7
-```
-
-In Axum 0.8+:
-
-```rust
-.route("/federations/{id}", ...)  // ← Axum 0.8+
-```
-
----
-
-## 4. Why Did It Compile Without Errors?
-
-This is the core of the mystery, and it's a fascinating Rust/Axum design characteristic.
-
-### 4.1 Route paths are plain strings, not typed at compile time
-
-In Axum, `.route()` takes a `&str`:
-
-```rust
-pub fn route(self, path: &str, method_router: MethodRouter<S>) -> Self
-```
-
-The path string is **not parsed or validated at compile time**. Rust's type system has no way to inspect the contents of a string literal and enforce that it follows path parameter conventions. As far as `rustc` is concerned, `"/federations/{id}"` and `"/federations/:id"` are both perfectly valid `&str` values.
-
-The path parsing happens at **runtime**, inside `matchit` — the routing library Axum uses internally.
-
-### 4.2 Axum 0.7 uses `matchit` 0.7.x
-
-`matchit` is the trie-based router that Axum delegates path matching to. In `matchit` 0.7.x (used by Axum 0.7), the parameter syntax is `:param`. Braces `{param}` are not a recognized parameter delimiter — they are treated as **literal characters**.
-
-So when the router is built, Axum 0.7 registers this route:
-
-```
-/federations/{id}   ← literal string, matches ONLY the exact URL "/federations/{id}"
-```
-
-No runtime panic. No warning. The route is registered successfully. It just never matches any real URL because no browser ever sends a request to `/federations/{id}` literally.
-
-### 4.3 The `matchit` version bump in Axum 0.8
-
-Axum 0.8 upgraded its `matchit` dependency from `0.7.x` to `0.8.x`. In `matchit` 0.8.x, the parameter syntax changed to `{param}` to align with RFC 6570 URI templates. So:
-
-| `matchit` version | Axum version | Param syntax |
-|---|---|---|
-| 0.7.x | Axum 0.7 | `:param` |
-| 0.8.x | Axum 0.8 | `{param}` |
-
-The route files in this project were written using `{param}` — the Axum 0.8 syntax — but the `Cargo.toml` pinned `axum = "0.7"`, so the compiled binary used the old router. The mismatch compiled cleanly and failed silently at runtime.
-
-### 4.4 Why no runtime panic either?
-
-You might expect a panic like "invalid route syntax" at startup. `matchit` 0.7 does not validate or reject the `{param}` syntax — it simply treats `{` and `}` as ordinary characters in the path segment. The trie is built correctly for a route that matches the literal string `{id}`. No invariant is violated from `matchit`'s perspective.
-
-Axum itself adds one layer of validation on top of `matchit` (e.g., checking for duplicate routes), but it cannot detect that a route will "never match" in practice — that's not a detectable error condition.
-
----
-
-## 5. The Fix
-
-Updated `Cargo.toml` to use Axum 0.8 and its compatible ecosystem:
-
-```toml
-# Before
-axum = { version = "0.7", features = ["macros", "multipart"] }
-axum-extra = { version = "0.9", features = ["cookie", "typed-header"] }
-tower = "0.4"
-tower-http = { version = "0.5", features = [...] }
-
-# After
-axum = { version = "0.8", features = ["macros", "multipart"] }
-axum-extra = { version = "0.10", features = ["cookie", "typed-header"] }
-tower = "0.5"
-tower-http = { version = "0.6", features = [...] }
-```
-
-No route code changes were needed. The route files already used the correct Axum 0.8 `{param}` syntax. It was the `Cargo.toml` version pin that was behind.
-
-`cargo check` and `cargo clippy` both passed clean after the upgrade. The backend container was rebuilt and all parametric routes began matching correctly.
-
----
-
-## 6. Full Causal Chain
-
-```
-Cargo.toml pins axum = "0.7"
-    ↓
-Cargo resolves matchit 0.7.x (uses :param syntax)
-    ↓
-Route files written with {param} syntax (Axum 0.8 convention)
-    ↓
-matchit 0.7 treats "/federations/{id}" as a literal path
-    ↓
-No compile error (path is just a &str, validated at runtime only)
-    ↓
-No runtime panic (matchit registers the literal route without complaint)
-    ↓
-Every request to /federations/<uuid> fails to match the literal "/federations/{id}"
-    ↓
-Axum returns 404 at 0ms latency (before any middleware runs)
-    ↓
-All collection routes (/federations) work fine (no params, no mismatch)
-    ↓
-All parametric routes (GET/PATCH/DELETE /{id}) silently return 404
-```
-
----
-
-## 7. Why Was This Hard to Spot?
-
-1. **It compiled cleanly.** Rust's famously strict compiler gave zero indication anything was wrong.
-2. **No runtime error.** The server started, routes registered, no panics.
-3. **Partial functionality.** Collection endpoints (`GET /federations`) worked fine, creating a false sense that the routing was working.
-4. **0ms latency on 404.** This was the critical clue — a normal 404 from a handler takes some time (auth middleware, handler logic). A 0ms 404 means Axum's router rejected the request before touching any user code.
-5. **The error message was generic.** `404 Not Found` gives no hint about *why* the route didn't match.
-6. **The fix was in `Cargo.toml`, not in the code.** Debugging instinct naturally looks at code first.
-
----
-
-## 8. Prevention
-
-### 8.1 Explicit version ranges and dependency audits
-
-Prefer specifying a minimum version that matches the syntax you're using:
-
-```toml
-# Clearly states: we need 0.8+ for {param} syntax
-axum = { version = ">=0.8, <1.0", features = ["macros", "multipart"] }
-```
-
-### 8.2 Integration test for parametric routes
-
-A minimal integration test that actually calls a `/{id}` endpoint (even without auth, checking for 401 not 404) would have caught this immediately:
-
-```rust
-#[tokio::test]
-async fn test_parametric_routes_are_registered() {
-    let app = create_app(test_state());
-    let response = app
-        .oneshot(Request::builder()
-            .method("DELETE")
-            .uri("/api/v1/ministry/federations/test-id")
-            .body(Body::empty()).unwrap())
-        .await
-        .unwrap();
-    // Should be 401 (auth required), NOT 404 (route not found)
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-```
-
-### 8.3 Smoke test on startup
-
-Log all registered routes at startup in development mode. If `{id}` routes appear in the list but `:id` routes do not, the mismatch is immediately visible.
-
-### 8.4 Keep ecosystem crates in sync
-
-`axum`, `axum-extra`, `tower`, and `tower-http` have coordinated major versions. When upgrading one, upgrade all together to avoid subtle incompatibilities.
-
----
-
-## 9. Lessons Learned
-
-- **A clean compile does not mean correct runtime behavior** — especially for string-based configuration (routes, SQL queries, regex patterns). These are validated at runtime, not compile time.
-- **Latency is a diagnostic signal.** A `404` at `0ms` is categorically different from a `404` at `5ms`. The former means the router rejected the request; the latter means a handler returned it.
-- **Test at every level of the stack.** `curl` directly against the backend (bypassing nginx) was the step that isolated the issue to Axum routing specifically.
-- **Read the changelog when writing code for a framework.** The `{param}` syntax appeared in Axum 0.8 release notes prominently — but if you write the code first and add the dependency version later, the mismatch is easy to miss.
-
----
-
-#2: keycloak-pending-invitations-postmortem
-
-# Postmortem: Pending Invitations Always Empty (Keycloak User Profile Schema)
-
-**Date:** 2026-07-02
-**Severity:** High — invitation tracking was completely non-functional; the dashboard always showed 0 pending invitations regardless of how many users had been invited
-**Affected area:** Backend — `GET /api/v1/ministry/federations/{id}/invitations` + Keycloak User Profile configuration
-**Resolution:** Registered `org.ro.active` in Keycloak's User Profile schema, set `unmanagedAttributePolicy: ADMIN_EDIT`, fixed `update_user_attributes` to do a read-merge-write instead of a destructive PUT, and switched the tracking attribute from `invited_to_org` to `org.ro.active`
-
----
-
-## 1. Symptom
-
-After sending an invitation via "New Invitation", the email arrived in MailHog correctly. The invited user appeared in Keycloak's user list. However:
-
-- The Invitations tab showed `0 invitations found`
-- All stat cards (Total, Pending, Sent) showed `0`
-- The backend returned HTTP 200 with an empty array `[]`
-
-The backend log confirmed the query ran and returned nothing:
-
-```
-INFO coop_data_backend::services::keycloak: Found users with org.ro.active attribute matching org org_id=e27e49b5-... count=0
-```
-
----
-
-## 2. Root Causes (Three Layered)
-
-### 2.1 Wrong attribute name
-
-The original code wrote `invited_to_org` (and `invitation_status`) as the tracking attribute on invited users, then searched with `q=invited_to_org:{org_id}`.
-
-The design document (`docs/solution.md`) specifies `org.ro.active` as the canonical attribute name — the one that is registered in Keycloak's User Profile schema. The code diverged from the spec and used a different name.
-
-### 2.2 Keycloak User Profile schema had no custom attributes registered
-
-Keycloak's declarative User Profile (`PUT /admin/realms/{realm}/users/profile`) controls which custom attributes are searchable via the Admin API `q=key:value` parameter. The `coop-data` realm had **zero** custom attributes defined in its User Profile schema:
-
-```
-Total attributes defined: 0   ← only username, email, firstName, lastName
-unmanagedAttributePolicy: NOT SET
-```
-
-With `unmanagedAttributePolicy` unset (defaults to `DISABLED` in Keycloak 26), any custom attribute written via `PUT /users/{id}` is silently accepted by Keycloak but invisible to attribute search. The write returns HTTP 204, everything looks fine, but the `q=` query returns zero results.
-
-This means even if the attribute name had been correct (`org.ro.active`), the search would still have returned empty because the attribute was not in the schema.
-
-### 2.3 Destructive `update_user_attributes` PUT
-
-When updating attributes on an existing user, the code sent:
-
-```json
-PUT /admin/realms/{realm}/users/{id}
-{ "attributes": { "org.ro.active": ["org-uuid"] } }
-```
-
-Keycloak's `PUT /users/{id}` is a **full replace** — it does not merge. Sending only the `attributes` field causes Keycloak to wipe `email`, `firstName`, `lastName`, `enabled`, and all other fields not included in the body. This silently corrupted existing user records during the backfill attempt.
-
----
-
-## 3. Full Causal Chain
-
-```
-solution.md specifies org.ro.active as the tracking attribute
-    ↓
-Code was written using invited_to_org instead (diverged from spec)
-    ↓
-Keycloak User Profile schema has no custom attributes registered
-    ↓
-unmanagedAttributePolicy not set → custom attrs are search-invisible
-    ↓
-PUT /users/{id} with only attributes field = destructive full replace
-    ↓
-Invited users have no searchable attribute → q= search returns 0
-    ↓
-GET /invitations always returns [] regardless of invite count
-    ↓
-Dashboard shows 0 across all stat cards
-```
-
----
-
-## 4. Diagnosis Steps
-
-**Step 1 — Checked backend logs**
-
-The log line `count=0` after the Keycloak attribute search confirmed the query itself was the problem, not the frontend or the handler logic.
-
-**Step 2 — Inspected actual user records in Keycloak**
+**Gotenberg 8 routes ALL Chromium traffic through an internal HTTP proxy** running on `127.0.0.1:42181`. This proxy:
+- Forces all browser network requests through a local man-in-the-middle (for logging/security)
+- **Cannot resolve Docker service DNS names** (has no access to Docker's internal DNS)
+- Blocks connections to both hostnames (`frontend`) and direct IPs (`172.18.0.10`)
+
+### Proof
 
 ```bash
-curl "http://localhost:8180/admin/realms/coop-data/users?max=20&briefRepresentation=false"
+# curl bypasses the proxy → works
+$ docker compose exec gotenberg curl http://frontend:5173/ → 200 OK
+
+# Chromium goes through the proxy → blocked
+Gotenberg Chromium → proxy (127.0.0.1:42181) → "frontend:5173" → ERR_CONNECTION_REFUSED
+
+# Even direct IP doesn't work through the proxy
+Gotenberg Chromium → proxy (127.0.0.1:42181) → "172.18.0.10:5173" → ERR_CONNECTION_REFUSED
 ```
 
-Every invited user returned `"attributes": null` — the attributes were never written successfully.
-
-**Step 3 — Inspected the User Profile schema**
-
+Verified via the Gotenberg API directly:
 ```bash
-curl "http://localhost:8180/admin/realms/coop-data/users/profile"
-# → Total attributes defined: 0, unmanagedAttributePolicy: NOT SET
+$ curl -s -X POST http://localhost:8081/forms/chromium/convert/url \
+  -F "url=http://frontend:5173/" \
+  -o /tmp/test.pdf
+→ "Chromium returned net::ERR_CONNECTION_REFUSED: loading failed"
+
+$ curl -s -X POST http://localhost:8081/forms/chromium/convert/url \
+  -F "url=http://172.18.0.10:5173/" \
+  -o /tmp/test.pdf
+→ "Chromium returned net::ERR_CONNECTION_REFUSED: loading failed"
 ```
 
-This confirmed that Keycloak was silently ignoring custom attribute writes because the schema didn't declare them.
+**Result:** Confirmed as the root cause. The `--proxy-server` flag is **hardcoded** in Gotenberg 8's Chromium launch configuration. There is no environment variable or config file to disable or configure it.
 
-**Step 4 — Confirmed the attribute search behavior**
+### Why This Is Unfixable Without Changing Gotenberg
 
-After manually patching `org.ro.active` onto a user, re-ran the `q=org.ro.active:{org_id}` query — still returned 0. Proved that even with the attribute present, it wasn't searchable until registered in the schema.
+1. The proxy is an **internal architectural decision** in Gotenberg 8 — it's not user-configurable
+2. Gotenberg 8 does not expose env vars or config to customize Chromium's `--proxy-server` flag
+3. The proxy runs inside the Gotenberg container on `127.0.0.1:42181` — it's completely internal
+4. Even if we could configure it, the proxy would still need access to Docker DNS, which it doesn't have
 
 ---
 
-## 5. The Fix
-
-### 5.1 Register `org.ro.active` in Keycloak User Profile schema
-
-```bash
-PUT /admin/realms/coop-data/users/profile
-{
-  "unmanagedAttributePolicy": "ADMIN_EDIT",
-  "attributes": [
-    ... (existing standard attributes preserved) ...,
-    {
-      "name": "org.ro.active",
-      "displayName": "Invited Organisation",
-      "permissions": { "view": ["admin"], "edit": ["admin"] },
-      "multivalued": true
-    }
-  ]
-}
-```
-
-`unmanagedAttributePolicy: ADMIN_EDIT` also set as a safety net so future admin-written attributes are not silently dropped.
-
-### 5.2 Switch tracking attribute from `invited_to_org` to `org.ro.active`
-
-Updated `invite_user_to_organization` to write the correct attribute:
-
-```rust
-// Before
-attributes.insert("invited_to_org".to_string(), vec![org_id.to_string()]);
-attributes.insert("invitation_status".to_string(), vec!["PENDING".to_string()]);
-
-// After
-attributes.insert("org.ro.active".to_string(), vec![org_id.to_string()]);
-```
-
-### 5.3 Implement two-call pending detection (per solution.md)
-
-Replaced the unreliable fallback scan (fetch all users, iterate, resolve details individually) with the clean approach:
+## 5. Full Causal Chain
 
 ```
-Call 1: GET /users?q=org.ro.active:{org_id}&briefRepresentation=false&max=1000
-Call 2: GET /organizations/{org_id}/members
-
-pending = Call1_results MINUS Call2_results (by user ID set)
+Gotenberg 8 launches Chromium with --proxy-server=http://127.0.0.1:42181
+    ↓
+All Chromium HTTP requests are forced through the internal proxy
+    ↓
+Backend sends Gotenberg: "Load http://frontend:5173/print/cooperative/{id}?token=..."
+    ↓
+Gotenberg tells Chromium to navigate to the URL
+    ↓
+Chromium sends the navigation request to the internal proxy (127.0.0.1:42181)
+    ↓
+Proxy attempts to connect to "frontend:5173"
+    ↓
+Proxy CANNOT resolve Docker service DNS (has no access to Docker's network stack)
+    ↓
+Proxy returns ERR_CONNECTION_REFUSED to Chromium
+    ↓
+Chromium reports: net::ERR_CONNECTION_REFUSED: loading failed
+    ↓
+Gotenberg returns HTTP 400 with the error message
+    ↓
+Backend wraps error: "Gotenberg returned error status 400 Bad Request"
+    ↓
+User receives a PDF containing "unstream error" text
 ```
-
-Status derived from Keycloak's own `emailVerified` field:
-- `emailVerified: false` → `"PENDING"` (user hasn't clicked the link yet)
-- `emailVerified: true` → `"EMAIL_VERIFIED"` (clicked link, hasn't accepted org invite)
-
-### 5.4 Fix `update_user_attributes` to be non-destructive
-
-```rust
-// Before — destructive PUT
-let body = json!({ "attributes": attributes });
-
-// After — read-merge-write
-let current = self.get_user_by_id_raw(&token, keycloak_id).await?;
-let mut merged_attrs = current.attributes.unwrap_or_default();
-merged_attrs.extend(attributes);
-let body = json!({
-    "username": current.username,
-    "email": current.email,
-    "firstName": current.first_name,
-    "lastName": current.last_name,
-    "enabled": current.enabled,
-    "emailVerified": current.email_verified,
-    "attributes": merged_attrs
-});
-```
-
-### 5.5 Fix `delete_organization_invitation` to delete the user
-
-The old implementation called Keycloak's `/organizations/{id}/invitations/{iid}` DELETE endpoint — which does not exist for user-created invitations in this flow (Keycloak only tracks org-native invitations there). Updated to delete the user from Keycloak entirely, which is the correct cancellation semantics for a pending invitee.
-
-### 5.6 Fix `resend_organization_invitation` to re-send both emails
-
-Updated to re-trigger both:
-1. `execute-actions-email` with `["VERIFY_EMAIL", "UPDATE_PASSWORD"]` — in case they lost the verification email
-2. `invite-user` on the org — to resend the org membership invitation email
-
-### 5.7 Fix frontend stat card bug
-
-The "Pending" stat card was counting `invitations.filter(i => !i.email_sent)` — which is always 0 because `email_sent` is always `true` after a successful invite. Fixed to count `status === "PENDING" || status === "EMAIL_VERIFIED"` instead.
 
 ---
 
-## 6. Why It Was Hard to Spot
+## 6. Why This Was Hard to Diagnose
 
-1. **Keycloak silently accepts unknown attribute writes.** `PUT /users/{id}` with a custom attribute returns HTTP 204 whether or not the attribute is in the schema. There is no error, no warning, no indication the attribute was dropped from search indexing.
-2. **The backend returned HTTP 200 with `[]`.** The frontend had no way to distinguish "no invitations exist" from "invitations exist but the query is broken".
-3. **The attribute was literally present on users** (after backfill) — `GET /users/{id}` returned it in the response. But `q=` search still returned nothing, because searchability is a separate concern from storage.
-4. **The old code had a fallback** (fetch all users, iterate, filter manually) that was also broken, masking the root issue with extra complexity.
-
----
-
-## 7. Prevention
-
-### 7.1 Register all custom attributes in User Profile schema at provisioning time
-
-Add the `org.ro.active` registration to `scripts/keycloak-provisioning.sh` so it is applied on every fresh environment:
-
-```bash
-# Register org.ro.active in User Profile schema
-curl -X PUT "$KC_URL/admin/realms/$REALM/users/profile" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{ \"unmanagedAttributePolicy\": \"ADMIN_EDIT\", \"attributes\": [..., {\"name\": \"org.ro.active\", \"multivalued\": true, \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}}] }"
-```
-
-### 7.2 Never use partial PUT for Keycloak user updates
-
-Keycloak's Admin REST API uses PUT-as-replace semantics throughout. Always fetch the current resource, merge changes, then PUT the full object back. Consider a helper:
-
-```rust
-async fn patch_user(&self, keycloak_id: &str, patch: impl FnOnce(&mut KeycloakUserUpdate)) -> Result<(), AppError>
-```
-
-### 7.3 Test attribute searchability, not just attribute presence
-
-After writing a custom attribute, verify it is searchable:
-
-```bash
-# Write
-PUT /users/{id} { "attributes": { "org.ro.active": ["test-org"] } }
-# Verify searchable (not just present)
-GET /users?q=org.ro.active:test-org  # must return the user
-```
-
-If the `q=` search returns empty while `GET /users/{id}` shows the attribute, the attribute is not in the User Profile schema.
-
-### 7.4 Keep code aligned with design documents
-
-`solution.md` specified `org.ro.active` explicitly. The divergence to `invited_to_org` was the root cause of the wrong attribute being written. When a design document names a specific attribute, use that exact name.
+1. **The error message was misleading.** `ERR_CONNECTION_REFUSED` typically means the target server isn't running. But the frontend WAS running — Gotenberg's proxy was blocking the connection.
+2. **curl from the same container worked.** This created a false impression that networking was fine. But curl bypasses Chromium's proxy, so it tested a completely different network path.
+3. **Four real bugs/red herrings masked the hidden bug.** The hardcoded port (Bug 1), Vite host protection (Bug 2), API reachability (Bug 3), and IPv6 binding theory (Bug 4) were all investigated. Some were real issues, some were disproven theories. None addressed the Chromium proxy issue.
+4. **No configuration knob for the proxy.** Gotenberg 8 doesn't expose environment variables or config files to customize Chromium's `--proxy-server` flag. We cannot work around it.
+5. **The env var was verified as correct.** `GOTENBERG_FRONTEND_URL=http://frontend:5173` was confirmed present in the running container, eliminating "env var not loaded" as a hypothesis.
+6. **Plausible-sounding theories can be wrong.** The IPv6 binding theory (Bug 4) sounded logical — Node v17+ with `host: true` could bind to IPv6-only. But it was disproven by curl succeeding on IPv4 from the same container.
 
 ---
 
-## 8. Lessons Learned
+## 7. All Fixes Applied (Summary Table)
 
-- **Keycloak's attribute search is schema-gated, not storage-gated.** An attribute can exist on a user and be returned by `GET /users/{id}` but be completely invisible to `GET /users?q=key:value`. The User Profile schema controls search indexing.
-- **HTTP 204 does not mean the operation had the intended effect.** Keycloak accepted the write; it just wasn't indexed.
-- **Read-modify-write is mandatory for Keycloak user updates.** PUT semantics in the Keycloak Admin API are always full-replace. Never send a partial body.
-- **Fallback logic can hide root causes.** The "fetch all users and iterate" fallback made it seem like a volume/performance problem rather than a schema configuration problem.
-- **Match your code to your design documents exactly.** Attribute names, endpoint paths, and field names in design specs are not suggestions — they are the contract.
+| # | Fix | File | Status |
+|---|-----|------|--------|
+| 1 | `gotenberg_frontend_url` config field (env var) | `backend/src/config.rs` | ✅ Correct — still useful |
+| 2 | Dynamic URL in export generator | `backend/src/services/export_generator.rs:112` | ✅ Correct — still useful |
+| 3 | `allowedHosts: true` in Vite | `frontend/vite.config.ts` | ✅ Correct — still useful |
+| 4 | `VITE_API_BASE_URL: ""` | `docker-compose.override.yml` | ✅ Correct — still useful |
+| 5 | `GOTENBERG_FRONTEND_URL` env var | `docker-compose.yml` + `override.yml` | ✅ Correct — still useful |
+| 6 | `host: '0.0.0.0'` in Vite | `frontend/vite.config.ts` | ⚠️ Good practice, but doesn't fix the issue |
+| 7 | Chromium proxy bypass | N/A | ❌ **Unfixable** — Gotenberg 8 internal |
+
+Fixes 1-5 are all valid and necessary. They will be required when the proxy issue is resolved (e.g., by downgrading Gotenberg or replacing it). Fix 6 is good practice for explicitness. But none of them solve the PDF export by themselves because of the Gotenberg 8 Chromium proxy (fix 7).
+
+---
+
+## 8. Resolution Options
+
+### Option A: Abandon Gotenberg for Server-Side printpdf (Recommended)
+
+Replace `generate_cooperative_pdf` with server-side PDF generation using the `printpdf` crate — the same approach used by:
+- `generate_consolidated_pdf` (Apex exports)
+- `generate_consolidated_federation_pdf` (Federation exports)
+- `generate_consolidated_ministry_pdf` (Ministry exports)
+
+**Pros:**
+- Fast, reliable, no external service dependency
+- No Docker networking issues
+- Consistent with all other export generators
+- No headless browser overhead
+
+**Cons:**
+- Loses the Recharts visualizations (charts, radar, donut)
+- KPI data shown as tables instead of charts
+
+### Option B: Downgrade to Gotenberg 7
+
+Gotenberg 7 did not have the `--proxy-server` flag. Chromium had direct network access.
+
+**Pros:**
+- Preserves rich React-rendered PDF with charts
+- Minimal code changes (already working with fixes 1-5)
+
+**Cons:**
+- Gotenberg 7 may have security/vulnerability issues
+- Older version, less maintained
+- May have other incompatibilities
+
+### Option C: Run Gotenberg with Host Networking
+
+Pass `--network=host` to Gotenberg so Chromium shares the host's network stack.
+
+**Pros:**
+- Preserves rich PDF output
+- Minimal code changes
+
+**Cons:**
+- `--network=host` is a security concern (exposes all host network interfaces)
+- Fragile, depends on Gotenberg's internal architecture
+- Not portable across environments (especially Kubernetes)
+
+---
+
+## 9. Prevention
+
+1. **Test Gotenberg's Chromium, not just curl.** When debugging Gotenberg integration, always test the actual URL-to-PDF conversion endpoint (`POST /forms/chromium/convert/url`), not just network connectivity from the Gotenberg container. curl and Chromium have different network paths.
+
+2. **Inspect Chromium process flags first.** Before debugging Gotenberg networking, run `ps aux | grep chromium` to see what restrictions are in place. This would have saved hours of debugging.
+
+3. **Prefer server-side PDF generation.** Headless browser PDF generation is fragile, slow, and depends on complex infrastructure (Gotenberg + Chromium + Docker networking). Server-side `printpdf` generation is deterministic, fast, and has zero external dependencies.
+
+4. **Add integration tests for PDF export.** A test that calls `POST /api/v1/cooperative/submissions/{id}/export?format=pdf` and asserts a valid PDF response would catch regressions immediately.
+
+---
+
+## 10. Lessons Learned
+
+- **curl ≠ Chromium.** Just because `curl` from a container can reach a service doesn't mean Gotenberg's Chromium can. Chromium goes through Gotenberg's internal proxy which has completely different network access.
+- **Gotenberg 8 is architecturally different from v7.** The `--proxy-server` flag is a significant breaking change that affects all URL-based conversion. Always check the Chromium flags in your Gotenberg version.
+- **Error messages can be deeply misleading.** `ERR_CONNECTION_REFUSED` pointed to a networking issue, but the real problem was a proxy access control issue inside Gotenberg.
+- **Three real bugs can coexist with a fourth hidden bug.** Each fix we applied (port, host, API base URL) was correct and necessary, but none addressed the root Chromium proxy issue. The hidden bug was the one that actually mattered.
+- **When all else fails, inspect the process.** `ps aux | grep chromium` revealed the `--proxy-server` flag which was the actual root cause. Process inspection should be an early debugging step, not a last resort.
