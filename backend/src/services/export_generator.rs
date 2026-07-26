@@ -109,9 +109,10 @@ impl ExportGenerator {
         let token = state.keycloak.get_admin_token().await?;
 
         let print_url = format!(
-            "http://frontend:80/print/cooperative/{}?token={}",
-            submission_id, token
+            "{}/print/cooperative/{}?token={}",
+            state.config.gotenberg_frontend_url, submission_id, token
         );
+        tracing::info!("Generating PDF via Gotenberg with URL: {}", print_url);
 
         let form = reqwest::multipart::Form::new()
             .text("url", print_url)

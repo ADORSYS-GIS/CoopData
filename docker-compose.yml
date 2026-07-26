@@ -149,6 +149,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_AUDIENCE: ${JWT_AUDIENCE}
       FRONTEND_URL: ${FRONTEND_URL}
+      GOTENBERG_FRONTEND_URL: ${GOTENBERG_FRONTEND_URL:-http://frontend:80}
       ENVIRONMENT: ${ENVIRONMENT}
       STORAGE_TYPE: ${STORAGE_TYPE:-local}
       STORAGE_PATH: ${STORAGE_PATH:-./uploads}
@@ -211,7 +212,7 @@ services:
       retries: 5
 
   gotenberg:
-    image: gotenberg/gotenberg:8
+    image: gotenberg/gotenberg:7.9
     container_name: coopdata-gotenberg
     ports:
       - "127.0.0.1:8081:3000"
