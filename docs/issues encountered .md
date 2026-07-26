@@ -352,3 +352,231 @@ Pass `--network=host` to Gotenberg so Chromium shares the host's network stack.
 - **Error messages can be deeply misleading.** `ERR_CONNECTION_REFUSED` pointed to a networking issue, but the real problem was a proxy access control issue inside Gotenberg.
 - **Three real bugs can coexist with a fourth hidden bug.** Each fix we applied (port, host, API base URL) was correct and necessary, but none addressed the root Chromium proxy issue. The hidden bug was the one that actually mattered.
 - **When all else fails, inspect the process.** `ps aux | grep chromium` revealed the `--proxy-server` flag which was the actual root cause. Process inspection should be an early debugging step, not a last resort.
+
+---
+
+#8: gotenberg-pdf-export-stale-routes-token-roles-cooperative-502
+
+# Postmortem: Cooperative PDF Export — Four Cascading Failures
+
+**Date:** 2026-07-26
+**Severity:** High — PDF export timed out with "Failed to load report data" after Gotenberg downgrade fixed the proxy issue
+**Affected area:** Frontend (routeTree.gen.ts, CooperativeReportPrint.tsx) + Keycloak (realm roles) + Backend (Keycloak group mapping)
+**Resolution:** Four cascading issues identified and fixed. PDF now generates successfully (4 pages, 333KB).
+
+---
+
+## 1. Symptom
+
+After downgrading Gotenberg from v8 to v7.9 (fixing the Chromium proxy issue from #7), the PDF export still failed:
+
+1. Gotenberg navigated to the print page but `window.isReady === true` never set within 30 seconds
+2. Gotenberg returned HTTP 503 with "context deadline exceeded"
+3. The page appeared to load but showed "Failed to load report data"
+4. Direct curl from Gotenberg's container to the frontend succeeded, so networking was fine
+
+---
+
+## 2. Root Cause Analysis — Four Cascading Issues
+
+The failure was not a single bug but a chain of four issues, each masking the next. Fixing one revealed the next.
+
+### Issue 1: Stale `routeTree.gen.ts`
+
+**Observation:** TanStack Router generates `frontend/src/routeTree.gen.ts` at startup. In Docker, the plugin hit an EXDEV error (`cross-device link not permitted`) which prevented the file from being written. The route tree did not include the `/print/cooperative/$id` route.
+
+**Evidence:**
+```
+Error: EXDEV: cross-device link not permitted, rename '/app/.tanstack/tmp/...' -> '/app/src/routeTree.gen.ts'
+```
+
+**Impact:** Gotenberg's Chromium navigated to `/print/cooperative/96824528-...` → TanStack Router returned a 404 page → `window.isReady` never set → timeout.
+
+**Fix applied:**
+- Ran `npx @tanstack/router-cli generate` on the host machine (outside Docker) to regenerate `routeTree.gen.ts`
+- Restarted the frontend container to pick up the new route tree
+
+**Result:** ✅ The print page now renders (no more 404). But the page shows "Failed to load report data".
+
+---
+
+### Issue 2: Backend Service Account Missing Realm Roles
+
+**Observation:** The `get_admin_token()` function in the backend returns a `client_credentials` JWT. This token is passed to the browser via the print URL as `?token=...`. The browser then uses this token to make API calls.
+
+The `client_credentials` grant only includes client-level roles, **not realm-level roles**. The backend service account was missing the `cooperative` and `apex` realm roles required by the API endpoints.
+
+**Evidence:**
+```bash
+# Token decoded payload:
+{
+  "realm_access": {
+    "roles": ["offline_access", "default-roles-coop-data", "uma_authorization"]
+    // MISSING: "cooperative", "apex"
+  }
+}
+
+# All three API calls returned 403:
+GET /api/v1/cooperative/submissions/96824528-... → 403 Forbidden
+GET /api/v1/cooperative/submissions/96824528-.../kpis → 403 Forbidden
+GET /api/v1/apex/cooperatives/e456b780-... → 403 Forbidden
+```
+
+**Impact:** The React component received 403 on all three data fetches → error state → "Failed to load report data".
+
+**Fix applied:**
+- Used Keycloak Admin API (admin-cli client, password `change-me-in-production`) to assign realm roles
+- Found service account user ID: `b50eb592-bcc7-40f2-8691-4573b6ac6b21` (client: `coopdata-backend`)
+- Assigned `cooperative` and `apex` realm roles to the service account
+
+```bash
+# Assign roles via Keycloak Admin API
+curl -X POST "http://localhost:8180/admin/realms/coop-data/users/{SA_ID}/role-mappings/realm" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[{"name":"cooperative","id":"..."},{"name":"apex","id":"..."}]'
+```
+
+**Result:** ✅ Token now contains `['offline_access', 'default-roles-coop-data', 'uma_authorization', 'cooperative', 'apex']`. API calls return 200 for submission and KPIs.
+
+---
+
+### Issue 3: Apex Cooperative Endpoint Returns 502
+
+**Observation:** After fixing the token roles, two of three API calls succeeded:
+- `GET /api/v1/cooperative/submissions/{id}` → **200** ✅
+- `GET /api/v1/cooperative/submissions/{id}/kpis` → **200** ✅
+- `GET /api/v1/apex/cooperatives/{id}` → **502** ❌
+
+The apex endpoint internally calls Keycloak to look up the cooperative's group. The Keycloak group for this cooperative (`e456b780-0343-4ee3-9bd5-623549d6270f`) does not exist.
+
+**Evidence:**
+```bash
+$ curl http://localhost:3000/api/v1/apex/cooperatives/e456b780-... \
+  -H "Authorization: Bearer $TOKEN"
+→ {"error":"external_service_error","message":"External service error: Group not found: Could not find group by id"}
+→ HTTP 502
+```
+
+**Impact:** `useCooperative()` hook throws an error → `cooperative` is `undefined` → the component shows "Failed to load report data".
+
+---
+
+### Issue 4: `CooperativeReportPrint.tsx` Required All Three Data Sources
+
+**Observation:** The print component had three blocking conditions:
+
+```typescript
+// Before fix:
+const { data: cooperative } = useCooperative(id, tokenOverride);
+
+// window.isReady gate:
+if (submission && kpisData && cooperative) {  // ALL THREE must be truthy
+  window.isReady = true;
+}
+
+// Loading spinner:
+if (subLoading || kpisLoading || coopLoading) {  // ANY loading blocks the UI
+  return <Spinner />;
+}
+
+// Error page:
+if (!submission || !kpisData || !cooperative) {  // ANY missing shows error
+  return <ErrorPage />;
+}
+```
+
+The cooperative data is only used for the **display name** in the PDF. It is not critical data — the submission and KPIs contain all the financial information. But the component treated it as essential, blocking the entire PDF on a 502 from the apex endpoint.
+
+**Fix applied:**
+1. Added `coopName` fallback variable: `cooperative?.display_name ?? cooperative?.name ?? "COOPERATIVE"`
+2. Changed `window.isReady` gate from `submission && kpisData && cooperative` to `submission && kpisData`
+3. Changed loading condition from `subLoading || kpisLoading || coopLoading` to `subLoading || kpisLoading`
+4. Changed error condition from `!submission || !kpisData || !cooperative` to `!submission || !kpisData`
+5. Replaced all `cooperative.display_name ?? cooperative.name` with `coopName`
+
+**Result:** ✅ PDF renders with all financial data. Cooperative name shows as "COOPERATIVE" (fallback) until the Keycloak group is created.
+
+---
+
+## 3. Full Causal Chain
+
+```
+Gotenberg navigates to /print/cooperative/{id}?token={jwt}
+    ↓
+Issue 1: routeTree.gen.ts is stale (EXDEV in Docker)
+    ↓
+TanStack Router doesn't recognize the route → 404 page
+    ↓
+window.isReady never set → Gotenberg timeout (30s)
+    ↓
+[Fix 1: Regenerate routeTree.gen.ts on host]
+    ↓
+React app loads, but API calls fail
+    ↓
+Issue 2: Token lacks cooperative + apex realm roles
+    ↓
+All 3 API calls return 403 → error state
+    ↓
+[Fix 2: Assign realm roles via Keycloak Admin API]
+    ↓
+Submission + KPIs return 200, but apex cooperative returns 502
+    ↓
+Issue 3: Keycloak group for this cooperative doesn't exist
+    ↓
+useCooperative() throws → cooperative = undefined
+    ↓
+Issue 4: Component requires ALL THREE data sources to be truthy
+    ↓
+window.isReady gate blocked → Gotenberg timeout (30s)
+    ↓
+[Fix 3: Make cooperative optional with fallback name]
+    ↓
+PDF generates successfully ✅
+```
+
+---
+
+## 4. Fixes Applied (Summary Table)
+
+| # | Issue | Fix | File | Status |
+|---|-------|-----|------|--------|
+| 1 | Stale routeTree.gen.ts | Regenerate on host + restart container | `frontend/src/routeTree.gen.ts` | ✅ Fixed |
+| 2 | Missing realm roles on service account | Assign `cooperative` + `apex` via Keycloak Admin API | Keycloak config | ✅ Fixed |
+| 3 | Apex cooperative 502 | N/A — data issue (Keycloak group missing) | N/A | ⚠️ Data setup |
+| 4 | Component blocks on cooperative | Make cooperative optional with fallback | `frontend/src/pages/shared/CooperativeReportPrint.tsx` | ✅ Fixed |
+
+---
+
+## 5. PDF Output
+
+After all fixes, the PDF generates successfully:
+
+- **Format:** PDF 1.4, 4 pages, 333KB
+- **Page 1:** Cover page — cooperative name, reporting year 2026, submission code SUB-2026-00001, generated date
+- **Page 2:** Executive Performance & Compliance Grid — $2.1M assets, $1.5M loans, $1.1M savings, $81K net income
+- **Page 3:** Prudential Standards table — Total Equity/Assets 38.2% (GREEN), NPL 0.3% (GREEN), Portfolio at Risk 4.7% (GREEN), Liquidity 18.1% (GREEN), Income/Expenses 0.0% (RED)
+- **Page 4:** Key Portfolio Analytics — bar chart (assets, loans, deposits, equity) and pie chart, prudential minimum note
+
+The only cosmetic issue: cooperative name shows "COOPERATIVE" (fallback) instead of the real name. This requires creating the Keycloak group for this cooperative.
+
+---
+
+## 6. Prevention
+
+1. **Always regenerate routeTree.gen.ts after adding routes.** The TanStack Router plugin fails silently in Docker due to EXDEV. Run `npx @tanstack/router-cli generate` on the host before testing print routes.
+
+2. **Assign realm roles to service accounts during setup.** The `client_credentials` grant does not include realm roles by default. Document required roles in the Keycloak setup guide.
+
+3. **Don't treat display-only data as critical.** The cooperative display name is cosmetic. The print component should degrade gracefully for non-essential data, not block the entire PDF.
+
+4. **Test the full Gotenberg flow, not just individual APIs.** Testing each API endpoint with curl confirmed they work. But the Gotenberg flow requires all three to succeed AND the React component to signal readiness.
+
+---
+
+## 7. Lessons Learned
+
+- **Cascading failures hide root causes.** Each issue masked the next. Fixing the stale route tree revealed the token role issue. Fixing the token revealed the cooperative 502. Fixing the cooperative revealed the component blocking logic.
+- **`client_credentials` ≠ realm roles.** Keycloak's `client_credentials` grant only includes client-level roles, not realm-level roles. Service accounts need explicit realm role assignments.
+- **Print routes are fragile in Docker.** The TanStack Router EXDEV error means route tree regeneration must happen on the host, not inside Docker.
+- **Graceful degradation > hard requirements.** The cooperative display name is not worth blocking a 333KB, 4-page PDF report. Always ask: "Is this data critical for the core functionality?"

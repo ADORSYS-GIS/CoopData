@@ -25,30 +25,39 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   const { data: submission, isLoading: subLoading } = useSubmission(submissionId, undefined, tokenOverride);
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId, tokenOverride);
 
-  // Fetch only the single cooperative profile to prevent over-fetching (P2)
+  // Cooperative profile is optional — only used for display name.
+  // The apex endpoint may fail (e.g. Keycloak group missing), so we don't block on it.
   const { data: cooperative, isLoading: coopLoading } = useCooperative(
     submission?.cooperative_id ?? "",
     tokenOverride
   );
 
-  // Signal Gotenberg when loading is done and layout has rendered (P3)
+  const coopName = cooperative?.display_name ?? cooperative?.name ?? "COOPERATIVE";
+
+  // Debug logging for Gotenberg headless rendering
   useEffect(() => {
-    if (submission && kpisData && cooperative) {
-      // Use requestAnimationFrame to ensure the browser has finished painting Recharts before Gotenberg grabs it
+    console.log("[PrintPage] rendering state:", { subLoading, kpisLoading, coopLoading, hasSubmission: !!submission, hasKpis: !!kpisData, hasCoop: !!cooperative });
+  }, [subLoading, kpisLoading, coopLoading, submission, kpisData, cooperative]);
+
+  // Signal Gotenberg when submission and KPIs are loaded.
+  // Cooperative profile is optional — the report can render with a fallback name.
+  useEffect(() => {
+    if (submission && kpisData) {
+      console.log("[PrintPage] Data loaded, signaling ready");
       const rafId = requestAnimationFrame(() => {
-        (window as any).status = "ready";
-        console.log("Gotenberg signal: ready");
+        (window as any).isReady = true;
+        console.log("[PrintPage] Gotenberg signal: ready");
       });
       return () => cancelAnimationFrame(rafId);
     }
-  }, [submission, kpisData, cooperative]);
+  }, [submission, kpisData]);
 
   const kpiMap = useMemo(() => {
     if (!kpisData) return new Map<string, any>();
     return new Map(kpisData.kpis.map((k) => [k.name, k]));
   }, [kpisData]);
 
-  if (subLoading || kpisLoading || coopLoading) {
+  if (subLoading || kpisLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
@@ -59,7 +68,8 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     );
   }
 
-  if (!submission || !kpisData || !cooperative) {
+  if (!submission || !kpisData) {
+    console.error("[PrintPage] Failed to load data:", { submission: !!submission, kpisData: !!kpisData, cooperative: !!cooperative });
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800 p-8">
         <div className="text-center">
@@ -144,7 +154,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
             Annual Financial & Compliance Assessment
           </p>
           <h1 className="text-4xl font-extrabold tracking-tight leading-tight text-white border-l-4 border-blue-500 pl-6">
-            {cooperative.display_name ?? cooperative.name.toUpperCase()}
+            {coopName.toUpperCase()}
           </h1>
           <p className="text-lg text-slate-300 max-w-lg leading-relaxed font-light font-sans">
             Comprehensive audit, prudential ratio evaluation, and risk profiling for the reporting year.
@@ -248,7 +258,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
 
         <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold">
           <span>CoopData Official Print Output</span>
-          <span>{cooperative.display_name ?? cooperative.name}</span>
+          <span>{coopName}</span>
         </div>
       </div>
 

@@ -116,13 +116,15 @@ impl ExportGenerator {
 
         let form = reqwest::multipart::Form::new()
             .text("url", print_url)
-            .text("waitForExpression", "window.status === 'ready'")
+            .text("waitForExpression", "window.isReady === true")
             .text("paperWidth", "8.27")
             .text("paperHeight", "11.69")
             .text("marginTop", "0")
             .text("marginBottom", "0")
             .text("marginLeft", "0")
-            .text("marginRight", "0");
+            .text("marginRight", "0")
+            .text("printBackground", "true")
+            .text("emulateMediaType", "screen");
 
         let response = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(120))
