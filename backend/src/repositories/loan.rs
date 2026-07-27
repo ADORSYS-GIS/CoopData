@@ -159,7 +159,7 @@ impl LoanRepository {
 
     pub async fn get_portfolio_breakdown(
         &self,
-        submission_id: Uuid,
+        cooperative_id: Uuid,
     ) -> AppResult<Vec<crate::api::dto::submission::PortfolioCategoryDto>> {
         use sea_orm::{FromQueryResult, QuerySelect, sea_query::Expr};
 
@@ -171,7 +171,7 @@ impl LoanRepository {
         }
 
         let rows = loan::Entity::find()
-            .filter(LoanColumn::SubmissionId.eq(submission_id))
+            .filter(LoanColumn::CooperativeId.eq(cooperative_id))
             .select_only()
             .column_as(LoanColumn::DaysPastDueCategory, "category")
             .column_as(Expr::col(LoanColumn::Balance).sum(), "balance")

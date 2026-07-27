@@ -166,10 +166,11 @@ impl MemberRepository {
 
     pub async fn get_membership_stats(
         &self,
+        cooperative_id: Uuid,
         submission_id: Uuid,
     ) -> AppResult<crate::api::dto::submission::MembershipStatsResponse> {
         let members = member::Entity::find()
-            .filter(MemberColumn::SubmissionId.eq(submission_id))
+            .filter(MemberColumn::CooperativeId.eq(cooperative_id))
             .all(&self.db)
             .await
             .map_err(AppError::DatabaseError)?;

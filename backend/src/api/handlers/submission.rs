@@ -1603,7 +1603,7 @@ pub async fn get_portfolio_breakdown(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let categories = state.loan_repo.get_portfolio_breakdown(id).await?;
+    let categories = state.loan_repo.get_portfolio_breakdown(submission.cooperative_id).await?;
 
     Ok((
         StatusCode::OK,
@@ -1643,7 +1643,7 @@ pub async fn get_membership_stats(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let stats = state.member_repo.get_membership_stats(id).await?;
+    let stats = state.member_repo.get_membership_stats(submission.cooperative_id, id).await?;
 
     Ok((StatusCode::OK, Json(stats)))
 }
