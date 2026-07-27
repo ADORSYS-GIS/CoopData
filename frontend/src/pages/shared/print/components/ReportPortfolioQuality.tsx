@@ -12,7 +12,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
   const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"];
 
   return (
-    <div className="w-[210mm] h-[296mm] p-16 flex flex-col break-after-page bg-white">
+    <div className="w-[210mm] h-[296mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Sheet 3: "Portfolio Quality"
       </h2>

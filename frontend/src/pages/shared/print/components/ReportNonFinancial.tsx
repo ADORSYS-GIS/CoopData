@@ -14,7 +14,7 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
   const totalMembers = (membershipData.active_members || 0) + (membershipData.inactive_members || 0);
 
   return (
-    <div className="w-[210mm] h-[296mm] p-16 flex flex-col break-after-page bg-white">
+    <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Non-Financial Highlights
       </h2>
