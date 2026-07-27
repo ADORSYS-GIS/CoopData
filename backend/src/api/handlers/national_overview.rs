@@ -164,14 +164,19 @@ pub async fn get_national_overview(
         use crate::entities::non_financial_indicator_entry;
         use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
         non_financial_indicator_entry::Entity::find()
-            .filter(non_financial_indicator_entry::Column::SubmissionId.is_in(submission_ids_for_kpi.clone()))
+            .filter(
+                non_financial_indicator_entry::Column::SubmissionId
+                    .is_in(submission_ids_for_kpi.clone()),
+            )
             .all(&state.db)
             .await
             .unwrap_or_default()
     };
 
-    let mut nf_entries_by_sub: HashMap<uuid::Uuid, Vec<crate::entities::non_financial_indicator_entry::Model>> =
-        HashMap::new();
+    let mut nf_entries_by_sub: HashMap<
+        uuid::Uuid,
+        Vec<crate::entities::non_financial_indicator_entry::Model>,
+    > = HashMap::new();
     for entry in all_nf_entries {
         nf_entries_by_sub
             .entry(entry.submission_id)
@@ -220,11 +225,10 @@ pub async fn get_national_overview(
     let mut nf_rows: Vec<CoopNfSummary> = Vec::new();
 
     let raw_account_codes = [
-        1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252,
-        1300, 1301, 1302, 1303, 1304, 1305, 1999, 2100, 2101, 2102, 2103, 2200, 2201, 2202,
-        2300, 2301, 2302, 2303, 2999, 3100, 3101, 3102, 3200, 3201, 3202, 3203, 3300, 3301,
-        3302, 3999, 4101, 4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999,
-        6999,
+        1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252, 1300,
+        1301, 1302, 1303, 1304, 1305, 1999, 2100, 2101, 2102, 2103, 2200, 2201, 2202, 2300, 2301,
+        2302, 2303, 2999, 3100, 3101, 3102, 3200, 3201, 3202, 3203, 3300, 3301, 3302, 3999, 4101,
+        4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999, 6999,
     ];
 
     for coop in &cooperatives {
@@ -346,8 +350,10 @@ pub async fn get_national_overview(
             if let Some(items) = items_by_fs.get(fs_id) {
                 for item in items {
                     if let Some(code) = item.account_code {
-                            let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
-                            eval_ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(val)).unwrap();
+                        let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
+                        eval_ctx
+                            .set_value(format!("ac_{}", code), evalexpr::Value::Float(val))
+                            .unwrap();
                     }
                 }
             }
@@ -382,7 +388,11 @@ pub async fn get_national_overview(
                         let val_f64 = if let Some(val) = entry.value_numeric {
                             val.to_f64().unwrap_or(0.0)
                         } else if let Some(val) = entry.value_boolean {
-                            if val { 1.0 } else { 0.0 }
+                            if val {
+                                1.0
+                            } else {
+                                0.0
+                            }
                         } else {
                             0.0
                         };
@@ -406,38 +416,38 @@ pub async fn get_national_overview(
         let mut custom_kpi_map = HashMap::new();
         if !custom_formulas.is_empty() {
             for formula_def in &custom_formulas {
-                match evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&formula_def.formula) {
-                    Ok(expr) => {
-                        match expr.eval_with_context(&eval_ctx) {
-                            Ok(res) => {
-                                let num_opt = match res {
-                                    evalexpr::Value::Float(f) => Some(f),
-                                    evalexpr::Value::Int(i) => Some(i as f64),
-                                    _ => None,
-                                };
-                                if let Some(num) = num_opt {
-                                    custom_kpi_map.insert(formula_def.name.clone(), num);
-                                } else {
-                                    tracing::warn!(
-                                        cooperative = %coop.display_name,
-                                        kpi_name = %formula_def.name,
-                                        formula = %formula_def.formula,
-                                        result = ?res,
-                                        "Custom KPI evaluated to non-numeric value"
-                                    );
-                                }
-                            }
-                            Err(e) => {
-                                tracing::error!(
+                match evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(
+                    &formula_def.formula,
+                ) {
+                    Ok(expr) => match expr.eval_with_context(&eval_ctx) {
+                        Ok(res) => {
+                            let num_opt = match res {
+                                evalexpr::Value::Float(f) => Some(f),
+                                evalexpr::Value::Int(i) => Some(i as f64),
+                                _ => None,
+                            };
+                            if let Some(num) = num_opt {
+                                custom_kpi_map.insert(formula_def.name.clone(), num);
+                            } else {
+                                tracing::warn!(
                                     cooperative = %coop.display_name,
                                     kpi_name = %formula_def.name,
                                     formula = %formula_def.formula,
-                                    error = %e,
-                                    "Failed to evaluate custom KPI formula"
+                                    result = ?res,
+                                    "Custom KPI evaluated to non-numeric value"
                                 );
                             }
                         }
-                    }
+                        Err(e) => {
+                            tracing::error!(
+                                cooperative = %coop.display_name,
+                                kpi_name = %formula_def.name,
+                                formula = %formula_def.formula,
+                                error = %e,
+                                "Failed to evaluate custom KPI formula"
+                            );
+                        }
+                    },
                     Err(e) => {
                         tracing::error!(
                             kpi_name = %formula_def.name,

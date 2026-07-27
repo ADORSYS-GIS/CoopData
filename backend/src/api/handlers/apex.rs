@@ -1,6 +1,6 @@
 use axum::extract::Extension;
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
@@ -760,7 +760,8 @@ pub async fn ministry_list_apexes(
         .into_iter()
         .filter(|g| {
             // Check if organization_id attribute is present (indicates this is an apex)
-            let org_id_opt = g.attributes
+            let org_id_opt = g
+                .attributes
                 .as_ref()
                 .and_then(|attrs| attrs.get("organization_id"))
                 .and_then(|vals| vals.first())
@@ -781,4 +782,3 @@ pub async fn ministry_list_apexes(
 
     Ok((StatusCode::OK, Json(apexes)))
 }
-

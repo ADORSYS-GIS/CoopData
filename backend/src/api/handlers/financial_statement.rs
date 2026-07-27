@@ -64,7 +64,12 @@ pub(crate) async fn filter_cooperatives(
     let resolved_fed_db_id: Option<Uuid> = if let Some(kc_fed_uuid) = federation_id {
         let kc_fed_str = kc_fed_uuid.to_string();
         // Try keycloak_id string lookup first
-        if let Some(fed) = state.federation_repo.find_by_keycloak_id(&kc_fed_str).await.unwrap_or(None) {
+        if let Some(fed) = state
+            .federation_repo
+            .find_by_keycloak_id(&kc_fed_str)
+            .await
+            .unwrap_or(None)
+        {
             Some(fed.id)
         } else {
             // Maybe it's already the Postgres DB UUID
@@ -77,7 +82,12 @@ pub(crate) async fn filter_cooperatives(
     // Resolve apex_id: frontend sends Keycloak group UUID, but DB stores keycloak_id as String.
     let resolved_apex_db_id: Option<Uuid> = if let Some(kc_apex_uuid) = apex_id {
         let kc_apex_str = kc_apex_uuid.to_string();
-        if let Some(apex) = state.apex_repo.find_by_keycloak_id(&kc_apex_str).await.unwrap_or(None) {
+        if let Some(apex) = state
+            .apex_repo
+            .find_by_keycloak_id(&kc_apex_str)
+            .await
+            .unwrap_or(None)
+        {
             Some(apex.id)
         } else {
             Some(kc_apex_uuid)
