@@ -56,7 +56,10 @@ export interface MembershipStatsResponse {
   agm_attendance: number;
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+let BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+if (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")) {
+  BASE_URL = "http://backend:3000";
+}
 
 /**
  * Fetches computed KPIs for a specific submission.

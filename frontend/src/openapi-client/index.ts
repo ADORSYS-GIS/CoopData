@@ -15,7 +15,13 @@ import { getAccessToken } from "@/services/shared/authService";
 
 // Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
 // Development: VITE_API_BASE_URL should be set to http://localhost:3000
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
+// If we are executing inside the Gotenberg headless chrome container, localhost points to gotenberg!
+// We must route API calls directly to the backend container.
+if (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")) {
+  API_BASE_URL = "http://backend:3000";
+}
 
 export const apiClient = createClient<paths>({
   baseUrl: API_BASE_URL,

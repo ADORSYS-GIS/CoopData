@@ -9,46 +9,41 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppRouteImport } from './routes/app'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
-import { Route as AppApexesRouteImport } from './routes/app.apexes'
-import { Route as AppAuditRouteImport } from './routes/app.audit'
-import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
-import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
-import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
-import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
-import { Route as AppFederationsRouteImport } from './routes/app.federations'
-import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
-import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
-import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
-import { Route as AppMembersRouteImport } from './routes/app.members'
-import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
-import { Route as AppProfileRouteImport } from './routes/app.profile'
-import { Route as AppReportsRouteImport } from './routes/app.reports'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
-import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
-import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
-import { Route as AppCooperativeMembersCooperativeIdRouteImport } from './routes/app.cooperative-members.$cooperativeId'
-import { Route as AppCooperativeProfileCooperativeIdRouteImport } from './routes/app.cooperative-profile.$cooperativeId'
-import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.cooperative.$cooperativeId'
-import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
+import { Route as AppUsersRouteImport } from './routes/app.users'
+import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
+import { Route as AppMembersRouteImport } from './routes/app.members'
+import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
+import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
+import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
+import { Route as AppFederationsRouteImport } from './routes/app.federations'
+import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
+import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
+import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
+import { Route as AppAuditRouteImport } from './routes/app.audit'
+import { Route as AppApexesRouteImport } from './routes/app.apexes'
+import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
-import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
 import { Route as PrintCooperativeIdRouteImport } from './routes/print.cooperative.$id'
+import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
+import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
+import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.cooperative.$cooperativeId'
+import { Route as AppCooperativeProfileCooperativeIdRouteImport } from './routes/app.cooperative-profile.$cooperativeId'
+import { Route as AppCooperativeMembersCooperativeIdRouteImport } from './routes/app.cooperative-members.$cooperativeId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/app',
-  path: '/app',
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -56,9 +51,14 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UnauthorizedRoute = UnauthorizedRouteImport.update({
-  id: '/unauthorized',
-  path: '/unauthorized',
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -66,84 +66,14 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AppRoute,
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
 } as any)
-const AppApexesRoute = AppApexesRouteImport.update({
-  id: '/apexes',
-  path: '/apexes',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAuditRoute = AppAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
-  id: '/benchmarking',
-  path: '/benchmarking',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCooperativesRoute = AppCooperativesRouteImport.update({
-  id: '/cooperatives',
-  path: '/cooperatives',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDebugAuthRoute = AppDebugAuthRouteImport.update({
-  id: '/debug-auth',
-  path: '/debug-auth',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFederationsRoute = AppFederationsRouteImport.update({
-  id: '/federations',
-  path: '/federations',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
-  id: '/financial-statement',
-  path: '/financial-statement',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
-  id: '/indicators',
-  path: '/indicators',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInvitationsRoute = AppInvitationsRouteImport.update({
-  id: '/invitations',
-  path: '/invitations',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMembersRoute = AppMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppNonFinancialDataRoute = AppNonFinancialDataRouteImport.update({
-  id: '/non-financial-data',
-  path: '/non-financial-data',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSubmissionsRoute = AppSubmissionsRouteImport.update({
@@ -151,20 +81,110 @@ const AppSubmissionsRoute = AppSubmissionsRouteImport.update({
   path: '/submissions',
   getParentRoute: () => AppRoute,
 } as any)
-const AppUsersRoute = AppUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRoute,
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppCooperativeMembersCooperativeIdRoute =
-  AppCooperativeMembersCooperativeIdRouteImport.update({
-    id: '/cooperative-members/$cooperativeId',
-    path: '/cooperative-members/$cooperativeId',
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNonFinancialDataRoute = AppNonFinancialDataRouteImport.update({
+  id: '/non-financial-data',
+  path: '/non-financial-data',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvitationsRoute = AppInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
+  id: '/indicators',
+  path: '/indicators',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
+  id: '/financial-statement',
+  path: '/financial-statement',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFederationsRoute = AppFederationsRouteImport.update({
+  id: '/federations',
+  path: '/federations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDebugAuthRoute = AppDebugAuthRouteImport.update({
+  id: '/debug-auth',
+  path: '/debug-auth',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCooperativesRoute = AppCooperativesRouteImport.update({
+  id: '/cooperatives',
+  path: '/cooperatives',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
+  id: '/benchmarking',
+  path: '/benchmarking',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppApexesRoute = AppApexesRouteImport.update({
+  id: '/apexes',
+  path: '/apexes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppUsersRoute,
+} as any)
+const PrintCooperativeIdRoute = PrintCooperativeIdRouteImport.update({
+  id: '/print/cooperative/$id',
+  path: '/print/cooperative/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppUsersApexIdRoute = AppUsersApexIdRouteImport.update({
+  id: '/$apexId',
+  path: '/$apexId',
+  getParentRoute: () => AppUsersRoute,
+} as any)
+const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
+  id: '/submissions_/$id',
+  path: '/submissions/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCooperativeCooperativeIdRoute =
+  AppCooperativeCooperativeIdRouteImport.update({
+    id: '/cooperative/$cooperativeId',
+    path: '/cooperative/$cooperativeId',
     getParentRoute: () => AppRoute,
   } as any)
 const AppCooperativeProfileCooperativeIdRoute =
@@ -173,32 +193,12 @@ const AppCooperativeProfileCooperativeIdRoute =
     path: '/cooperative-profile/$cooperativeId',
     getParentRoute: () => AppRoute,
   } as any)
-const AppCooperativeCooperativeIdRoute =
-  AppCooperativeCooperativeIdRouteImport.update({
-    id: '/cooperative/$cooperativeId',
-    path: '/cooperative/$cooperativeId',
+const AppCooperativeMembersCooperativeIdRoute =
+  AppCooperativeMembersCooperativeIdRouteImport.update({
+    id: '/cooperative-members/$cooperativeId',
+    path: '/cooperative-members/$cooperativeId',
     getParentRoute: () => AppRoute,
   } as any)
-const AppSubmissionsIdRoute = AppSubmissionsIdRouteImport.update({
-  id: '/submissions_/$id',
-  path: '/submissions/$id',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppUsersRoute,
-} as any)
-const AppUsersApexIdRoute = AppUsersApexIdRouteImport.update({
-  id: '/$apexId',
-  path: '/$apexId',
-  getParentRoute: () => AppUsersRoute,
-} as any)
-const PrintCooperativeIdRoute = PrintCooperativeIdRouteImport.update({
-  id: '/print/cooperative/$id',
-  path: '/print/cooperative/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -408,18 +408,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AppRouteImport
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -429,11 +422,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/unauthorized': {
-      id: '/unauthorized'
-      path: '/unauthorized'
-      fullPath: '/unauthorized'
-      preLoaderRoute: typeof UnauthorizedRouteImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -443,116 +443,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/analytics': {
-      id: '/app/analytics'
-      path: '/analytics'
-      fullPath: '/app/analytics'
-      preLoaderRoute: typeof AppAnalyticsRouteImport
-      parentRoute: typeof AppRoute
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
     }
-    '/app/apexes': {
-      id: '/app/apexes'
-      path: '/apexes'
-      fullPath: '/app/apexes'
-      preLoaderRoute: typeof AppApexesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/audit': {
-      id: '/app/audit'
-      path: '/audit'
-      fullPath: '/app/audit'
-      preLoaderRoute: typeof AppAuditRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/benchmarking': {
-      id: '/app/benchmarking'
-      path: '/benchmarking'
-      fullPath: '/app/benchmarking'
-      preLoaderRoute: typeof AppBenchmarkingRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/cooperatives': {
-      id: '/app/cooperatives'
-      path: '/cooperatives'
-      fullPath: '/app/cooperatives'
-      preLoaderRoute: typeof AppCooperativesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/dashboard': {
-      id: '/app/dashboard'
-      path: '/dashboard'
-      fullPath: '/app/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/debug-auth': {
-      id: '/app/debug-auth'
-      path: '/debug-auth'
-      fullPath: '/app/debug-auth'
-      preLoaderRoute: typeof AppDebugAuthRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/federations': {
-      id: '/app/federations'
-      path: '/federations'
-      fullPath: '/app/federations'
-      preLoaderRoute: typeof AppFederationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/financial-statement': {
-      id: '/app/financial-statement'
-      path: '/financial-statement'
-      fullPath: '/app/financial-statement'
-      preLoaderRoute: typeof AppFinancialStatementRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/indicators': {
-      id: '/app/indicators'
-      path: '/indicators'
-      fullPath: '/app/indicators'
-      preLoaderRoute: typeof AppIndicatorsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/invitations': {
-      id: '/app/invitations'
-      path: '/invitations'
-      fullPath: '/app/invitations'
-      preLoaderRoute: typeof AppInvitationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/members': {
-      id: '/app/members'
-      path: '/members'
-      fullPath: '/app/members'
-      preLoaderRoute: typeof AppMembersRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/non-financial-data': {
-      id: '/app/non-financial-data'
-      path: '/non-financial-data'
-      fullPath: '/app/non-financial-data'
-      preLoaderRoute: typeof AppNonFinancialDataRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/profile': {
-      id: '/app/profile'
-      path: '/profile'
-      fullPath: '/app/profile'
-      preLoaderRoute: typeof AppProfileRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/reports': {
-      id: '/app/reports'
-      path: '/reports'
-      fullPath: '/app/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
+    '/app/users': {
+      id: '/app/users'
+      path: '/users'
+      fullPath: '/app/users'
+      preLoaderRoute: typeof AppUsersRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/submissions': {
@@ -562,46 +464,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSubmissionsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/users': {
-      id: '/app/users'
-      path: '/users'
-      fullPath: '/app/users'
-      preLoaderRoute: typeof AppUsersRouteImport
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/app/cooperative-members/$cooperativeId': {
-      id: '/app/cooperative-members/$cooperativeId'
-      path: '/cooperative-members/$cooperativeId'
-      fullPath: '/app/cooperative-members/$cooperativeId'
-      preLoaderRoute: typeof AppCooperativeMembersCooperativeIdRouteImport
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/cooperative-profile/$cooperativeId': {
-      id: '/app/cooperative-profile/$cooperativeId'
-      path: '/cooperative-profile/$cooperativeId'
-      fullPath: '/app/cooperative-profile/$cooperativeId'
-      preLoaderRoute: typeof AppCooperativeProfileCooperativeIdRouteImport
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/cooperative/$cooperativeId': {
-      id: '/app/cooperative/$cooperativeId'
-      path: '/cooperative/$cooperativeId'
-      fullPath: '/app/cooperative/$cooperativeId'
-      preLoaderRoute: typeof AppCooperativeCooperativeIdRouteImport
+    '/app/non-financial-data': {
+      id: '/app/non-financial-data'
+      path: '/non-financial-data'
+      fullPath: '/app/non-financial-data'
+      preLoaderRoute: typeof AppNonFinancialDataRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/submissions_/$id': {
-      id: '/app/submissions_/$id'
-      path: '/submissions/$id'
-      fullPath: '/app/submissions/$id'
-      preLoaderRoute: typeof AppSubmissionsIdRouteImport
+    '/app/members': {
+      id: '/app/members'
+      path: '/members'
+      fullPath: '/app/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/invitations': {
+      id: '/app/invitations'
+      path: '/invitations'
+      fullPath: '/app/invitations'
+      preLoaderRoute: typeof AppInvitationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/indicators': {
+      id: '/app/indicators'
+      path: '/indicators'
+      fullPath: '/app/indicators'
+      preLoaderRoute: typeof AppIndicatorsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/financial-statement': {
+      id: '/app/financial-statement'
+      path: '/financial-statement'
+      fullPath: '/app/financial-statement'
+      preLoaderRoute: typeof AppFinancialStatementRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/federations': {
+      id: '/app/federations'
+      path: '/federations'
+      fullPath: '/app/federations'
+      preLoaderRoute: typeof AppFederationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/debug-auth': {
+      id: '/app/debug-auth'
+      path: '/debug-auth'
+      fullPath: '/app/debug-auth'
+      preLoaderRoute: typeof AppDebugAuthRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperatives': {
+      id: '/app/cooperatives'
+      path: '/cooperatives'
+      fullPath: '/app/cooperatives'
+      preLoaderRoute: typeof AppCooperativesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/benchmarking': {
+      id: '/app/benchmarking'
+      path: '/benchmarking'
+      fullPath: '/app/benchmarking'
+      preLoaderRoute: typeof AppBenchmarkingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/audit': {
+      id: '/app/audit'
+      path: '/audit'
+      fullPath: '/app/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/apexes': {
+      id: '/app/apexes'
+      path: '/apexes'
+      fullPath: '/app/apexes'
+      preLoaderRoute: typeof AppApexesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/analytics': {
+      id: '/app/analytics'
+      path: '/analytics'
+      fullPath: '/app/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/users/': {
@@ -611,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUsersIndexRouteImport
       parentRoute: typeof AppUsersRoute
     }
+    '/print/cooperative/$id': {
+      id: '/print/cooperative/$id'
+      path: '/print/cooperative/$id'
+      fullPath: '/print/cooperative/$id'
+      preLoaderRoute: typeof PrintCooperativeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/users/$apexId': {
       id: '/app/users/$apexId'
       path: '/$apexId'
@@ -618,12 +597,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUsersApexIdRouteImport
       parentRoute: typeof AppUsersRoute
     }
-    '/print/cooperative/$id': {
-      id: '/print/cooperative/$id'
-      path: '/print/cooperative/$id'
-      fullPath: '/print/cooperative/$id'
-      preLoaderRoute: typeof PrintCooperativeIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/app/submissions_/$id': {
+      id: '/app/submissions_/$id'
+      path: '/submissions/$id'
+      fullPath: '/app/submissions/$id'
+      preLoaderRoute: typeof AppSubmissionsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperative/$cooperativeId': {
+      id: '/app/cooperative/$cooperativeId'
+      path: '/cooperative/$cooperativeId'
+      fullPath: '/app/cooperative/$cooperativeId'
+      preLoaderRoute: typeof AppCooperativeCooperativeIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperative-profile/$cooperativeId': {
+      id: '/app/cooperative-profile/$cooperativeId'
+      path: '/cooperative-profile/$cooperativeId'
+      fullPath: '/app/cooperative-profile/$cooperativeId'
+      preLoaderRoute: typeof AppCooperativeProfileCooperativeIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/cooperative-members/$cooperativeId': {
+      id: '/app/cooperative-members/$cooperativeId'
+      path: '/cooperative-members/$cooperativeId'
+      fullPath: '/app/cooperative-members/$cooperativeId'
+      preLoaderRoute: typeof AppCooperativeMembersCooperativeIdRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }

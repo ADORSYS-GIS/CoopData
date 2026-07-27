@@ -34,6 +34,17 @@ impl FinancialStatementRepository {
             .map_err(Into::into)
     }
 
+    pub async fn find_by_submission_id(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Option<financial_statement::Model>> {
+        Entity::find()
+            .filter(Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await
+            .map_err(Into::into)
+    }
+
     pub async fn find_by_submission_ids(
         &self,
         submission_ids: Vec<Uuid>,

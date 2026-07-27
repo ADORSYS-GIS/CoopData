@@ -15,6 +15,7 @@ use crate::api::dto::financial::{
     MinistryStatsResponse, MonthlyTrendPoint, MonthlyTrendResponse, RegionCompliancePoint,
     RegionComplianceResponse, SectorBreakdownPoint, SectorBreakdownResponse,
     SubmissionActivityPoint, SubmissionActivityResponse, SubmissionKpisResponse,
+    SubmissionLineItemsResponse,
 };
 use crate::auth::claims::Claims;
 
@@ -212,7 +213,7 @@ pub async fn update_line_items(
 
 // ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
 
-#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
 pub struct KpisQueryParams {
     pub include_prior_year: Option<bool>,
 }

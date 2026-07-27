@@ -114,43 +114,73 @@ impl ExportGenerator {
         );
         tracing::info!("Generating PDF via Gotenberg with URL: {}", print_url);
 
-        let form = reqwest::multipart::Form::new()
-            .text("url", print_url)
-            .text("waitForExpression", "window.isReady === true")
-            .text("paperWidth", "8.27")
-            .text("paperHeight", "11.69")
-            .text("marginTop", "0")
-            .text("marginBottom", "0")
-            .text("marginLeft", "0")
-            .text("marginRight", "0")
-            .text("printBackground", "true")
-            .text("emulateMediaType", "screen");
+        let _permit = state.gotenberg_semaphore.acquire().await
+            .map_err(|_| crate::error::AppError::InternalServerError("Gotenberg semaphore closed".into()))?;
 
-        let response = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(120))
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(35))
             .build()
-            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to build HTTP client: {}", e)))?
-            .post("http://gotenberg:3000/forms/chromium/convert/url")
-            .multipart(form)
-            .send()
-            .await
-            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to connect to Gotenberg: {}", e)))?;
+            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to build HTTP client: {}", e)))?;
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(crate::error::AppError::InternalServerError(format!(
-                "Gotenberg returned error status {}: {}",
-                status, text
-            )));
+        let max_retries = 2;
+        let mut last_error = None;
+
+        for attempt in 0..max_retries {
+            let form_clone = reqwest::multipart::Form::new()
+                .text("url", print_url.clone())
+                .text("waitDelay", "25s")
+                .text("paperWidth", "8.27")
+                .text("paperHeight", "11.69")
+                .text("marginTop", "0")
+                .text("marginBottom", "0")
+                .text("marginLeft", "0")
+                .text("marginRight", "0")
+                .text("printBackground", "true")
+                .text("emulateMediaType", "screen");
+
+            let response = client
+                .post("http://gotenberg:3000/forms/chromium/convert/url")
+                .multipart(form_clone)
+                .send()
+                .await;
+
+            match response {
+                Ok(resp) if resp.status().is_success() => {
+                    let bytes = resp.bytes().await
+                        .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to read PDF: {}", e)))?;
+                    
+                    if bytes.len() < 50_000 {
+                        last_error = Some(format!("PDF too small ({} bytes) on attempt {}", bytes.len(), attempt + 1));
+                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                        continue;
+                    }
+                    
+                    return Ok(bytes.to_vec());
+                }
+                Ok(resp) if resp.status().as_u16() == 503 => {
+                    last_error = Some(format!("503 on attempt {}", attempt + 1));
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    continue;
+                }
+                Ok(resp) => {
+                    let status = resp.status();
+                    let text = resp.text().await.unwrap_or_default();
+                    return Err(crate::error::AppError::InternalServerError(format!(
+                        "Gotenberg returned error status {}: {}", status, text
+                    )));
+                }
+                Err(e) => {
+                    last_error = Some(e.to_string());
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    continue;
+                }
+            }
         }
 
-        let pdf_bytes = response
-            .bytes()
-            .await
-            .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to read Gotenberg PDF response: {}", e)))?;
-
-        Ok(pdf_bytes.to_vec())
+        Err(crate::error::AppError::InternalServerError(format!(
+            "Gotenberg failed after {} retries: {:?}",
+            max_retries, last_error
+        )))
     }
 
 

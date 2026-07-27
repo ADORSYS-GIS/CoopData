@@ -42,7 +42,7 @@ impl From<FsModel> for FinancialStatementResponse {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LineItemResponse {
     pub id: Uuid,
     pub financial_statement_id: Uuid,
