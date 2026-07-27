@@ -31,7 +31,7 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   const totalAssetsFormatted = findKpi(kpiMap, 'total_assets')?.formatted ?? 'a significant portion';
 
   return (
-    <div className="w-[210mm] h-[296mm] p-16 flex flex-col page-break-after bg-white">
+    <div className="w-[210mm] h-[296mm] p-16 flex flex-col break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Section A: Coop Performance Report
       </h2>

@@ -7,7 +7,6 @@ import {
   useMembershipStats,
   KpiItemResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
-import { useCooperativeProfile } from "@/hooks/cooperatives/useCooperativeProfile";
 import {
   ReportCoverPage,
   ReportExecutiveSummary,
@@ -29,18 +28,14 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   const { data: lineItemsData, isLoading: lineItemsLoading } = useSubmissionLineItems(submissionId, tokenOverride);
   const { data: portfolioData, isLoading: portfolioLoading } = usePortfolioBreakdown(submissionId, tokenOverride);
   const { data: membershipData, isLoading: membershipLoading } = useMembershipStats(submissionId, tokenOverride);
-  const { data: cooperative, isLoading: coopLoading } = useCooperativeProfile(
-    submission?.cooperative_id ?? ""
-  );
-
-  const coopName = cooperative?.name ?? "COOPERATIVE";
+  const coopName = submission?.cooperative_name ?? "COOPERATIVE";
 
   const kpiMap = useMemo(() => {
     if (!kpisData) return new Map<string, KpiItemResponse>();
     return new Map(kpisData.kpis.map((k) => [k.name, k]));
   }, [kpisData]);
 
-  if (subLoading || kpisLoading || lineItemsLoading || portfolioLoading || membershipLoading || coopLoading) {
+  if (subLoading || kpisLoading || lineItemsLoading || portfolioLoading || membershipLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
@@ -69,7 +64,6 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     lineItemsData,
     portfolioData,
     membershipData,
-    cooperative,
     coopName,
     kpiMap,
   };

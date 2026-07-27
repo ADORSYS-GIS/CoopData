@@ -74,7 +74,7 @@ export const useCooperativeKpis = (submissionId: string | undefined, tokenOverri
     queryKey: ["coop-kpis", submissionId, tokenOverride],
     queryFn: async () => {
       const token = tokenOverride || await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis`, {
+      const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis?include_prior_year=true`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {

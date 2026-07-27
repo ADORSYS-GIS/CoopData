@@ -12,7 +12,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
   const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"];
 
   return (
-    <div className="w-[210mm] h-[296mm] p-16 flex flex-col page-break-after bg-white">
+    <div className="w-[210mm] h-[296mm] p-16 flex flex-col break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Sheet 3: "Portfolio Quality"
       </h2>
@@ -21,7 +21,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
         <PieChart width={400} height={250}>
           <Pie
             isAnimationActive={false}
-            data={portfolioData.categories}
+            data={portfolioData.categories || []}
             dataKey="balance"
             nameKey="category"
             cx="50%"
@@ -29,7 +29,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
             outerRadius={80}
             label={({ category, percent }) => `${category} ${(percent * 100).toFixed(1)}%`}
           >
-            {portfolioData.categories.map((entry, index) => (
+            {(portfolioData.categories || []).map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
@@ -50,7 +50,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {portfolioData.categories.map(c => (
+          {(portfolioData.categories || []).map(c => (
             <tr key={c.category}>
               <td className="px-2 py-1">{c.category}</td>
               <td className="px-2 py-1 text-right">{formatCurrency(c.balance)}</td>
@@ -59,7 +59,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
           ))}
           <tr className="bg-slate-100 font-bold">
             <td className="px-2 py-1">Total</td>
-            <td className="px-2 py-1 text-right">{formatCurrency(portfolioData.categories.reduce((acc, c) => acc + c.balance, 0))}</td>
+            <td className="px-2 py-1 text-right">{formatCurrency((portfolioData.categories || []).reduce((acc, c) => acc + c.balance, 0))}</td>
             <td className="px-2 py-1 text-right">100.0%</td>
           </tr>
         </tbody>

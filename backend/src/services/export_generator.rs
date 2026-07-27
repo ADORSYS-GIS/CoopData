@@ -531,7 +531,7 @@ impl ExportGenerator {
                     formatted: k.formatted.clone(),
                     unit: k.unit.clone(),
                     status: k.status.clone(),
-                    benchmark: None,
+                    benchmark: crate::services::kpi_engine::KpiEngine::get_benchmark(&k.kpi_name),
                     description: k.description.clone(),
                 }).unwrap_or_else(|| KpiValue {
                     name: name.to_string(),
@@ -539,7 +539,7 @@ impl ExportGenerator {
                     formatted: "N/A".to_string(),
                     unit: "unknown".to_string(),
                     status: None,
-                    benchmark: None,
+                    benchmark: crate::services::kpi_engine::KpiEngine::get_benchmark(name),
                     description: "".to_string(),
                 })
             };

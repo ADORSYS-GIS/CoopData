@@ -7,19 +7,19 @@ export const ReportCoverPage: React.FC<ReportDataProps> = ({
   coopName,
 }) => {
   return (
-    <div className="relative flex flex-col justify-between w-[210mm] h-[296mm] p-16 bg-gradient-to-br from-slate-900 to-slate-800 text-white page-break-after">
-      <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full filter blur-3xl pointer-events-none" />
+    <div className="relative flex flex-col justify-between w-[210mm] h-[296mm] p-16 bg-gradient-to-br from-slate-900 to-slate-800 text-white break-after-page">
+      <div className="absolute right-[-2rem] top-[-2rem] w-80 h-80 bg-blue-900/30 rounded-full flex items-center justify-center pointer-events-none border-[8px] border-slate-800">
+        <img src="/coopdatalogo.png" alt="CoopData Logo" className="w-48 h-48 object-contain opacity-90 translate-x-[-1rem] translate-y-[1rem]" />
+      </div>
 
-      <div className="flex items-center justify-between border-b border-slate-700/60 pb-8">
-        <div className="flex items-center gap-3">
-          <div className="size-8 rounded-lg bg-blue-500 grid place-items-center text-white font-bold text-lg">C</div>
-          <div>
-            <p className="text-sm font-bold tracking-wider text-slate-300">CoopData</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest leading-none">Oversight Platform</p>
-          </div>
+      <div className="flex items-center justify-between border-b border-slate-700/60 pb-8 relative z-10">
+        <div className="flex items-center">
+          <h2 className="text-3xl font-black tracking-widest text-slate-200 uppercase">
+            Official Report
+          </h2>
         </div>
         <span className="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-[10px] uppercase font-bold tracking-widest text-blue-400">
-          Official Report
+          Confidential
         </span>
       </div>
 

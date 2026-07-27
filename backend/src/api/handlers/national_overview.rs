@@ -224,7 +224,7 @@ pub async fn get_national_overview(
                             formatted: r.formatted.clone(),
                             unit: r.unit.clone(),
                             status: r.status.clone(),
-                            benchmark: None,
+                            benchmark: crate::services::kpi_engine::KpiEngine::get_benchmark(&r.kpi_name),
                             description: r.description.clone(),
                         },
                     );

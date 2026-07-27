@@ -275,14 +275,17 @@ pub async fn get_submission_kpis(
 
     let kpis: Vec<KpiItemResponse> = db_kpis
         .into_iter()
-        .map(|r| KpiItemResponse {
-            name: r.kpi_name,
-            value: r.value,
-            formatted: r.formatted,
-            unit: r.unit,
-            status: r.status,
-            benchmark: None,
-            description: r.description,
+        .map(|r| {
+            let benchmark = crate::services::KpiEngine::get_benchmark(&r.kpi_name);
+            KpiItemResponse {
+                name: r.kpi_name,
+                value: r.value,
+                formatted: r.formatted,
+                unit: r.unit,
+                status: r.status,
+                benchmark,
+                description: r.description,
+            }
         })
         .collect();
 
@@ -303,14 +306,17 @@ pub async fn get_submission_kpis(
             Some(
                 db_prior_kpis
                     .into_iter()
-                    .map(|r| KpiItemResponse {
-                        name: r.kpi_name,
-                        value: r.value,
-                        formatted: r.formatted,
-                        unit: r.unit,
-                        status: r.status,
-                        benchmark: None,
-                        description: r.description,
+                    .map(|r| {
+                        let benchmark = crate::services::KpiEngine::get_benchmark(&r.kpi_name);
+                        KpiItemResponse {
+                            name: r.kpi_name,
+                            value: r.value,
+                            formatted: r.formatted,
+                            unit: r.unit,
+                            status: r.status,
+                            benchmark,
+                            description: r.description,
+                        }
                     })
                     .collect(),
             )

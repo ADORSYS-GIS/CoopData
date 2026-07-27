@@ -77,7 +77,7 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
   };
 
   return (
-    <div className="w-[210mm] min-h-[296mm] p-16 flex flex-col page-break-after bg-white">
+    <div className="w-[210mm] min-h-[296mm] p-16 flex flex-col break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Sheet 2: "Financial Position"
       </h2>

@@ -237,6 +237,16 @@ pub async fn get_submission(
     }
 
     let mut resp = SubmissionResponse::from(submission);
+
+    // Populate cooperative name from DB so frontend doesn't need a separate Keycloak-based call
+    if let Ok(Some(coop)) = state
+        .cooperative_repo
+        .find_by_id(resp.cooperative_id)
+        .await
+    {
+        resp.cooperative_name = Some(coop.name);
+    }
+
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
         let job = state
             .extraction_job_repo
@@ -1144,6 +1154,66 @@ pub async fn ministry_approve_submission(
         state.clone(),
         updated.reporting_year,
     );
+
+    // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
+    // When a submission for year Y is approved, any cached PDF/Excel for year Y+1, Y+2, etc.
+    // is now stale because it was generated without year Y data in the "prior year" columns.
+    let future_subs: Vec<_> = state
+        .submission_repo
+        .find_by_cooperative(updated.cooperative_id)
+        .await?
+        .into_iter()
+        .filter(|s| {
+            s.reporting_year > updated.reporting_year 
+                && s.id != id 
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
+        })
+        .collect();
+
+    if !future_subs.is_empty() {
+        tracing::info!(
+            cooperative_id = %updated.cooperative_id,
+            current_year = updated.reporting_year,
+            stale_count = future_subs.len(),
+            "Invalidating stale exports for future-year submissions"
+        );
+
+        for sub in future_subs {
+            // Delete stale cached files from object storage (best-effort)
+            let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+            let xlsx_key = format!("exports/individual/{}/submission_{}.xlsx", sub.id, sub.id);
+            let docx_key = format!("exports/individual/{}/submission_{}.docx", sub.id, sub.id);
+            let _ = state.storage.delete_object(&pdf_key).await;
+            let _ = state.storage.delete_object(&xlsx_key).await;
+            let _ = state.storage.delete_object(&docx_key).await;
+
+            // Trigger background regeneration so the next download gets fresh data
+            crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+                state.clone(),
+                sub.id,
+            );
+            crate::services::export_generator::ExportGenerator::trigger_apex_export(
+                state.clone(),
+                coop.apex_id,
+                sub.reporting_year,
+            );
+            crate::services::export_generator::ExportGenerator::trigger_federation_export(
+                state.clone(),
+                apex.federation_id,
+                sub.reporting_year,
+            );
+            crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+                state.clone(),
+                sub.reporting_year,
+            );
+
+            tracing::info!(
+                stale_submission_id = %sub.id,
+                stale_year = sub.reporting_year,
+                "Queued re-generation of stale export"
+            );
+        }
+    }
 
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }

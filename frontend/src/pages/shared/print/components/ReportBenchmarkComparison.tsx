@@ -28,7 +28,7 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {kpisData.kpis.map(kpi => (
+          {(kpisData.kpis || []).map(kpi => (
             <tr key={kpi.name} className="hover:bg-slate-50">
               <td className="px-2 py-1 font-medium">{kpi.name.replace(/_/g, " ").toUpperCase()}</td>
               <td className="px-2 py-1">{kpi.description}</td>

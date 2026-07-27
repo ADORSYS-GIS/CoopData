@@ -445,6 +445,23 @@ impl KpiEngine {
             description: description.to_string(),
         }
     }
+
+    /// Retrieve the standard benchmark for a given KPI name.
+    pub fn get_benchmark(name: &str) -> Option<f64> {
+        match name {
+            "par30" => Some(5.0),
+            "par90" => Some(2.0),
+            "npl_ratio" => Some(2.0),
+            "loan_loss_coverage" => Some(100.0),
+            "roa" => Some(3.0),
+            "roe" => Some(8.0),
+            "operating_expense_ratio" => Some(5.0),
+            "capital_adequacy_ratio" => Some(10.0),
+            "liquid_funds_ratio" => Some(15.0),
+            "operational_self_sufficiency" => Some(110.0),
+            _ => None,
+        }
+    }
 }
 
 // ── Unit tests ───────────────────────────────────────────────────────────────
