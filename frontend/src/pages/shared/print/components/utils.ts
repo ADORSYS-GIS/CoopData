@@ -2,9 +2,10 @@ import { KpiItemResponse, SubmissionLineItemsResponse } from "@/hooks/submission
 
 export const findKpi = (kpiMap: Map<string, KpiItemResponse>, name: string) => kpiMap.get(name);
 
-export const getLineItem = (lineItemsData: SubmissionLineItemsResponse, code: string, isPrior = false) => {
-  const list = isPrior ? lineItemsData?.prior_year : lineItemsData?.current_year;
-  return list?.find((item) => item.account_code === code)?.value;
+export const getLineItem = (lineItemsData: SubmissionLineItemsResponse | undefined, code: string | number, isPrior = false) => {
+  if (!lineItemsData) return undefined;
+  const list = isPrior ? lineItemsData.prior_year : lineItemsData.current_year;
+  return list?.find((item) => item.account_code?.toString() === code.toString())?.value;
 };
 
 export const calculateYoY = (current?: number | null, prior?: number | null) => {

@@ -28,13 +28,15 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {kpisData.kpis.filter(k => k.benchmark !== undefined && k.benchmark !== null).map(kpi => (
+          {kpisData.kpis.map(kpi => (
             <tr key={kpi.name} className="hover:bg-slate-50">
               <td className="px-2 py-1 font-medium">{kpi.name.replace(/_/g, " ").toUpperCase()}</td>
               <td className="px-2 py-1">{kpi.description}</td>
               <td className="px-2 py-1 text-right font-bold">{kpi.formatted}</td>
               <td className="px-2 py-1 text-right">
-                {kpi.unit === "percent" ? `${kpi.benchmark}%` : kpi.benchmark}
+                {kpi.benchmark !== undefined && kpi.benchmark !== null
+                  ? (kpi.unit === "percent" ? `${kpi.benchmark}%` : kpi.benchmark)
+                  : "—"}
               </td>
               <td className="px-2 py-1 text-center">
                 <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${

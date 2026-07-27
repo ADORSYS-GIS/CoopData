@@ -23,10 +23,12 @@ export interface SubmissionKpisResponse {
 
 export interface LineItemResponse {
   id: string;
-  account_code: string;
+  account_code?: number;
   account_name: string;
-  category: string;
-  value: number;
+  account_category: string;
+  account_subcategory?: string;
+  month?: number;
+  value?: number;
 }
 
 export interface SubmissionLineItemsResponse {

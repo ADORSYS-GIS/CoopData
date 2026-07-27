@@ -19,7 +19,8 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
         Non-Financial Highlights
       </h2>
 
-      <div className="flex justify-center mb-10 h-[300px] relative mt-4">
+      <div className="flex flex-col items-center justify-center mb-10 mt-4">
+        <h3 className="text-sm font-bold text-slate-800 mb-2">Membership Composition ({totalMembers} Total)</h3>
         <PieChart width={400} height={300}>
           <Pie
             isAnimationActive={false}
@@ -29,16 +30,13 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
             ]}
             dataKey="value"
             cx="50%"
-            cy="45%"
+            cy="50%"
             innerRadius={0}
-            outerRadius={90}
+            outerRadius={100}
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
           />
           <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
         </PieChart>
-        <div className="absolute top-0 left-0 w-full text-center">
-          <h3 className="text-sm font-bold text-slate-800">Membership Composition ({totalMembers} Total)</h3>
-        </div>
       </div>
 
       <table className="w-full text-left text-xs border-collapse mb-8 page-break-inside-avoid">

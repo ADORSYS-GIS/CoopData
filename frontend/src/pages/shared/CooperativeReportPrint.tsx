@@ -7,7 +7,7 @@ import {
   useMembershipStats,
   KpiItemResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
-import { useCooperative } from "@/hooks/cooperatives/useCooperatives";
+import { useCooperativeProfile } from "@/hooks/cooperatives/useCooperativeProfile";
 import {
   ReportCoverPage,
   ReportExecutiveSummary,
@@ -29,9 +29,8 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   const { data: lineItemsData, isLoading: lineItemsLoading } = useSubmissionLineItems(submissionId, tokenOverride);
   const { data: portfolioData, isLoading: portfolioLoading } = usePortfolioBreakdown(submissionId, tokenOverride);
   const { data: membershipData, isLoading: membershipLoading } = useMembershipStats(submissionId, tokenOverride);
-  const { data: cooperative, isLoading: coopLoading } = useCooperative(
-    submission?.cooperative_id ?? "",
-    tokenOverride
+  const { data: cooperative, isLoading: coopLoading } = useCooperativeProfile(
+    submission?.cooperative_id ?? ""
   );
 
   const coopName = cooperative?.name ?? "COOPERATIVE";
