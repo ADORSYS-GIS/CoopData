@@ -212,10 +212,18 @@ pub async fn update_line_items(
 
 // ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
 
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+pub struct KpisQueryParams {
+    pub include_prior_year: Option<bool>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/submissions/{id}/kpis",
-    params(("id" = Uuid, Path, description = "Submission ID")),
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        KpisQueryParams
+    ),
     responses(
         (status = 200, description = "Computed KPIs for submission", body = SubmissionKpisResponse),
         (status = 403, description = "Access denied"),
@@ -227,6 +235,7 @@ pub async fn get_submission_kpis(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
+    Query(query): Query<KpisQueryParams>,
 ) -> AppResult<impl IntoResponse> {
     let coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -283,6 +292,34 @@ pub async fn get_submission_kpis(
         "KPIs retrieved for submission"
     );
 
+    let prior_year_kpis = if query.include_prior_year.unwrap_or(false) {
+        if let Some(prior_sub) = state
+            .submission_repo
+            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .await?
+        {
+            let db_prior_kpis = state.kpi_record_repo.find_by_submission(prior_sub.id).await?;
+            Some(
+                db_prior_kpis
+                    .into_iter()
+                    .map(|r| KpiItemResponse {
+                        name: r.kpi_name,
+                        value: r.value,
+                        formatted: r.formatted,
+                        unit: r.unit,
+                        status: r.status,
+                        benchmark: None,
+                        description: r.description,
+                    })
+                    .collect(),
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     Ok((
         StatusCode::OK,
         Json(SubmissionKpisResponse {
@@ -291,6 +328,90 @@ pub async fn get_submission_kpis(
             computed_at: chrono::Utc::now(),
             submission_status: submission.status.as_str().to_string(),
             kpis,
+            prior_year_kpis,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/financial-statement/line-items",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        KpisQueryParams
+    ),
+    responses(
+        (status = 200, description = "Line items for submission", body = SubmissionLineItemsResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_submission_line_items(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<KpisQueryParams>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let current_fs = state
+        .financial_statement_repo
+        .find_by_submission_id(id)
+        .await?;
+
+    let mut current_year_items = vec![];
+    if let Some(fs) = current_fs {
+        current_year_items = state
+            .line_item_repo
+            .find_by_financial_statement(fs.id)
+            .await?
+            .into_iter()
+            .map(LineItemResponse::from)
+            .collect();
+    }
+
+    let mut prior_year_items = None;
+    if query.include_prior_year.unwrap_or(false) {
+        if let Some(prior_sub) = state
+            .submission_repo
+            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .await?
+        {
+            if let Some(prior_fs) = state
+                .financial_statement_repo
+                .find_by_submission_id(prior_sub.id)
+                .await?
+            {
+                let items = state
+                    .line_item_repo
+                    .find_by_financial_statement(prior_fs.id)
+                    .await?
+                    .into_iter()
+                    .map(LineItemResponse::from)
+                    .collect();
+                prior_year_items = Some(items);
+            }
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(SubmissionLineItemsResponse {
+            submission_id: id,
+            current_year: current_year_items,
+            prior_year: prior_year_items,
         }),
     ))
 }

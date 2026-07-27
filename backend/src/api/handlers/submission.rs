@@ -1573,3 +1573,77 @@ pub async fn list_submission_reviews(
         .collect();
     Ok((StatusCode::OK, Json(responses)))
 }
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/portfolio-breakdown",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Portfolio breakdown", body = crate::api::dto::submission::PortfolioBreakdownResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_portfolio_breakdown(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let categories = state.loan_repo.get_portfolio_breakdown(id).await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(crate::api::dto::submission::PortfolioBreakdownResponse {
+            submission_id: id,
+            categories,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/membership-stats",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Membership stats", body = crate::api::dto::submission::MembershipStatsResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_membership_stats(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let stats = state.member_repo.get_membership_stats(id).await?;
+
+    Ok((StatusCode::OK, Json(stats)))
+}
