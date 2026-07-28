@@ -27,6 +27,7 @@ export interface NetworkConsolidatedMetricsProps {
   };
   totalCooperatives: number;
   cooperativesWithData: number;
+  totalApexes?: number;
 }
 
 export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProps> = ({
@@ -34,6 +35,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   networkTrend,
   totalCooperatives,
   cooperativesWithData,
+  totalApexes,
 }) => {
   const networkTrendPoints = useMemo(
     () =>
@@ -48,7 +50,8 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
 
   const networkKpiGridMetrics = useMemo(() => {
     if (!nfStats) return [];
-    return [
+    
+    const baseMetrics = [
       {
         label: "Total Cooperatives",
         value: cooperativesWithData,
@@ -93,7 +96,19 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         trendValue: "Healthy",
       },
     ];
-  }, [nfStats, totalCooperatives, cooperativesWithData]);
+    
+    if (totalApexes !== undefined) {
+      baseMetrics.unshift({
+        label: "Total Apexes",
+        value: totalApexes.toLocaleString(),
+        tooltip: "Total number of active apex organizations within the federation.",
+        trend: "neutral" as const,
+        trendValue: "Network scale",
+      });
+    }
+    
+    return baseMetrics;
+  }, [nfStats, totalCooperatives, cooperativesWithData, totalApexes]);
 
   const membershipMetrics = useMemo(() => {
     if (!nfStats?.membership) return [];

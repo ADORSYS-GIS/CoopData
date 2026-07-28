@@ -72,7 +72,7 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
   }, []);
 
   return (
-    <div className="print-page w-full h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+    <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
       
       {/* Header */}
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">

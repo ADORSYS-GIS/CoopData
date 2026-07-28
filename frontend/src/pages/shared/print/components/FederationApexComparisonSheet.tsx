@@ -88,7 +88,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
   return (
     <>
       {/* Sheet 2: Apex Comparison */}
-      <div className="print-page w-full h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+      <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Apex Comparison</h1>
@@ -171,7 +171,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       </div>
 
       {/* Sheet 3: Filing Compliance by Apex */}
-      <div className="print-page w-full h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+      <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Filing Compliance by Apex</h1>

@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import { ConsolidatedCoverPage } from "./components/ConsolidatedCoverPage";
 import { ConsolidatedDashboardSheet } from "./components/ConsolidatedDashboardSheet";
+import { FederationApexDistributionSheet } from "./components/FederationApexDistributionSheet";
 import { FederationSectorSheet } from "./components/FederationSectorSheet";
 import { FederationApexComparisonSheet } from "./components/FederationApexComparisonSheet";
-import { ConsolidatedCoopDetailSheet } from "./components/ConsolidatedCoopDetailSheet";
 import { FederationPearlsSheet } from "./components/FederationPearlsSheet";
 import { FederationSocialImpactSheet } from "./components/FederationSocialImpactSheet";
 import { ConsolidatedRiskWatchSheet } from "./components/ConsolidatedRiskWatchSheet";
@@ -29,6 +29,15 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
     }, 2000);
   }, []);
 
+  const totalApexes = React.useMemo(() => {
+    if (!data?.cooperatives) return 0;
+    const apexSet = new Set<string>();
+    data.cooperatives.forEach((c: any) => {
+      if (c.apex_id) apexSet.add(c.apex_id);
+    });
+    return apexSet.size;
+  }, [data]);
+
   if (!data) return null;
 
   return (
@@ -41,6 +50,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         year={year}
         totalCooperatives={data.total_cooperatives || 0}
         submittedCooperatives={data.cooperatives_with_data || 0}
+        totalApexes={totalApexes}
       />
 
       {/* Sheet 1: Executive Dashboard */}
@@ -50,10 +60,18 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         year={year} 
         data={data} 
         priorData={priorData} 
+        totalApexes={totalApexes}
       />
 
       {/* Sheet 1 (Continued): Sector Breakdown */}
       <FederationSectorSheet
+        federationName={entityName}
+        year={year}
+        data={data}
+      />
+
+      {/* Sheet 1 (Continued): Apex Distribution */}
+      <FederationApexDistributionSheet
         federationName={entityName}
         year={year}
         data={data}
@@ -66,14 +84,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         data={data}
       />
 
-      {/* Sheet 4: Cooperative Detail (from the generic Consolidated report) */}
-      <ConsolidatedCoopDetailSheet
-        entityName={entityName}
-        year={year}
-        data={data}
-      />
-
-      {/* Sheet 5: PEARLS Comparative Analysis */}
+      {/* Sheet 4: PEARLS Comparative Analysis */}
       <FederationPearlsSheet
         federationName={entityName}
         year={year}

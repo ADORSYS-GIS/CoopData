@@ -49,7 +49,7 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
   }, []);
 
   return (
-    <div className="print-page w-full h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+    <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">PEARLS Comparative Analysis</h1>
@@ -57,7 +57,7 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
-          <p className="text-sm text-slate-500">Sheet 5</p>
+          <p className="text-sm text-slate-500">Sheet 4</p>
         </div>
       </div>
 

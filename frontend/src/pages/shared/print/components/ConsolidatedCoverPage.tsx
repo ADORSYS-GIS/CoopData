@@ -6,6 +6,7 @@ interface ConsolidatedCoverPageProps {
   year: number;
   totalCooperatives: number;
   submittedCooperatives: number;
+  totalApexes?: number;
 }
 
 export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
@@ -14,6 +15,7 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
   year,
   totalCooperatives,
   submittedCooperatives,
+  totalApexes,
 }) => {
   const submissionRate = totalCooperatives > 0 
     ? ((submittedCooperatives / totalCooperatives) * 100).toFixed(1) 
@@ -48,12 +50,18 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
         </p>
       </div>
 
-      <div className="border-t border-slate-700/60 pt-8 grid grid-cols-4 gap-6 text-xs text-slate-400 relative z-10">
-        <div>
+      <div className="border-t border-slate-700/60 pt-8 flex gap-8 text-xs text-slate-400 relative z-10 flex-wrap">
+        <div className="flex-1 min-w-[80px]">
           <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Reporting Year</p>
           <p className="text-sm font-bold text-white">{year}</p>
         </div>
-        <div>
+        {totalApexes !== undefined && (
+          <div className="flex-1 min-w-[80px]">
+            <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Active Apexes</p>
+            <p className="text-sm font-bold text-white">{totalApexes}</p>
+          </div>
+        )}
+        <div className="flex-1 min-w-[80px]">
           <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Supervised Co-ops</p>
           <p className="text-sm font-bold text-white">{totalCooperatives}</p>
         </div>
@@ -61,7 +69,7 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
           <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Submission Rate</p>
           <p className="text-sm font-bold text-white">{submittedCooperatives} ({submissionRate}%)</p>
         </div>
-        <div>
+        <div className="flex-1 min-w-[80px]">
           <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Generated Date</p>
           <p className="text-sm font-bold text-white">
             {new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}

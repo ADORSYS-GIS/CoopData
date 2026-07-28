@@ -16,6 +16,7 @@ interface ConsolidatedDashboardSheetProps {
   year: number;
   data: any;
   priorData?: any;
+  totalApexes?: number;
 }
 
 export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProps> = ({
@@ -24,6 +25,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   year,
   data,
   priorData,
+  totalApexes,
 }) => {
   const { total_cooperatives, cooperatives_with_data, distributions, cooperatives } = data;
   const priorCoops = priorData?.cooperatives || [];
@@ -169,6 +171,12 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               <td className="p-2 border border-slate-300 bg-slate-50">Submitted</td>
               <td className="p-2 border border-slate-300 font-bold">{cooperatives_with_data} ({((cooperatives_with_data/total_cooperatives)*100).toFixed(1)}%)</td>
             </tr>
+            {tier === "Federation" && totalApexes !== undefined && (
+              <tr>
+                <td className="p-2 border border-slate-300 bg-slate-50">Active Apexes</td>
+                <td className="p-2 border border-slate-300 font-bold" colSpan={3}>{totalApexes}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 
