@@ -789,22 +789,17 @@ pub async fn export_bulk_consolidated(
             (buf.into_inner(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename)
         }
         "pdf" => {
-            let mut writer = PdfWriter::new("Consolidated Report");
-            writer.write_line("Consolidated Reporting Dashboard", 16.0, true);
-            writer.current_y -= 8.0;
-            writer.write_line(&format!("Generated: {}", chrono::Utc::now().format("%Y-%m-%d")), 11.0, false);
-            writer.current_y -= 8.0;
-            writer.draw_divider();
-            for (sub, coop, _items, kpis) in &compiled_data {
-                writer.check_page_break(14.0);
-                writer.write_line(&format!("{} | Year: {} | Assets: {} | PAR30: {}",
-                    coop.name, sub.reporting_year,
-                    kpis.total_assets.formatted, kpis.par30.formatted,
-                ), 9.0, false);
-                writer.current_y -= 4.0;
-            }
-            let bytes = writer.doc.save_to_bytes()
-                .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+            let token = state.keycloak.get_admin_token().await?;
+            let print_url = if let Some(apex_id) = query.apex_id {
+                format!("{}/print/apex/{}?token={}", state.config.gotenberg_frontend_url, apex_id, token)
+            } else if let Some(fed_id) = query.federation_id {
+                format!("{}/print/federation/{}?token={}", state.config.gotenberg_frontend_url, fed_id, token)
+            } else {
+                format!("{}/print/ministry?token={}", state.config.gotenberg_frontend_url, token)
+            };
+            
+            let bytes = crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(&state, &print_url).await?;
+            
             let filename = format!("consolidated_{}.pdf", timestamp);
             (bytes, "application/pdf", filename)
         }

@@ -101,17 +101,22 @@ impl ExportGenerator {
         Ok(buf.into_inner())
     }
 
-    /// Generate an executive-summary PDF for a single cooperative submission
     pub(crate) async fn generate_cooperative_pdf(
         state: &AppState,
         submission_id: Uuid,
     ) -> AppResult<Vec<u8>> {
         let token = state.keycloak.get_admin_token().await?;
-
         let print_url = format!(
             "{}/print/cooperative/{}?token={}",
             state.config.gotenberg_frontend_url, submission_id, token
         );
+        Self::generate_pdf_via_gotenberg(state, &print_url).await
+    }
+
+    pub(crate) async fn generate_pdf_via_gotenberg(
+        state: &AppState,
+        print_url: &str,
+    ) -> AppResult<Vec<u8>> {
         tracing::info!("Generating PDF via Gotenberg with URL: {}", print_url);
 
         let _permit = state.gotenberg_semaphore.acquire().await
@@ -127,7 +132,7 @@ impl ExportGenerator {
 
         for attempt in 0..max_retries {
             let form_clone = reqwest::multipart::Form::new()
-                .text("url", print_url.clone())
+                .text("url", print_url.to_string())
                 .text("waitDelay", "25s")
                 .text("paperWidth", "8.27")
                 .text("paperHeight", "11.69")
@@ -149,7 +154,7 @@ impl ExportGenerator {
                     let bytes = resp.bytes().await
                         .map_err(|e| crate::error::AppError::InternalServerError(format!("Failed to read PDF: {}", e)))?;
                     
-                    if bytes.len() < 50_000 {
+                    if bytes.len() < 20_000 {
                         last_error = Some(format!("PDF too small ({} bytes) on attempt {}", bytes.len(), attempt + 1));
                         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                         continue;
@@ -606,8 +611,13 @@ impl ExportGenerator {
         let docx_key = format!("exports/apex/{}/apex_{}_{}.docx", apex_id, apex_id, reporting_year);
         state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
 
-        // 3. Generate PDF executive summary (Phase F)
-        let pdf_bytes = Self::generate_consolidated_pdf(&apex.display_name, reporting_year, coops.len(), "Apex")?;
+        // 3. Generate PDF executive summary (Phase F) via Gotenberg
+        let token = state.keycloak.get_admin_token().await?;
+        let print_url = format!(
+            "{}/print/apex/{}?token={}",
+            state.config.gotenberg_frontend_url, apex_id, token
+        );
+        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!("exports/apex/{}/apex_{}_{}.pdf", apex_id, apex_id, reporting_year);
         state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
@@ -823,8 +833,13 @@ impl ExportGenerator {
         let docx_key = format!("exports/federation/{}/federation_{}_{}.docx", federation_id, federation_id, reporting_year);
         state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
 
-        // 3. Generate PDF executive summary (Phase F)
-        let pdf_bytes = Self::generate_consolidated_pdf(&federation.display_name, reporting_year, total_coops, "Federation")?;
+        // 3. Generate PDF executive summary (Phase F) via Gotenberg
+        let token = state.keycloak.get_admin_token().await?;
+        let print_url = format!(
+            "{}/print/federation/{}?token={}",
+            state.config.gotenberg_frontend_url, federation_id, token
+        );
+        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!("exports/federation/{}/federation_{}_{}.pdf", federation_id, federation_id, reporting_year);
         state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
@@ -975,9 +990,14 @@ impl ExportGenerator {
         let docx_key = format!("exports/ministry/ministry_{}.docx", reporting_year);
         state.storage.store(&docx_key, &docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").await?;
 
-        // 3. Generate PDF executive summary (Phase F)
-        let pdf_bytes = Self::generate_consolidated_pdf("National Ministry", reporting_year, total_coops, "Ministry")?;
-        let pdf_key = format!("exports/ministry/ministry_{}.pdf", reporting_year);
+        // 3. Generate PDF executive summary (Phase F) via Gotenberg
+        let token = state.keycloak.get_admin_token().await?;
+        let print_url = format!(
+            "{}/print/ministry?token={}",
+            state.config.gotenberg_frontend_url, token
+        );
+        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
+        let pdf_key = format!("exports/ministry/ministry_national_{}.pdf", reporting_year);
         state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
         Ok(())

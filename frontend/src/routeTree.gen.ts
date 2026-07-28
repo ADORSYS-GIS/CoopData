@@ -35,6 +35,9 @@ import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
 import { Route as PrintCooperativeIdRouteImport } from './routes/print.cooperative.$id'
+import { Route as PrintApexIdRouteImport } from './routes/print.apex.$id'
+import { Route as PrintFederationIdRouteImport } from './routes/print.federation.$id'
+import { Route as PrintMinistryRouteImport } from './routes/print.ministry'
 import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
 import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.cooperative.$cooperativeId'
@@ -171,6 +174,21 @@ const PrintCooperativeIdRoute = PrintCooperativeIdRouteImport.update({
   path: '/print/cooperative/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintApexIdRoute = PrintApexIdRouteImport.update({
+  id: '/print/apex/$id',
+  path: '/print/apex/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintFederationIdRoute = PrintFederationIdRouteImport.update({
+  id: '/print/federation/$id',
+  path: '/print/federation/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintMinistryRoute = PrintMinistryRouteImport.update({
+  id: '/print/ministry',
+  path: '/print/ministry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppUsersApexIdRoute = AppUsersApexIdRouteImport.update({
   id: '/$apexId',
   path: '/$apexId',
@@ -231,6 +249,9 @@ export interface FileRoutesByFullPath {
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/users/': typeof AppUsersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -262,6 +283,9 @@ export interface FileRoutesByTo {
   '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/users': typeof AppUsersIndexRoute
 }
 export interface FileRoutesById {
@@ -296,6 +320,9 @@ export interface FileRoutesById {
   '/app/submissions_/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/users/': typeof AppUsersIndexRoute
 }
 export interface FileRouteTypes {
@@ -331,6 +358,9 @@ export interface FileRouteTypes {
     | '/app/submissions/$id'
     | '/app/users/$apexId'
     | '/print/cooperative/$id'
+    | '/print/apex/$id'
+    | '/print/federation/$id'
+    | '/print/ministry'
     | '/app/users/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -362,6 +392,9 @@ export interface FileRouteTypes {
     | '/app/submissions/$id'
     | '/app/users/$apexId'
     | '/print/cooperative/$id'
+    | '/print/apex/$id'
+    | '/print/federation/$id'
+    | '/print/ministry'
     | '/app/users'
   id:
     | '__root__'
@@ -395,6 +428,9 @@ export interface FileRouteTypes {
     | '/app/submissions_/$id'
     | '/app/users/$apexId'
     | '/print/cooperative/$id'
+    | '/print/apex/$id'
+    | '/print/federation/$id'
+    | '/print/ministry'
     | '/app/users/'
   fileRoutesById: FileRoutesById
 }
@@ -404,6 +440,9 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   UnauthorizedRoute: typeof UnauthorizedRoute
   PrintCooperativeIdRoute: typeof PrintCooperativeIdRoute
+  PrintApexIdRoute: typeof PrintApexIdRoute
+  PrintFederationIdRoute: typeof PrintFederationIdRoute
+  PrintMinistryRoute: typeof PrintMinistryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -590,6 +629,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintCooperativeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/apex/$id': {
+      id: '/print/apex/$id'
+      path: '/print/apex/$id'
+      fullPath: '/print/apex/$id'
+      preLoaderRoute: typeof PrintApexIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print/federation/$id': {
+      id: '/print/federation/$id'
+      path: '/print/federation/$id'
+      fullPath: '/print/federation/$id'
+      preLoaderRoute: typeof PrintFederationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print/ministry': {
+      id: '/print/ministry'
+      path: '/print/ministry'
+      fullPath: '/print/ministry'
+      preLoaderRoute: typeof PrintMinistryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/users/$apexId': {
       id: '/app/users/$apexId'
       path: '/$apexId'
@@ -714,6 +774,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   UnauthorizedRoute: UnauthorizedRoute,
   PrintCooperativeIdRoute: PrintCooperativeIdRoute,
+  PrintApexIdRoute: PrintApexIdRoute,
+  PrintFederationIdRoute: PrintFederationIdRoute,
+  PrintMinistryRoute: PrintMinistryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
