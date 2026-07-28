@@ -26,6 +26,8 @@ export interface CoopKpiRow {
   cooperative_id: string;
   submission_id: string | null;
   name: string;
+  apex_id?: string | null;
+  apex_name?: string | null;
   region: string | null;
   sector: string | null;
   institution_type: string | null;
@@ -37,6 +39,11 @@ export interface CoopKpiRow {
 export interface CoopNfSummary {
   has_data: boolean;
   total_members: number;
+  active_members: number;
+  active_borrowers: number;
+  women_borrowers: number;
+  youth_borrowers: number;
+  rural_borrowers: number;
   active_members_pct: number;
   savings_penetration_pct: number;
   credit_penetration_pct: number;

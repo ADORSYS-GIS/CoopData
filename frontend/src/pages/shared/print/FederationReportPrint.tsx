@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { ConsolidatedCoverPage } from "./components/ConsolidatedCoverPage";
 import { ConsolidatedDashboardSheet } from "./components/ConsolidatedDashboardSheet";
 import { FederationSectorSheet } from "./components/FederationSectorSheet";
 import { FederationApexComparisonSheet } from "./components/FederationApexComparisonSheet";
@@ -33,6 +34,15 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
   return (
     <div className="print-report bg-white min-h-screen">
       
+      {/* Cover Page */}
+      <ConsolidatedCoverPage
+        tier="Federation"
+        entityName={entityName}
+        year={year}
+        totalCooperatives={data.total_cooperatives || 0}
+        submittedCooperatives={data.cooperatives_with_data || 0}
+      />
+
       {/* Sheet 1: Executive Dashboard */}
       <ConsolidatedDashboardSheet 
         tier="Federation" 

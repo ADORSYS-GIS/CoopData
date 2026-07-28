@@ -60,6 +60,41 @@ pub(crate) async fn filter_cooperatives(
         ));
     }
 
+    let mut allowed_apex_ids = None;
+    if let Some(fid) = federation_id {
+        let fed = if let Ok(Some(f)) = state.federation_repo.find_by_id(fid).await {
+            Some(f)
+        } else if let Ok(Some(f)) = state.federation_repo.find_by_keycloak_id(&fid.to_string()).await {
+            Some(f)
+        } else {
+            None
+        };
+
+        if let Some(f) = fed {
+            let apexes = state.apex_repo.find_by_federation_id(f.id).await.unwrap_or_default();
+            allowed_apex_ids = Some(apexes.into_iter().map(|a| a.id).collect::<Vec<_>>());
+        } else {
+            allowed_apex_ids = Some(vec![]);
+        }
+    }
+
+    let mut target_apex_id = None;
+    if let Some(aid) = apex_id {
+        let apex = if let Ok(Some(a)) = state.apex_repo.find_by_id(aid).await {
+            Some(a)
+        } else if let Ok(Some(a)) = state.apex_repo.find_by_keycloak_id(&aid.to_string()).await {
+            Some(a)
+        } else {
+            None
+        };
+
+        if let Some(a) = apex {
+            target_apex_id = Some(a.id);
+        } else {
+            target_apex_id = Some(Uuid::new_v4());
+        }
+    }
+
     let filtered = coops
         .into_iter()
         .filter(|c| {
@@ -73,12 +108,12 @@ pub(crate) async fn filter_cooperatives(
                     return false;
                 }
             }
-            if let Some(fid) = federation_id {
-                if c.federation_org_id != Some(fid) {
+            if let Some(ref allowed) = allowed_apex_ids {
+                if !allowed.contains(&c.apex_id) {
                     return false;
                 }
             }
-            if let Some(aid) = apex_id {
+            if let Some(aid) = target_apex_id {
                 if c.apex_id != aid {
                     return false;
                 }

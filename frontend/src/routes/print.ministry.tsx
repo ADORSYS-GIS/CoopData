@@ -7,8 +7,8 @@ export const Route = createFileRoute("/print/ministry")({
 });
 
 function PrintComponent() {
-  const { token } = Route.useSearch() as { token?: string };
-  const currentYear = new Date().getFullYear();
+  const { token, year } = Route.useSearch() as { token?: string, year?: string };
+  const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   
   const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview({
     reportingYear: currentYear,

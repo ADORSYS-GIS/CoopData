@@ -614,8 +614,8 @@ impl ExportGenerator {
         // 3. Generate PDF executive summary (Phase F) via Gotenberg
         let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
-            "{}/print/apex/{}?token={}",
-            state.config.gotenberg_frontend_url, apex_id, token
+            "{}/print/apex/{}?token={}&year={}",
+            state.config.gotenberg_frontend_url, apex.keycloak_id, token, reporting_year
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!("exports/apex/{}/apex_{}_{}.pdf", apex_id, apex_id, reporting_year);
@@ -836,8 +836,8 @@ impl ExportGenerator {
         // 3. Generate PDF executive summary (Phase F) via Gotenberg
         let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
-            "{}/print/federation/{}?token={}",
-            state.config.gotenberg_frontend_url, federation_id, token
+            "{}/print/federation/{}?token={}&year={}",
+            state.config.gotenberg_frontend_url, federation.keycloak_id, token, reporting_year
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!("exports/federation/{}/federation_{}_{}.pdf", federation_id, federation_id, reporting_year);
@@ -993,8 +993,8 @@ impl ExportGenerator {
         // 3. Generate PDF executive summary (Phase F) via Gotenberg
         let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
-            "{}/print/ministry?token={}",
-            state.config.gotenberg_frontend_url, token
+            "{}/print/ministry?token={}&year={}",
+            state.config.gotenberg_frontend_url, token, reporting_year
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!("exports/ministry/ministry_national_{}.pdf", reporting_year);
