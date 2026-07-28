@@ -56,3 +56,11 @@ frontend/src/openapi-client/api.d.ts
 
 # Temporary directories
 worktrees/
+
+# Python
+__pycache__/
+
+# Seed scripts
+patch_nf_kpis.py
+seed.sh
+seed_matrix_test_data.py

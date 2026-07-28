@@ -7,7 +7,7 @@ export function useCustomKpis() {
   const kpisQuery = useQuery({
     queryKey: ["custom-kpis"],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/analytics/custom-kpis");
+      const { data, error } = await apiClient.GET("/api/v1/ministry/custom-kpis");
       if (error) throw new Error("Failed to fetch Custom KPIs");
       return data;
     },
@@ -15,7 +15,7 @@ export function useCustomKpis() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: { name: string; description?: string; formula: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/analytics/custom-kpis", {
+      const { data, error } = await apiClient.POST("/api/v1/ministry/custom-kpis", {
         body: payload,
       });
       if (error)
@@ -29,7 +29,7 @@ export function useCustomKpis() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await apiClient.DELETE("/api/v1/analytics/custom-kpis/{id}", {
+      const { error } = await apiClient.DELETE("/api/v1/ministry/custom-kpis/{id}", {
         params: { path: { id } },
       });
       if (error) throw new Error("Failed to delete Custom KPI");
@@ -41,7 +41,7 @@ export function useCustomKpis() {
 
   const evaluateMutation = useMutation({
     mutationFn: async (formula: string) => {
-      const { data, error } = await apiClient.POST("/api/v1/analytics/custom-kpis/evaluate", {
+      const { data, error } = await apiClient.POST("/api/v1/ministry/custom-kpis/evaluate", {
         body: { formula },
       });
       if (error) throw new Error("Failed to evaluate formula");
@@ -49,12 +49,37 @@ export function useCustomKpis() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: { name: string; description?: string; formula: string };
+    }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const put = apiClient.PUT as (url: string, opts: unknown) => Promise<any>;
+      const { data, error } = await put("/api/v1/ministry/custom-kpis/{id}", {
+        params: { path: { id } },
+        body: payload,
+      });
+      if (error)
+        throw new Error((error as { message?: string })?.message || "Failed to update Custom KPI");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["custom-kpis"] });
+    },
+  });
+
   return {
     kpis: kpisQuery.data ?? [],
     isLoading: kpisQuery.isLoading,
     createKpi: createMutation.mutateAsync,
+    updateKpi: updateMutation.mutateAsync,
     deleteKpi: deleteMutation.mutateAsync,
     evaluateFormula: evaluateMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
   };
 }

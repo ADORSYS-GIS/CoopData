@@ -111,7 +111,7 @@ pub async fn get_national_overview(
         .collect();
     let all_computed_records = state
         .kpi_record_repo
-        .find_by_submission_ids(submission_ids_for_kpi)
+        .find_by_submission_ids(submission_ids_for_kpi.clone())
         .await
         .unwrap_or_default();
 
@@ -146,6 +146,44 @@ pub async fn get_national_overview(
             .push(item);
     }
 
+    // Batch 3.6: Fetch all non-financial indicators catalog
+    let catalog_items = state
+        .non_financial_indicator_catalog_repo
+        .find_all()
+        .await
+        .unwrap_or_default();
+    let catalog_map: HashMap<Uuid, String> = catalog_items
+        .into_iter()
+        .map(|item| (item.id, item.indicator_name))
+        .collect();
+
+    // Batch 3.7: Fetch all non-financial indicator entries for these submission IDs
+    let all_nf_entries = if submission_ids_for_kpi.is_empty() {
+        vec![]
+    } else {
+        use crate::entities::non_financial_indicator_entry;
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+        non_financial_indicator_entry::Entity::find()
+            .filter(
+                non_financial_indicator_entry::Column::SubmissionId
+                    .is_in(submission_ids_for_kpi.clone()),
+            )
+            .all(&state.db)
+            .await
+            .unwrap_or_default()
+    };
+
+    let mut nf_entries_by_sub: HashMap<
+        uuid::Uuid,
+        Vec<crate::entities::non_financial_indicator_entry::Model>,
+    > = HashMap::new();
+    for entry in all_nf_entries {
+        nf_entries_by_sub
+            .entry(entry.submission_id)
+            .or_default()
+            .push(entry);
+    }
+
     // Compute KPIs per cooperative
     let ratio_names = [
         "total_assets",
@@ -153,6 +191,7 @@ pub async fn get_national_overview(
         "net_loan_portfolio",
         "total_member_deposits",
         "total_equity",
+        "net_surplus",
         "par30",
         "par90",
         "npl_ratio",
@@ -184,6 +223,13 @@ pub async fn get_national_overview(
 
     let mut coop_rows: Vec<CoopKpiRow> = Vec::new();
     let mut nf_rows: Vec<CoopNfSummary> = Vec::new();
+
+    let raw_account_codes = [
+        1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252, 1300,
+        1301, 1302, 1303, 1304, 1305, 1999, 2100, 2101, 2102, 2103, 2200, 2201, 2202, 2300, 2301,
+        2302, 2303, 2999, 3100, 3101, 3102, 3200, 3201, 3202, 3203, 3300, 3301, 3302, 3999, 4101,
+        4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999, 6999,
+    ];
 
     for coop in &cooperatives {
         let fs_id = fs_map.get(&coop.id);
@@ -290,12 +336,35 @@ pub async fn get_national_overview(
 
         let mut eval_ctx: evalexpr::HashMapContext = evalexpr::HashMapContext::new();
         use evalexpr::ContextWithMutableVariables;
+        let mut set_keys = std::collections::HashSet::new();
+
+        // Initialize all raw codes to 0.0 for compiler safety
+        for code in &raw_account_codes {
+            eval_ctx
+                .set_value(format!("ac_{}", code), evalexpr::Value::Float(0.0))
+                .unwrap();
+        }
+
+        // Expose raw account codes from line items
+        if let Some((fs_id, _)) = fs_id {
+            if let Some(items) = items_by_fs.get(fs_id) {
+                for item in items {
+                    if let Some(code) = item.account_code {
+                        let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
+                        eval_ctx
+                            .set_value(format!("ac_{}", code), evalexpr::Value::Float(val))
+                            .unwrap();
+                    }
+                }
+            }
+        }
 
         for name in &ratio_names {
             if let Some(kpi) = kpi_map.get(*name) {
                 eval_ctx
                     .set_value(name.to_string(), evalexpr::Value::Float(kpi.value))
                     .unwrap();
+                set_keys.insert(name.to_string());
                 if let Some(counts) = status_counts.get_mut(*name) {
                     match kpi.status.as_deref() {
                         Some("green") => counts.green += 1,
@@ -311,16 +380,81 @@ pub async fn get_national_overview(
             }
         }
 
+        // Add non-financial indicator entries to eval_ctx
+        if let Some(sub_id) = submission_id {
+            if let Some(entries) = nf_entries_by_sub.get(&sub_id) {
+                for entry in entries {
+                    if let Some(name) = catalog_map.get(&entry.catalog_id) {
+                        let val_f64 = if let Some(val) = entry.value_numeric {
+                            val.to_f64().unwrap_or(0.0)
+                        } else if let Some(val) = entry.value_boolean {
+                            if val {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        } else {
+                            0.0
+                        };
+                        eval_ctx
+                            .set_value(name.clone(), evalexpr::Value::Float(val_f64))
+                            .unwrap();
+                        set_keys.insert(name.clone());
+                    }
+                }
+            }
+        }
+        // Initialize any not-yet-set catalog indicators with 0.0 to prevent evaluation errors
+        for name in catalog_map.values() {
+            if !set_keys.contains(name) {
+                eval_ctx
+                    .set_value(name.clone(), evalexpr::Value::Float(0.0))
+                    .unwrap();
+            }
+        }
+
         let mut custom_kpi_map = HashMap::new();
         if !custom_formulas.is_empty() {
             for formula_def in &custom_formulas {
-                if let Ok(expr) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(
+                match evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(
                     &formula_def.formula,
                 ) {
-                    if let Ok(res) = expr.eval_with_context(&eval_ctx) {
-                        if let Ok(num) = res.as_float() {
-                            custom_kpi_map.insert(formula_def.name.clone(), num);
+                    Ok(expr) => match expr.eval_with_context(&eval_ctx) {
+                        Ok(res) => {
+                            let num_opt = match res {
+                                evalexpr::Value::Float(f) => Some(f),
+                                evalexpr::Value::Int(i) => Some(i as f64),
+                                _ => None,
+                            };
+                            if let Some(num) = num_opt {
+                                custom_kpi_map.insert(formula_def.name.clone(), num);
+                            } else {
+                                tracing::warn!(
+                                    cooperative = %coop.display_name,
+                                    kpi_name = %formula_def.name,
+                                    formula = %formula_def.formula,
+                                    result = ?res,
+                                    "Custom KPI evaluated to non-numeric value"
+                                );
+                            }
                         }
+                        Err(e) => {
+                            tracing::error!(
+                                cooperative = %coop.display_name,
+                                kpi_name = %formula_def.name,
+                                formula = %formula_def.formula,
+                                error = %e,
+                                "Failed to evaluate custom KPI formula"
+                            );
+                        }
+                    },
+                    Err(e) => {
+                        tracing::error!(
+                            kpi_name = %formula_def.name,
+                            formula = %formula_def.formula,
+                            error = %e,
+                            "Failed to parse custom KPI operator tree"
+                        );
                     }
                 }
             }

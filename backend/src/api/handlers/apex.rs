@@ -1,6 +1,6 @@
 use axum::extract::Extension;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
@@ -723,4 +723,62 @@ pub async fn resend_apex_member_verification(
             id: None,
         }),
     ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/ministry/apexes",
+    params(
+        ("federation_id" = Option<String>, Query, description = "Keycloak Federation ID to filter by")
+    ),
+    responses(
+        (status = 200, description = "List of apexes", body = Vec<ApexResponse>),
+        (status = 403, description = "Forbidden - ministry role required", body = ErrorResponse)
+    ),
+    tag = "Ministry"
+)]
+pub async fn ministry_list_apexes(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> AppResult<impl IntoResponse> {
+    if !claims.is_ministry() {
+        return Err(crate::error::AppError::Forbidden(
+            "Access denied. Ministry role required".into(),
+        ));
+    }
+
+    let federation_id = params.get("federation_id").cloned();
+
+    let all_groups = state
+        .keycloak
+        .get_groups(None)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let apexes: Vec<ApexResponse> = all_groups
+        .into_iter()
+        .filter(|g| {
+            // Check if organization_id attribute is present (indicates this is an apex)
+            let org_id_opt = g
+                .attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first())
+                .map(|v| v.as_str());
+
+            if org_id_opt.is_none() {
+                return false;
+            }
+
+            if let Some(ref fed_id) = federation_id {
+                org_id_opt == Some(fed_id.as_str())
+            } else {
+                true
+            }
+        })
+        .map(ApexResponse::from)
+        .collect();
+
+    Ok((StatusCode::OK, Json(apexes)))
 }

@@ -338,6 +338,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   const [compareTargetId, setCompareTargetId] = useState<string>("national_average");
   const [selectedKpi, setSelectedKpi] = useState<string>("capital_adequacy_ratio");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [activeGroupFilter, setActiveGroupFilter] = useState<string | null>(null);
 
   // Keep state synced with default when data loads
   React.useEffect(() => {
@@ -353,31 +354,84 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return cooperatives.find((c) => c.cooperative_id === activeCoopId);
   }, [cooperatives, activeCoopId]);
 
-  // Selected target details (National Average or Coop B)
+  // Available regions derived from data
+  const availableRegions = useMemo(() => {
+    const regions = new Set<string>();
+    cooperativesWithData.forEach((c) => {
+      if (c.region) regions.add(c.region);
+    });
+    return Array.from(regions).sort();
+  }, [cooperativesWithData]);
+
+  // Selected target details (National Average, Regional Average, or Coop B)
   const compareTarget = useMemo(() => {
     if (compareTargetId === "national_average") {
-      return { name: "National Average", isAverage: true };
+      return {
+        name: "National Average",
+        isAverage: true,
+        isRegional: false,
+        region: null as string | null,
+      };
+    }
+    if (compareTargetId.startsWith("region_avg_")) {
+      const region = compareTargetId.replace("region_avg_", "");
+      return { name: `${region} Region Avg`, isAverage: true, isRegional: true, region };
     }
     const coop = cooperatives.find((c) => c.cooperative_id === compareTargetId);
-    return coop ? { ...coop, isAverage: false } : { name: "National Average", isAverage: true };
+    return coop
+      ? { ...coop, isAverage: false, isRegional: false, region: coop.region ?? null }
+      : {
+          name: "National Average",
+          isAverage: true,
+          isRegional: false,
+          region: null as string | null,
+        };
   }, [cooperatives, compareTargetId]);
 
-  // Dynamic system averages for comparable KPIs
+  // Dynamic system averages for comparable KPIs (national)
   const systemAverages = useMemo(() => {
     const averages: Record<string, number> = {};
     COMPARABLE_KPIS.forEach((kpi) => {
       const validValues = cooperativesWithData
         .map((c) => getCoopKpiValue(c, kpi))
         .filter((val): val is number => val !== undefined && !isNaN(val));
-
-      if (validValues.length > 0) {
-        averages[kpi.key] = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-      } else {
-        averages[kpi.key] = 0;
-      }
+      averages[kpi.key] =
+        validValues.length > 0
+          ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
+          : 0;
     });
     return averages;
   }, [cooperativesWithData]);
+
+  // Regional averages keyed by region name → kpi key → average value
+  const regionalAverages = useMemo(() => {
+    const result: Record<string, Record<string, number>> = {};
+    availableRegions.forEach((region) => {
+      const regionCoops = cooperativesWithData.filter((c) => c.region === region);
+      const kpiAverages: Record<string, number> = {};
+      COMPARABLE_KPIS.forEach((kpi) => {
+        const vals = regionCoops
+          .map((c) => getCoopKpiValue(c, kpi))
+          .filter((v): v is number => v !== undefined && !isNaN(v));
+        kpiAverages[kpi.key] = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+      });
+      result[region] = kpiAverages;
+    });
+    return result;
+  }, [cooperativesWithData, availableRegions]);
+
+  // Helper to get comparison value for a KPI based on selected compare target
+  const getCompareValue = (kpiKey: string): number => {
+    if (compareTarget.isRegional && compareTarget.region) {
+      return regionalAverages[compareTarget.region]?.[kpiKey] ?? 0;
+    }
+    if (compareTarget.isAverage) {
+      return systemAverages[kpiKey] ?? 0;
+    }
+    const kpiInfo = COMPARABLE_KPIS.find((k) => k.key === kpiKey);
+    if (!kpiInfo) return 0;
+    return getCoopKpiValue(compareTarget, kpiInfo);
+  };
 
   // Formatting helper
   const formatValue = (val: number, unit: string) => {
@@ -401,42 +455,29 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     if (!selectedCoop || !selectedCoop.has_data) return [];
     const kpiInfo = COMPARABLE_KPIS.find((k) => k.key === selectedKpi);
     if (!kpiInfo) return [];
-
     const coopVal = getCoopKpiValue(selectedCoop, kpiInfo);
-
-    let targetVal = 0;
-    if (compareTarget.isAverage) {
-      targetVal = systemAverages[selectedKpi] ?? 0;
-    } else {
-      targetVal = getCoopKpiValue(compareTarget, kpiInfo);
-    }
-
+    const targetVal = getCompareValue(selectedKpi);
     return [
-      {
-        name: selectedCoop.name,
-        Value: coopVal,
-        color: "#3b82f6",
-      },
-      {
-        name: compareTarget.name,
-        Value: targetVal,
-        color: "#10b981",
-      },
+      { name: selectedCoop.name, Value: coopVal, color: "#3b82f6" },
+      { name: compareTarget.name, Value: targetVal, color: "#10b981" },
     ];
-  }, [selectedCoop, selectedKpi, systemAverages, compareTarget]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCoop, selectedKpi, compareTarget, systemAverages, regionalAverages]);
 
   const activeKpiInfo = useMemo(() => {
     return COMPARABLE_KPIS.find((k) => k.key === selectedKpi);
   }, [selectedKpi]);
 
-  // Filtered KPIs for matrix table based on query
+  // Filtered KPIs for matrix table (search + group filter)
   const filteredKpis = useMemo(() => {
-    return COMPARABLE_KPIS.filter(
-      (kpi) =>
+    return COMPARABLE_KPIS.filter((kpi) => {
+      const matchesSearch =
         kpi.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        kpi.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [searchQuery]);
+        kpi.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesGroup = activeGroupFilter === null || kpi.group === activeGroupFilter;
+      return matchesSearch && matchesGroup;
+    });
+  }, [searchQuery, activeGroupFilter]);
 
   if (isLoading) {
     return (
@@ -500,7 +541,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                 <SelectValue placeholder="Select target..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="national_average">National Average</SelectItem>
+                {/* System-wide averages */}
+                <SelectItem value="national_average">🌍 National Average (All Coops)</SelectItem>
+                {/* Per-region averages */}
+                {availableRegions.map((region) => (
+                  <SelectItem key={`region_avg_${region}`} value={`region_avg_${region}`}>
+                    📍 {region} Region Average
+                  </SelectItem>
+                ))}
+                {/* Individual cooperative peers */}
                 {cooperativesWithData
                   .filter((c) => c.cooperative_id !== activeCoopId)
                   .map((c) => (
@@ -637,11 +686,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                     <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5">
                       {(() => {
                         let targetVal = 0;
-                        if (compareTarget.isAverage) {
-                          targetVal = systemAverages[selectedKpi] ?? 0;
-                        } else {
-                          targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
-                        }
+                        targetVal = getCompareValue(selectedKpi);
                         return formatValue(targetVal, activeKpiInfo.unit);
                       })()}
                     </p>
@@ -653,12 +698,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                 {(() => {
                   const coopVal = getCoopKpiValue(selectedCoop, activeKpiInfo);
 
-                  let targetVal = 0;
-                  if (compareTarget.isAverage) {
-                    targetVal = systemAverages[selectedKpi] ?? 0;
-                  } else {
-                    targetVal = getCoopKpiValue(compareTarget, activeKpiInfo);
-                  }
+                  const targetVal = getCompareValue(selectedKpi);
 
                   const diff = coopVal - targetVal;
                   const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
@@ -714,33 +754,95 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           title="Benchmarking KPI Matrix"
           subtitle={`Detailed financial and operational ratios mapped side-by-side with comparison delta`}
         >
-          {/* Search bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search KPI or ratios..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-slate-700 dark:text-slate-350"
-              />
+          {/* Search + Group Filter toolbar */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 w-full">
+            {/* Search and Dropdown Controls */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              {/* Search input */}
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search KPI or ratio..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-slate-700 dark:text-slate-350"
+                />
+              </div>
+
+              {/* Group select dropdown */}
+              <Select
+                value={activeGroupFilter || "all"}
+                onValueChange={(val) => setActiveGroupFilter(val === "all" ? null : val)}
+              >
+                <SelectTrigger className="w-full sm:w-60 h-9 text-xs bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-350">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">
+                    📁 All Categories ({COMPARABLE_KPIS.length})
+                  </SelectItem>
+                  {Object.entries(KPI_GROUPS).map(([key, group]) => {
+                    const count = COMPARABLE_KPIS.filter((kpi) => kpi.group === key).length;
+                    return (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        {group.label} ({count})
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex gap-2 text-slate-500">
+
+            {/* Group filter chips (clickable) */}
+            <div className="flex flex-wrap gap-2">
+              {/* All button */}
+              <button
+                onClick={() => setActiveGroupFilter(null)}
+                className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                  activeGroupFilter === null
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/50"
+                }`}
+              >
+                All
+                <span
+                  className={`text-[9px] px-1 rounded ${
+                    activeGroupFilter === null
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  {COMPARABLE_KPIS.length}
+                </span>
+              </button>
+
               {Object.entries(KPI_GROUPS).map(([key, group]) => {
                 const count = COMPARABLE_KPIS.filter((kpi) => kpi.group === key).length;
                 const Icon = group.icon;
+                const isActive = activeGroupFilter === key;
                 return (
-                  <div
+                  <button
                     key={key}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400"
+                    onClick={() => setActiveGroupFilter(isActive ? null : key)}
+                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                      isActive
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-primary/50"
+                    }`}
                   >
                     <Icon className="size-3" />
                     <span>{group.label}</span>
-                    <span className="text-[9px] bg-slate-200/50 dark:bg-slate-800/80 px-1 rounded text-slate-600 dark:text-slate-400">
+                    <span
+                      className={`text-[9px] px-1 rounded ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
                       {count}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -784,12 +886,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                       {groupKpis.map((kpi) => {
                         const coopVal = getCoopKpiValue(selectedCoop, kpi);
 
-                        let targetVal = 0;
-                        if (compareTarget.isAverage) {
-                          targetVal = systemAverages[kpi.key] ?? 0;
-                        } else {
-                          targetVal = getCoopKpiValue(compareTarget, kpi);
-                        }
+                        const targetVal = getCompareValue(kpi.key);
 
                         const diff = coopVal - targetVal;
                         const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;

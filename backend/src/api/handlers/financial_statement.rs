@@ -59,6 +59,43 @@ pub(crate) async fn filter_cooperatives(
         ));
     }
 
+    // Resolve federation_id: frontend sends Keycloak org UUID (as Uuid), but DB stores it as String.
+    // Look up the Postgres federation by matching keycloak_id (string). Fall back to direct DB UUID match.
+    let resolved_fed_db_id: Option<Uuid> = if let Some(kc_fed_uuid) = federation_id {
+        let kc_fed_str = kc_fed_uuid.to_string();
+        // Try keycloak_id string lookup first
+        if let Some(fed) = state
+            .federation_repo
+            .find_by_keycloak_id(&kc_fed_str)
+            .await
+            .unwrap_or(None)
+        {
+            Some(fed.id)
+        } else {
+            // Maybe it's already the Postgres DB UUID
+            Some(kc_fed_uuid)
+        }
+    } else {
+        None
+    };
+
+    // Resolve apex_id: frontend sends Keycloak group UUID, but DB stores keycloak_id as String.
+    let resolved_apex_db_id: Option<Uuid> = if let Some(kc_apex_uuid) = apex_id {
+        let kc_apex_str = kc_apex_uuid.to_string();
+        if let Some(apex) = state
+            .apex_repo
+            .find_by_keycloak_id(&kc_apex_str)
+            .await
+            .unwrap_or(None)
+        {
+            Some(apex.id)
+        } else {
+            Some(kc_apex_uuid)
+        }
+    } else {
+        None
+    };
+
     let filtered = coops
         .into_iter()
         .filter(|c| {
@@ -72,12 +109,12 @@ pub(crate) async fn filter_cooperatives(
                     return false;
                 }
             }
-            if let Some(fid) = federation_id {
+            if let Some(fid) = resolved_fed_db_id {
                 if c.federation_org_id != Some(fid) {
                     return false;
                 }
             }
-            if let Some(aid) = apex_id {
+            if let Some(aid) = resolved_apex_db_id {
                 if c.apex_id != aid {
                     return false;
                 }

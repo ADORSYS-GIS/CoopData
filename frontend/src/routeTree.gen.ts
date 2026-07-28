@@ -28,6 +28,7 @@ import { Route as AppFinancialStatementRouteImport } from './routes/app.financia
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
@@ -135,6 +136,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomKpisRoute = AppCustomKpisRouteImport.update({
+  id: '/custom-kpis',
+  path: '/custom-kpis',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCooperativesRoute = AppCooperativesRouteImport.update({
   id: '/cooperatives',
   path: '/cooperatives',
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/app/audit': typeof AppAuditRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/app/audit': typeof AppAuditRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/app/audit': typeof AppAuditRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/benchmarking'
     | '/app/cooperatives'
+    | '/app/custom-kpis'
     | '/app/dashboard'
     | '/app/debug-auth'
     | '/app/federations'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/benchmarking'
     | '/app/cooperatives'
+    | '/app/custom-kpis'
     | '/app/dashboard'
     | '/app/debug-auth'
     | '/app/federations'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/app/audit'
     | '/app/benchmarking'
     | '/app/cooperatives'
+    | '/app/custom-kpis'
     | '/app/dashboard'
     | '/app/debug-auth'
     | '/app/federations'
@@ -528,6 +540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/custom-kpis': {
+      id: '/app/custom-kpis'
+      path: '/custom-kpis'
+      fullPath: '/app/custom-kpis'
+      preLoaderRoute: typeof AppCustomKpisRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/cooperatives': {
       id: '/app/cooperatives'
       path: '/cooperatives'
@@ -628,6 +647,7 @@ interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
   AppBenchmarkingRoute: typeof AppBenchmarkingRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
+  AppCustomKpisRoute: typeof AppCustomKpisRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
@@ -654,6 +674,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
   AppBenchmarkingRoute: AppBenchmarkingRoute,
   AppCooperativesRoute: AppCooperativesRoute,
+  AppCustomKpisRoute: AppCustomKpisRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,

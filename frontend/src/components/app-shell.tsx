@@ -28,6 +28,7 @@ import {
   Database,
   Info,
   Scale,
+  Calculator,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect } from "react";
@@ -60,6 +61,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/reports", label: "Reports", icon: FileBarChart },
       { to: "/app/analytics", label: "Analytics", icon: PieChart },
       { to: "/app/benchmarking", label: "Benchmarking", icon: Scale },
+      { to: "/app/custom-kpis", label: "Custom KPIs", icon: Calculator },
     ],
   },
   {
