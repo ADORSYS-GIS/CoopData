@@ -107,7 +107,7 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
       </table>
 
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
-        <span>Page 3</span>
+        <span></span>
         <span>SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}</span>
       </div>
     </div>

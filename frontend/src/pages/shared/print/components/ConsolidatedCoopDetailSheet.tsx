@@ -51,7 +51,7 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
   return (
     <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page">
       <div>
-        <h2 className="text-xl font-bold text-blue-800 mb-4">Sheet 2: "Cooperative Detail"</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">"Cooperative Detail"</h2>
         
         <table className="w-full text-left text-[9px] mb-8 border-collapse border border-slate-300">
           <thead>
@@ -103,8 +103,8 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
       
       {/* Footer */}
       <div className="flex justify-between items-center text-[10px] text-slate-500 pt-4 border-t border-slate-200 mt-auto">
-        <p>CoopData — Report Export Templates</p>
-        <p>Page 3</p>
+        <p></p>
+        <p></p>
       </div>
     </div>
   );

@@ -33,9 +33,6 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
             Official {tier} Report
           </h2>
         </div>
-        <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] uppercase font-bold tracking-widest text-emerald-400">
-          Supervisory Analytics
-        </span>
       </div>
 
       <div className="my-auto space-y-6 relative z-10">

@@ -49,7 +49,7 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
   return (
     <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page">
       <div>
-        <h2 className="text-xl font-bold text-blue-800 mb-4">Sheet 3: "Under Intervention / Risk Watch"</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">"Under Intervention / Risk Watch"</h2>
         <p className="text-sm text-slate-600 mb-6 italic">
           This sheet highlights all cooperatives with critical indicators falling into the "Red" (High Risk) category.
         </p>
@@ -93,8 +93,8 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
       
       {/* Footer */}
       <div className="flex justify-between items-center text-[10px] text-slate-500 pt-4 border-t border-slate-200 mt-auto">
-        <p>CoopData — Report Export Templates</p>
-        <p>Page 4</p>
+        <p></p>
+        <p></p>
       </div>
     </div>
   );

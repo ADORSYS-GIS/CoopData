@@ -33,9 +33,9 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   return (
     <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        Section A: Coop Performance Report
+        Coop Performance Report
       </h2>
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">Sheet 1: "Executive Summary"</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-4">"Executive Summary"</h3>
       
       {/* Header Block */}
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6 grid grid-cols-2 gap-y-2 gap-x-8 text-xs">
@@ -122,7 +122,7 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
       </table>
 
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
-        <span>Page 2</span>
+        <span></span>
         <span>SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}</span>
       </div>
     </div>

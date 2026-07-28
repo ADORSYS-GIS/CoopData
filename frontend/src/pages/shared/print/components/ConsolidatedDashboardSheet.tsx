@@ -139,13 +139,13 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
     <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page">
       <div>
         <h1 className="text-3xl font-bold mb-2 text-slate-900 border-b-2 border-slate-900 pb-2">
-          Section {tier === 'Apex' ? 'B' : tier === 'Federation' ? 'C' : 'D'}: {tier} Consolidated Report
+          {tier} Consolidated Report
         </h1>
         <p className="text-sm text-slate-600 mb-6 italic">
           Purpose: Show {tier.toLowerCase()} leadership which cooperatives are healthy, which need attention, and overall {tier.toLowerCase()} health.
         </p>
 
-        <h2 className="text-xl font-bold text-blue-800 mb-4">Sheet 1: "Executive Dashboard"</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">"Executive Dashboard"</h2>
         
         {/* Header Table */}
         <h3 className="text-sm font-bold text-slate-800 mb-1">Header</h3>
@@ -171,7 +171,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               <td className="p-2 border border-slate-300 bg-slate-50">Submitted</td>
               <td className="p-2 border border-slate-300 font-bold">{cooperatives_with_data} ({((cooperatives_with_data/total_cooperatives)*100).toFixed(1)}%)</td>
             </tr>
-            {tier === "Federation" && totalApexes !== undefined && (
+            {(tier === "Federation" || tier === "Ministry") && totalApexes !== undefined && (
               <tr>
                 <td className="p-2 border border-slate-300 bg-slate-50">Active Apexes</td>
                 <td className="p-2 border border-slate-300 font-bold" colSpan={3}>{totalApexes}</td>
@@ -329,8 +329,8 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
       
       {/* Footer */}
       <div className="flex justify-between items-center text-[10px] text-slate-500 pt-4 border-t border-slate-200 mt-auto">
-        <p>CoopData — Report Export Templates</p>
-        <p>Page 2</p>
+        <p></p>
+        <p></p>
       </div>
     </div>
   );

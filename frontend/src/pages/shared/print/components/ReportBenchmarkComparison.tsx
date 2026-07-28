@@ -9,7 +9,7 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
   return (
     <div className="w-[210mm] min-h-[297mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        Sheet 4: "PEARLS Benchmark Comparison"
+        "PEARLS Benchmark Comparison"
       </h2>
 
       <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">

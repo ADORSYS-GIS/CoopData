@@ -98,7 +98,7 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
-          <p className="text-sm text-slate-500">Sheet 5</p>
+          <p className="text-sm text-slate-500"></p>
         </div>
       </div>
 

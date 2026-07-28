@@ -6,13 +6,14 @@ import { FederationSectorSheet } from "./components/FederationSectorSheet";
 import { FederationApexComparisonSheet } from "./components/FederationApexComparisonSheet";
 import { FederationPearlsSheet } from "./components/FederationPearlsSheet";
 import { FederationSocialImpactSheet } from "./components/FederationSocialImpactSheet";
-import { ConsolidatedRiskWatchSheet } from "./components/ConsolidatedRiskWatchSheet";
+
 
 interface FederationReportPrintProps {
   entityName: string;
   year: number;
   data: any;
   priorData?: any;
+  tier?: "Federation" | "Ministry" | "Apex";
 }
 
 export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
@@ -20,6 +21,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
   year,
   data,
   priorData,
+  tier = "Federation",
 }) => {
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
       
       {/* Cover Page */}
       <ConsolidatedCoverPage
-        tier="Federation"
+        tier={tier}
         entityName={entityName}
         year={year}
         totalCooperatives={data.total_cooperatives || 0}
@@ -55,7 +57,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
 
       {/* Sheet 1: Executive Dashboard */}
       <ConsolidatedDashboardSheet 
-        tier="Federation" 
+        tier={tier} 
         entityName={entityName} 
         year={year} 
         data={data} 
@@ -99,12 +101,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         priorData={priorData}
       />
 
-      {/* Sheet 7: Risk Watch (from the generic Consolidated report) */}
-      <ConsolidatedRiskWatchSheet
-        entityName={entityName}
-        year={year}
-        data={data}
-      />
+
       
     </div>
   );

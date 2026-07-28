@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ConsolidatedReportPrint } from "@/pages/shared/print/ConsolidatedReportPrint";
+import { FederationReportPrint } from "@/pages/shared/print/FederationReportPrint";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 
 export const Route = createFileRoute("/print/ministry")({
@@ -32,7 +32,7 @@ function PrintComponent() {
   }
 
   return (
-    <ConsolidatedReportPrint
+    <FederationReportPrint
       tier="Ministry"
       entityName="Ministry of Commerce, Industry and Trade"
       year={currentYear}
