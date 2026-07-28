@@ -580,8 +580,15 @@ pub async fn export_single_submission(
 pub async fn export_bulk_consolidated(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
-    Query(query): Query<ExportQuery>,
+    Query(mut query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
+    if query.apex_id.is_none() && claims.is_apex() {
+        query.apex_id = claims.get_apex_group_id().and_then(|id| Uuid::parse_str(&id).ok());
+    }
+    if query.federation_id.is_none() && claims.is_federation() {
+        query.federation_id = claims.get_organization_id().and_then(|id| Uuid::parse_str(&id).ok());
+    }
+
     let mut allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 

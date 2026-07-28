@@ -9,13 +9,14 @@ export const Route = createFileRoute("/print/federation/$id")({
 
 function PrintComponent() {
   const { id } = Route.useParams();
+  const { token } = Route.useSearch() as { token?: string };
   
   const currentYear = new Date().getFullYear();
-  const { data: federation } = useFederation(id);
+  const { data: federation } = useFederation(id, token);
   const { data: overviewData, isLoading } = useNationalOverview({
     federationId: id,
     reportingYear: currentYear,
-  });
+  }, true, token);
 
   if (isLoading || !federation || !overviewData) {
     return (

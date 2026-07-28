@@ -9,13 +9,14 @@ export const Route = createFileRoute("/print/apex/$id")({
 
 function PrintComponent() {
   const { id } = Route.useParams();
+  const { token } = Route.useSearch() as { token?: string };
   
   const currentYear = new Date().getFullYear();
-  const { data: apex } = useApex(id);
+  const { data: apex } = useApex(id, token);
   const { data: overviewData, isLoading } = useNationalOverview({
     apexId: id,
     reportingYear: currentYear,
-  });
+  }, true, token);
 
   if (isLoading || !apex || !overviewData) {
     return (
