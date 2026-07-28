@@ -16,7 +16,6 @@ import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDough
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
-import { CustomKpiBuilder } from "@/components/analytics/CustomKpiBuilder";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
@@ -236,9 +235,6 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
           <ComplianceDoughnutCharts distributions={overview.distributions} />
         </Card>
       )}
-
-      {/* Custom KPI Builder Panel */}
-      <CustomKpiBuilder />
 
       {/* Full NF consolidation panel */}
       <NonFinancialConsolidation />

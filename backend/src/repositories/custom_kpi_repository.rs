@@ -36,6 +36,25 @@ impl CustomKpiRepository {
         Ok(res)
     }
 
+    pub async fn update(
+        &self,
+        id: Uuid,
+        name: String,
+        description: Option<String>,
+        formula: String,
+    ) -> AppResult<custom_kpi::Model> {
+        let kpi = custom_kpi::Entity::find_by_id(id)
+            .one(&self.db)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound("Custom KPI not found".into()))?;
+        let mut active: custom_kpi::ActiveModel = kpi.into();
+        active.name = Set(name);
+        active.description = Set(description);
+        active.formula = Set(formula);
+        let updated = active.update(&self.db).await?;
+        Ok(updated)
+    }
+
     pub async fn delete(&self, id: Uuid) -> AppResult<u64> {
         let res = custom_kpi::Entity::delete_many()
             .filter(custom_kpi::Column::Id.eq(id))

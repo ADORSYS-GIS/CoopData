@@ -28,8 +28,7 @@ import { ComparativeIncomeStatement } from "@/components/analytics/ComparativeIn
 import { FinancialIndicators } from "@/components/analytics/FinancialIndicators";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederations } from "@/hooks/federations/useFederations";
-import { useApexes } from "@/hooks/apexes/useApexes";
-import { useOrganizations } from "@/hooks/organizations/useOrganizations";
+import { useApexes, useMinistryApexes } from "@/hooks/apexes/useApexes";
 import {
   titleByRole,
   subtitleByRole,
@@ -138,22 +137,31 @@ export const AnalyticsPage: React.FC = () => {
     });
   }, []);
 
+  // Build API params from current filter state
+  const filterParams = React.useMemo(
+    () => ({
+      reportingYear: Number(filterValues.year),
+      cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
+      apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
+      federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
+      region: filterValues.region !== "all" ? filterValues.region : undefined,
+      sector: filterValues.sector !== "all" ? filterValues.sector : undefined,
+    }),
+    [filterValues],
+  );
+
+  // Fetch cooperatives list scoped to current filters (for cooperative dropdown + tabs)
   const { data: overview } = useNationalOverview(
-    { reportingYear: Number(filterValues.year) },
+    filterParams,
     role !== "cooperative" && role !== undefined,
   );
 
   const { data: federations } = useFederations(role === "ministry");
   const { data: apexes } = useApexes(role === "federation");
-  const { data: organizations } = useOrganizations(role === "ministry");
-
-  // For Ministry, apexes are sourced from organizations filtered by selected federation
-  const ministryApexes = React.useMemo(() => {
-    if (role !== "ministry" || !organizations?.data) return [];
-    return organizations.data.filter(
-      (org) => org.organization_type === "Apex" && org.federation_id === filterValues.federationId,
-    );
-  }, [role, organizations, filterValues.federationId]);
+  const { data: ministryApexes } = useMinistryApexes(
+    filterValues.federationId !== "all" ? filterValues.federationId : undefined,
+    role === "ministry",
+  );
 
   const filters = React.useMemo(() => {
     if (!role) return [];
@@ -190,12 +198,10 @@ export const AnalyticsPage: React.FC = () => {
         };
       }
       if (filter.id === "cooperative" && overview?.cooperatives) {
-        const disabled =
-          (role === "ministry" || role === "federation") && filterValues.apexId === "all";
-
+        // Cooperative dropdown is always enabled when any data is loaded
         return {
           ...filter,
-          disabled,
+          disabled: false,
           options: [
             { value: "all", label: "All Cooperatives" },
             ...overview.cooperatives.map((c) => ({
@@ -317,16 +323,28 @@ export const AnalyticsPage: React.FC = () => {
         ) : role !== "cooperative" && activeTab !== "dashboard" ? (
           <>
             {activeTab === "ranking" && (
-              <CooperativeRanking reportingYear={Number(filterValues.year)} />
+              <CooperativeRanking
+                reportingYear={Number(filterValues.year)}
+                filterParams={filterParams}
+              />
             )}
             {activeTab === "portfolio" && (
-              <PortfolioClassification reportingYear={Number(filterValues.year)} />
+              <PortfolioClassification
+                reportingYear={Number(filterValues.year)}
+                filterParams={filterParams}
+              />
             )}
             {activeTab === "income" && (
-              <ComparativeIncomeStatement reportingYear={Number(filterValues.year)} />
+              <ComparativeIncomeStatement
+                reportingYear={Number(filterValues.year)}
+                filterParams={filterParams}
+              />
             )}
             {activeTab === "indicators" && (
-              <FinancialIndicators reportingYear={Number(filterValues.year)} />
+              <FinancialIndicators
+                reportingYear={Number(filterValues.year)}
+                filterParams={filterParams}
+              />
             )}
           </>
         ) : (

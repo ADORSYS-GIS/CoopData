@@ -30,7 +30,8 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
           { name: "Non-binary / Undisclosed", value: 10.0, color: "#ea580c" },
         ];
 
-  const primaryPct = data.female_pct > 0 ? data.female_pct : 50.0;
+  const isFallback = chartData.length === 0;
+  const primaryPct = isFallback ? 50.0 : data.female_pct || 0;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-6 h-full flex flex-col justify-between">

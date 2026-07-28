@@ -1,0 +1,339 @@
+import React, { useState, useEffect } from "react";
+import { Calendar, Calculator, RefreshCw, Loader2, Check, X, Trash2, Edit2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { apiClient } from "@/openapi-client";
+
+interface CustomKpiItem {
+  id: string;
+  name: string;
+  formula: string;
+  description?: string | null;
+  created_at: string;
+}
+
+interface VariableDef {
+  name: string;
+  label: string;
+  category: string;
+  unit: string;
+}
+
+interface CoopKpiRow {
+  cooperative_id: string;
+  name: string;
+}
+
+interface CustomKpiDetailsSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  kpi: CustomKpiItem | null;
+  systemAvg?: number;
+  cooperatives: CoopKpiRow[];
+  allVariables: VariableDef[];
+  onEdit: (kpi: CustomKpiItem) => void;
+  onDelete: (kpi: CustomKpiItem) => void;
+}
+
+const CATEGORY_COLORS: Record<string, string> = {
+  assets:
+    "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
+  liabilities:
+    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
+  equity:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+  income:
+    "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
+  expenses:
+    "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
+  governance:
+    "bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
+  membership:
+    "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
+  other:
+    "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
+};
+
+export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
+  isOpen,
+  onClose,
+  kpi,
+  systemAvg,
+  cooperatives,
+  allVariables,
+  onEdit,
+  onDelete,
+}) => {
+  const [evalCoopId, setEvalCoopId] = useState<string>("none");
+  const [evalResult, setEvalResult] = useState<{
+    value: number;
+    is_valid: boolean;
+    error?: string | null;
+  } | null>(null);
+  const [isRunningEval, setIsRunningEval] = useState(false);
+
+  // Reset evaluator when drawer closes or KPI changes
+  useEffect(() => {
+    setEvalCoopId("none");
+    setEvalResult(null);
+  }, [kpi]);
+
+  const runEvaluationOnCoop = async (formulaStr: string, coopId: string) => {
+    if (coopId === "none") {
+      setEvalResult(null);
+      return;
+    }
+    setIsRunningEval(true);
+    try {
+      const { data, error } = await apiClient.POST("/api/v1/ministry/custom-kpis/evaluate", {
+        params: {
+          query: { cooperative_id: coopId },
+        },
+        body: { formula: formulaStr },
+      });
+      if (error) {
+        setEvalResult({
+          value: 0,
+          is_valid: false,
+          error: "Failed to evaluate formula for this cooperative",
+        });
+      } else {
+        setEvalResult(data ?? null);
+      }
+    } catch {
+      setEvalResult({ value: 0, is_valid: false, error: "Network error during evaluation" });
+    } finally {
+      setIsRunningEval(false);
+    }
+  };
+
+  const handleCoopEvalChange = async (coopId: string) => {
+    setEvalCoopId(coopId);
+    if (kpi) {
+      runEvaluationOnCoop(kpi.formula, coopId);
+    }
+  };
+
+  const renderFormulaTokens = (formulaText: string) => {
+    if (!formulaText) return null;
+    const tokens = formulaText.split(/\s+/);
+    return (
+      <div className="flex flex-wrap gap-1.5 items-center font-sans">
+        {tokens.map((token, index) => {
+          const variable = allVariables.find((v) => v.name === token);
+          if (variable) {
+            return (
+              <Badge
+                key={index}
+                variant="outline"
+                className={`text-[11px] font-medium border px-2 py-0.5 shadow-sm ${
+                  CATEGORY_COLORS[variable.category] || "bg-muted text-muted-foreground"
+                }`}
+              >
+                {variable.label}
+              </Badge>
+            );
+          }
+          const isOperator = ["+", "-", "*", "/", "(", ")"].includes(token);
+          if (isOperator) {
+            let symbol = token;
+            if (token === "*") symbol = "×";
+            if (token === "/") symbol = "÷";
+            return (
+              <span
+                key={index}
+                className="font-mono text-sm font-bold text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-900"
+              >
+                {symbol}
+              </span>
+            );
+          }
+          return (
+            <span
+              key={index}
+              className="font-mono text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded"
+            >
+              {token}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="sm:max-w-md md:max-w-lg overflow-y-auto z-50">
+        {kpi && (
+          <div className="space-y-6 pt-4 h-full flex flex-col justify-between">
+            <div className="space-y-6">
+              <SheetHeader className="text-left">
+                <SheetTitle className="text-xl font-extrabold text-blue-950 flex items-center gap-2">
+                  <Calculator className="h-6 w-6 text-blue-600" />
+                  {kpi.name}
+                </SheetTitle>
+                <SheetDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {kpi.description || "No description provided for this indicator."}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="space-y-4">
+                {/* Visual formula block */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Mathematical Formula
+                  </Label>
+                  <Card className="border border-blue-100 bg-blue-50/20 p-4">
+                    <CardContent className="p-0">{renderFormulaTokens(kpi.formula)}</CardContent>
+                  </Card>
+                </div>
+
+                {/* Raw Formula string */}
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Raw Formula Syntax
+                  </Label>
+                  <pre className="text-xs bg-slate-50 dark:bg-slate-900 border border-slate-100 p-2 rounded-lg font-mono overflow-x-auto text-slate-700">
+                    {kpi.formula}
+                  </pre>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      Created Date
+                    </Label>
+                    <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 mt-1">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                      {new Date(kpi.created_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      System Average
+                    </Label>
+                    <p className="text-sm font-bold text-blue-700 mt-1 font-mono">
+                      {systemAvg !== undefined ? (
+                        systemAvg.toFixed(2)
+                      ) : (
+                        <span className="italic text-xs font-normal text-muted-foreground">
+                          No data
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <hr className="border-blue-100 my-4" />
+
+                {/* Interactive Cooperative Evaluator */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                    <RefreshCw className="h-3.5 w-3.5" /> Interactive Evaluation Tool
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    Choose an ESwatini cooperative to evaluate this custom formula dynamically using
+                    their specific submitted data.
+                  </p>
+
+                  <div className="flex gap-2">
+                    <Select value={evalCoopId} onValueChange={handleCoopEvalChange}>
+                      <SelectTrigger className="flex-1 rounded-xl border-blue-200">
+                        <SelectValue placeholder="Select Cooperative..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-[60]">
+                        <SelectItem value="none">Choose a cooperative...</SelectItem>
+                        {cooperatives.map((c) => (
+                          <SelectItem key={c.cooperative_id} value={c.cooperative_id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {evalCoopId !== "none" && (
+                    <div className="mt-3 p-4 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/30 to-indigo-50/20">
+                      {isRunningEval ? (
+                        <div className="flex items-center justify-center py-4 text-xs text-muted-foreground gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Evaluating...
+                        </div>
+                      ) : evalResult ? (
+                        evalResult.is_valid ? (
+                          <div className="text-center py-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                              Evaluation Result
+                            </span>
+                            <span className="text-3xl font-extrabold text-blue-700 font-mono block mt-1">
+                              {evalResult.value >= 1000
+                                ? evalResult.value.toLocaleString(undefined, {
+                                    maximumFractionDigits: 1,
+                                  })
+                                : evalResult.value.toFixed(2)}
+                            </span>
+                            <span className="text-[10px] text-emerald-600 font-medium mt-1 inline-flex items-center gap-1">
+                              <Check className="h-3 w-3" /> Syntax evaluates successfully
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-center py-2 text-destructive">
+                            <span className="text-[10px] font-bold uppercase tracking-wider block">
+                              Evaluation Failed
+                            </span>
+                            <span className="text-xs font-semibold mt-1 block leading-relaxed">
+                              {evalResult.error || "Missing financial statement data"}
+                            </span>
+                            <span className="text-[10px] text-red-500 mt-1 inline-flex items-center gap-1">
+                              <X className="h-3 w-3" /> Formula fails execution
+                            </span>
+                          </div>
+                        )
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2 pt-6 border-t border-blue-50">
+              <Button
+                variant="outline"
+                onClick={() => onDelete(kpi)}
+                className="flex-1 text-destructive hover:bg-destructive/10 border-destructive/20 rounded-xl"
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Delete KPI
+              </Button>
+              <Button
+                onClick={() => onEdit(kpi)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 rounded-xl"
+              >
+                <Edit2 className="h-4 w-4 mr-2" /> Edit KPI
+              </Button>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+};
