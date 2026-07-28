@@ -12,6 +12,7 @@ import {
   Legend,
   ResponsiveContainer
 } from "recharts";
+import { ConsolidatedCoverPage } from "./components";
 
 const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#94a3b8"];
 
@@ -61,7 +62,14 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
 
   return (
     <div className="bg-white text-slate-900 font-sans print:w-[210mm]">
-      {/* Cover Page */}
+      <ConsolidatedCoverPage
+        tier={tier}
+        entityName={entityName}
+        year={year}
+        totalCooperatives={total_cooperatives}
+        submittedCooperatives={cooperatives_with_data}
+      />
+      {/* Executive Dashboard Sheet */}
       <div className="relative flex flex-col justify-between w-[210mm] h-[296mm] p-12 bg-white break-after-page">
         <div>
           <h1 className="text-3xl font-bold mb-2 text-slate-900 border-b-2 border-slate-900 pb-2">

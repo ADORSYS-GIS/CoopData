@@ -5,3 +5,4 @@ export * from './ReportNonFinancial';
 export * from './ReportFinancialPosition';
 export * from './ReportPortfolioQuality';
 export * from './ReportBenchmarkComparison';
+export * from './ConsolidatedCoverPage';
