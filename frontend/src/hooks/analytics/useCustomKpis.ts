@@ -57,7 +57,7 @@ export function useCustomKpis() {
       id: string;
       payload: { name: string; description?: string; formula: string };
     }) => {
-      const { data, error } = await apiClient.PUT("/api/v1/ministry/custom-kpis/{id}", {
+      const { data, error } = await (apiClient.PUT as Function)("/api/v1/ministry/custom-kpis/{id}", {
         params: { path: { id } },
         body: payload,
       });
