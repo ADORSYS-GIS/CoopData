@@ -19,7 +19,10 @@ let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // If we are executing inside the Gotenberg headless chrome container, localhost points to gotenberg!
 // We must route API calls directly to the backend container.
-if (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")) {
+if (
+  window.location.hostname.includes("frontend") ||
+  window.location.hostname.includes("gotenberg")
+) {
   API_BASE_URL = "http://backend:3000";
 }
 
@@ -35,7 +38,7 @@ apiClient.use({
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const queryToken = urlParams.get("token");
-      const token = queryToken || await getAccessToken();
+      const token = queryToken || (await getAccessToken());
       request.headers.set("Authorization", `Bearer ${token}`);
     } catch {
       // Not authenticated — let the request proceed without token

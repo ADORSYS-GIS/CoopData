@@ -30,7 +30,7 @@ export const useFederation = (id: string, tokenOverride?: string) =>
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}", {
         params: { path: { id } },
-        headers: headers as any,
+        headers: headers as Record<string, string>,
       });
       if (error) throw error;
       return data;

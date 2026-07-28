@@ -36,8 +36,6 @@ import {
 import { getAccessToken } from "@/services/shared/authService";
 import { useState, useRef, useEffect } from "react";
 
-
-
 const titleByRole: Record<Role, string> = {
   ministry: "Reporting Center",
   federation: "Federation Reports",
@@ -208,121 +206,121 @@ export const ReportsPage: React.FC = () => {
       <div className="relative min-h-[calc(100vh-10rem)]">
         {/* ── Page Background Watermark ── */}
         <FileBarChart2 className="pointer-events-none fixed -bottom-24 -right-24 size-[500px] text-blue-500/5 rotate-12 z-0" />
-        
+
         <div className="relative z-10 space-y-8">
           {/* ── Export panel ── */}
           <ReportExportPanel />
 
           {/* ── Recent Submissions ── */}
           <div className="rounded-2xl border border-border bg-surface overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div>
-              <h2 className="font-heading font-bold text-foreground text-[15px]">
-                Recent Data Submissions
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Most recently submitted financial statements — click Export to download
-              </p>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div>
+                <h2 className="font-heading font-bold text-foreground text-[15px]">
+                  Recent Data Submissions
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Most recently submitted financial statements — click Export to download
+                </p>
+              </div>
+              {recentSubmissions.length > 0 && (
+                <span className="text-xs font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                  {recentSubmissions.length} entries
+                </span>
+              )}
             </div>
-            {recentSubmissions.length > 0 && (
-              <span className="text-xs font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                {recentSubmissions.length} entries
-              </span>
+
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                <Loader2 className="size-7 animate-spin text-accent" />
+                <span className="text-sm">Loading submissions…</span>
+              </div>
+            ) : recentSubmissions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                <div className="size-14 rounded-2xl bg-muted grid place-items-center">
+                  <FileBarChart2 className="size-7 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm font-medium">No submissions yet</p>
+                <p className="text-xs text-muted-foreground/60">Submitted data will appear here</p>
+              </div>
+            ) : (
+              <>
+                <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-2.5 bg-muted/40 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span>Cooperative / Year</span>
+                  <span className="text-center">Status</span>
+                  <span className="text-right">Date</span>
+                  <span className="text-right">Export</span>
+                </div>
+
+                <ul className="divide-y divide-border">
+                  {recentSubmissions.map((s) => {
+                    const coopName = resolveCoopName(s);
+                    const dateStr = s.submitted_at
+                      ? new Date(s.submitted_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : new Date(s.created_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        });
+                    const baseName = `${coopName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${s.reporting_year}`;
+
+                    return (
+                      <li
+                        key={s.id}
+                        className="group grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-3.5 hover:bg-muted/20 transition-colors"
+                      >
+                        {/* Icon + name */}
+                        <div className="flex items-center gap-3 min-w-0 col-span-2 sm:col-span-1">
+                          <div className="size-9 rounded-xl bg-muted border border-border grid place-items-center shrink-0 group-hover:border-accent/30 group-hover:bg-accent/5 transition-colors">
+                            <FileText className="size-4 text-muted-foreground group-hover:text-accent transition-colors" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-foreground truncate leading-tight">
+                              {coopName}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {s.reporting_year} Financial Report
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex justify-center">
+                          <StatusBadge status={s.status} />
+                        </div>
+
+                        {/* Date */}
+                        <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 justify-end">
+                          <Calendar className="size-3" />
+                          {dateStr}
+                        </div>
+
+                        {/* Export dropdown */}
+                        <div className="flex justify-end">
+                          <ExportButton
+                            submissionId={s.id}
+                            filename={`${baseName}.pdf`}
+                            onExport={handleExport}
+                            isExporting={isExporting}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <div className="px-6 py-3 border-t border-border bg-muted/20 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <ChevronRight className="size-3 shrink-0" />
+                  Showing the {recentSubmissions.length} most recent submissions. Use the Export
+                  Panel above for consolidated reports.
+                </div>
+              </>
             )}
           </div>
-
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-              <Loader2 className="size-7 animate-spin text-accent" />
-              <span className="text-sm">Loading submissions…</span>
-            </div>
-          ) : recentSubmissions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-              <div className="size-14 rounded-2xl bg-muted grid place-items-center">
-                <FileBarChart2 className="size-7 text-muted-foreground/50" />
-              </div>
-              <p className="text-sm font-medium">No submissions yet</p>
-              <p className="text-xs text-muted-foreground/60">Submitted data will appear here</p>
-            </div>
-          ) : (
-            <>
-              <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-2.5 bg-muted/40 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <span>Cooperative / Year</span>
-                <span className="text-center">Status</span>
-                <span className="text-right">Date</span>
-                <span className="text-right">Export</span>
-              </div>
-
-              <ul className="divide-y divide-border">
-                {recentSubmissions.map((s) => {
-                  const coopName = resolveCoopName(s);
-                  const dateStr = s.submitted_at
-                    ? new Date(s.submitted_at).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : new Date(s.created_at).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      });
-                  const baseName = `${coopName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${s.reporting_year}`;
-
-                  return (
-                    <li
-                      key={s.id}
-                      className="group grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-3.5 hover:bg-muted/20 transition-colors"
-                    >
-                      {/* Icon + name */}
-                      <div className="flex items-center gap-3 min-w-0 col-span-2 sm:col-span-1">
-                        <div className="size-9 rounded-xl bg-muted border border-border grid place-items-center shrink-0 group-hover:border-accent/30 group-hover:bg-accent/5 transition-colors">
-                          <FileText className="size-4 text-muted-foreground group-hover:text-accent transition-colors" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-sm text-foreground truncate leading-tight">
-                            {coopName}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {s.reporting_year} Financial Report
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex justify-center">
-                        <StatusBadge status={s.status} />
-                      </div>
-
-                      {/* Date */}
-                      <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 justify-end">
-                        <Calendar className="size-3" />
-                        {dateStr}
-                      </div>
-
-                      {/* Export dropdown */}
-                      <div className="flex justify-end">
-                        <ExportButton
-                          submissionId={s.id}
-                          filename={`${baseName}.pdf`}
-                          onExport={handleExport}
-                          isExporting={isExporting}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <div className="px-6 py-3 border-t border-border bg-muted/20 flex items-center gap-2 text-[11px] text-muted-foreground">
-                <ChevronRight className="size-3 shrink-0" />
-                Showing the {recentSubmissions.length} most recent submissions. Use the Export Panel
-                above for consolidated reports.
-              </div>
-            </>
-          )}
         </div>
-      </div>
       </div>
     </AppShell>
   );

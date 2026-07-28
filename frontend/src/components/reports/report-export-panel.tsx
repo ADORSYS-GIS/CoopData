@@ -68,7 +68,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     rawSubmissions.forEach((s) => {
       if (s.reporting_year) years.add(s.reporting_year);
     });
-    return Array.from(years).sort((a, b) => b - a).map(String);
+    return Array.from(years)
+      .sort((a, b) => b - a)
+      .map(String);
   }, [rawSubmissions]);
 
   // Only submitted / approved can be exported
@@ -197,7 +199,13 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
     if (needsYearSelector) list.push({ key: "year", label: "Year" });
     return list;
-  }, [needsFedSelector, needsApexSelector, needsCoopSelector, needsSubmissionSelector, needsYearSelector]);
+  }, [
+    needsFedSelector,
+    needsApexSelector,
+    needsCoopSelector,
+    needsSubmissionSelector,
+    needsYearSelector,
+  ]);
 
   const currentStepIndex = useMemo(() => {
     if (needsFedSelector && !selectedFedId) return 0;
@@ -220,7 +228,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     needsSubmissionSelector,
     selectedSubmissionId,
     needsYearSelector,
-    selectedYear
+    selectedYear,
   ]);
 
   const activeStepKey: string = steps[currentStepIndex]?.key ?? steps[steps.length - 1]?.key;
@@ -277,7 +285,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
         } else if (selectedOption.id === "apex-consolidated" && selectedApexId) {
           queryParams.append("apex_id", selectedApexId);
         }
-        
+
         if (selectedYear) {
           queryParams.append("reporting_year", selectedYear);
         }
@@ -487,29 +495,30 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   availableYears={availableYears}
                   selectedYear={selectedYear}
                   onSelectYear={(year) => setSelectedYear(year)}
-
                 />
               </div>
 
               {/* Scope info for consolidated */}
-              {activeStepKey === steps[steps.length - 1]?.key && !isIndividual && role !== "cooperative" && (
-                <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
-                  <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
-                  <span>
-                    {role === "ministry"
-                      ? selectedOption.id === "federation-consolidated"
-                        ? `This report includes consolidated data for federation: ${federationList.find((f) => f.id === selectedFedId)?.name || "selected federation"}.`
-                        : selectedOption.id === "apex-consolidated"
-                          ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
-                          : "This report includes data from all federations, apexes, and cooperatives nationwide."
-                      : role === "federation"
-                        ? selectedOption.id === "apex-consolidated"
-                          ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
-                          : "This report includes data from all apexes and cooperatives under your federation."
-                        : "This report includes data from all cooperatives under your apex organization."}
-                  </span>
-                </div>
-              )}
+              {activeStepKey === steps[steps.length - 1]?.key &&
+                !isIndividual &&
+                role !== "cooperative" && (
+                  <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
+                    <span>
+                      {role === "ministry"
+                        ? selectedOption.id === "federation-consolidated"
+                          ? `This report includes consolidated data for federation: ${federationList.find((f) => f.id === selectedFedId)?.name || "selected federation"}.`
+                          : selectedOption.id === "apex-consolidated"
+                            ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
+                            : "This report includes data from all federations, apexes, and cooperatives nationwide."
+                        : role === "federation"
+                          ? selectedOption.id === "apex-consolidated"
+                            ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
+                            : "This report includes data from all apexes and cooperatives under your federation."
+                          : "This report includes data from all cooperatives under your apex organization."}
+                    </span>
+                  </div>
+                )}
             </div>
 
             {/* Footer */}

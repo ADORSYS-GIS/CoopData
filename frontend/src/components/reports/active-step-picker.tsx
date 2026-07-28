@@ -8,7 +8,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-
 interface ActiveStepPickerProps {
   activeStepKey: string;
   isLoadingSubmissions: boolean;
@@ -43,7 +42,6 @@ interface ActiveStepPickerProps {
   availableYears: string[];
   selectedYear: string;
   onSelectYear: (year: string) => void;
-
 }
 
 export function ActiveStepPicker({
@@ -285,9 +283,7 @@ export function ActiveStepPicker({
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{year} Consolidated Report</p>
                 </div>
-                {selectedYear === year && (
-                  <CheckCircle2 className="size-4 shrink-0 text-primary" />
-                )}
+                {selectedYear === year && <CheckCircle2 className="size-4 shrink-0 text-primary" />}
               </button>
             ))}
           </div>
@@ -295,8 +291,6 @@ export function ActiveStepPicker({
       </div>
     );
   }
-
-
 
   return null;
 }

@@ -16,7 +16,7 @@ export const useApexSubmissionKpis = (submissionId: string | undefined, tokenOve
   useQuery<SubmissionKpisResponse>({
     queryKey: ["apex-submission-kpis", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = tokenOverride || await getAccessToken();
+      const token = tokenOverride || (await getAccessToken());
       const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis`, {
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -9,20 +9,28 @@ export const Route = createFileRoute("/print/apex/$id")({
 
 function PrintComponent() {
   const { id } = Route.useParams();
-  const { token, year } = Route.useSearch() as { token?: string, year?: string };
-  
+  const { token, year } = Route.useSearch() as { token?: string; year?: string };
+
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: apex } = useApex(id, token);
-  
-  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview({
-    apexId: id,
-    reportingYear: currentYear,
-  }, true, token);
 
-  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview({
-    apexId: id,
-    reportingYear: currentYear - 1,
-  }, true, token);
+  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview(
+    {
+      apexId: id,
+      reportingYear: currentYear,
+    },
+    true,
+    token,
+  );
+
+  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview(
+    {
+      apexId: id,
+      reportingYear: currentYear - 1,
+    },
+    true,
+    token,
+  );
 
   const isLoading = isLoadingCurrent || isLoadingPrior;
 

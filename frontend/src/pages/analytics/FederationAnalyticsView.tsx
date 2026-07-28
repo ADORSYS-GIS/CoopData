@@ -85,7 +85,7 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
 
   const totalApexes = useMemo(() => {
     const apexSet = new Set<string>();
-    coops.forEach(c => {
+    coops.forEach((c) => {
       if (c.apex_id) apexSet.add(c.apex_id);
     });
     return apexSet.size;

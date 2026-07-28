@@ -9,20 +9,28 @@ export const Route = createFileRoute("/print/federation/$id")({
 
 function PrintComponent() {
   const { id } = Route.useParams();
-  const { token, year } = Route.useSearch() as { token?: string, year?: string };
-  
+  const { token, year } = Route.useSearch() as { token?: string; year?: string };
+
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: federation } = useFederation(id, token);
-  
-  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview({
-    federationId: id,
-    reportingYear: currentYear,
-  }, true, token);
 
-  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview({
-    federationId: id,
-    reportingYear: currentYear - 1,
-  }, true, token);
+  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview(
+    {
+      federationId: id,
+      reportingYear: currentYear,
+    },
+    true,
+    token,
+  );
+
+  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview(
+    {
+      federationId: id,
+      reportingYear: currentYear - 1,
+    },
+    true,
+    token,
+  );
 
   const isLoading = isLoadingCurrent || isLoadingPrior;
 
@@ -39,10 +47,10 @@ function PrintComponent() {
 
   return (
     <div className="bg-slate-200 min-h-screen">
-      <FederationReportPrint 
-        entityName={federation?.name ?? "Federation"} 
-        year={currentYear} 
-        data={overviewData} 
+      <FederationReportPrint
+        entityName={federation?.name ?? "Federation"}
+        year={currentYear}
+        data={overviewData}
         priorData={priorData}
       />
     </div>

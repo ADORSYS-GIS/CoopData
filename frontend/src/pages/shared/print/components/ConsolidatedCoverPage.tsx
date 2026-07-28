@@ -17,14 +17,17 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
   submittedCooperatives,
   totalApexes,
 }) => {
-  const submissionRate = totalCooperatives > 0 
-    ? ((submittedCooperatives / totalCooperatives) * 100).toFixed(1) 
-    : "0.0";
+  const submissionRate =
+    totalCooperatives > 0 ? ((submittedCooperatives / totalCooperatives) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="relative flex flex-col justify-between w-[210mm] h-[296mm] p-16 bg-gradient-to-br from-slate-900 to-slate-800 text-white break-after-page">
       <div className="absolute right-[-2rem] top-[-2rem] w-80 h-80 bg-blue-900/30 rounded-full flex items-center justify-center pointer-events-none border-[8px] border-slate-800">
-        <img src="/coopdatalogo.png" alt="CoopData Logo" className="w-48 h-48 object-contain opacity-90 translate-x-[-1rem] translate-y-[1rem]" />
+        <img
+          src="/coopdatalogo.png"
+          alt="CoopData Logo"
+          className="w-48 h-48 object-contain opacity-90 translate-x-[-1rem] translate-y-[1rem]"
+        />
       </div>
 
       <div className="flex items-center justify-between border-b border-slate-700/60 pb-8 relative z-10">
@@ -43,33 +46,50 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
           {tier === "Ministry" ? "ESWATINI NATIONAL OVERVIEW" : entityName.toUpperCase()}
         </h1>
         <p className="text-lg text-slate-300 max-w-lg leading-relaxed font-light font-sans">
-          Aggregated financial performance, portfolio quality, and prudential compliance for cooperatives under supervision.
+          Aggregated financial performance, portfolio quality, and prudential compliance for
+          cooperatives under supervision.
         </p>
       </div>
 
       <div className="border-t border-slate-700/60 pt-8 flex gap-8 text-xs text-slate-400 relative z-10 flex-wrap">
         <div className="flex-1 min-w-[80px]">
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Reporting Year</p>
+          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+            Reporting Year
+          </p>
           <p className="text-sm font-bold text-white">{year}</p>
         </div>
         {totalApexes !== undefined && (
           <div className="flex-1 min-w-[80px]">
-            <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Active Apexes</p>
+            <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+              Active Apexes
+            </p>
             <p className="text-sm font-bold text-white">{totalApexes}</p>
           </div>
         )}
         <div className="flex-1 min-w-[80px]">
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Supervised Co-ops</p>
+          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+            Supervised Co-ops
+          </p>
           <p className="text-sm font-bold text-white">{totalCooperatives}</p>
         </div>
         <div>
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Submission Rate</p>
-          <p className="text-sm font-bold text-white">{submittedCooperatives} ({submissionRate}%)</p>
+          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+            Submission Rate
+          </p>
+          <p className="text-sm font-bold text-white">
+            {submittedCooperatives} ({submissionRate}%)
+          </p>
         </div>
         <div className="flex-1 min-w-[80px]">
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">Generated Date</p>
+          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+            Generated Date
+          </p>
           <p className="text-sm font-bold text-white">
-            {new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+            {new Date().toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
           </p>
         </div>
       </div>

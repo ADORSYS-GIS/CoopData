@@ -59,7 +59,10 @@ export interface MembershipStatsResponse {
 }
 
 let BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-if (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")) {
+if (
+  window.location.hostname.includes("frontend") ||
+  window.location.hostname.includes("gotenberg")
+) {
   BASE_URL = "http://backend:3000";
 }
 
@@ -73,10 +76,13 @@ export const useCooperativeKpis = (submissionId: string | undefined, tokenOverri
   useQuery<SubmissionKpisResponse>({
     queryKey: ["coop-kpis", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = tokenOverride || await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis?include_prior_year=true`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const token = tokenOverride || (await getAccessToken());
+      const res = await fetch(
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis?include_prior_year=true`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as Record<string, string>)["message"] ?? `HTTP ${res.status}`);
@@ -96,10 +102,13 @@ export const useSubmissionLineItems = (submissionId: string | undefined, tokenOv
   useQuery<SubmissionLineItemsResponse>({
     queryKey: ["coop-line-items", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = tokenOverride || await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/financial-statement/line-items?include_prior_year=true`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const token = tokenOverride || (await getAccessToken());
+      const res = await fetch(
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/financial-statement/line-items?include_prior_year=true`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as Record<string, string>)["message"] ?? `HTTP ${res.status}`);
@@ -115,10 +124,13 @@ export const usePortfolioBreakdown = (submissionId: string | undefined, tokenOve
   useQuery<PortfolioBreakdownResponse>({
     queryKey: ["portfolio-breakdown", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = tokenOverride || await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/portfolio-breakdown`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const token = tokenOverride || (await getAccessToken());
+      const res = await fetch(
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/portfolio-breakdown`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as Record<string, string>)["message"] ?? `HTTP ${res.status}`);
@@ -134,10 +146,13 @@ export const useMembershipStats = (submissionId: string | undefined, tokenOverri
   useQuery<MembershipStatsResponse>({
     queryKey: ["membership-stats", submissionId, tokenOverride],
     queryFn: async () => {
-      const token = tokenOverride || await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/membership-stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const token = tokenOverride || (await getAccessToken());
+      const res = await fetch(
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/membership-stats`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as Record<string, string>)["message"] ?? `HTTP ${res.status}`);

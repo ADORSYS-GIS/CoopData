@@ -10,15 +10,15 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
 }) => {
   const assetsYoY = calculateYoY(
     getLineItem(lineItemsData, 1999),
-    getLineItem(lineItemsData, 1999, true)
+    getLineItem(lineItemsData, 1999, true),
   );
 
   const { balanceSheetItems, incomeStatementItems } = useMemo(() => {
     const items = lineItemsData?.current_year || [];
-    
+
     // Deduplicate by account_code (take the latest month or first seen)
     const uniqueItemsMap = new Map<number, LineItemResponse>();
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.account_code === undefined) return;
       const existing = uniqueItemsMap.get(item.account_code);
       // Assuming month is available, prefer the higher month (closer to year-end YTD)
@@ -38,8 +38,12 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
     const isCategories = ["income", "expenses", "surplus"];
 
     return {
-      balanceSheetItems: sorted.filter(i => bsCategories.includes(i.account_category.toLowerCase())),
-      incomeStatementItems: sorted.filter(i => isCategories.includes(i.account_category.toLowerCase())),
+      balanceSheetItems: sorted.filter((i) =>
+        bsCategories.includes(i.account_category.toLowerCase()),
+      ),
+      incomeStatementItems: sorted.filter((i) =>
+        isCategories.includes(i.account_category.toLowerCase()),
+      ),
     };
   }, [lineItemsData]);
 
@@ -51,10 +55,16 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
     const code = item.account_code;
     const currentVal = item.value;
     const priorVal = getLineItem(lineItemsData, code, true);
-    
+
     const isTotal = code % 1000 === 999;
     const isHeader = code % 100 === 0 && !isTotal;
-    const isSuperTotal = code === 1999 || code === 2999 || code === 3999 || code === 5999 || code === 6499 || code === 6999;
+    const isSuperTotal =
+      code === 1999 ||
+      code === 2999 ||
+      code === 3999 ||
+      code === 5999 ||
+      code === 6499 ||
+      code === 6999;
 
     let percentage = "—";
     if (totalVal && currentVal !== undefined && currentVal !== null) {
@@ -65,9 +75,14 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
     if (isHeader) percentage = "";
 
     return (
-      <tr key={item.id} className={`${isSuperTotal ? "bg-slate-200 font-bold text-blue-900" : isTotal ? "bg-slate-100 font-bold" : isHeader ? "bg-slate-50 font-semibold italic" : ""}`}>
+      <tr
+        key={item.id}
+        className={`${isSuperTotal ? "bg-slate-200 font-bold text-blue-900" : isTotal ? "bg-slate-100 font-bold" : isHeader ? "bg-slate-50 font-semibold italic" : ""}`}
+      >
         <td className="px-2 py-1">{code}</td>
-        <td className={`px-2 py-1 ${isHeader ? "" : isTotal ? "pl-2" : "pl-6"}`}>{item.account_name}</td>
+        <td className={`px-2 py-1 ${isHeader ? "" : isTotal ? "pl-2" : "pl-6"}`}>
+          {item.account_name}
+        </td>
         <td className="px-2 py-1 text-right">{formatCurrency(currentVal)}</td>
         <td className="px-2 py-1 text-right">{formatCurrency(priorVal)}</td>
         <td className="px-2 py-1 text-right">{calculateYoY(currentVal, priorVal)}</td>
@@ -84,7 +99,10 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
 
       <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">
         <p className="font-semibold mb-1">Narrative</p>
-        Total assets showed a {assetsYoY.startsWith("+") || assetsYoY === "—" ? "positive trend" : "decline"} year-on-year, driven by changes in member deposits and equity. The detailed balance sheet and income statement below reflect the financial health for the period.
+        Total assets showed a{" "}
+        {assetsYoY.startsWith("+") || assetsYoY === "—" ? "positive trend" : "decline"}{" "}
+        year-on-year, driven by changes in member deposits and equity. The detailed balance sheet
+        and income statement below reflect the financial health for the period.
       </div>
 
       <h3 className="text-lg font-semibold text-slate-700 mb-4">Balance Sheet</h3>
@@ -101,10 +119,12 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
         </thead>
         <tbody className="divide-y divide-slate-200">
           {balanceSheetItems.length > 0 ? (
-            balanceSheetItems.map(item => renderRow(item, totalAssets))
+            balanceSheetItems.map((item) => renderRow(item, totalAssets))
           ) : (
             <tr>
-              <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">No balance sheet data available</td>
+              <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">
+                No balance sheet data available
+              </td>
             </tr>
           )}
         </tbody>
@@ -124,10 +144,12 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
         </thead>
         <tbody className="divide-y divide-slate-200">
           {incomeStatementItems.length > 0 ? (
-            incomeStatementItems.map(item => renderRow(item, totalIncome))
+            incomeStatementItems.map((item) => renderRow(item, totalIncome))
           ) : (
             <tr>
-              <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">No income statement data available</td>
+              <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">
+                No income statement data available
+              </td>
             </tr>
           )}
         </tbody>
@@ -135,7 +157,9 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
 
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
         <span></span>
-        <span>SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}</span>
+        <span>
+          SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}
+        </span>
       </div>
     </div>
   );

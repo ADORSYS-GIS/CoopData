@@ -7,16 +7,24 @@ export const Route = createFileRoute("/print/ministry")({
 });
 
 function PrintComponent() {
-  const { token, year } = Route.useSearch() as { token?: string, year?: string };
+  const { token, year } = Route.useSearch() as { token?: string; year?: string };
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
-  
-  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview({
-    reportingYear: currentYear,
-  }, true, token);
 
-  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview({
-    reportingYear: currentYear - 1,
-  }, true, token);
+  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview(
+    {
+      reportingYear: currentYear,
+    },
+    true,
+    token,
+  );
+
+  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview(
+    {
+      reportingYear: currentYear - 1,
+    },
+    true,
+    token,
+  );
 
   const isLoading = isLoadingCurrent || isLoadingPrior;
 

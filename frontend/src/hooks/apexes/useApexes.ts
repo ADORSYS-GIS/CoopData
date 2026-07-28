@@ -53,7 +53,7 @@ export const useApex = (id: string, tokenOverride?: string) =>
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/federation/apexes/{id}", {
         params: { path: { id } },
-        headers: headers as any,
+        headers: headers as Record<string, string>,
       });
       if (error) throw new Error(extractErrorMessage(error));
       return data as unknown as ApexResponse;

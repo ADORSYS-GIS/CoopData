@@ -1,23 +1,11 @@
-import React, { useMemo, useEffect } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from "recharts";
+import React, { useEffect } from "react";
 import {
   ConsolidatedCoverPage,
   ConsolidatedDashboardSheet,
   ConsolidatedCoopDetailSheet,
-  ConsolidatedRiskWatchSheet
+  ConsolidatedRiskWatchSheet,
 } from "./components";
+import type { NationalOverviewResponse } from "./components";
 
 const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#94a3b8"];
 
@@ -25,17 +13,23 @@ interface ConsolidatedReportPrintProps {
   tier: "Apex" | "Federation" | "Ministry";
   entityName: string;
   year: number;
-  data: any; // NationalOverviewResponse
-  priorData?: any; // NationalOverviewResponse for year - 1
+  data: NationalOverviewResponse;
+  priorData?: NationalOverviewResponse;
 }
 
-export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = ({ tier, entityName, year, data, priorData }) => {
+export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = ({
+  tier,
+  entityName,
+  year,
+  data,
+  priorData,
+}) => {
   const { total_cooperatives, cooperatives_with_data } = data;
 
   useEffect(() => {
     // Signal Gotenberg that charts and DOM are fully rendered
     setTimeout(() => {
-      (window as any).isReady = true;
+      (window as unknown as { isReady: boolean }).isReady = true;
     }, 1000);
   }, []);
 
@@ -48,7 +42,7 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
         totalCooperatives={total_cooperatives}
         submittedCooperatives={cooperatives_with_data}
       />
-      
+
       <ConsolidatedDashboardSheet
         tier={tier}
         entityName={entityName}

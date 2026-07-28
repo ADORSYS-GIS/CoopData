@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
-import { 
+import {
   useCooperativeKpis,
   useSubmissionLineItems,
   usePortfolioBreakdown,
@@ -23,11 +23,27 @@ interface Props {
 }
 
 export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOverride }) => {
-  const { data: submission, isLoading: subLoading } = useSubmission(submissionId, undefined, tokenOverride);
-  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId, tokenOverride);
-  const { data: lineItemsData, isLoading: lineItemsLoading } = useSubmissionLineItems(submissionId, tokenOverride);
-  const { data: portfolioData, isLoading: portfolioLoading } = usePortfolioBreakdown(submissionId, tokenOverride);
-  const { data: membershipData, isLoading: membershipLoading } = useMembershipStats(submissionId, tokenOverride);
+  const { data: submission, isLoading: subLoading } = useSubmission(
+    submissionId,
+    undefined,
+    tokenOverride,
+  );
+  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
+    submissionId,
+    tokenOverride,
+  );
+  const { data: lineItemsData, isLoading: lineItemsLoading } = useSubmissionLineItems(
+    submissionId,
+    tokenOverride,
+  );
+  const { data: portfolioData, isLoading: portfolioLoading } = usePortfolioBreakdown(
+    submissionId,
+    tokenOverride,
+  );
+  const { data: membershipData, isLoading: membershipLoading } = useMembershipStats(
+    submissionId,
+    tokenOverride,
+  );
   const coopName = submission?.cooperative_name ?? "COOPERATIVE";
 
   const kpiMap = useMemo(() => {
@@ -51,7 +67,9 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800 p-8">
         <div className="text-center">
           <p className="text-lg font-bold text-red-600">Failed to load report data</p>
-          <p className="text-sm text-slate-500 mt-1">Please verify the submission exists and has approved statements.</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Please verify the submission exists and has approved statements.
+          </p>
         </div>
       </div>
     );

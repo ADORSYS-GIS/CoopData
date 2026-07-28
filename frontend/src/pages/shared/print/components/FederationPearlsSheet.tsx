@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
+import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
 
 interface FederationPearlsSheetProps {
   federationName: string;
   year: number;
-  data: any;
+  data: NationalOverviewResponse;
 }
 
 export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
@@ -14,7 +15,7 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
 }) => {
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
-  const apexNames = Array.from(new Set(cooperatives.map(c => c.apex_name || "Unaffiliated")));
+  const apexNames = Array.from(new Set(cooperatives.map((c) => c.apex_name || "Unaffiliated")));
 
   const getAvg = (coops: CoopKpiRow[], kpi: string) => {
     const valid = coops.filter((c) => c.kpis?.[kpi]);
@@ -31,8 +32,16 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
   const pearlsDimensions = [
     { dimension: "Protection", label: "Loan Loss Coverage (%)", key: "loan_loss_coverage" },
     { dimension: "Protection", label: "Provisions / NPL (%)", key: "provisions_npl" }, // Fallback to LLC if not available
-    { dimension: "Effective Structure", label: "Net Loans / Total Assets (%)", key: "net_loan_portfolio" },
-    { dimension: "Effective Structure", label: "Deposits / Total Assets (%)", key: "deposits_to_loans" }, // Approximation
+    {
+      dimension: "Effective Structure",
+      label: "Net Loans / Total Assets (%)",
+      key: "net_loan_portfolio",
+    },
+    {
+      dimension: "Effective Structure",
+      label: "Deposits / Total Assets (%)",
+      key: "deposits_to_loans",
+    }, // Approximation
     { dimension: "Asset Quality", label: "PAR30 (%)", key: "par30" },
     { dimension: "Asset Quality", label: "NPL Write-off Ratio (%)", key: "npl_ratio" },
     { dimension: "Rates of Return", label: "ROA (%)", key: "roa" },
@@ -44,12 +53,15 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
 
   useEffect(() => {
     setTimeout(() => {
-      (window as any).isReady = true;
+      (window as unknown as { isReady: boolean }).isReady = true;
     }, 1500);
   }, []);
 
   return (
-    <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+    <div
+      className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
+      style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
+    >
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">PEARLS Comparative Analysis</h1>
@@ -62,15 +74,19 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
       </div>
 
       <div className="flex-1 min-h-0">
-        <p className="mb-4 text-slate-700">PEARLS framework mapped to available KPIs across apex networks:</p>
-        
+        <p className="mb-4 text-slate-700">
+          PEARLS framework mapped to available KPIs across apex networks:
+        </p>
+
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
               <th className="p-3 text-left border border-slate-900 w-1/4">Dimension</th>
               <th className="p-3 text-left border border-slate-900 w-1/4">KPI</th>
-              {apexNames.map(name => (
-                <th key={name} className="p-3 text-right border border-slate-900">{name}</th>
+              {apexNames.map((name) => (
+                <th key={name} className="p-3 text-right border border-slate-900">
+                  {name}
+                </th>
               ))}
               <th className="p-3 text-right border border-slate-900 bg-slate-800">Sector Avg</th>
             </tr>
@@ -82,11 +98,15 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
               // Since this is a mockup implementation, we use what's available.
               return (
                 <tr key={i} className="even:bg-slate-50 border-b border-slate-300">
-                  <td className="p-3 border-x border-slate-300 font-bold text-slate-700">{row.dimension}</td>
+                  <td className="p-3 border-x border-slate-300 font-bold text-slate-700">
+                    {row.dimension}
+                  </td>
                   <td className="p-3 border-x border-slate-300">{row.label}</td>
-                  
-                  {apexNames.map(name => {
-                    const apexCoops = cooperatives.filter(c => c.apex_name === name || (!c.apex_name && name === "Unaffiliated"));
+
+                  {apexNames.map((name) => {
+                    const apexCoops = cooperatives.filter(
+                      (c) => c.apex_name === name || (!c.apex_name && name === "Unaffiliated"),
+                    );
                     const apexAvg = getAvg(apexCoops, row.key);
                     return (
                       <td key={name} className="p-3 border-x border-slate-300 text-right">
@@ -94,7 +114,7 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
                       </td>
                     );
                   })}
-                  
+
                   <td className="p-3 border-x border-slate-300 text-right font-bold bg-slate-100">
                     {renderVal(sectorAvg)}
                   </td>

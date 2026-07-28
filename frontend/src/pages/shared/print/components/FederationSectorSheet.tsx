@@ -10,12 +10,13 @@ import {
   LabelList,
   Cell,
 } from "recharts";
+import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
 
 interface FederationSectorSheetProps {
   federationName: string;
   year: number;
-  data: any;
+  data: NationalOverviewResponse;
 }
 
 export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
@@ -44,10 +45,10 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
     const total = coops.length;
     const submitted = coops.filter((c) => c.has_data).length;
     const filingPct = total > 0 ? (submitted / total) * 100 : 0;
-    
+
     // Only average for those that submitted data
     const filedCoops = coops.filter((c) => c.has_data);
-    
+
     return {
       sector,
       coops: total,
@@ -60,20 +61,23 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
 
   // Calculate overall text narrative
   const totalAssets = cooperatives.reduce((acc, c) => acc + (c.kpis?.total_assets?.value || 0), 0);
-  const totalFilingPct = cooperatives.length > 0 
-    ? (cooperatives.filter(c => c.has_data).length / cooperatives.length) * 100 
-    : 0;
+  const totalFilingPct =
+    cooperatives.length > 0
+      ? (cooperatives.filter((c) => c.has_data).length / cooperatives.length) * 100
+      : 0;
 
   useEffect(() => {
     // Small delay to allow Recharts to paint in Gotenberg
     setTimeout(() => {
-      (window as any).isReady = true;
+      (window as unknown as { isReady: boolean }).isReady = true;
     }, 1500);
   }, []);
 
   return (
-    <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
-      
+    <div
+      className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
+      style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
+    >
       {/* Header */}
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
@@ -87,21 +91,40 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
       </div>
 
       <div className="flex-1 flex flex-col gap-8 min-h-0">
-        
         {/* Chart */}
         <div className="border border-slate-300 p-6 rounded-lg bg-white shrink-0">
-          <h3 className="text-xl font-bold text-slate-800 text-center mb-6">Filing Rate by Sector (%)</h3>
+          <h3 className="text-xl font-bold text-slate-800 text-center mb-6">
+            Filing Rate by Sector (%)
+          </h3>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sectorData} margin={{ top: 30, right: 30, left: 0, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={true} />
                 <XAxis dataKey="sector" tick={{ fontSize: 16 }} tickMargin={15} />
-                <YAxis domain={[0, 100]} label={{ value: 'Filing Rate (%)', angle: -90, position: 'insideLeft', offset: 15, fontSize: 16, fontWeight: 'bold' }} />
-                <Tooltip cursor={{ fill: '#f1f5f9' }} />
+                <YAxis
+                  domain={[0, 100]}
+                  label={{
+                    value: "Filing Rate (%)",
+                    angle: -90,
+                    position: "insideLeft",
+                    offset: 15,
+                    fontSize: 16,
+                    fontWeight: "bold",
+                  }}
+                />
+                <Tooltip cursor={{ fill: "#f1f5f9" }} />
                 <Bar dataKey="filingPct" isAnimationActive={false}>
-                  <LabelList dataKey="filingPct" position="top" formatter={(val: number) => `${val.toFixed(0)}%`} style={{ fontSize: 16, fontWeight: 'bold' }} />
+                  <LabelList
+                    dataKey="filingPct"
+                    position="top"
+                    formatter={(val: number) => `${val.toFixed(0)}%`}
+                    style={{ fontSize: 16, fontWeight: "bold" }}
+                  />
                   {sectorData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.filingPct < 75 ? "#ef4444" : "#0284c7"} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.filingPct < 75 ? "#ef4444" : "#0284c7"}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -127,15 +150,47 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
                 <tr key={i} className="even:bg-slate-50">
                   <td className="p-3 border border-slate-300 font-medium">{row.sector}</td>
                   <td className="p-3 border border-slate-300 text-right">{row.coops}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.filingPct.toFixed(0)}%</td>
-                  <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
-                    <span className={row.par30 > 10 ? "text-red-600" : row.par30 > 5 ? "text-amber-500" : "text-green-600"}>{row.par30.toFixed(1)}%</span>
+                  <td className="p-3 border border-slate-300 text-right">
+                    {row.filingPct.toFixed(0)}%
                   </td>
                   <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
-                    <span className={row.car < 10 ? "text-red-600" : row.car < 15 ? "text-amber-500" : "text-green-600"}>{row.car.toFixed(1)}%</span>
+                    <span
+                      className={
+                        row.par30 > 10
+                          ? "text-red-600"
+                          : row.par30 > 5
+                            ? "text-amber-500"
+                            : "text-green-600"
+                      }
+                    >
+                      {row.par30.toFixed(1)}%
+                    </span>
                   </td>
                   <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
-                    <span className={row.roa < 0 ? "text-red-600" : row.roa < 3 ? "text-amber-500" : "text-green-600"}>{row.roa.toFixed(1)}%</span>
+                    <span
+                      className={
+                        row.car < 10
+                          ? "text-red-600"
+                          : row.car < 15
+                            ? "text-amber-500"
+                            : "text-green-600"
+                      }
+                    >
+                      {row.car.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
+                    <span
+                      className={
+                        row.roa < 0
+                          ? "text-red-600"
+                          : row.roa < 3
+                            ? "text-amber-500"
+                            : "text-green-600"
+                      }
+                    >
+                      {row.roa.toFixed(1)}%
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -145,12 +200,16 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
 
         {/* Narrative */}
         <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-900 text-sm leading-relaxed">
-          The federation's total assets for the reported period are <strong>E {totalAssets.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>. 
-          Filing rates stand at <strong>{totalFilingPct.toFixed(1)}%</strong> across {cooperatives.length} member cooperatives.
-          <br/>
-          <em>Note: This automated summary is generated based on current period data only. Detailed prior-year comparisons are provided in the Executive Dashboard.</em>
+          The federation's total assets for the reported period are{" "}
+          <strong>E {totalAssets.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>.
+          Filing rates stand at <strong>{totalFilingPct.toFixed(1)}%</strong> across{" "}
+          {cooperatives.length} member cooperatives.
+          <br />
+          <em>
+            Note: This automated summary is generated based on current period data only. Detailed
+            prior-year comparisons are provided in the Executive Dashboard.
+          </em>
         </div>
-
       </div>
     </div>
   );

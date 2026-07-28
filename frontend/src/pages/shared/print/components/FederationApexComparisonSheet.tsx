@@ -10,12 +10,13 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
+import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
 
 interface FederationApexComparisonSheetProps {
   federationName: string;
   year: number;
-  data: any;
+  data: NationalOverviewResponse;
 }
 
 export const FederationApexComparisonSheet: React.FC<FederationApexComparisonSheetProps> = ({
@@ -49,11 +50,11 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
     const total = coops.length;
     const submitted = coops.filter((c) => c.has_data).length;
     // Approvals are simplified here to submitted for mock compliance since we don't track status directly in CoopKpiRow
-    const approved = submitted; 
+    const approved = submitted;
     const filingPct = total > 0 ? (submitted / total) * 100 : 0;
-    
+
     const filedCoops = coops.filter((c) => c.has_data);
-    
+
     return {
       apex,
       coops: total,
@@ -81,14 +82,17 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
 
   useEffect(() => {
     setTimeout(() => {
-      (window as any).isReady = true;
+      (window as unknown as { isReady: boolean }).isReady = true;
     }, 1500);
   }, []);
 
   return (
     <>
       {/* Sheet 2: Apex Comparison */}
-      <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+      <div
+        className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
+        style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
+      >
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Apex Comparison</h1>
@@ -101,21 +105,66 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
         </div>
 
         <div className="flex-1 flex flex-col gap-8 min-h-0">
-          
           <div className="border border-slate-300 p-6 rounded-lg bg-white shrink-0">
-            <h3 className="text-xl font-bold text-slate-800 text-center mb-6">Filing Rate & Avg PAR30 by Apex</h3>
+            <h3 className="text-xl font-bold text-slate-800 text-center mb-6">
+              Filing Rate & Avg PAR30 by Apex
+            </h3>
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={apexData} margin={{ top: 30, right: 30, left: 30, bottom: 30 }}>
+                <ComposedChart
+                  data={apexData}
+                  margin={{ top: 30, right: 30, left: 30, bottom: 30 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" vertical={true} />
                   <XAxis dataKey="apex" tick={{ fontSize: 16 }} tickMargin={15} />
-                  <YAxis yAxisId="left" domain={[0, 100]} label={{ value: 'Filing Rate (%)', angle: -90, position: 'insideLeft', offset: 0, fontSize: 16, fontWeight: 'bold', fill: '#0284c7' }} tick={{ fill: '#0284c7' }} />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 20]} label={{ value: 'Avg PAR30 (%)', angle: 90, position: 'insideRight', offset: 0, fontSize: 16, fontWeight: 'bold', fill: '#dc2626' }} tick={{ fill: '#dc2626' }} />
+                  <YAxis
+                    yAxisId="left"
+                    domain={[0, 100]}
+                    label={{
+                      value: "Filing Rate (%)",
+                      angle: -90,
+                      position: "insideLeft",
+                      offset: 0,
+                      fontSize: 16,
+                      fontWeight: "bold",
+                      fill: "#0284c7",
+                    }}
+                    tick={{ fill: "#0284c7" }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[0, 20]}
+                    label={{
+                      value: "Avg PAR30 (%)",
+                      angle: 90,
+                      position: "insideRight",
+                      offset: 0,
+                      fontSize: 16,
+                      fontWeight: "bold",
+                      fill: "#dc2626",
+                    }}
+                    tick={{ fill: "#dc2626" }}
+                  />
                   <Tooltip />
                   <Bar yAxisId="left" dataKey="filingPct" fill="#38bdf8" isAnimationActive={false}>
-                     <LabelList dataKey="filingPct" position="insideTop" fill="#fff" formatter={(val: number) => `${val.toFixed(0)}%`} style={{ fontSize: 14, fontWeight: 'bold' }} />
+                    <LabelList
+                      dataKey="filingPct"
+                      position="insideTop"
+                      fill="#fff"
+                      formatter={(val: number) => `${val.toFixed(0)}%`}
+                      style={{ fontSize: 14, fontWeight: "bold" }}
+                    />
                   </Bar>
-                  <Line yAxisId="right" type="monotone" dataKey="par30" stroke="#dc2626" strokeWidth={3} dot={{ r: 6, fill: "#dc2626" }} isAnimationActive={false} />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="par30"
+                    stroke="#dc2626"
+                    strokeWidth={3}
+                    dot={{ r: 6, fill: "#dc2626" }}
+                    isAnimationActive={false}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -145,22 +194,68 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                     <td className="p-3 border border-slate-300 text-right">{row.coops}</td>
                     <td className="p-3 border border-slate-300 text-right">{row.submitted}</td>
                     <td className="p-3 border border-slate-300 text-right">{row.approved}</td>
-                    <td className="p-3 border border-slate-300 text-right">{row.filingPct.toFixed(0)}%</td>
-                    <td className="p-3 border border-slate-300 text-right">{formatShortCurrency(row.assets)}</td>
-                    <td className="p-3 border border-slate-300 text-right font-bold">
-                      <span className={row.par30 > 10 ? "text-red-600" : row.par30 > 5 ? "text-amber-500" : "text-green-600"}>{row.par30.toFixed(1)}%</span>
+                    <td className="p-3 border border-slate-300 text-right">
+                      {row.filingPct.toFixed(0)}%
+                    </td>
+                    <td className="p-3 border border-slate-300 text-right">
+                      {formatShortCurrency(row.assets)}
                     </td>
                     <td className="p-3 border border-slate-300 text-right font-bold">
-                      <span className={row.car < 10 ? "text-red-600" : row.car < 15 ? "text-amber-500" : "text-green-600"}>{row.car.toFixed(1)}%</span>
+                      <span
+                        className={
+                          row.par30 > 10
+                            ? "text-red-600"
+                            : row.par30 > 5
+                              ? "text-amber-500"
+                              : "text-green-600"
+                        }
+                      >
+                        {row.par30.toFixed(1)}%
+                      </span>
                     </td>
                     <td className="p-3 border border-slate-300 text-right font-bold">
-                      <span className={row.roa < 0 ? "text-red-600" : row.roa < 3 ? "text-amber-500" : "text-green-600"}>{row.roa.toFixed(1)}%</span>
+                      <span
+                        className={
+                          row.car < 10
+                            ? "text-red-600"
+                            : row.car < 15
+                              ? "text-amber-500"
+                              : "text-green-600"
+                        }
+                      >
+                        {row.car.toFixed(1)}%
+                      </span>
                     </td>
                     <td className="p-3 border border-slate-300 text-right font-bold">
-                      <span className={row.oer > 15 ? "text-red-600" : row.oer > 10 ? "text-amber-500" : "text-green-600"}>{row.oer.toFixed(1)}%</span>
+                      <span
+                        className={
+                          row.roa < 0
+                            ? "text-red-600"
+                            : row.roa < 3
+                              ? "text-amber-500"
+                              : "text-green-600"
+                        }
+                      >
+                        {row.roa.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="p-3 border border-slate-300 text-right font-bold">
+                      <span
+                        className={
+                          row.oer > 15
+                            ? "text-red-600"
+                            : row.oer > 10
+                              ? "text-amber-500"
+                              : "text-green-600"
+                        }
+                      >
+                        {row.oer.toFixed(1)}%
+                      </span>
                     </td>
                     <td className="p-3 border border-slate-300 text-center">
-                      <div className={`mx-auto w-4 h-4 rounded-full ${row.par30 > 10 || row.car < 10 ? "bg-red-500" : row.par30 > 5 || row.car < 15 ? "bg-amber-500" : "bg-green-500"}`} />
+                      <div
+                        className={`mx-auto w-4 h-4 rounded-full ${row.par30 > 10 || row.car < 10 ? "bg-red-500" : row.par30 > 5 || row.car < 15 ? "bg-amber-500" : "bg-green-500"}`}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -171,7 +266,10 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       </div>
 
       {/* Sheet 3: Filing Compliance by Apex */}
-      <div className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200" style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}>
+      <div
+        className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
+        style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
+      >
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Filing Compliance by Apex</h1>
@@ -210,23 +308,47 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                   <td className="p-3 border border-slate-300 text-right">{row.pending}</td>
                   <td className="p-3 border border-slate-300 text-right">{row.onTime}</td>
                   <td className="p-3 border border-slate-300 text-right">{row.late}</td>
-                  <td className="p-3 border border-slate-300 text-right text-red-600 font-bold">{row.notFiled}</td>
-                  <td className="p-3 border border-slate-300 text-right font-bold">{row.filingPct.toFixed(0)}%</td>
+                  <td className="p-3 border border-slate-300 text-right text-red-600 font-bold">
+                    {row.notFiled}
+                  </td>
+                  <td className="p-3 border border-slate-300 text-right font-bold">
+                    {row.filingPct.toFixed(0)}%
+                  </td>
                 </tr>
               ))}
               <tr className="bg-slate-100 font-bold border-t-2 border-slate-900">
                 <td className="p-3 border border-slate-300">Total</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.coops, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.submitted, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.approved, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.returned, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.pending, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.onTime, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right">{apexData.reduce((acc, row) => acc + row.late, 0)}</td>
-                <td className="p-3 border border-slate-300 text-right text-red-600">{apexData.reduce((acc, row) => acc + row.notFiled, 0)}</td>
                 <td className="p-3 border border-slate-300 text-right">
-                  {apexData.length > 0 
-                    ? ((apexData.reduce((acc, row) => acc + row.submitted, 0) / apexData.reduce((acc, row) => acc + row.coops, 0)) * 100).toFixed(0) + "%"
+                  {apexData.reduce((acc, row) => acc + row.coops, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.reduce((acc, row) => acc + row.submitted, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.reduce((acc, row) => acc + row.approved, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.reduce((acc, row) => acc + row.returned, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.reduce((acc, row) => acc + row.pending, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.reduce((acc, row) => acc + row.onTime, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.reduce((acc, row) => acc + row.late, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right text-red-600">
+                  {apexData.reduce((acc, row) => acc + row.notFiled, 0)}
+                </td>
+                <td className="p-3 border border-slate-300 text-right">
+                  {apexData.length > 0
+                    ? (
+                        (apexData.reduce((acc, row) => acc + row.submitted, 0) /
+                          apexData.reduce((acc, row) => acc + row.coops, 0)) *
+                        100
+                      ).toFixed(0) + "%"
                     : "0%"}
                 </td>
               </tr>

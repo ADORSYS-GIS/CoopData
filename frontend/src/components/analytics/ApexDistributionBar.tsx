@@ -1,11 +1,4 @@
-import {
-  PieChart,
-  Pie,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 
 interface ApexDistributionBarProps {
@@ -63,7 +56,12 @@ export function ApexDistributionBar({ cooperatives }: ApexDistributionBarProps) 
             labelLine={true}
           >
             {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="var(--surface)" strokeWidth={2} />
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+                stroke="var(--surface)"
+                strokeWidth={2}
+              />
             ))}
           </Pie>
           <Tooltip

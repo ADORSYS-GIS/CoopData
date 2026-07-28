@@ -14,7 +14,9 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
 
       <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">
         <p className="font-semibold mb-1">Narrative</p>
-        This section compares the cooperative's key performance indicators against the standard PEARLS and sector benchmarks. Status indicators highlight areas of strength and potential risk.
+        This section compares the cooperative's key performance indicators against the standard
+        PEARLS and sector benchmarks. Status indicators highlight areas of strength and potential
+        risk.
       </div>
 
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
@@ -28,23 +30,30 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {(kpisData.kpis || []).map(kpi => (
+          {(kpisData.kpis || []).map((kpi) => (
             <tr key={kpi.name} className="hover:bg-slate-50">
               <td className="px-2 py-1 font-medium">{kpi.name.replace(/_/g, " ").toUpperCase()}</td>
               <td className="px-2 py-1">{kpi.description}</td>
               <td className="px-2 py-1 text-right font-bold">{kpi.formatted}</td>
               <td className="px-2 py-1 text-right">
                 {kpi.benchmark !== undefined && kpi.benchmark !== null
-                  ? (kpi.unit === "percent" ? `${kpi.benchmark}%` : kpi.benchmark)
+                  ? kpi.unit === "percent"
+                    ? `${kpi.benchmark}%`
+                    : kpi.benchmark
                   : "—"}
               </td>
               <td className="px-2 py-1 text-center">
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                  kpi.status === "green" ? "bg-green-100 text-green-800" :
-                  kpi.status === "amber" ? "bg-amber-100 text-amber-800" :
-                  kpi.status === "red" ? "bg-red-100 text-red-800" :
-                  "bg-slate-100 text-slate-800"
-                }`}>
+                <span
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                    kpi.status === "green"
+                      ? "bg-green-100 text-green-800"
+                      : kpi.status === "amber"
+                        ? "bg-amber-100 text-amber-800"
+                        : kpi.status === "red"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-slate-100 text-slate-800"
+                  }`}
+                >
                   {kpi.status || "N/A"}
                 </span>
               </td>
@@ -55,7 +64,9 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
 
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
         <span>End of Report</span>
-        <span>SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}</span>
+        <span>
+          SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}
+        </span>
       </div>
     </div>
   );

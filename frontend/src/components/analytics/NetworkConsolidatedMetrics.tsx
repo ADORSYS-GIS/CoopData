@@ -50,7 +50,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
 
   const networkKpiGridMetrics = useMemo(() => {
     if (!nfStats) return [];
-    
+
     const baseMetrics = [
       {
         label: "Total Cooperatives",
@@ -96,7 +96,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         trendValue: "Healthy",
       },
     ];
-    
+
     if (totalApexes !== undefined) {
       baseMetrics.unshift({
         label: "Total Apexes",
@@ -106,7 +106,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         trendValue: "Network scale",
       });
     }
-    
+
     return baseMetrics;
   }, [nfStats, totalCooperatives, cooperativesWithData, totalApexes]);
 

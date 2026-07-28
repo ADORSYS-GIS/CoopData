@@ -1,7 +1,12 @@
 import React from "react";
+import type {
+  NationalOverviewResponse,
+  CoopKpiRow,
+  KpiValue,
+} from "@/hooks/analytics/useNationalOverview";
 
 interface ConsolidatedRiskWatchSheetProps {
-  data: any;
+  data: NationalOverviewResponse;
 }
 
 export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProps> = ({ data }) => {
@@ -16,8 +21,8 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
     return "Follow-up required";
   };
 
-  const getThresholdStr = (kpiName: string, benchmark: number | undefined) => {
-    if (benchmark === undefined) return "—";
+  const getThresholdStr = (kpiName: string, benchmark: number | null | undefined) => {
+    if (benchmark == null) return "—";
     if (["par30", "par90", "npl_ratio", "operating_expense_ratio"].includes(kpiName)) {
       return `<= ${benchmark.toFixed(1)}%`;
     }
@@ -25,15 +30,22 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
   };
 
   const getSeverity = (kpiName: string) => {
-    if (["par30", "capital_adequacy_ratio", "liquid_funds_ratio"].includes(kpiName)) return "Critical";
+    if (["par30", "capital_adequacy_ratio", "liquid_funds_ratio"].includes(kpiName))
+      return "Critical";
     return "High";
   };
 
   // Find all red KPIs
-  const riskRows: any[] = [];
-  cooperatives.forEach((coop: any) => {
+  const riskRows: {
+    coopName: string;
+    kpiName: string;
+    value: number;
+    formatted: string;
+    benchmark: number | null;
+  }[] = [];
+  cooperatives.forEach((coop: CoopKpiRow) => {
     if (!coop.kpis) return;
-    Object.entries(coop.kpis).forEach(([kpiName, kpiVal]: [string, any]) => {
+    Object.entries(coop.kpis).forEach(([kpiName, kpiVal]: [string, KpiValue]) => {
       if (kpiVal.status === "red") {
         riskRows.push({
           coopName: coop.name,
@@ -51,7 +63,8 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
       <div>
         <h2 className="text-xl font-bold text-blue-800 mb-4">"Under Intervention / Risk Watch"</h2>
         <p className="text-sm text-slate-600 mb-6 italic">
-          This sheet highlights all cooperatives with critical indicators falling into the "Red" (High Risk) category.
+          This sheet highlights all cooperatives with critical indicators falling into the "Red"
+          (High Risk) category.
         </p>
 
         {riskRows.length === 0 ? (
@@ -75,12 +88,19 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
                 const bgClass = i % 2 === 0 ? "bg-white" : "bg-slate-50";
                 return (
                   <tr key={`${row.coopName}-${row.kpiName}`} className={bgClass}>
-                    <td className="p-2 border border-slate-300 font-bold truncate max-w-[150px]">{row.coopName}</td>
-                    <td className="p-2 border border-slate-300 capitalize">{row.kpiName.replace(/_/g, " ")}</td>
-                    <td className="p-2 border border-slate-300 font-bold text-red-600 whitespace-nowrap">
-                      {row.formatted} <span className="w-2 h-2 inline-block rounded-full bg-red-500 ml-1"></span>
+                    <td className="p-2 border border-slate-300 font-bold truncate max-w-[150px]">
+                      {row.coopName}
                     </td>
-                    <td className="p-2 border border-slate-300 text-slate-600">{getThresholdStr(row.kpiName, row.benchmark)}</td>
+                    <td className="p-2 border border-slate-300 capitalize">
+                      {row.kpiName.replace(/_/g, " ")}
+                    </td>
+                    <td className="p-2 border border-slate-300 font-bold text-red-600 whitespace-nowrap">
+                      {row.formatted}{" "}
+                      <span className="w-2 h-2 inline-block rounded-full bg-red-500 ml-1"></span>
+                    </td>
+                    <td className="p-2 border border-slate-300 text-slate-600">
+                      {getThresholdStr(row.kpiName, row.benchmark)}
+                    </td>
                     <td className="p-2 border border-slate-300">{getSeverity(row.kpiName)}</td>
                     <td className="p-2 border border-slate-300">{getAction(row.kpiName)}</td>
                   </tr>
@@ -90,7 +110,7 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
           </table>
         )}
       </div>
-      
+
       {/* Footer */}
       <div className="flex justify-between items-center text-[10px] text-slate-500 pt-4 border-t border-slate-200 mt-auto">
         <p></p>

@@ -33,7 +33,12 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            iconType="circle"
+            wrapperStyle={{ fontSize: "12px" }}
+          />
         </PieChart>
         <div className="absolute top-0 left-0 w-full text-center">
           <h3 className="text-sm font-bold text-slate-800">Portfolio Distribution</h3>
@@ -50,16 +55,26 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {(portfolioData.categories || []).map(c => (
+          {(portfolioData.categories || []).map((c) => (
             <tr key={c.category}>
               <td className="px-2 py-1">{c.category}</td>
               <td className="px-2 py-1 text-right">{formatCurrency(c.balance)}</td>
-              <td className="px-2 py-1 text-right">{findKpi(kpiMap, "gross_loan_portfolio")?.value ? ((c.balance / findKpi(kpiMap, "gross_loan_portfolio")!.value) * 100).toFixed(2) + "%" : "—"}</td>
+              <td className="px-2 py-1 text-right">
+                {findKpi(kpiMap, "gross_loan_portfolio")?.value
+                  ? ((c.balance / findKpi(kpiMap, "gross_loan_portfolio")!.value) * 100).toFixed(
+                      2,
+                    ) + "%"
+                  : "—"}
+              </td>
             </tr>
           ))}
           <tr className="bg-slate-100 font-bold">
             <td className="px-2 py-1">Total</td>
-            <td className="px-2 py-1 text-right">{formatCurrency((portfolioData.categories || []).reduce((acc, c) => acc + c.balance, 0))}</td>
+            <td className="px-2 py-1 text-right">
+              {formatCurrency(
+                (portfolioData.categories || []).reduce((acc, c) => acc + c.balance, 0),
+              )}
+            </td>
             <td className="px-2 py-1 text-right">100.0%</td>
           </tr>
         </tbody>
@@ -67,7 +82,9 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
 
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
         <span></span>
-        <span>SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}</span>
+        <span>
+          SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}
+        </span>
       </div>
     </div>
   );

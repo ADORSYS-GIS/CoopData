@@ -17,7 +17,8 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
   {
     id: "national-consolidated",
     label: "National Consolidated Report",
-    description: "Comprehensive multi-sheet workbook and executive summary aggregating data nationwide.",
+    description:
+      "Comprehensive multi-sheet workbook and executive summary aggregating data nationwide.",
     scope: "consolidated",
     formats: ["pdf"],
     availableTo: ["ministry"],
@@ -25,7 +26,8 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
   {
     id: "federation-consolidated",
     label: "Federation Consolidated Report",
-    description: "Comprehensive report aggregating data for all apexes and cooperatives under a federation.",
+    description:
+      "Comprehensive report aggregating data for all apexes and cooperatives under a federation.",
     scope: "consolidated",
     formats: ["pdf"],
     availableTo: ["ministry", "federation"],
@@ -41,7 +43,8 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
   {
     id: "cooperative-individual",
     label: "Cooperative Financial Report",
-    description: "Detailed financial statement, KPIs, and demographic database report for a single cooperative.",
+    description:
+      "Detailed financial statement, KPIs, and demographic database report for a single cooperative.",
     scope: "individual",
     formats: ["pdf"],
     availableTo: ["ministry", "federation", "apex", "cooperative"],
