@@ -6,3 +6,6 @@ export * from './ReportFinancialPosition';
 export * from './ReportPortfolioQuality';
 export * from './ReportBenchmarkComparison';
 export * from './ConsolidatedCoverPage';
+export * from "./ConsolidatedDashboardSheet";
+export * from "./ConsolidatedCoopDetailSheet";
+export * from "./ConsolidatedRiskWatchSheet";

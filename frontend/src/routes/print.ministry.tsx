@@ -10,9 +10,15 @@ function PrintComponent() {
   const { token } = Route.useSearch() as { token?: string };
   const currentYear = new Date().getFullYear();
   
-  const { data: overviewData, isLoading } = useNationalOverview({
+  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview({
     reportingYear: currentYear,
   }, true, token);
+
+  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview({
+    reportingYear: currentYear - 1,
+  }, true, token);
+
+  const isLoading = isLoadingCurrent || isLoadingPrior;
 
   if (isLoading || !overviewData) {
     return (
@@ -31,6 +37,7 @@ function PrintComponent() {
       entityName="Ministry of Commerce, Industry and Trade"
       year={currentYear}
       data={overviewData}
+      priorData={priorData}
     />
   );
 }

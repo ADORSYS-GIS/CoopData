@@ -13,10 +13,18 @@ function PrintComponent() {
   
   const currentYear = new Date().getFullYear();
   const { data: federation } = useFederation(id, token);
-  const { data: overviewData, isLoading } = useNationalOverview({
+  
+  const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview({
     federationId: id,
     reportingYear: currentYear,
   }, true, token);
+
+  const { data: priorData, isLoading: isLoadingPrior } = useNationalOverview({
+    federationId: id,
+    reportingYear: currentYear - 1,
+  }, true, token);
+
+  const isLoading = isLoadingCurrent || isLoadingPrior;
 
   if (isLoading || !overviewData) {
     return (
@@ -35,6 +43,7 @@ function PrintComponent() {
       entityName={federation?.name ?? "Federation"}
       year={currentYear}
       data={overviewData}
+      priorData={priorData}
     />
   );
 }
