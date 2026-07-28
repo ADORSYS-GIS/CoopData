@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ConsolidatedReportPrint } from "@/pages/shared/print/ConsolidatedReportPrint";
+import { FederationReportPrint } from "@/pages/shared/print/FederationReportPrint";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederation } from "@/hooks/federations/useFederations";
 
@@ -38,13 +38,14 @@ function PrintComponent() {
   }
 
   return (
-    <ConsolidatedReportPrint
-      tier="Federation"
-      entityName={federation?.name ?? "Federation"}
-      year={currentYear}
-      data={overviewData}
-      priorData={priorData}
-    />
+    <div className="bg-slate-200 min-h-screen">
+      <FederationReportPrint 
+        entityName={federation?.name ?? "Federation"} 
+        year={currentYear} 
+        data={overviewData} 
+        priorData={priorData}
+      />
+    </div>
   );
 }
 

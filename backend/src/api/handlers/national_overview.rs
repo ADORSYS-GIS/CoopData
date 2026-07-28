@@ -66,6 +66,12 @@ pub async fn get_national_overview(
         .find_by_ids(filtered_coop_ids.clone())
         .await?;
 
+    let all_apexes = state.apex_repo.list_all().await?;
+    let mut apex_map: HashMap<Uuid, String> = HashMap::new();
+    for apex in all_apexes {
+        apex_map.insert(apex.id, apex.display_name);
+    }
+
     // Batch 2: retain the latest approved financial statement per cooperative.
     // Draft and rejected submissions must not affect supervisory analytics.
     let mut fs_map: HashMap<uuid::Uuid, (uuid::Uuid, uuid::Uuid)> = HashMap::new();
@@ -202,6 +208,11 @@ pub async fn get_national_overview(
             let nf_summary = CoopNfSummary {
                 has_data,
                 total_members: get_nf_val("membership_total") as u64,
+                active_members: get_nf_val("membership_active") as u64,
+                active_borrowers: get_nf_val("loans_active_borrowers") as u64,
+                women_borrowers: get_nf_val("loans_women_borrowers") as u64,
+                youth_borrowers: get_nf_val("loans_youth_borrowers") as u64,
+                rural_borrowers: get_nf_val("loans_rural_borrowers") as u64,
                 active_members_pct: get_nf_val("membership_active_pct"),
                 savings_penetration_pct: get_nf_val("savings_penetration_pct"),
                 credit_penetration_pct: get_nf_val("loans_credit_penetration_pct"),
@@ -256,6 +267,11 @@ pub async fn get_national_overview(
                         || statistics.fixed_deposits.total_fds > 0
                         || statistics.farm_coop.total_coops > 0,
                     total_members: statistics.membership.total,
+                    active_members: statistics.membership.active,
+                    active_borrowers: statistics.loans.active_loans,
+                    women_borrowers: statistics.loans.women_borrowers,
+                    youth_borrowers: statistics.loans.youth_borrowers,
+                    rural_borrowers: statistics.loans.rural_borrowers,
                     active_members_pct: statistics.membership.active_pct,
                     savings_penetration_pct: statistics.savings.savings_penetration_pct,
                     credit_penetration_pct: statistics.loans.credit_penetration_pct,
@@ -270,6 +286,11 @@ pub async fn get_national_overview(
                 CoopNfSummary {
                     has_data: false,
                     total_members: 0,
+                    active_members: 0,
+                    active_borrowers: 0,
+                    women_borrowers: 0,
+                    youth_borrowers: 0,
+                    rural_borrowers: 0,
                     active_members_pct: 0.0,
                     savings_penetration_pct: 0.0,
                     credit_penetration_pct: 0.0,
@@ -337,6 +358,8 @@ pub async fn get_national_overview(
             cooperative_id: coop.id,
             submission_id,
             name: coop.display_name.clone(),
+            apex_id: Some(coop.apex_id),
+            apex_name: apex_map.get(&coop.apex_id).cloned(),
             region: coop.region.as_ref().map(|r| r.as_str().to_string()),
             sector: coop.sector.clone(),
             institution_type: coop

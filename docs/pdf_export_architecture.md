@@ -11,6 +11,12 @@ The PDF Export is a comprehensive prudential ratio evaluation, risk profiling, a
 - Integrated `kpi_records` to calculate Year-over-Year (YoY) performance and PEARLS benchmark comparisons.
 - Implemented a background worker pattern to silently generate and store these heavy PDF files using Gotenberg.
 
+**What we did in Phase 2 & 3 (Consolidated Exports):**
+- Built a unified `ConsolidatedReportPrint.tsx` component that dynamically adapts to **Apex**, **Federation**, and **Ministry** levels, reusing Recharts and dynamic KPI summaries.
+- Leveraged the `useNationalOverview` endpoint across all levels by passing `apexId` or `federationId` to instantly aggregate data from hundreds of cooperatives.
+- Fixed headless authentication by explicitly transmitting short-lived Keycloak tokens via URL parameters (`?token=xyz`), which are parsed by the print routes and injected as Bearer tokens into API requests.
+- Implemented robust JWT claim-fallback logic in the backend export handler: if an Apex or Federation user requests an export without explicitly declaring their ID, the backend safely extracts their `group_id` from the token claims to lock them into their permitted data scope.
+
 ## 2. Architectural Flow & The "Minion"
 
 The generation of the PDF relies on a robust background worker pattern to ensure the API remains snappy.
@@ -25,8 +31,9 @@ The generation of the PDF relies on a robust background worker pattern to ensure
 Gotenberg is a Docker-based stateless API for PDF generation using a headless Chromium browser.
 
 - **The Request**: The backend minion sends a multipart form POST request to Gotenberg containing the frontend URL (e.g., `http://frontend:5173/print/cooperative/{submission_id}?token=...`).
+- **Headless Authentication**: Because Gotenberg lacks the standard Keycloak session cookie and local storage state, the backend explicitly passes a generated admin or user token via the URL parameter (`?token=...`). The print routes (e.g. `print.apex.$id.tsx`) parse this token from the Search Params and inject it into the `useQuery` hooks (`useApex`, `useNationalOverview`), which supply it as an `Authorization: Bearer` header.
 - **The Magic Signal (`window.isReady`)**: Because the frontend relies on React Query to fetch data asynchronously over the network, Gotenberg cannot simply print the page immediately upon load. We configure Gotenberg with `waitForExpression="window.isReady === true"`. 
-- **The Trigger**: Inside `CooperativeReportPrint.tsx`, a `useEffect` hook waits for all 5 data hooks to finish loading. Once the data is injected into the DOM, it fires `(window as any).isReady = true`, signaling to Gotenberg that the headless browser can now capture the perfectly rendered page and convert it to PDF.
+- **The Trigger**: Inside `CooperativeReportPrint.tsx` (and `ConsolidatedReportPrint.tsx`), a `useEffect` hook waits for all data hooks to finish loading. Once the data is injected into the DOM, it fires `(window as any).isReady = true`, signaling to Gotenberg that the headless browser can now capture the perfectly rendered page and convert it to PDF.
 
 ## 4. Frontend Component Modularization
 
@@ -39,7 +46,11 @@ To prevent massive, unmaintainable files and to prepare for Phase 2 (Apex) and P
 - `ReportPortfolioQuality`: Gross Loan Portfolio breakdown and classification.
 - `ReportBenchmarkComparison`: Pass/Fail status mapping against standard PEARLS benchmarks.
 
-**Alignment with other levels**: Because these components are completely decoupled from the data fetching layer (they simply accept a `ReportDataProps` object), the upcoming **Apex Consolidated Report** and **Federation Report** will easily import and reuse these exact same visual blocks, ensuring total brand consistency across all tiers.
+**Consolidated Reports (Apex, Federation, Ministry)**
+To handle higher-level reporting, we created the `ConsolidatedReportPrint.tsx` component. It dynamically renders:
+- **Sheet 1: Executive Dashboard**: Aggregated financial positions (Total Assets, Total GLP) and KPIs (Average PAR30, CAR) across all underlying cooperatives.
+- **Sheet 2: Cooperative Detail**: A high-density table displaying the health and compliance status of every individual cooperative in the user's scope, followed by a Bar Chart representing the distribution of risk statuses (Green/Amber/Red).
+- The print routes (`print.apex.$id.tsx`, `print.federation.$id.tsx`, and `print.ministry.tsx`) wrap this unified component, passing down the appropriately filtered data utilizing the `useNationalOverview` endpoint.
 
 ## 5. Database Tables & Data Sources
 
@@ -63,3 +74,11 @@ The following key indicators are actively fetched from `kpi_records` and utilize
 | **Liquidity & Solvency**| `capital_adequacy_ratio`, `liquid_funds_ratio`, `deposits_to_loans` | Executive Summary (Key Ratios), Benchmark Comparison |
 
 All indicators with a defined `benchmark` value are automatically extracted and evaluated in the final **PEARLS Benchmark Comparison** sheet (Page 6).
+
+## 7. Recent Architectural Fixes & Decisions (Ongoing)
+
+As the Consolidated Reports matured, we made several critical fixes to ensure stability and accuracy during headless generation:
+
+- **Strict DB UUID Resolution for Claims**: We realized that `claims.get_apex_group_id()` often returns a human-readable name (e.g. "We" or "Eswa") rather than a strict UUID. We updated the backend (`export.rs`) to utilize `resolve_caller_apex_db_id_pub(&state, &claims)` to explicitly look up the actual DB UUID of the Apex or Federation before performing any bucket lookups or falling back to headless generation. This prevents Apex users from accidentally viewing Ministry-level fallbacks.
+- **Explicit Token Injection in Shared Hooks**: We updated `useNationalOverview.ts` to accept a `tokenOverride` string, explicitly bypassing the standard browser session cookie injection in `apiClient`. This ensures that Gotenberg (which operates completely stateless) can securely request data across the Apex, Federation, and Ministry print routes.
+- **Gotenberg Ready Signal (`window.isReady`)**: We added a strict `useEffect` block inside `ConsolidatedReportPrint.tsx` that signals `(window as any).isReady = true` after a 1000ms delay. This prevents Gotenberg from timing out (25s) and accidentally saving PDF snapshots of the loading spinner when generating heavy Apex/Federation level aggregations in the background.
