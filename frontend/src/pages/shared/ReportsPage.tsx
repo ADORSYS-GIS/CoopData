@@ -101,16 +101,9 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Export format picker ─────────────────────────────────────────────────────
 
-const FORMAT_OPTIONS = [
-  { value: "pdf", label: "PDF", icon: FileText, desc: "Portable Document" },
-  { value: "xlsx", label: "Excel", icon: FileSpreadsheet, desc: "Spreadsheet (.xlsx)" },
-  { value: "csv", label: "CSV", icon: FileBarChart2, desc: "Comma-Separated" },
-  { value: "docx", label: "Word", icon: FileType, desc: "Word Document (.docx)" },
-] as const;
+type ExportFormat = "pdf";
 
-type ExportFormat = (typeof FORMAT_OPTIONS)[number]["value"];
-
-function ExportDropdown({
+function ExportButton({
   submissionId,
   filename,
   onExport,
@@ -121,74 +114,24 @@ function ExportDropdown({
   onExport: (id: string, format: ExportFormat, name: string) => void;
   isExporting: string | null;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const isThis = isExporting === submissionId;
 
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        disabled={isThis}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-border bg-background px-3 py-1.5 hover:bg-accent hover:text-white hover:border-accent transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
-      >
-        {isThis ? (
-          <>
-            <Loader2 className="size-3.5 animate-spin" /> Exporting…
-          </>
-        ) : (
-          <>
-            <Download className="size-3.5" /> Export{" "}
-            <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
-          </>
-        )}
-      </button>
-
-      {open && !isThis && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl border border-border bg-surface shadow-xl shadow-black/10 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
-          <div className="px-3 py-2 border-b border-border">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Choose format
-            </p>
-          </div>
-          <div className="p-1">
-            {FORMAT_OPTIONS.map((fmt) => {
-              const Icon = fmt.icon;
-              return (
-                <button
-                  key={fmt.value}
-                  onClick={() => {
-                    setOpen(false);
-                    const ext = fmt.value;
-                    const fmtFilename = filename.replace(/\.pdf$/, `.${ext}`);
-                    onExport(submissionId, fmt.value, fmtFilename);
-                  }}
-                  className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-left hover:bg-muted transition-colors group"
-                >
-                  <div className="size-7 rounded-lg bg-muted grid place-items-center shrink-0 group-hover:bg-accent/10 group-hover:text-accent transition-colors">
-                    <Icon className="size-3.5 text-muted-foreground group-hover:text-accent" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground text-xs">{fmt.label}</p>
-                    <p className="text-[10px] text-muted-foreground">{fmt.desc}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+    <button
+      onClick={() => onExport(submissionId, "pdf", filename)}
+      disabled={isThis}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-border bg-background px-3 py-1.5 hover:bg-accent hover:text-white hover:border-accent transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
+    >
+      {isThis ? (
+        <>
+          <Loader2 className="size-3.5 animate-spin" /> Exporting…
+        </>
+      ) : (
+        <>
+          <Download className="size-3.5" /> Export PDF
+        </>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -359,7 +302,7 @@ export const ReportsPage: React.FC = () => {
 
                       {/* Export dropdown */}
                       <div className="flex justify-end">
-                        <ExportDropdown
+                        <ExportButton
                           submissionId={s.id}
                           filename={`${baseName}.pdf`}
                           onExport={handleExport}

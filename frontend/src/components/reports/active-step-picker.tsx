@@ -7,7 +7,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import { type ExportFormat } from "./types";
+
 
 interface ActiveStepPickerProps {
   activeStepKey: string;
@@ -44,16 +44,6 @@ interface ActiveStepPickerProps {
   selectedYear: string;
   onSelectYear: (year: string) => void;
 
-  // Format Step
-  selectedOption: {
-    formats: ExportFormat[];
-  };
-  selectedFormat: ExportFormat;
-  onSelectFormat: (format: ExportFormat) => void;
-  isExporting: boolean;
-
-  formatIcons: Record<ExportFormat, LucideIcon>;
-  formatLabels: Record<ExportFormat, string>;
 }
 
 export function ActiveStepPicker({
@@ -74,12 +64,6 @@ export function ActiveStepPicker({
   availableYears,
   selectedYear,
   onSelectYear,
-  selectedOption,
-  selectedFormat,
-  onSelectFormat,
-  isExporting,
-  formatIcons,
-  formatLabels,
 }: ActiveStepPickerProps) {
   if (activeStepKey === "fed") {
     return (
@@ -312,39 +296,7 @@ export function ActiveStepPicker({
     );
   }
 
-  if (activeStepKey === "format") {
-    return (
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Export Format
-        </label>
-        <div
-          className={`grid gap-2 ${selectedOption.formats.length === 4 ? "grid-cols-4" : "grid-cols-2"}`}
-        >
-          {selectedOption.formats.map((fmt) => {
-            const Icon = formatIcons[fmt];
-            const isSelected = selectedFormat === fmt;
-            return (
-              <button
-                key={fmt}
-                type="button"
-                onClick={() => onSelectFormat(fmt)}
-                disabled={isExporting}
-                className={`press-feedback flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all ${
-                  isSelected
-                    ? "border-primary bg-primary/5 text-primary shadow-sm"
-                    : "border-border text-muted-foreground hover:bg-muted/50"
-                }`}
-              >
-                <Icon className="size-5" />
-                <span className="text-[10px] font-bold uppercase">{formatLabels[fmt]}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+
 
   return null;
 }

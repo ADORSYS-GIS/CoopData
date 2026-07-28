@@ -10,7 +10,7 @@ import {
   LabelList,
   Cell,
 } from "recharts";
-import { CoopKpiRow } from "@/openapi-client/api";
+import { CoopKpiRow } from "./types";
 
 interface FederationSectorSheetProps {
   federationName: string;

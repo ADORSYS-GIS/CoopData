@@ -1,7 +1,7 @@
 import { type Role } from "@/lib/auth";
 import { FileText, FileSpreadsheet, FileBarChart } from "lucide-react";
 
-export type ExportFormat = "pdf" | "xlsx" | "csv" | "docx";
+export type ExportFormat = "pdf";
 export type ReportScope = "consolidated" | "individual" | "comparative" | "trend";
 
 export interface ReportExportOption {
@@ -19,7 +19,7 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
     label: "National Consolidated Report",
     description: "Comprehensive multi-sheet workbook and executive summary aggregating data nationwide.",
     scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry"],
   },
   {
@@ -27,7 +27,7 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
     label: "Federation Consolidated Report",
     description: "Comprehensive report aggregating data for all apexes and cooperatives under a federation.",
     scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry", "federation"],
   },
   {
@@ -35,7 +35,7 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
     label: "Apex Consolidated Report",
     description: "Comprehensive report aggregating data for all cooperatives under an apex.",
     scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry", "federation", "apex"],
   },
   {
@@ -43,7 +43,7 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
     label: "Cooperative Financial Report",
     description: "Detailed financial statement, KPIs, and demographic database report for a single cooperative.",
     scope: "individual",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry", "federation", "apex", "cooperative"],
   },
 ];
@@ -64,16 +64,10 @@ export const SCOPE_COLORS: Record<ReportScope, string> = {
 
 export const FORMAT_ICONS: Record<ExportFormat, typeof FileText> = {
   pdf: FileText,
-  xlsx: FileSpreadsheet,
-  csv: FileBarChart,
-  docx: FileText,
 };
 
 export const FORMAT_LABELS: Record<ExportFormat, string> = {
   pdf: "PDF",
-  xlsx: "Excel",
-  csv: "CSV",
-  docx: "Word",
 };
 
 export const EXPORTABLE_STATUSES = ["submitted", "approved"];

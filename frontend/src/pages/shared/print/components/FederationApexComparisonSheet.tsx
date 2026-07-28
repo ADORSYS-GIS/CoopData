@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
-import { CoopKpiRow } from "@/openapi-client/api";
+import { CoopKpiRow } from "./types";
 
 interface FederationApexComparisonSheetProps {
   federationName: string;

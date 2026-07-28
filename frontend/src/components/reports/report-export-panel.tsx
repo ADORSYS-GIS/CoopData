@@ -36,7 +36,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("pdf");
 
   // Step state for drill-down hierarchy
   const [selectedFedId, setSelectedFedId] = useState<string>("");
@@ -197,7 +196,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsCoopSelector) list.push({ key: "coop", label: "Cooperative" });
     if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
     if (needsYearSelector) list.push({ key: "year", label: "Year" });
-    list.push({ key: "format", label: "Format" });
     return list;
   }, [needsFedSelector, needsApexSelector, needsCoopSelector, needsSubmissionSelector, needsYearSelector]);
 
@@ -211,8 +209,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsSubmissionSelector && !selectedSubmissionId) return idx;
     if (needsSubmissionSelector) idx++;
     if (needsYearSelector && !selectedYear) return idx;
-    if (needsYearSelector) idx++;
-    return idx; // format selection
+    return idx;
   }, [
     needsFedSelector,
     selectedFedId,
@@ -226,7 +223,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     selectedYear
   ]);
 
-  const activeStepKey: string = steps[currentStepIndex]?.key ?? "format";
+  const activeStepKey: string = steps[currentStepIndex]?.key ?? steps[steps.length - 1]?.key;
 
   if (!role) return null;
 
@@ -235,7 +232,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   function openModal(reportId: string) {
     setSelectedReport(reportId);
     const opt = availableReports.find((r) => r.id === reportId);
-    setSelectedFormat(opt?.formats[0] ?? "pdf");
     setSelectedFedId("");
     setSelectedApexId("");
     setSelectedCoopId("");
@@ -273,9 +269,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       let url = "";
       if (isIndividual) {
-        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?format=${selectedFormat}`;
+        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export`;
       } else {
-        const queryParams = new URLSearchParams({ format: selectedFormat });
+        const queryParams = new URLSearchParams();
         if (selectedOption.id === "federation-consolidated" && selectedFedId) {
           queryParams.append("federation_id", selectedFedId);
         } else if (selectedOption.id === "apex-consolidated" && selectedApexId) {
@@ -298,16 +294,16 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       }
 
       const blob = await response.blob();
-      let filename = `${selectedOption.id}_report.${selectedFormat}`;
+      let filename = `${selectedOption.id}_report.pdf`;
 
       if (isIndividual && selectedSubmissionId) {
         const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
         const nameClean = (sub?.cooperative_name ?? "cooperative")
           .replace(/[^a-z0-9]/gi, "_")
           .toLowerCase();
-        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.${selectedFormat}`;
+        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
       } else {
-        filename = `${role}_consolidated_report.${selectedFormat}`;
+        filename = `${role}_consolidated_report.pdf`;
       }
 
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -319,7 +315,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
 
-      toast.success(`${selectedOption.label} exported as ${selectedFormat.toUpperCase()}!`);
+      toast.success(`${selectedOption.label} exported as PDF!`);
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -491,17 +487,12 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   availableYears={availableYears}
                   selectedYear={selectedYear}
                   onSelectYear={(year) => setSelectedYear(year)}
-                  selectedOption={selectedOption}
-                  selectedFormat={selectedFormat}
-                  onSelectFormat={(fmt) => setSelectedFormat(fmt)}
-                  isExporting={isExporting}
-                  formatIcons={FORMAT_ICONS}
-                  formatLabels={FORMAT_LABELS}
+
                 />
               </div>
 
               {/* Scope info for consolidated */}
-              {activeStepKey === "format" && !isIndividual && role !== "cooperative" && (
+              {activeStepKey === steps[steps.length - 1]?.key && !isIndividual && role !== "cooperative" && (
                 <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
                   <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
                   <span>
@@ -607,7 +598,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                     </>
                   ) : (
                     <>
-                      <Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}
+                      <Download className="size-3.5" /> Export PDF
                     </>
                   )}
                 </button>
