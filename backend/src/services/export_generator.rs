@@ -997,7 +997,7 @@ impl ExportGenerator {
             state.config.gotenberg_frontend_url, token, reporting_year
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-        let pdf_key = format!("exports/ministry/ministry_national_{}.pdf", reporting_year);
+        let pdf_key = format!("exports/ministry/ministry_{}.pdf", reporting_year);
         state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
 
         Ok(())

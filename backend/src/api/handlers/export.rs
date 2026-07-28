@@ -711,67 +711,91 @@ pub async fn export_bulk_consolidated(
         ));
     }
 
-    // Phase G: Live-generation fallback — delegate to the shared generator functions.
+    // Phase G: Live-generation fallback — generate, store in bucket, and serve.
     // This path is only hit when the bucket has no pre-baked file (e.g. first run before approval cascade).
     let fmt = query.format.to_lowercase();
-    let timestamp = chrono::Utc::now().timestamp();
 
-    let (bytes, content_type, filename) = match fmt.as_str() {
+    // Compute canonical storage key + display filename (must match bucket check keys above)
+    let (storage_key, display_filename, content_type) = if let Some(year) = query.reporting_year {
+        match (query.apex_id, query.federation_id) {
+            (Some(aid), _) => {
+                let (fn_, ct) = match fmt.as_str() {
+                    "xlsx" => (format!("apex_{}_{}.xlsx", aid, year), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                    "docx" => (format!("apex_{}_{}.docx", aid, year), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+                    "pdf"  => (format!("apex_{}_{}.pdf", aid, year), "application/pdf"),
+                    _ => return Err(AppError::BadRequest("Unsupported export format".into())),
+                };
+                (format!("exports/apex/{}/{}", aid, fn_), fn_, ct)
+            }
+            (_, Some(fid)) => {
+                let (fn_, ct) = match fmt.as_str() {
+                    "xlsx" => (format!("federation_{}_{}.xlsx", fid, year), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                    "docx" => (format!("federation_{}_{}.docx", fid, year), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+                    "pdf"  => (format!("federation_{}_{}.pdf", fid, year), "application/pdf"),
+                    _ => return Err(AppError::BadRequest("Unsupported export format".into())),
+                };
+                (format!("exports/federation/{}/{}", fid, fn_), fn_, ct)
+            }
+            (None, None) => {
+                let (fn_, ct) = match fmt.as_str() {
+                    "xlsx" => (format!("ministry_{}.xlsx", year), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                    "docx" => (format!("ministry_{}.docx", year), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+                    "pdf"  => (format!("ministry_{}.pdf", year), "application/pdf"),
+                    _ => return Err(AppError::BadRequest("Unsupported export format".into())),
+                };
+                (format!("exports/ministry/{}", fn_), fn_, ct)
+            }
+            _ => return Err(AppError::BadRequest("Cannot determine export scope".into())),
+        }
+    } else {
+        return Err(AppError::BadRequest("reporting_year is required for consolidated exports".into()));
+    };
+
+    let bytes = match fmt.as_str() {
         "xlsx" => {
-            // Build a quick consolidated XLSX from the compiled data using the apex generator
-            // if we can identify the apex, or fall back to the generic summary workbook.
-            let bytes = {
-                use rust_xlsxwriter::{Color, Format, Workbook};
-                let mut workbook = Workbook::new();
-                let header_format = Format::new()
-                    .set_bold()
-                    .set_background_color(Color::RGB(0x1F4E78))
-                    .set_font_color(Color::White);
+            use rust_xlsxwriter::{Color, Format, Workbook};
+            let mut workbook = Workbook::new();
+            let header_format = Format::new()
+                .set_bold()
+                .set_background_color(Color::RGB(0x1F4E78))
+                .set_font_color(Color::White);
 
-                let sheet = workbook.add_worksheet().set_name("Consolidated Summary")?;
-                sheet.write_with_format(0, 0, "Cooperative", &header_format)?;
-                sheet.write_with_format(0, 1, "Year", &header_format)?;
-                sheet.write_with_format(0, 2, "Status", &header_format)?;
-                sheet.write_with_format(0, 3, "Total Assets", &header_format)?;
-                sheet.write_with_format(0, 4, "Gross Portfolio", &header_format)?;
-                sheet.write_with_format(0, 5, "CAR", &header_format)?;
-                sheet.write_with_format(0, 6, "PAR30", &header_format)?;
+            let sheet = workbook.add_worksheet().set_name("Consolidated Summary")?;
+            sheet.write_with_format(0, 0, "Cooperative", &header_format)?;
+            sheet.write_with_format(0, 1, "Year", &header_format)?;
+            sheet.write_with_format(0, 2, "Status", &header_format)?;
+            sheet.write_with_format(0, 3, "Total Assets", &header_format)?;
+            sheet.write_with_format(0, 4, "Gross Portfolio", &header_format)?;
+            sheet.write_with_format(0, 5, "CAR", &header_format)?;
+            sheet.write_with_format(0, 6, "PAR30", &header_format)?;
 
-                for (row, (sub, coop, _items, kpis)) in (1..).zip(compiled_data.iter()) {
-                    sheet.write(row, 0, &coop.name)?;
-                    sheet.write(row, 1, sub.reporting_year)?;
-                    sheet.write(row, 2, format!("{:?}", sub.status))?;
-                    sheet.write(row, 3, kpis.total_assets.value)?;
-                    sheet.write(row, 4, kpis.gross_loan_portfolio.value)?;
-                    sheet.write(row, 5, &kpis.capital_adequacy_ratio.formatted)?;
-                    sheet.write(row, 6, &kpis.par30.formatted)?;
-                }
+            for (row, (sub, coop, _items, kpis)) in (1..).zip(compiled_data.iter()) {
+                sheet.write(row, 0, &coop.name)?;
+                sheet.write(row, 1, sub.reporting_year)?;
+                sheet.write(row, 2, format!("{:?}", sub.status))?;
+                sheet.write(row, 3, kpis.total_assets.value)?;
+                sheet.write(row, 4, kpis.gross_loan_portfolio.value)?;
+                sheet.write(row, 5, &kpis.capital_adequacy_ratio.formatted)?;
+                sheet.write(row, 6, &kpis.par30.formatted)?;
+            }
 
-                workbook.save_to_buffer()
-                    .map_err(|e| AppError::InternalServerError(e.to_string()))?
-            };
-            let filename = format!("consolidated_{}.xlsx", timestamp);
-            let content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            (bytes, content_type, filename)
+            workbook.save_to_buffer()
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?
         }
         "csv" => {
-            let bytes = {
-                let mut wtr = csv::Writer::from_writer(vec![]);
-                wtr.write_record(["Cooperative", "Year", "Status", "Total Assets", "Gross Portfolio", "PAR30"]).unwrap();
-                for (sub, coop, _items, kpis) in &compiled_data {
-                    wtr.write_record(&[
-                        coop.name.clone(),
-                        sub.reporting_year.to_string(),
-                        format!("{:?}", sub.status),
-                        kpis.total_assets.value.to_string(),
-                        kpis.gross_loan_portfolio.value.to_string(),
-                        kpis.par30.formatted.clone(),
-                    ]).unwrap();
-                }
-                wtr.into_inner().unwrap()
-            };
-            let filename = format!("consolidated_{}.csv", timestamp);
-            (bytes, "text/csv", filename)
+            let mut wtr = csv::Writer::from_writer(vec![]);
+            wtr.write_record(["Cooperative", "Year", "Status", "Total Assets", "Gross Portfolio", "PAR30"]).unwrap();
+            for (sub, coop, _items, kpis) in &compiled_data {
+                wtr.write_record(&[
+                    coop.name.clone(),
+                    sub.reporting_year.to_string(),
+                    format!("{:?}", sub.status),
+                    kpis.total_assets.value.to_string(),
+                    kpis.gross_loan_portfolio.value.to_string(),
+                    kpis.par30.formatted.clone(),
+                ]).unwrap();
+            }
+            wtr.into_inner().unwrap()
         }
         "docx" => {
             use docx_rs::{Docx, Paragraph, Run, Table, TableCell, TableRow};
@@ -798,8 +822,7 @@ pub async fn export_bulk_consolidated(
             docx.build()
                 .pack(&mut buf)
                 .map_err(|e| AppError::InternalServerError(e.to_string()))?;
-            let filename = format!("consolidated_{}.docx", timestamp);
-            (buf.into_inner(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename)
+            buf.into_inner()
         }
         "pdf" => {
             let token = state.keycloak.get_admin_token().await?;
@@ -810,18 +833,19 @@ pub async fn export_bulk_consolidated(
             } else {
                 format!("{}/print/ministry?token={}", state.config.gotenberg_frontend_url, token)
             };
-            
-            let bytes = crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(&state, &print_url).await?;
-            
-            let filename = format!("consolidated_{}.pdf", timestamp);
-            (bytes, "application/pdf", filename)
+            crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(&state, &print_url).await?
         }
-        _ => return Err(AppError::BadRequest("Unsupported export format".into())),
+        _ => unreachable!(),
     };
+
+    // Store in bucket for future cache hits
+    if let Err(e) = state.storage.store(&storage_key, &bytes, content_type).await {
+        tracing::warn!(error = %e, key = %storage_key, "Failed to cache live-generated export");
+    }
 
     let res = Response::builder()
         .header("Content-Type", content_type)
-        .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+        .header("Content-Disposition", format!("attachment; filename=\"{}\"", display_filename))
         .body(Body::from(bytes))
         .unwrap();
     Ok(res)

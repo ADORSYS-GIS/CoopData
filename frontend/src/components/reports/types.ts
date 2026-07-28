@@ -15,9 +15,25 @@ export interface ReportExportOption {
 
 export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
   {
-    id: "consolidated-report",
-    label: "Consolidated Performance Report",
-    description: "Comprehensive multi-sheet workbook and executive summary aggregating data for all cooperatives within your jurisdiction.",
+    id: "national-consolidated",
+    label: "National Consolidated Report",
+    description: "Comprehensive multi-sheet workbook and executive summary aggregating data nationwide.",
+    scope: "consolidated",
+    formats: ["pdf", "xlsx", "csv", "docx"],
+    availableTo: ["ministry"],
+  },
+  {
+    id: "federation-consolidated",
+    label: "Federation Consolidated Report",
+    description: "Comprehensive report aggregating data for all apexes and cooperatives under a federation.",
+    scope: "consolidated",
+    formats: ["pdf", "xlsx", "csv", "docx"],
+    availableTo: ["ministry", "federation"],
+  },
+  {
+    id: "apex-consolidated",
+    label: "Apex Consolidated Report",
+    description: "Comprehensive report aggregating data for all cooperatives under an apex.",
     scope: "consolidated",
     formats: ["pdf", "xlsx", "csv", "docx"],
     availableTo: ["ministry", "federation", "apex"],
