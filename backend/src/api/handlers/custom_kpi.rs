@@ -129,6 +129,51 @@ pub async fn delete_custom_kpi(
 }
 
 #[utoipa::path(
+    put,
+    path = "/api/v1/ministry/custom-kpis/{id}",
+    params(
+        ("id" = Uuid, Path, description = "ID of the custom KPI to update")
+    ),
+    request_body = CreateCustomKpiRequest,
+    responses(
+        (status = 200, description = "Custom KPI updated", body = CustomKpiDto),
+        (status = 400, description = "Invalid formula"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not Found")
+    ),
+    tag = "Analytics"
+)]
+pub async fn update_custom_kpi(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<CreateCustomKpiRequest>,
+) -> AppResult<impl IntoResponse> {
+    if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
+        return Err(AppError::Forbidden(
+            "Only Ministry users can update Custom KPIs".into(),
+        ));
+    }
+
+    if let Err(e) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&payload.formula)
+    {
+        return Err(AppError::BadRequest(format!(
+            "Invalid formula syntax: {}",
+            e
+        )));
+    }
+
+    let kpi = state
+        .custom_kpi_repo
+        .update(id, payload.name, payload.description, payload.formula)
+        .await?;
+
+    let response: CustomKpiDto = kpi.into();
+    Ok((StatusCode::OK, Json(response)))
+}
+
+#[utoipa::path(
     post,
     path = "/api/v1/ministry/custom-kpis/evaluate",
     params(EvaluateKpiParams),
