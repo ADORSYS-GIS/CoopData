@@ -46,7 +46,8 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
               Cooperative Ranking Breakdown
             </CardTitle>
             <CardDescription className="text-xs">
-              Evaluate and sort individual cooperative performance figures using your formula indicators.
+              Evaluate and sort individual cooperative performance figures using your formula
+              indicators.
             </CardDescription>
           </div>
           <div className="w-full md:w-72">
@@ -70,9 +71,12 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                 >
                   <div className="flex items-center gap-1.5">
                     Cooperative Name
-                    {sortField === "name" && (
-                      sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                    )}
+                    {sortField === "name" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      ))}
                   </div>
                 </th>
                 <th
@@ -81,9 +85,12 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                 >
                   <div className="flex items-center gap-1.5">
                     Region
-                    {sortField === "region" && (
-                      sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                    )}
+                    {sortField === "region" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      ))}
                   </div>
                 </th>
                 {kpis.map((kpi) => (
@@ -94,9 +101,12 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                   >
                     <div className="flex items-center justify-end gap-1.5">
                       {kpi.name.replace(/_/g, " ")}
-                      {sortField === kpi.name && (
-                        sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                      )}
+                      {sortField === kpi.name &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
                     </div>
                   </th>
                 ))}
@@ -105,7 +115,10 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
             <tbody className="divide-y divide-blue-50 bg-white">
               {filteredCooperatives.length === 0 ? (
                 <tr>
-                  <td colSpan={kpis.length + 2} className="p-8 text-center text-muted-foreground italic">
+                  <td
+                    colSpan={kpis.length + 2}
+                    className="p-8 text-center text-muted-foreground italic"
+                  >
                     No matching cooperatives found.
                   </td>
                 </tr>
@@ -118,13 +131,20 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                       const val = coop.custom_kpis?.[kpi.name];
                       const hasVal = val !== undefined && val !== null;
                       return (
-                        <td key={kpi.id} className="p-4 text-right font-mono font-bold text-blue-700">
+                        <td
+                          key={kpi.id}
+                          className="p-4 text-right font-mono font-bold text-blue-700"
+                        >
                           {hasVal ? (
-                            val >= 1000
-                              ? val.toLocaleString(undefined, { maximumFractionDigits: 1 })
-                              : val.toFixed(2)
+                            val >= 1000 ? (
+                              val.toLocaleString(undefined, { maximumFractionDigits: 1 })
+                            ) : (
+                              val.toFixed(2)
+                            )
                           ) : (
-                            <span className="text-muted-foreground/30 font-normal italic text-xs">No Data</span>
+                            <span className="text-muted-foreground/30 font-normal italic text-xs">
+                              No Data
+                            </span>
                           )}
                         </td>
                       );

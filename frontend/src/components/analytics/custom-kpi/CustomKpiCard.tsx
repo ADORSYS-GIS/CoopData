@@ -41,12 +41,16 @@ export const CustomKpiCard: React.FC<CustomKpiCardProps> = ({ kpi, value, onClic
 
       <CardContent className="pb-4 px-4">
         <div className="flex justify-between items-baseline mb-3">
-          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg</span>
+          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+            Avg
+          </span>
           <span className="text-base font-extrabold text-blue-700 font-mono">
             {value !== undefined && value !== null ? (
-              value >= 1000
-                ? value.toLocaleString(undefined, { maximumFractionDigits: 1 })
-                : value.toFixed(2)
+              value >= 1000 ? (
+                value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+              ) : (
+                value.toFixed(2)
+              )
             ) : (
               <span className="text-xs text-muted-foreground/50 font-normal italic">No Data</span>
             )}

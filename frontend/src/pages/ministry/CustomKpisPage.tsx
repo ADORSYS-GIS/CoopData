@@ -1,14 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  Plus,
-  Calculator,
-  Sparkles,
-  Layers,
-  Hash,
-  Loader2,
-  Calendar,
-  Trash2,
-} from "lucide-react";
+import { Plus, Calculator, Sparkles, Layers, Hash, Loader2, Calendar, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { useCustomKpis } from "@/hooks/analytics/useCustomKpis";
@@ -57,7 +48,16 @@ interface CustomKpiItem {
 }
 
 export function CustomKpisPage() {
-  const { kpis, isLoading: isKpiLoading, createKpi, updateKpi, deleteKpi, evaluateFormula, isCreating, isUpdating } = useCustomKpis();
+  const {
+    kpis,
+    isLoading: isKpiLoading,
+    createKpi,
+    updateKpi,
+    deleteKpi,
+    evaluateFormula,
+    isCreating,
+    isUpdating,
+  } = useCustomKpis();
   const { data: catalog } = useIndicatorCatalog();
 
   const handleEvaluateFormula = async (formula: string) => {
@@ -91,69 +91,274 @@ export function CustomKpisPage() {
   const allVariables = useMemo(() => {
     const base: VariableDef[] = [
       // Assets
-      { name: "ac_1100", label: "Total Liquid Assets (1100)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1100",
+        label: "Total Liquid Assets (1100)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1101", label: "Cash on Hand (1101)", category: "assets", unit: "currency" },
-      { name: "ac_1102", label: "Cash at Bank - Current (1102)", category: "assets", unit: "currency" },
-      { name: "ac_1103", label: "Cash at Bank - Savings (1103)", category: "assets", unit: "currency" },
-      { name: "ac_1104", label: "Short-Term Investments (1104)", category: "assets", unit: "currency" },
-      { name: "ac_1200", label: "Gross Loan Portfolio (1200)", category: "assets", unit: "currency" },
-      { name: "ac_1201", label: "Performing Loan Portfolio (1201)", category: "assets", unit: "currency" },
-      { name: "ac_1202", label: "Loans in Arrears 1-30d (1202)", category: "assets", unit: "currency" },
-      { name: "ac_1203", label: "Loans in Arrears 31-60d (1203)", category: "assets", unit: "currency" },
-      { name: "ac_1204", label: "Loans in Arrears 61-90d (1204)", category: "assets", unit: "currency" },
-      { name: "ac_1205", label: "Non-Performing Loans (1205)", category: "assets", unit: "currency" },
-      { name: "ac_1250", label: "Loan Loss Provisions (1250)", category: "assets", unit: "currency" },
-      { name: "ac_1251", label: "General Loan Loss Prov (1251)", category: "assets", unit: "currency" },
-      { name: "ac_1252", label: "Specific Loan Loss Prov (1252)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1102",
+        label: "Cash at Bank - Current (1102)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1103",
+        label: "Cash at Bank - Savings (1103)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1104",
+        label: "Short-Term Investments (1104)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1200",
+        label: "Gross Loan Portfolio (1200)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1201",
+        label: "Performing Loan Portfolio (1201)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1202",
+        label: "Loans in Arrears 1-30d (1202)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1203",
+        label: "Loans in Arrears 31-60d (1203)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1204",
+        label: "Loans in Arrears 61-90d (1204)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1205",
+        label: "Non-Performing Loans (1205)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1250",
+        label: "Loan Loss Provisions (1250)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1251",
+        label: "General Loan Loss Prov (1251)",
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1252",
+        label: "Specific Loan Loss Prov (1252)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1300", label: "Total Other Assets (1300)", category: "assets", unit: "currency" },
-      { name: "ac_1301", label: "Accounts Receivable (1301)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1301",
+        label: "Accounts Receivable (1301)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1302", label: "Prepaid Expenses (1302)", category: "assets", unit: "currency" },
       { name: "ac_1303", label: "Fixed Assets Cost (1303)", category: "assets", unit: "currency" },
-      { name: "ac_1304", label: "Accumulated Depreciation (1304)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1304",
+        label: "Accumulated Depreciation (1304)",
+        category: "assets",
+        unit: "currency",
+      },
       { name: "ac_1305", label: "Intangible Assets (1305)", category: "assets", unit: "currency" },
       { name: "ac_1999", label: "TOTAL ASSETS (1999)", category: "assets", unit: "currency" },
 
       // Liabilities
-      { name: "ac_2100", label: "Member Deposits & Savings (2100)", category: "liabilities", unit: "currency" },
-      { name: "ac_2101", label: "Voluntary Savings Deposits (2101)", category: "liabilities", unit: "currency" },
-      { name: "ac_2102", label: "Mandatory Savings Deposits (2102)", category: "liabilities", unit: "currency" },
-      { name: "ac_2103", label: "Fixed Term Deposits (2103)", category: "liabilities", unit: "currency" },
-      { name: "ac_2200", label: "Total Borrowings (2200)", category: "liabilities", unit: "currency" },
-      { name: "ac_2201", label: "Short-Term Borrowings (2201)", category: "liabilities", unit: "currency" },
-      { name: "ac_2202", label: "Long-Term Borrowings (2202)", category: "liabilities", unit: "currency" },
-      { name: "ac_2300", label: "Total Other Liabilities (2300)", category: "liabilities", unit: "currency" },
-      { name: "ac_2301", label: "Accounts Payable (2301)", category: "liabilities", unit: "currency" },
-      { name: "ac_2302", label: "Accrued Expenses (2302)", category: "liabilities", unit: "currency" },
-      { name: "ac_2303", label: "Deferred Income (2303)", category: "liabilities", unit: "currency" },
-      { name: "ac_2999", label: "TOTAL LIABILITIES (2999)", category: "liabilities", unit: "currency" },
+      {
+        name: "ac_2100",
+        label: "Member Deposits & Savings (2100)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2101",
+        label: "Voluntary Savings Deposits (2101)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2102",
+        label: "Mandatory Savings Deposits (2102)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2103",
+        label: "Fixed Term Deposits (2103)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2200",
+        label: "Total Borrowings (2200)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2201",
+        label: "Short-Term Borrowings (2201)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2202",
+        label: "Long-Term Borrowings (2202)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2300",
+        label: "Total Other Liabilities (2300)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2301",
+        label: "Accounts Payable (2301)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2302",
+        label: "Accrued Expenses (2302)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2303",
+        label: "Deferred Income (2303)",
+        category: "liabilities",
+        unit: "currency",
+      },
+      {
+        name: "ac_2999",
+        label: "TOTAL LIABILITIES (2999)",
+        category: "liabilities",
+        unit: "currency",
+      },
 
       // Equity
-      { name: "ac_3100", label: "Total Member Shares (3100)", category: "equity", unit: "currency" },
-      { name: "ac_3101", label: "Permanent Share Capital (3101)", category: "equity", unit: "currency" },
-      { name: "ac_3102", label: "Withdrawable Shares (3102)", category: "equity", unit: "currency" },
+      {
+        name: "ac_3100",
+        label: "Total Member Shares (3100)",
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3101",
+        label: "Permanent Share Capital (3101)",
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3102",
+        label: "Withdrawable Shares (3102)",
+        category: "equity",
+        unit: "currency",
+      },
       { name: "ac_3200", label: "Total Reserves (3200)", category: "equity", unit: "currency" },
       { name: "ac_3201", label: "Statutory Reserve (3201)", category: "equity", unit: "currency" },
       { name: "ac_3202", label: "General Reserve (3202)", category: "equity", unit: "currency" },
       { name: "ac_3203", label: "Risk Reserve (3203)", category: "equity", unit: "currency" },
       { name: "ac_3300", label: "Retained Earnings (3300)", category: "equity", unit: "currency" },
-      { name: "ac_3301", label: "Accumulated Surplus (3301)", category: "equity", unit: "currency" },
-      { name: "ac_3302", label: "Current Year Surplus (3302)", category: "equity", unit: "currency" },
+      {
+        name: "ac_3301",
+        label: "Accumulated Surplus (3301)",
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3302",
+        label: "Current Year Surplus (3302)",
+        category: "equity",
+        unit: "currency",
+      },
       { name: "ac_3999", label: "TOTAL EQUITY (3999)", category: "equity", unit: "currency" },
 
       // Income
-      { name: "ac_4101", label: "Interest Income on Loans (4101)", category: "income", unit: "currency" },
-      { name: "ac_4102", label: "Fees & Commissions Income (4102)", category: "income", unit: "currency" },
-      { name: "ac_4201", label: "Other Operating Income (4201)", category: "income", unit: "currency" },
+      {
+        name: "ac_4101",
+        label: "Interest Income on Loans (4101)",
+        category: "income",
+        unit: "currency",
+      },
+      {
+        name: "ac_4102",
+        label: "Fees & Commissions Income (4102)",
+        category: "income",
+        unit: "currency",
+      },
+      {
+        name: "ac_4201",
+        label: "Other Operating Income (4201)",
+        category: "income",
+        unit: "currency",
+      },
       { name: "ac_4999", label: "TOTAL INCOME (4999)", category: "income", unit: "currency" },
 
       // Expenses
-      { name: "ac_5101", label: "Interest Exp on Deposits (5101)", category: "expenses", unit: "currency" },
-      { name: "ac_5102", label: "Interest Exp on Borrowings (5102)", category: "expenses", unit: "currency" },
+      {
+        name: "ac_5101",
+        label: "Interest Exp on Deposits (5101)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5102",
+        label: "Interest Exp on Borrowings (5102)",
+        category: "expenses",
+        unit: "currency",
+      },
       { name: "ac_5201", label: "Personnel Costs (5201)", category: "expenses", unit: "currency" },
-      { name: "ac_5202", label: "Administrative Expenses (5202)", category: "expenses", unit: "currency" },
-      { name: "ac_5203", label: "Governance Expenses (5203)", category: "expenses", unit: "currency" },
-      { name: "ac_5204", label: "Depreciation & Amort (5204)", category: "expenses", unit: "currency" },
-      { name: "ac_5301", label: "Loan Loss Prov Expense (5301)", category: "expenses", unit: "currency" },
+      {
+        name: "ac_5202",
+        label: "Administrative Expenses (5202)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5203",
+        label: "Governance Expenses (5203)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5204",
+        label: "Depreciation & Amort (5204)",
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_5301",
+        label: "Loan Loss Prov Expense (5301)",
+        category: "expenses",
+        unit: "currency",
+      },
       { name: "ac_5999", label: "TOTAL EXPENSES (5999)", category: "expenses", unit: "currency" },
       { name: "ac_6999", label: "NET SURPLUS (6999)", category: "expenses", unit: "currency" },
     ];
@@ -215,8 +420,8 @@ export function CustomKpisPage() {
       }
       setIsFormOpen(false);
       setEditingKpi(null);
-    } catch (e: any) {
-      toast.error(e.message || "Failed to save Custom KPI");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to save Custom KPI");
     }
   };
 
@@ -285,9 +490,11 @@ export function CustomKpisPage() {
   }, [cooperatives, searchTerm, sortField, sortDirection]);
 
   return (
-    <AppShell title="Custom KPI Builder" subtitle="Ministry of Commerce & Cooperative Development Dashboard">
+    <AppShell
+      title="Custom KPI Builder"
+      subtitle="Ministry of Commerce & Cooperative Development Dashboard"
+    >
       <div className="space-y-8 max-w-7xl mx-auto">
-        
         {/* Header Block */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 rounded-xl p-4 md:p-5 text-white shadow-lg relative overflow-hidden border border-blue-800">
           <div className="absolute top-0 right-0 -mt-8 -mr-8 size-48 rounded-full bg-white/5 blur-xl pointer-events-none" />
@@ -297,7 +504,9 @@ export function CustomKpisPage() {
               Custom Indicators & KPIs
             </h2>
             <p className="text-blue-100 text-xs md:text-sm max-w-xl font-light leading-relaxed">
-              Formulate bespoke operational metrics combining raw financial accounts with qualitative compliance variables. Track them in real-time across Eswatini's cooperatives.
+              Formulate bespoke operational metrics combining raw financial accounts with
+              qualitative compliance variables. Track them in real-time across Eswatini's
+              cooperatives.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -336,8 +545,12 @@ export function CustomKpisPage() {
                 <Calculator className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Defined Formulas</p>
-                <h4 className="text-2xl font-bold text-blue-900 mt-1">{isKpiLoading ? "..." : kpis.length} KPIs</h4>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Defined Formulas
+                </p>
+                <h4 className="text-2xl font-bold text-blue-900 mt-1">
+                  {isKpiLoading ? "..." : kpis.length} KPIs
+                </h4>
               </div>
             </CardContent>
           </Card>
@@ -348,8 +561,12 @@ export function CustomKpisPage() {
                 <Layers className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Formula Evaluated Cooperatives</p>
-                <h4 className="text-2xl font-bold text-blue-900 mt-1">{isOverviewLoading ? "..." : cooperatives.length} Cooperatives</h4>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Formula Evaluated Cooperatives
+                </p>
+                <h4 className="text-2xl font-bold text-blue-900 mt-1">
+                  {isOverviewLoading ? "..." : cooperatives.length} Cooperatives
+                </h4>
               </div>
             </CardContent>
           </Card>
@@ -360,8 +577,12 @@ export function CustomKpisPage() {
                 <Hash className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Available Variables</p>
-                <h4 className="text-2xl font-bold text-blue-900 mt-1">{allVariables.length} Indicators</h4>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Available Variables
+                </p>
+                <h4 className="text-2xl font-bold text-blue-900 mt-1">
+                  {allVariables.length} Indicators
+                </h4>
               </div>
             </CardContent>
           </Card>
@@ -384,7 +605,8 @@ export function CustomKpisPage() {
               </div>
               <p className="text-lg font-bold text-blue-950">No custom KPIs found</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                Combine financial line items and indicator catalog fields to write customized metrics for national audits.
+                Combine financial line items and indicator catalog fields to write customized
+                metrics for national audits.
               </p>
               <Button
                 onClick={() => {
@@ -467,9 +689,13 @@ export function CustomKpisPage() {
               </div>
               <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
                 Are you sure you want to delete{" "}
-                <span className="font-semibold text-slate-800">&ldquo;{kpiToDelete?.name}&rdquo;</span>?
-                {" "}This will permanently remove the formula and all associated data.
-                <span className="mt-2 block font-medium text-red-600">This action cannot be undone.</span>
+                <span className="font-semibold text-slate-800">
+                  &ldquo;{kpiToDelete?.name}&rdquo;
+                </span>
+                ? This will permanently remove the formula and all associated data.
+                <span className="mt-2 block font-medium text-red-600">
+                  This action cannot be undone.
+                </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-2 mt-2">
@@ -485,7 +711,6 @@ export function CustomKpisPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
       </div>
     </AppShell>
   );

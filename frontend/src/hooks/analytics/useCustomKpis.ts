@@ -49,12 +49,35 @@ export function useCustomKpis() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: { name: string; description?: string; formula: string };
+    }) => {
+      const { data, error } = await apiClient.PUT("/api/v1/ministry/custom-kpis/{id}", {
+        params: { path: { id } },
+        body: payload,
+      });
+      if (error)
+        throw new Error((error as { message?: string })?.message || "Failed to update Custom KPI");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["custom-kpis"] });
+    },
+  });
+
   return {
     kpis: kpisQuery.data ?? [],
     isLoading: kpisQuery.isLoading,
     createKpi: createMutation.mutateAsync,
+    updateKpi: updateMutation.mutateAsync,
     deleteKpi: deleteMutation.mutateAsync,
     evaluateFormula: evaluateMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
   };
 }

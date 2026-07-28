@@ -48,19 +48,29 @@ interface CustomKpiFormDialogProps {
   initialFormula: string;
   allVariables: VariableDef[];
   onSave: (payload: { name: string; description: string; formula: string }) => Promise<void>;
-  evaluateFormula: (formula: string) => Promise<{ value: number; is_valid: boolean; error?: string | null }>;
+  evaluateFormula: (
+    formula: string,
+  ) => Promise<{ value: number; is_valid: boolean; error?: string | null }>;
   isSaving: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  assets: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
-  liabilities: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
-  equity: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-  income: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
-  expenses: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
-  governance: "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
-  membership: "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
-  other: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
+  assets:
+    "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
+  liabilities:
+    "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
+  equity:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+  income:
+    "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
+  expenses:
+    "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
+  governance:
+    "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
+  membership:
+    "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
+  other:
+    "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -167,7 +177,8 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             {editingKpiId ? "Edit Custom KPI Formula" : "Create Custom KPI Formula"}
           </DialogTitle>
           <DialogDescription>
-            Build a mathematical formula using existing system variables. Combine KPIs with basic operations.
+            Build a mathematical formula using existing system variables. Combine KPIs with basic
+            operations.
           </DialogDescription>
         </DialogHeader>
 
@@ -204,7 +215,16 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full flex-wrap justify-start gap-1 bg-slate-50 dark:bg-slate-900 p-1 rounded-xl h-auto border border-slate-100">
                 {(
-                  ["assets", "liabilities", "equity", "income", "expenses", "governance", "membership", "other"] as const
+                  [
+                    "assets",
+                    "liabilities",
+                    "equity",
+                    "income",
+                    "expenses",
+                    "governance",
+                    "membership",
+                    "other",
+                  ] as const
                 ).map((cat) => (
                   <TabsTrigger
                     key={cat}
@@ -216,7 +236,16 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                 ))}
               </TabsList>
               {(
-                ["assets", "liabilities", "equity", "income", "expenses", "governance", "membership", "other"] as const
+                [
+                  "assets",
+                  "liabilities",
+                  "equity",
+                  "income",
+                  "expenses",
+                  "governance",
+                  "membership",
+                  "other",
+                ] as const
               ).map((cat) => (
                 <TabsContent key={cat} value={cat} className="mt-2 outline-none">
                   <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 border border-blue-100 rounded-xl bg-slate-50/50">
@@ -231,9 +260,15 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                                 className={`cursor-pointer transition-all duration-150 hover:scale-105 active:scale-95 py-1 ${CATEGORY_COLORS[cat]}`}
                                 onClick={() => insertVariable(v.name)}
                               >
-                                {v.unit === "currency" && <DollarSign className="h-3 w-3 mr-0.5 opacity-60" />}
-                                {v.unit === "percent" && <Percent className="h-3 w-3 mr-0.5 opacity-60" />}
-                                {v.unit === "ratio" && <Hash className="h-3 w-3 mr-0.5 opacity-60" />}
+                                {v.unit === "currency" && (
+                                  <DollarSign className="h-3 w-3 mr-0.5 opacity-60" />
+                                )}
+                                {v.unit === "percent" && (
+                                  <Percent className="h-3 w-3 mr-0.5 opacity-60" />
+                                )}
+                                {v.unit === "ratio" && (
+                                  <Hash className="h-3 w-3 mr-0.5 opacity-60" />
+                                )}
                                 {v.label}
                               </Badge>
                             </TooltipTrigger>
@@ -273,7 +308,12 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               <Label htmlFor="dialog-formula-editor" className="text-sm font-semibold">
                 Mathematical Formula
               </Label>
-              <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground hover:bg-blue-50 rounded-lg" onClick={() => setFormula("")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-muted-foreground hover:bg-blue-50 rounded-lg"
+                onClick={() => setFormula("")}
+              >
                 Clear
               </Button>
             </div>
@@ -306,7 +346,8 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               </div>
             )}
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-              <Info className="h-3.5 w-3.5 text-blue-500" /> Use standard math operators: +, -, *, /, (, )
+              <Info className="h-3.5 w-3.5 text-blue-500" /> Use standard math operators: +, -, *,
+              /, (, )
             </p>
           </div>
 
