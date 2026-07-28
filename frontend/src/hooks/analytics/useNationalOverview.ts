@@ -86,11 +86,12 @@ const extractErrorMessage = (error: unknown): string => {
   return "Unable to load portfolio analytics.";
 };
 
-export const useNationalOverview = (params: NationalOverviewParams = {}, enabled = true) =>
+export const useNationalOverview = (params: NationalOverviewParams = {}, enabled = true, tokenOverride?: string) =>
   useQuery<NationalOverviewResponse>({
     queryKey: ["national-overview", params],
     enabled,
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (apiClient as any).GET("/api/v1/analytics/national-overview", {
         params: {
@@ -103,6 +104,7 @@ export const useNationalOverview = (params: NationalOverviewParams = {}, enabled
             apex_id: params.apexId !== "all" ? params.apexId : undefined,
           } as Record<string, unknown>,
         },
+        headers: headers as any,
       });
       if (error) throw new Error(extractErrorMessage(error));
       if (!data) throw new Error("Portfolio analytics response was empty.");

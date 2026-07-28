@@ -583,10 +583,16 @@ pub async fn export_bulk_consolidated(
     Query(mut query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     if query.apex_id.is_none() && claims.is_apex() {
-        query.apex_id = claims.get_apex_group_id().and_then(|id| Uuid::parse_str(&id).ok());
+        if let Ok(id) = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await {
+            query.apex_id = Some(id);
+        }
     }
     if query.federation_id.is_none() && claims.is_federation() {
-        query.federation_id = claims.get_organization_id().and_then(|id| Uuid::parse_str(&id).ok());
+        if let Some(org_id) = claims.get_organization_id() {
+            if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&org_id).await {
+                query.federation_id = Some(fed.id);
+            }
+        }
     }
 
     let mut allowed_coops =

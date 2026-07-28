@@ -18,7 +18,7 @@ function PrintComponent() {
     reportingYear: currentYear,
   }, true, token);
 
-  if (isLoading || !federation || !overviewData) {
+  if (isLoading || !overviewData) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
@@ -32,7 +32,7 @@ function PrintComponent() {
   return (
     <ConsolidatedReportPrint
       tier="Federation"
-      entityName={federation.display_name}
+      entityName={federation?.name ?? "Federation"}
       year={currentYear}
       data={overviewData}
     />

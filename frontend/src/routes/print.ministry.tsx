@@ -7,11 +7,12 @@ export const Route = createFileRoute("/print/ministry")({
 });
 
 function PrintComponent() {
+  const { token } = Route.useSearch() as { token?: string };
   const currentYear = new Date().getFullYear();
   
   const { data: overviewData, isLoading } = useNationalOverview({
     reportingYear: currentYear,
-  });
+  }, true, token);
 
   if (isLoading || !overviewData) {
     return (

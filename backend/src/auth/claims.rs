@@ -87,6 +87,11 @@ impl Claims {
         self.has_role("cooperative")
     }
 
+    pub fn is_service_account(&self) -> bool {
+        self.preferred_username.as_deref() == Some("service-account-coopdata-backend")
+            || self.sub == "service-account-coopdata-backend"
+    }
+
     pub fn get_organization_id(&self) -> Option<String> {
         self.organization.as_ref().and_then(|org| {
             if let serde_json::Value::Object(map) = org {

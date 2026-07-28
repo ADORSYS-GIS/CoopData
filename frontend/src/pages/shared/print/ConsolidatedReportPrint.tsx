@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -51,6 +51,13 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
   const avgPar30 = cooperatives?.reduce((sum: number, coop: any) => sum + (coop.kpis?.par30?.value || 0), 0) / (cooperatives_with_data || 1);
   const avgCar = cooperatives?.reduce((sum: number, coop: any) => sum + (coop.kpis?.capital_adequacy_ratio?.value || 0), 0) / (cooperatives_with_data || 1);
   const avgRoa = cooperatives?.reduce((sum: number, coop: any) => sum + (coop.kpis?.roa?.value || 0), 0) / (cooperatives_with_data || 1);
+
+  useEffect(() => {
+    // Signal Gotenberg that charts and DOM are fully rendered
+    setTimeout(() => {
+      (window as any).isReady = true;
+    }, 1000);
+  }, []);
 
   return (
     <div className="bg-white text-slate-900 font-sans print:w-[210mm]">
@@ -187,15 +194,15 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
         <h2 className="text-xl font-bold text-blue-800 mb-4 mt-12">Risk Distribution (Number of Coops)</h2>
         <div className="h-64 mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }} isAnimationActive={false}>
+            <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
               <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ fontSize: '10px', borderRadius: '4px' }} />
               <Legend iconType="square" wrapperStyle={{ fontSize: '10px' }} />
-              <Bar dataKey="green_count" name="Green (Healthy)" fill="#10b981" isAnimationActive={false} label={<CustomBarLabel />} />
-              <Bar dataKey="amber_count" name="Amber (Watch)" fill="#f59e0b" isAnimationActive={false} label={<CustomBarLabel />} />
-              <Bar dataKey="red_count" name="Red (Risk)" fill="#ef4444" isAnimationActive={false} label={<CustomBarLabel />} />
+              <Bar dataKey="green_count" name="Green (Healthy)" fill="#10b981" label={<CustomBarLabel />} />
+              <Bar dataKey="amber_count" name="Amber (Watch)" fill="#f59e0b" label={<CustomBarLabel />} />
+              <Bar dataKey="red_count" name="Red (Risk)" fill="#ef4444" label={<CustomBarLabel />} />
             </BarChart>
           </ResponsiveContainer>
         </div>

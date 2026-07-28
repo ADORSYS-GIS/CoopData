@@ -18,7 +18,7 @@ function PrintComponent() {
     reportingYear: currentYear,
   }, true, token);
 
-  if (isLoading || !apex || !overviewData) {
+  if (isLoading || !overviewData) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
@@ -32,7 +32,7 @@ function PrintComponent() {
   return (
     <ConsolidatedReportPrint
       tier="Apex"
-      entityName={apex.display_name}
+      entityName={apex?.name ?? "Apex"}
       year={currentYear}
       data={overviewData}
     />
