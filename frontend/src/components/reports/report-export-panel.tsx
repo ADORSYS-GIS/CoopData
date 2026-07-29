@@ -62,17 +62,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     return [];
   }, [role, cooperativeQuery.data, apexQuery.data, federationQuery.data, ministryQuery.data]);
 
-  // Dynamically determine available reporting years
-  const availableYears = useMemo(() => {
-    const years = new Set<number>();
-    rawSubmissions.forEach((s) => {
-      if (s.reporting_year) years.add(s.reporting_year);
-    });
-    return Array.from(years)
-      .sort((a, b) => b - a)
-      .map(String);
-  }, [rawSubmissions]);
-
   // Only submitted / approved can be exported
   const allSubmissions = useMemo(
     () => rawSubmissions.filter((s) => EXPORTABLE_STATUSES.includes(s.status.toLowerCase())),
@@ -112,6 +101,31 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const needsCoopSelector = isIndividual && role !== "cooperative";
   const needsSubmissionSelector = isIndividual;
   const needsYearSelector = !isIndividual;
+
+  // Dynamically determine available reporting years
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    
+    // For consolidated reports, we only aggregate "approved" submissions.
+    // For other types, we look at all exportable submissions.
+    const relevantSubmissions = selectedOption?.scope === "consolidated"
+      ? rawSubmissions.filter((s) => s.status.toLowerCase() === "approved")
+      : allSubmissions;
+
+    relevantSubmissions.forEach((s) => {
+      let include = true;
+      if (needsFedSelector && selectedFedId && s.federation_id !== selectedFedId) include = false;
+      if (needsApexSelector && selectedApexId && s.apex_id !== selectedApexId) include = false;
+
+      if (include && s.reporting_year) {
+        years.add(s.reporting_year);
+      }
+    });
+
+    return Array.from(years)
+      .sort((a, b) => b - a)
+      .map(String);
+  }, [rawSubmissions, allSubmissions, selectedOption, needsFedSelector, selectedFedId, needsApexSelector, selectedApexId]);
 
   // Build federation picker list from RAW submissions
   const federationList = useMemo(() => {
