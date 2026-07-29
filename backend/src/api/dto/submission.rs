@@ -11,6 +11,12 @@ pub struct CreateSubmissionRequest {
     pub reporting_year: i32,
     #[serde(default = "default_priority")]
     pub priority: String,
+    #[serde(default = "default_submission_method")]
+    pub submission_method: String,
+}
+
+fn default_submission_method() -> String {
+    "manual_grid".to_string()
 }
 
 fn default_priority() -> String {
@@ -56,6 +62,7 @@ pub struct SubmissionResponse {
     pub submitted_by: Option<Uuid>,
     pub submitted_at: Option<DateTime<Utc>>,
     pub priority: String,
+    pub submission_method: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     /// Financial statement ID, present after upload
@@ -95,6 +102,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             submitted_by: m.submitted_by,
             submitted_at: m.submitted_at,
             priority: m.priority,
+            submission_method: m.submission_method,
             created_at: m.created_at,
             updated_at: m.updated_at,
             financial_statement_id: None,

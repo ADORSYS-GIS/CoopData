@@ -24,6 +24,8 @@ pub mod submission_review;
 pub mod submission_section;
 pub mod uploaded_file;
 pub mod user;
+pub mod questionnaire;
+pub mod questionnaire_template;
 
 pub use abnormality_flag::AbnormalityFlagRepository;
 pub use account_alias::AccountAliasRepository;
@@ -51,3 +53,5 @@ pub use submission_review::SubmissionReviewRepository;
 pub use submission_section::SubmissionSectionRepository;
 pub use uploaded_file::UploadedFileRepository;
 pub use user::UserRepository;
+pub use questionnaire::QuestionnaireRepository;
+pub use questionnaire_template::QuestionnaireTemplateRepository;

@@ -58,6 +58,11 @@ pub fn shared_routes() -> Router<AppState> {
             "/analytics/national-overview",
             get(crate::api::handlers::national_overview::get_national_overview),
         )
+        // Dynamic questionnaire analytics - accessible to all authenticated roles
+        .route(
+            "/analytics/questionnaire",
+            get(crate::api::handlers::questionnaire::get_questionnaire_analytics),
+        )
         .route(
             "/analytics/comparative-statements",
             get(crate::api::handlers::national_overview::get_comparative_statements),

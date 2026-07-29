@@ -87,12 +87,14 @@ impl SubmissionWorkflow {
             )));
         }
 
-        // Verify financial statement exists
-        let fs = self.fs_repo.find_by_submission(submission_id).await?;
-        if fs.is_none() {
-            return Err(AppError::BadRequest(
-                "A financial statement must be uploaded before submitting".into(),
-            ));
+        // Verify financial statement exists (only for standard upload / manual grid submissions)
+        if sub.submission_method != "questionnaire" {
+            let fs = self.fs_repo.find_by_submission(submission_id).await?;
+            if fs.is_none() {
+                return Err(AppError::BadRequest(
+                    "A financial statement must be uploaded before submitting".into(),
+                ));
+            }
         }
 
         self.submission_repo
@@ -100,15 +102,17 @@ impl SubmissionWorkflow {
             .await?;
 
         // Immediately compute and save KPIs to database for cooperative analytics
-        if let Err(e) = self
-            .compute_and_save_kpis(submission_id, sub.cooperative_id, sub.reporting_year)
-            .await
-        {
-            tracing::error!(
-                submission_id = %submission_id,
-                error = %e,
-                "Failed to compute and save KPIs during submission"
-            );
+        if sub.submission_method != "questionnaire" {
+            if let Err(e) = self
+                .compute_and_save_kpis(submission_id, sub.cooperative_id, sub.reporting_year)
+                .await
+            {
+                tracing::error!(
+                    submission_id = %submission_id,
+                    error = %e,
+                    "Failed to compute and save KPIs during submission"
+                );
+            }
         }
 
         self.append_review(

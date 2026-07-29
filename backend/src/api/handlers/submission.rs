@@ -81,6 +81,12 @@ pub async fn create_submission(
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
+    let submission_method_val = if coop.tier == "basic" {
+        "questionnaire".to_string()
+    } else {
+        body.submission_method.clone()
+    };
+
     let model = ActiveModel {
         id: Set(Uuid::new_v4()),
         reference: Set(Some(reference)),
@@ -95,6 +101,7 @@ pub async fn create_submission(
         rejection_reason: Set(None),
         priority: Set(body.priority),
         metadata: Set(serde_json::json!({})),
+        submission_method: Set(submission_method_val.clone()),
         created_at: Set(chrono::Utc::now()),
         updated_at: Set(chrono::Utc::now()),
     };
@@ -104,6 +111,7 @@ pub async fn create_submission(
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
             submission.id,
+            &submission_method_val,
         );
     let sections = state
         .section_repo

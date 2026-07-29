@@ -26,6 +26,8 @@ pub mod submission_review;
 pub mod submission_section;
 pub mod uploaded_file;
 pub mod user;
+pub mod questionnaire_response;
+pub mod questionnaire_template;
 
 pub use apex::{Column as ApexColumn, Entity as ApexEntity, Model as ApexModel};
 pub use assessment::{
@@ -68,3 +70,11 @@ pub use uploaded_file::{
     Column as UploadedFileColumn, Entity as UploadedFileEntity, Model as UploadedFileModel,
 };
 pub use user::{Column as UserColumn, Entity as UserEntity, Model as UserModel};
+pub use questionnaire_response::{
+    Column as QuestionnaireResponseColumn, Entity as QuestionnaireResponseEntity,
+    Model as QuestionnaireResponseModel,
+};
+pub use questionnaire_template::{
+    Column as QuestionnaireTemplateColumn, Entity as QuestionnaireTemplateEntity,
+    Model as QuestionnaireTemplateModel,
+};

@@ -16,8 +16,11 @@ pub mod organizations;
 pub mod submission;
 pub mod upload;
 pub mod users;
+pub mod questionnaire;
+pub mod questionnaire_template;
 
 pub use audit::*;
 pub use health::*;
 pub use organizations::*;
 pub use users::*;
+pub use questionnaire::*;

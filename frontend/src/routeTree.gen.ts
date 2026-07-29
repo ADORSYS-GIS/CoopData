@@ -19,6 +19,7 @@ import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppQuestionnaireTemplatesRouteImport } from './routes/app.questionnaire-templates'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
 import { Route as AppMembersRouteImport } from './routes/app.members'
@@ -31,6 +32,7 @@ import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
+import { Route as AppBasicAnalyticsRouteImport } from './routes/app.basic-analytics'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
@@ -41,6 +43,7 @@ import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.co
 import { Route as AppCooperativeProfileCooperativeIdRouteImport } from './routes/app.cooperative-profile.$cooperativeId'
 import { Route as AppCooperativeMembersCooperativeIdRouteImport } from './routes/app.cooperative-members.$cooperativeId'
 import { Route as AppSubmissionsIdIndexRouteImport } from './routes/app.submissions_.$id.index'
+import { Route as AppSubmissionsIdQuestionnaireRouteImport } from './routes/app.submissions_.$id.questionnaire'
 import { Route as AppSubmissionsIdManualEntryRouteImport } from './routes/app.submissions_.$id.manual-entry'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
@@ -93,6 +96,12 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppQuestionnaireTemplatesRoute =
+  AppQuestionnaireTemplatesRouteImport.update({
+    id: '/questionnaire-templates',
+    path: '/questionnaire-templates',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -153,6 +162,11 @@ const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
   path: '/benchmarking',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBasicAnalyticsRoute = AppBasicAnalyticsRouteImport.update({
+  id: '/basic-analytics',
+  path: '/basic-analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -206,6 +220,12 @@ const AppSubmissionsIdIndexRoute = AppSubmissionsIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppSubmissionsIdRoute,
 } as any)
+const AppSubmissionsIdQuestionnaireRoute =
+  AppSubmissionsIdQuestionnaireRouteImport.update({
+    id: '/questionnaire',
+    path: '/questionnaire',
+    getParentRoute: () => AppSubmissionsIdRoute,
+  } as any)
 const AppSubmissionsIdManualEntryRoute =
   AppSubmissionsIdManualEntryRouteImport.update({
     id: '/manual-entry',
@@ -221,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
@@ -233,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/questionnaire-templates': typeof AppQuestionnaireTemplatesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
@@ -246,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/app/users/': typeof AppUsersIndexRoute
   '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
+  '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
   '/app/submissions/$id/': typeof AppSubmissionsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -255,6 +278,7 @@ export interface FileRoutesByTo {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
@@ -267,6 +291,7 @@ export interface FileRoutesByTo {
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/questionnaire-templates': typeof AppQuestionnaireTemplatesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
@@ -278,6 +303,7 @@ export interface FileRoutesByTo {
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/app/users': typeof AppUsersIndexRoute
   '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
+  '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
   '/app/submissions/$id': typeof AppSubmissionsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -289,6 +315,7 @@ export interface FileRoutesById {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
@@ -301,6 +328,7 @@ export interface FileRoutesById {
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/questionnaire-templates': typeof AppQuestionnaireTemplatesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
@@ -314,6 +342,7 @@ export interface FileRoutesById {
   '/app/users/$apexId': typeof AppUsersApexIdRoute
   '/app/users/': typeof AppUsersIndexRoute
   '/app/submissions_/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
+  '/app/submissions_/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
   '/app/submissions_/$id/': typeof AppSubmissionsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -326,6 +355,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/basic-analytics'
     | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/custom-kpis'
@@ -338,6 +368,7 @@ export interface FileRouteTypes {
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
+    | '/app/questionnaire-templates'
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
@@ -351,6 +382,7 @@ export interface FileRouteTypes {
     | '/app/users/$apexId'
     | '/app/users/'
     | '/app/submissions/$id/manual-entry'
+    | '/app/submissions/$id/questionnaire'
     | '/app/submissions/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -360,6 +392,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/basic-analytics'
     | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/custom-kpis'
@@ -372,6 +405,7 @@ export interface FileRouteTypes {
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
+    | '/app/questionnaire-templates'
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
@@ -383,6 +417,7 @@ export interface FileRouteTypes {
     | '/app/users/$apexId'
     | '/app/users'
     | '/app/submissions/$id/manual-entry'
+    | '/app/submissions/$id/questionnaire'
     | '/app/submissions/$id'
   id:
     | '__root__'
@@ -393,6 +428,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/basic-analytics'
     | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/custom-kpis'
@@ -405,6 +441,7 @@ export interface FileRouteTypes {
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
+    | '/app/questionnaire-templates'
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
@@ -418,6 +455,7 @@ export interface FileRouteTypes {
     | '/app/users/$apexId'
     | '/app/users/'
     | '/app/submissions_/$id/manual-entry'
+    | '/app/submissions_/$id/questionnaire'
     | '/app/submissions_/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -498,6 +536,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/app/reports'
       preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/questionnaire-templates': {
+      id: '/app/questionnaire-templates'
+      path: '/questionnaire-templates'
+      fullPath: '/app/questionnaire-templates'
+      preLoaderRoute: typeof AppQuestionnaireTemplatesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/profile': {
@@ -584,6 +629,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBenchmarkingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/basic-analytics': {
+      id: '/app/basic-analytics'
+      path: '/basic-analytics'
+      fullPath: '/app/basic-analytics'
+      preLoaderRoute: typeof AppBasicAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/audit': {
       id: '/app/audit'
       path: '/audit'
@@ -654,6 +706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSubmissionsIdIndexRouteImport
       parentRoute: typeof AppSubmissionsIdRoute
     }
+    '/app/submissions_/$id/questionnaire': {
+      id: '/app/submissions_/$id/questionnaire'
+      path: '/questionnaire'
+      fullPath: '/app/submissions/$id/questionnaire'
+      preLoaderRoute: typeof AppSubmissionsIdQuestionnaireRouteImport
+      parentRoute: typeof AppSubmissionsIdRoute
+    }
     '/app/submissions_/$id/manual-entry': {
       id: '/app/submissions_/$id/manual-entry'
       path: '/manual-entry'
@@ -680,11 +739,13 @@ const AppUsersRouteWithChildren = AppUsersRoute._addFileChildren(
 
 interface AppSubmissionsIdRouteChildren {
   AppSubmissionsIdManualEntryRoute: typeof AppSubmissionsIdManualEntryRoute
+  AppSubmissionsIdQuestionnaireRoute: typeof AppSubmissionsIdQuestionnaireRoute
   AppSubmissionsIdIndexRoute: typeof AppSubmissionsIdIndexRoute
 }
 
 const AppSubmissionsIdRouteChildren: AppSubmissionsIdRouteChildren = {
   AppSubmissionsIdManualEntryRoute: AppSubmissionsIdManualEntryRoute,
+  AppSubmissionsIdQuestionnaireRoute: AppSubmissionsIdQuestionnaireRoute,
   AppSubmissionsIdIndexRoute: AppSubmissionsIdIndexRoute,
 }
 
@@ -695,6 +756,7 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppBasicAnalyticsRoute: typeof AppBasicAnalyticsRoute
   AppBenchmarkingRoute: typeof AppBenchmarkingRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppCustomKpisRoute: typeof AppCustomKpisRoute
@@ -707,6 +769,7 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppQuestionnaireTemplatesRoute: typeof AppQuestionnaireTemplatesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubmissionsRoute: typeof AppSubmissionsRoute
@@ -722,6 +785,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
+  AppBasicAnalyticsRoute: AppBasicAnalyticsRoute,
   AppBenchmarkingRoute: AppBenchmarkingRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppCustomKpisRoute: AppCustomKpisRoute,
@@ -734,6 +798,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppNonFinancialDataRoute: AppNonFinancialDataRoute,
   AppProfileRoute: AppProfileRoute,
+  AppQuestionnaireTemplatesRoute: AppQuestionnaireTemplatesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubmissionsRoute: AppSubmissionsRoute,

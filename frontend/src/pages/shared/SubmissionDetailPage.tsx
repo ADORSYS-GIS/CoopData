@@ -20,6 +20,7 @@ import {
   Upload,
   PenLine,
   Users,
+  ClipboardList,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -51,6 +52,7 @@ import { NfUploadZone } from "@/components/non-financial/NfUploadZone";
 import { NfParseResults } from "@/components/non-financial/NfParseResults";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
+import { QuestionnaireResponseViewer } from "@/components/submissions/QuestionnaireResponseViewer";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
@@ -1131,144 +1133,197 @@ export const SubmissionDetailPage: React.FC = () => {
             </Card>
           )}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList id="detail-tabs-list" className="w-full grid grid-cols-3 mb-5 h-auto p-1">
-              <TabsTrigger value="financial" className="flex items-center gap-2 py-2.5">
-                <FileText className="size-4" />
-                <span>Financial Statement</span>
-              </TabsTrigger>
-              <TabsTrigger value="databases" className="flex items-center gap-2 py-2.5">
-                <Database className="size-4" />
-                <span>Non-Financial Information</span>
-              </TabsTrigger>
-              <TabsTrigger value="non-financial" className="flex items-center gap-2 py-2.5">
-                <BarChart3 className="size-4" />
-                <span>Non-Financial Indicators</span>
-              </TabsTrigger>
-            </TabsList>
+          {submission.submission_method === "questionnaire" ? (
+            <Card
+              title="Questionnaire Responses"
+              subtitle="Guided form entries submitted by the cooperative"
+              action={
+                isDraft && (isCooperative || role === "ministry") ? (
+                  <button
+                    onClick={() =>
+                      navigate({
+                        to: "/app/submissions/$id/questionnaire",
+                        params: { id: submission.id },
+                      })
+                    }
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <ClipboardList className="size-3.5" />
+                    Edit Answers
+                  </button>
+                ) : undefined
+              }
+            >
+              <QuestionnaireResponseViewer submissionId={submission.id} />
+            </Card>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList id="detail-tabs-list" className="w-full grid grid-cols-3 mb-5 h-auto p-1">
+                <TabsTrigger value="financial" className="flex items-center gap-2 py-2.5">
+                  <FileText className="size-4" />
+                  <span>Financial Statement</span>
+                </TabsTrigger>
+                <TabsTrigger value="databases" className="flex items-center gap-2 py-2.5">
+                  <Database className="size-4" />
+                  <span>Non-Financial Information</span>
+                </TabsTrigger>
+                <TabsTrigger value="non-financial" className="flex items-center gap-2 py-2.5">
+                  <BarChart3 className="size-4" />
+                  <span>Non-Financial Indicators</span>
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="financial" className="space-y-4">
-              {isExtracting && (
-                <Card
-                  title="AI Extraction in Progress"
-                  subtitle="Our AI engine is parsing and mapping the uploaded financial statement"
-                >
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="relative mb-4">
-                      <div className="size-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                      <FileText className="size-6 text-primary absolute inset-0 m-auto animate-pulse" />
+              <TabsContent value="financial" className="space-y-4">
+                {isExtracting && (
+                  <Card
+                    title="AI Extraction in Progress"
+                    subtitle="Our AI engine is parsing and mapping the uploaded financial statement"
+                  >
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="relative mb-4">
+                        <div className="size-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                        <FileText className="size-6 text-primary absolute inset-0 m-auto animate-pulse" />
+                      </div>
+                      <h3 className="text-base font-bold text-foreground">Processing Document</h3>
+                      <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+                        This process takes about 1 minute to 1 minute 30 seconds. The page will
+                        automatically update once the extraction completes. Please do not close or
+                        refresh this page.
+                      </p>
+                      <div className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent capitalize">
+                        Status: {extractionJob?.status || "Running"}
+                      </div>
                     </div>
-                    <h3 className="text-base font-bold text-foreground">Processing Document</h3>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                      This process takes about 1 minute to 1 minute 30 seconds. The page will
-                      automatically update once the extraction completes. Please do not close or
-                      refresh this page.
-                    </p>
-                    <div className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent capitalize">
-                      Status: {extractionJob?.status || "Running"}
-                    </div>
-                  </div>
-                </Card>
-              )}
-              {submission.extraction_job_id && extractionJob?.source_file_id && !isExtracting && (
-                <Card
-                  title="Uploaded Document"
-                  subtitle="Original financial statement file"
-                  action={
-                    isDraft && isCooperative ? (
-                      <DeleteFileButton submissionId={submission.id} />
-                    ) : undefined
-                  }
-                >
-                  <DocumentViewer
-                    src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${extractionJob.source_file_id}`}
+                  </Card>
+                )}
+                {submission.extraction_job_id && extractionJob?.source_file_id && !isExtracting && (
+                  <Card
+                    title="Uploaded Document"
+                    subtitle="Original financial statement file"
+                    action={
+                      isDraft && isCooperative ? (
+                        <DeleteFileButton submissionId={submission.id} />
+                      ) : undefined
+                    }
+                  >
+                    <DocumentViewer
+                      src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${extractionJob.source_file_id}`}
+                    />
+                  </Card>
+                )}
+                {submission.financial_statement_id && (
+                  <FinancialStatementEditor
+                    fsId={submission.financial_statement_id}
+                    submissionId={submission.id}
+                    isDraft={isDraft}
+                    isCooperative={isCooperative}
                   />
-                </Card>
-              )}
-              {submission.financial_statement_id && (
-                <FinancialStatementEditor
-                  fsId={submission.financial_statement_id}
+                )}
+                {!submission.financial_statement_id && !isExtracting && isCooperative && (
+                  <Card
+                    title="Financial Statement"
+                    subtitle="Choose how you want to submit your financial data"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
+                      {/* Option 1: Upload */}
+                      <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                        <div className="size-10 rounded-xl bg-primary/10 grid place-items-center">
+                          <Upload className="size-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Upload your audited balance sheet PDF or Excel file. Our AI will extract and map the data automatically.
+                          </p>
+                        </div>
+                        <div className="mt-auto">
+                          <UploadFinancialStatementWidget submissionId={submission.id} />
+                        </div>
+                      </div>
+
+                      {/* Option 2: Manual Entry */}
+                      <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-accent/30 hover:bg-accent/5 transition-all group">
+                        <div className="size-10 rounded-xl bg-accent/10 grid place-items-center">
+                          <PenLine className="size-5 text-accent" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-foreground">Manual Entry</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Don't have the file? Enter your financial data directly using our structured forms — all Chart of Accounts fields included.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            navigate({
+                              to: "/app/submissions/$id/manual-entry",
+                              params: { id: submission.id },
+                              search: { step: "financial" },
+                            })
+                          }
+                          className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm"
+                        >
+                          <PenLine className="size-4" />
+                          Enter Data Manually
+                        </button>
+                      </div>
+
+                      {/* Option 3: Questionnaire (Basic Cooperatives) */}
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col gap-3 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all group">
+                        <div className="size-10 rounded-xl bg-emerald-500/10 grid place-items-center">
+                          <ClipboardList className="size-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
+                            <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">Basic</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            For basic-tier cooperatives that cannot provide full financial ledgers. Answer guided questions to complete your submission.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            navigate({
+                              to: "/app/submissions/$id/questionnaire",
+                              params: { id: submission.id },
+                            })
+                          }
+                          className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                          <ClipboardList className="size-4" />
+                          Start Questionnaire
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+                {!submission.financial_statement_id && !isExtracting && !isCooperative && (
+                  <Card title="Financial Statement" subtitle="No document uploaded yet">
+                    <div className="py-10 text-center text-muted-foreground">
+                      <FileText className="size-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No financial statement uploaded for this submission.</p>
+                    </div>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="databases" className="space-y-4">
+                <NfDatabasesTab
                   submissionId={submission.id}
-                  isDraft={isDraft}
+                  isReadOnly={isReadOnly}
+                  isDraft={!!isDraft}
                   isCooperative={isCooperative}
+                  sections={sections}
+                  onUploadComplete={handleNfUploadComplete}
+                  nfResult={nfResult}
                 />
-              )}
-              {!submission.financial_statement_id && !isExtracting && isCooperative && (
-                <Card
-                  title="Financial Statement"
-                  subtitle="Choose how you want to submit your financial data"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
-                    {/* Option 1: Upload */}
-                    <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-primary/30 hover:bg-primary/5 transition-all group">
-                      <div className="size-10 rounded-xl bg-primary/10 grid place-items-center">
-                        <Upload className="size-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Upload your audited balance sheet PDF or Excel file. Our AI will extract and map the data automatically.
-                        </p>
-                      </div>
-                      <div className="mt-auto">
-                        <UploadFinancialStatementWidget submissionId={submission.id} />
-                      </div>
-                    </div>
-
-                    {/* Option 2: Manual Entry */}
-                    <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-accent/30 hover:bg-accent/5 transition-all group">
-                      <div className="size-10 rounded-xl bg-accent/10 grid place-items-center">
-                        <PenLine className="size-5 text-accent" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-foreground">Manual Entry</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Don't have the file? Enter your financial data directly using our structured forms — all Chart of Accounts fields included.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          navigate({
-                            to: "/app/submissions/$id/manual-entry",
-                            params: { id: submission.id },
-                            search: { step: "financial" },
-                          })
-                        }
-                        className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm"
-                      >
-                        <PenLine className="size-4" />
-                        Enter Data Manually
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              )}
-              {!submission.financial_statement_id && !isExtracting && !isCooperative && (
-                <Card title="Financial Statement" subtitle="No document uploaded yet">
-                  <div className="py-10 text-center text-muted-foreground">
-                    <FileText className="size-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">No financial statement uploaded for this submission.</p>
-                  </div>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="databases" className="space-y-4">
-              <NfDatabasesTab
-                submissionId={submission.id}
-                isReadOnly={isReadOnly}
-                isDraft={!!isDraft}
-                isCooperative={isCooperative}
-                sections={sections}
-                onUploadComplete={handleNfUploadComplete}
-                nfResult={nfResult}
-              />
-            </TabsContent>
+              </TabsContent>
 
             <TabsContent value="non-financial" className="space-y-4">
               <NonFinancialIndicatorsForm submissionId={submission.id} isReadOnly={isReadOnly} />
             </TabsContent>
           </Tabs>
+          )}
         </div>
       )}
     </AppShell>

@@ -14,7 +14,7 @@ use coop_data_backend::{
     MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     ObjectStorageService, OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    UserRepository, QuestionnaireRepository, QuestionnaireTemplateRepository,
 };
 
 #[tokio::main]
@@ -70,6 +70,8 @@ async fn main() -> anyhow::Result<()> {
     let loan_repo = LoanRepository::new(db.clone());
     let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
     let farm_coop_repo = FarmCoopRepository::new(db.clone());
+    let questionnaire_repo = QuestionnaireRepository::new(db.clone());
+    let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
     let extractor = create_extractor(&config);
@@ -107,6 +109,8 @@ async fn main() -> anyhow::Result<()> {
         flag_repo,
         review_repo,
         section_repo,
+        questionnaire_repo,
+        questionnaire_template_repo,
         non_financial_indicator_catalog_repo,
         non_financial_indicator_entry_repo,
         custom_kpi_repo,

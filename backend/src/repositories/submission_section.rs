@@ -115,13 +115,15 @@ impl SubmissionSectionRepository {
         Ok(())
     }
 
-    pub fn new_section_models(submission_id: Uuid) -> Vec<ActiveModel> {
-        SECTIONS
+    pub fn new_section_models(submission_id: Uuid, submission_method: &str) -> Vec<ActiveModel> {
+        let sections: Vec<String> = if submission_method == "questionnaire" {
+            vec!["questionnaire".to_string()]
+        } else {
+            SECTIONS.iter().map(|s| s.to_string()).collect()
+        };
+        sections
             .iter()
             .map(|s| {
-                // Non-financial sections (members, savings, loans, fixed_deposits) default to
-                // "ready" so cooperative can submit after uploading only the financial statement.
-                // They can be updated to "in_progress" when non-financial data upload begins.
                 let initial_status = "pending";
                 ActiveModel {
                     id: Set(Uuid::new_v4()),

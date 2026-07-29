@@ -23,7 +23,7 @@ pub use repositories::{
     MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    UserRepository, QuestionnaireRepository, QuestionnaireTemplateRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
@@ -54,6 +54,8 @@ pub struct AppState {
     pub flag_repo: AbnormalityFlagRepository,
     pub review_repo: SubmissionReviewRepository,
     pub section_repo: SubmissionSectionRepository,
+    pub questionnaire_repo: QuestionnaireRepository,
+    pub questionnaire_template_repo: QuestionnaireTemplateRepository,
     // non-financial indicators
     pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
     pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,

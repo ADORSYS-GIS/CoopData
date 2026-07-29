@@ -298,6 +298,7 @@ pub async fn create_cooperative(
         accounting_year: sea_orm::Set(
             AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar),
         ),
+        tier: sea_orm::Set(body.tier.clone()),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
@@ -1220,6 +1221,7 @@ pub async fn create_cooperative_profile(
         accounting_year: sea_orm::Set(
             AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar),
         ),
+        tier: sea_orm::Set(body.tier.clone()),
         created_at: sea_orm::Set(now),
         updated_at: sea_orm::Set(now),
     };

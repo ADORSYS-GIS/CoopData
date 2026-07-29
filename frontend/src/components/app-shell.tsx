@@ -7,6 +7,7 @@ import {
   Inbox,
   FileBarChart,
   PieChart,
+  BarChart3,
   Settings,
   Search,
   Bell,
@@ -60,6 +61,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     items: [
       { to: "/app/reports", label: "Reports", icon: FileBarChart },
       { to: "/app/analytics", label: "Analytics", icon: PieChart },
+      { to: "/app/basic-analytics", label: "Basic Analytics", icon: BarChart3 },
       { to: "/app/benchmarking", label: "Benchmarking", icon: Scale },
       { to: "/app/custom-kpis", label: "Custom KPIs", icon: Calculator },
     ],
@@ -70,6 +72,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     items: [
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
       { to: "/app/indicators", label: "Indicators", icon: ClipboardList },
+      { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
       { to: "/app/profile", label: "Profile", icon: UserCog },
