@@ -83,7 +83,7 @@ impl ExportGenerator {
                 .text("emulateMediaType", "screen");
 
             let response = client
-                .post("http://gotenberg:3000/forms/chromium/convert/url")
+                .post(format!("{}/forms/chromium/convert/url", state.config.gotenberg_url))
                 .multipart(form_clone)
                 .send()
                 .await;

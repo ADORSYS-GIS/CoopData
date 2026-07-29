@@ -811,7 +811,7 @@ GOTENBERG_FRONTEND_URL=http://coopdata-frontend-dev:5173  # URL Gotenberg uses t
 FRONTEND_URL=http://localhost:5173                           # User-facing frontend URL
 KEYCLOAK_URL=http://keycloak:8180
 KEYCLOAK_CLIENT_ID=coopdata-backend
-KEYCLOAK_CLIENT_SECRET=bXEH0vTeuidB52EeJ2QixCKFumD9gZ1y
+KEYCLOAK_CLIENT_SECRET=<your-keycloak-client-secret>
 
 # Frontend
 VITE_API_BASE_URL=                                           # Empty = same origin (production)

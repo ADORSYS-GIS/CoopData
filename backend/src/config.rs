@@ -18,6 +18,7 @@ pub struct AppConfig {
     pub jwt_audience: String,
     pub jwt_issuer_aliases: Vec<String>,
     pub frontend_url: String,
+    pub gotenberg_url: String,
     pub gotenberg_frontend_url: String,
     pub environment: Environment,
     // AI extraction
@@ -67,6 +68,7 @@ impl AppConfig {
                 .filter(|s| !s.is_empty())
                 .collect(),
             frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
+            gotenberg_url: env::var("GOTENBERG_URL").unwrap_or_else(|_| "http://gotenberg:3000".into()),
             gotenberg_frontend_url: env::var("GOTENBERG_FRONTEND_URL").unwrap_or_else(|_| "http://frontend:80".into()),
             environment: env::var("ENVIRONMENT")
                 .map(|s| match s.to_lowercase().as_str() {

@@ -1179,13 +1179,9 @@ pub async fn ministry_approve_submission(
         );
 
         for sub in future_subs {
-            // Delete stale cached files from object storage (best-effort)
+            // Delete stale cached PDF from object storage (best-effort)
             let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
-            let xlsx_key = format!("exports/individual/{}/submission_{}.xlsx", sub.id, sub.id);
-            let docx_key = format!("exports/individual/{}/submission_{}.docx", sub.id, sub.id);
             let _ = state.storage.delete_object(&pdf_key).await;
-            let _ = state.storage.delete_object(&xlsx_key).await;
-            let _ = state.storage.delete_object(&docx_key).await;
 
             // Trigger background regeneration so the next download gets fresh data
             crate::services::export_generator::ExportGenerator::trigger_cooperative_export(

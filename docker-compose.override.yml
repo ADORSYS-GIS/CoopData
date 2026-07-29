@@ -14,6 +14,7 @@ services:
       CARGO_WATCH_BIN: cargo-watch
       RUST_LOG: info,coop_data_backend=debug
       RUST_BACKTRACE: "1"
+      GOTENBERG_URL: http://gotenberg:3000
       GOTENBERG_FRONTEND_URL: http://coopdata-frontend-dev:5173
     ulimits:
       nofile:
