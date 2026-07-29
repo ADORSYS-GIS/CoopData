@@ -20,10 +20,9 @@ import { getAccessToken } from "@/services/shared/authService";
 // to the backend because Vite's dev proxy isn't available. The hostname check distinguishes
 // Gotenberg's headless Chromium from the user's browser. This is a Docker networking
 // constraint, not a 12-factor violation — both consumers share the same container.
-let API_BASE_URL =
+const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (window.location.hostname.includes("frontend") ||
-  window.location.hostname.includes("gotenberg")
+  (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")
     ? "http://backend:3000"
     : "");
 

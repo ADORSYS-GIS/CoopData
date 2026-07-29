@@ -64,8 +64,7 @@ export interface MembershipStatsResponse {
 // or "gotenberg") from the user's browser (hostname is "localhost").
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (window.location.hostname.includes("frontend") ||
-  window.location.hostname.includes("gotenberg")
+  (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")
     ? "http://backend:3000"
     : "");
 
