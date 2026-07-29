@@ -84,12 +84,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     }
   }, [template]);
 
-  const handleSave = async () => {
+  const handleSave = async (sectionsToSave?: any[]) => {
+    const listToSave = sectionsToSave || sections;
     try {
       setSaveMessage(null);
       // Validate unique keys
       const keys = new Set<string>();
-      for (const section of sections) {
+      for (const section of listToSave) {
         for (const field of section.fields || []) {
           if (!field.key || field.key.trim() === "") {
             throw new Error(`Field key cannot be blank in section "${section.title}"`);
@@ -103,7 +104,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
       await updateMutation.mutateAsync({
         label,
-        sections,
+        sections: listToSave,
       });
 
       toast.success("Questionnaire template changes saved successfully to backend!");
@@ -117,13 +118,14 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     const newSection = {
       id: `section_${Date.now()}`,
       title: "New Section",
-      icon: "ClipboardList",
+      icon: "📋",
       description: "Enter section description",
       fields: [],
     };
     const updated = [...sections, newSection];
     setSections(updated);
     setSelectedSectionIndex(updated.length - 1);
+    handleSave(updated);
   };
 
   const deleteSection = (index: number) => {
@@ -135,6 +137,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     } else if (selectedSectionIndex !== null && selectedSectionIndex > index) {
       setSelectedSectionIndex(selectedSectionIndex - 1);
     }
+    handleSave(updated);
   };
 
   const moveSection = (index: number, direction: "up" | "down") => {
@@ -153,6 +156,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     } else if (selectedSectionIndex === targetIndex) {
       setSelectedSectionIndex(index);
     }
+    handleSave(updated);
   };
 
   const updateSectionMeta = (index: number, key: string, value: any) => {
@@ -239,7 +243,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
     setSections(updated);
     setIsModalOpen(false);
-    toast.success(modalFieldIndex === null ? "Question added to section! Remember to click Save Changes to persist." : "Question configuration updated locally!");
+    handleSave(updated);
   };
 
   const deleteField = (fieldIndex: number) => {
@@ -249,6 +253,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     const section = updated[selectedSectionIndex];
     section.fields = section.fields.filter((_: any, i: number) => i !== fieldIndex);
     setSections(updated);
+    handleSave(updated);
   };
 
   const moveField = (fieldIndex: number, direction: "up" | "down") => {
@@ -264,6 +269,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     section.fields[targetIndex] = temp;
 
     setSections(updated);
+    handleSave(updated);
   };
 
   if (isLoading) {
