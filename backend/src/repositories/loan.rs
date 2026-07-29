@@ -161,7 +161,7 @@ impl LoanRepository {
         &self,
         cooperative_id: Uuid,
     ) -> AppResult<Vec<crate::api::dto::submission::PortfolioCategoryDto>> {
-        use sea_orm::{FromQueryResult, QuerySelect, sea_query::Expr};
+        use sea_orm::{sea_query::Expr, FromQueryResult, QuerySelect};
 
         #[derive(FromQueryResult)]
         struct BreakdownRow {

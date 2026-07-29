@@ -188,9 +188,10 @@ impl MemberRepository {
                 crate::entities::enums::Gender::Female => female += 1,
                 _ => {}
             }
-            
+
             match m.age_group {
-                crate::entities::enums::AgeGroup::Under18 | crate::entities::enums::AgeGroup::Between18And35 => youth += 1,
+                crate::entities::enums::AgeGroup::Under18
+                | crate::entities::enums::AgeGroup::Between18And35 => youth += 1,
                 _ => {}
             }
 

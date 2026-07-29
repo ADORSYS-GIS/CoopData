@@ -14,13 +14,10 @@ use crate::AppState;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ExportQuery {
-
     pub federation_id: Option<Uuid>,
     pub apex_id: Option<Uuid>,
     pub reporting_year: Option<i32>,
 }
-
-
 
 /// GET /api/v1/cooperative/submissions/{id}/export
 /// Exports a single cooperative submission in PDF.
@@ -41,7 +38,6 @@ pub async fn export_single_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
-
 ) -> AppResult<impl IntoResponse> {
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -64,7 +60,11 @@ pub async fn export_single_submission(
     let bytes = match state.storage.get_object(&storage_key).await {
         Ok(b) => b,
         Err(_) => {
-            let generated_bytes = crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(&state, id).await?;
+            let generated_bytes =
+                crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+                    &state, id,
+                )
+                .await?;
             state
                 .storage
                 .store(&storage_key, &generated_bytes, "application/pdf")
@@ -103,7 +103,9 @@ pub async fn export_bulk_consolidated(
     Query(mut query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     if query.apex_id.is_none() && claims.is_apex() {
-        if let Ok(id) = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await {
+        if let Ok(id) =
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await
+        {
             query.apex_id = Some(id);
         }
     }
@@ -152,7 +154,10 @@ pub async fn export_bulk_consolidated(
             tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
             let res = Response::builder()
                 .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             return Ok(res);
@@ -164,7 +169,10 @@ pub async fn export_bulk_consolidated(
             tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
             let res = Response::builder()
                 .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}\"", filename),
+                )
                 .body(Body::from(bytes))
                 .unwrap();
             return Ok(res);
@@ -177,7 +185,10 @@ pub async fn export_bulk_consolidated(
                 tracing::info!(reporting_year = year, "Bucket HIT for Ministry export");
                 let res = Response::builder()
                     .header("Content-Type", "application/pdf")
-                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                    .header(
+                        "Content-Disposition",
+                        format!("attachment; filename=\"{}\"", filename),
+                    )
                     .body(Body::from(bytes))
                     .unwrap();
                 return Ok(res);
@@ -202,30 +213,49 @@ pub async fn export_bulk_consolidated(
             }
         }
     } else {
-        return Err(AppError::BadRequest("reporting_year is required for consolidated exports".into()));
+        return Err(AppError::BadRequest(
+            "reporting_year is required for consolidated exports".into(),
+        ));
     };
 
     let token = state.keycloak.get_admin_token().await?;
     let print_url = if let Some(apex_id) = query.apex_id {
-        format!("{}/print/apex/{}?token={}", state.config.gotenberg_frontend_url, apex_id, token)
+        format!(
+            "{}/print/apex/{}?token={}",
+            state.config.gotenberg_frontend_url, apex_id, token
+        )
     } else if let Some(fed_id) = query.federation_id {
-        format!("{}/print/federation/{}?token={}", state.config.gotenberg_frontend_url, fed_id, token)
+        format!(
+            "{}/print/federation/{}?token={}",
+            state.config.gotenberg_frontend_url, fed_id, token
+        )
     } else {
-        format!("{}/print/ministry?token={}", state.config.gotenberg_frontend_url, token)
+        format!(
+            "{}/print/ministry?token={}",
+            state.config.gotenberg_frontend_url, token
+        )
     };
-    
-    let bytes = crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(&state, &print_url).await?;
 
-    if let Err(e) = state.storage.store(&storage_key, &bytes, "application/pdf").await {
+    let bytes = crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(
+        &state, &print_url,
+    )
+    .await?;
+
+    if let Err(e) = state
+        .storage
+        .store(&storage_key, &bytes, "application/pdf")
+        .await
+    {
         tracing::warn!(error = %e, key = %storage_key, "Failed to cache live-generated export");
     }
 
     let res = Response::builder()
         .header("Content-Type", "application/pdf")
-        .header("Content-Disposition", format!("attachment; filename=\"{}\"", display_filename))
+        .header(
+            "Content-Disposition",
+            format!("attachment; filename=\"{}\"", display_filename),
+        )
         .body(Body::from(bytes))
         .unwrap();
     Ok(res)
 }
-
-

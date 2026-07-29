@@ -64,14 +64,22 @@ pub(crate) async fn filter_cooperatives(
     if let Some(fid) = federation_id {
         let fed = if let Ok(Some(f)) = state.federation_repo.find_by_id(fid).await {
             Some(f)
-        } else if let Ok(Some(f)) = state.federation_repo.find_by_keycloak_id(&fid.to_string()).await {
+        } else if let Ok(Some(f)) = state
+            .federation_repo
+            .find_by_keycloak_id(&fid.to_string())
+            .await
+        {
             Some(f)
         } else {
             None
         };
 
         if let Some(f) = fed {
-            let apexes = state.apex_repo.find_by_federation_id(f.id).await.unwrap_or_default();
+            let apexes = state
+                .apex_repo
+                .find_by_federation_id(f.id)
+                .await
+                .unwrap_or_default();
             allowed_apex_ids = Some(apexes.into_iter().map(|a| a.id).collect::<Vec<_>>());
         } else {
             allowed_apex_ids = Some(vec![]);
@@ -302,7 +310,10 @@ pub async fn get_submission_kpis(
             state.kpi_record_repo.clone(),
             state.db.clone(),
         );
-        if let Err(e) = workflow.compute_and_save_kpis(id, submission.cooperative_id, submission.reporting_year).await {
+        if let Err(e) = workflow
+            .compute_and_save_kpis(id, submission.cooperative_id, submission.reporting_year)
+            .await
+        {
             tracing::error!("Failed to auto-compute KPIs: {}", e);
         }
         db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
@@ -337,7 +348,10 @@ pub async fn get_submission_kpis(
             .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
             .await?
         {
-            let db_prior_kpis = state.kpi_record_repo.find_by_submission(prior_sub.id).await?;
+            let db_prior_kpis = state
+                .kpi_record_repo
+                .find_by_submission(prior_sub.id)
+                .await?;
             Some(
                 db_prior_kpis
                     .into_iter()

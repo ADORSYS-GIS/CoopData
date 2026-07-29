@@ -239,11 +239,7 @@ pub async fn get_submission(
     let mut resp = SubmissionResponse::from(submission);
 
     // Populate cooperative name from DB so frontend doesn't need a separate Keycloak-based call
-    if let Ok(Some(coop)) = state
-        .cooperative_repo
-        .find_by_id(resp.cooperative_id)
-        .await
-    {
+    if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(resp.cooperative_id).await {
         resp.cooperative_name = Some(coop.name);
     }
 
@@ -1123,7 +1119,10 @@ pub async fn ministry_approve_submission(
     }
 
     // Phase A: Trigger background export generation for the cooperative
-    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), id);
+    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+        state.clone(),
+        id,
+    );
 
     // Phase C: Trigger background export generation for the parent Apex
     let coop = state
@@ -1164,8 +1163,8 @@ pub async fn ministry_approve_submission(
         .await?
         .into_iter()
         .filter(|s| {
-            s.reporting_year > updated.reporting_year 
-                && s.id != id 
+            s.reporting_year > updated.reporting_year
+                && s.id != id
                 && s.status == crate::entities::enums::SubmissionStatus::Approved
         })
         .collect();
@@ -1669,7 +1668,10 @@ pub async fn get_portfolio_breakdown(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let categories = state.loan_repo.get_portfolio_breakdown(submission.cooperative_id).await?;
+    let categories = state
+        .loan_repo
+        .get_portfolio_breakdown(submission.cooperative_id)
+        .await?;
 
     Ok((
         StatusCode::OK,
@@ -1709,7 +1711,10 @@ pub async fn get_membership_stats(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let stats = state.member_repo.get_membership_stats(submission.cooperative_id, id).await?;
+    let stats = state
+        .member_repo
+        .get_membership_stats(submission.cooperative_id, id)
+        .await?;
 
     Ok((StatusCode::OK, Json(stats)))
 }
