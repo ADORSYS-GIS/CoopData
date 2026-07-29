@@ -51,9 +51,12 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
         priorData={priorData}
       />
 
-      <ConsolidatedCoopDetailSheet data={data} />
-
-      <ConsolidatedRiskWatchSheet data={data} />
+      {tier === "Apex" && (
+        <>
+          <ConsolidatedCoopDetailSheet data={data} />
+          <ConsolidatedRiskWatchSheet data={data} />
+        </>
+      )}
     </div>
   );
 };

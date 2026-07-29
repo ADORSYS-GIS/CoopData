@@ -1,6 +1,16 @@
 import React, { useEffect } from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+
+const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981", "#64748b", "#3b82f6", "#14b8a6", "#f43f5e", "#d946ef"];
 
 interface FederationApexDistributionSheetProps {
   federationName: string;
@@ -36,6 +46,15 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
     return groups;
   }, [cooperatives]);
 
+  const chartData = React.useMemo(() => {
+    return Array.from(apexGroups.entries()).map(([name, stats]) => ({
+      name: name.length > 15 ? name.substring(0, 15) + "..." : name,
+      fullName: name,
+      cooperatives: stats.coopCount,
+      members: stats.members,
+    }));
+  }, [apexGroups]);
+
   return (
     <div
       className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
@@ -58,6 +77,58 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
           <h3 className="text-xl font-bold text-slate-800 text-center mb-6">
             Cooperatives & Active Members by Apex
           </h3>
+
+          <div className="flex flex-row h-[300px] mb-8 w-full gap-4">
+            <div className="w-1/2 h-full flex flex-col items-center">
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Cooperatives Distribution</h4>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="cooperatives"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    isAnimationActive={false}
+                    label
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="w-1/2 h-full flex flex-col items-center">
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Active Members Distribution</h4>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="members"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    isAnimationActive={false}
+                    label
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
           <table className="w-full text-left text-sm border-collapse">
             <thead>

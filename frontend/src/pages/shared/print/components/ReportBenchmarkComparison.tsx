@@ -22,11 +22,11 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">Indicator</th>
-            <th className="px-2 py-1 font-semibold">Description</th>
-            <th className="px-2 py-1 font-semibold text-right">Value</th>
-            <th className="px-2 py-1 font-semibold text-right">Benchmark</th>
-            <th className="px-2 py-1 font-semibold text-center">Status</th>
+            <th className="px-2 py-1 font-semibold w-[25%]">Indicator</th>
+            <th className="px-2 py-1 font-semibold w-[35%]">Description</th>
+            <th className="px-2 py-1 font-semibold text-right w-[15%]">Value</th>
+            <th className="px-2 py-1 font-semibold text-center w-[12%]">Benchmark</th>
+            <th className="px-2 py-1 font-semibold text-center w-[13%]">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -35,7 +35,7 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
               <td className="px-2 py-1 font-medium">{kpi.name.replace(/_/g, " ").toUpperCase()}</td>
               <td className="px-2 py-1">{kpi.description}</td>
               <td className="px-2 py-1 text-right font-bold">{kpi.formatted}</td>
-              <td className="px-2 py-1 text-right">
+              <td className="px-2 py-1 text-center">
                 {kpi.benchmark !== undefined && kpi.benchmark !== null
                   ? kpi.unit === "percent"
                     ? `${kpi.benchmark}%`
