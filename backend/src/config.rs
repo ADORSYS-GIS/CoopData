@@ -146,6 +146,8 @@ mod tests {
             jwt_audience: "x".into(),
             jwt_issuer_aliases: vec![],
             frontend_url: "x".into(),
+            gotenberg_url: "http://localhost:8081".into(),
+            gotenberg_frontend_url: "http://localhost:5173".into(),
             environment: env,
             extraction_backend: "mock".into(),
             ai_provider_url: "https://api.openai.com/v1".into(),

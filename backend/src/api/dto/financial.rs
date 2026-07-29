@@ -296,6 +296,7 @@ mod tests {
             computed_at: Utc::now(),
             submission_status: "approved".to_string(),
             kpis: vec![KpiItemResponse::from(sample_kpi_value("roa", 3.2))],
+            prior_year_kpis: None,
         };
         let json = serde_json::to_string(&resp).unwrap();
         assert!(json.contains("submission_id"));
