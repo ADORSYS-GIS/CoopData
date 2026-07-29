@@ -2,6 +2,7 @@ pub mod abnormality_detector;
 pub mod ai_extraction;
 pub mod audit;
 pub mod cache;
+pub mod export_generator;
 pub mod extraction_pipeline;
 pub mod keycloak;
 pub mod kpi_engine;

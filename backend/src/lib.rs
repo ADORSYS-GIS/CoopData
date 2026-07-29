@@ -68,6 +68,7 @@ pub struct AppState {
     pub farm_coop_repo: FarmCoopRepository,
     pub storage: ObjectStorageService,
     pub nf_excel_parser: CalamineNfParser,
+    pub gotenberg_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
 }
 
 impl AppState {

@@ -1,7 +1,7 @@
 import { type Role } from "@/lib/auth";
 import { FileText, FileSpreadsheet, FileBarChart } from "lucide-react";
 
-export type ExportFormat = "pdf" | "xlsx" | "csv" | "docx";
+export type ExportFormat = "pdf";
 export type ReportScope = "consolidated" | "individual" | "comparative" | "trend";
 
 export interface ReportExportOption {
@@ -17,41 +17,36 @@ export const REPORT_EXPORT_OPTIONS: ReportExportOption[] = [
   {
     id: "national-consolidated",
     label: "National Consolidated Report",
-    description: "Aggregated data across all federations, apexes, and cooperatives nationwide.",
+    description:
+      "Comprehensive multi-sheet workbook and executive summary aggregating data nationwide.",
     scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry"],
   },
   {
     id: "federation-consolidated",
     label: "Federation Consolidated Report",
-    description: "Aggregated data for all apexes and cooperatives under your federation.",
+    description:
+      "Comprehensive report aggregating data for all apexes and cooperatives under a federation.",
     scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry", "federation"],
   },
   {
     id: "apex-consolidated",
     label: "Apex Consolidated Report",
-    description: "Aggregated data for all cooperatives under your apex organization.",
+    description: "Comprehensive report aggregating data for all cooperatives under an apex.",
     scope: "consolidated",
-    formats: ["pdf", "xlsx", "csv", "docx"],
+    formats: ["pdf"],
     availableTo: ["ministry", "federation", "apex"],
   },
   {
     id: "cooperative-individual",
-    label: "Cooperative Individual Report",
-    description: "Detailed financial statement and database report for a single cooperative.",
+    label: "Cooperative Financial Report",
+    description:
+      "Detailed financial statement, KPIs, and demographic database report for a single cooperative.",
     scope: "individual",
-    formats: ["pdf", "xlsx", "csv", "docx"],
-    availableTo: ["ministry", "federation", "apex", "cooperative"],
-  },
-  {
-    id: "membership-report",
-    label: "Membership Demographics Report",
-    description: "Gender participation, youth engagement, and membership statistics.",
-    scope: "consolidated",
-    formats: ["xlsx"],
+    formats: ["pdf"],
     availableTo: ["ministry", "federation", "apex", "cooperative"],
   },
 ];
@@ -72,16 +67,10 @@ export const SCOPE_COLORS: Record<ReportScope, string> = {
 
 export const FORMAT_ICONS: Record<ExportFormat, typeof FileText> = {
   pdf: FileText,
-  xlsx: FileSpreadsheet,
-  csv: FileBarChart,
-  docx: FileText,
 };
 
 export const FORMAT_LABELS: Record<ExportFormat, string> = {
   pdf: "PDF",
-  xlsx: "Excel",
-  csv: "CSV",
-  docx: "Word",
 };
 
 export const EXPORTABLE_STATUSES = ["submitted", "approved"];

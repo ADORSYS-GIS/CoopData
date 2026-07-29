@@ -7,7 +7,6 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import { type ExportFormat } from "./types";
 
 interface ActiveStepPickerProps {
   activeStepKey: string;
@@ -39,16 +38,10 @@ interface ActiveStepPickerProps {
   selectedSubmissionId: string;
   onSelectSubmission: (id: string) => void;
 
-  // Format Step
-  selectedOption: {
-    formats: ExportFormat[];
-  };
-  selectedFormat: ExportFormat;
-  onSelectFormat: (format: ExportFormat) => void;
-  isExporting: boolean;
-
-  formatIcons: Record<ExportFormat, LucideIcon>;
-  formatLabels: Record<ExportFormat, string>;
+  // Year Step (for consolidated reports)
+  availableYears: string[];
+  selectedYear: string;
+  onSelectYear: (year: string) => void;
 }
 
 export function ActiveStepPicker({
@@ -66,12 +59,9 @@ export function ActiveStepPicker({
   filteredSubmissions,
   selectedSubmissionId,
   onSelectSubmission,
-  selectedOption,
-  selectedFormat,
-  onSelectFormat,
-  isExporting,
-  formatIcons,
-  formatLabels,
+  availableYears,
+  selectedYear,
+  onSelectYear,
 }: ActiveStepPickerProps) {
   if (activeStepKey === "fed") {
     return (
@@ -262,36 +252,42 @@ export function ActiveStepPicker({
     );
   }
 
-  if (activeStepKey === "format") {
+  if (activeStepKey === "year") {
     return (
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Export Format
+          Select Reporting Year
         </label>
-        <div
-          className={`grid gap-2 ${selectedOption.formats.length === 4 ? "grid-cols-4" : "grid-cols-2"}`}
-        >
-          {selectedOption.formats.map((fmt) => {
-            const Icon = formatIcons[fmt];
-            const isSelected = selectedFormat === fmt;
-            return (
+        {isLoadingSubmissions ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+            <Loader2 className="size-3.5 animate-spin" /> Loading years…
+          </div>
+        ) : availableYears.length === 0 ? (
+          <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
+            <FileText className="size-4 shrink-0 mt-0.5" />
+            <span>No data available to export for the selected organization.</span>
+          </div>
+        ) : (
+          <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
+            {availableYears.map((year) => (
               <button
-                key={fmt}
+                key={year}
                 type="button"
-                onClick={() => onSelectFormat(fmt)}
-                disabled={isExporting}
-                className={`press-feedback flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all ${
-                  isSelected
-                    ? "border-primary bg-primary/5 text-primary shadow-sm"
-                    : "border-border text-muted-foreground hover:bg-muted/50"
+                onClick={() => onSelectYear(year)}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all press-feedback ${
+                  selectedYear === year
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border hover:border-accent/40 hover:bg-muted/30"
                 }`}
               >
-                <Icon className="size-5" />
-                <span className="text-[10px] font-bold uppercase">{formatLabels[fmt]}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">{year} Consolidated Report</p>
+                </div>
+                {selectedYear === year && <CheckCircle2 className="size-4 shrink-0 text-primary" />}
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

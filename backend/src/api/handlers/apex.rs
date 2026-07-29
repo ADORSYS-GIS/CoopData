@@ -40,7 +40,7 @@ pub async fn create_apex(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -149,7 +149,7 @@ pub async fn list_apexes(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -196,7 +196,7 @@ pub async fn get_apex(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -233,7 +233,7 @@ pub async fn update_apex(
     Path(id): Path<String>,
     Json(body): Json<UpdateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -350,7 +350,7 @@ pub async fn delete_apex(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -450,7 +450,7 @@ pub async fn add_apex_member(
     Path(id): Path<String>,
     Json(body): Json<AddMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -518,7 +518,7 @@ pub async fn update_apex_member(
     Path((group_id, user_id)): Path<(String, String)>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -581,7 +581,7 @@ pub async fn list_apex_members(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -615,7 +615,7 @@ pub async fn remove_apex_member(
     Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));

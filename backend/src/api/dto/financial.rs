@@ -42,7 +42,7 @@ impl From<FsModel> for FinancialStatementResponse {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LineItemResponse {
     pub id: Uuid,
     pub financial_statement_id: Uuid,
@@ -136,6 +136,16 @@ pub struct SubmissionKpisResponse {
     /// Reflects the submission's current status (draft / submitted / in_review / approved)
     pub submission_status: String,
     pub kpis: Vec<KpiItemResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prior_year_kpis: Option<Vec<KpiItemResponse>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SubmissionLineItemsResponse {
+    pub submission_id: Uuid,
+    pub current_year: Vec<LineItemResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prior_year: Option<Vec<LineItemResponse>>,
 }
 
 // ── Benchmark response types ─────────────────────────────────────────────────
@@ -286,6 +296,7 @@ mod tests {
             computed_at: Utc::now(),
             submission_status: "approved".to_string(),
             kpis: vec![KpiItemResponse::from(sample_kpi_value("roa", 3.2))],
+            prior_year_kpis: None,
         };
         let json = serde_json::to_string(&resp).unwrap();
         assert!(json.contains("submission_id"));

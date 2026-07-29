@@ -23,12 +23,14 @@ export const useFederations = (enabled = true) =>
   });
 
 /** Get a single federation by ID */
-export const useFederation = (id: string) =>
+export const useFederation = (id: string, tokenOverride?: string) =>
   useQuery({
     queryKey: [FEDERATIONS_KEY, id],
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}", {
         params: { path: { id } },
+        headers: headers as Record<string, string>,
       });
       if (error) throw error;
       return data;

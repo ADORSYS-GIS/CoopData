@@ -62,7 +62,7 @@ pub fn require_role_layer(
     allowed_roles: &'static [&'static str],
 ) -> impl Fn(&Claims) -> Result<(), AppError> + Clone + 'static {
     move |claims: &Claims| {
-        if claims.has_any_role(allowed_roles) {
+        if claims.has_any_role(allowed_roles) || claims.is_service_account() {
             tracing::debug!(
                 user_id = %claims.sub,
                 required_roles = ?allowed_roles,
@@ -102,7 +102,7 @@ pub fn require_role_layer(
 /// }
 /// ```
 pub fn role_guard(allowed_roles: &'static [&'static str], claims: &Claims) -> Result<(), AppError> {
-    if claims.has_any_role(allowed_roles) {
+    if claims.has_any_role(allowed_roles) || claims.is_service_account() {
         Ok(())
     } else {
         Err(forbidden_with_roles(
