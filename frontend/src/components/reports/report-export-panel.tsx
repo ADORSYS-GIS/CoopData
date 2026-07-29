@@ -105,12 +105,13 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   // Dynamically determine available reporting years
   const availableYears = useMemo(() => {
     const years = new Set<number>();
-    
+
     // For consolidated reports, we only aggregate "approved" submissions.
     // For other types, we look at all exportable submissions.
-    const relevantSubmissions = selectedOption?.scope === "consolidated"
-      ? rawSubmissions.filter((s) => s.status.toLowerCase() === "approved")
-      : allSubmissions;
+    const relevantSubmissions =
+      selectedOption?.scope === "consolidated"
+        ? rawSubmissions.filter((s) => s.status.toLowerCase() === "approved")
+        : allSubmissions;
 
     relevantSubmissions.forEach((s) => {
       let include = true;
@@ -125,7 +126,15 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     return Array.from(years)
       .sort((a, b) => b - a)
       .map(String);
-  }, [rawSubmissions, allSubmissions, selectedOption, needsFedSelector, selectedFedId, needsApexSelector, selectedApexId]);
+  }, [
+    rawSubmissions,
+    allSubmissions,
+    selectedOption,
+    needsFedSelector,
+    selectedFedId,
+    needsApexSelector,
+    selectedApexId,
+  ]);
 
   // Build federation picker list from RAW submissions
   const federationList = useMemo(() => {

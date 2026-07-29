@@ -1,16 +1,20 @@
 import React, { useEffect } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
 
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981", "#64748b", "#3b82f6", "#14b8a6", "#f43f5e", "#d946ef"];
+const COLORS = [
+  "#0ea5e9",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#10b981",
+  "#64748b",
+  "#3b82f6",
+  "#14b8a6",
+  "#f43f5e",
+  "#d946ef",
+];
 
 interface FederationApexDistributionSheetProps {
   federationName: string;
@@ -80,7 +84,9 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
 
           <div className="flex flex-row h-[300px] mb-8 w-full gap-4">
             <div className="w-1/2 h-full flex flex-col items-center">
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Cooperatives Distribution</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                Cooperatives Distribution
+              </h4>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -94,7 +100,7 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
                     isAnimationActive={false}
                     label
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -105,7 +111,9 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
             </div>
 
             <div className="w-1/2 h-full flex flex-col items-center">
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Active Members Distribution</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                Active Members Distribution
+              </h4>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -119,7 +127,7 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
                     isAnimationActive={false}
                     label
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

@@ -7,8 +7,6 @@ import {
 } from "./components";
 import type { NationalOverviewResponse } from "./components";
 
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#94a3b8"];
-
 interface ConsolidatedReportPrintProps {
   tier: "Apex" | "Federation" | "Ministry";
   entityName: string;
