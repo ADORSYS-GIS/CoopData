@@ -60,7 +60,7 @@ impl ExportGenerator {
         state: &AppState,
         print_url: &str,
     ) -> AppResult<Vec<u8>> {
-        tracing::info!("Generating PDF via Gotenberg with URL: {}", print_url);
+        tracing::info!("Generating PDF via Gotenberg for: {}", print_url.split('?').next().unwrap_or(print_url));
 
         let _permit = state.gotenberg_semaphore.acquire().await.map_err(|_| {
             crate::error::AppError::InternalServerError("Gotenberg semaphore closed".into())

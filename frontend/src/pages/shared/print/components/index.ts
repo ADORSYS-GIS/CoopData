@@ -9,3 +9,8 @@ export * from "./ConsolidatedCoverPage";
 export * from "./ConsolidatedDashboardSheet";
 export * from "./ConsolidatedCoopDetailSheet";
 export * from "./ConsolidatedRiskWatchSheet";
+export * from "./FederationApexDistributionSheet";
+export * from "./FederationPearlsSheet";
+export * from "./FederationSectorSheet";
+export * from "./FederationApexComparisonSheet";
+export * from "./FederationSocialImpactSheet";

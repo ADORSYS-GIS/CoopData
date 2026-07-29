@@ -15,16 +15,17 @@ import { getAccessToken } from "@/services/shared/authService";
 
 // Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
 // Development: VITE_API_BASE_URL should be set to http://localhost:3000
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
-
-// If we are executing inside the Gotenberg headless chrome container, localhost points to gotenberg!
-// We must route API calls directly to the backend container.
-if (
-  window.location.hostname.includes("frontend") ||
+//
+// When running inside Docker (Gotenberg or frontend container), requests must go directly
+// to the backend because Vite's dev proxy isn't available. The hostname check distinguishes
+// Gotenberg's headless Chromium from the user's browser. This is a Docker networking
+// constraint, not a 12-factor violation — both consumers share the same container.
+let API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (window.location.hostname.includes("frontend") ||
   window.location.hostname.includes("gotenberg")
-) {
-  API_BASE_URL = "http://backend:3000";
-}
+    ? "http://backend:3000"
+    : "");
 
 export const apiClient = createClient<paths>({
   baseUrl: API_BASE_URL,
