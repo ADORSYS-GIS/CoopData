@@ -247,7 +247,144 @@ pub async fn update_line_items(
     Ok((StatusCode::OK, Json(updated)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/manual-financial-statement",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = ManualFinancialStatementRequest,
+    responses(
+        (status = 201, description = "Financial statement manually created", body = FinancialStatementResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn create_manual_financial_statement(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(submission_id): Path<Uuid>,
+    Json(body): Json<crate::api::dto::financial::ManualFinancialStatementRequest>,
+) -> AppResult<impl IntoResponse> {
+    use crate::entities::enums::{AccountingYear, Currency, AccountCategory, SubmissionStatus};
+    use crate::entities::financial_statement::ActiveModel as FsModel;
+    use crate::entities::balance_sheet_line_item::ActiveModel as LineItemModel;
+    use crate::services::abnormality_detector::AbnormalityDetector;
+    use sea_orm::Set;
+
+    let coop =
+        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop.id {
+        return Err(AppError::Forbidden(
+            "Submission does not belong to your cooperative".into(),
+        ));
+    }
+
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::Conflict(
+            "Can only add financial statement to a draft submission".into(),
+        ));
+    }
+
+    // Check for existing financial statement — replace if found (same as upload)
+    if let Some(existing_fs) = state
+        .financial_statement_repo
+        .find_by_submission(submission_id)
+        .await?
+    {
+        tracing::info!(
+            fs_id = %existing_fs.id,
+            "Replacing existing financial statement with manual entry"
+        );
+        state
+            .financial_statement_repo
+            .delete(existing_fs.id)
+            .await?;
+    }
+
+    let fs_id = Uuid::new_v4();
+    let accounting_year = AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar);
+    let currency = if body.currency == "USD" {
+        Currency::Usd
+    } else {
+        Currency::Szl
+    };
+
+    // Create financial statement record
+    let fs_model = FsModel {
+        id: Set(fs_id),
+        submission_id: Set(submission_id),
+        cooperative_id: Set(coop.id),
+        reporting_year: Set(submission.reporting_year),
+        accounting_year: Set(accounting_year),
+        currency: Set(currency),
+        is_validated: Set(false),
+        validation_errors: Set(None),
+        created_at: Set(chrono::Utc::now()),
+        updated_at: Set(chrono::Utc::now()),
+    };
+    let created_fs = state.financial_statement_repo.create(fs_model).await?;
+
+    // Create line items
+    for item in body.line_items {
+        use rust_decimal::prelude::FromPrimitive;
+        let value = rust_decimal::Decimal::from_f64(item.value.unwrap_or(0.0)).unwrap_or(rust_decimal::Decimal::ZERO);
+        let category = AccountCategory::parse(&item.account_category).unwrap_or(AccountCategory::Assets);
+
+        let model = LineItemModel {
+            id: Set(Uuid::new_v4()),
+            financial_statement_id: Set(fs_id),
+            account_code: Set(item.account_code),
+            account_name: Set(item.account_name),
+            account_category: Set(category),
+            account_subcategory: Set(item.account_subcategory),
+            month: Set(item.month),
+            value: Set(Some(value)),
+            ai_confidence: Set(None),
+            ai_flagged: Set(item.account_code.is_none()),
+            manually_edited: Set(true),
+            raw_label: Set(None),
+            created_at: Set(chrono::Utc::now()),
+            updated_at: Set(chrono::Utc::now()),
+        };
+        state.line_item_repo.create(model).await?;
+    }
+
+    // Run abnormality detector / validation
+    let coa = state.coa_repo.find_all().await?;
+    let coop_type = coop
+        .institution_type
+        .as_ref()
+        .map(|t| t.as_str().to_string())
+        .unwrap_or_else(|| "sacco".to_string());
+
+    let detector = AbnormalityDetector::new(state.line_item_repo.clone(), state.flag_repo.clone(), state.coa_repo.clone());
+    let (errors, warnings) = detector.run(submission_id, coop.id, fs_id, &coa, &coop_type).await?;
+
+    let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
+    state.financial_statement_repo.set_validation_errors(fs_id, validation_json).await?;
+
+    // Set financial section status to ready or in_progress (following upload pipeline, we set it to in_progress)
+    if let Some(sec) = state
+        .section_repo
+        .find_by_submission_and_section(submission_id, "financial")
+        .await?
+    {
+        state.section_repo.update_status(sec.id, "in_progress").await?;
+    }
+
+    Ok((StatusCode::CREATED, Json(FinancialStatementResponse::from(created_fs))))
+}
+
 // ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
+
 
 #[utoipa::path(
     get,

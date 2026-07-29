@@ -51,17 +51,8 @@ services:
         hard: 1048576
     volumes:
       # Live source mount — file changes on host instantly trigger HMR.
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - ./frontend/index.html:/app/index.html
-      - ./frontend/vite.config.ts:/app/vite.config.ts
-      - ./frontend/e2e-mock-auth.ts:/app/e2e-mock-auth.ts
-      - ./frontend/tsconfig.json:/app/tsconfig.json
-      - ./frontend/package.json:/app/package.json
-      - ./frontend/package-lock.json:/app/package-lock.json
-      - ./frontend/openapi.json:/app/openapi.json
-      - ./frontend/components.json:/app/components.json
-      # node_modules stays in the container (faster, avoids host/arch mismatch).
+      - ./frontend:/app
+      - /app/node_modules
     ports:
       - "5173:5173"
 

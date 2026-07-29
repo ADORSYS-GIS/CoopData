@@ -100,6 +100,18 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/submissions/{id}",
             get(get_submission).delete(delete_submission),
         )
+        .route(
+            "/submissions/{id}/manual-financial-statement",
+            post(crate::api::handlers::financial_statement::create_manual_financial_statement),
+        )
+        .route(
+            "/submissions/{id}/manual-members",
+            post(crate::api::handlers::non_financial::create_manual_members),
+        )
+        .route(
+            "/submissions/{id}/non-financial",
+            axum::routing::delete(crate::api::handlers::non_financial::delete_non_financial_data),
+        )
         .route("/submissions/{id}/submit", post(submit_submission))
         .route(
             "/submissions/{id}/export",

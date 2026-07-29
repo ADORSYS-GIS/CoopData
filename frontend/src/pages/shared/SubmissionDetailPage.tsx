@@ -17,6 +17,9 @@ import {
   ZoomOut,
   Maximize2,
   ExternalLink,
+  Upload,
+  PenLine,
+  Users,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -26,6 +29,7 @@ import {
   useSubmissionReviews,
   useDeleteFinancialStatement,
 } from "@/hooks/submissions/useSubmissions";
+import { useDeleteManualNonFinancialData } from "@/hooks/submissions/useManualEntry";
 import {
   useApexApprove,
   useApexReturn,
@@ -314,6 +318,42 @@ const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// ── Clear Non-Financial Databases Button ──────────────────────────────────────
+
+const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
+  const deleteNf = useDeleteManualNonFinancialData(submissionId);
+
+  const handleClick = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to clear all non-financial databases (membership, savings, loans, deposits, and farm profile)? This cannot be undone.",
+      )
+    )
+      return;
+    try {
+      await deleteNf.mutateAsync();
+      toast.success("Non-financial databases cleared successfully");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to clear databases");
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={deleteNf.isPending}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
+    >
+      {deleteNf.isPending ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <Trash2 className="size-3.5" />
+      )}
+      Clear Non-Financial Databases
+    </button>
   );
 };
 
@@ -1156,9 +1196,51 @@ export const SubmissionDetailPage: React.FC = () => {
               {!submission.financial_statement_id && !isExtracting && isCooperative && (
                 <Card
                   title="Financial Statement"
-                  subtitle="Upload your audited balance sheet — data is extracted automatically"
+                  subtitle="Choose how you want to submit your financial data"
                 >
-                  <UploadFinancialStatementWidget submissionId={submission.id} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+                    {/* Option 1: Upload */}
+                    <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                      <div className="size-10 rounded-xl bg-primary/10 grid place-items-center">
+                        <Upload className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Upload your audited balance sheet PDF or Excel file. Our AI will extract and map the data automatically.
+                        </p>
+                      </div>
+                      <div className="mt-auto">
+                        <UploadFinancialStatementWidget submissionId={submission.id} />
+                      </div>
+                    </div>
+
+                    {/* Option 2: Manual Entry */}
+                    <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-accent/30 hover:bg-accent/5 transition-all group">
+                      <div className="size-10 rounded-xl bg-accent/10 grid place-items-center">
+                        <PenLine className="size-5 text-accent" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground">Manual Entry</h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Don't have the file? Enter your financial data directly using our structured forms — all Chart of Accounts fields included.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          navigate({
+                            to: "/app/submissions/$id/manual-entry",
+                            params: { id: submission.id },
+                            search: { step: "financial" },
+                          })
+                        }
+                        className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm"
+                      >
+                        <PenLine className="size-4" />
+                        Enter Data Manually
+                      </button>
+                    </div>
+                  </div>
                 </Card>
               )}
               {!submission.financial_statement_id && !isExtracting && !isCooperative && (
@@ -1349,38 +1431,89 @@ function NfDatabasesTab({
   };
 
   const sec = (key: string) => sections?.find((s) => s.section === key);
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-4">
+      {isCooperative && isDraft && hasData && (
+        <div className="flex justify-end pr-2">
+          <ClearNonFinancialButton submissionId={submissionId} />
+        </div>
+      )}
       {isCooperative && isDraft && (
-        <Card
-          title="Upload Non-Financial Databases"
-          subtitle="Upload your Excel file containing member, savings, loan, and farm data"
-          edge="primary"
-        >
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {[
-                { sheet: "NF MSHIP", label: "Members" },
-                { sheet: "NF S", label: "Savings" },
-                { sheet: "NF LOANS", label: "Loans" },
-                { sheet: "NF FS", label: "Fixed Deposits" },
-                { sheet: "NF FARM", label: "Farm Coop" },
-              ].map(({ sheet, label }) => (
-                <div
-                  key={sheet}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
-                >
-                  <span className="font-mono">{sheet}</span>
-                  <span className="text-muted-foreground/50">·</span>
-                  <span>{label}</span>
-                </div>
-              ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Option 1: Upload Excel */}
+          <Card
+            title="Upload Non-Financial Databases"
+            subtitle="Upload your Excel file containing member, savings, loan, and farm data"
+            edge="primary"
+          >
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { sheet: "NF MSHIP", label: "Members" },
+                  { sheet: "NF S", label: "Savings" },
+                  { sheet: "NF LOANS", label: "Loans" },
+                  { sheet: "NF FS", label: "Fixed Deposits" },
+                  { sheet: "NF FARM", label: "Farm Coop" },
+                ].map(({ sheet, label }) => (
+                  <div
+                    key={sheet}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                  >
+                    <span className="font-mono">{sheet}</span>
+                    <span className="text-muted-foreground/50">·</span>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+              <NfUploadZone submissionId={submissionId} onUploadComplete={onUploadComplete} />
+              {nfResult && <NfParseResults result={nfResult} />}
             </div>
-            <NfUploadZone submissionId={submissionId} onUploadComplete={onUploadComplete} />
-            {nfResult && <NfParseResults result={nfResult} />}
-          </div>
-        </Card>
+          </Card>
+
+          {/* Option 2: Manual Entry */}
+          <Card
+            title="Manual Entry"
+            subtitle="Enter your member and database records directly using structured forms"
+          >
+            <div className="flex flex-col gap-4 h-full">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { icon: "👥", label: "Members" },
+                  { icon: "💰", label: "Savings" },
+                  { icon: "📋", label: "Loans" },
+                  { icon: "🏦", label: "Fixed Deposits" },
+                ].map(({ icon, label }) => (
+                  <div
+                    key={label}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                  >
+                    <span>{icon}</span>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Don't have the Excel file? Use our guided forms to enter your member, savings,
+                loan, and deposit data row by row.
+              </p>
+              <button
+                onClick={() =>
+                  navigate({
+                    to: "/app/submissions/$id/manual-entry",
+                    params: { id: submissionId },
+                    search: { step: "members" },
+                  })
+                }
+                className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm w-full"
+              >
+                <Users className="size-4" />
+                Enter Member Data Manually
+              </button>
+            </div>
+          </Card>
+        </div>
       )}
 
       {isLoading && (

@@ -362,3 +362,21 @@ impl From<CoaModel> for ChartOfAccountResponse {
         }
     }
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualFinancialStatementRequest {
+    pub accounting_year: String,
+    pub currency: String,
+    pub line_items: Vec<ManualLineItemRequest>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualLineItemRequest {
+    pub account_code: Option<i32>,
+    pub account_name: String,
+    pub account_category: String,
+    pub account_subcategory: String,
+    pub month: i16,
+    pub value: Option<f64>,
+}
+

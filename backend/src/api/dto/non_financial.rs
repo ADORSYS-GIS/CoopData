@@ -1046,3 +1046,116 @@ impl From<EngineNfStatisticsResponse> for NfStatisticsResponse {
         }
     }
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualMembersRequest {
+    pub members: Vec<ManualMemberEntry>,
+    pub savings_accounts: Option<Vec<ManualSavingsAccountEntry>>,
+    pub loans: Option<Vec<ManualLoanEntry>>,
+    pub fixed_deposits: Option<Vec<ManualFixedDepositEntry>>,
+    pub farm_coop: Option<Vec<ManualFarmCoopEntry>>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualMemberEntry {
+    pub member_id: String,
+    pub join_date: NaiveDate,
+    pub status: MemberStatus,
+    pub exit_date: Option<NaiveDate>,
+    pub gender: Gender,
+    pub age_group: AgeGroup,
+    pub region: EswatiniRegion,
+    pub urban_rural: UrbanRural,
+    pub agm_attendance: bool,
+    pub leadership_role: Option<String>,
+    pub voting_exercised: bool,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualSavingsAccountEntry {
+    pub member_business_id: String,
+    pub savings_account_id: String,
+    pub account_type: AccountType,
+    pub account_opening_date: NaiveDate,
+    pub account_status: String,
+    pub contribution_frequency: String,
+    pub last_contribution_date: Option<NaiveDate>,
+    pub number_of_contributions: i32,
+    pub balance_trend: String,
+    pub zero_balance_flag: bool,
+    pub withdrawal_frequency_category: String,
+    pub emergency_withdrawals_flag: bool,
+    pub interest_rate: Decimal,
+    pub balance: Decimal,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualLoanEntry {
+    pub member_business_id: String,
+    pub loan_id: String,
+    pub loan_product_type: String,
+    pub loan_start_date: NaiveDate,
+    pub loan_maturity_date: NaiveDate,
+    pub loan_status: LoanStatus,
+    pub borrower_type: String,
+    pub youth_borrower_flag: bool,
+    pub women_borrower_flag: bool,
+    pub rural_borrower_flag: bool,
+    pub repayment_regularity: String,
+    pub days_past_due_category: DpdCategory,
+    pub missed_installments_count: i32,
+    pub restructured_loan_flag: bool,
+    pub number_of_restructurings: i32,
+    pub early_settlement_flag: bool,
+    pub multiple_loans_flag: bool,
+    pub large_borrower_flag: bool,
+    pub interest_rate: Decimal,
+    pub balance: Decimal,
+    pub loan_amount: Decimal,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualFixedDepositEntry {
+    pub member_business_id: String,
+    pub fixed_deposit_id: String,
+    pub deposit_type: String,
+    pub start_date: NaiveDate,
+    pub maturity_date: NaiveDate,
+    pub status: FdStatus,
+    pub tenure_category: String,
+    pub original_tenure_selected: String,
+    pub early_withdrawal_flag: bool,
+    pub rollover_at_maturity_flag: bool,
+    pub number_of_renewals: i32,
+    pub change_in_tenure_at_renewal: bool,
+    pub single_depositor_dependency_flag: bool,
+    pub interest_rate: Decimal,
+    pub balance: Decimal,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ManualFarmCoopEntry {
+    pub cooperative_type: String,
+    pub primary_activities: String,
+    pub year_of_establishment: Option<i32>,
+    pub operational_status: String,
+    pub active_producer_flag: bool,
+    pub production_type: String,
+    pub participation_frequency: String,
+    pub delivery_compliance: String,
+    pub production_cycle_type: String,
+    pub use_of_production_planning: bool,
+    pub use_of_shared_inputs: bool,
+    pub quality_compliance_flag: bool,
+    pub market_channel_type: String,
+    pub formal_offtake_agreement: bool,
+    pub buyer_concentration_flag: bool,
+    pub price_predictability_category: String,
+    pub access_to_storage: bool,
+    pub access_to_processing_facilities: bool,
+    pub transport_coordination: String,
+    pub climate_exposure_type: String,
+    pub irrigation_access: bool,
+    pub climate_mitigation_practices: String,
+}
+

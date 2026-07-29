@@ -377,21 +377,22 @@ pub async fn delete_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
 
-    let job = state
+    if let Some(job) = state
         .extraction_job_repo
         .find_by_submission(submission_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("No extraction job for this submission".into()))?;
+    {
+        if let Some(file) = state
+            .uploaded_file_repo
+            .find_by_id(job.source_file_id)
+            .await?
+        {
+            let _ = state.storage.delete(&file.storage_key).await;
+            state.uploaded_file_repo.delete(file.id).await?;
+        }
+        state.extraction_job_repo.delete(job.id).await?;
+    }
 
-    let file = state
-        .uploaded_file_repo
-        .find_by_id(job.source_file_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("No uploaded file for this submission".into()))?;
-
-    state.storage.delete(&file.storage_key).await?;
-    state.extraction_job_repo.delete(job.id).await?;
-    state.uploaded_file_repo.delete(file.id).await?;
     state.financial_statement_repo.delete(fs.id).await?;
 
     tracing::info!(
