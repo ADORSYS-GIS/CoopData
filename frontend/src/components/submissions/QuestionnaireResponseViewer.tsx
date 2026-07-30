@@ -16,6 +16,7 @@ import { useQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQues
 
 interface QuestionnaireResponseViewerProps {
   submissionId: string;
+  questionnaireType?: "financial" | "non_financial";
 }
 
 const getEmoji = (iconName: string): string => {
@@ -33,9 +34,10 @@ const getEmoji = (iconName: string): string => {
 
 export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerProps> = ({
   submissionId,
+  questionnaireType,
 }) => {
-  const { data: response, isLoading: isResponseLoading, error: responseError } = useQuestionnaire(submissionId);
-  const qType = response?.questionnaire_type;
+  const { data: response, isLoading: isResponseLoading, error: responseError } = useQuestionnaire(submissionId, questionnaireType);
+  const qType = response?.questionnaire_type || questionnaireType;
   
   const { data: template, isLoading: isTemplateLoading } = useActiveTemplate(qType ?? "");
   const [selectedSectionIndex, setSelectedSectionIndex] = useState(0);

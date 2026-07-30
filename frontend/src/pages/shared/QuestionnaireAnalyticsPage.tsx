@@ -12,10 +12,25 @@ import {
   TrendingDown,
   Percent,
   AlertCircle,
+  Building2,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useQuestionnaireAnalytics } from "@/hooks/submissions/useQuestionnaire";
+import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { Link } from "@tanstack/react-router";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const REGION_OPTIONS = [
   { value: "all", label: "All Regions" },
@@ -39,17 +54,22 @@ const YEAR_OPTIONS = [
   { value: "2025", label: "2025" },
   { value: "2024", label: "2024" },
   { value: "2023", label: "2023" },
+  { value: "2022", label: "2022" },
 ];
 
 export const QuestionnaireAnalyticsPage: React.FC = () => {
   const [reportingYear, setReportingYear] = useState("2026");
   const [region, setRegion] = useState("all");
   const [sector, setSector] = useState("all");
+  const [cooperativeId, setCooperativeId] = useState("all");
+
+  const { data: cooperatives = [] } = useCooperatives();
 
   const { data: stats, isLoading, error } = useQuestionnaireAnalytics({
     reporting_year: reportingYear,
     region,
     sector,
+    cooperative_id: cooperativeId,
   });
 
   const formatCurrency = (val: number) => {
@@ -77,6 +97,22 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
     ? Math.round((stats.total_active_members / stats.total_registered_members) * 100)
     : 0;
 
+  const regionChartData = stats && stats.region_counts
+    ? Object.entries(stats.region_counts).map(([name, count]) => ({
+        name,
+        value: count,
+      }))
+    : [];
+
+  const sectorChartData = stats && stats.sector_counts
+    ? Object.entries(stats.sector_counts).map(([name, count]) => ({
+        name,
+        value: count,
+      }))
+    : [];
+
+  const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#ef4444"];
+
   return (
     <AppShell
       title="Basic Tier Analytics"
@@ -85,7 +121,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
       <div className="flex flex-col gap-6">
 
         {/* Filter bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-card border border-border p-4 rounded-2xl shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-card border border-border p-4 rounded-2xl shadow-sm">
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
               <Calendar className="size-3" /> Reporting Year
@@ -136,6 +172,24 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
               ))}
             </select>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+              <Building2 className="size-3" /> Cooperative
+            </label>
+            <select
+              value={cooperativeId}
+              onChange={(e) => setCooperativeId(e.target.value)}
+              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="all">All Cooperatives</option>
+              {cooperatives.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {isLoading ? (
@@ -153,8 +207,22 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* Scope Summary Banner */}
+            <div className="rounded-2xl border border-blue-500/10 bg-blue-500/5 p-4 flex items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                <AlertCircle className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                <span>
+                  <strong>Data Scope Information:</strong> Consolidated statistics derived from{" "}
+                  <strong>{stats.total_reporting_cooperatives} dynamic questionnaire submission(s)</strong>{" "}
+                  out of <strong>{cooperatives.length} total registered cooperative(s)</strong> for reporting year{" "}
+                  <strong>{reportingYear}</strong>.
+                </span>
+              </div>
+            </div>
+
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card 1: Reporting Rate */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
                 <div className="absolute right-3 top-3 p-2 bg-blue-500/10 text-blue-600 rounded-xl">
                   <BarChart3 className="size-4" />
@@ -163,13 +231,16 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                   Reporting Cooperatives
                 </span>
                 <span className="text-2xl font-bold text-foreground mt-1">
-                  {stats.total_reporting_cooperatives}
+                  {stats.total_reporting_cooperatives} / {cooperatives.length}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
-                  With approved or submitted questionnaires
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
+                  {cooperatives.length > 0
+                    ? `${Math.round((stats.total_reporting_cooperatives / cooperatives.length) * 100)}% submission rate`
+                    : "0% submission rate"}
                 </span>
               </div>
 
+              {/* Card 2: Consolidated Membership */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
                 <div className="absolute right-3 top-3 p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
                   <Users className="size-4" />
@@ -185,6 +256,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 </span>
               </div>
 
+              {/* Card 3: Total Share Capital */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
                 <div className="absolute right-3 top-3 p-2 bg-amber-500/10 text-amber-600 rounded-xl">
                   <DollarSign className="size-4" />
@@ -200,6 +272,39 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 </span>
               </div>
 
+              {/* Card 4: Total Savings Value */}
+              <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
+                <div className="absolute right-3 top-3 p-2 bg-indigo-500/10 text-indigo-600 rounded-xl">
+                  <DollarSign className="size-4" />
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Total Savings Value
+                </span>
+                <span className="text-2xl font-bold text-foreground mt-1">
+                  {formatCurrency(stats.total_savings_value)}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Consolidated member savings balance
+                </span>
+              </div>
+
+              {/* Card 5: Outstanding Loans */}
+              <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
+                <div className="absolute right-3 top-3 p-2 bg-rose-500/10 text-rose-600 rounded-xl">
+                  <TrendingDown className="size-4" />
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Outstanding Loans
+                </span>
+                <span className="text-2xl font-bold text-foreground mt-1">
+                  {formatCurrency(stats.total_loans_outstanding)}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Consolidated loan book balance
+                </span>
+              </div>
+
+              {/* Card 6: Net Surplus / Income */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
                 <div className="absolute right-3 top-3 p-2 bg-violet-500/10 text-violet-600 rounded-xl">
                   <TrendingUp className="size-4" />
@@ -314,6 +419,96 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                   <span className="text-muted-foreground">Operating Expenses:</span>
                   <span className="font-semibold text-foreground">{formatCurrency(stats.total_expenditure)}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Visual Analytics Graphs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Region Pie Chart */}
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-4">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <MapPin className="size-4 text-primary" /> Geographic Distribution (Regions)
+                </h3>
+                {regionChartData.length > 0 ? (
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={regionChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {regionChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip
+                          contentStyle={{
+                            background: "hsl(var(--card))",
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                        />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-xs text-muted-foreground">
+                    No regional data available
+                  </div>
+                )}
+              </div>
+
+              {/* Sector Bar Chart */}
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-4">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Briefcase className="size-4 text-primary" /> Sectoral Distribution
+                </h3>
+                {sectorChartData.length > 0 ? (
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={sectorChartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(229, 231, 235, 0.3)" />
+                        <RechartsXAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        />
+                        <RechartsYAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                          allowDecimals={false}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            background: "hsl(var(--card))",
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                          cursor={{ fill: "transparent" }}
+                        />
+                        <Bar dataKey="value" name="Cooperatives" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
+                          {sectorChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-xs text-muted-foreground">
+                    No sectoral data available
+                  </div>
+                )}
               </div>
             </div>
 

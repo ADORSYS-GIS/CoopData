@@ -26,6 +26,19 @@ impl QuestionnaireRepository {
             .map_err(AppError::DatabaseError)
     }
 
+    pub async fn find_by_submission_and_type(
+        &self,
+        submission_id: Uuid,
+        questionnaire_type: &str,
+    ) -> AppResult<Option<questionnaire_response::Model>> {
+        questionnaire_response::Entity::find()
+            .filter(QuestionnaireResponseColumn::SubmissionId.eq(submission_id))
+            .filter(QuestionnaireResponseColumn::QuestionnaireType.eq(questionnaire_type))
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
     pub async fn find_by_cooperative_and_year(
         &self,
         cooperative_id: Uuid,
@@ -50,7 +63,7 @@ impl QuestionnaireRepository {
         use sea_orm::Set;
         use crate::entities::questionnaire_response::ActiveModel;
 
-        if let Some(existing) = self.find_by_submission(submission_id).await? {
+        if let Some(existing) = self.find_by_submission_and_type(submission_id, &questionnaire_type).await? {
             let mut active: ActiveModel = existing.into();
             active.answers = Set(answers);
             active.updated_at = Set(chrono::Utc::now());

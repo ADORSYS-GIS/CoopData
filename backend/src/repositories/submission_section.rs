@@ -13,7 +13,6 @@ pub const SECTIONS: &[&str] = &[
     "loans",
     "fixed_deposits",
     "farm_coop",
-    "indicators",
 ];
 pub const VALID_STATUSES: &[&str] = &["pending", "in_progress", "ready"];
 

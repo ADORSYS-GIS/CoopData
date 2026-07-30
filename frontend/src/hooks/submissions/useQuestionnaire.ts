@@ -18,13 +18,14 @@ export interface QuestionnaireResponseData {
   updated_at: string;
 }
 
-export const useQuestionnaire = (submissionId: string) =>
+export const useQuestionnaire = (submissionId: string, questionnaireType?: string) =>
   useQuery({
-    queryKey: [QUESTIONNAIRE_KEY, submissionId],
+    queryKey: [QUESTIONNAIRE_KEY, submissionId, questionnaireType],
     queryFn: async () => {
-      const res = await fetchWithAuth(
-        `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`
-      );
+      const url = questionnaireType
+        ? `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire?questionnaire_type=${questionnaireType}`
+        : `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`;
+      const res = await fetchWithAuth(url);
       if (res.status === 404) return null;
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -58,7 +59,9 @@ export const useSaveQuestionnaire = (submissionId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUESTIONNAIRE_KEY, submissionId] });
-      qc.invalidateQueries({ queryKey: ["submissions", submissionId] });
+      qc.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId, "sections"] });
+      qc.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId] });
+      qc.invalidateQueries({ queryKey: ["cooperative-submissions"] });
     },
   });
 };

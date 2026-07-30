@@ -53,6 +53,7 @@ import { NfParseResults } from "@/components/non-financial/NfParseResults";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
 import { QuestionnaireResponseViewer } from "@/components/submissions/QuestionnaireResponseViewer";
+import { useQuestionnaire } from "@/hooks/submissions/useQuestionnaire";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
@@ -109,6 +110,10 @@ function sectionStatusLabel(status: string) {
     ] ?? status
   );
 }
+
+const isQuestionnaireFilled = (q: any) => {
+  return q && q.id && q.id !== "00000000-0000-0000-0000-000000000000";
+};
 
 // ── Document Viewer ────────────────────────────────────────────────────────────
 
@@ -425,6 +430,8 @@ export const SubmissionDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("financial");
   const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
   const { data: reviews } = useSubmissionReviews(id);
+  const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
+  const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
 
   const params = { submission_id: id ?? "", page: 1, page_size: 1 };
   const { data: membersData } = useMembers(id ? params : undefined);
@@ -435,10 +442,10 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const hasUploadedData = (sectionKey: string): boolean => {
     if (sectionKey === "financial") {
-      return !!submission?.financial_statement_id;
+      return !!submission?.financial_statement_id || isQuestionnaireFilled(financialQ);
     }
     if (sectionKey === "indicators") {
-      return true;
+      return isQuestionnaireFilled(nonFinancialQ);
     }
     if (sectionKey === "members") {
       return (membersData?.total ?? 0) > 0 || (membersData?.data?.length ?? 0) > 0;
@@ -468,7 +475,17 @@ export const SubmissionDetailPage: React.FC = () => {
   const isReadOnly = submission ? submission.status !== "draft" || role !== "cooperative" : true;
   const isDraft = submission?.status === "draft";
   const isCooperative = role === "cooperative";
-  const requiredSections = sections?.filter((s) => s.section !== "farm_coop") ?? [];
+  const mappedSections = (sections ?? []).map((s) => {
+    // If non-financial questionnaire is filled, database sections are implicitly ready
+    if (
+      isQuestionnaireFilled(nonFinancialQ) &&
+      ["members", "savings", "loans", "fixed_deposits", "farm_coop"].includes(s.section)
+    ) {
+      return { ...s, status: "ready" };
+    }
+    return s;
+  });
+  const requiredSections = mappedSections.filter((s) => s.section !== "farm_coop");
   const allReady =
     requiredSections.length > 0 && requiredSections.every((s) => s.status === "ready");
   const canSubmit = isDraft && allReady && isCooperative && !isExtracting;
@@ -584,16 +601,7 @@ export const SubmissionDetailPage: React.FC = () => {
       pendingAction: "Upload Excel",
       readyAction: "View Farm Data",
     },
-    {
-      key: "indicators",
-      label: "Non-Financial Indicators",
-      description: "Regulatory governance and operations indicators",
-      tab: "non-financial",
-      icon: BarChart3,
-      pendingAction: "Complete Ledger",
-      progressAction: "Complete Ledger",
-      readyAction: "View Ledger",
-    },
+
   ];
 
   return (
@@ -806,7 +814,7 @@ export const SubmissionDetailPage: React.FC = () => {
               <div className="p-5">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {sectionMeta.map((m, idx) => {
-                    const secObj = sections?.find((s) => s.section === m.key);
+                    const secObj = mappedSections.find((s) => s.section === m.key);
                     const status = secObj?.status ?? "pending";
                     const hasData = hasUploadedData(m.key);
                     const isReady = status === "ready";
@@ -908,46 +916,49 @@ export const SubmissionDetailPage: React.FC = () => {
                             >
                               View →
                             </button>
-                          ) : isInProgress && m.key !== "financial" ? (
-                            <button
-                              onClick={async () => {
-                                setUpdatingSectionKey(m.key);
-                                try {
-                                  await updateSection.mutateAsync({
-                                    section: m.key,
-                                    status: "ready",
-                                  });
-                                  toast.success(`${m.label} marked ready`);
-                                } catch (e) {
-                                  toast.error(e instanceof Error ? e.message : "Failed to update");
-                                } finally {
-                                  setUpdatingSectionKey(null);
-                                }
-                              }}
-                              disabled={updateSection.isPending}
-                              className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2.5 py-1 text-[11px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
-                            >
-                              {isUpdatingThis ? (
-                                <Loader2 className="size-3 animate-spin" />
-                              ) : (
-                                <CheckCircle2 className="size-3" />
-                              )}
-                              Mark Ready
-                            </button>
                           ) : (
-                            <button
-                              onClick={() => {
-                                setActiveTab(m.tab);
-                                const el = document.getElementById("detail-tabs-list");
-                                if (el) el.scrollIntoView({ behavior: "smooth" });
-                              }}
-                              className="text-[11px] font-semibold text-primary hover:underline transition-colors"
-                            >
-                              {isInProgress
-                                ? (m.progressAction ?? m.pendingAction)
-                                : m.pendingAction}{" "}
-                              →
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {m.key !== "financial" && (hasUploadedData(m.key) || isInProgress) && (
+                                <button
+                                  onClick={async () => {
+                                    setUpdatingSectionKey(m.key);
+                                    try {
+                                      await updateSection.mutateAsync({
+                                        section: m.key,
+                                        status: "ready",
+                                      });
+                                      toast.success(`${m.label} marked ready`);
+                                    } catch (e) {
+                                      toast.error(e instanceof Error ? e.message : "Failed to update");
+                                    } finally {
+                                      setUpdatingSectionKey(null);
+                                    }
+                                  }}
+                                  disabled={updateSection.isPending}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                  {isUpdatingThis ? (
+                                    <Loader2 className="size-2.5 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="size-2.5" />
+                                  )}
+                                  Mark Ready
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setActiveTab(m.tab);
+                                  const el = document.getElementById("detail-tabs-list");
+                                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                                }}
+                                className="text-[11px] font-semibold text-primary hover:underline transition-colors shrink-0"
+                              >
+                                {isInProgress
+                                  ? (m.progressAction ?? m.pendingAction)
+                                  : m.pendingAction}{" "}
+                                →
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1158,7 +1169,7 @@ export const SubmissionDetailPage: React.FC = () => {
             </Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList id="detail-tabs-list" className="w-full grid grid-cols-3 mb-5 h-auto p-1">
+              <TabsList id="detail-tabs-list" className="w-full grid grid-cols-2 mb-5 h-auto p-1">
                 <TabsTrigger value="financial" className="flex items-center gap-2 py-2.5">
                   <FileText className="size-4" />
                   <span>Financial Statement</span>
@@ -1166,10 +1177,6 @@ export const SubmissionDetailPage: React.FC = () => {
                 <TabsTrigger value="databases" className="flex items-center gap-2 py-2.5">
                   <Database className="size-4" />
                   <span>Non-Financial Information</span>
-                </TabsTrigger>
-                <TabsTrigger value="non-financial" className="flex items-center gap-2 py-2.5">
-                  <BarChart3 className="size-4" />
-                  <span>Non-Financial Indicators</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1211,117 +1218,168 @@ export const SubmissionDetailPage: React.FC = () => {
                     />
                   </Card>
                 )}
-                {submission.financial_statement_id && (
-                  <FinancialStatementEditor
-                    fsId={submission.financial_statement_id}
-                    submissionId={submission.id}
-                    isDraft={isDraft}
-                    isCooperative={isCooperative}
-                  />
-                )}
-                {!submission.financial_statement_id && !isExtracting && isCooperative && (
+                {isQuestionnaireFilled(financialQ) ? (
                   <Card
-                    title="Financial Statement"
-                    subtitle="Choose how you want to submit your financial data"
+                    title="Financial Questionnaire Responses"
+                    subtitle="Guided form entries submitted by the cooperative"
+                    action={
+                      isDraft && isCooperative ? (
+                        <button
+                          onClick={() =>
+                            navigate({
+                              to: `/app/submissions/${submission.id}/questionnaire`,
+                              search: { type: "financial" },
+                            })
+                          }
+                          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                          <ClipboardList className="size-3.5" />
+                          Edit Answers
+                        </button>
+                      ) : undefined
+                    }
                   >
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
-                      {/* Option 1: Upload */}
-                      <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-primary/30 hover:bg-primary/5 transition-all group">
-                        <div className="size-10 rounded-xl bg-primary/10 grid place-items-center">
-                          <Upload className="size-5 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Upload your audited balance sheet PDF or Excel file. Our AI will extract and map the data automatically.
-                          </p>
-                        </div>
-                        <div className="mt-auto">
-                          <UploadFinancialStatementWidget submissionId={submission.id} />
-                        </div>
-                      </div>
-
-                      {/* Option 2: Manual Entry */}
-                      <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-accent/30 hover:bg-accent/5 transition-all group">
-                        <div className="size-10 rounded-xl bg-accent/10 grid place-items-center">
-                          <PenLine className="size-5 text-accent" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-foreground">Manual Entry</h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Don't have the file? Enter your financial data directly using our structured forms — all Chart of Accounts fields included.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            navigate({
-                              to: "/app/submissions/$id/manual-entry",
-                              params: { id: submission.id },
-                              search: { step: "financial" },
-                            })
-                          }
-                          className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm"
-                        >
-                          <PenLine className="size-4" />
-                          Enter Data Manually
-                        </button>
-                      </div>
-
-                      {/* Option 3: Questionnaire (Basic Cooperatives) */}
-                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col gap-3 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all group">
-                        <div className="size-10 rounded-xl bg-emerald-500/10 grid place-items-center">
-                          <ClipboardList className="size-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
-                            <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">Basic</span>
+                    <QuestionnaireResponseViewer submissionId={submission.id} questionnaireType="financial" />
+                  </Card>
+                ) : (
+                  <>
+                    {submission.financial_statement_id && (
+                      <FinancialStatementEditor
+                        fsId={submission.financial_statement_id}
+                        submissionId={submission.id}
+                        isDraft={isDraft}
+                        isCooperative={isCooperative}
+                      />
+                    )}
+                    {!submission.financial_statement_id && !isExtracting && isCooperative && (
+                      <Card
+                        title="Financial Statement"
+                        subtitle="Choose how you want to submit your financial data"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
+                          {/* Option 1: Upload */}
+                          <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                            <div className="size-10 rounded-xl bg-primary/10 grid place-items-center">
+                              <Upload className="size-5 text-primary" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Upload your audited balance sheet PDF or Excel file. Our AI will extract and map the data automatically.
+                              </p>
+                            </div>
+                            <div className="mt-auto">
+                              <UploadFinancialStatementWidget submissionId={submission.id} />
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            For basic-tier cooperatives that cannot provide full financial ledgers. Answer guided questions to complete your submission.
-                          </p>
+
+                          {/* Option 2: Manual Entry */}
+                          <div className="rounded-xl border border-border bg-muted/20 p-5 flex flex-col gap-3 hover:border-accent/30 hover:bg-accent/5 transition-all group">
+                            <div className="size-10 rounded-xl bg-accent/10 grid place-items-center">
+                              <PenLine className="size-5 text-accent" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-foreground">Manual Entry</h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Don't have the file? Enter your financial data directly using our structured forms — all Chart of Accounts fields included.
+                              </p>
+                            </div>
+                            <button
+                              onClick={() =>
+                                navigate({
+                                  to: "/app/submissions/$id/manual-entry",
+                                  params: { id: submission.id },
+                                  search: { step: "financial" },
+                                })
+                              }
+                              className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm"
+                            >
+                              <PenLine className="size-4" />
+                              Enter Data Manually
+                            </button>
+                          </div>
+
+                          {/* Option 3: Questionnaire (Basic Cooperatives) */}
+                          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col gap-3 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all group">
+                            <div className="size-10 rounded-xl bg-emerald-500/10 grid place-items-center">
+                              <ClipboardList className="size-5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
+                                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">Basic</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                For basic-tier cooperatives that cannot provide full financial ledgers. Answer guided questions to complete your submission.
+                              </p>
+                            </div>
+                            <button
+                              onClick={() =>
+                                navigate({
+                                  to: "/app/submissions/$id/questionnaire",
+                                  params: { id: submission.id },
+                                  search: { type: "financial" },
+                                })
+                              }
+                              className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                            >
+                              <ClipboardList className="size-4" />
+                              Start Questionnaire
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={() =>
-                            navigate({
-                              to: "/app/submissions/$id/questionnaire",
-                              params: { id: submission.id },
-                            })
-                          }
-                          className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
-                        >
-                          <ClipboardList className="size-4" />
-                          Start Questionnaire
-                        </button>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-                {!submission.financial_statement_id && !isExtracting && !isCooperative && (
-                  <Card title="Financial Statement" subtitle="No document uploaded yet">
-                    <div className="py-10 text-center text-muted-foreground">
-                      <FileText className="size-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">No financial statement uploaded for this submission.</p>
-                    </div>
-                  </Card>
+                      </Card>
+                    )}
+                    {!submission.financial_statement_id && !isExtracting && !isCooperative && (
+                      <Card title="Financial Statement" subtitle="No document uploaded yet">
+                        <div className="py-10 text-center text-muted-foreground">
+                          <FileText className="size-10 mx-auto mb-3 opacity-30" />
+                          <p className="text-sm">No financial statement uploaded for this submission.</p>
+                        </div>
+                      </Card>
+                    )}
+                  </>
                 )}
               </TabsContent>
 
               <TabsContent value="databases" className="space-y-4">
-                <NfDatabasesTab
-                  submissionId={submission.id}
-                  isReadOnly={isReadOnly}
-                  isDraft={!!isDraft}
-                  isCooperative={isCooperative}
-                  sections={sections}
-                  onUploadComplete={handleNfUploadComplete}
-                  nfResult={nfResult}
-                />
+                {isQuestionnaireFilled(nonFinancialQ) ? (
+                  <Card
+                    title="Non-Financial Questionnaire Responses"
+                    subtitle="Guided form entries submitted by the cooperative"
+                    action={
+                      isDraft && isCooperative ? (
+                        <button
+                          onClick={() =>
+                            navigate({
+                              to: `/app/submissions/${submission.id}/questionnaire`,
+                              search: { type: "non_financial" },
+                            })
+                          }
+                          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                          <ClipboardList className="size-3.5" />
+                          Edit Answers
+                        </button>
+                      ) : undefined
+                    }
+                  >
+                    <QuestionnaireResponseViewer submissionId={submission.id} questionnaireType="non_financial" />
+                  </Card>
+                ) : (
+                  <NfDatabasesTab
+                    submissionId={submission.id}
+                    isReadOnly={isReadOnly}
+                    isDraft={!!isDraft}
+                    isCooperative={isCooperative}
+                    sections={sections}
+                    onUploadComplete={handleNfUploadComplete}
+                    nfResult={nfResult}
+                  />
+                )}
               </TabsContent>
 
-            <TabsContent value="non-financial" className="space-y-4">
-              <NonFinancialIndicatorsForm submissionId={submission.id} isReadOnly={isReadOnly} />
-            </TabsContent>
+
           </Tabs>
           )}
         </div>
@@ -1496,7 +1554,7 @@ function NfDatabasesTab({
         </div>
       )}
       {isCooperative && isDraft && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Option 1: Upload Excel */}
           <Card
             title="Upload Non-Financial Databases"
@@ -1568,6 +1626,35 @@ function NfDatabasesTab({
               </button>
             </div>
           </Card>
+
+          {/* Option 3: Questionnaire (Basic / Non-Financial Options) */}
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col gap-3 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all group">
+            <div className="size-10 rounded-xl bg-emerald-500/10 grid place-items-center">
+              <ClipboardList className="size-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
+                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">Basic</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                For non-financial cooperatives (Agriculture, Handicraft, etc.). Answer guided questions to complete your submission.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                navigate({
+                  to: "/app/submissions/$id/questionnaire",
+                  params: { id: submissionId },
+                  search: { type: "non_financial" },
+                })
+              }
+              className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+            >
+              <ClipboardList className="size-4" />
+              Start Non-Financial Questionnaire
+            </button>
+          </div>
         </div>
       )}
 

@@ -360,6 +360,23 @@ pub async fn list_cooperatives(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
+    if claims.is_ministry() {
+        let list = state.cooperative_repo.list_all().await?;
+        let responses: Vec<CooperativeResponse> = list
+            .into_iter()
+            .map(|c| CooperativeResponse {
+                id: c.id.to_string(),
+                name: c.name,
+                path: None,
+                parent_group_id: Some(c.apex_id.to_string()),
+                description: Some(c.display_name),
+                institution_type: c.institution_type.map(|t| t.as_str().to_string()),
+                region: c.region.map(|r| r.as_str().to_string()),
+            })
+            .collect();
+        return Ok((StatusCode::OK, Json(responses)));
+    }
+
     let apex_id_or_path = claims
         .get_apex_group_id()
         .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     http::StatusCode,
     response::IntoResponse,
     Extension, Json,
@@ -14,6 +14,11 @@ use crate::{
     error::{AppError, AppResult},
     AppState,
 };
+
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct GetQuestionnaireParams {
+    pub questionnaire_type: Option<String>,
+}
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct SaveQuestionnaireRequest {
@@ -51,6 +56,10 @@ impl From<crate::entities::questionnaire_response::Model> for QuestionnaireRespo
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/submissions/{id}/questionnaire",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        GetQuestionnaireParams
+    ),
     responses(
         (status = 200, description = "Questionnaire retrieved successfully", body = QuestionnaireResponseDto),
         (status = 404, description = "Submission not found"),
@@ -61,6 +70,7 @@ pub async fn get_questionnaire_response(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(submission_id): Path<Uuid>,
+    Query(params): Query<GetQuestionnaireParams>,
 ) -> AppResult<impl IntoResponse> {
     let sub = state
         .submission_repo
@@ -76,10 +86,17 @@ pub async fn get_questionnaire_response(
         }
     }
 
-    let response = state
-        .questionnaire_repo
-        .find_by_submission(submission_id)
-        .await?;
+    let response = if let Some(ref q_type) = params.questionnaire_type {
+        state
+            .questionnaire_repo
+            .find_by_submission_and_type(submission_id, q_type)
+            .await?
+    } else {
+        state
+            .questionnaire_repo
+            .find_by_submission(submission_id)
+            .await?
+    };
 
     if let Some(resp) = response {
         Ok((StatusCode::OK, Json(QuestionnaireResponseDto::from(resp))))
@@ -89,7 +106,7 @@ pub async fn get_questionnaire_response(
             id: Uuid::nil(),
             submission_id,
             cooperative_id: sub.cooperative_id,
-            questionnaire_type: "".to_string(),
+            questionnaire_type: params.questionnaire_type.unwrap_or_default(),
             reporting_year: sub.reporting_year,
             answers: serde_json::json!({}),
             created_at: chrono::Utc::now(),
@@ -148,7 +165,28 @@ pub async fn save_questionnaire_response(
         )
         .await?;
 
-    // Auto-mark the "questionnaire" section as ready
+    // Mark corresponding sections as ready based on questionnaire type
+    if saved.questionnaire_type == "financial" {
+        if let Some(section) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "financial")
+            .await?
+        {
+            state.section_repo.update_status(section.id, "ready").await?;
+        }
+    } else if saved.questionnaire_type == "non_financial" {
+        for sec_key in &["members", "savings", "loans", "fixed_deposits"] {
+            if let Some(section) = state
+                .section_repo
+                .find_by_submission_and_section(submission_id, sec_key)
+                .await?
+            {
+                state.section_repo.update_status(section.id, "ready").await?;
+            }
+        }
+    }
+
+    // Auto-mark the "questionnaire" section as ready (for basic-tier submissions)
     if let Some(section) = state
         .section_repo
         .find_by_submission_and_section(submission_id, "questionnaire")
@@ -162,7 +200,7 @@ pub async fn save_questionnaire_response(
 
 // ── Questionnaire Analytics Handler & DTOs ───────────────────────────────────
 
-use axum::extract::Query;
+
 
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct QuestionnaireAnalyticsParams {

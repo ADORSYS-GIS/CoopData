@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useQuestionnaire, useSaveQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
+import { toast } from "sonner";
 
 interface QuestionnaireWizardProps {
   submissionId: string;
@@ -105,7 +106,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
   // Load the active questionnaire template dynamically
   const { data: template, isLoading: isTemplateLoading, error: templateError } = useActiveTemplate(questionnaireType);
-  const { data: existing, isLoading: isResponseLoading } = useQuestionnaire(submissionId);
+  const { data: existing, isLoading: isResponseLoading } = useQuestionnaire(submissionId, questionnaireType);
   const saveMutation = useSaveQuestionnaire(submissionId);
 
   // Load existing answers when fetched
@@ -122,6 +123,42 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     setAnswers((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handlePopulateTestData = () => {
+    const mockAnswers: Record<string, unknown> = { ...answers };
+    sections.forEach((sec: any) => {
+      (sec.fields || []).forEach((field: any) => {
+        if (field.type === "number") {
+          if (field.key.includes("rate") || field.key.includes("percent")) {
+            mockAnswers[field.key] = Math.floor(Math.random() * 15) + 5;
+          } else if (field.key.includes("year") || field.key.includes("age")) {
+            mockAnswers[field.key] = Math.floor(Math.random() * 40) + 20;
+          } else {
+            mockAnswers[field.key] = (Math.floor(Math.random() * 90) + 10) * 100;
+          }
+        } else if (field.type === "select" && field.options && field.options.length > 0) {
+          const randOpt = field.options[Math.floor(Math.random() * field.options.length)];
+          mockAnswers[field.key] = randOpt;
+        } else if (field.type === "date") {
+          mockAnswers[field.key] = new Date().toISOString().split("T")[0];
+        } else if (field.type === "textarea") {
+          mockAnswers[field.key] = `This is a sample test answer for "${field.label}" in the ${sec.title} section.`;
+        } else {
+          if (field.key.includes("name")) {
+            mockAnswers[field.key] = "Unity Cooperative Society Ltd";
+          } else if (field.key.includes("no") || field.key.includes("code")) {
+            mockAnswers[field.key] = "COOP-" + Math.floor(Math.random() * 9000 + 1000);
+          } else if (field.key.includes("email")) {
+            mockAnswers[field.key] = "info@unitycoop.coop";
+          } else {
+            mockAnswers[field.key] = `Test ${field.label}`;
+          }
+        }
+      });
+    });
+    setAnswers(mockAnswers);
+    toast.success("Test questionnaire answers populated!");
+  };
+
   const handleSave = async () => {
     await saveMutation.mutateAsync({
       questionnaire_type: questionnaireType,
@@ -132,6 +169,22 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   };
 
   const handleSaveAndNext = async () => {
+    // Validate current section's required fields
+    const missing: string[] = [];
+    (section.fields || []).forEach((field: any) => {
+      if (field.required) {
+        const val = answers[field.key];
+        if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
+          missing.push(field.label);
+        }
+      }
+    });
+
+    if (missing.length > 0) {
+      toast.error(`Please fill in all required fields in this section before continuing: ${missing.join(", ")}`);
+      return;
+    }
+
     await handleSave();
     if (currentSection < sections.length - 1) {
       setCurrentSection((s) => s + 1);
@@ -140,6 +193,30 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   };
 
   const handleSubmitAll = async () => {
+    // Validate all sections
+    const missing: Array<{ sectionTitle: string; fieldLabel: string; sectionIndex: number }> = [];
+    sections.forEach((sec: any, secIdx: number) => {
+      (sec.fields || []).forEach((field: any) => {
+        if (field.required) {
+          const val = answers[field.key];
+          if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
+            missing.push({
+              sectionTitle: sec.title,
+              fieldLabel: field.label,
+              sectionIndex: secIdx,
+            });
+          }
+        }
+      });
+    });
+
+    if (missing.length > 0) {
+      toast.error(`Cannot complete questionnaire. Please fill in the following required fields: ${missing.map(m => `"${m.fieldLabel}" (${m.sectionTitle})`).join(", ")}`);
+      // Focus/go to the first section with missing fields
+      setCurrentSection(missing[0].sectionIndex);
+      return;
+    }
+
     await saveMutation.mutateAsync({
       questionnaire_type: questionnaireType,
       answers,
@@ -217,6 +294,12 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   <AlertCircle className="size-4" /> Failed to save
                 </span>
               )}
+              <button
+                onClick={handlePopulateTestData}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/45 bg-primary/5 hover:bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
+              >
+                🧪 Populate Test Data
+              </button>
               <button
                 onClick={handleSave}
                 disabled={saveMutation.isPending}

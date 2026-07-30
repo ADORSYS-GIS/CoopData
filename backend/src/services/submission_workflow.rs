@@ -9,7 +9,7 @@ use crate::repositories::{
     KpiRecordRepository, SubmissionRepository, SubmissionReviewRepository,
     SubmissionSectionRepository,
 };
-use sea_orm::Set;
+use sea_orm::{Set, EntityTrait, QueryFilter, ColumnTrait};
 
 pub struct SubmissionWorkflow {
     pub submission_repo: SubmissionRepository,
@@ -73,11 +73,37 @@ impl SubmissionWorkflow {
             )));
         }
 
+        // Query questionnaire responses
+        let has_financial_q = crate::entities::questionnaire_response::Entity::find()
+            .filter(crate::entities::questionnaire_response::Column::SubmissionId.eq(submission_id))
+            .filter(crate::entities::questionnaire_response::Column::QuestionnaireType.eq("financial"))
+            .one(&self.db)
+            .await?
+            .is_some();
+
+        let has_non_financial_q = crate::entities::questionnaire_response::Entity::find()
+            .filter(crate::entities::questionnaire_response::Column::SubmissionId.eq(submission_id))
+            .filter(crate::entities::questionnaire_response::Column::QuestionnaireType.eq("non_financial"))
+            .one(&self.db)
+            .await?
+            .is_some();
+
         // Check all sections are ready
         let sections = self.section_repo.find_by_submission(submission_id).await?;
         let not_ready: Vec<String> = sections
             .iter()
-            .filter(|s| s.section != "farm_coop" && s.status != "ready")
+            .filter(|s| {
+                if s.section == "farm_coop" {
+                    return false;
+                }
+                if has_financial_q && s.section == "financial" {
+                    return false;
+                }
+                if has_non_financial_q && ["members", "savings", "loans", "fixed_deposits"].contains(&s.section.as_str()) {
+                    return false;
+                }
+                s.status != "ready"
+            })
             .map(|s| format!("{} ({})", s.section, s.status))
             .collect();
         if !not_ready.is_empty() {
@@ -87,12 +113,12 @@ impl SubmissionWorkflow {
             )));
         }
 
-        // Verify financial statement exists (only for standard upload / manual grid submissions)
+        // Verify financial statement exists or financial questionnaire is filled
         if sub.submission_method != "questionnaire" {
             let fs = self.fs_repo.find_by_submission(submission_id).await?;
-            if fs.is_none() {
+            if fs.is_none() && !has_financial_q {
                 return Err(AppError::BadRequest(
-                    "A financial statement must be uploaded before submitting".into(),
+                    "A financial statement must be uploaded or financial questionnaire completed before submitting".into(),
                 ));
             }
         }
