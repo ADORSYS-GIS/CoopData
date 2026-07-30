@@ -1,4 +1,5 @@
 use crate::error::AppResult;
+use crate::services::report_narrative;
 use crate::AppState;
 use sea_orm::EntityTrait;
 use uuid::Uuid;
@@ -49,11 +50,100 @@ impl ExportGenerator {
         submission_id: Uuid,
     ) -> AppResult<Vec<u8>> {
         let token = state.keycloak.get_admin_token().await?;
+
+        let narrative_params = match Self::generate_cooperative_narratives(state, submission_id).await {
+            Ok(result) => {
+                tracing::info!(
+                    submission_id = %submission_id,
+                    "Cooperative narratives generated successfully"
+                );
+                if let Err(e) = state
+                    .submission_repo
+                    .update_metadata(
+                        submission_id,
+                        serde_json::json!({ "ai_narratives": result }),
+                    )
+                    .await
+                {
+                    tracing::warn!(
+                        submission_id = %submission_id,
+                        error = %e,
+                        "Failed to persist cooperative narratives to metadata"
+                    );
+                }
+                report_narrative::encode_cooperative_narrative_params(&result)
+            }
+            Err(e) => {
+                tracing::warn!(
+                    submission_id = %submission_id,
+                    error = %e,
+                    "Failed to generate cooperative narratives, using fallback"
+                );
+                String::new()
+            }
+        };
+
         let print_url = format!(
-            "{}/print/cooperative/{}?token={}",
-            state.config.gotenberg_frontend_url, submission_id, token
+            "{}/print/cooperative/{}?token={}{}",
+            state.config.gotenberg_frontend_url, submission_id, token, narrative_params
         );
         Self::generate_pdf_via_gotenberg(state, &print_url).await
+    }
+
+    async fn generate_cooperative_narratives(
+        state: &AppState,
+        submission_id: Uuid,
+    ) -> AppResult<report_narrative::CooperativeNarratives> {
+        let submission = state
+            .submission_repo
+            .find_by_id(submission_id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let coop = state
+            .cooperative_repo
+            .find_by_id(submission.cooperative_id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound("Cooperative not found".into()))?;
+
+        let kpi_records = state.kpi_record_repo.find_by_submission(submission_id).await?;
+
+        let prior_kpi_records = if submission.reporting_year > 2020 {
+            if let Some(prior_sub) = state
+                .submission_repo
+                .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+                .await?
+            {
+                state.kpi_record_repo.find_by_submission(prior_sub.id).await?
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        let ctx = report_narrative::build_cooperative_context(
+            &coop,
+            &submission,
+            &kpi_records,
+            &prior_kpi_records,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
+            crate::error::AppError::InternalServerError("AI semaphore closed".into())
+        })?;
+
+        state
+            .narrative_generator
+            .generate_cooperative_narratives(&ctx)
+            .await
     }
 
     pub(crate) async fn generate_pdf_via_gotenberg(
@@ -181,12 +271,29 @@ impl ExportGenerator {
         apex_id: Uuid,
         reporting_year: i32,
     ) -> AppResult<()> {
-        let (apex, _coops) = Self::compile_apex_data(state, apex_id, reporting_year).await?;
+        let (apex, coops_data) = Self::compile_apex_data(state, apex_id, reporting_year).await?;
+
+        let narrative_params = {
+            let ctx = report_narrative::build_apex_context(&apex, &coops_data, reporting_year);
+            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
+                crate::error::AppError::InternalServerError("AI semaphore closed".into())
+            })?;
+            match state.narrative_generator.generate_apex_narratives(&ctx).await {
+                Ok(result) => {
+                    tracing::info!(apex_id = %apex_id, "Apex narratives generated successfully");
+                    report_narrative::encode_apex_narrative_params(&result)
+                }
+                Err(e) => {
+                    tracing::warn!(apex_id = %apex_id, error = %e, "Failed to generate apex narratives");
+                    String::new()
+                }
+            }
+        };
 
         let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
-            "{}/print/apex/{}?token={}&year={}",
-            state.config.gotenberg_frontend_url, apex.keycloak_id, token, reporting_year
+            "{}/print/apex/{}?token={}&year={}{}",
+            state.config.gotenberg_frontend_url, apex.keycloak_id, token, reporting_year, narrative_params
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!(
@@ -269,13 +376,30 @@ impl ExportGenerator {
         federation_id: Uuid,
         reporting_year: i32,
     ) -> AppResult<()> {
-        let (federation, _apexes_data) =
+        let (federation, apexes_data) =
             Self::compile_federation_data(state, federation_id, reporting_year).await?;
+
+        let narrative_params = {
+            let ctx = report_narrative::build_federation_context(&federation, &apexes_data, reporting_year);
+            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
+                crate::error::AppError::InternalServerError("AI semaphore closed".into())
+            })?;
+            match state.narrative_generator.generate_federation_narratives(&ctx).await {
+                Ok(result) => {
+                    tracing::info!(federation_id = %federation_id, "Federation narratives generated successfully");
+                    report_narrative::encode_federation_narrative_params(&result)
+                }
+                Err(e) => {
+                    tracing::warn!(federation_id = %federation_id, error = %e, "Failed to generate federation narratives");
+                    String::new()
+                }
+            }
+        };
 
         let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
-            "{}/print/federation/{}?token={}&year={}",
-            state.config.gotenberg_frontend_url, federation.keycloak_id, token, reporting_year
+            "{}/print/federation/{}?token={}&year={}{}",
+            state.config.gotenberg_frontend_url, federation.keycloak_id, token, reporting_year, narrative_params
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!(
@@ -359,12 +483,29 @@ impl ExportGenerator {
     }
 
     async fn generate_ministry_formats(state: &AppState, reporting_year: i32) -> AppResult<()> {
-        let _national_data = Self::compile_ministry_data(state, reporting_year).await?;
+        let national_data = Self::compile_ministry_data(state, reporting_year).await?;
+
+        let narrative_params = {
+            let ctx = report_narrative::build_ministry_context(&national_data, reporting_year);
+            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
+                crate::error::AppError::InternalServerError("AI semaphore closed".into())
+            })?;
+            match state.narrative_generator.generate_ministry_narratives(&ctx).await {
+                Ok(result) => {
+                    tracing::info!(reporting_year = reporting_year, "Ministry narratives generated successfully");
+                    report_narrative::encode_ministry_narrative_params(&result)
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to generate ministry narratives");
+                    String::new()
+                }
+            }
+        };
 
         let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
-            "{}/print/ministry?token={}&year={}",
-            state.config.gotenberg_frontend_url, token, reporting_year
+            "{}/print/ministry?token={}&year={}{}",
+            state.config.gotenberg_frontend_url, token, reporting_year, narrative_params
         );
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
         let pdf_key = format!("exports/ministry/ministry_{}.pdf", reporting_year);

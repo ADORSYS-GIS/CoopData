@@ -9,6 +9,7 @@ pub mod kpi_engine;
 pub mod nf_excel_parser;
 pub mod nf_indicator_engine;
 pub mod object_storage;
+pub mod report_narrative;
 pub mod submission_workflow;
 pub mod verification_token;
 
@@ -20,4 +21,5 @@ pub use kpi_engine::KpiEngine;
 pub use nf_excel_parser::CalamineNfParser;
 pub use nf_indicator_engine::NfIndicatorEngine;
 pub use object_storage::ObjectStorageService;
+pub use report_narrative::{create_narrative_generator, ReportNarrativeGenerator};
 pub use verification_token::VerificationTokenService;

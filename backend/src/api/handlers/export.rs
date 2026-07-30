@@ -259,3 +259,137 @@ pub async fn export_bulk_consolidated(
         .unwrap();
     Ok(res)
 }
+
+/// GET /api/v1/{tier}/submissions/{id}/narratives
+/// Returns AI-generated narratives for a submission from metadata cache.
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/narratives",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_submission_narratives(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let allowed_coops =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !allowed_coops.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden(
+            "Access denied to this cooperative's submission".into(),
+        ));
+    }
+
+    let narratives = submission
+        .metadata
+        .get("ai_narratives")
+        .cloned();
+
+    Ok(axum::Json(narratives))
+}
+
+/// POST /api/v1/{tier}/submissions/{id}/narratives/generate
+/// Triggers manual AI narrative regeneration. Ministry admin role protected.
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/narratives/generate",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID")
+    ),
+    responses(
+        (status = 200, description = "Regenerated AI narratives"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn generate_submission_narratives(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let allowed_coops =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !allowed_coops.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden(
+            "Access denied to this cooperative's submission".into(),
+        ));
+    }
+
+    let coop = state
+        .cooperative_repo
+        .find_by_id(submission.cooperative_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    let kpi_records = state.kpi_record_repo.find_by_submission(id).await?;
+
+    let prior_kpi_records = if submission.reporting_year > 2020 {
+        if let Some(prior_sub) = state
+            .submission_repo
+            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .await?
+        {
+            state.kpi_record_repo.find_by_submission(prior_sub.id).await?
+        } else {
+            Vec::new()
+        }
+    } else {
+        Vec::new()
+    };
+
+    let ctx = crate::services::report_narrative::build_cooperative_context(
+        &coop,
+        &submission,
+        &kpi_records,
+        &prior_kpi_records,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
+
+    let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
+        AppError::InternalServerError("AI semaphore closed".into())
+    })?;
+
+    let narratives = state
+        .narrative_generator
+        .generate_cooperative_narratives(&ctx)
+        .await?;
+
+    state
+        .submission_repo
+        .update_metadata(
+            id,
+            serde_json::json!({ "ai_narratives": narratives }),
+        )
+        .await?;
+
+    Ok(axum::Json(serde_json::json!(narratives)))
+}

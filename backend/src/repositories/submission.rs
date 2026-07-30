@@ -141,6 +141,34 @@ impl SubmissionRepository {
         Ok(())
     }
 
+    pub async fn update_metadata(
+        &self,
+        id: Uuid,
+        metadata_patch: serde_json::Value,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        let merged = match active.metadata.clone().unwrap() {
+            serde_json::Value::Object(mut map) => {
+                if let serde_json::Value::Object(patch) = metadata_patch {
+                    for (k, v) in patch {
+                        map.insert(k, v);
+                    }
+                }
+                serde_json::Value::Object(map)
+            }
+            _ => metadata_patch,
+        };
+        active.metadata = Set(merged);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
+
     pub async fn update_status(
         &self,
         id: Uuid,
