@@ -256,34 +256,80 @@ impl LlmNarrativeGenerator {
             "max_tokens": self.max_tokens
         });
 
-        let res = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.api_key)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("Narrative LLM request failed: {e}")))?;
+        const MAX_RETRIES: u32 = 4;
+        const BASE_DELAY_MS: u64 = 12_000; // 12 seconds (5 req/min → 12s between requests)
 
-        if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            tracing::error!(status = %status, response = %text, "Narrative LLM API error");
-            return Err(AppError::ExternalServiceError(format!(
-                "Narrative LLM API error {status}: {text}"
-            )));
+        for attempt in 1..=MAX_RETRIES {
+            let res = self
+                .client
+                .post(&url)
+                .bearer_auth(&self.api_key)
+                .json(&body)
+                .send()
+                .await
+                .map_err(|e| AppError::ExternalServiceError(format!("Narrative LLM request failed: {e}")))?;
+
+            if res.status().as_u16() == 429 {
+                // Rate limited — extract Retry-After or use exponential backoff
+                let retry_after = res
+                    .headers()
+                    .get("retry-after")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(0);
+
+                let delay_ms = if retry_after > 0 {
+                    retry_after * 1000
+                } else {
+                    BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                };
+
+                if attempt < MAX_RETRIES {
+                    tracing::warn!(
+                        attempt,
+                        max_retries = MAX_RETRIES,
+                        delay_ms,
+                        "[narrative] ⏳ Rate limited (429), retrying in {}ms",
+                        delay_ms
+                    );
+                    tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                    continue;
+                } else {
+                    let text = res.text().await.unwrap_or_default();
+                    tracing::error!(
+                        attempt,
+                        "[narrative] ❌ Rate limited after {} retries: {}",
+                        MAX_RETRIES,
+                        text
+                    );
+                    return Err(AppError::ExternalServiceError(format!(
+                        "Narrative LLM rate limited after {MAX_RETRIES} retries: {text}"
+                    )));
+                }
+            }
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let text = res.text().await.unwrap_or_default();
+                tracing::error!(status = %status, response = %text, "[narrative] ❌ LLM API error");
+                return Err(AppError::ExternalServiceError(format!(
+                    "Narrative LLM API error {status}: {text}"
+                )));
+            }
+
+            let json: serde_json::Value = res
+                .json()
+                .await
+                .map_err(|e| AppError::ExternalServiceError(format!("Narrative LLM parse error: {e}")))?;
+
+            let content = json["choices"][0]["message"]["content"]
+                .as_str()
+                .ok_or_else(|| AppError::ExternalServiceError("Empty narrative LLM response".into()))?;
+
+            return Ok(content.to_string());
         }
 
-        let json: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("Narrative LLM parse error: {e}")))?;
-
-        let content = json["choices"][0]["message"]["content"]
-            .as_str()
-            .ok_or_else(|| AppError::ExternalServiceError("Empty narrative LLM response".into()))?;
-
-        Ok(content.to_string())
+        Err(AppError::ExternalServiceError("Narrative LLM: max retries exhausted".into()))
     }
 
     fn parse_json<T: serde::de::DeserializeOwned>(raw: &str) -> AppResult<T> {
