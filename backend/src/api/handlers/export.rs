@@ -360,15 +360,114 @@ pub async fn generate_submission_narratives(
         Vec::new()
     };
 
+    // Fetch line items from financial statement
+    let line_items = match state.financial_statement_repo.find_by_submission(id).await? {
+        Some(fs) => {
+            let raw_items = state.line_item_repo.find_by_financial_statement(fs.id).await?;
+            if raw_items.is_empty() {
+                None
+            } else {
+                let prior_line_items = if submission.reporting_year > 2020 {
+                    if let Some(prior_sub) = state
+                        .submission_repo
+                        .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+                        .await?
+                    {
+                        if let Some(pfs) = state.financial_statement_repo.find_by_submission(prior_sub.id).await? {
+                            state.line_item_repo.find_by_financial_statement(pfs.id).await.unwrap_or_default()
+                        } else {
+                            Vec::new()
+                        }
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                };
+
+                let mut items: Vec<crate::services::report_narrative::BalanceSheetLineItemData> = Vec::new();
+                let mut by_code: std::collections::HashMap<i32, &crate::entities::balance_sheet_line_item::Model> = std::collections::HashMap::new();
+                for item in &raw_items {
+                    if let Some(code) = item.account_code {
+                        by_code.insert(code, item);
+                    }
+                }
+                let mut prior_map: std::collections::HashMap<i32, f64> = std::collections::HashMap::new();
+                for item in &prior_line_items {
+                    if let (Some(code), Some(val)) = (item.account_code, item.value) {
+                        prior_map.insert(code, val.to_f64().unwrap_or(0.0));
+                    }
+                }
+                for (code, item) in &by_code {
+                    let current = item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
+                    let prior = prior_map.get(code).copied();
+                    items.push(crate::services::report_narrative::BalanceSheetLineItemData {
+                        account_code: Some(*code),
+                        account_name: item.account_name.clone().unwrap_or_default(),
+                        current_value: current,
+                        prior_value: prior,
+                    });
+                }
+                items.sort_by_key(|i| i.account_code.unwrap_or(0));
+                Some(items)
+            }
+        }
+        None => None,
+    };
+
+    // Compute NF stats
+    let nf_response = crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
+        &state.db,
+        submission.cooperative_id,
+        Some(id),
+    ).await.ok();
+
+    let membership_stats = nf_response.as_ref().map(|nf| {
+        crate::services::report_narrative::MembershipStats {
+            total_members: nf.membership.total,
+            active_members: nf.membership.active,
+            dormant_members: nf.membership.dormant,
+            women_members: nf.membership.female,
+            youth_members: nf.membership.age_18_35 + nf.membership.under_18,
+            rural_members: nf.membership.rural,
+            agm_participation_pct: nf.membership.agm_participation_pct,
+            leadership_count: nf.membership.leadership_count,
+            voting_participation_pct: if nf.membership.total > 0 {
+                nf.membership.voting_count as f64 / nf.membership.total as f64 * 100.0
+            } else {
+                0.0
+            },
+        }
+    });
+
+    let savings_stats = nf_response.as_ref().map(|nf| {
+        crate::services::report_narrative::SavingsStats {
+            total_savings_accounts: nf.savings.total_accounts,
+            active_savers: nf.savings.active_accounts,
+            savings_penetration_pct: nf.savings.savings_penetration_pct,
+            avg_savings_balance: nf.savings.average_balance,
+        }
+    });
+
+    let loan_stats = nf_response.as_ref().map(|nf| {
+        crate::services::report_narrative::LoanStats {
+            active_borrowers: nf.loans.members_with_loans,
+            women_borrowers: nf.loans.women_borrowers,
+            youth_borrowers: nf.loans.youth_borrowers,
+            rural_borrowers: nf.loans.rural_borrowers,
+            on_time_repayment_pct: nf.loans.on_time_repayment_pct,
+        }
+    });
+
     let ctx = crate::services::report_narrative::build_cooperative_context(
         &coop,
         &submission,
         &kpi_records,
         &prior_kpi_records,
-        None,
-        None,
-        None,
-        None,
+        line_items,
+        membership_stats,
+        savings_stats,
+        loan_stats,
         None,
         None,
         None,

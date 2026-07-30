@@ -2,11 +2,13 @@ import React, { useMemo } from "react";
 import { ReportDataProps } from "./types";
 import { getLineItem, calculateYoY, formatCurrency } from "./utils";
 import { LineItemResponse } from "@/hooks/submissions/useCooperativeKpis";
+import { AiInsightBox } from "./AiInsightBox";
 
 export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
   lineItemsData,
   submission,
   submissionId,
+  narratives,
 }) => {
   const assetsYoY = calculateYoY(
     getLineItem(lineItemsData, 1999),
@@ -97,13 +99,18 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
         Sheet 2: "Financial Position"
       </h2>
 
-      <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">
-        <p className="font-semibold mb-1">Narrative</p>
-        Total assets showed a{" "}
-        {assetsYoY.startsWith("+") || assetsYoY === "—" ? "positive trend" : "decline"}{" "}
-        year-on-year, driven by changes in member deposits and equity. The detailed balance sheet
-        and income statement below reflect the financial health for the period.
-      </div>
+      <AiInsightBox
+        title="Financial Position Insights"
+        content={narratives?.financial_position}
+        fallbackContent={
+          <>
+            Total assets showed a{" "}
+            {assetsYoY.startsWith("+") || assetsYoY === "—" ? "positive trend" : "decline"}{" "}
+            year-on-year, driven by changes in member deposits and equity. The detailed balance
+            sheet and income statement below reflect the financial health for the period.
+          </>
+        }
+      />
 
       <h3 className="text-lg font-semibold text-slate-700 mb-4">Balance Sheet</h3>
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">

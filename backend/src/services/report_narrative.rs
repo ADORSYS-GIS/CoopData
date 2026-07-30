@@ -359,6 +359,15 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let portfolio_prompt = build_coop_portfolio_quality_prompt(ctx);
         let nf_prompt = build_coop_non_financial_prompt(ctx);
         let bench_prompt = build_coop_benchmark_comparison_prompt(ctx);
+
+        tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for cooperative narratives");
+        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_summary | chars={}", exec_prompt.len());
+        tracing::info!(chars = fin_prompt.len(), "[narrative] 📡 Prompt 2/5: financial_position | chars={}", fin_prompt.len());
+        tracing::info!(chars = portfolio_prompt.len(), "[narrative] 📡 Prompt 3/5: portfolio_quality | chars={}", portfolio_prompt.len());
+        tracing::info!(chars = nf_prompt.len(), "[narrative] 📡 Prompt 4/5: non_financial | chars={}", nf_prompt.len());
+        tracing::info!(chars = bench_prompt.len(), "[narrative] 📡 Prompt 5/5: benchmark_comparison | chars={}", bench_prompt.len());
+
+        let start = std::time::Instant::now();
         let (exec_result, fin_result, portfolio_result, nf_result, bench_result) = tokio::try_join!(
             self.chat(&exec_prompt),
             self.chat(&fin_prompt),
@@ -366,8 +375,15 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             self.chat(&nf_prompt),
             self.chat(&bench_prompt),
         )?;
-
-        Ok(CooperativeNarratives {
+        
+        tracing::info!(
+            elapsed_ms = start.elapsed().as_millis(),
+            "[narrative] ✅ All 5 LLM responses received in {}ms",
+            start.elapsed().as_millis()
+        );
+        
+        tracing::info!("[narrative] 🔍 Parsing JSON responses...");
+        let result = Ok(CooperativeNarratives {
             executive_summary: Self::parse_json::<ExecutiveSummaryOutput>(&exec_result)?
                 .executive_summary,
             financial_position: Self::parse_json::<FinancialPositionOutput>(&fin_result)?
@@ -378,7 +394,10 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
                 .non_financial,
             benchmark_comparison: Self::parse_json::<BenchmarkOutput>(&bench_result)?
                 .benchmark_comparison,
-        })
+        });
+        
+        tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
+        result
     }
 
     async fn generate_apex_narratives(
@@ -387,17 +406,33 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
     ) -> AppResult<ApexNarratives> {
         let overview_prompt = build_apex_executive_dashboard_prompt(ctx);
         let risk_prompt = build_apex_risk_watch_prompt(ctx);
+        
+        tracing::info!("[narrative] 🚀 Starting 2 concurrent LLM calls for apex narratives");
+        tracing::info!(chars = overview_prompt.len(), "[narrative] 📡 Prompt 1/2: overview | chars={}", overview_prompt.len());
+        tracing::info!(chars = risk_prompt.len(), "[narrative] 📡 Prompt 2/2: risk | chars={}", risk_prompt.len());
+        
+        let start = std::time::Instant::now();
         let (overview_result, risk_result) = tokio::try_join!(
             self.chat(&overview_prompt),
             self.chat(&risk_prompt),
         )?;
-
-        Ok(ApexNarratives {
+        
+        tracing::info!(
+            elapsed_ms = start.elapsed().as_millis(),
+            "[narrative] ✅ All 2 LLM responses received in {}ms",
+            start.elapsed().as_millis()
+        );
+        
+        tracing::info!("[narrative] 🔍 Parsing JSON responses...");
+        let result = Ok(ApexNarratives {
             sector_overview: Self::parse_json::<SectorOverviewOutput>(&overview_result)?
                 .sector_overview,
             risk_assessment: Self::parse_json::<RiskAssessmentOutput>(&risk_result)?
                 .risk_assessment,
-        })
+        });
+        
+        tracing::info!("[narrative] ✅ All 2 narratives parsed successfully");
+        result
     }
 
     async fn generate_federation_narratives(
@@ -408,14 +443,29 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let composition_prompt = build_fed_sector_breakdown_prompt(ctx);
         let pearls_prompt = build_fed_pearls_analysis_prompt(ctx);
         let social_prompt = build_fed_social_impact_prompt(ctx);
+        
+        tracing::info!("[narrative] 🚀 Starting 4 concurrent LLM calls for federation narratives");
+        tracing::info!(chars = overview_prompt.len(), "[narrative] 📡 Prompt 1/4: overview | chars={}", overview_prompt.len());
+        tracing::info!(chars = composition_prompt.len(), "[narrative] 📡 Prompt 2/4: composition | chars={}", composition_prompt.len());
+        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 3/4: pearls | chars={}", pearls_prompt.len());
+        tracing::info!(chars = social_prompt.len(), "[narrative] 📡 Prompt 4/4: social | chars={}", social_prompt.len());
+        
+        let start = std::time::Instant::now();
         let (overview_result, composition_result, pearls_result, social_result) = tokio::try_join!(
             self.chat(&overview_prompt),
             self.chat(&composition_prompt),
             self.chat(&pearls_prompt),
             self.chat(&social_prompt),
         )?;
-
-        Ok(FederationNarratives {
+        
+        tracing::info!(
+            elapsed_ms = start.elapsed().as_millis(),
+            "[narrative] ✅ All 4 LLM responses received in {}ms",
+            start.elapsed().as_millis()
+        );
+        
+        tracing::info!("[narrative] 🔍 Parsing JSON responses...");
+        let result = Ok(FederationNarratives {
             sector_overview: Self::parse_json::<SectorOverviewOutput>(&overview_result)?
                 .sector_overview,
             sector_composition: Self::parse_json::<SectorCompositionOutput>(&composition_result)?
@@ -424,7 +474,10 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
                 .pearls_compliance,
             social_impact: Self::parse_json::<SocialImpactOutput>(&social_result)?
                 .social_impact,
-        })
+        });
+        
+        tracing::info!("[narrative] ✅ All 4 narratives parsed successfully");
+        result
     }
 
     async fn generate_ministry_narratives(
@@ -435,6 +488,14 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let composition_prompt = build_ministry_sector_breakdown_prompt(ctx);
         let pearls_prompt = build_ministry_pearls_analysis_prompt(ctx);
         let social_prompt = build_ministry_social_impact_prompt(ctx);
+        
+        tracing::info!("[narrative] 🚀 Starting 4 concurrent LLM calls for ministry narratives");
+        tracing::info!(chars = overview_prompt.len(), "[narrative] 📡 Prompt 1/4: overview | chars={}", overview_prompt.len());
+        tracing::info!(chars = composition_prompt.len(), "[narrative] 📡 Prompt 2/4: composition | chars={}", composition_prompt.len());
+        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 3/4: pearls | chars={}", pearls_prompt.len());
+        tracing::info!(chars = social_prompt.len(), "[narrative] 📡 Prompt 4/4: social | chars={}", social_prompt.len());
+        
+        let start = std::time::Instant::now();
         let (overview_result, composition_result, pearls_result, social_result) = tokio::try_join!(
             self.chat(&overview_prompt),
             self.chat(&composition_prompt),
@@ -442,7 +503,14 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             self.chat(&social_prompt),
         )?;
 
-        Ok(MinistryNarratives {
+        tracing::info!(
+            elapsed_ms = start.elapsed().as_millis(),
+            "[narrative] ✅ All 4 LLM responses received in {}ms",
+            start.elapsed().as_millis()
+        );
+        
+        tracing::info!("[narrative] 🔍 Parsing JSON responses...");
+        let result = Ok(MinistryNarratives {
             sector_overview: Self::parse_json::<SectorOverviewOutput>(&overview_result)?
                 .sector_overview,
             sector_composition: Self::parse_json::<SectorCompositionOutput>(&composition_result)?
@@ -451,7 +519,10 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
                 .pearls_compliance,
             social_impact: Self::parse_json::<SocialImpactOutput>(&social_result)?
                 .social_impact,
-        })
+        });
+        
+        tracing::info!("[narrative] ✅ All 4 narratives parsed successfully");
+        result
     }
 }
 

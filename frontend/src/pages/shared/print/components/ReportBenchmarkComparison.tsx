@@ -1,10 +1,12 @@
 import React from "react";
 import { ReportDataProps } from "./types";
+import { AiInsightBox } from "./AiInsightBox";
 
 export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
   kpisData,
   submission,
   submissionId,
+  narratives,
 }) => {
   return (
     <div className="w-[210mm] min-h-[297mm] p-16 block break-after-page bg-white">
@@ -12,12 +14,17 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
         "PEARLS Benchmark Comparison"
       </h2>
 
-      <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">
-        <p className="font-semibold mb-1">Narrative</p>
-        This section compares the cooperative's key performance indicators against the standard
-        PEARLS and sector benchmarks. Status indicators highlight areas of strength and potential
-        risk.
-      </div>
+      <AiInsightBox
+        title="Benchmark Analysis"
+        content={narratives?.benchmark_comparison}
+        fallbackContent={
+          <>
+            This section compares the cooperative's key performance indicators against the standard
+            PEARLS and sector benchmarks. Status indicators highlight areas of strength and
+            potential risk.
+          </>
+        }
+      />
 
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>

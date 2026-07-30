@@ -2,6 +2,7 @@ import React from "react";
 import { ReportDataProps } from "./types";
 import { findKpi } from "./utils";
 import { PieChart, Pie, Legend } from "recharts";
+import { AiInsightBox } from "./AiInsightBox";
 
 export const ReportNonFinancial: React.FC<ReportDataProps> = ({
   portfolioData,
@@ -10,6 +11,7 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
   kpisData,
   submission,
   submissionId,
+  narratives,
 }) => {
   const totalMembers =
     (membershipData.active_members || 0) + (membershipData.inactive_members || 0);
@@ -19,6 +21,17 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Non-Financial Highlights
       </h2>
+
+      <AiInsightBox
+        title="Non-Financial Highlights"
+        content={narratives?.non_financial}
+        fallbackContent={
+          <>
+            Membership composition and participation metrics reflect the cooperative's social reach
+            and community engagement across the reporting period.
+          </>
+        }
+      />
 
       <div className="flex flex-col items-center justify-center mb-10 mt-4">
         <h3 className="text-sm font-bold text-slate-800 mb-2">

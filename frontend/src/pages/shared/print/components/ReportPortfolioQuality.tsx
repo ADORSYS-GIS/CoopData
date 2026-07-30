@@ -2,12 +2,14 @@ import React from "react";
 import { ReportDataProps } from "./types";
 import { findKpi, formatCurrency } from "./utils";
 import { PieChart, Pie, Cell, Legend } from "recharts";
+import { AiInsightBox } from "./AiInsightBox";
 
 export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
   portfolioData,
   kpiMap,
   submission,
   submissionId,
+  narratives,
 }) => {
   const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"];
 
@@ -16,6 +18,17 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         Sheet 3: "Portfolio Quality"
       </h2>
+
+      <AiInsightBox
+        title="Portfolio Quality Insights"
+        content={narratives?.portfolio_quality}
+        fallbackContent={
+          <>
+            This section provides a breakdown of the cooperative's loan portfolio by category,
+            highlighting the distribution of performing and non-performing assets.
+          </>
+        }
+      />
 
       <div className="flex justify-center mb-10 h-[250px] relative mt-4">
         <PieChart width={400} height={250}>

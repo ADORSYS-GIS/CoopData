@@ -7,6 +7,7 @@ import {
   useMembershipStats,
   KpiItemResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
+import { useSubmissionNarratives } from "@/hooks/submissions/useSubmissionNarratives";
 import {
   ReportCoverPage,
   ReportExecutiveSummary,
@@ -41,6 +42,10 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     tokenOverride,
   );
   const { data: membershipData, isLoading: membershipLoading } = useMembershipStats(
+    submissionId,
+    tokenOverride,
+  );
+  const { data: narratives, isLoading: narrativesLoading } = useSubmissionNarratives(
     submissionId,
     tokenOverride,
   );
@@ -84,6 +89,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     membershipData,
     coopName,
     kpiMap,
+    narratives,
   };
 
   return (
