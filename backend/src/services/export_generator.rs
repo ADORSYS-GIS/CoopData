@@ -1,6 +1,7 @@
 use crate::error::AppResult;
 use crate::services::report_narrative;
 use crate::AppState;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::EntityTrait;
 use uuid::Uuid;
 
@@ -161,22 +162,17 @@ impl ExportGenerator {
                 if raw_items.is_empty() {
                     None
                 } else {
-                    let prior_fs = if submission.reporting_year > 2020 {
-                        state.submission_repo
+                    let prior_line_items = if submission.reporting_year > 2020 {
+                        if let Some(prior_sub) = state
+                            .submission_repo
                             .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
                             .await?
-                            .and_then(|ps| {
-                                // Box the future for async closure
-                                let repo = &state.financial_statement_repo;
-                                let ps_id = ps.id;
-                                Some(async move { repo.find_by_submission(ps_id).await })
-                            })
-                    } else {
-                        None
-                    };
-                    let prior_line_items = if let Some(fut) = prior_fs {
-                        if let Ok(Some(pfs)) = fut.await {
-                            state.line_item_repo.find_by_financial_statement(pfs.id).await.unwrap_or_default()
+                        {
+                            if let Some(pfs) = state.financial_statement_repo.find_by_submission(prior_sub.id).await? {
+                                state.line_item_repo.find_by_financial_statement(pfs.id).await.unwrap_or_default()
+                            } else {
+                                Vec::new()
+                            }
                         } else {
                             Vec::new()
                         }
@@ -203,7 +199,7 @@ impl ExportGenerator {
                         let prior = prior_map.get(code).copied();
                         items.push(report_narrative::BalanceSheetLineItemData {
                             account_code: Some(*code),
-                            account_name: item.account_name.clone().unwrap_or_default(),
+                            account_name: item.account_name.clone(),
                             current_value: current,
                             prior_value: prior,
                         });
@@ -506,11 +502,11 @@ impl ExportGenerator {
 
         tracing::info!(
             apex_id = %apex_id,
-            apex_name = %apex.name,
+            apex_name = %apex.display_name,
             year = reporting_year,
             coops = coops_data.len(),
             "[export] 📋 Loaded apex data | apex={}, year={}, coops={}",
-            apex.name,
+            apex.display_name,
             reporting_year,
             coops_data.len()
         );
@@ -666,11 +662,11 @@ impl ExportGenerator {
 
         tracing::info!(
             federation_id = %federation_id,
-            federation_name = %federation.name,
+            federation_name = %federation.display_name,
             year = reporting_year,
             apexes = apexes_data.len(),
             "[export] 📋 Loaded federation data | federation={}, year={}, apexes={}",
-            federation.name,
+            federation.display_name,
             reporting_year,
             apexes_data.len()
         );

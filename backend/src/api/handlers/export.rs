@@ -5,6 +5,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use rust_decimal::prelude::ToPrimitive;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -403,7 +404,7 @@ pub async fn generate_submission_narratives(
                     let prior = prior_map.get(code).copied();
                     items.push(crate::services::report_narrative::BalanceSheetLineItemData {
                         account_code: Some(*code),
-                        account_name: item.account_name.clone().unwrap_or_default(),
+                        account_name: item.account_name.clone(),
                         current_value: current,
                         prior_value: prior,
                     });
