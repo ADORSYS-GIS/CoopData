@@ -408,7 +408,10 @@ pub async fn create_manual_financial_statement(
     ))
 }
 
-// ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
+pub struct KpisQueryParams {
+    pub include_prior_year: Option<bool>,
+}
 
 #[utoipa::path(
     get,

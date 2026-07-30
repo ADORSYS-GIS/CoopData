@@ -433,10 +433,7 @@ pub async fn get_questionnaire_analytics(
             .as_ref()
             .map(|r| r.as_str().to_string())
             .unwrap_or_else(|| "Unknown".to_string());
-        let sec_str = coop
-            .sector
-            .clone()
-            .unwrap_or_else(|| "Unknown".to_string());
+        let sec_str = coop.sector.clone().unwrap_or_else(|| "Unknown".to_string());
 
         *region_counts.entry(reg_str.clone()).or_insert(0) += 1;
         *sector_counts.entry(sec_str.clone()).or_insert(0) += 1;
