@@ -4,7 +4,6 @@ import { fetchWithAuth } from "@/services/shared/authService";
 const QUESTIONNAIRE_KEY = "questionnaire-response";
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
-
 export type QuestionnaireAnswers = Record<string, unknown>;
 
 export interface QuestionnaireResponseData {
@@ -39,17 +38,14 @@ export const useQuestionnaire = (submissionId: string, questionnaireType?: strin
 export const useSaveQuestionnaire = (submissionId: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: {
-      questionnaire_type: string;
-      answers: QuestionnaireAnswers;
-    }) => {
+    mutationFn: async (payload: { questionnaire_type: string; answers: QuestionnaireAnswers }) => {
       const res = await fetchWithAuth(
         `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
+        },
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -71,7 +67,7 @@ export const useActiveTemplate = (type: string) =>
     queryKey: ["active-questionnaire-template", type],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `${BASE}/api/v1/cooperative/questionnaire-templates/active?questionnaire_type=${type}`
+        `${BASE}/api/v1/cooperative/questionnaire-templates/active?questionnaire_type=${type}`,
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -145,14 +141,15 @@ export const useQuestionnaireAnalytics = (filters: {
     queryKey: ["questionnaire-analytics", filters],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `${BASE}/api/v1/analytics/questionnaire?${queryParams.toString()}`
+        `${BASE}/api/v1/analytics/questionnaire?${queryParams.toString()}`,
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as { message?: string }).message ?? "Failed to load questionnaire analytics");
+        throw new Error(
+          (body as { message?: string }).message ?? "Failed to load questionnaire analytics",
+        );
       }
       return res.json() as Promise<QuestionnaireAnalyticsData>;
     },
   });
 };
-

@@ -9,26 +9,34 @@ interface FixedDepositRowProps {
   onRemove: (key: string) => void;
 }
 
-export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: FixedDepositRowProps) {
+export function FixedDepositRow({
+  record,
+  idx,
+  memberIds,
+  onUpdate,
+  onRemove,
+}: FixedDepositRowProps) {
   return (
     <tr className="border-t border-border/50 hover:bg-muted/20 transition-colors">
       <td className="px-3 py-2 text-xs text-muted-foreground font-mono">{idx + 1}</td>
       <td className="px-2 py-2">
         <select
           value={record.memberBusinessId}
-          onChange={e => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground font-mono"
         >
           <option value="">-- Select Member ID --</option>
-          {memberIds.map(id => (
-            <option key={id} value={id}>{id}</option>
+          {memberIds.map((id) => (
+            <option key={id} value={id}>
+              {id}
+            </option>
           ))}
         </select>
       </td>
       <td className="px-2 py-2">
         <input
           value={record.fixedDepositId}
-          onChange={e => onUpdate(record._rowKey, "fixedDepositId", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "fixedDepositId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
           placeholder="FD-001"
         />
@@ -36,7 +44,7 @@ export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: 
       <td className="px-2 py-2">
         <select
           value={record.depositType}
-          onChange={e => onUpdate(record._rowKey, "depositType", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "depositType", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Standard">Standard</option>
@@ -48,7 +56,7 @@ export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: 
         <input
           type="date"
           value={record.startDate}
-          onChange={e => onUpdate(record._rowKey, "startDate", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "startDate", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
         />
       </td>
@@ -56,14 +64,14 @@ export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: 
         <input
           type="date"
           value={record.maturityDate}
-          onChange={e => onUpdate(record._rowKey, "maturityDate", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "maturityDate", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
         />
       </td>
       <td className="px-2 py-2">
         <select
           value={record.status}
-          onChange={e => onUpdate(record._rowKey, "status", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "status", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Active">Active</option>
@@ -75,7 +83,7 @@ export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: 
       <td className="px-2 py-2">
         <select
           value={record.tenureCategory}
-          onChange={e => onUpdate(record._rowKey, "tenureCategory", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "tenureCategory", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="ShortTerm">Short Term</option>
@@ -89,7 +97,7 @@ export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: 
           step="0.01"
           placeholder="0.05"
           value={record.interestRate}
-          onChange={e => onUpdate(record._rowKey, "interestRate", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "interestRate", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>
@@ -98,7 +106,7 @@ export function FixedDepositRow({ record, idx, memberIds, onUpdate, onRemove }: 
           type="number"
           placeholder="0.00"
           value={record.balance}
-          onChange={e => onUpdate(record._rowKey, "balance", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "balance", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>

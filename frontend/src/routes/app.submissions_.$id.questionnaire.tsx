@@ -4,12 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { QuestionnaireWizard } from "@/pages/cooperative/QuestionnaireWizard";
-import {
-  ClipboardList,
-  FileSpreadsheet,
-  ChevronLeft,
-  BarChart3,
-} from "lucide-react";
+import { ClipboardList, FileSpreadsheet, ChevronLeft, BarChart3 } from "lucide-react";
 
 const qSearchSchema = z.object({
   type: z.enum(["financial", "non_financial"]).optional(),
@@ -64,12 +59,10 @@ function QuestionnaireSelectorPage({ submissionId }: { submissionId: string }) {
           <div className="size-16 rounded-3xl bg-primary/10 grid place-items-center mx-auto mb-4">
             <FileSpreadsheet className="size-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Select Questionnaire Type
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Select Questionnaire Type</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Choose the questionnaire that matches your cooperative's primary
-            focus. Your answers are saved automatically as a draft.
+            Choose the questionnaire that matches your cooperative's primary focus. Your answers are
+            saved automatically as a draft.
           </p>
         </div>
 
@@ -95,12 +88,8 @@ function QuestionnaireSelectorPage({ submissionId }: { submissionId: string }) {
                     <Icon className="size-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-foreground text-base">
-                      {opt.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {opt.description}
-                    </p>
+                    <h3 className="font-bold text-foreground text-base">{opt.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{opt.description}</p>
                   </div>
                   <ChevronLeft className="size-5 text-muted-foreground rotate-180 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>

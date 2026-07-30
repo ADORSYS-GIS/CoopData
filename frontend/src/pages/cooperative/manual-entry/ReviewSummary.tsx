@@ -1,10 +1,4 @@
-import {
-  CheckCircle2,
-  AlertCircle,
-  BarChart3,
-  Send,
-  Loader2,
-} from "lucide-react";
+import { CheckCircle2, AlertCircle, BarChart3, Send, Loader2 } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { fmt } from "./helpers";
 
@@ -28,19 +22,25 @@ export function ReviewSummary({
 
   const getVal = (code: number) => financialData[code]?.[finalMonth] || 0;
 
-  const totalAssets = 
-    (getVal(1101) + getVal(1102) + getVal(1103) + getVal(1104)) + // Liquid
+  const totalAssets =
+    getVal(1101) +
+    getVal(1102) +
+    getVal(1103) +
+    getVal(1104) + // Liquid
     (getVal(1201) + getVal(1202) + getVal(1203) + getVal(1204) + getVal(1205)) - // Loan Portfolio
     (getVal(1251) + getVal(1252)) + // Provisions
     (getVal(1301) + getVal(1302) + getVal(1303) - Math.abs(getVal(1304)) + getVal(1305)); // Other
 
-  const totalLiabilities = 
-    (getVal(2101) + getVal(2102) + getVal(2103)) + // Member Deposits
+  const totalLiabilities =
+    getVal(2101) +
+    getVal(2102) +
+    getVal(2103) + // Member Deposits
     (getVal(2201) + getVal(2202)) + // Borrowings
     (getVal(2301) + getVal(2302) + getVal(2303)); // Other
 
-  const totalEquity = 
-    (getVal(3101) + getVal(3102)) + // Shares
+  const totalEquity =
+    getVal(3101) +
+    getVal(3102) + // Shares
     (getVal(3201) + getVal(3202) + getVal(3203)) + // Reserves
     (getVal(3301) + getVal(3302)); // Retained
 
@@ -48,18 +48,18 @@ export function ReviewSummary({
   let totalIncome = 0;
   let totalExpenses = 0;
   for (let m = 1; m <= 12; m++) {
-    totalIncome += 
-      (financialData[4101]?.[m] || 0) + 
-      (financialData[4102]?.[m] || 0) + 
+    totalIncome +=
+      (financialData[4101]?.[m] || 0) +
+      (financialData[4102]?.[m] || 0) +
       (financialData[4201]?.[m] || 0);
-      
-    totalExpenses += 
-      (financialData[5101]?.[m] || 0) + 
-      (financialData[5102]?.[m] || 0) + 
-      (financialData[5201]?.[m] || 0) + 
-      (financialData[5202]?.[m] || 0) + 
-      (financialData[5203]?.[m] || 0) + 
-      (financialData[5204]?.[m] || 0) + 
+
+    totalExpenses +=
+      (financialData[5101]?.[m] || 0) +
+      (financialData[5102]?.[m] || 0) +
+      (financialData[5201]?.[m] || 0) +
+      (financialData[5202]?.[m] || 0) +
+      (financialData[5203]?.[m] || 0) +
+      (financialData[5204]?.[m] || 0) +
       (financialData[5301]?.[m] || 0);
   }
   const netSurplus = totalIncome - totalExpenses;
@@ -75,7 +75,9 @@ export function ReviewSummary({
             <div className="size-8 rounded-lg bg-primary/10 grid place-items-center">
               <BarChart3 className="size-4 text-primary" />
             </div>
-            <h3 className="text-sm font-bold text-foreground">Financial Statement (Final Month View)</h3>
+            <h3 className="text-sm font-bold text-foreground">
+              Financial Statement (Final Month View)
+            </h3>
           </div>
           {[
             { label: "Total Assets", value: totalAssets },
@@ -87,16 +89,16 @@ export function ReviewSummary({
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">{label}</span>
-              <span className={`font-mono font-semibold ${label === "Net Surplus" && value < 0 ? "text-danger" : ""}`}>
+              <span
+                className={`font-mono font-semibold ${label === "Net Surplus" && value < 0 ? "text-danger" : ""}`}
+              >
                 {currency} {fmt(value)}
               </span>
             </div>
           ))}
           <div
             className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg mt-2 ${
-              isBalanced
-                ? "bg-success/10 text-success"
-                : "bg-danger/10 text-danger"
+              isBalanced ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
             }`}
           >
             {isBalanced ? (
@@ -115,7 +117,8 @@ export function ReviewSummary({
           <CheckCircle2 className="size-10 mx-auto text-success/80 mb-1" />
           <h4 className="text-sm font-bold text-foreground">Ready for Submission</h4>
           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-            Please verify all details are correct. Submitting this manual entry will record the 12-month financial statement in draft status.
+            Please verify all details are correct. Submitting this manual entry will record the
+            12-month financial statement in draft status.
           </p>
         </Card>
       </div>

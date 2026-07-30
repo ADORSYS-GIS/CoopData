@@ -16,19 +16,21 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
       <td className="px-2 py-2">
         <select
           value={record.memberBusinessId}
-          onChange={e => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground font-mono"
         >
           <option value="">-- Select Member ID --</option>
-          {memberIds.map(id => (
-            <option key={id} value={id}>{id}</option>
+          {memberIds.map((id) => (
+            <option key={id} value={id}>
+              {id}
+            </option>
           ))}
         </select>
       </td>
       <td className="px-2 py-2">
         <input
           value={record.loanId}
-          onChange={e => onUpdate(record._rowKey, "loanId", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "loanId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
           placeholder="LN-001"
         />
@@ -36,7 +38,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
       <td className="px-2 py-2">
         <select
           value={record.loanProductType}
-          onChange={e => onUpdate(record._rowKey, "loanProductType", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "loanProductType", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Personal">Personal</option>
@@ -50,7 +52,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
         <input
           type="date"
           value={record.loanStartDate}
-          onChange={e => onUpdate(record._rowKey, "loanStartDate", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "loanStartDate", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
         />
       </td>
@@ -58,14 +60,14 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
         <input
           type="date"
           value={record.loanMaturityDate}
-          onChange={e => onUpdate(record._rowKey, "loanMaturityDate", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "loanMaturityDate", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
         />
       </td>
       <td className="px-2 py-2">
         <select
           value={record.loanStatus}
-          onChange={e => onUpdate(record._rowKey, "loanStatus", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "loanStatus", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Performing">Performing</option>
@@ -77,7 +79,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
       <td className="px-2 py-2">
         <select
           value={record.borrowerType}
-          onChange={e => onUpdate(record._rowKey, "borrowerType", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "borrowerType", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Individual">Individual</option>
@@ -88,7 +90,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
       <td className="px-2 py-2">
         <select
           value={record.daysPastDueCategory}
-          onChange={e => onUpdate(record._rowKey, "daysPastDueCategory", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "daysPastDueCategory", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground font-mono"
         >
           <option value="0">0 DPD</option>
@@ -104,7 +106,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
           step="0.01"
           placeholder="0.10"
           value={record.interestRate}
-          onChange={e => onUpdate(record._rowKey, "interestRate", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "interestRate", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>
@@ -113,7 +115,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
           type="number"
           placeholder="0.00"
           value={record.loanAmount}
-          onChange={e => onUpdate(record._rowKey, "loanAmount", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "loanAmount", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>
@@ -122,7 +124,7 @@ export function LoanRow({ record, idx, memberIds, onUpdate, onRemove }: LoanRowP
           type="number"
           placeholder="0.00"
           value={record.balance}
-          onChange={e => onUpdate(record._rowKey, "balance", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "balance", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>

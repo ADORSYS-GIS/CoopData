@@ -36,9 +36,13 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
   submissionId,
   questionnaireType,
 }) => {
-  const { data: response, isLoading: isResponseLoading, error: responseError } = useQuestionnaire(submissionId, questionnaireType);
+  const {
+    data: response,
+    isLoading: isResponseLoading,
+    error: responseError,
+  } = useQuestionnaire(submissionId, questionnaireType);
   const qType = response?.questionnaire_type || questionnaireType;
-  
+
   const { data: template, isLoading: isTemplateLoading } = useActiveTemplate(qType ?? "");
   const [selectedSectionIndex, setSelectedSectionIndex] = useState(0);
 
@@ -46,7 +50,9 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2.5">
         <Loader2 className="size-6 animate-spin text-primary opacity-60" />
-        <span className="text-xs text-muted-foreground font-medium">Loading questionnaire responses...</span>
+        <span className="text-xs text-muted-foreground font-medium">
+          Loading questionnaire responses...
+        </span>
       </div>
     );
   }
@@ -64,7 +70,8 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
   if (sections.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 text-center text-xs text-muted-foreground">
-        No active form template found for type "{response.questionnaire_type}". Cannot render answers.
+        No active form template found for type "{response.questionnaire_type}". Cannot render
+        answers.
       </div>
     );
   }
@@ -107,9 +114,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
                     : "border-transparent hover:bg-muted/40 text-foreground"
                 }`}
               >
-                <div className={`p-1 text-base leading-none`}>
-                  {getEmoji(sec.icon)}
-                </div>
+                <div className={`p-1 text-base leading-none`}>{getEmoji(sec.icon)}</div>
                 <span className="text-xs truncate">{sec.title}</span>
               </button>
             );
@@ -145,9 +150,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   {field.label}
                 </span>
-                <div className="text-sm mt-0.5 break-words">
-                  {renderValue(field, val)}
-                </div>
+                <div className="text-sm mt-0.5 break-words">{renderValue(field, val)}</div>
               </div>
             );
           })}

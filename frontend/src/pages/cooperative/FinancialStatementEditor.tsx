@@ -37,7 +37,10 @@ import {
   useSubmitSubmission,
   type LineItemResponse,
 } from "@/hooks/submissions/useFinancialStatement";
-import { useDeleteSubmission, useDeleteFinancialStatement } from "@/hooks/submissions/useSubmissions";
+import {
+  useDeleteSubmission,
+  useDeleteFinancialStatement,
+} from "@/hooks/submissions/useSubmissions";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -816,7 +819,8 @@ export const FinancialStatementEditor: React.FC<{
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Financial Statement?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this financial statement? This will clear all line items and reset the section status. This action cannot be undone.
+              Are you sure you want to delete this financial statement? This will clear all line
+              items and reset the section status. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

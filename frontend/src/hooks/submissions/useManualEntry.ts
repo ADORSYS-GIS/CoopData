@@ -141,7 +141,9 @@ export interface ManualFinancialStatementResponse {
 export const useSubmitManualFinancialStatement = (submissionId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: ManualFinancialStatementRequest): Promise<ManualFinancialStatementResponse> => {
+    mutationFn: async (
+      body: ManualFinancialStatementRequest,
+    ): Promise<ManualFinancialStatementResponse> => {
       const token = await getAccessToken();
       const res = await fetch(
         `${API_BASE}/api/v1/cooperative/submissions/${submissionId}/manual-financial-statement`,
@@ -274,4 +276,3 @@ export const useDeleteManualNonFinancialData = (submissionId: string) => {
     },
   });
 };
-

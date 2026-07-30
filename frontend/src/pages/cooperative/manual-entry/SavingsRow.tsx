@@ -16,19 +16,21 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
       <td className="px-2 py-2">
         <select
           value={record.memberBusinessId}
-          onChange={e => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground font-mono"
         >
           <option value="">-- Select Member ID --</option>
-          {memberIds.map(id => (
-            <option key={id} value={id}>{id}</option>
+          {memberIds.map((id) => (
+            <option key={id} value={id}>
+              {id}
+            </option>
           ))}
         </select>
       </td>
       <td className="px-2 py-2">
         <input
           value={record.savingsAccountId}
-          onChange={e => onUpdate(record._rowKey, "savingsAccountId", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "savingsAccountId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
           placeholder="SAV-001"
         />
@@ -36,7 +38,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
       <td className="px-2 py-2">
         <select
           value={record.accountType}
-          onChange={e => onUpdate(record._rowKey, "accountType", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "accountType", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Voluntary">Voluntary</option>
@@ -48,14 +50,14 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
         <input
           type="date"
           value={record.accountOpeningDate}
-          onChange={e => onUpdate(record._rowKey, "accountOpeningDate", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "accountOpeningDate", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
         />
       </td>
       <td className="px-2 py-2">
         <select
           value={record.accountStatus}
-          onChange={e => onUpdate(record._rowKey, "accountStatus", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "accountStatus", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Active">Active</option>
@@ -66,7 +68,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
       <td className="px-2 py-2">
         <select
           value={record.contributionFrequency}
-          onChange={e => onUpdate(record._rowKey, "contributionFrequency", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "contributionFrequency", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Monthly">Monthly</option>
@@ -79,7 +81,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
         <input
           type="date"
           value={record.lastContributionDate}
-          onChange={e => onUpdate(record._rowKey, "lastContributionDate", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "lastContributionDate", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
         />
       </td>
@@ -87,14 +89,16 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
         <input
           type="number"
           value={record.numberOfContributions}
-          onChange={e => onUpdate(record._rowKey, "numberOfContributions", Number(e.target.value))}
+          onChange={(e) =>
+            onUpdate(record._rowKey, "numberOfContributions", Number(e.target.value))
+          }
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>
       <td className="px-2 py-2">
         <select
           value={record.balanceTrend}
-          onChange={e => onUpdate(record._rowKey, "balanceTrend", e.target.value)}
+          onChange={(e) => onUpdate(record._rowKey, "balanceTrend", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
           <option value="Stable">Stable</option>
@@ -108,7 +112,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           step="0.01"
           placeholder="0.05"
           value={record.interestRate}
-          onChange={e => onUpdate(record._rowKey, "interestRate", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "interestRate", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>
@@ -117,7 +121,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           type="number"
           placeholder="0.00"
           value={record.balance}
-          onChange={e => onUpdate(record._rowKey, "balance", Number(e.target.value))}
+          onChange={(e) => onUpdate(record._rowKey, "balance", Number(e.target.value))}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
         />
       </td>

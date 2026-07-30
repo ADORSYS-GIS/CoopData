@@ -30,11 +30,10 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">
-            Questionnaire Forms
-          </h1>
+          <h1 className="text-2xl font-heading font-bold text-foreground">Questionnaire Forms</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Manage and edit the fields on the Financial and Non-Financial cooperative questionnaires.
+            Manage and edit the fields on the Financial and Non-Financial cooperative
+            questionnaires.
           </p>
         </div>
       </div>
@@ -52,7 +51,9 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
         <div className="rounded-2xl border border-border bg-card py-16 text-center text-muted-foreground text-sm flex flex-col items-center justify-center gap-2">
           <ClipboardList className="size-10 opacity-30" />
           <h4 className="font-bold text-foreground">No active templates found</h4>
-          <p className="max-w-xs text-xs mt-1">Please make sure the default questionnaires are seeded in the database.</p>
+          <p className="max-w-xs text-xs mt-1">
+            Please make sure the default questionnaires are seeded in the database.
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
@@ -69,15 +70,15 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
             <tbody className="divide-y divide-border/60">
               {activeTemplates.map((t) => (
                 <tr key={t.id} className="hover:bg-muted/10 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-foreground">
-                    {t.label}
-                  </td>
+                  <td className="px-6 py-4 font-semibold text-foreground">{t.label}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold border ${
-                      t.questionnaire_type === "financial"
-                        ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
-                        : "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                    }`}>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold border ${
+                        t.questionnaire_type === "financial"
+                          ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+                          : "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                      }`}
+                    >
                       {t.questionnaire_type === "financial" ? "Financial" : "Non-Financial"}
                     </span>
                   </td>

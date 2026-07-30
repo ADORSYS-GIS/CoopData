@@ -71,10 +71,7 @@ export const useCreateQuestionnaireTemplate = () => {
 export const useUpdateQuestionnaireTemplate = (id: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: {
-      label?: string;
-      sections?: any[];
-    }) => {
+    mutationFn: async (payload: { label?: string; sections?: any[] }) => {
       const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -98,9 +95,12 @@ export const useActivateQuestionnaireTemplate = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates/${id}/activate`, {
-        method: "POST",
-      });
+      const res = await fetchWithAuth(
+        `${BASE}/api/v1/ministry/questionnaire-templates/${id}/activate`,
+        {
+          method: "POST",
+        },
+      );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { message?: string }).message ?? "Failed to activate template");

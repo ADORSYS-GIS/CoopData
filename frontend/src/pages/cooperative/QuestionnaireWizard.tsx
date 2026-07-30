@@ -15,7 +15,11 @@ import {
   DollarSign,
   TrendingUp,
 } from "lucide-react";
-import { useQuestionnaire, useSaveQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
+import {
+  useQuestionnaire,
+  useSaveQuestionnaire,
+  useActiveTemplate,
+} from "@/hooks/submissions/useQuestionnaire";
 import { toast } from "sonner";
 
 interface QuestionnaireWizardProps {
@@ -84,7 +88,14 @@ const FieldInput: React.FC<{
       className={baseClass}
       value={(value as string | number) ?? ""}
       onChange={(e) =>
-        onChange(field.key, field.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)
+        onChange(
+          field.key,
+          field.type === "number"
+            ? e.target.value === ""
+              ? ""
+              : Number(e.target.value)
+            : e.target.value,
+        )
       }
       placeholder={field.type === "number" ? "0" : `Enter ${field.label.toLowerCase()}...`}
       required={field.required}
@@ -105,8 +116,15 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   const [saveSuccess, setSaveSuccess] = React.useState(false);
 
   // Load the active questionnaire template dynamically
-  const { data: template, isLoading: isTemplateLoading, error: templateError } = useActiveTemplate(questionnaireType);
-  const { data: existing, isLoading: isResponseLoading } = useQuestionnaire(submissionId, questionnaireType);
+  const {
+    data: template,
+    isLoading: isTemplateLoading,
+    error: templateError,
+  } = useActiveTemplate(questionnaireType);
+  const { data: existing, isLoading: isResponseLoading } = useQuestionnaire(
+    submissionId,
+    questionnaireType,
+  );
   const saveMutation = useSaveQuestionnaire(submissionId);
 
   // Load existing answers when fetched
@@ -141,7 +159,8 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
         } else if (field.type === "date") {
           mockAnswers[field.key] = new Date().toISOString().split("T")[0];
         } else if (field.type === "textarea") {
-          mockAnswers[field.key] = `This is a sample test answer for "${field.label}" in the ${sec.title} section.`;
+          mockAnswers[field.key] =
+            `This is a sample test answer for "${field.label}" in the ${sec.title} section.`;
         } else {
           if (field.key.includes("name")) {
             mockAnswers[field.key] = "Unity Cooperative Society Ltd";
@@ -181,7 +200,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     });
 
     if (missing.length > 0) {
-      toast.error(`Please fill in all required fields in this section before continuing: ${missing.join(", ")}`);
+      toast.error(
+        `Please fill in all required fields in this section before continuing: ${missing.join(", ")}`,
+      );
       return;
     }
 
@@ -211,7 +232,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     });
 
     if (missing.length > 0) {
-      toast.error(`Cannot complete questionnaire. Please fill in the following required fields: ${missing.map(m => `"${m.fieldLabel}" (${m.sectionTitle})`).join(", ")}`);
+      toast.error(
+        `Cannot complete questionnaire. Please fill in the following required fields: ${missing.map((m) => `"${m.fieldLabel}" (${m.sectionTitle})`).join(", ")}`,
+      );
       // Focus/go to the first section with missing fields
       setCurrentSection(missing[0].sectionIndex);
       return;
@@ -229,7 +252,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <Loader2 className="size-8 animate-spin text-primary opacity-60" />
-        <span className="text-xs text-muted-foreground font-medium">Loading form configuration...</span>
+        <span className="text-xs text-muted-foreground font-medium">
+          Loading form configuration...
+        </span>
       </div>
     );
   }
@@ -242,10 +267,14 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
         </div>
         <h2 className="text-lg font-bold text-foreground">No active questionnaire found</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          An admin has not activated a {questionnaireType === "financial" ? "financial" : "non-financial"} questionnaire template yet.
+          An admin has not activated a{" "}
+          {questionnaireType === "financial" ? "financial" : "non-financial"} questionnaire template
+          yet.
         </p>
         <button
-          onClick={onBack ?? (() => navigate({ to: "/app/submissions/$id", params: { id: submissionId } }))}
+          onClick={
+            onBack ?? (() => navigate({ to: "/app/submissions/$id", params: { id: submissionId } }))
+          }
           className="mt-6 inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-muted/50"
         >
           <ChevronLeft className="size-4" /> Go Back
@@ -264,14 +293,20 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={onBack ?? (() => navigate({ to: "/app/submissions/$id", params: { id: submissionId } }))}
+                onClick={
+                  onBack ??
+                  (() => navigate({ to: "/app/submissions/$id", params: { id: submissionId } }))
+                }
                 className="rounded-xl border border-border p-2 hover:bg-muted/50 transition-colors"
               >
                 <ChevronLeft className="size-4" />
               </button>
               <div>
                 <h1 className="text-base font-bold text-foreground">
-                  {template?.label || (questionnaireType === "financial" ? "Financial Questionnaire" : "Non-Financial Questionnaire")}
+                  {template?.label ||
+                    (questionnaireType === "financial"
+                      ? "Financial Questionnaire"
+                      : "Non-Financial Questionnaire")}
                 </h1>
                 <p className="text-xs text-muted-foreground">
                   Section {currentSection + 1} of {sections.length}: {section.title}
@@ -334,8 +369,8 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                     isCurrent
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : isComplete
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {isComplete ? (
@@ -360,7 +395,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">{section.title}</h2>
-            {section.description && <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>}
+            {section.description && (
+              <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
+            )}
           </div>
         </div>
 
@@ -379,11 +416,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   {field.description}
                 </span>
               )}
-              <FieldInput
-                field={field}
-                value={answers[field.key]}
-                onChange={handleFieldChange}
-              />
+              <FieldInput field={field} value={answers[field.key]} onChange={handleFieldChange} />
             </div>
           ))}
         </div>

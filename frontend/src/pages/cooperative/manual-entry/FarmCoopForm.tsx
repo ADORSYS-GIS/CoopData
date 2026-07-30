@@ -10,12 +10,14 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* General Settings */}
       <div className="space-y-4">
-        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">General Profile</h4>
+        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          General Profile
+        </h4>
         <div className="space-y-2">
           <label className="text-xs font-semibold text-foreground block">Cooperative Type</label>
           <input
             value={data.cooperativeType}
-            onChange={e => onChange("cooperativeType", e.target.value)}
+            onChange={(e) => onChange("cooperativeType", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
             placeholder="e.g. Farm, Multipurpose"
           />
@@ -24,7 +26,7 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
           <label className="text-xs font-semibold text-foreground block">Primary Activities</label>
           <input
             value={data.primaryActivities}
-            onChange={e => onChange("primaryActivities", e.target.value)}
+            onChange={(e) => onChange("primaryActivities", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
             placeholder="e.g. Maize Farming, Input Supply"
           />
@@ -34,7 +36,7 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
           <input
             type="number"
             value={data.yearOfEstablishment}
-            onChange={e => onChange("yearOfEstablishment", Number(e.target.value))}
+            onChange={(e) => onChange("yearOfEstablishment", Number(e.target.value))}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground font-mono"
           />
         </div>
@@ -42,12 +44,14 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
 
       {/* Production Details */}
       <div className="space-y-4">
-        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Production & Mitigation</h4>
+        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          Production & Mitigation
+        </h4>
         <div className="space-y-2">
           <label className="text-xs font-semibold text-foreground block">Production Type</label>
           <select
             value={data.productionType}
-            onChange={e => onChange("productionType", e.target.value)}
+            onChange={(e) => onChange("productionType", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
           >
             <option value="Crop">Crop Farming</option>
@@ -57,10 +61,12 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-foreground block">Climate Exposure Type</label>
+          <label className="text-xs font-semibold text-foreground block">
+            Climate Exposure Type
+          </label>
           <select
             value={data.climateExposureType}
-            onChange={e => onChange("climateExposureType", e.target.value)}
+            onChange={(e) => onChange("climateExposureType", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
           >
             <option value="Low">Low Exposure</option>
@@ -70,25 +76,31 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
         </div>
         <div className="space-y-2 flex items-center justify-between py-1.5 font-sans">
           <div>
-            <label className="text-xs font-semibold text-foreground block">Active Producer Status</label>
-            <span className="text-[10px] text-muted-foreground">Are members actively producing?</span>
+            <label className="text-xs font-semibold text-foreground block">
+              Active Producer Status
+            </label>
+            <span className="text-[10px] text-muted-foreground">
+              Are members actively producing?
+            </span>
           </div>
           <input
             type="checkbox"
             checked={data.activeProducerFlag}
-            onChange={e => onChange("activeProducerFlag", e.target.checked)}
+            onChange={(e) => onChange("activeProducerFlag", e.target.checked)}
             className="size-5 rounded accent-primary"
           />
         </div>
         <div className="space-y-2 flex items-center justify-between py-1.5 font-sans">
           <div>
             <label className="text-xs font-semibold text-foreground block">Irrigation Access</label>
-            <span className="text-[10px] text-muted-foreground">Do members have access to irrigation?</span>
+            <span className="text-[10px] text-muted-foreground">
+              Do members have access to irrigation?
+            </span>
           </div>
           <input
             type="checkbox"
             checked={data.irrigationAccess}
-            onChange={e => onChange("irrigationAccess", e.target.checked)}
+            onChange={(e) => onChange("irrigationAccess", e.target.checked)}
             className="size-5 rounded accent-primary"
           />
         </div>

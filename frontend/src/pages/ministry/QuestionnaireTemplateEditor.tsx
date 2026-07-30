@@ -19,7 +19,10 @@ import {
   Edit,
   X,
 } from "lucide-react";
-import { useQuestionnaireTemplate, useUpdateQuestionnaireTemplate } from "@/hooks/admin/useQuestionnaireTemplates";
+import {
+  useQuestionnaireTemplate,
+  useUpdateQuestionnaireTemplate,
+} from "@/hooks/admin/useQuestionnaireTemplates";
 import { toast } from "sonner";
 
 interface QuestionnaireTemplateEditorProps {
@@ -61,7 +64,10 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   const [label, setLabel] = useState("");
   const [sections, setSections] = useState<any[]>([]);
   const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(null);
-  const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [saveMessage, setSaveMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // Field Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -129,7 +135,8 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   };
 
   const deleteSection = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this section and all of its fields?")) return;
+    if (!window.confirm("Are you sure you want to delete this section and all of its fields?"))
+      return;
     const updated = sections.filter((_, i) => i !== index);
     setSections(updated);
     if (selectedSectionIndex === index) {
@@ -212,12 +219,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     if (modalFieldIndex === null) {
       // Create new field
       // Generate key internally from label slug
-      const generatedKey = modalLabel
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "") || `field_${Date.now()}`;
-      
+      const generatedKey =
+        modalLabel
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "") || `field_${Date.now()}`;
+
       const newField: FieldConfig = {
         key: generatedKey,
         label: modalLabel.trim(),
@@ -286,7 +294,10 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         <AlertCircle className="size-6 mb-2" />
         <h4 className="font-bold">Failed to load template</h4>
         <p className="text-sm mt-1">{String(error || "Template not found")}</p>
-        <button onClick={onBack} className="mt-4 px-4 py-2 bg-background border rounded-lg text-foreground hover:bg-muted text-xs">
+        <button
+          onClick={onBack}
+          className="mt-4 px-4 py-2 bg-background border rounded-lg text-foreground hover:bg-muted text-xs"
+        >
           Back
         </button>
       </div>
@@ -308,11 +319,12 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
             <ArrowLeft className="size-4" />
           </button>
           <div>
-            <h1 className="text-xl font-heading font-bold text-foreground">
-              Form Builder
-            </h1>
+            <h1 className="text-xl font-heading font-bold text-foreground">Form Builder</h1>
             <p className="text-xs text-muted-foreground">
-              Configure dynamic questionnaire forms for {template.questionnaire_type === "financial" ? "Financial SACCOs" : "Non-Financial Cooperatives"}
+              Configure dynamic questionnaire forms for{" "}
+              {template.questionnaire_type === "financial"
+                ? "Financial SACCOs"
+                : "Non-Financial Cooperatives"}
             </p>
           </div>
         </div>
@@ -337,7 +349,11 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
               : "border-destructive/20 bg-destructive/5 text-destructive"
           }`}
         >
-          {saveMessage.type === "success" ? <CheckCircle2 className="size-4" /> : <AlertCircle className="size-4" />}
+          {saveMessage.type === "success" ? (
+            <CheckCircle2 className="size-4" />
+          ) : (
+            <AlertCircle className="size-4" />
+          )}
           {saveMessage.text}
         </div>
       )}
@@ -393,26 +409,37 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                         <div className={`p-1.5 rounded-lg bg-muted text-base leading-none`}>
                           {getEmoji(sec.icon)}
                         </div>
-                        <span className="text-xs truncate">{sec.title || "(Untitled Section)"}</span>
+                        <span className="text-xs truncate">
+                          {sec.title || "(Untitled Section)"}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={(e) => { e.stopPropagation(); moveSection(idx, "up"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveSection(idx, "up");
+                          }}
                           disabled={idx === 0}
                           className="p-1 hover:bg-muted rounded text-muted-foreground disabled:opacity-30"
                         >
                           <ChevronUp className="size-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); moveSection(idx, "down"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveSection(idx, "down");
+                          }}
                           disabled={idx === sections.length - 1}
                           className="p-1 hover:bg-muted rounded text-muted-foreground disabled:opacity-30"
                         >
                           <ChevronDown className="size-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); deleteSection(idx); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSection(idx);
+                          }}
                           className="p-1 hover:bg-destructive/10 hover:text-destructive rounded text-muted-foreground"
                         >
                           <Trash2 className="size-3.5" />
@@ -433,21 +460,29 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
               {/* Section Header Editor */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-border pb-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Section Title</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Section Title
+                  </label>
                   <input
                     type="text"
                     value={activeSection.title}
-                    onChange={(e) => updateSectionMeta(selectedSectionIndex!, "title", e.target.value)}
+                    onChange={(e) =>
+                      updateSectionMeta(selectedSectionIndex!, "title", e.target.value)
+                    }
                     className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Icon</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">
+                      Icon
+                    </label>
                     <select
                       value={activeSection.icon}
-                      onChange={(e) => updateSectionMeta(selectedSectionIndex!, "icon", e.target.value)}
+                      onChange={(e) =>
+                        updateSectionMeta(selectedSectionIndex!, "icon", e.target.value)
+                      }
                       className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                       {AVAILABLE_EMOJIS.map((emoji) => (
@@ -458,7 +493,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Section ID</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">
+                      Section ID
+                    </label>
                     <span className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs font-mono text-muted-foreground flex items-center min-h-[38px]">
                       {activeSection.id}
                     </span>
@@ -466,11 +503,15 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                 </div>
 
                 <div className="sm:col-span-2 flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Description / Instruction</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Description / Instruction
+                  </label>
                   <input
                     type="text"
                     value={activeSection.description || ""}
-                    onChange={(e) => updateSectionMeta(selectedSectionIndex!, "description", e.target.value)}
+                    onChange={(e) =>
+                      updateSectionMeta(selectedSectionIndex!, "description", e.target.value)
+                    }
                     placeholder="Brief guide for the cooperative filling this section..."
                     className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
@@ -489,9 +530,10 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                   </button>
                 </div>
 
-                {(!activeSection.fields || activeSection.fields.length === 0) ? (
+                {!activeSection.fields || activeSection.fields.length === 0 ? (
                   <div className="py-10 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
-                    No questions in this section yet. Click "Add Question" to start building your form.
+                    No questions in this section yet. Click "Add Question" to start building your
+                    form.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-1">
@@ -516,17 +558,25 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                               {field.description}
                             </p>
                           )}
-                          
+
                           <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-muted-foreground">
                             <span className="capitalize bg-muted border border-border px-2 py-0.5 rounded-md font-medium text-[11px]">
-                              Type: {field.type === "select" ? "Dropdown Choice" : field.type === "textarea" ? "Paragraph Text" : field.type}
+                              Type:{" "}
+                              {field.type === "select"
+                                ? "Dropdown Choice"
+                                : field.type === "textarea"
+                                  ? "Paragraph Text"
+                                  : field.type}
                             </span>
-                            
+
                             {field.type === "select" && field.options && (
                               <div className="flex items-center gap-1 flex-wrap">
                                 <span className="font-semibold">Options:</span>
                                 {field.options.map((opt: string) => (
-                                  <span key={opt} className="bg-primary/10 border border-primary/20 text-primary font-medium px-1.5 py-0.5 rounded-md text-[10px]">
+                                  <span
+                                    key={opt}
+                                    className="bg-primary/10 border border-primary/20 text-primary font-medium px-1.5 py-0.5 rounded-md text-[10px]"
+                                  >
                                     {opt}
                                   </span>
                                 ))}
@@ -603,7 +653,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
             {/* Modal Body */}
             <div className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">Question Label / Prompt</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  Question Label / Prompt
+                </label>
                 <input
                   type="text"
                   value={modalLabel}
@@ -614,7 +666,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">Description / Help Text</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  Description / Help Text
+                </label>
                 <input
                   type="text"
                   value={modalDescription}
@@ -626,7 +680,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Input Type</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Input Type
+                  </label>
                   <select
                     value={modalType}
                     onChange={(e) => setModalType(e.target.value)}
@@ -656,8 +712,10 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
               {/* Dynamic Dropdown Options Builder */}
               {modalType === "select" && (
                 <div className="border-t border-border/60 pt-4 flex flex-col gap-3">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Dropdown Choices</label>
-                  
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Dropdown Choices
+                  </label>
+
                   {modalOptions.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic bg-muted/40 border rounded-xl p-3 text-center">
                       No choices added yet. Add choices below.
@@ -665,7 +723,10 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                   ) : (
                     <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
                       {modalOptions.map((opt, oIdx) => (
-                        <div key={oIdx} className="flex items-center justify-between gap-3 bg-surface border p-2 rounded-xl">
+                        <div
+                          key={oIdx}
+                          className="flex items-center justify-between gap-3 bg-surface border p-2 rounded-xl"
+                        >
                           <span className="text-xs font-medium text-foreground">{opt}</span>
                           <button
                             type="button"
@@ -686,7 +747,12 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
                       value={newOptionText}
                       onChange={(e) => setNewOptionText(e.target.value)}
                       placeholder="Add a choice (e.g. Yes)"
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption(); } }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addOption();
+                        }
+                      }}
                       className="flex-1 rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
                     />
                     <button

@@ -64,7 +64,7 @@ const ACCOUNT_EXPLANATIONS: Record<number, string> = {
   5202: "Office rent, utilities, insurance, stationery, and other daily running costs.",
   5203: "Costs associated with board meetings, AGM, committee member fees, and audits.",
   5204: "Annual depreciation expense written off against fixed and intangible assets.",
-  5301: "Annual P&L expense charge to fund the loan loss provision allowance."
+  5301: "Annual P&L expense charge to fund the loan loss provision allowance.",
 };
 
 const BALANCE_SHEET_ROWS: GridRowConfig[] = [
@@ -171,8 +171,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     code: 2100,
     name: "Total Member Deposits",
     isTotal: true,
-    formula: (data, m) =>
-      (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0),
+    formula: (data, m) => (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0),
   },
   { code: 2201, name: "Short-Term Borrowings", indent: true },
   { code: 2202, name: "Long-Term Borrowings", indent: true },
@@ -189,19 +188,16 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     code: 2300,
     name: "Total Other Liabilities",
     isTotal: true,
-    formula: (data, m) =>
-      (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0),
+    formula: (data, m) => (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0),
   },
   {
     code: 2999,
     name: "TOTAL LIABILITIES",
     isTotal: true,
     formula: (data, m) => {
-      const deposits =
-        (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
+      const deposits = (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
       const borrowings = (data[2201]?.[m] || 0) + (data[2202]?.[m] || 0);
-      const other =
-        (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0);
+      const other = (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0);
       return deposits + borrowings + other;
     },
   },
@@ -221,8 +217,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     code: 3200,
     name: "Total Reserves",
     isTotal: true,
-    formula: (data, m) =>
-      (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0),
+    formula: (data, m) => (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0),
   },
   { code: 3301, name: "Accumulated Surplus", indent: true },
   { code: 3302, name: "Current Year Surplus", indent: true },
@@ -238,8 +233,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     isTotal: true,
     formula: (data, m) => {
       const shares = (data[3101]?.[m] || 0) + (data[3102]?.[m] || 0);
-      const reserves =
-        (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0);
+      const reserves = (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0);
       const retained = (data[3301]?.[m] || 0) + (data[3302]?.[m] || 0);
       return shares + reserves + retained;
     },
@@ -248,14 +242,11 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     name: "TOTAL LIABILITIES & EQUITY",
     isTotal: true,
     formula: (data, m) => {
-      const deposits =
-        (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
+      const deposits = (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
       const borrowings = (data[2201]?.[m] || 0) + (data[2202]?.[m] || 0);
-      const other =
-        (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0);
+      const other = (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0);
       const shares = (data[3101]?.[m] || 0) + (data[3102]?.[m] || 0);
-      const reserves =
-        (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0);
+      const reserves = (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0);
       const retained = (data[3301]?.[m] || 0) + (data[3302]?.[m] || 0);
       return deposits + borrowings + other + shares + reserves + retained;
     },
@@ -284,14 +275,11 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
         (data[1305]?.[m] || 0);
       const assets = liquid + gross - allowance + other;
 
-      const deposits =
-        (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
+      const deposits = (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
       const borrowings = (data[2201]?.[m] || 0) + (data[2202]?.[m] || 0);
-      const otherLiab =
-        (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0);
+      const otherLiab = (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0);
       const shares = (data[3101]?.[m] || 0) + (data[3102]?.[m] || 0);
-      const reserves =
-        (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0);
+      const reserves = (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0);
       const retained = (data[3301]?.[m] || 0) + (data[3302]?.[m] || 0);
       const liabEquity = deposits + borrowings + otherLiab + shares + reserves + retained;
 
@@ -315,8 +303,7 @@ const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
     code: 4999,
     name: "TOTAL INCOME",
     isTotal: true,
-    formula: (data, m) =>
-      (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0) + (data[4201]?.[m] || 0),
+    formula: (data, m) => (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0) + (data[4201]?.[m] || 0),
   },
   { name: "EXPENSES", isHeader: true },
   { code: 5101, name: "Interest Expense on Member Deposits", indent: true },
@@ -362,8 +349,7 @@ const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
     name: "NET SURPLUS/(DEFICIT)",
     isTotal: true,
     formula: (data, m) => {
-      const inc =
-        (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0) + (data[4201]?.[m] || 0);
+      const inc = (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0) + (data[4201]?.[m] || 0);
       const exp =
         (data[5101]?.[m] || 0) +
         (data[5102]?.[m] || 0) +
@@ -429,8 +415,11 @@ export function FinancialExcelGrid({
             <tr className="bg-muted border-b border-border text-xs font-semibold text-muted-foreground">
               <th className="px-4 py-3 text-left w-24 border-r border-border/80">Code</th>
               <th className="px-4 py-3 text-left w-80 border-r border-border/80">Account Name</th>
-              {monthSequence.map(m => (
-                <th key={m.num} className="px-3 py-3 text-right w-28 border-r border-border/80 last:border-r-0">
+              {monthSequence.map((m) => (
+                <th
+                  key={m.num}
+                  className="px-3 py-3 text-right w-28 border-r border-border/80 last:border-r-0"
+                >
                   {m.name}
                 </th>
               ))}
@@ -441,7 +430,10 @@ export function FinancialExcelGrid({
               if (row.isHeader) {
                 return (
                   <tr key={index} className="bg-primary/10 font-bold border-b border-border/80">
-                    <td className="px-4 py-3 text-sm text-primary tracking-wider font-semibold" colSpan={14}>
+                    <td
+                      className="px-4 py-3 text-sm text-primary tracking-wider font-semibold"
+                      colSpan={14}
+                    >
                       {row.name}
                     </td>
                   </tr>
@@ -457,9 +449,7 @@ export function FinancialExcelGrid({
                 <tr
                   key={index}
                   className={`border-b border-border/60 transition-colors ${
-                    isTotal
-                      ? "bg-muted/40 font-semibold"
-                      : "hover:bg-muted/10"
+                    isTotal ? "bg-muted/40 font-semibold" : "hover:bg-muted/10"
                   }`}
                 >
                   <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground border-r border-border/50">
@@ -483,7 +473,7 @@ export function FinancialExcelGrid({
                       )}
                     </div>
                   </td>
-                  {monthSequence.map(m => {
+                  {monthSequence.map((m) => {
                     let value = 0;
                     if (isFormula && row.formula) {
                       value = row.formula(financialData, m.num);
@@ -491,8 +481,10 @@ export function FinancialExcelGrid({
                       value = financialData[row.code]?.[m.num] || 0;
                     }
 
-                    const formattedVal = isCheckRow 
-                      ? (Math.abs(value) < 0.01 ? "—" : fmt(value))
+                    const formattedVal = isCheckRow
+                      ? Math.abs(value) < 0.01
+                        ? "—"
+                        : fmt(value)
                       : fmt(value);
 
                     return (
@@ -509,14 +501,16 @@ export function FinancialExcelGrid({
                         }`}
                       >
                         {isFormula ? (
-                          <span className={isCheckRow && Math.abs(value) > 0.01 ? "text-danger" : ""}>
+                          <span
+                            className={isCheckRow && Math.abs(value) > 0.01 ? "text-danger" : ""}
+                          >
                             {currency} {formattedVal}
                           </span>
                         ) : row.code ? (
                           <input
                             type="number"
                             value={value === 0 ? "" : value}
-                            onChange={e => onChange(row.code!, m.num, Number(e.target.value))}
+                            onChange={(e) => onChange(row.code!, m.num, Number(e.target.value))}
                             placeholder="0"
                             className="w-full bg-transparent text-right outline-none border-none focus:bg-primary/10 focus:ring-1 focus:ring-primary rounded px-2 py-1 font-mono text-sm text-foreground placeholder-muted-foreground/30 min-h-[28px]"
                           />
@@ -539,9 +533,7 @@ export function FinancialExcelGrid({
               <Info className="size-5 text-primary" />
               {helpField.title}
             </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-              {helpField.desc}
-            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">{helpField.desc}</p>
             <button
               onClick={() => setHelpField(null)}
               className="w-full inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm focus:outline-none"

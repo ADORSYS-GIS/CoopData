@@ -65,7 +65,11 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
   const { data: cooperatives = [] } = useCooperatives();
 
-  const { data: stats, isLoading, error } = useQuestionnaireAnalytics({
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useQuestionnaireAnalytics({
     reporting_year: reportingYear,
     region,
     sector,
@@ -85,31 +89,36 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
   };
 
   // Helper to calculate percentages
-  const malePercentage = stats && stats.total_registered_members > 0
-    ? Math.round((stats.total_members_male / stats.total_registered_members) * 100)
-    : 0;
+  const malePercentage =
+    stats && stats.total_registered_members > 0
+      ? Math.round((stats.total_members_male / stats.total_registered_members) * 100)
+      : 0;
 
-  const femalePercentage = stats && stats.total_registered_members > 0
-    ? Math.round((stats.total_members_female / stats.total_registered_members) * 100)
-    : 0;
+  const femalePercentage =
+    stats && stats.total_registered_members > 0
+      ? Math.round((stats.total_members_female / stats.total_registered_members) * 100)
+      : 0;
 
-  const activePercentage = stats && stats.total_registered_members > 0
-    ? Math.round((stats.total_active_members / stats.total_registered_members) * 100)
-    : 0;
+  const activePercentage =
+    stats && stats.total_registered_members > 0
+      ? Math.round((stats.total_active_members / stats.total_registered_members) * 100)
+      : 0;
 
-  const regionChartData = stats && stats.region_counts
-    ? Object.entries(stats.region_counts).map(([name, count]) => ({
-        name,
-        value: count,
-      }))
-    : [];
+  const regionChartData =
+    stats && stats.region_counts
+      ? Object.entries(stats.region_counts).map(([name, count]) => ({
+          name,
+          value: count,
+        }))
+      : [];
 
-  const sectorChartData = stats && stats.sector_counts
-    ? Object.entries(stats.sector_counts).map(([name, count]) => ({
-        name,
-        value: count,
-      }))
-    : [];
+  const sectorChartData =
+    stats && stats.sector_counts
+      ? Object.entries(stats.sector_counts).map(([name, count]) => ({
+          name,
+          value: count,
+        }))
+      : [];
 
   const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#ef4444"];
 
@@ -119,7 +128,6 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
       subtitle="Consolidated supervisory insights for primary cooperatives reporting via dynamic questionnaires."
     >
       <div className="flex flex-col gap-6">
-
         {/* Filter bar */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-card border border-border p-4 rounded-2xl shadow-sm">
           <div className="flex flex-col gap-1.5">
@@ -213,9 +221,11 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <AlertCircle className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
                 <span>
                   <strong>Data Scope Information:</strong> Consolidated statistics derived from{" "}
-                  <strong>{stats.total_reporting_cooperatives} dynamic questionnaire submission(s)</strong>{" "}
-                  out of <strong>{cooperatives.length} total registered cooperative(s)</strong> for reporting year{" "}
-                  <strong>{reportingYear}</strong>.
+                  <strong>
+                    {stats.total_reporting_cooperatives} dynamic questionnaire submission(s)
+                  </strong>{" "}
+                  out of <strong>{cooperatives.length} total registered cooperative(s)</strong> for
+                  reporting year <strong>{reportingYear}</strong>.
                 </span>
               </div>
             </div>
@@ -312,7 +322,9 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Net Surplus / Income
                 </span>
-                <span className={`text-2xl font-bold mt-1 ${stats.total_net_income >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                <span
+                  className={`text-2xl font-bold mt-1 ${stats.total_net_income >= 0 ? "text-emerald-600" : "text-destructive"}`}
+                >
                   {formatCurrency(stats.total_net_income)}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
@@ -328,12 +340,16 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Users className="size-4 text-primary" /> Member Demographics
                 </h3>
-                
+
                 {/* Gender split visual */}
                 <div className="flex flex-col gap-2 border-b border-border/60 pb-4">
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-blue-600 dark:text-blue-400">Male: {formatNumber(stats.total_members_male)} ({malePercentage}%)</span>
-                    <span className="text-pink-600 dark:text-pink-400">Female: {formatNumber(stats.total_members_female)} ({femalePercentage}%)</span>
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Male: {formatNumber(stats.total_members_male)} ({malePercentage}%)
+                    </span>
+                    <span className="text-pink-600 dark:text-pink-400">
+                      Female: {formatNumber(stats.total_members_female)} ({femalePercentage}%)
+                    </span>
                   </div>
                   <div className="w-full h-3 rounded-full bg-pink-100 dark:bg-pink-900/30 overflow-hidden flex">
                     <div className="bg-blue-500 h-full" style={{ width: `${malePercentage}%` }} />
@@ -342,25 +358,46 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
                 {/* Age distribution */}
                 <div className="flex flex-col gap-3">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Age Group Distribution</h4>
-                  
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Age Group Distribution
+                  </h4>
+
                   {[
-                    { label: "Youth (18 - 25)", value: stats.members_by_age.age_18_25, color: "bg-emerald-500" },
-                    { label: "Young Adults (26 - 35)", value: stats.members_by_age.age_26_35, color: "bg-blue-500" },
-                    { label: "Adults (36 - 60)", value: stats.members_by_age.age_36_60, color: "bg-indigo-500" },
-                    { label: "Seniors (61+)", value: stats.members_by_age.age_61plus, color: "bg-amber-500" },
+                    {
+                      label: "Youth (18 - 25)",
+                      value: stats.members_by_age.age_18_25,
+                      color: "bg-emerald-500",
+                    },
+                    {
+                      label: "Young Adults (26 - 35)",
+                      value: stats.members_by_age.age_26_35,
+                      color: "bg-blue-500",
+                    },
+                    {
+                      label: "Adults (36 - 60)",
+                      value: stats.members_by_age.age_36_60,
+                      color: "bg-indigo-500",
+                    },
+                    {
+                      label: "Seniors (61+)",
+                      value: stats.members_by_age.age_61plus,
+                      color: "bg-amber-500",
+                    },
                   ].map((group) => {
                     const totalAgeMembers =
                       stats.members_by_age.age_18_25 +
                       stats.members_by_age.age_26_35 +
                       stats.members_by_age.age_36_60 +
                       stats.members_by_age.age_61plus;
-                    const pct = totalAgeMembers > 0 ? Math.round((group.value / totalAgeMembers) * 100) : 0;
+                    const pct =
+                      totalAgeMembers > 0 ? Math.round((group.value / totalAgeMembers) * 100) : 0;
                     return (
                       <div key={group.label} className="flex flex-col gap-1.5">
                         <div className="flex justify-between text-xs">
                           <span className="text-foreground font-medium">{group.label}</span>
-                          <span className="text-muted-foreground font-bold">{formatNumber(group.value)} ({pct}%)</span>
+                          <span className="text-muted-foreground font-bold">
+                            {formatNumber(group.value)} ({pct}%)
+                          </span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                           <div className={`h-full ${group.color}`} style={{ width: `${pct}%` }} />
@@ -376,7 +413,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <DollarSign className="size-4 text-primary" /> Financial Balances
                 </h3>
-                
+
                 <div className="grid grid-cols-2 gap-4 flex-1">
                   <div className="bg-muted/40 border border-border/80 rounded-xl p-4 flex flex-col justify-center">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -417,7 +454,9 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
                 <div className="flex items-center justify-between text-xs border-t border-border pt-3">
                   <span className="text-muted-foreground">Operating Expenses:</span>
-                  <span className="font-semibold text-foreground">{formatCurrency(stats.total_expenditure)}</span>
+                  <span className="font-semibold text-foreground">
+                    {formatCurrency(stats.total_expenditure)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -474,7 +513,11 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={sectorChartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(229, 231, 235, 0.3)" />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="rgba(229, 231, 235, 0.3)"
+                        />
                         <RechartsXAxis
                           dataKey="name"
                           axisLine={false}
@@ -496,9 +539,17 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                           }}
                           cursor={{ fill: "transparent" }}
                         />
-                        <Bar dataKey="value" name="Cooperatives" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
+                        <Bar
+                          dataKey="value"
+                          name="Cooperatives"
+                          fill="#8b5cf6"
+                          radius={[4, 4, 0, 0]}
+                        >
                           {sectorChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[(index + 2) % COLORS.length]}
+                            />
                           ))}
                         </Bar>
                       </BarChart>
@@ -515,7 +566,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
             {/* Reporting Cooperatives Detail List */}
             <div className="rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col gap-4">
               <h3 className="text-sm font-bold text-foreground">Reporting Cooperatives Details</h3>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
@@ -535,24 +586,26 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                           {row.cooperative_name}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className={`inline-flex px-2 py-0.5 rounded-full font-bold border ${
-                            row.questionnaire_type === "financial"
-                              ? "bg-blue-500/10 border-blue-500/25 text-blue-600 dark:text-blue-400"
-                              : "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
-                          }`}>
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full font-bold border ${
+                              row.questionnaire_type === "financial"
+                                ? "bg-blue-500/10 border-blue-500/25 text-blue-600 dark:text-blue-400"
+                                : "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
+                            }`}
+                          >
                             {row.questionnaire_type === "financial" ? "Financial" : "Non-Financial"}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-muted-foreground">
-                          {row.region}
-                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground">{row.region}</td>
                         <td className="px-5 py-3.5 text-right font-medium">
                           {formatNumber(row.total_members)}
                         </td>
                         <td className="px-5 py-3.5 text-right font-mono font-semibold">
                           {formatCurrency(row.total_share_capital)}
                         </td>
-                        <td className={`px-5 py-3.5 text-right font-mono font-semibold ${row.net_income >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                        <td
+                          className={`px-5 py-3.5 text-right font-mono font-semibold ${row.net_income >= 0 ? "text-emerald-600" : "text-destructive"}`}
+                        >
                           {formatCurrency(row.net_income)}
                         </td>
                       </tr>

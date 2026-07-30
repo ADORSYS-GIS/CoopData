@@ -1,6 +1,7 @@
 import type { MemberRecord } from "@/lib/financial-data";
 
-export type WizardStep = "financial" | "members" | "savings" | "loans" | "deposits" | "farm" | "review";
+export type WizardStep =
+  "financial" | "members" | "savings" | "loans" | "deposits" | "farm" | "review";
 
 export interface WizardMember extends MemberRecord {
   _rowKey: string;

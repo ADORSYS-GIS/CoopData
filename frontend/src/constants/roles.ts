@@ -61,7 +61,13 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/members",
       "/app/submissions",
     ],
-    intelligence: ["/app/reports", "/app/analytics", "/app/basic-analytics", "/app/benchmarking", "/app/custom-kpis"],
+    intelligence: [
+      "/app/reports",
+      "/app/analytics",
+      "/app/basic-analytics",
+      "/app/benchmarking",
+      "/app/custom-kpis",
+    ],
     system: ["/app/audit", "/app/indicators", "/app/questionnaire-templates", "/app/settings"],
   },
   federation: {

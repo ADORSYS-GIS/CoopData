@@ -111,7 +111,7 @@ function sectionStatusLabel(status: string) {
   );
 }
 
-const isQuestionnaireFilled = (q: any) => {
+const isQuestionnaireFilled = (q: { id?: string } | null | undefined) => {
   return q && q.id && q.id !== "00000000-0000-0000-0000-000000000000";
 };
 
@@ -601,7 +601,6 @@ export const SubmissionDetailPage: React.FC = () => {
       pendingAction: "Upload Excel",
       readyAction: "View Farm Data",
     },
-
   ];
 
   return (
@@ -918,33 +917,36 @@ export const SubmissionDetailPage: React.FC = () => {
                             </button>
                           ) : (
                             <div className="flex items-center gap-2">
-                              {m.key !== "financial" && (hasUploadedData(m.key) || isInProgress) && (
-                                <button
-                                  onClick={async () => {
-                                    setUpdatingSectionKey(m.key);
-                                    try {
-                                      await updateSection.mutateAsync({
-                                        section: m.key,
-                                        status: "ready",
-                                      });
-                                      toast.success(`${m.label} marked ready`);
-                                    } catch (e) {
-                                      toast.error(e instanceof Error ? e.message : "Failed to update");
-                                    } finally {
-                                      setUpdatingSectionKey(null);
-                                    }
-                                  }}
-                                  disabled={updateSection.isPending}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
-                                >
-                                  {isUpdatingThis ? (
-                                    <Loader2 className="size-2.5 animate-spin" />
-                                  ) : (
-                                    <CheckCircle2 className="size-2.5" />
-                                  )}
-                                  Mark Ready
-                                </button>
-                              )}
+                              {m.key !== "financial" &&
+                                (hasUploadedData(m.key) || isInProgress) && (
+                                  <button
+                                    onClick={async () => {
+                                      setUpdatingSectionKey(m.key);
+                                      try {
+                                        await updateSection.mutateAsync({
+                                          section: m.key,
+                                          status: "ready",
+                                        });
+                                        toast.success(`${m.label} marked ready`);
+                                      } catch (e) {
+                                        toast.error(
+                                          e instanceof Error ? e.message : "Failed to update",
+                                        );
+                                      } finally {
+                                        setUpdatingSectionKey(null);
+                                      }
+                                    }}
+                                    disabled={updateSection.isPending}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
+                                  >
+                                    {isUpdatingThis ? (
+                                      <Loader2 className="size-2.5 animate-spin" />
+                                    ) : (
+                                      <CheckCircle2 className="size-2.5" />
+                                    )}
+                                    Mark Ready
+                                  </button>
+                                )}
                               <button
                                 onClick={() => {
                                   setActiveTab(m.tab);
@@ -1239,7 +1241,10 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : undefined
                     }
                   >
-                    <QuestionnaireResponseViewer submissionId={submission.id} questionnaireType="financial" />
+                    <QuestionnaireResponseViewer
+                      submissionId={submission.id}
+                      questionnaireType="financial"
+                    />
                   </Card>
                 ) : (
                   <>
@@ -1265,7 +1270,8 @@ export const SubmissionDetailPage: React.FC = () => {
                             <div>
                               <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Upload your audited balance sheet PDF or Excel file. Our AI will extract and map the data automatically.
+                                Upload your audited balance sheet PDF or Excel file. Our AI will
+                                extract and map the data automatically.
                               </p>
                             </div>
                             <div className="mt-auto">
@@ -1281,7 +1287,8 @@ export const SubmissionDetailPage: React.FC = () => {
                             <div>
                               <h4 className="text-sm font-bold text-foreground">Manual Entry</h4>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Don't have the file? Enter your financial data directly using our structured forms — all Chart of Accounts fields included.
+                                Don't have the file? Enter your financial data directly using our
+                                structured forms — all Chart of Accounts fields included.
                               </p>
                             </div>
                             <button
@@ -1307,10 +1314,13 @@ export const SubmissionDetailPage: React.FC = () => {
                             <div>
                               <div className="flex items-center gap-2">
                                 <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
-                                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">Basic</span>
+                                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">
+                                  Basic
+                                </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                For basic-tier cooperatives that cannot provide full financial ledgers. Answer guided questions to complete your submission.
+                                For basic-tier cooperatives that cannot provide full financial
+                                ledgers. Answer guided questions to complete your submission.
                               </p>
                             </div>
                             <button
@@ -1334,7 +1344,9 @@ export const SubmissionDetailPage: React.FC = () => {
                       <Card title="Financial Statement" subtitle="No document uploaded yet">
                         <div className="py-10 text-center text-muted-foreground">
                           <FileText className="size-10 mx-auto mb-3 opacity-30" />
-                          <p className="text-sm">No financial statement uploaded for this submission.</p>
+                          <p className="text-sm">
+                            No financial statement uploaded for this submission.
+                          </p>
                         </div>
                       </Card>
                     )}
@@ -1364,7 +1376,10 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : undefined
                     }
                   >
-                    <QuestionnaireResponseViewer submissionId={submission.id} questionnaireType="non_financial" />
+                    <QuestionnaireResponseViewer
+                      submissionId={submission.id}
+                      questionnaireType="non_financial"
+                    />
                   </Card>
                 ) : (
                   <NfDatabasesTab
@@ -1378,9 +1393,7 @@ export const SubmissionDetailPage: React.FC = () => {
                   />
                 )}
               </TabsContent>
-
-
-          </Tabs>
+            </Tabs>
           )}
         </div>
       )}
@@ -1608,8 +1621,8 @@ function NfDatabasesTab({
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                Don't have the Excel file? Use our guided forms to enter your member, savings,
-                loan, and deposit data row by row.
+                Don't have the Excel file? Use our guided forms to enter your member, savings, loan,
+                and deposit data row by row.
               </p>
               <button
                 onClick={() =>
@@ -1635,10 +1648,13 @@ function NfDatabasesTab({
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
-                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">Basic</span>
+                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">
+                  Basic
+                </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                For non-financial cooperatives (Agriculture, Handicraft, etc.). Answer guided questions to complete your submission.
+                For non-financial cooperatives (Agriculture, Handicraft, etc.). Answer guided
+                questions to complete your submission.
               </p>
             </div>
             <button

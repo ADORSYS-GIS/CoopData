@@ -14,10 +14,12 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
     <select
       className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
       value={member[field] as string}
-      onChange={e => onUpdate(member._rowKey, field, e.target.value)}
+      onChange={(e) => onUpdate(member._rowKey, field, e.target.value)}
     >
-      {options.map(o => (
-        <option key={o} value={o}>{o}</option>
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
       ))}
     </select>
   );
@@ -30,7 +32,7 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
           placeholder="MEM-001"
           value={member.memberId}
-          onChange={e => onUpdate(member._rowKey, "memberId", e.target.value)}
+          onChange={(e) => onUpdate(member._rowKey, "memberId", e.target.value)}
         />
       </td>
       <td className="px-2 py-2">
@@ -38,22 +40,20 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
           type="date"
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5"
           value={member.joinDate}
-          onChange={e => onUpdate(member._rowKey, "joinDate", e.target.value)}
+          onChange={(e) => onUpdate(member._rowKey, "joinDate", e.target.value)}
         />
       </td>
       <td className="px-2 py-2">{sel("status", ["Active", "Dormant", "Exited"])}</td>
       <td className="px-2 py-2">{sel("gender", ["Male", "Female", "Other"])}</td>
       <td className="px-2 py-2">{sel("ageGroup", ["<18", "18-35", "36-50", "50+"])}</td>
-      <td className="px-2 py-2">
-        {sel("region", ["Hhohho", "Manzini", "Lubombo", "Shiselweni"])}
-      </td>
+      <td className="px-2 py-2">{sel("region", ["Hhohho", "Manzini", "Lubombo", "Shiselweni"])}</td>
       <td className="px-2 py-2">{sel("urbanRural", ["Urban", "Rural"])}</td>
       <td className="px-2 py-2 text-center">
         <input
           type="checkbox"
           className="size-4 rounded accent-primary mx-auto block"
           checked={member.agmAttendance}
-          onChange={e => onUpdate(member._rowKey, "agmAttendance", e.target.checked)}
+          onChange={(e) => onUpdate(member._rowKey, "agmAttendance", e.target.checked)}
         />
       </td>
       <td className="px-2 py-2 text-center">
@@ -61,7 +61,7 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
           type="checkbox"
           className="size-4 rounded accent-primary mx-auto block"
           checked={member.votingExercised}
-          onChange={e => onUpdate(member._rowKey, "votingExercised", e.target.checked)}
+          onChange={(e) => onUpdate(member._rowKey, "votingExercised", e.target.checked)}
         />
       </td>
       <td className="px-2 py-2">
