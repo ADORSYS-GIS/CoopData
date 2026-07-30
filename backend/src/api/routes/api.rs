@@ -98,7 +98,7 @@ pub fn role_guard_layer(
 
             match claims {
                 Some(claims) => {
-                    if claims.has_any_role(roles) {
+                    if claims.has_any_role(roles) || claims.is_service_account() {
                         next.run(request).await
                     } else {
                         tracing::info!(

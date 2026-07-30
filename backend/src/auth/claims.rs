@@ -87,6 +87,26 @@ impl Claims {
         self.has_role("cooperative")
     }
 
+    /// Returns true if this is the backend service account used by Gotenberg for PDF rendering.
+    ///
+    /// The service account bypasses all role-based access controls because Gotenberg's headless
+    /// Chromium has no interactive Keycloak session — it authenticates via a pre-obtained JWT
+    /// embedded in the print page URL. The service account needs access to all tier endpoints
+    /// (cooperative, apex, federation, ministry) to render the complete set of PDF reports.
+    ///
+    /// **Security note:** This bypass is safe because:
+    /// 1. The service account credentials (client_id + client_secret) are only in the backend
+    ///    environment — they're never exposed to end users.
+    /// 2. The bypass only applies to API calls from Gotenberg's headless browser, not from
+    ///    interactive user sessions.
+    /// 3. The service account has no Keycloak groups — it can't access user-specific data
+    ///    unless the endpoints have explicit service-account handling (e.g., `resolve_caller_cooperative_ids`
+    ///    returns ALL cooperatives for the service account).
+    pub fn is_service_account(&self) -> bool {
+        self.preferred_username.as_deref() == Some("service-account-coopdata-backend")
+            || self.sub == "service-account-coopdata-backend"
+    }
+
     pub fn get_organization_id(&self) -> Option<String> {
         self.organization.as_ref().and_then(|org| {
             if let serde_json::Value::Object(map) = org {

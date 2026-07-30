@@ -14,7 +14,8 @@ export default defineConfig({
     e2eMockAuth(),
   ],
   server: {
-    host: true,
+    host: "0.0.0.0",
+    allowedHosts: true,
     watch: {
       usePolling: true,
       interval: 1000,

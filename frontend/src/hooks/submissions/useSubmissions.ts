@@ -89,13 +89,16 @@ export const useMinistrySubmissions = (
 
 // ── Single submission — role-aware ────────────────────────────────────────────
 
-export const useSubmission = (id: string, role?: string) =>
+export const useSubmission = (id: string, role?: string, tokenOverride?: string) =>
   useQuery({
     queryKey: [SUBMISSIONS_KEY, id],
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
+
       if (role === "apex") {
         const { data, error } = await apiClient.GET("/api/v1/apex/submissions/{id}", {
           params: { path: { id } },
+          headers,
         });
         if (error) throw new Error(extractErrorMessage(error));
         return data as SubmissionResponse;
@@ -103,6 +106,7 @@ export const useSubmission = (id: string, role?: string) =>
       if (role === "federation") {
         const { data, error } = await apiClient.GET("/api/v1/federation/submissions/{id}", {
           params: { path: { id } },
+          headers,
         });
         if (error) throw new Error(extractErrorMessage(error));
         return data as SubmissionResponse;
@@ -110,12 +114,14 @@ export const useSubmission = (id: string, role?: string) =>
       if (role === "ministry") {
         const { data, error } = await apiClient.GET("/api/v1/ministry/submissions/{id}", {
           params: { path: { id } },
+          headers,
         });
         if (error) throw new Error(extractErrorMessage(error));
         return data as SubmissionResponse;
       }
       const { data, error } = await apiClient.GET("/api/v1/cooperative/submissions/{id}", {
         params: { path: { id } },
+        headers,
       });
       if (error) throw new Error(extractErrorMessage(error));
       return data as SubmissionResponse;

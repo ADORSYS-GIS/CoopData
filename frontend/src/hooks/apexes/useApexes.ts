@@ -62,12 +62,14 @@ export const useMinistryApexes = (federationId?: string, enabled = true) =>
     retry: false,
   });
 
-export const useApex = (id: string) =>
+export const useApex = (id: string, tokenOverride?: string) =>
   useQuery({
     queryKey: [APEXES_KEY, id],
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/federation/apexes/{id}", {
         params: { path: { id } },
+        headers: headers as Record<string, string>,
       });
       if (error) throw new Error(extractErrorMessage(error));
       return data as unknown as ApexResponse;

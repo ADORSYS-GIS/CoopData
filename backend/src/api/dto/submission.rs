@@ -197,3 +197,27 @@ impl From<crate::entities::submission_review::Model> for SubmissionReviewRespons
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PortfolioCategoryDto {
+    pub category: String,
+    pub balance: f64,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PortfolioBreakdownResponse {
+    pub submission_id: Uuid,
+    pub categories: Vec<PortfolioCategoryDto>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MembershipStatsResponse {
+    pub submission_id: Uuid,
+    pub male_members: i64,
+    pub female_members: i64,
+    pub youth_members: i64,
+    pub active_members: i64,
+    pub inactive_members: i64,
+    pub agm_attendance: i64,
+}

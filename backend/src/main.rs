@@ -123,6 +123,7 @@ async fn main() -> anyhow::Result<()> {
         farm_coop_repo,
         storage,
         nf_excel_parser,
+        gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
     };
 
     // Backfill computed KPIs for existing submissions

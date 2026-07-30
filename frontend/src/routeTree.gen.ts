@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as PrintMinistryRouteImport } from './routes/print.ministry'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
@@ -37,6 +38,9 @@ import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
+import { Route as PrintFederationIdRouteImport } from './routes/print.federation.$id'
+import { Route as PrintCooperativeIdRouteImport } from './routes/print.cooperative.$id'
+import { Route as PrintApexIdRouteImport } from './routes/print.apex.$id'
 import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
 import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.cooperative.$cooperativeId'
@@ -70,6 +74,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const PrintMinistryRoute = PrintMinistryRouteImport.update({
+  id: '/print/ministry',
+  path: '/print/ministry',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
@@ -187,6 +196,21 @@ const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppUsersRoute,
 } as any)
+const PrintFederationIdRoute = PrintFederationIdRouteImport.update({
+  id: '/print/federation/$id',
+  path: '/print/federation/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintCooperativeIdRoute = PrintCooperativeIdRouteImport.update({
+  id: '/print/cooperative/$id',
+  path: '/print/cooperative/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintApexIdRoute = PrintApexIdRouteImport.update({
+  id: '/print/apex/$id',
+  path: '/print/apex/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppUsersApexIdRoute = AppUsersApexIdRouteImport.update({
   id: '/$apexId',
   path: '/$apexId',
@@ -260,12 +284,16 @@ export interface FileRoutesByFullPath {
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
   '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
   '/app/submissions/$id': typeof AppSubmissionsIdRouteWithChildren
   '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
   '/app/users/': typeof AppUsersIndexRoute
   '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
   '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
@@ -296,11 +324,15 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/auth/login': typeof AuthLoginRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
   '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
   '/app/users': typeof AppUsersIndexRoute
   '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
   '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
@@ -334,12 +366,16 @@ export interface FileRoutesById {
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
   '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
   '/app/submissions_/$id': typeof AppSubmissionsIdRouteWithChildren
   '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
   '/app/users/': typeof AppUsersIndexRoute
   '/app/submissions_/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
   '/app/submissions_/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
@@ -374,12 +410,16 @@ export interface FileRouteTypes {
     | '/app/submissions'
     | '/app/users'
     | '/auth/login'
+    | '/print/ministry'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
     | '/app/cooperative/$cooperativeId'
     | '/app/submissions/$id'
     | '/app/users/$apexId'
+    | '/print/apex/$id'
+    | '/print/cooperative/$id'
+    | '/print/federation/$id'
     | '/app/users/'
     | '/app/submissions/$id/manual-entry'
     | '/app/submissions/$id/questionnaire'
@@ -410,11 +450,15 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/submissions'
     | '/auth/login'
+    | '/print/ministry'
     | '/app'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
     | '/app/cooperative/$cooperativeId'
     | '/app/users/$apexId'
+    | '/print/apex/$id'
+    | '/print/cooperative/$id'
+    | '/print/federation/$id'
     | '/app/users'
     | '/app/submissions/$id/manual-entry'
     | '/app/submissions/$id/questionnaire'
@@ -447,12 +491,16 @@ export interface FileRouteTypes {
     | '/app/submissions'
     | '/app/users'
     | '/auth/login'
+    | '/print/ministry'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
     | '/app/cooperative/$cooperativeId'
     | '/app/submissions_/$id'
     | '/app/users/$apexId'
+    | '/print/apex/$id'
+    | '/print/cooperative/$id'
+    | '/print/federation/$id'
     | '/app/users/'
     | '/app/submissions_/$id/manual-entry'
     | '/app/submissions_/$id/questionnaire'
@@ -464,6 +512,10 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   UnauthorizedRoute: typeof UnauthorizedRoute
+  PrintMinistryRoute: typeof PrintMinistryRoute
+  PrintApexIdRoute: typeof PrintApexIdRoute
+  PrintCooperativeIdRoute: typeof PrintCooperativeIdRoute
+  PrintFederationIdRoute: typeof PrintFederationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -502,6 +554,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/print/ministry': {
+      id: '/print/ministry'
+      path: '/print/ministry'
+      fullPath: '/print/ministry'
+      preLoaderRoute: typeof PrintMinistryRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/login': {
       id: '/auth/login'
@@ -663,6 +722,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/users/'
       preLoaderRoute: typeof AppUsersIndexRouteImport
       parentRoute: typeof AppUsersRoute
+    }
+    '/print/federation/$id': {
+      id: '/print/federation/$id'
+      path: '/print/federation/$id'
+      fullPath: '/print/federation/$id'
+      preLoaderRoute: typeof PrintFederationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print/cooperative/$id': {
+      id: '/print/cooperative/$id'
+      path: '/print/cooperative/$id'
+      fullPath: '/print/cooperative/$id'
+      preLoaderRoute: typeof PrintCooperativeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print/apex/$id': {
+      id: '/print/apex/$id'
+      path: '/print/apex/$id'
+      fullPath: '/print/apex/$id'
+      preLoaderRoute: typeof PrintApexIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/users/$apexId': {
       id: '/app/users/$apexId'
@@ -829,6 +909,10 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   UnauthorizedRoute: UnauthorizedRoute,
+  PrintMinistryRoute: PrintMinistryRoute,
+  PrintApexIdRoute: PrintApexIdRoute,
+  PrintCooperativeIdRoute: PrintCooperativeIdRoute,
+  PrintFederationIdRoute: PrintFederationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

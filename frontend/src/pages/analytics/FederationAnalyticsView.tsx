@@ -16,6 +16,7 @@ import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
+import { ApexDistributionBar } from "@/components/analytics/ApexDistributionBar";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
@@ -82,6 +83,14 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
     [coops, filterValues.cooperativeId],
   );
 
+  const totalApexes = useMemo(() => {
+    const apexSet = new Set<string>();
+    coops.forEach((c) => {
+      if (c.apex_id) apexSet.add(c.apex_id);
+    });
+    return apexSet.size;
+  }, [coops]);
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground p-8">
@@ -111,16 +120,27 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
         cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+        totalApexes={totalApexes}
       />
 
-      {/* Regional portfolio distribution */}
-      <Card
-        title="Regional Portfolio Distribution"
-        subtitle="Total assets, loans and deposits by region"
-        info="Displays the aggregate financial balances distributed across different geographical regions."
-      >
-        <RegionalGroupedBar cooperatives={coops} />
-      </Card>
+      {/* Apex & Regional Distributions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card
+          title="Apex Distribution"
+          subtitle="Cooperatives & members by apex"
+          info="Displays the number of cooperatives and active members under each Apex organization."
+        >
+          <ApexDistributionBar cooperatives={coops} />
+        </Card>
+
+        <Card
+          title="Regional Portfolio Distribution"
+          subtitle="Total assets, loans and deposits by region"
+          info="Displays the aggregate financial balances distributed across different geographical regions."
+        >
+          <RegionalGroupedBar cooperatives={coops} />
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Efficiency leaderboard (OER — lower = better) */}

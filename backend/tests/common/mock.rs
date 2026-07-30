@@ -102,6 +102,7 @@ impl TestApp {
             custom_kpi_repo,
             kpi_record_repo,
             storage,
+            gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
             nf_excel_parser,
         };
 
@@ -125,6 +126,8 @@ pub fn test_config() -> AppConfig {
         jwt_audience: "test-audience".to_string(),
         jwt_issuer_aliases: vec![],
         frontend_url: "http://localhost:5173".to_string(),
+        gotenberg_url: "http://localhost:8081".to_string(),
+        gotenberg_frontend_url: "http://localhost:5173".to_string(),
         environment: Environment::Development,
         extraction_backend: "mock".to_string(),
         ai_provider_url: "https://api.openai.com/v1".to_string(),

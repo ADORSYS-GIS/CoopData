@@ -1057,7 +1057,7 @@ pub async fn resolve_caller_cooperative_ids(
     state: &AppState,
     claims: &Claims,
 ) -> AppResult<Vec<Uuid>> {
-    if claims.has_role("ministry") {
+    if claims.has_role("ministry") || claims.is_service_account() {
         let all = state.cooperative_repo.list_all().await?;
         Ok(all.iter().map(|c| c.id).collect())
     } else if claims.has_role("federation") {
