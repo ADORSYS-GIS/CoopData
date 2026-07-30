@@ -292,10 +292,26 @@ impl LlmNarrativeGenerator {
             };
 
             if res.status().as_u16() == 429 {
-                // Rate limited — parse response body for Gemini's retryDelay
                 let text = res.text().await.unwrap_or_default();
                 
-                // Try to extract "retryDelay": "46s" from Gemini's response body
+                // Check for QUOTA EXHAUSTION (permanent until billing/plan reset)
+                // Gemini: "Quota exceeded for metric: ... limit: 20"
+                // OpenAI: "You exceeded your current quota"
+                let is_quota_exhausted = text.contains("Quota exceeded")
+                    || text.contains("exceeded your current quota")
+                    || text.contains("quota_exceeded");
+                
+                if is_quota_exhausted {
+                    tracing::error!(
+                        attempt,
+                        "[narrative] 💳 Quota exhausted — failing immediately (no retry). Quota won't recover during retries."
+                    );
+                    return Err(AppError::ExternalServiceError(format!(
+                        "Narrative LLM quota exhausted (credits depleted): {text}"
+                    )));
+                }
+                
+                // Rate limited (temporary) — parse response body for Gemini's retryDelay
                 let delay_ms = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
                     // Gemini format: { "error": { "retryDelay": "46s", ... } }
                     let retry_delay = json["error"]["retryDelay"]
