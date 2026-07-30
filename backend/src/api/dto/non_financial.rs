@@ -1158,4 +1158,3 @@ pub struct ManualFarmCoopEntry {
     pub irrigation_access: bool,
     pub climate_mitigation_practices: String,
 }
-

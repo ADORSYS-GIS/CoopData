@@ -332,7 +332,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={updateMutation.isPending}
             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm"
           >

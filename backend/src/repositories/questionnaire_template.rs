@@ -23,10 +23,7 @@ impl QuestionnaireTemplateRepository {
             .map_err(AppError::DatabaseError)
     }
 
-    pub async fn find_by_id(
-        &self,
-        id: Uuid,
-    ) -> AppResult<Option<questionnaire_template::Model>> {
+    pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<questionnaire_template::Model>> {
         questionnaire_template::Entity::find_by_id(id)
             .one(&self.db)
             .await
@@ -71,7 +68,10 @@ impl QuestionnaireTemplateRepository {
             created_at: Set(chrono::Utc::now()),
             updated_at: Set(chrono::Utc::now()),
         };
-        active.insert(&self.db).await.map_err(AppError::DatabaseError)
+        active
+            .insert(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn update(
@@ -85,8 +85,6 @@ impl QuestionnaireTemplateRepository {
             .await?
             .ok_or_else(|| AppError::NotFound("Questionnaire template not found".into()))?;
 
-
-
         let mut active: questionnaire_template::ActiveModel = existing.into();
         if let Some(l) = label {
             active.label = Set(l);
@@ -95,7 +93,10 @@ impl QuestionnaireTemplateRepository {
             active.sections = Set(s);
         }
         active.updated_at = Set(chrono::Utc::now());
-        active.update(&self.db).await.map_err(AppError::DatabaseError)
+        active
+            .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     /// Activate a template — deactivates any previously active template of the same type first.
@@ -119,7 +120,10 @@ impl QuestionnaireTemplateRepository {
         let mut active: questionnaire_template::ActiveModel = template.into();
         active.is_active = Set(true);
         active.updated_at = Set(chrono::Utc::now());
-        active.update(&self.db).await.map_err(AppError::DatabaseError)
+        active
+            .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn delete(&self, id: Uuid) -> AppResult<()> {

@@ -4,12 +4,28 @@ import { fetchWithAuth } from "@/services/shared/authService";
 const TEMPLATE_LIST_KEY = "questionnaire-templates";
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export interface QuestionnaireField {
+  id: string;
+  field_type: string;
+  label: string;
+  required: boolean;
+  options?: string[];
+  placeholder?: string;
+}
+
+export interface QuestionnaireSection {
+  title: string;
+  description?: string;
+  icon?: string;
+  fields: QuestionnaireField[];
+}
+
 export interface QuestionnaireTemplate {
   id: string;
   questionnaire_type: "financial" | "non_financial";
   version: number;
   label: string;
-  sections: unknown[];
+  sections: QuestionnaireSection[];
   is_active: boolean;
   created_by?: string;
   created_at: string;
@@ -49,7 +65,7 @@ export const useCreateQuestionnaireTemplate = () => {
     mutationFn: async (payload: {
       questionnaire_type: "financial" | "non_financial";
       label: string;
-      sections: unknown[];
+      sections: QuestionnaireSection[];
     }) => {
       const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates`, {
         method: "POST",
@@ -71,7 +87,7 @@ export const useCreateQuestionnaireTemplate = () => {
 export const useUpdateQuestionnaireTemplate = (id: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { label?: string; sections?: unknown[] }) => {
+    mutationFn: async (payload: { label?: string; sections?: QuestionnaireSection[] }) => {
       const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

@@ -706,5 +706,3 @@ impl SubmissionMethod {
         }
     }
 }
-
-

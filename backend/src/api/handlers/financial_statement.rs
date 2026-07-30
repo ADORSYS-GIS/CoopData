@@ -273,9 +273,9 @@ pub async fn create_manual_financial_statement(
     Path(submission_id): Path<Uuid>,
     Json(body): Json<crate::api::dto::financial::ManualFinancialStatementRequest>,
 ) -> AppResult<impl IntoResponse> {
-    use crate::entities::enums::{AccountingYear, Currency, AccountCategory, SubmissionStatus};
-    use crate::entities::financial_statement::ActiveModel as FsModel;
     use crate::entities::balance_sheet_line_item::ActiveModel as LineItemModel;
+    use crate::entities::enums::{AccountCategory, AccountingYear, Currency, SubmissionStatus};
+    use crate::entities::financial_statement::ActiveModel as FsModel;
     use crate::services::abnormality_detector::AbnormalityDetector;
     use sea_orm::Set;
 
@@ -317,7 +317,8 @@ pub async fn create_manual_financial_statement(
     }
 
     let fs_id = Uuid::new_v4();
-    let accounting_year = AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar);
+    let accounting_year =
+        AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar);
     let currency = if body.currency == "USD" {
         Currency::Usd
     } else {
@@ -342,8 +343,10 @@ pub async fn create_manual_financial_statement(
     // Create line items
     for item in body.line_items {
         use rust_decimal::prelude::FromPrimitive;
-        let value = rust_decimal::Decimal::from_f64(item.value.unwrap_or(0.0)).unwrap_or(rust_decimal::Decimal::ZERO);
-        let category = AccountCategory::parse(&item.account_category).unwrap_or(AccountCategory::Assets);
+        let value = rust_decimal::Decimal::from_f64(item.value.unwrap_or(0.0))
+            .unwrap_or(rust_decimal::Decimal::ZERO);
+        let category =
+            AccountCategory::parse(&item.account_category).unwrap_or(AccountCategory::Assets);
 
         let model = LineItemModel {
             id: Set(Uuid::new_v4()),
@@ -372,11 +375,20 @@ pub async fn create_manual_financial_statement(
         .map(|t| t.as_str().to_string())
         .unwrap_or_else(|| "sacco".to_string());
 
-    let detector = AbnormalityDetector::new(state.line_item_repo.clone(), state.flag_repo.clone(), state.coa_repo.clone());
-    let (errors, warnings) = detector.run(submission_id, coop.id, fs_id, &coa, &coop_type).await?;
+    let detector = AbnormalityDetector::new(
+        state.line_item_repo.clone(),
+        state.flag_repo.clone(),
+        state.coa_repo.clone(),
+    );
+    let (errors, warnings) = detector
+        .run(submission_id, coop.id, fs_id, &coa, &coop_type)
+        .await?;
 
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
-    state.financial_statement_repo.set_validation_errors(fs_id, validation_json).await?;
+    state
+        .financial_statement_repo
+        .set_validation_errors(fs_id, validation_json)
+        .await?;
 
     // Set financial section status to ready or in_progress (following upload pipeline, we set it to in_progress)
     if let Some(sec) = state
@@ -384,14 +396,19 @@ pub async fn create_manual_financial_statement(
         .find_by_submission_and_section(submission_id, "financial")
         .await?
     {
-        state.section_repo.update_status(sec.id, "in_progress").await?;
+        state
+            .section_repo
+            .update_status(sec.id, "in_progress")
+            .await?;
     }
 
-    Ok((StatusCode::CREATED, Json(FinancialStatementResponse::from(created_fs))))
+    Ok((
+        StatusCode::CREATED,
+        Json(FinancialStatementResponse::from(created_fs)),
+    ))
 }
 
 // ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
-
 
 #[utoipa::path(
     get,

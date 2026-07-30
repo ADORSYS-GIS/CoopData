@@ -9,7 +9,7 @@ use crate::repositories::{
     KpiRecordRepository, SubmissionRepository, SubmissionReviewRepository,
     SubmissionSectionRepository,
 };
-use sea_orm::{Set, EntityTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 
 pub struct SubmissionWorkflow {
     pub submission_repo: SubmissionRepository,
@@ -76,14 +76,19 @@ impl SubmissionWorkflow {
         // Query questionnaire responses
         let has_financial_q = crate::entities::questionnaire_response::Entity::find()
             .filter(crate::entities::questionnaire_response::Column::SubmissionId.eq(submission_id))
-            .filter(crate::entities::questionnaire_response::Column::QuestionnaireType.eq("financial"))
+            .filter(
+                crate::entities::questionnaire_response::Column::QuestionnaireType.eq("financial"),
+            )
             .one(&self.db)
             .await?
             .is_some();
 
         let has_non_financial_q = crate::entities::questionnaire_response::Entity::find()
             .filter(crate::entities::questionnaire_response::Column::SubmissionId.eq(submission_id))
-            .filter(crate::entities::questionnaire_response::Column::QuestionnaireType.eq("non_financial"))
+            .filter(
+                crate::entities::questionnaire_response::Column::QuestionnaireType
+                    .eq("non_financial"),
+            )
             .one(&self.db)
             .await?
             .is_some();
@@ -99,7 +104,10 @@ impl SubmissionWorkflow {
                 if has_financial_q && s.section == "financial" {
                     return false;
                 }
-                if has_non_financial_q && ["members", "savings", "loans", "fixed_deposits"].contains(&s.section.as_str()) {
+                if has_non_financial_q
+                    && ["members", "savings", "loans", "fixed_deposits"]
+                        .contains(&s.section.as_str())
+                {
                     return false;
                 }
                 s.status != "ready"

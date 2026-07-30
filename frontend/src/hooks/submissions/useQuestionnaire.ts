@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWithAuth } from "@/services/shared/authService";
+import type { QuestionnaireSection } from "@/hooks/admin/useQuestionnaireTemplates";
 
 const QUESTIONNAIRE_KEY = "questionnaire-response";
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -78,7 +79,7 @@ export const useActiveTemplate = (type: string) =>
         questionnaire_type: string;
         version: number;
         label: string;
-        sections: unknown[];
+        sections: QuestionnaireSection[];
       }>;
     },
     enabled: !!type,

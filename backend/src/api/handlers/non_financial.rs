@@ -1965,7 +1965,7 @@ pub async fn create_manual_members(
     // Create members
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     let mut generated_ids = Vec::new();
-    
+
     for record in &body.members {
         let new_uuid = Uuid::new_v4();
         generated_ids.push(new_uuid);
@@ -2033,7 +2033,10 @@ pub async fn create_manual_members(
             });
         }
         if !savings_active_models.is_empty() {
-            savings_imported = state.savings_account_repo.bulk_upsert(savings_active_models).await?;
+            savings_imported = state
+                .savings_account_repo
+                .bulk_upsert(savings_active_models)
+                .await?;
         }
     }
 
@@ -2117,7 +2120,10 @@ pub async fn create_manual_members(
             });
         }
         if !fd_active_models.is_empty() {
-            fd_imported = state.fixed_deposit_repo.bulk_upsert(fd_active_models).await?;
+            fd_imported = state
+                .fixed_deposit_repo
+                .bulk_upsert(fd_active_models)
+                .await?;
         }
     }
 
@@ -2157,34 +2163,72 @@ pub async fn create_manual_members(
             });
         }
         if !farm_coop_active_models.is_empty() {
-            farm_coop_imported = state.farm_coop_repo.bulk_insert(farm_coop_active_models).await?;
+            farm_coop_imported = state
+                .farm_coop_repo
+                .bulk_insert(farm_coop_active_models)
+                .await?;
         }
     }
 
     // Mark submission sections as "in_progress" (similar to upload pipeline)
     if !body.members.is_empty() {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "members").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "members")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if savings_imported > 0 {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "savings").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "savings")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if loans_imported > 0 {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "loans").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "loans")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if fd_imported > 0 {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "fixed_deposits").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "fixed_deposits")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
     if farm_coop_imported > 0 {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, "farm_coop").await? {
-            state.section_repo.update_status(sec.id, "in_progress").await?;
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "farm_coop")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
         }
     }
 
@@ -2220,7 +2264,9 @@ pub async fn delete_non_financial_data(
     }
 
     if submission.status != SubmissionStatus::Draft {
-        return Err(AppError::Conflict("Can only delete data from draft submissions".into()));
+        return Err(AppError::Conflict(
+            "Can only delete data from draft submissions".into(),
+        ));
     }
 
     state
@@ -2246,12 +2292,14 @@ pub async fn delete_non_financial_data(
 
     // Reset section statuses to "pending"
     for section_name in &["members", "savings", "loans", "fixed_deposits", "farm_coop"] {
-        if let Some(sec) = state.section_repo.find_by_submission_and_section(submission_id, section_name).await? {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, section_name)
+            .await?
+        {
             state.section_repo.update_status(sec.id, "pending").await?;
         }
     }
 
     Ok(StatusCode::OK)
 }
-
-

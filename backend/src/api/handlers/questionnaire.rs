@@ -1,5 +1,11 @@
+use crate::{
+    auth::Claims,
+    entities::enums::SubmissionStatus,
+    error::{AppError, AppResult},
+    AppState,
+};
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Extension, Json,
@@ -8,12 +14,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use crate::{
-    auth::Claims,
-    entities::enums::SubmissionStatus,
-    error::{AppError, AppResult},
-    AppState,
-};
 
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct GetQuestionnaireParams {
@@ -82,7 +82,9 @@ pub async fn get_questionnaire_response(
     if claims.has_role("cooperative") {
         let coop_id = state.cooperative_id_from_claims(&claims).await?;
         if sub.cooperative_id != coop_id {
-            return Err(AppError::Forbidden("You do not have access to this submission".into()));
+            return Err(AppError::Forbidden(
+                "You do not have access to this submission".into(),
+            ));
         }
     }
 
@@ -140,7 +142,9 @@ pub async fn save_questionnaire_response(
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
     if sub.status != SubmissionStatus::Draft {
-        return Err(AppError::BadRequest("Cannot edit a submitted/approved questionnaire".into()));
+        return Err(AppError::BadRequest(
+            "Cannot edit a submitted/approved questionnaire".into(),
+        ));
     }
 
     // Scope check: Cooperative users can only update their own submissions.
@@ -148,10 +152,14 @@ pub async fn save_questionnaire_response(
     if claims.has_role("cooperative") {
         let coop_id = state.cooperative_id_from_claims(&claims).await?;
         if sub.cooperative_id != coop_id {
-            return Err(AppError::Forbidden("You do not have access to this submission".into()));
+            return Err(AppError::Forbidden(
+                "You do not have access to this submission".into(),
+            ));
         }
     } else if !claims.has_role("ministry") {
-        return Err(AppError::Forbidden("Only cooperative or ministry roles can save questionnaires".into()));
+        return Err(AppError::Forbidden(
+            "Only cooperative or ministry roles can save questionnaires".into(),
+        ));
     }
 
     let saved = state
@@ -172,7 +180,10 @@ pub async fn save_questionnaire_response(
             .find_by_submission_and_section(submission_id, "financial")
             .await?
         {
-            state.section_repo.update_status(section.id, "ready").await?;
+            state
+                .section_repo
+                .update_status(section.id, "ready")
+                .await?;
         }
     } else if saved.questionnaire_type == "non_financial" {
         for sec_key in &["members", "savings", "loans", "fixed_deposits"] {
@@ -181,7 +192,10 @@ pub async fn save_questionnaire_response(
                 .find_by_submission_and_section(submission_id, sec_key)
                 .await?
             {
-                state.section_repo.update_status(section.id, "ready").await?;
+                state
+                    .section_repo
+                    .update_status(section.id, "ready")
+                    .await?;
             }
         }
     }
@@ -192,15 +206,16 @@ pub async fn save_questionnaire_response(
         .find_by_submission_and_section(submission_id, "questionnaire")
         .await?
     {
-        state.section_repo.update_status(section.id, "ready").await?;
+        state
+            .section_repo
+            .update_status(section.id, "ready")
+            .await?;
     }
 
     Ok((StatusCode::OK, Json(QuestionnaireResponseDto::from(saved))))
 }
 
 // ── Questionnaire Analytics Handler & DTOs ───────────────────────────────────
-
-
 
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct QuestionnaireAnalyticsParams {
@@ -324,10 +339,34 @@ pub async fn get_questionnaire_analytics(
         coop_ids.insert(resp.cooperative_id);
         let answers = &resp.answers;
 
-        let reg_m = get_i32_from_json(answers, &["registered_members_male", "total_registered_male", "registered_male"]);
-        let reg_f = get_i32_from_json(answers, &["registered_members_female", "total_registered_female", "registered_female"]);
-        let act_m = get_i32_from_json(answers, &["active_members_male", "total_active_male", "active_male"]);
-        let act_f = get_i32_from_json(answers, &["active_members_female", "total_active_female", "active_female"]);
+        let reg_m = get_i32_from_json(
+            answers,
+            &[
+                "registered_members_male",
+                "total_registered_male",
+                "registered_male",
+            ],
+        );
+        let reg_f = get_i32_from_json(
+            answers,
+            &[
+                "registered_members_female",
+                "total_registered_female",
+                "registered_female",
+            ],
+        );
+        let act_m = get_i32_from_json(
+            answers,
+            &["active_members_male", "total_active_male", "active_male"],
+        );
+        let act_f = get_i32_from_json(
+            answers,
+            &[
+                "active_members_female",
+                "total_active_female",
+                "active_female",
+            ],
+        );
 
         total_members_male += reg_m;
         total_members_female += reg_f;
@@ -336,7 +375,7 @@ pub async fn get_questionnaire_analytics(
 
         let share_capital = get_f64_from_json(answers, &["total_share_capital", "share_capital"]);
         let borrowed = get_f64_from_json(answers, &["borrowed_funds_total", "borrowed_funds"]);
-        
+
         let savings_m = get_f64_from_json(answers, &["savings_value_male", "savings_male"]);
         let savings_f = get_f64_from_json(answers, &["savings_value_female", "savings_female"]);
         let loans_m = get_f64_from_json(answers, &["outstanding_value_male", "loans_male"]);
@@ -356,13 +395,48 @@ pub async fn get_questionnaire_analytics(
         total_expenditure += exp;
         total_net_income += net;
 
-        age_18_25 += get_i32_from_json(answers, &["age_18_25_male", "age_18_25_female", "registered_members_18_25"]);
-        age_26_35 += get_i32_from_json(answers, &["age_26_35_male", "age_26_35_female", "registered_members_26_35"]);
-        age_36_60 += get_i32_from_json(answers, &["age_36_60_male", "age_36_60_female", "registered_members_36_60"]);
-        age_61plus += get_i32_from_json(answers, &["age_61plus_male", "age_61plus_female", "registered_members_61plus"]);
+        age_18_25 += get_i32_from_json(
+            answers,
+            &[
+                "age_18_25_male",
+                "age_18_25_female",
+                "registered_members_18_25",
+            ],
+        );
+        age_26_35 += get_i32_from_json(
+            answers,
+            &[
+                "age_26_35_male",
+                "age_26_35_female",
+                "registered_members_26_35",
+            ],
+        );
+        age_36_60 += get_i32_from_json(
+            answers,
+            &[
+                "age_36_60_male",
+                "age_36_60_female",
+                "registered_members_36_60",
+            ],
+        );
+        age_61plus += get_i32_from_json(
+            answers,
+            &[
+                "age_61plus_male",
+                "age_61plus_female",
+                "registered_members_61plus",
+            ],
+        );
 
-        let reg_str = coop.region.as_ref().map(|r| r.as_str().to_string()).unwrap_or_else(|| "Unknown".to_string());
-        let sec_str = coop.sector.as_ref().map(|s| s.clone()).unwrap_or_else(|| "Unknown".to_string());
+        let reg_str = coop
+            .region
+            .as_ref()
+            .map(|r| r.as_str().to_string())
+            .unwrap_or_else(|| "Unknown".to_string());
+        let sec_str = coop
+            .sector
+            .clone()
+            .unwrap_or_else(|| "Unknown".to_string());
 
         *region_counts.entry(reg_str.clone()).or_insert(0) += 1;
         *sector_counts.entry(sec_str.clone()).or_insert(0) += 1;

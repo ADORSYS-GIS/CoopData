@@ -392,7 +392,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6 flex items-start gap-4">
           <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-xl shrink-0">
-            {getEmoji(section.icon)}
+            {getEmoji(section.icon || "")}
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">{section.title}</h2>

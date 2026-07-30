@@ -131,9 +131,17 @@ pub async fn create_template(
     let created_by = claims.sub.parse::<Uuid>().ok();
     let template = state
         .questionnaire_template_repo
-        .create(body.questionnaire_type, body.label, body.sections, created_by)
+        .create(
+            body.questionnaire_type,
+            body.label,
+            body.sections,
+            created_by,
+        )
         .await?;
-    Ok((StatusCode::CREATED, Json(QuestionnaireTemplateDto::from(template))))
+    Ok((
+        StatusCode::CREATED,
+        Json(QuestionnaireTemplateDto::from(template)),
+    ))
 }
 
 // ─── Ministry: Update template ────────────────────────────────────────────────
@@ -224,7 +232,9 @@ pub async fn get_active_template_coop(
         .questionnaire_template_repo
         .find_active(&q.questionnaire_type)
         .await?
-        .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q.questionnaire_type)))?;
+        .ok_or_else(|| {
+            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
+        })?;
     Ok(Json(QuestionnaireTemplateDto::from(template)))
 }
 
@@ -238,7 +248,9 @@ pub async fn get_active_template_apex(
         .questionnaire_template_repo
         .find_active(&q.questionnaire_type)
         .await?
-        .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q.questionnaire_type)))?;
+        .ok_or_else(|| {
+            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
+        })?;
     Ok(Json(QuestionnaireTemplateDto::from(template)))
 }
 
@@ -252,7 +264,9 @@ pub async fn get_active_template_federation(
         .questionnaire_template_repo
         .find_active(&q.questionnaire_type)
         .await?
-        .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q.questionnaire_type)))?;
+        .ok_or_else(|| {
+            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
+        })?;
     Ok(Json(QuestionnaireTemplateDto::from(template)))
 }
 
@@ -266,6 +280,8 @@ pub async fn get_active_template_ministry(
         .questionnaire_template_repo
         .find_active(&q.questionnaire_type)
         .await?
-        .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q.questionnaire_type)))?;
+        .ok_or_else(|| {
+            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
+        })?;
     Ok(Json(QuestionnaireTemplateDto::from(template)))
 }

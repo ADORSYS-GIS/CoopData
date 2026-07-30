@@ -390,4 +390,3 @@ pub struct ManualLineItemRequest {
     pub month: i16,
     pub value: Option<f64>,
 }
-

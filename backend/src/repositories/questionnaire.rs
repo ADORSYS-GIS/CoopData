@@ -1,8 +1,6 @@
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -60,14 +58,20 @@ impl QuestionnaireRepository {
         reporting_year: i32,
         answers: serde_json::Value,
     ) -> AppResult<questionnaire_response::Model> {
-        use sea_orm::Set;
         use crate::entities::questionnaire_response::ActiveModel;
+        use sea_orm::Set;
 
-        if let Some(existing) = self.find_by_submission_and_type(submission_id, &questionnaire_type).await? {
+        if let Some(existing) = self
+            .find_by_submission_and_type(submission_id, &questionnaire_type)
+            .await?
+        {
             let mut active: ActiveModel = existing.into();
             active.answers = Set(answers);
             active.updated_at = Set(chrono::Utc::now());
-            active.update(&self.db).await.map_err(AppError::DatabaseError)
+            active
+                .update(&self.db)
+                .await
+                .map_err(AppError::DatabaseError)
         } else {
             let active = ActiveModel {
                 id: Set(Uuid::new_v4()),
@@ -79,7 +83,10 @@ impl QuestionnaireRepository {
                 created_at: Set(chrono::Utc::now()),
                 updated_at: Set(chrono::Utc::now()),
             };
-            active.insert(&self.db).await.map_err(AppError::DatabaseError)
+            active
+                .insert(&self.db)
+                .await
+                .map_err(AppError::DatabaseError)
         }
     }
 
@@ -99,7 +106,12 @@ impl QuestionnaireRepository {
         region: Option<String>,
         sector: Option<String>,
         cooperative_id: Option<Uuid>,
-    ) -> AppResult<Vec<(questionnaire_response::Model, crate::entities::cooperative::Model)>> {
+    ) -> AppResult<
+        Vec<(
+            questionnaire_response::Model,
+            crate::entities::cooperative::Model,
+        )>,
+    > {
         let mut query = questionnaire_response::Entity::find()
             .find_also_related(crate::entities::cooperative::Entity);
 
@@ -115,12 +127,19 @@ impl QuestionnaireRepository {
 
         let results = query.all(&self.db).await.map_err(AppError::DatabaseError)?;
 
-        let filtered: Vec<(questionnaire_response::Model, crate::entities::cooperative::Model)> = results
+        let filtered: Vec<(
+            questionnaire_response::Model,
+            crate::entities::cooperative::Model,
+        )> = results
             .into_iter()
             .filter_map(|(resp, opt_coop)| {
                 if let Some(coop) = opt_coop {
                     let region_match = match &region {
-                        Some(r) => coop.region.as_ref().map(|reg| reg.as_str() == r).unwrap_or(false),
+                        Some(r) => coop
+                            .region
+                            .as_ref()
+                            .map(|reg| reg.as_str() == r)
+                            .unwrap_or(false),
                         None => true,
                     };
                     let sector_match = match &sector {

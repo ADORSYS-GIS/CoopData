@@ -111,8 +111,8 @@ function sectionStatusLabel(status: string) {
   );
 }
 
-const isQuestionnaireFilled = (q: { id?: string } | null | undefined) => {
-  return q && q.id && q.id !== "00000000-0000-0000-0000-000000000000";
+const isQuestionnaireFilled = (q: { id?: string } | null | undefined): boolean => {
+  return !!(q && q.id && q.id !== "00000000-0000-0000-0000-000000000000");
 };
 
 // ── Document Viewer ────────────────────────────────────────────────────────────

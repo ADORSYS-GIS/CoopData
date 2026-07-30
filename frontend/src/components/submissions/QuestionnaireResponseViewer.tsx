@@ -127,7 +127,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
       <div className="md:col-span-8 rounded-2xl border border-border bg-card p-6 shadow-sm flex flex-col gap-5">
         <div className="flex items-start gap-3 border-b border-border/80 pb-3">
           <div className="size-10 rounded-xl bg-primary/5 flex items-center justify-center text-lg">
-            {getEmoji(currentSection.icon)}
+            {getEmoji(currentSection.icon || "")}
           </div>
           <div>
             <h3 className="text-base font-bold text-foreground">{currentSection.title}</h3>
