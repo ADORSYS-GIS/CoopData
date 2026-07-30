@@ -256,8 +256,8 @@ impl LlmNarrativeGenerator {
             "max_tokens": self.max_tokens
         });
 
-        const MAX_RETRIES: u32 = 4;
-        const BASE_DELAY_MS: u64 = 12_000; // 12 seconds (5 req/min → 12s between requests)
+        const MAX_RETRIES: u32 = 6;
+        const BASE_DELAY_MS: u64 = 15_000; // 15 seconds base
 
         for attempt in 1..=MAX_RETRIES {
             let res = self
@@ -266,21 +266,74 @@ impl LlmNarrativeGenerator {
                 .bearer_auth(&self.api_key)
                 .json(&body)
                 .send()
-                .await
-                .map_err(|e| AppError::ExternalServiceError(format!("Narrative LLM request failed: {e}")))?;
+                .await;
+
+            let res = match res {
+                Ok(r) => r,
+                Err(e) => {
+                    // Connection error — retry with backoff
+                    if attempt < MAX_RETRIES {
+                        let delay_ms = BASE_DELAY_MS * 2u64.pow(attempt - 1);
+                        tracing::warn!(
+                            attempt,
+                            max_retries = MAX_RETRIES,
+                            delay_ms,
+                            error = %e,
+                            "[narrative] ⏳ Connection error, retrying in {}ms",
+                            delay_ms
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                        continue;
+                    }
+                    return Err(AppError::ExternalServiceError(format!(
+                        "Narrative LLM request failed after {MAX_RETRIES} retries: {e}"
+                    )));
+                }
+            };
 
             if res.status().as_u16() == 429 {
-                // Rate limited — extract Retry-After or use exponential backoff
-                let retry_after = res
-                    .headers()
-                    .get("retry-after")
-                    .and_then(|v| v.to_str().ok())
-                    .and_then(|v| v.parse::<u64>().ok())
-                    .unwrap_or(0);
-
-                let delay_ms = if retry_after > 0 {
-                    retry_after * 1000
+                // Rate limited — parse response body for Gemini's retryDelay
+                let text = res.text().await.unwrap_or_default();
+                
+                // Try to extract "retryDelay": "46s" from Gemini's response body
+                let delay_ms = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+                    // Gemini format: { "error": { "retryDelay": "46s", ... } }
+                    let retry_delay = json["error"]["retryDelay"]
+                        .as_str()
+                        .or_else(|| json["retryDelay"].as_str());
+                    
+                    if let Some(delay_str) = retry_delay {
+                        // Parse "46s" → 46000ms
+                        let secs: u64 = delay_str
+                            .trim_end_matches('s')
+                            .parse()
+                            .unwrap_or(0);
+                        if secs > 0 {
+                            secs * 1000
+                        } else {
+                            BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                        }
+                    } else {
+                        // Fallback: check "Please retry in 46.926118825s" in message
+                        let msg = json["error"]["message"].as_str().unwrap_or("");
+                        if let Some(pos) = msg.find("Please retry in ") {
+                            let num_str = &msg[pos + 16..];
+                            if let Some(end) = num_str.find('s') {
+                                let secs: u64 = num_str[..end].parse().unwrap_or(0);
+                                if secs > 0 {
+                                    secs * 1000
+                                } else {
+                                    BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                                }
+                            } else {
+                                BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                            }
+                        } else {
+                            BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                        }
+                    }
                 } else {
+                    // Not JSON — use exponential backoff
                     BASE_DELAY_MS * 2u64.pow(attempt - 1)
                 };
 
@@ -289,13 +342,13 @@ impl LlmNarrativeGenerator {
                         attempt,
                         max_retries = MAX_RETRIES,
                         delay_ms,
-                        "[narrative] ⏳ Rate limited (429), retrying in {}ms",
-                        delay_ms
+                        "[narrative] ⏳ Rate limited (429), retrying in {}ms ({}s)",
+                        delay_ms,
+                        delay_ms / 1000
                     );
                     tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
                     continue;
                 } else {
-                    let text = res.text().await.unwrap_or_default();
                     tracing::error!(
                         attempt,
                         "[narrative] ❌ Rate limited after {} retries: {}",

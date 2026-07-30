@@ -1119,7 +1119,8 @@ pub async fn ministry_approve_submission(
     }
 
     // Phase A: Trigger background export generation for the cooperative
-    // Stagger tier launches by 2s to avoid Gemini rate limits (5 req/min)
+    // Stagger tier launches by 15s to avoid Gemini rate limits (5 req/min)
+    // Cooperative uses 5 prompts → fills the entire 5/min quota → next tier must wait ~60s
     crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
         state.clone(),
         id,
@@ -1131,7 +1132,7 @@ pub async fn ministry_approve_submission(
         .find_by_id(updated.cooperative_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
     crate::services::export_generator::ExportGenerator::trigger_apex_export(
         state.clone(),
         coop.apex_id,
@@ -1144,7 +1145,7 @@ pub async fn ministry_approve_submission(
         .find_by_id(coop.apex_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
     crate::services::export_generator::ExportGenerator::trigger_federation_export(
         state.clone(),
         apex.federation_id,
@@ -1152,7 +1153,7 @@ pub async fn ministry_approve_submission(
     );
 
     // Phase E: Trigger background export generation for the Ministry (National level)
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
     crate::services::export_generator::ExportGenerator::trigger_ministry_export(
         state.clone(),
         updated.reporting_year,
@@ -1187,24 +1188,24 @@ pub async fn ministry_approve_submission(
             let _ = state.storage.delete_object(&pdf_key).await;
 
             // Trigger background regeneration so the next download gets fresh data
-            // Stagger tier launches by 2s to avoid Gemini rate limits (5 req/min)
+            // Stagger tier launches by 15s to avoid Gemini rate limits (5 req/min)
             crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
                 state.clone(),
                 sub.id,
             );
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
             crate::services::export_generator::ExportGenerator::trigger_apex_export(
                 state.clone(),
                 coop.apex_id,
                 sub.reporting_year,
             );
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
             crate::services::export_generator::ExportGenerator::trigger_federation_export(
                 state.clone(),
                 apex.federation_id,
                 sub.reporting_year,
             );
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
             crate::services::export_generator::ExportGenerator::trigger_ministry_export(
                 state.clone(),
                 sub.reporting_year,
