@@ -9,7 +9,7 @@ export interface QuestionnaireTemplate {
   questionnaire_type: "financial" | "non_financial";
   version: number;
   label: string;
-  sections: any[];
+  sections: unknown[];
   is_active: boolean;
   created_by?: string;
   created_at: string;
@@ -49,7 +49,7 @@ export const useCreateQuestionnaireTemplate = () => {
     mutationFn: async (payload: {
       questionnaire_type: "financial" | "non_financial";
       label: string;
-      sections: any[];
+      sections: unknown[];
     }) => {
       const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates`, {
         method: "POST",
@@ -71,7 +71,7 @@ export const useCreateQuestionnaireTemplate = () => {
 export const useUpdateQuestionnaireTemplate = (id: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { label?: string; sections?: any[] }) => {
+    mutationFn: async (payload: { label?: string; sections?: unknown[] }) => {
       const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

@@ -78,7 +78,7 @@ export const useActiveTemplate = (type: string) =>
         questionnaire_type: string;
         version: number;
         label: string;
-        sections: any[];
+        sections: unknown[];
       }>;
     },
     enabled: !!type,

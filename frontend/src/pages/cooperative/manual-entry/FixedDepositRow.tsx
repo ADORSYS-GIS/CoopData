@@ -5,7 +5,7 @@ interface FixedDepositRowProps {
   record: WizardFixedDeposit;
   idx: number;
   memberIds: string[];
-  onUpdate: (key: string, field: keyof WizardFixedDeposit, value: any) => void;
+  onUpdate: (key: string, field: keyof WizardFixedDeposit, value: unknown) => void;
   onRemove: (key: string) => void;
 }
 

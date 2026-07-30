@@ -2,7 +2,7 @@ import type { WizardFarmCoop } from "./types";
 
 interface FarmCoopFormProps {
   data: WizardFarmCoop;
-  onChange: (field: keyof WizardFarmCoop, value: any) => void;
+  onChange: (field: keyof WizardFarmCoop, value: unknown) => void;
 }
 
 export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {

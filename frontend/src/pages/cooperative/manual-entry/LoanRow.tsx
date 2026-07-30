@@ -5,7 +5,7 @@ interface LoanRowProps {
   record: WizardLoan;
   idx: number;
   memberIds: string[];
-  onUpdate: (key: string, field: keyof WizardLoan, value: any) => void;
+  onUpdate: (key: string, field: keyof WizardLoan, value: unknown) => void;
   onRemove: (key: string) => void;
 }
 

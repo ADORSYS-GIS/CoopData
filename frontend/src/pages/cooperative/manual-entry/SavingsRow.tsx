@@ -5,7 +5,7 @@ interface SavingsRowProps {
   record: WizardSavings;
   idx: number;
   memberIds: string[];
-  onUpdate: (key: string, field: keyof WizardSavings, value: any) => void;
+  onUpdate: (key: string, field: keyof WizardSavings, value: unknown) => void;
   onRemove: (key: string) => void;
 }
 

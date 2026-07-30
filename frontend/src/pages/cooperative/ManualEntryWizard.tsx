@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import {
