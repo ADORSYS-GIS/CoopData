@@ -212,11 +212,25 @@ impl ExportGenerator {
         };
 
         // Compute NF stats (membership, savings, loans)
-        let nf_response = crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
+        // Pass None for submission_id — NF data is cooperative-level, not submission-specific.
+        // The bulk_upsert deduplicates by (cooperative_id, member_id) and overwrites submission_id
+        // on conflict, so filtering by submission_id would miss records from other submissions.
+        let nf_response = match crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
             &state.db,
             submission.cooperative_id,
-            Some(submission_id),
-        ).await.ok();
+            None,
+        ).await {
+            Ok(resp) => Some(resp),
+            Err(e) => {
+                tracing::warn!(
+                    submission_id = %submission_id,
+                    coop_id = %submission.cooperative_id,
+                    error = %e,
+                    "[export] ⚠️ Failed to compute NF stats, narratives will use empty NF data"
+                );
+                None
+            }
+        };
 
         let membership_stats = nf_response.as_ref().map(|nf| {
             report_narrative::MembershipStats {

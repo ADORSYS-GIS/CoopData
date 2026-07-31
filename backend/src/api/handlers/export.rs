@@ -17,6 +17,7 @@ use crate::AppState;
 pub struct ExportQuery {
     pub federation_id: Option<Uuid>,
     pub apex_id: Option<Uuid>,
+    #[serde(alias = "year")]
     pub reporting_year: Option<i32>,
 }
 
@@ -494,13 +495,13 @@ pub async fn generate_submission_narratives(
     Ok(axum::Json(serde_json::json!(narratives)))
 }
 
-/// GET /api/v1/apex/submissions/{id}/narratives?year=2025
+/// GET /api/v1/apex/{id}/narratives?year=2025
 /// Returns cached AI narratives for an apex report.
 #[utoipa::path(
     get,
-    path = "/api/v1/apex/submissions/{id}/narratives",
+    path = "/api/v1/apex/{id}/narratives",
     params(
-        ("id" = Uuid, Path, description = "Apex ID"),
+        ("id" = String, Path, description = "Apex Keycloak ID"),
         ("year" = i32, Query, description = "Reporting year")
     ),
     responses(
@@ -511,13 +512,13 @@ pub async fn generate_submission_narratives(
 )]
 pub async fn get_apex_narratives(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     Query(params): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     let year = params.reporting_year.unwrap_or(2025);
     let apex = state
         .apex_repo
-        .find_by_id(id)
+        .find_by_keycloak_id(&id)
         .await?
         .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
 
@@ -529,13 +530,13 @@ pub async fn get_apex_narratives(
     Ok(axum::Json(narratives))
 }
 
-/// GET /api/v1/federation/submissions/{id}/narratives?year=2025
+/// GET /api/v1/federation/{id}/narratives?year=2025
 /// Returns cached AI narratives for a federation report.
 #[utoipa::path(
     get,
-    path = "/api/v1/federation/submissions/{id}/narratives",
+    path = "/api/v1/federation/{id}/narratives",
     params(
-        ("id" = Uuid, Path, description = "Federation ID"),
+        ("id" = String, Path, description = "Federation Keycloak ID"),
         ("year" = i32, Query, description = "Reporting year")
     ),
     responses(
@@ -546,13 +547,13 @@ pub async fn get_apex_narratives(
 )]
 pub async fn get_federation_narratives(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<String>,
     Query(params): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     let year = params.reporting_year.unwrap_or(2025);
     let federation = state
         .federation_repo
-        .find_by_id(id)
+        .find_by_keycloak_id(&id)
         .await?
         .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
 

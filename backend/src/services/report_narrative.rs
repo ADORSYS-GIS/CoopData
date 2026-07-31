@@ -297,22 +297,51 @@ impl LlmNarrativeGenerator {
             if res.status().as_u16() == 429 {
                 let text = res.text().await.unwrap_or_default();
                 
-                // Parse the retry delay from the response body.
-                // Gemini always includes "Please retry in Xs" or "retryDelay": "Xs" even on quota errors.
-                // If a retry delay is present, the rate limit is TEMPORARY — wait and retry.
-                // Only fail immediately if there's NO retry hint (truly permanent quota exhaustion).
-                let delay_ms = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
-                    // Gemini format: { "error": { "retryDelay": "46s", ... } }
-                    let retry_delay = json["error"]["retryDelay"]
-                        .as_str()
-                        .or_else(|| json["retryDelay"].as_str());
+                // ── Step 1: Determine if this is a DAILY quota or a PER-MINUTE rate limit ──
+                // Daily quota = permanent for today, no point retrying
+                // Per-minute rate limit = temporary, wait and retry
+                
+                // Extract the quota ID to classify the error
+                let is_daily_quota = text.contains("PerDay")
+                    || text.contains("Daily")
+                    || text.contains("RPD")
+                    || text.contains("per_day");
+                
+                if is_daily_quota {
+                    tracing::error!(
+                        attempt,
+                        "[narrative] 💳 DAILY quota exhausted — failing immediately (no retry, quota won't recover today). response={}",
+                        text.chars().take(200).collect::<String>()
+                    );
+                    return Err(AppError::ExternalServiceError(format!(
+                        "Narrative LLM daily quota exhausted: {text}"
+                    )));
+                }
+                
+                // ── Step 2: It's a per-minute rate limit — extract retry delay ──
+                // Try to parse JSON and extract "retryDelay" or "Please retry in Xs"
+                // Also handle Gemini's array response format: [{ "code": 429, ... }]
+                let delay_ms = if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&text) {
+                    // Handle array root: unwrap [{...}] → {...}
+                    if let Some(arr) = json.as_array() {
+                        if let Some(first) = arr.first() {
+                            json = first.clone();
+                        }
+                    }
+                    
+                    // Try "retryDelay" field (multiple paths)
+                    let retry_delay = json["error"]["retryDelay"].as_str()
+                        .or_else(|| json["retryDelay"].as_str())
+                        .or_else(|| json[0]["retryDelay"].as_str());
                     
                     if let Some(delay_str) = retry_delay {
                         let secs: u64 = delay_str.trim_end_matches('s').parse().unwrap_or(0);
                         if secs > 0 { secs * 1000 } else { BASE_DELAY_MS * 2u64.pow(attempt - 1) }
                     } else {
-                        // Fallback: check "Please retry in 46.926118825s" in message
-                        let msg = json["error"]["message"].as_str().unwrap_or("");
+                        // No retryDelay field — search message text for "Please retry in Xs"
+                        let msg = json["error"]["message"].as_str()
+                            .or_else(|| json["message"].as_str())
+                            .unwrap_or("");
                         if let Some(pos) = msg.find("Please retry in ") {
                             let num_str = &msg[pos + 16..];
                             if let Some(end) = num_str.find('s') {
@@ -322,21 +351,16 @@ impl LlmNarrativeGenerator {
                                 BASE_DELAY_MS * 2u64.pow(attempt - 1)
                             }
                         } else {
-                            // No retry hint at all — this is a permanent quota exhaustion (e.g. daily limit hit, no billing)
-                            tracing::error!(
-                                attempt,
-                                "[narrative] 💳 Quota exhausted with no retry hint — failing immediately."
-                            );
-                            return Err(AppError::ExternalServiceError(format!(
-                                "Narrative LLM quota exhausted (no retry delay): {text}"
-                            )));
+                            // JSON parsed but no retry hint found — fall back to raw text search
+                            // (handles malformed JSON or unexpected formats)
+                            Self::extract_retry_delay_from_text(&text)
+                                .unwrap_or_else(|| BASE_DELAY_MS * 2u64.pow(attempt - 1))
                         }
                     }
                 } else {
-                    // Not JSON — no retry hint possible, fail
-                    return Err(AppError::ExternalServiceError(format!(
-                        "Narrative LLM quota/rate error (non-JSON): {text}"
-                    )));
+                    // Not JSON at all — search raw text for "Please retry in Xs"
+                    Self::extract_retry_delay_from_text(&text)
+                        .unwrap_or_else(|| BASE_DELAY_MS * 2u64.pow(attempt - 1))
                 };
 
                 // We have a retry delay — use it. Gemini tells us exactly when the quota resets.
@@ -345,7 +369,7 @@ impl LlmNarrativeGenerator {
                         attempt,
                         max_retries = MAX_RETRIES,
                         delay_ms,
-                        "[narrative] ⏳ Rate/quota limited (429), waiting {}s as Gemini requested (attempt {}/{})",
+                        "[narrative] ⏳ Rate limited (429), waiting {}s (attempt {}/{})",
                         delay_ms / 1000,
                         attempt,
                         MAX_RETRIES
@@ -363,6 +387,29 @@ impl LlmNarrativeGenerator {
                         "Narrative LLM rate limited after {MAX_RETRIES} retries: {text}"
                     )));
                 }
+            }
+
+            if res.status().as_u16() == 503 {
+                // 503 Service Unavailable — transient, retry with backoff
+                if attempt < MAX_RETRIES {
+                    let delay_ms = BASE_DELAY_MS * 2u64.pow(attempt - 1);
+                    tracing::warn!(
+                        attempt,
+                        max_retries = MAX_RETRIES,
+                        delay_ms,
+                        "[narrative] ⏳ 503 Service Unavailable, retrying in {}s (attempt {}/{})",
+                        delay_ms / 1000,
+                        attempt,
+                        MAX_RETRIES
+                    );
+                    tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                    continue;
+                }
+                let text = res.text().await.unwrap_or_default();
+                tracing::error!(response = %text, "[narrative] ❌ 503 Service Unavailable after {MAX_RETRIES} retries");
+                return Err(AppError::ExternalServiceError(format!(
+                    "Narrative LLM 503 Service Unavailable after {MAX_RETRIES} retries: {text}"
+                )));
             }
 
             if !res.status().is_success() {
@@ -401,6 +448,22 @@ impl LlmNarrativeGenerator {
             tracing::error!(error = %e, raw = %cleaned, "Failed to parse narrative JSON");
             AppError::ExternalServiceError(format!("Failed to parse narrative JSON: {e}"))
         })
+    }
+
+    /// Extract retry delay from raw response text by searching for "Please retry in Xs".
+    /// This is a fallback for when JSON parsing fails or the response is malformed.
+    fn extract_retry_delay_from_text(text: &str) -> Option<u64> {
+        if let Some(pos) = text.find("Please retry in ") {
+            let num_str = &text[pos + 16..];
+            if let Some(end) = num_str.find('s') {
+                let secs: u64 = num_str[..end].parse().ok()?;
+                if secs > 0 { Some(secs * 1000) } else { None }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     #[allow(dead_code)]
