@@ -503,8 +503,6 @@ export function balanceSheetToLineItems(bs: BalanceSheet) {
   ];
 }
 
-
-
 export const mapAgeGroup = (val: string) => {
   if (val === "<18" || val === "Under 18" || val === "Under18") return "Under18";
   if (val === "18-35" || val === "Between18And35") return "Between18And35";

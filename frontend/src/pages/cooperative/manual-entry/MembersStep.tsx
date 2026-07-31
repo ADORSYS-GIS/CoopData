@@ -11,20 +11,14 @@ interface MembersStepProps {
   removeMember: (key: string) => void;
 }
 
-export function MembersStep({
-  members,
-  addMember,
-  updateMember,
-  removeMember,
-}: MembersStepProps) {
+export function MembersStep({ members, addMember, updateMember, removeMember }: MembersStepProps) {
   return (
     <Card className="overflow-hidden font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
           <h3 className="text-sm font-bold text-foreground">Membership Register</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Define members first so they can be referenced in savings, loans and deposit
-            ledgers.
+            Define members first so they can be referenced in savings, loans and deposit ledgers.
           </p>
         </div>
         <button
@@ -39,9 +33,7 @@ export function MembersStep({
         <div className="py-16 text-center text-muted-foreground">
           <Users className="size-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm font-medium">No members yet</p>
-          <p className="text-xs mt-1">
-            Click "+ Add Member" to begin entering member records
-          </p>
+          <p className="text-xs mt-1">Click "+ Add Member" to begin entering member records</p>
         </div>
       ) : (
         <div className="overflow-x-auto">

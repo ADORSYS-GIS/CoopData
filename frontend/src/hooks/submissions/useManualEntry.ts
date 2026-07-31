@@ -23,8 +23,7 @@ export const useSubmitManualFinancialStatement = (submissionId: string) => {
         },
       );
       if (error) {
-        const msg =
-          (error as Record<string, string>)["message"] ?? "Submission failed";
+        const msg = (error as Record<string, string>)["message"] ?? "Submission failed";
         throw new Error(msg);
       }
       return data as ManualFinancialStatementResponse;
@@ -54,8 +53,7 @@ export const useSubmitManualMembers = (submissionId: string) => {
         },
       );
       if (error) {
-        const msg =
-          (error as Record<string, string>)["message"] ?? "Submission failed";
+        const msg = (error as Record<string, string>)["message"] ?? "Submission failed";
         throw new Error(msg);
       }
     },
@@ -79,8 +77,7 @@ export const useDeleteManualFinancialStatement = (submissionId: string) => {
         { params: { path: { id: submissionId } } },
       );
       if (error) {
-        const msg =
-          (error as Record<string, string>)["message"] ?? "Deletion failed";
+        const msg = (error as Record<string, string>)["message"] ?? "Deletion failed";
         throw new Error(msg);
       }
     },
@@ -103,8 +100,7 @@ export const useDeleteManualNonFinancialData = (submissionId: string) => {
         { params: { path: { id: submissionId } } },
       );
       if (error) {
-        const msg =
-          (error as Record<string, string>)["message"] ?? "Deletion failed";
+        const msg = (error as Record<string, string>)["message"] ?? "Deletion failed";
         throw new Error(msg);
       }
     },

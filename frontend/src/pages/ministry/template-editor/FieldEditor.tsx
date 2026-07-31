@@ -1,10 +1,11 @@
 import React from "react";
 import { Plus, ChevronUp, ChevronDown, Edit, Trash2 } from "lucide-react";
+import type { TemplateSection, TemplateField } from "@/pages/cooperative/QuestionnaireWizard";
 
 interface FieldEditorProps {
-  activeSection: any;
+  activeSection: TemplateSection;
   openAddFieldModal: () => void;
-  openEditFieldModal: (idx: number, field: any) => void;
+  openEditFieldModal: (idx: number, field: TemplateField) => void;
   deleteField: (idx: number) => void;
   moveField: (idx: number, direction: "up" | "down") => void;
 }
@@ -34,7 +35,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
         </div>
       ) : (
         <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-1">
-          {activeSection.fields.map((field: any, fIdx: number) => (
+          {activeSection.fields.map((field: TemplateField, fIdx: number) => (
             <div
               key={field.key || fIdx}
               className="rounded-xl border border-border bg-surface p-4 flex items-center justify-between gap-4 hover:shadow-md transition-all relative group"

@@ -23,18 +23,21 @@ import { DocumentViewer } from "./DocumentViewer";
 import { toast } from "sonner";
 import type { SubmissionSectionResponse } from "@/hooks/submissions/useSubmissionSections";
 import type { NfUploadResponse } from "@/types/non-financial";
+import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
+import type { ExtractionJobResponse } from "@/hooks/submissions/useExtractionJob";
+import type { QuestionnaireResponseData } from "@/hooks/submissions/useQuestionnaire";
 
 interface SubmissionContentTabsProps {
-  submission: any;
+  submission: SubmissionResponse | null | undefined;
   isDraft: boolean;
   isCooperative: boolean;
   role: string;
   activeTab: string;
   setActiveTab: (val: string) => void;
   isExtracting: boolean;
-  extractionJob: any;
-  financialQ: any;
-  nonFinancialQ: any;
+  extractionJob: ExtractionJobResponse | null | undefined;
+  financialQ: QuestionnaireResponseData | null | undefined;
+  nonFinancialQ: QuestionnaireResponseData | null | undefined;
   isReadOnly: boolean;
   sections: SubmissionSectionResponse[] | undefined;
   handleNfUploadComplete: (result: NfUploadResponse) => void;
@@ -128,11 +131,17 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList id="detail-tabs-list" className="w-full grid grid-cols-2 mb-5 h-auto p-1">
-            <TabsTrigger value="financial" className="flex items-center gap-2 py-2.5 cursor-pointer">
+            <TabsTrigger
+              value="financial"
+              className="flex items-center gap-2 py-2.5 cursor-pointer"
+            >
               <FileText className="size-4" />
               <span>Financial Statement</span>
             </TabsTrigger>
-            <TabsTrigger value="databases" className="flex items-center gap-2 py-2.5 cursor-pointer">
+            <TabsTrigger
+              value="databases"
+              className="flex items-center gap-2 py-2.5 cursor-pointer"
+            >
               <Database className="size-4" />
               <span>Non-Financial Information</span>
             </TabsTrigger>
@@ -226,8 +235,8 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                         <div>
                           <h4 className="text-sm font-bold text-foreground">Upload Document</h4>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Upload your audited balance sheet PDF or Excel file. Our AI will
-                            extract and map the data automatically.
+                            Upload your audited balance sheet PDF or Excel file. Our AI will extract
+                            and map the data automatically.
                           </p>
                         </div>
                         <div className="mt-auto">
@@ -275,8 +284,8 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            For basic-tier cooperatives that cannot provide full financial
-                            ledgers. Answer guided questions to complete your submission.
+                            For basic-tier cooperatives that cannot provide full financial ledgers.
+                            Answer guided questions to complete your submission.
                           </p>
                         </div>
                         <button

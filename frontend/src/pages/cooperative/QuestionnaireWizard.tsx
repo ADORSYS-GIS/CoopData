@@ -439,7 +439,11 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                       {field.description}
                     </span>
                   )}
-                  <FieldInput field={field} value={answers[field.key]} onChange={handleFieldChange} />
+                  <FieldInput
+                    field={field}
+                    value={answers[field.key]}
+                    onChange={handleFieldChange}
+                  />
                 </div>
               ))}
             </div>

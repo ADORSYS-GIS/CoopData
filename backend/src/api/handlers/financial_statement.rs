@@ -17,8 +17,8 @@ use crate::api::dto::financial::{
     SubmissionActivityPoint, SubmissionActivityResponse, SubmissionKpisResponse,
     SubmissionLineItemsResponse,
 };
-use crate::auth::claims::Claims;
 use crate::api::middleware::AuditContext;
+use crate::auth::claims::Claims;
 
 use crate::error::{AppError, AppResult};
 use crate::AppState;
@@ -326,7 +326,10 @@ pub async fn create_manual_financial_statement(
         let value = rust_decimal::Decimal::from_str(&raw.to_string())
             .unwrap_or(rust_decimal::Decimal::ZERO);
         let category = AccountCategory::parse(&item.account_category).ok_or_else(|| {
-            AppError::BadRequest(format!("Invalid account category: {}", item.account_category))
+            AppError::BadRequest(format!(
+                "Invalid account category: {}",
+                item.account_category
+            ))
         })?;
         line_item_models.push(LineItemModel {
             id: Set(Uuid::new_v4()),
@@ -349,11 +352,7 @@ pub async fn create_manual_financial_statement(
     // ── Atomically: delete old FS (if any) → create new FS → bulk-insert line items ──
     use sea_orm::{EntityTrait, TransactionTrait};
 
-    let txn = state
-        .db
-        .begin()
-        .await
-        .map_err(AppError::DatabaseError)?;
+    let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
 
     if let Some(old_id) = existing_fs_id {
         tracing::info!(
@@ -379,7 +378,10 @@ pub async fn create_manual_financial_statement(
         updated_at: Set(chrono::Utc::now()),
     };
     use sea_orm::ActiveModelTrait as _;
-    let created_fs = fs_model.insert(&txn).await.map_err(AppError::DatabaseError)?;
+    let created_fs = fs_model
+        .insert(&txn)
+        .await
+        .map_err(AppError::DatabaseError)?;
 
     if !line_item_models.is_empty() {
         crate::entities::balance_sheet_line_item::Entity::insert_many(line_item_models)
@@ -457,7 +459,6 @@ pub async fn create_manual_financial_statement(
 pub struct KpisQueryParams {
     pub include_prior_year: Option<bool>,
 }
-
 
 #[utoipa::path(
     get,

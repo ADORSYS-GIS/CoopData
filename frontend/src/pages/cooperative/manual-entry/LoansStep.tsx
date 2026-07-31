@@ -7,17 +7,11 @@ interface LoansStepProps {
   loans: WizardLoan[];
   addLoan: () => void;
   memberIds: string[];
-  updateLoan: (key: string, field: keyof WizardLoan, value: any) => void;
+  updateLoan: (key: string, field: keyof WizardLoan, value: unknown) => void;
   removeLoan: (key: string) => void;
 }
 
-export function LoansStep({
-  loans,
-  addLoan,
-  memberIds,
-  updateLoan,
-  removeLoan,
-}: LoansStepProps) {
+export function LoansStep({ loans, addLoan, memberIds, updateLoan, removeLoan }: LoansStepProps) {
   return (
     <Card className="overflow-hidden font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">

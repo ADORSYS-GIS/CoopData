@@ -128,7 +128,11 @@ impl QuestionnaireRepository {
             if let Some(reg) = crate::entities::enums::EswatiniRegion::parse(&r) {
                 query = query.filter(crate::entities::cooperative::Column::Region.eq(reg));
             } else {
-                query = query.filter(crate::entities::cooperative::Column::Region.is_null().and(crate::entities::cooperative::Column::Region.is_not_null()));
+                query = query.filter(
+                    crate::entities::cooperative::Column::Region
+                        .is_null()
+                        .and(crate::entities::cooperative::Column::Region.is_not_null()),
+                );
             }
         }
         if let Some(s) = sector {
@@ -142,9 +146,7 @@ impl QuestionnaireRepository {
             crate::entities::cooperative::Model,
         )> = results
             .into_iter()
-            .filter_map(|(resp, opt_coop)| {
-                opt_coop.map(|coop| (resp, coop))
-            })
+            .filter_map(|(resp, opt_coop)| opt_coop.map(|coop| (resp, coop)))
             .collect();
 
         Ok(filtered)

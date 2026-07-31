@@ -2124,9 +2124,7 @@ pub async fn create_manual_members(
 
     // ── Phase 2: Atomically delete old data + insert new data in one transaction ──
 
-    use sea_orm::{
-        sea_query::OnConflict, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait,
-    };
+    use sea_orm::{sea_query::OnConflict, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 
     let savings_imported: u64;
     let loans_imported: u64;

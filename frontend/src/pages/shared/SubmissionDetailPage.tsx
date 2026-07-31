@@ -116,8 +116,6 @@ const isQuestionnaireFilled = (q: { id?: string } | null | undefined): boolean =
   return !!(q && q.id && q.id !== "00000000-0000-0000-0000-000000000000");
 };
 
-
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export const SubmissionDetailPage: React.FC = () => {
@@ -987,5 +985,3 @@ function ReviewActionPanel({
     </div>
   );
 }
-
-

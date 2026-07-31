@@ -1,8 +1,9 @@
 import React from "react";
 import { Plus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import type { TemplateSection } from "@/pages/cooperative/QuestionnaireWizard";
 
 interface SectionListProps {
-  sections: any[];
+  sections: TemplateSection[];
   selectedSectionIndex: number | null;
   setSelectedSectionIndex: (idx: number) => void;
   addSection: () => void;
@@ -54,9 +55,7 @@ export const SectionList: React.FC<SectionListProps> = ({
                   <div className={`p-1.5 rounded-lg bg-muted text-base leading-none`}>
                     {getEmoji(sec.icon)}
                   </div>
-                  <span className="text-xs truncate">
-                    {sec.title || "(Untitled Section)"}
-                  </span>
+                  <span className="text-xs truncate">{sec.title || "(Untitled Section)"}</span>
                 </div>
 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

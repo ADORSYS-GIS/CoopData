@@ -7,7 +7,7 @@ interface DepositsStepProps {
   fixedDeposits: WizardFixedDeposit[];
   addFixedDeposit: () => void;
   memberIds: string[];
-  updateFixedDeposit: (key: string, field: keyof WizardFixedDeposit, value: any) => void;
+  updateFixedDeposit: (key: string, field: keyof WizardFixedDeposit, value: unknown) => void;
   removeFixedDeposit: (key: string) => void;
 }
 

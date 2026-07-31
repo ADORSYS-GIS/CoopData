@@ -7,7 +7,7 @@ interface SavingsStepProps {
   savings: WizardSavings[];
   addSavings: () => void;
   memberIds: string[];
-  updateSavings: (key: string, field: keyof WizardSavings, value: any) => void;
+  updateSavings: (key: string, field: keyof WizardSavings, value: unknown) => void;
   removeSavings: (key: string) => void;
 }
 
@@ -24,8 +24,7 @@ export function SavingsStep({
         <div>
           <h3 className="text-sm font-bold text-foreground">Savings Ledger</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Record savings accounts for entered members. All fields are optional except Member
-            ID.
+            Record savings accounts for entered members. All fields are optional except Member ID.
           </p>
         </div>
         <button

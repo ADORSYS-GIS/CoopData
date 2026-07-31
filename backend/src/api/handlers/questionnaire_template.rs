@@ -219,9 +219,7 @@ async fn get_active_template_helper(
         .questionnaire_template_repo
         .find_active(q_type)
         .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!("No active {} template found", q_type))
-        })?;
+        .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q_type)))?;
     Ok(QuestionnaireTemplateDto::from(template))
 }
 

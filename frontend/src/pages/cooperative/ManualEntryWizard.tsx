@@ -31,6 +31,8 @@ import { apiClient } from "@/openapi-client";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { MemberRecord } from "@/lib/financial-data";
 
+import type { ManualLineItemRequest } from "@/types/manual-entry";
+
 // Import types & helpers from manual-entry/ sub-directory
 import type {
   WizardStep,
@@ -51,10 +53,7 @@ import {
   mapDpdCategory,
   mapDpdCategoryToFrontend,
 } from "./manual-entry/helpers";
-import {
-  generateMockFinancialGrid,
-  generateMockNonFinancialData,
-} from "./manual-entry/mockData";
+import { generateMockFinancialGrid, generateMockNonFinancialData } from "./manual-entry/mockData";
 
 // Import subcomponents
 import { FarmCoopForm } from "./manual-entry/FarmCoopForm";
@@ -64,7 +63,6 @@ import { MembersStep } from "./manual-entry/MembersStep";
 import { SavingsStep } from "./manual-entry/SavingsStep";
 import { LoansStep } from "./manual-entry/LoansStep";
 import { DepositsStep } from "./manual-entry/DepositsStep";
-
 
 export function ManualEntryWizard() {
   const { id: submissionId } = useParams({ from: Route.id });
@@ -125,9 +123,12 @@ export function ManualEntryWizard() {
         "/api/v1/cooperative/financial-statements/{id}/line-items",
         {
           params: { path: { id: submission.financial_statement_id } },
-        }
+        },
       );
-      if (error) throw new Error((error as any).message || "Failed to fetch existing line items");
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing line items",
+        );
       return data;
     },
     enabled: !!submission?.financial_statement_id && isFinancialWizard,
@@ -136,18 +137,18 @@ export function ManualEntryWizard() {
   const { data: existingMembers, isLoading: existingMembersLoading } = useQuery({
     queryKey: ["manual-entry-members", submissionId],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET(
-        "/api/v1/cooperative/non-financial/members",
-        {
-          params: {
-            query: {
-              submission_id: submissionId,
-              page_size: 1000,
-            },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/members", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 1000,
           },
-        }
-      );
-      if (error) throw new Error((error as any).message || "Failed to fetch existing members");
+        },
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing members",
+        );
       return data;
     },
     enabled: !isFinancialWizard,
@@ -156,18 +157,18 @@ export function ManualEntryWizard() {
   const { data: existingSavings, isLoading: existingSavingsLoading } = useQuery({
     queryKey: ["manual-entry-savings", submissionId],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET(
-        "/api/v1/cooperative/non-financial/savings",
-        {
-          params: {
-            query: {
-              submission_id: submissionId,
-              page_size: 1000,
-            },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/savings", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 1000,
           },
-        }
-      );
-      if (error) throw new Error((error as any).message || "Failed to fetch existing savings accounts");
+        },
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing savings accounts",
+        );
       return data;
     },
     enabled: !isFinancialWizard,
@@ -176,18 +177,18 @@ export function ManualEntryWizard() {
   const { data: existingLoans, isLoading: existingLoansLoading } = useQuery({
     queryKey: ["manual-entry-loans", submissionId],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET(
-        "/api/v1/cooperative/non-financial/loans",
-        {
-          params: {
-            query: {
-              submission_id: submissionId,
-              page_size: 1000,
-            },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/loans", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 1000,
           },
-        }
-      );
-      if (error) throw new Error((error as any).message || "Failed to fetch existing loans");
+        },
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing loans",
+        );
       return data;
     },
     enabled: !isFinancialWizard,
@@ -205,9 +206,12 @@ export function ManualEntryWizard() {
               page_size: 1000,
             },
           },
-        }
+        },
       );
-      if (error) throw new Error((error as any).message || "Failed to fetch existing fixed deposits");
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing fixed deposits",
+        );
       return data;
     },
     enabled: !isFinancialWizard,
@@ -216,27 +220,34 @@ export function ManualEntryWizard() {
   const { data: existingFarm, isLoading: existingFarmLoading } = useQuery({
     queryKey: ["manual-entry-farm", submissionId],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET(
-        "/api/v1/cooperative/non-financial/farm-coop",
-        {
-          params: {
-            query: {
-              submission_id: submissionId,
-              page_size: 10,
-            },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/farm-coop", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 10,
           },
-        }
-      );
-      if (error) throw new Error((error as any).message || "Failed to fetch existing farm profile");
+        },
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing farm profile",
+        );
       return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const isDataLoading = isSubmissionLoading || 
-    (isFinancialWizard 
-      ? (submission?.financial_statement_id ? existingLineItemsLoading : false)
-      : (existingMembersLoading || existingSavingsLoading || existingLoansLoading || existingDepositsLoading || existingFarmLoading));
+  const isDataLoading =
+    isSubmissionLoading ||
+    (isFinancialWizard
+      ? submission?.financial_statement_id
+        ? existingLineItemsLoading
+        : false
+      : existingMembersLoading ||
+        existingSavingsLoading ||
+        existingLoansLoading ||
+        existingDepositsLoading ||
+        existingFarmLoading);
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
@@ -252,19 +263,19 @@ export function ManualEntryWizard() {
   }, [existingLineItems]);
 
   useEffect(() => {
-    const list = existingMembers?.data || (existingMembers as any)?.items;
+    const list = existingMembers?.data;
     if (list) {
       setMembers(
-        list.map((m: any) => ({
+        list.map((m) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberId: m.member_id,
           joinDate: m.join_date,
-          status: m.status,
-          exitDate: m.exit_date,
-          gender: m.gender,
-          ageGroup: mapAgeGroupToFrontend(m.age_group) as any,
+          status: m.status as "Active" | "Dormant" | "Exited",
+          exitDate: m.exit_date ?? undefined,
+          gender: m.gender as "Male" | "Female" | "Other",
+          ageGroup: mapAgeGroupToFrontend(m.age_group) as "<18" | "18-35" | "36-50" | "50+",
           region: m.region,
-          urbanRural: m.urban_rural,
+          urbanRural: m.urban_rural as "Urban" | "Rural",
           agmAttendance: m.agm_attendance,
           votingExercised: m.voting_exercised,
         })),
@@ -273,18 +284,18 @@ export function ManualEntryWizard() {
   }, [existingMembers]);
 
   useEffect(() => {
-    const list = existingSavings?.data || (existingSavings as any)?.items;
+    const list = existingSavings?.data;
     if (list) {
       setSavings(
-        list.map((s: any) => ({
+        list.map((s) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberBusinessId: s.member_business_id || "",
           savingsAccountId: s.savings_account_id,
-          accountType: s.account_type,
+          accountType: s.account_type as "Voluntary" | "Mandatory" | "Fixed",
           accountOpeningDate: s.account_opening_date,
           accountStatus: s.account_status,
           contributionFrequency: s.contribution_frequency,
-          lastContributionDate: s.last_contribution_date,
+          lastContributionDate: s.last_contribution_date || "",
           numberOfContributions: s.number_of_contributions,
           balanceTrend: s.balance_trend,
           zeroBalanceFlag: s.zero_balance_flag,
@@ -298,26 +309,27 @@ export function ManualEntryWizard() {
   }, [existingSavings]);
 
   useEffect(() => {
-    const list = existingLoans?.data || (existingLoans as any)?.items;
+    const list = existingLoans?.data;
     if (list) {
       setLoans(
-        list.map((l: any) => ({
+        list.map((l) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberBusinessId: l.member_business_id || "",
           loanId: l.loan_id,
           loanProductType: l.loan_product_type,
           loanStartDate: l.loan_start_date,
           loanMaturityDate: l.loan_maturity_date,
-          loanStatus: l.loan_status,
+          loanStatus: l.loan_status as "Performing" | "Arrears" | "Restructured" | "WrittenOff",
           borrowerType: l.borrower_type,
           youthBorrowerFlag: l.youth_borrower_flag,
           womenBorrowerFlag: l.women_borrower_flag,
           ruralBorrowerFlag: l.rural_borrower_flag,
           repaymentRegularity: l.repayment_regularity,
-          daysPastDueCategory: mapDpdCategoryToFrontend(l.days_past_due_category) as any,
+          daysPastDueCategory: mapDpdCategoryToFrontend(l.days_past_due_category) as
+            "0" | "1-30" | "31-60" | "61-90" | "91+",
           missedInstallmentsCount: l.missed_installments_count,
           restructuredLoanFlag: l.restructured_loan_flag,
-          numberOfRestructurings: l.number_of_restructurings,
+          number_of_restructurings: l.number_of_restructurings,
           earlySettlementFlag: l.early_settlement_flag,
           multipleLoansFlag: l.multiple_loans_flag,
           largeBorrowerFlag: l.large_borrower_flag,
@@ -330,17 +342,17 @@ export function ManualEntryWizard() {
   }, [existingLoans]);
 
   useEffect(() => {
-    const list = existingDeposits?.data || (existingDeposits as any)?.items;
+    const list = existingDeposits?.data;
     if (list) {
       setFixedDeposits(
-        list.map((f: any) => ({
+        list.map((f) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberBusinessId: f.member_business_id || "",
           fixedDepositId: f.fixed_deposit_id,
           depositType: f.deposit_type,
           startDate: f.start_date,
           maturityDate: f.maturity_date,
-          status: f.status,
+          status: f.status as "Active" | "Matured" | "Withdrawn" | "RolledOver",
           tenureCategory: f.tenure_category,
           originalTenureSelected: f.original_tenure_selected,
           earlyWithdrawalFlag: f.early_withdrawal_flag,
@@ -356,7 +368,7 @@ export function ManualEntryWizard() {
   }, [existingDeposits]);
 
   useEffect(() => {
-    const list = existingFarm?.data || (existingFarm as any)?.items;
+    const list = existingFarm?.data;
     if (list?.[0]) {
       const f = list[0];
       setFarmCoop({
@@ -513,6 +525,7 @@ export function ManualEntryWizard() {
     ]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSavings = useCallback((key: string, field: keyof WizardSavings, value: any) => {
     setSavings((prev) => prev.map((s) => (s._rowKey === key ? { ...s, [field]: value } : s)));
   }, []);
@@ -552,6 +565,7 @@ export function ManualEntryWizard() {
     ]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateLoan = useCallback((key: string, field: keyof WizardLoan, value: any) => {
     setLoans((prev) => prev.map((l) => (l._rowKey === key ? { ...l, [field]: value } : l)));
   }, []);
@@ -586,6 +600,7 @@ export function ManualEntryWizard() {
   };
 
   const updateFixedDeposit = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (key: string, field: keyof WizardFixedDeposit, value: any) => {
       setFixedDeposits((prev) =>
         prev.map((f) => (f._rowKey === key ? { ...f, [field]: value } : f)),
@@ -599,6 +614,7 @@ export function ManualEntryWizard() {
   }, []);
 
   // ── Farm Coop ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateFarmCoop = useCallback((field: keyof WizardFarmCoop, value: any) => {
     setFarmCoop((prev) => ({ ...prev, [field]: value }));
   }, []);
@@ -642,7 +658,7 @@ export function ManualEntryWizard() {
 
   // ── Submit handlers ──
   const doSubmitFinancial = async () => {
-    const lineItems: any[] = [];
+    const lineItems: ManualLineItemRequest[] = [];
     const getValLocal = (code: number, m: number) => financialData[code]?.[m] || 0;
 
     // 1. Map editable base accounts

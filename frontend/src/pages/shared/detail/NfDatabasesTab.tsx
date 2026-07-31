@@ -362,7 +362,7 @@ export function NfDatabasesTab({
             "voting_exercised",
             "join_date",
           ]}
-          rows={members as any[]}
+          rows={members as unknown as Record<string, unknown>[]}
         />
       )}
 
@@ -389,7 +389,7 @@ export function NfDatabasesTab({
             "account_opening_date",
             "last_contribution_date",
           ]}
-          rows={savings as any[]}
+          rows={savings as unknown as Record<string, unknown>[]}
         />
       )}
 
@@ -423,7 +423,7 @@ export function NfDatabasesTab({
             "loan_start_date",
             "loan_maturity_date",
           ]}
-          rows={loans as any[]}
+          rows={loans as unknown as Record<string, unknown>[]}
         />
       )}
 
@@ -451,7 +451,7 @@ export function NfDatabasesTab({
             "start_date",
             "maturity_date",
           ]}
-          rows={fds as any[]}
+          rows={fds as unknown as Record<string, unknown>[]}
         />
       )}
 
@@ -485,7 +485,7 @@ export function NfDatabasesTab({
             "irrigation_access",
             "climate_mitigation_practices",
           ]}
-          rows={farmCoops as any[]}
+          rows={farmCoops as unknown as Record<string, unknown>[]}
         />
       )}
     </div>
