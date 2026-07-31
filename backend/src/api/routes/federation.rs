@@ -108,6 +108,10 @@ pub fn federation_routes() -> Router<AppState> {
                 .post(crate::api::handlers::export::generate_submission_narratives),
         )
         .route(
+            "/{federation_id}/narratives",
+            get(crate::api::handlers::export::get_federation_narratives),
+        )
+        .route(
             "/export",
             get(crate::api::handlers::export::export_bulk_consolidated),
         )

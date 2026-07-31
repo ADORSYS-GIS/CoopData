@@ -1,17 +1,20 @@
 import React, { useEffect } from "react";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface FederationPearlsSheetProps {
   federationName: string;
   year: number;
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
   federationName,
   year,
   data,
+  narratives,
 }) => {
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
@@ -74,9 +77,11 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
       </div>
 
       <div className="flex-1 min-h-0">
-        <p className="mb-4 text-slate-700">
-          PEARLS framework mapped to available KPIs across apex networks:
-        </p>
+        <AiInsightBox
+          title="PEARLS Compliance — AI Analysis"
+          content={narratives}
+          fallbackContent={<>PEARLS framework mapped to available KPIs across apex networks:</>}
+        />
 
         <table className="w-full text-sm border-collapse">
           <thead>

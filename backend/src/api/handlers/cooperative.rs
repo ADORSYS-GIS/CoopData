@@ -256,6 +256,7 @@ pub async fn create_cooperative(
                 federation_id: sea_orm::Set(federation_pg.id),
                 organization_keycloak_id: sea_orm::Set(org_id.clone()),
                 display_name: sea_orm::Set(apex_resolved.name.clone()),
+                metadata: sea_orm::Set(None),
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };

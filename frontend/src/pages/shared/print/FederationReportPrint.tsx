@@ -7,6 +7,7 @@ import { FederationApexComparisonSheet } from "./components/FederationApexCompar
 import { FederationPearlsSheet } from "./components/FederationPearlsSheet";
 import { FederationSocialImpactSheet } from "./components/FederationSocialImpactSheet";
 import type { NationalOverviewResponse } from "./components";
+import type { FederationNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 interface FederationReportPrintProps {
   entityName: string;
@@ -14,6 +15,7 @@ interface FederationReportPrintProps {
   data: NationalOverviewResponse;
   priorData?: NationalOverviewResponse;
   tier?: "Federation" | "Ministry" | "Apex";
+  narratives?: FederationNarratives | null;
 }
 
 export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
@@ -22,6 +24,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
   data,
   priorData,
   tier = "Federation",
+  narratives,
 }) => {
   useEffect(() => {
     // Wait for all charts to render
@@ -61,10 +64,16 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         data={data}
         priorData={priorData}
         totalApexes={totalApexes}
+        narratives={narratives?.sector_overview}
       />
 
       {/* Sheet 1 (Continued): Sector Breakdown */}
-      <FederationSectorSheet federationName={entityName} year={year} data={data} />
+      <FederationSectorSheet
+        federationName={entityName}
+        year={year}
+        data={data}
+        narratives={narratives?.sector_composition}
+      />
 
       {/* Sheet 1 (Continued): Apex Distribution */}
       <FederationApexDistributionSheet federationName={entityName} year={year} data={data} />
@@ -73,7 +82,12 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
       <FederationApexComparisonSheet federationName={entityName} year={year} data={data} />
 
       {/* Sheet 4: PEARLS Comparative Analysis */}
-      <FederationPearlsSheet federationName={entityName} year={year} data={data} />
+      <FederationPearlsSheet
+        federationName={entityName}
+        year={year}
+        data={data}
+        narratives={narratives?.pearls_compliance}
+      />
 
       {/* Sheet 6: Federation Social Impact Summary */}
       <FederationSocialImpactSheet
@@ -81,6 +95,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         year={year}
         data={data}
         priorData={priorData}
+        narratives={narratives?.social_impact}
       />
     </div>
   );

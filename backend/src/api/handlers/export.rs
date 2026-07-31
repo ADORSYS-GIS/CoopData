@@ -493,3 +493,101 @@ pub async fn generate_submission_narratives(
 
     Ok(axum::Json(serde_json::json!(narratives)))
 }
+
+/// GET /api/v1/apex/submissions/{id}/narratives?year=2025
+/// Returns cached AI narratives for an apex report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/submissions/{id}/narratives",
+    params(
+        ("id" = Uuid, Path, description = "Apex ID"),
+        ("year" = i32, Query, description = "Reporting year")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_apex_narratives(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Query(params): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or(2025);
+    let apex = state
+        .apex_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
+
+    let year_key = format!("ai_narratives_{}", year);
+    let narratives = apex
+        .metadata
+        .and_then(|m| m.get(&year_key).cloned());
+
+    Ok(axum::Json(narratives))
+}
+
+/// GET /api/v1/federation/submissions/{id}/narratives?year=2025
+/// Returns cached AI narratives for a federation report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/federation/submissions/{id}/narratives",
+    params(
+        ("id" = Uuid, Path, description = "Federation ID"),
+        ("year" = i32, Query, description = "Reporting year")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_federation_narratives(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Query(params): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or(2025);
+    let federation = state
+        .federation_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
+
+    let year_key = format!("ai_narratives_{}", year);
+    let narratives = federation
+        .metadata
+        .and_then(|m| m.get(&year_key).cloned());
+
+    Ok(axum::Json(narratives))
+}
+
+/// GET /api/v1/ministry/submissions/narratives?year=2025
+/// Returns cached AI narratives for the ministry national report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/ministry/submissions/narratives",
+    params(
+        ("year" = i32, Query, description = "Reporting year")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_ministry_narratives(
+    State(state): State<AppState>,
+    Query(params): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or(2025);
+    let cached = state
+        .ministry_narratives_repo
+        .find_by_year(year)
+        .await?;
+
+    let narratives = cached.map(|c| c.narratives_json);
+    Ok(axum::Json(narratives))
+}

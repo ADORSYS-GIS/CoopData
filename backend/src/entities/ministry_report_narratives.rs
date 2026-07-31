@@ -4,23 +4,17 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
-#[sea_orm(table_name = "federations")]
+#[sea_orm(table_name = "ministry_report_narratives")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: Uuid,
-    pub keycloak_id: String,
-    pub display_name: String,
-    pub is_active: bool,
+    pub reporting_year: i32,
     #[sea_orm(column_type = "Json")]
-    pub metadata: Option<serde_json::Value>,
+    pub narratives_json: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::apex::Entity")]
-    Apexes,
-}
+pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -8,10 +8,10 @@ use coop_data_backend::{
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
-    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository, SavingsAccountRepository,
-    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
-    UploadedFileRepository, UserRepository,
+    KpiRecordRepository, LoanRepository, MemberRepository, MinistryReportNarrativesRepository,
+    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository, UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -69,6 +69,8 @@ impl TestApp {
         let custom_kpi_repo = CustomKpiRepository::new(db.clone());
         let kpi_record_repo = KpiRecordRepository::new(db.clone());
         let narrative_generator = coop_data_backend::services::report_narrative::create_narrative_generator(&config);
+        let ministry_narratives_repo =
+            coop_data_backend::repositories::MinistryReportNarrativesRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -107,6 +109,7 @@ impl TestApp {
             ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
             narrative_generator,
             nf_excel_parser,
+            ministry_narratives_repo,
         };
 
         TestApp { state }

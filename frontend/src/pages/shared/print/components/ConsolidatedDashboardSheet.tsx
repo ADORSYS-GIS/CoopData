@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { NationalOverviewResponse, CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface ConsolidatedDashboardSheetProps {
   tier: "Apex" | "Federation" | "Ministry";
@@ -18,6 +19,7 @@ interface ConsolidatedDashboardSheetProps {
   data: NationalOverviewResponse;
   priorData?: NationalOverviewResponse;
   totalApexes?: number;
+  narratives?: string;
 }
 
 export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProps> = ({
@@ -27,6 +29,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   data,
   priorData,
   totalApexes,
+  narratives,
 }) => {
   const { total_cooperatives, cooperatives_with_data, distributions, cooperatives } = data;
   const priorCoops = priorData?.cooperatives || [];
@@ -196,6 +199,18 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
             )}
           </tbody>
         </table>
+
+        <AiInsightBox
+          title={`${tier} Executive Dashboard — AI Insight`}
+          content={narratives}
+          fallbackContent={
+            <>
+              This executive dashboard consolidates financial performance, KPI compliance, and risk
+              distribution across all cooperatives within the {tier.toLowerCase()} for the reporting
+              period.
+            </>
+          }
+        />
 
         {/* Consolidated Financial Position */}
         <h3 className="text-sm font-bold text-slate-800 mb-1">Consolidated Financial Position</h3>

@@ -4,12 +4,17 @@ import type {
   CoopKpiRow,
   KpiValue,
 } from "@/hooks/analytics/useNationalOverview";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface ConsolidatedRiskWatchSheetProps {
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
-export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProps> = ({ data }) => {
+export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProps> = ({
+  data,
+  narratives,
+}) => {
   const { cooperatives } = data;
 
   const getAction = (kpiName: string) => {
@@ -66,6 +71,17 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
           This sheet highlights all cooperatives with critical indicators falling into the "Red"
           (High Risk) category.
         </p>
+
+        <AiInsightBox
+          title="Risk Watch — AI Assessment"
+          content={narratives}
+          fallbackContent={
+            <>
+              The AI risk assessment provides targeted intervention recommendations for cooperatives
+              with critical indicators. This section is populated when AI narratives are generated.
+            </>
+          }
+        />
 
         {riskRows.length === 0 ? (
           <div className="p-8 text-center text-slate-500 border border-slate-200 rounded-lg bg-slate-50">

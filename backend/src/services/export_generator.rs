@@ -541,7 +541,20 @@ impl ExportGenerator {
                         "[export] ✅ Narratives generated in {}ms",
                         start.elapsed().as_millis()
                     );
-                    report_narrative::encode_apex_narrative_params(&result)
+                    let params = report_narrative::encode_apex_narrative_params(&result);
+                    // Persist narratives to apex metadata for frontend retrieval
+                    let year_key = format!("ai_narratives_{}", reporting_year);
+                    if let Err(e) = state
+                        .apex_repo
+                        .update_metadata(
+                            apex_id,
+                            serde_json::json!({ &year_key: serde_json::to_value(&result).unwrap_or_default() }),
+                        )
+                        .await
+                    {
+                        tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to persist apex narratives to metadata");
+                    }
+                    params
                 }
                 Err(e) => {
                     tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to generate apex narratives, using fallback");
@@ -701,7 +714,20 @@ impl ExportGenerator {
                         "[export] ✅ Narratives generated in {}ms",
                         start.elapsed().as_millis()
                     );
-                    report_narrative::encode_federation_narrative_params(&result)
+                    let params = report_narrative::encode_federation_narrative_params(&result);
+                    // Persist narratives to federation metadata for frontend retrieval
+                    let year_key = format!("ai_narratives_{}", reporting_year);
+                    if let Err(e) = state
+                        .federation_repo
+                        .update_metadata(
+                            federation_id,
+                            serde_json::json!({ &year_key: serde_json::to_value(&result).unwrap_or_default() }),
+                        )
+                        .await
+                    {
+                        tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to persist federation narratives to metadata");
+                    }
+                    params
                 }
                 Err(e) => {
                     tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to generate federation narratives, using fallback");
@@ -851,7 +877,19 @@ impl ExportGenerator {
                         "[export] ✅ Narratives generated in {}ms",
                         start.elapsed().as_millis()
                     );
-                    report_narrative::encode_ministry_narrative_params(&result)
+                    let params = report_narrative::encode_ministry_narrative_params(&result);
+                    // Persist narratives to ministry cache table for frontend retrieval
+                    if let Err(e) = state
+                        .ministry_narratives_repo
+                        .upsert_narratives(
+                            reporting_year,
+                            serde_json::to_value(&result).unwrap_or_default(),
+                        )
+                        .await
+                    {
+                        tracing::warn!(error = %e, "[export] ⚠️ Failed to persist ministry narratives");
+                    }
+                    params
                 }
                 Err(e) => {
                     tracing::warn!(error = %e, "[export] ⚠️ Failed to generate ministry narratives, using fallback");

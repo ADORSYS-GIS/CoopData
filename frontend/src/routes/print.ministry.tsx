@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FederationReportPrint } from "@/pages/shared/print/FederationReportPrint";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useMinistryNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/ministry")({
   component: PrintComponent,
@@ -26,6 +27,8 @@ function PrintComponent() {
     token,
   );
 
+  const { data: narratives } = useMinistryNarratives(currentYear, token);
+
   const isLoading = isLoadingCurrent || isLoadingPrior;
 
   if (isLoading || !overviewData) {
@@ -46,6 +49,7 @@ function PrintComponent() {
       year={currentYear}
       data={overviewData}
       priorData={priorData}
+      narratives={narratives}
     />
   );
 }

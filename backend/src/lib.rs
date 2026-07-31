@@ -20,10 +20,10 @@ pub use repositories::{
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
     CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
-    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
@@ -72,6 +72,7 @@ pub struct AppState {
     pub nf_excel_parser: CalamineNfParser,
     pub gotenberg_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ai_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
+    pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
 }
 
 impl AppState {

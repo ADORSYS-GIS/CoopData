@@ -95,6 +95,10 @@ pub fn apex_routes() -> Router<AppState> {
                 .post(crate::api::handlers::export::generate_submission_narratives),
         )
         .route(
+            "/{apex_id}/narratives",
+            get(crate::api::handlers::export::get_apex_narratives),
+        )
+        .route(
             "/export",
             get(crate::api::handlers::export::export_bulk_consolidated),
         )
