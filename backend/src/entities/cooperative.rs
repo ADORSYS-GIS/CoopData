@@ -13,10 +13,13 @@ pub struct Model {
     pub keycloak_id: String,
     pub apex_id: Uuid,
     pub display_name: String,
+    #[serde(default)]
     #[sea_orm(nullable)]
     pub keycloak_group_id: Option<Uuid>,
+    #[serde(default)]
     #[sea_orm(nullable)]
     pub apex_group_id: Option<Uuid>,
+    #[serde(default)]
     #[sea_orm(nullable)]
     pub federation_org_id: Option<Uuid>,
     pub name: String,
@@ -46,6 +49,7 @@ pub struct Model {
     #[sea_orm(nullable)]
     pub registered_on: Option<NaiveDate>,
     pub accounting_year: AccountingYear,
+    pub tier: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

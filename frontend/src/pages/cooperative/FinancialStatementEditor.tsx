@@ -20,6 +20,16 @@ import {
 import { toast } from "sonner";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   useFinancialStatement,
   useLineItems,
   useUpdateLineItems,
@@ -27,7 +37,10 @@ import {
   useSubmitSubmission,
   type LineItemResponse,
 } from "@/hooks/submissions/useFinancialStatement";
-import { useDeleteSubmission } from "@/hooks/submissions/useSubmissions";
+import {
+  useDeleteSubmission,
+  useDeleteFinancialStatement,
+} from "@/hooks/submissions/useSubmissions";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -365,6 +378,20 @@ export const FinancialStatementEditor: React.FC<{
   const { data: sections = [] } = useSubmissionSections(submissionId);
   const updateSection = useUpdateSubmissionSection(submissionId);
   const deleteSubmission = useDeleteSubmission();
+  const deleteFs = useDeleteFinancialStatement();
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDeleteFS = async () => {
+    try {
+      await deleteFs.mutateAsync(submissionId);
+      toast.success("Financial statement deleted successfully");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete financial statement");
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
   // Live CoA from backend — same data the LLM uses, sorted by display_order
   const { data: liveCoaLeafs = [] } = useChartOfAccountsLeafs();
@@ -577,6 +604,21 @@ export const FinancialStatementEditor: React.FC<{
                   Re-validate
                 </button>
 
+                {isCooperative && (
+                  <button
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    disabled={deleteFs.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 transition-colors cursor-pointer"
+                  >
+                    {deleteFs.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
+                    Delete Statement
+                  </button>
+                )}
+
                 {financialSection && financialSection.status !== "ready" && (
                   <button
                     onClick={handleMarkFinancialReady}
@@ -771,6 +813,27 @@ export const FinancialStatementEditor: React.FC<{
         )}
         {/* ── Flat List View (disabled) ── */}
       </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Financial Statement?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this financial statement? This will clear all line
+              items and reset the section status. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFS}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

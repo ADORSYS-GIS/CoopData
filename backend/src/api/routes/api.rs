@@ -168,7 +168,10 @@ pub fn create_app(state: AppState) -> Router {
         )
         .nest(
             "/apex",
-            apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[roles::APEX]))),
+            apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::APEX,
+                roles::MINISTRY,
+            ]))),
         )
         .nest(
             "/cooperative",

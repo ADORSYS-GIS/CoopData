@@ -9,9 +9,10 @@ use coop_data_backend::{
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
     KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository, SavingsAccountRepository,
-    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
-    UploadedFileRepository, UserRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
+    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -68,6 +69,8 @@ impl TestApp {
             NonFinancialIndicatorEntryRepository::new(db.clone());
         let custom_kpi_repo = CustomKpiRepository::new(db.clone());
         let kpi_record_repo = KpiRecordRepository::new(db.clone());
+        let questionnaire_repo = QuestionnaireRepository::new(db.clone());
+        let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -91,6 +94,8 @@ impl TestApp {
             flag_repo,
             review_repo,
             section_repo,
+            questionnaire_repo,
+            questionnaire_template_repo,
             non_financial_indicator_catalog_repo,
             non_financial_indicator_entry_repo,
             extractor,

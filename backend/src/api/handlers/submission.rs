@@ -10,9 +10,11 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::apex::ApexStatsResponse;
+#[allow(unused_imports)]
 use crate::api::dto::submission::{
-    CooperativeStatsResponse, CreateSubmissionRequest, SubmissionResponse,
-    SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
+    CooperativeStatsResponse, CreateSubmissionRequest, MembershipStatsResponse,
+    PortfolioBreakdownResponse, SubmissionResponse, SubmissionReviewResponse,
+    SubmissionSectionResponse, UpdateSectionStatusRequest,
 };
 use crate::auth::claims::Claims;
 
@@ -81,6 +83,12 @@ pub async fn create_submission(
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
+    let submission_method_val = if coop.tier == "basic" {
+        "questionnaire".to_string()
+    } else {
+        body.submission_method.clone()
+    };
+
     let model = ActiveModel {
         id: Set(Uuid::new_v4()),
         reference: Set(Some(reference)),
@@ -95,6 +103,7 @@ pub async fn create_submission(
         rejection_reason: Set(None),
         priority: Set(body.priority),
         metadata: Set(serde_json::json!({})),
+        submission_method: Set(submission_method_val.clone()),
         created_at: Set(chrono::Utc::now()),
         updated_at: Set(chrono::Utc::now()),
     };
@@ -104,6 +113,7 @@ pub async fn create_submission(
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
             submission.id,
+            &submission_method_val,
         );
     let sections = state
         .section_repo
@@ -1644,7 +1654,7 @@ pub async fn list_submission_reviews(
     path = "/api/v1/cooperative/submissions/{id}/portfolio-breakdown",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Portfolio breakdown", body = crate::api::dto::submission::PortfolioBreakdownResponse),
+        (status = 200, description = "Portfolio breakdown", body = PortfolioBreakdownResponse),
         (status = 403, description = "Access denied"),
         (status = 404, description = "Submission not found")
     ),
@@ -1687,7 +1697,7 @@ pub async fn get_portfolio_breakdown(
     path = "/api/v1/cooperative/submissions/{id}/membership-stats",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Membership stats", body = crate::api::dto::submission::MembershipStatsResponse),
+        (status = 200, description = "Membership stats", body = MembershipStatsResponse),
         (status = 403, description = "Access denied"),
         (status = 404, description = "Submission not found")
     ),

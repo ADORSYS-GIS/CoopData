@@ -1894,3 +1894,585 @@ pub async fn delete_farm_coop(
     tracing::info!(cooperative_id = %coop_id, id = %id, "Farm coop record deleted");
     Ok(StatusCode::NO_CONTENT)
 }
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/manual-members",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = ManualMembersRequest,
+    responses(
+        (status = 201, description = "Members and accounts manually created"),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = NF_TAG
+)]
+pub async fn create_manual_members(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Path(submission_id): Path<Uuid>,
+    Json(body): Json<crate::api::dto::non_financial::ManualMembersRequest>,
+) -> AppResult<impl IntoResponse> {
+    use crate::entities::enums::SubmissionStatus;
+    use sea_orm::Set;
+    use std::collections::HashMap;
+
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop_id {
+        return Err(AppError::Forbidden(
+            "Submission does not belong to your cooperative".into(),
+        ));
+    }
+
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::Conflict(
+            "Can only add members to a draft submission".into(),
+        ));
+    }
+
+    let now = chrono::Utc::now();
+
+    // ── Phase 1: Build all active models in memory (zero DB calls) ───────────────
+
+    // Members
+    let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
+    let mut generated_ids = Vec::new();
+
+    for record in &body.members {
+        let new_uuid = Uuid::new_v4();
+        generated_ids.push(new_uuid);
+        member_active_models.push(member::ActiveModel {
+            id: Set(new_uuid),
+            cooperative_id: Set(coop_id),
+            submission_id: Set(Some(submission_id)),
+            member_id: Set(record.member_id.clone()),
+            join_date: Set(record.join_date),
+            status: Set(record.status.clone()),
+            exit_date: Set(record.exit_date),
+            gender: Set(record.gender.clone()),
+            age_group: Set(record.age_group.clone()),
+            region: Set(record.region.clone()),
+            urban_rural: Set(record.urban_rural.clone()),
+            agm_attendance: Set(record.agm_attendance),
+            leadership_role: Set(record.leadership_role.clone()),
+            voting_exercised: Set(record.voting_exercised),
+            created_at: Set(now),
+            updated_at: Set(now),
+        });
+    }
+
+    // Build the member_id → uuid mapping from pre-assigned UUIDs (no DB needed)
+    let mut member_map: HashMap<String, Uuid> = HashMap::new();
+    for (i, m) in body.members.iter().enumerate() {
+        member_map.insert(m.member_id.clone(), generated_ids[i]);
+    }
+
+    // Savings accounts
+    let mut savings_active_models: Vec<savings_account::ActiveModel> = Vec::new();
+    if let Some(ref savings) = body.savings_accounts {
+        for record in savings {
+            let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
+                AppError::ValidationError(format!(
+                    "Member '{}' not found for savings account '{}'",
+                    record.member_business_id, record.savings_account_id
+                ))
+            })?;
+            savings_active_models.push(savings_account::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                cooperative_id: Set(coop_id),
+                submission_id: Set(Some(submission_id)),
+                member_id: Set(*member_uuid),
+                savings_account_id: Set(record.savings_account_id.clone()),
+                account_type: Set(record.account_type.clone()),
+                account_opening_date: Set(record.account_opening_date),
+                account_status: Set(record.account_status.clone()),
+                contribution_frequency: Set(record.contribution_frequency.clone()),
+                last_contribution_date: Set(record.last_contribution_date.unwrap_or_default()),
+                number_of_contributions: Set(record.number_of_contributions),
+                balance_trend: Set(record.balance_trend.clone()),
+                zero_balance_flag: Set(record.zero_balance_flag),
+                withdrawal_frequency_category: Set(record.withdrawal_frequency_category.clone()),
+                emergency_withdrawals_flag: Set(record.emergency_withdrawals_flag),
+                interest_rate: Set(record.interest_rate),
+                balance: Set(record.balance),
+                created_at: Set(now),
+                updated_at: Set(now),
+            });
+        }
+    }
+
+    // Loans
+    let mut loan_active_models: Vec<loan::ActiveModel> = Vec::new();
+    if let Some(ref loans) = body.loans {
+        for record in loans {
+            let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
+                AppError::ValidationError(format!(
+                    "Member '{}' not found for loan '{}'",
+                    record.member_business_id, record.loan_id
+                ))
+            })?;
+            loan_active_models.push(loan::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                cooperative_id: Set(coop_id),
+                submission_id: Set(Some(submission_id)),
+                member_id: Set(*member_uuid),
+                loan_id: Set(record.loan_id.clone()),
+                loan_product_type: Set(record.loan_product_type.clone()),
+                loan_start_date: Set(record.loan_start_date),
+                loan_maturity_date: Set(record.loan_maturity_date),
+                loan_status: Set(record.loan_status.clone()),
+                borrower_type: Set(record.borrower_type.clone()),
+                youth_borrower_flag: Set(record.youth_borrower_flag),
+                women_borrower_flag: Set(record.women_borrower_flag),
+                rural_borrower_flag: Set(record.rural_borrower_flag),
+                repayment_regularity: Set(record.repayment_regularity.clone()),
+                days_past_due_category: Set(record.days_past_due_category.clone()),
+                missed_installments_count: Set(record.missed_installments_count),
+                restructured_loan_flag: Set(record.restructured_loan_flag),
+                number_of_restructurings: Set(record.number_of_restructurings),
+                early_settlement_flag: Set(record.early_settlement_flag),
+                multiple_loans_flag: Set(record.multiple_loans_flag),
+                large_borrower_flag: Set(record.large_borrower_flag),
+                interest_rate: Set(record.interest_rate),
+                balance: Set(record.balance),
+                loan_amount: Set(record.loan_amount),
+                created_at: Set(now),
+                updated_at: Set(now),
+            });
+        }
+    }
+
+    // Fixed deposits
+    let mut fd_active_models: Vec<fixed_deposit::ActiveModel> = Vec::new();
+    if let Some(ref fds) = body.fixed_deposits {
+        for record in fds {
+            let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
+                AppError::ValidationError(format!(
+                    "Member '{}' not found for fixed deposit '{}'",
+                    record.member_business_id, record.fixed_deposit_id
+                ))
+            })?;
+            fd_active_models.push(fixed_deposit::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                cooperative_id: Set(coop_id),
+                submission_id: Set(Some(submission_id)),
+                member_id: Set(*member_uuid),
+                fixed_deposit_id: Set(record.fixed_deposit_id.clone()),
+                deposit_type: Set(record.deposit_type.clone()),
+                start_date: Set(record.start_date),
+                maturity_date: Set(record.maturity_date),
+                status: Set(record.status.clone()),
+                tenure_category: Set(record.tenure_category.clone()),
+                original_tenure_selected: Set(record.original_tenure_selected.clone()),
+                early_withdrawal_flag: Set(record.early_withdrawal_flag),
+                rollover_at_maturity_flag: Set(record.rollover_at_maturity_flag),
+                number_of_renewals: Set(record.number_of_renewals),
+                change_in_tenure_at_renewal: Set(record.change_in_tenure_at_renewal),
+                single_depositor_dependency_flag: Set(record.single_depositor_dependency_flag),
+                interest_rate: Set(record.interest_rate),
+                balance: Set(record.balance),
+                created_at: Set(now),
+                updated_at: Set(now),
+            });
+        }
+    }
+
+    // Farm coop
+    let mut farm_coop_active_models: Vec<farm_coop::ActiveModel> = Vec::new();
+    if let Some(ref farm_coops) = body.farm_coop {
+        for record in farm_coops {
+            farm_coop_active_models.push(farm_coop::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                cooperative_id: Set(coop_id),
+                submission_id: Set(Some(submission_id)),
+                cooperative_type: Set(record.cooperative_type.clone()),
+                primary_activities: Set(record.primary_activities.clone()),
+                year_of_establishment: Set(record.year_of_establishment),
+                operational_status: Set(record.operational_status.clone()),
+                active_producer_flag: Set(record.active_producer_flag),
+                production_type: Set(record.production_type.clone()),
+                participation_frequency: Set(record.participation_frequency.clone()),
+                delivery_compliance: Set(record.delivery_compliance.clone()),
+                production_cycle_type: Set(record.production_cycle_type.clone()),
+                use_of_production_planning: Set(record.use_of_production_planning),
+                use_of_shared_inputs: Set(record.use_of_shared_inputs),
+                quality_compliance_flag: Set(record.quality_compliance_flag),
+                market_channel_type: Set(record.market_channel_type.clone()),
+                formal_offtake_agreement: Set(record.formal_offtake_agreement),
+                buyer_concentration_flag: Set(record.buyer_concentration_flag),
+                price_predictability_category: Set(record.price_predictability_category.clone()),
+                access_to_storage: Set(record.access_to_storage),
+                access_to_processing_facilities: Set(record.access_to_processing_facilities),
+                transport_coordination: Set(record.transport_coordination.clone()),
+                climate_exposure_type: Set(record.climate_exposure_type.clone()),
+                irrigation_access: Set(record.irrigation_access),
+                climate_mitigation_practices: Set(record.climate_mitigation_practices.clone()),
+                created_at: Set(now),
+                updated_at: Set(now),
+            });
+        }
+    }
+
+    // ── Phase 2: Atomically delete old data + insert new data in one transaction ──
+
+    use sea_orm::{sea_query::OnConflict, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
+
+    let savings_imported: u64;
+    let loans_imported: u64;
+    let fd_imported: u64;
+    let farm_coop_imported: u64;
+
+    {
+        let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
+
+        // Delete all existing non-financial data for this submission
+        savings_account::Entity::delete_many()
+            .filter(savings_account::Column::CooperativeId.eq(coop_id))
+            .filter(savings_account::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        loan::Entity::delete_many()
+            .filter(loan::Column::CooperativeId.eq(coop_id))
+            .filter(loan::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        fixed_deposit::Entity::delete_many()
+            .filter(fixed_deposit::Column::CooperativeId.eq(coop_id))
+            .filter(fixed_deposit::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        farm_coop::Entity::delete_many()
+            .filter(farm_coop::Column::CooperativeId.eq(coop_id))
+            .filter(farm_coop::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        member::Entity::delete_many()
+            .filter(member::Column::CooperativeId.eq(coop_id))
+            .filter(member::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        // Insert members
+        if !member_active_models.is_empty() {
+            member::Entity::insert_many(member_active_models)
+                .on_conflict(
+                    OnConflict::columns([member::Column::CooperativeId, member::Column::MemberId])
+                        .update_columns([
+                            member::Column::JoinDate,
+                            member::Column::Status,
+                            member::Column::ExitDate,
+                            member::Column::Gender,
+                            member::Column::AgeGroup,
+                            member::Column::Region,
+                            member::Column::UrbanRural,
+                            member::Column::AgmAttendance,
+                            member::Column::LeadershipRole,
+                            member::Column::VotingExercised,
+                            member::Column::SubmissionId,
+                        ])
+                        .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+        }
+
+        // Insert savings accounts
+        savings_imported = if !savings_active_models.is_empty() {
+            let count = savings_active_models.len() as u64;
+            savings_account::Entity::insert_many(savings_active_models)
+                .on_conflict(
+                    OnConflict::columns([
+                        savings_account::Column::CooperativeId,
+                        savings_account::Column::SavingsAccountId,
+                    ])
+                    .update_columns([
+                        savings_account::Column::SubmissionId,
+                        savings_account::Column::MemberId,
+                        savings_account::Column::AccountType,
+                        savings_account::Column::AccountOpeningDate,
+                        savings_account::Column::AccountStatus,
+                        savings_account::Column::ContributionFrequency,
+                        savings_account::Column::LastContributionDate,
+                        savings_account::Column::NumberOfContributions,
+                        savings_account::Column::BalanceTrend,
+                        savings_account::Column::ZeroBalanceFlag,
+                        savings_account::Column::WithdrawalFrequencyCategory,
+                        savings_account::Column::EmergencyWithdrawalsFlag,
+                        savings_account::Column::InterestRate,
+                        savings_account::Column::Balance,
+                        savings_account::Column::UpdatedAt,
+                    ])
+                    .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        // Insert loans
+        loans_imported = if !loan_active_models.is_empty() {
+            let count = loan_active_models.len() as u64;
+            loan::Entity::insert_many(loan_active_models)
+                .on_conflict(
+                    OnConflict::columns([loan::Column::CooperativeId, loan::Column::LoanId])
+                        .update_columns([
+                            loan::Column::SubmissionId,
+                            loan::Column::MemberId,
+                            loan::Column::LoanProductType,
+                            loan::Column::LoanStartDate,
+                            loan::Column::LoanMaturityDate,
+                            loan::Column::LoanStatus,
+                            loan::Column::BorrowerType,
+                            loan::Column::YouthBorrowerFlag,
+                            loan::Column::WomenBorrowerFlag,
+                            loan::Column::RuralBorrowerFlag,
+                            loan::Column::RepaymentRegularity,
+                            loan::Column::DaysPastDueCategory,
+                            loan::Column::MissedInstallmentsCount,
+                            loan::Column::RestructuredLoanFlag,
+                            loan::Column::NumberOfRestructurings,
+                            loan::Column::EarlySettlementFlag,
+                            loan::Column::MultipleLoansFlag,
+                            loan::Column::LargeBorrowerFlag,
+                            loan::Column::InterestRate,
+                            loan::Column::Balance,
+                            loan::Column::LoanAmount,
+                        ])
+                        .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        // Insert fixed deposits
+        fd_imported = if !fd_active_models.is_empty() {
+            let count = fd_active_models.len() as u64;
+            fixed_deposit::Entity::insert_many(fd_active_models)
+                .on_conflict(
+                    OnConflict::columns([
+                        fixed_deposit::Column::CooperativeId,
+                        fixed_deposit::Column::FixedDepositId,
+                    ])
+                    .update_columns([
+                        fixed_deposit::Column::SubmissionId,
+                        fixed_deposit::Column::MemberId,
+                        fixed_deposit::Column::DepositType,
+                        fixed_deposit::Column::StartDate,
+                        fixed_deposit::Column::MaturityDate,
+                        fixed_deposit::Column::Status,
+                        fixed_deposit::Column::TenureCategory,
+                        fixed_deposit::Column::OriginalTenureSelected,
+                        fixed_deposit::Column::EarlyWithdrawalFlag,
+                        fixed_deposit::Column::RolloverAtMaturityFlag,
+                        fixed_deposit::Column::NumberOfRenewals,
+                        fixed_deposit::Column::ChangeInTenureAtRenewal,
+                        fixed_deposit::Column::SingleDepositorDependencyFlag,
+                        fixed_deposit::Column::InterestRate,
+                        fixed_deposit::Column::Balance,
+                    ])
+                    .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        // Insert farm coop
+        farm_coop_imported = if !farm_coop_active_models.is_empty() {
+            let count = farm_coop_active_models.len() as u64;
+            farm_coop::Entity::insert_many(farm_coop_active_models)
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        txn.commit().await.map_err(AppError::DatabaseError)?;
+    }
+
+    // ── Section status updates (outside transaction — non-critical metadata) ────
+
+    if !body.members.is_empty() {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "members")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
+        }
+    }
+    if savings_imported > 0 {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "savings")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
+        }
+    }
+    if loans_imported > 0 {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "loans")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
+        }
+    }
+    if fd_imported > 0 {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "fixed_deposits")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
+        }
+    }
+    if farm_coop_imported > 0 {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, "farm_coop")
+            .await?
+        {
+            state
+                .section_repo
+                .update_status(sec.id, "in_progress")
+                .await?;
+        }
+    }
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "members",
+            Some(&submission_id.to_string()),
+            Some(serde_json::json!({
+                "members_count": body.members.len(),
+                "savings_count": body.savings_accounts.as_ref().map(|x| x.len()).unwrap_or(0),
+                "loans_count": body.loans.as_ref().map(|x| x.len()).unwrap_or(0),
+                "deposits_count": body.fixed_deposits.as_ref().map(|x| x.len()).unwrap_or(0),
+                "farm_coop_count": body.farm_coop.as_ref().map(|x| x.len()).unwrap_or(0),
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    Ok(StatusCode::CREATED)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/cooperative/submissions/{id}/non-financial",
+    responses(
+        (status = 204, description = "Non-financial data deleted successfully"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative",
+    security(("bearer" = []))
+)]
+pub async fn delete_non_financial_data(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(submission_id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    use crate::entities::enums::SubmissionStatus;
+
+    let coop_id = state.cooperative_id_from_claims(&claims).await?;
+    let submission = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop_id {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::Conflict(
+            "Can only delete data from draft submissions".into(),
+        ));
+    }
+
+    state
+        .savings_account_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
+    state
+        .loan_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
+    state
+        .fixed_deposit_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
+    state
+        .farm_coop_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
+    state
+        .member_repo
+        .delete_by_cooperative_and_submission(coop_id, submission_id)
+        .await?;
+
+    // Reset section statuses to "pending"
+    for section_name in &["members", "savings", "loans", "fixed_deposits", "farm_coop"] {
+        if let Some(sec) = state
+            .section_repo
+            .find_by_submission_and_section(submission_id, section_name)
+            .await?
+        {
+            state.section_repo.update_status(sec.id, "pending").await?;
+        }
+    }
+
+    Ok(StatusCode::NO_CONTENT)
+}

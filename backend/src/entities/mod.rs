@@ -20,6 +20,8 @@ pub mod member;
 pub mod non_financial_indicator_catalog;
 pub mod non_financial_indicator_entry;
 pub mod organization;
+pub mod questionnaire_response;
+pub mod questionnaire_template;
 pub mod savings_account;
 pub mod submission;
 pub mod submission_review;
@@ -60,6 +62,14 @@ pub use non_financial_indicator_entry::{
 };
 pub use organization::{
     Column as OrganizationColumn, Entity as OrganizationEntity, Model as OrganizationModel,
+};
+pub use questionnaire_response::{
+    Column as QuestionnaireResponseColumn, Entity as QuestionnaireResponseEntity,
+    Model as QuestionnaireResponseModel,
+};
+pub use questionnaire_template::{
+    Column as QuestionnaireTemplateColumn, Entity as QuestionnaireTemplateEntity,
+    Model as QuestionnaireTemplateModel,
 };
 pub use savings_account::{
     Column as SavingsAccountColumn, Entity as SavingsAccountEntity, Model as SavingsAccountModel,
