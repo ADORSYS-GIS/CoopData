@@ -22,6 +22,7 @@ import {
 import { StatusPill } from "@/components/app-shell";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // Shared Types
@@ -32,6 +33,7 @@ export type { Cooperative, Submission } from "@/lib/mock-data";
 // Time Range Selector
 // ─────────────────────────────────────────────────────────────────────
 export function TimeRange() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1 text-xs">
       {["1M", "3M", "YTD", "1Y", "All"].map((r, i) => (
@@ -41,7 +43,7 @@ export function TimeRange() {
             i === 3 ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
           }`}
         >
-          {r}
+          {t(`charts.timeRange.${r}`, { defaultValue: r })}
         </button>
       ))}
     </div>
@@ -52,6 +54,7 @@ export function TimeRange() {
 // Trend Chart (Area)
 // ─────────────────────────────────────────────────────────────────────
 export function TrendChart() {
+  const { t } = useTranslation();
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
@@ -108,9 +111,9 @@ export function TrendChart() {
             labelStyle={{ fontWeight: "600", color: "var(--foreground)", marginBottom: "4px" }}
             formatter={(value: number, name: string) => {
               if (name === "loans") {
-                return [`$${value}M`, "Loan Portfolio"];
+                return [`$${value}M`, t("charts.loanPortfolio")];
               }
-              return [formatNumber(value), "Active Members"];
+              return [formatNumber(value), t("charts.activeMembers")];
             }}
           />
           <Area
@@ -136,11 +139,11 @@ export function TrendChart() {
       <div className="mt-3 flex items-center gap-5 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-accent" />
-          Members (Left Axis)
+          {t("charts.membersLeftAxis")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-success" />
-          Loan portfolio ($M - Right Axis)
+          {t("charts.loansRightAxis")}
         </span>
       </div>
     </div>
@@ -218,6 +221,7 @@ const getRegionCellData = (regionCode: string, index: number) => {
 };
 
 export function RegionsHeatGrid() {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 gap-4">
       {REGIONS.map((r) => {
@@ -245,7 +249,7 @@ export function RegionsHeatGrid() {
                 return (
                   <div
                     key={i}
-                    title={`Zone ${i + 1}: ${coops} active cooperatives (${compliance}% compliance)`}
+                    title={t("charts.zoneTooltip", { zone: i + 1, coops, compliance })}
                     className="aspect-square rounded-[2px] transition-all hover:scale-110 hover:shadow-sm cursor-help"
                     style={{
                       background: `color-mix(in oklab, var(--accent) ${densityPercent}%, var(--muted))`,
@@ -256,7 +260,7 @@ export function RegionsHeatGrid() {
             </div>
             {/* Legend inside each region box */}
             <div className="mt-2.5 flex items-center justify-between text-[9px] text-muted-foreground">
-              <span>Low density</span>
+              <span>{t("charts.lowDensity")}</span>
               <div className="flex gap-0.5">
                 {[10, 30, 50, 70, 90].map((p) => (
                   <span
@@ -268,19 +272,19 @@ export function RegionsHeatGrid() {
                   />
                 ))}
               </div>
-              <span>High density</span>
+              <span>{t("charts.highDensity")}</span>
             </div>
             <dl className="mt-4 grid grid-cols-3 gap-2 text-[11px] border-t border-border pt-3">
               <div>
-                <dt className="text-muted-foreground">Coops</dt>
+                <dt className="text-muted-foreground">{t("charts.coops")}</dt>
                 <dd className="font-semibold num">{r.coops.toLocaleString()}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Members</dt>
+                <dt className="text-muted-foreground">{t("charts.members")}</dt>
                 <dd className="font-semibold num">{formatNumber(r.members)}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Compliance</dt>
+                <dt className="text-muted-foreground">{t("charts.compliance")}</dt>
                 <dd className="font-semibold num">{r.compliance}%</dd>
               </div>
             </dl>
@@ -295,6 +299,7 @@ export function RegionsHeatGrid() {
 // Activity Feed List
 // ─────────────────────────────────────────────────────────────────────
 export function ActivityFeedList({ activities }: { activities: typeof INITIAL_ACTIVITY_FEED }) {
+  const { t } = useTranslation();
   const toneMap = {
     success: "bg-success/10 text-success",
     info: "bg-info/10 text-info",
@@ -319,10 +324,10 @@ export function ActivityFeedList({ activities }: { activities: typeof INITIAL_AC
       ))}
       <li className="pt-3">
         <button
-          onClick={() => toast.info("Opening full audit system activity log...")}
+          onClick={() => toast.info(t("charts.openingAuditLog"))}
           className="inline-flex w-full items-center justify-center gap-2 text-xs font-semibold text-accent hover:underline"
         >
-          <Sparkles className="size-3.5" /> View audit timeline
+          <Sparkles className="size-3.5" /> {t("charts.viewAuditTimeline")}
         </button>
       </li>
     </ul>
@@ -333,19 +338,20 @@ export function ActivityFeedList({ activities }: { activities: typeof INITIAL_AC
 // Top Cooperatives Table
 // ─────────────────────────────────────────────────────────────────────
 export function TopTable({ cooperatives }: { cooperatives: typeof INITIAL_COOPERATIVES }) {
+  const { t } = useTranslation();
   const rows = [...cooperatives].sort((a, b) => b.portfolio - a.portfolio).slice(0, 6);
   return (
     <div className="-mx-5 -mb-5 overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm">
         <thead>
           <tr className="border-y border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-            <th className="px-5 py-3">Reg. No.</th>
-            <th className="px-5 py-3">Cooperative</th>
-            <th className="px-5 py-3">Sector</th>
-            <th className="px-5 py-3">Region</th>
-            <th className="px-5 py-3 text-right">Members</th>
-            <th className="px-5 py-3 text-right">Capital base</th>
-            <th className="px-5 py-3">Compliance</th>
+            <th className="px-5 py-3">{t("charts.regNo")}</th>
+            <th className="px-5 py-3">{t("charts.cooperative")}</th>
+            <th className="px-5 py-3">{t("charts.sector")}</th>
+            <th className="px-5 py-3">{t("charts.region")}</th>
+            <th className="px-5 py-3 text-right">{t("charts.members")}</th>
+            <th className="px-5 py-3 text-right">{t("charts.capitalBase")}</th>
+            <th className="px-5 py-3">{t("charts.compliance")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -371,7 +377,9 @@ export function TopTable({ cooperatives }: { cooperatives: typeof INITIAL_COOPER
                           : "danger"
                   }
                 >
-                  {r.compliance}
+                  {t(`charts.complianceStatus.${r.compliance.toLowerCase().replace(" ", "_")}`, {
+                    defaultValue: r.compliance,
+                  })}
                 </StatusPill>
               </td>
             </tr>

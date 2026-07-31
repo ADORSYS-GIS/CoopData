@@ -28,6 +28,7 @@ import {
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
+import { useTranslation } from "react-i18next";
 import type { MemberRecord } from "@/lib/financial-data";
 
 // Import types & helpers from manual-entry/ sub-directory
@@ -65,6 +66,7 @@ import { FinancialExcelGrid } from "./manual-entry/FinancialExcelGrid";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export function ManualEntryWizard() {
+  const { t } = useTranslation();
   const { id: submissionId } = useParams({ from: Route.id });
   const navigate = useNavigate();
 
@@ -78,17 +80,17 @@ export function ManualEntryWizard() {
   const steps = useMemo(() => {
     if (isFinancialWizard) {
       return [
-        { id: "financial" as const, label: "Financial Statement", icon: BarChart3 },
-        { id: "review" as const, label: "Review & Submit", icon: FileText },
+        { id: "financial" as const, label: t("manualEntry.steps.financial"), icon: BarChart3 },
+        { id: "review" as const, label: t("manualEntry.steps.review"), icon: FileText },
       ];
     } else {
       return [
-        { id: "members" as const, label: "Membership Register", icon: Users },
-        { id: "savings" as const, label: "Savings Ledger", icon: DollarSign },
-        { id: "loans" as const, label: "Loan Book", icon: TrendingUp },
-        { id: "deposits" as const, label: "Fixed Deposits", icon: Clock },
-        { id: "farm" as const, label: "Farm Profile", icon: Sprout },
-        { id: "review" as const, label: "Review & Submit", icon: FileText },
+        { id: "members" as const, label: t("manualEntry.steps.members"), icon: Users },
+        { id: "savings" as const, label: t("manualEntry.steps.savings"), icon: DollarSign },
+        { id: "loans" as const, label: t("manualEntry.steps.loans"), icon: TrendingUp },
+        { id: "deposits" as const, label: t("manualEntry.steps.deposits"), icon: Clock },
+        { id: "farm" as const, label: t("manualEntry.steps.farm"), icon: Sprout },
+        { id: "review" as const, label: t("manualEntry.steps.review"), icon: FileText },
       ];
     }
   }, [isFinancialWizard]);
@@ -989,7 +991,9 @@ export function ManualEntryWizard() {
 
   return (
     <AppShell
-      title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
+      title={
+        isFinancialWizard ? t("manualEntry.titleFinancial") : t("manualEntry.titleNonFinancial")
+      }
     >
       <div className="max-w-[96%] mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -1003,14 +1007,16 @@ export function ManualEntryWizard() {
           <div>
             <h1 className="text-xl font-bold text-foreground">
               {isFinancialWizard
-                ? "Financial Statement Manual Entry"
-                : "Non-Financial Databases Manual Entry"}
+                ? t("manualEntry.headerFinancial")
+                : t("manualEntry.headerNonFinancial")}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {submission?.reporting_year ? `Submission ${submission.reporting_year} ·` : ""}{" "}
+              {submission?.reporting_year
+                ? t("manualEntry.yearAndDot", { year: submission.reporting_year })
+                : ""}{" "}
               {isFinancialWizard
-                ? "Enter monthly balance sheet and income/expense data directly"
-                : "Enter membership register, savings, loans, deposits and farm activities"}
+                ? t("manualEntry.descFinancial")
+                : t("manualEntry.descNonFinancial")}
             </p>
           </div>
         </div>
@@ -1659,7 +1665,7 @@ export function ManualEntryWizard() {
             className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none"
           >
             <ChevronLeft className="size-4" />
-            Previous
+            {t("manualEntry.previous")}
           </button>
 
           {step !== "review" && (
@@ -1670,7 +1676,7 @@ export function ManualEntryWizard() {
               }}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm focus:outline-none"
             >
-              Next
+              {t("manualEntry.next")}
               <ChevronRight className="size-4" />
             </button>
           )}

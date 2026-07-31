@@ -1,4 +1,5 @@
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 
 interface ApexDistributionBarProps {
@@ -14,11 +15,12 @@ const COLORS = [
 ];
 
 export function ApexDistributionBar({ cooperatives }: ApexDistributionBarProps) {
+  const { t } = useTranslation();
   // Aggregate data by apex
   const apexMap = new Map<string, { count: number; activeMembers: number }>();
 
   cooperatives.forEach((coop) => {
-    const apex = coop.apex_name ?? "Independent / Direct";
+    const apex = coop.apex_name ?? t("analytics.apexIndependent");
 
     if (!apexMap.has(apex)) {
       apexMap.set(apex, { count: 0, activeMembers: 0 });
@@ -71,7 +73,7 @@ export function ApexDistributionBar({ cooperatives }: ApexDistributionBarProps) 
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            formatter={(value: number, name: string) => [value, "Cooperatives"]}
+            formatter={(value: number, name: string) => [value, t("analytics.apexCooperatives")]}
           />
           <Legend wrapperStyle={{ fontSize: 12, paddingTop: "10px" }} />
         </PieChart>

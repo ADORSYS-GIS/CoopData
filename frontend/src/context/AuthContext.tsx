@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import {
   initKeycloak,
   login as keycloakLogin,
@@ -18,6 +19,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     let mounted = true;
@@ -49,15 +51,19 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
           if (profile) {
             const ctx =
               profile.role === "ministry"
-                ? "National"
+                ? t("auth.welcomeContextNational")
                 : profile.role === "federation"
-                  ? (profile.organizationName ?? profile.region ?? "your federation")
-                  : (profile.cooperationName ?? profile.region ?? "your organization");
+                  ? (profile.organizationName ??
+                    profile.region ??
+                    t("auth.welcomeContextFederation"))
+                  : (profile.cooperationName ??
+                    profile.region ??
+                    t("auth.welcomeContextOrganization"));
 
             // Delay slightly so the Toaster has time to mount
             setTimeout(() => {
-              toast.success(`Welcome back, ${profile.firstName || profile.name}!`, {
-                description: `Signed in to ${ctx}`,
+              toast.success(t("auth.welcomeBack", { name: profile.firstName || profile.name }), {
+                description: t("auth.signedInTo", { ctx }),
                 duration: 5000,
               });
             }, 800);

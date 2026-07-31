@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface TrendDataPoint {
   month: string;
@@ -21,10 +22,11 @@ interface CoopTrendAreaChartProps {
 }
 
 export function CoopTrendAreaChart({ data }: CoopTrendAreaChartProps) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[300px] text-center text-muted-foreground">
-        <p className="text-sm font-semibold">No trend data available</p>
+        <p className="text-sm font-semibold">{t("analytics.noTrendData")}</p>
       </div>
     );
   }
@@ -75,7 +77,7 @@ export function CoopTrendAreaChart({ data }: CoopTrendAreaChartProps) {
           <Area
             type="monotone"
             dataKey="loans"
-            name="Gross Loans"
+            name={t("analytics.grossLoans")}
             stroke="var(--chart-3)"
             fillOpacity={1}
             fill="url(#colorLoans)"
@@ -83,7 +85,7 @@ export function CoopTrendAreaChart({ data }: CoopTrendAreaChartProps) {
           <Area
             type="monotone"
             dataKey="savings"
-            name="Member Deposits"
+            name={t("analytics.memberDeposits")}
             stroke="var(--chart-2)"
             fillOpacity={1}
             fill="url(#colorSavings)"
@@ -91,7 +93,7 @@ export function CoopTrendAreaChart({ data }: CoopTrendAreaChartProps) {
           <Area
             type="monotone"
             dataKey="liquidity"
-            name="Liquid Assets"
+            name={t("analytics.liquidAssets")}
             stroke="var(--chart-1)"
             fillOpacity={1}
             fill="url(#colorLiquidity)"

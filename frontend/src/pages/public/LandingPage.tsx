@@ -20,6 +20,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
+import { useTranslation } from "react-i18next";
 
 export const LandingPage: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -64,6 +65,7 @@ function useLoginRedirect() {
 }
 
 function PublicHeader() {
+  const { t } = useTranslation();
   const handleLogin = useLoginRedirect();
 
   return (
@@ -72,22 +74,22 @@ function PublicHeader() {
         <Link to="/" className="flex items-center gap-3">
           <img
             src="/coopdatalogo.png"
-            alt="CoopData logo"
+            alt={t("common.logoAlt")}
             className="size-16 shrink-0 rounded-lg object-contain"
           />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:flex">
           <a href="#mission" className="transition-colors hover:text-primary">
-            About
+            {t("landing.header.about")}
           </a>
           <a href="#sectors" className="transition-colors hover:text-primary">
-            Cooperatives
+            {t("landing.header.cooperatives")}
           </a>
           <a href="#capabilities" className="transition-colors hover:text-primary">
-            Capabilities
+            {t("landing.header.capabilities")}
           </a>
           <a href="#faq" className="transition-colors hover:text-primary">
-            Help
+            {t("landing.header.help")}
           </a>
         </nav>
         <div className="flex items-center gap-2.5">
@@ -95,13 +97,13 @@ function PublicHeader() {
             onClick={handleLogin}
             className="rounded-lg px-3.5 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
-            Sign in
+            {t("landing.header.signIn")}
           </button>
           <button
             onClick={handleLogin}
             className="press-feedback hidden items-center gap-2 rounded-xl bg-primary px-4.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95 sm:inline-flex"
           >
-            Enter platform <ArrowRight className="size-4" />
+            {t("landing.header.enterPlatform")} <ArrowRight className="size-4" />
           </button>
         </div>
       </div>
@@ -110,6 +112,7 @@ function PublicHeader() {
 }
 
 function Hero() {
+  const { t } = useTranslation();
   const handleLogin = useLoginRedirect();
 
   return (
@@ -131,36 +134,34 @@ function Hero() {
         <div className="lg:col-span-7 space-y-6">
           <div className="animate-hero animate-hero-delay-1 inline-flex items-center gap-2 rounded-full bg-accent/10 px-3.5 py-1.5 text-xs font-semibold ring-1 ring-accent/20 text-accent">
             <Landmark className="size-3.5" />
-            Ministry of Commerce & Cooperative Development
+            {t("landing.hero.badge")}
           </div>
           <h1 className="animate-hero animate-hero-delay-2 font-heading text-4xl font-bold tracking-tight text-balance md:text-5xl lg:text-[3.25rem] lg:leading-[1.1] text-foreground">
-            The national system for cooperative
-            <span className="text-accent block mt-1">data, compliance & oversight.</span>
+            {t("landing.hero.title1")}
+            <span className="text-accent block mt-1">{t("landing.hero.title2")}</span>
           </h1>
           <p className="animate-hero animate-hero-delay-3 text-base leading-relaxed text-muted-foreground md:text-lg">
-            CoopData centralizes registration, financial reporting, audit and analytics for every
-            SACCO, agricultural union, federation and savings group — in one transparent,
-            accountable platform.
+            {t("landing.hero.subtitle")}
           </p>
           <div className="animate-hero animate-hero-delay-4 flex flex-wrap items-center gap-3.5 pt-2">
             <button
               onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95"
             >
-              Open the platform <ArrowRight className="size-4" />
+              {t("landing.hero.openPlatform")} <ArrowRight className="size-4" />
             </button>
             <button
               onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-foreground shadow-[var(--shadow-elev-1)] transition-colors hover:bg-muted/40"
             >
-              Sign in with credentials
+              {t("landing.hero.signInCredentials")}
             </button>
           </div>
           <dl className="animate-hero animate-hero-delay-4 mt-12 grid max-w-lg grid-cols-3 gap-8 text-sm border-t border-border/80 pt-8">
             {[
-              ["12,842", "Registered cooperatives"],
-              ["2.4M", "Active members"],
-              ["$1.2B", "Combined assets"],
+              ["12,842", t("landing.hero.statRegCoops")],
+              ["2.4M", t("landing.hero.statActiveMembers")],
+              ["$1.2B", t("landing.hero.statCombinedAssets")],
             ].map(([v, l]) => (
               <div key={l}>
                 <dt className="font-heading text-2xl font-bold tracking-tight text-foreground num">
@@ -181,30 +182,53 @@ function Hero() {
 }
 
 function HeroPanel() {
+  const { t } = useTranslation();
   const bars = [40, 55, 45, 65, 75, 60, 85, 95, 70, 80, 90, 100];
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-surface card-edge shadow-[var(--shadow-elev-2)]">
       <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-muted/20">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            Live · National Overview
+            {t("landing.heroPanel.liveOverview")}
           </p>
-          <p className="mt-0.5 text-xs font-semibold text-foreground">Cooperative Intelligence</p>
+          <p className="mt-0.5 text-xs font-semibold text-foreground">
+            {t("landing.heroPanel.intelligence")}
+          </p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-success">
           <span className="size-1.5 rounded-full bg-success animate-pulse" />
-          Synced
+          {t("landing.heroPanel.synced")}
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3 p-5">
-        <MiniKpi label="Active SACCOs" value="11,420" delta="+4.2%" tone="success" />
-        <MiniKpi label="Loan portfolio" value="$842M" delta="1.2% NPL" tone="warning" />
-        <MiniKpi label="Women members" value="54.1%" delta="+0.8 pts" tone="success" />
-        <MiniKpi label="Compliance" value="92.4" delta="-0.4 pts" tone="warning" />
+        <MiniKpi
+          label={t("landing.heroPanel.activeSaccos")}
+          value="11,420"
+          delta="+4.2%"
+          tone="success"
+        />
+        <MiniKpi
+          label={t("landing.heroPanel.loanPortfolio")}
+          value="$842M"
+          delta="1.2% NPL"
+          tone="warning"
+        />
+        <MiniKpi
+          label={t("landing.heroPanel.womenMembers")}
+          value="54.1%"
+          delta="+0.8 pts"
+          tone="success"
+        />
+        <MiniKpi
+          label={t("landing.heroPanel.compliance")}
+          value="92.4"
+          delta="-0.4 pts"
+          tone="warning"
+        />
       </div>
       <div className="px-5 pb-5">
         <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          Membership growth — 2025
+          {t("landing.heroPanel.membershipGrowth")}
         </p>
         <div className="flex h-24 items-end gap-1.5 pt-4">
           {bars.map((h, i) => (
@@ -253,6 +277,7 @@ function MiniKpi({
 }
 
 function TrustStrip() {
+  const { t } = useTranslation();
   const partners = [
     { src: "/partner-1.webp", alt: "Partner 1" },
     { src: "/partner-2.webp", alt: "Partner 2" },
@@ -268,7 +293,7 @@ function TrustStrip() {
     <section className="border-y border-border bg-muted/30 py-16 overflow-hidden">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <p className="text-center text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground mb-10">
-          Operated in partnership with
+          {t("landing.partners.title")}
         </p>
         <PartnerCarousel partners={partners} />
       </div>
@@ -327,41 +352,42 @@ function PartnerCarousel({ partners }: { partners: { src: string; alt: string }[
 }
 
 function Mission() {
+  const { t } = useTranslation();
   return (
     <section id="mission" className="border-b border-border py-24 bg-surface/30">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:px-8">
         <div className="lg:col-span-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Our mandate
+            {t("landing.mission.badge")}
           </p>
           <h2 className="font-heading text-3xl font-bold tracking-tight md:text-4xl text-foreground text-balance leading-tight">
-            Transparent oversight for a thriving cooperative economy.
+            {t("landing.mission.title")}
           </h2>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:col-span-8">
           {[
             {
               icon: ShieldCheck,
-              title: "Trust by default",
-              body: "Cryptographically auditable submissions and full role-based access — every action is logged.",
+              title: t("landing.mission.trustTitle"),
+              body: t("landing.mission.trustBody"),
               edge: "card-edge-primary" as const,
             },
             {
               icon: BarChart3,
-              title: "Evidence-based policy",
-              body: "Regulators see real-time membership, capital and compliance data across all sectors.",
+              title: t("landing.mission.evidenceTitle"),
+              body: t("landing.mission.evidenceBody"),
               edge: "card-edge-info" as const,
             },
             {
               icon: Globe2,
-              title: "Inclusive by design",
-              body: "Multi-language interfaces, offline data capture and tablet-first workflows for field officers.",
+              title: t("landing.mission.inclusiveTitle"),
+              body: t("landing.mission.inclusiveBody"),
               edge: "card-edge" as const,
             },
             {
               icon: Lock,
-              title: "Built to government standards",
-              body: "MFA, device management, WCAG accessibility, and resilient national-scale infrastructure.",
+              title: t("landing.mission.govtTitle"),
+              body: t("landing.mission.govtBody"),
               edge: "card-edge-success" as const,
             },
           ].map((c) => (
@@ -388,11 +414,12 @@ function Mission() {
 }
 
 function Stats() {
+  const { t } = useTranslation();
   const stats = [
-    { v: "12,842", l: "Registered cooperatives", s: "Across 4 regions" },
-    { v: "2.4M", l: "Active members", s: "54% women · 38% youth" },
-    { v: "$1.2B", l: "Combined savings", s: "+7.2% year on year" },
-    { v: "92.4", l: "National compliance score", s: "Median across sectors" },
+    { v: "12,842", l: t("landing.hero.statRegCoops"), s: t("landing.stats.regionsSub") },
+    { v: "2.4M", l: t("landing.hero.statActiveMembers"), s: t("landing.stats.membersSub") },
+    { v: "$1.2B", l: t("landing.stats.combinedSavings"), s: t("landing.stats.savingsSub") },
+    { v: "92.4", l: t("landing.stats.nationalCompliance"), s: t("landing.stats.complianceSub") },
   ];
   return (
     <section className="bg-primary py-20 text-primary-foreground relative overflow-hidden">
@@ -419,39 +446,40 @@ function Stats() {
 }
 
 function Sectors() {
+  const { t } = useTranslation();
   const sectors = [
     {
-      name: "Agricultural Unions",
+      name: t("landing.sectors.agriTitle"),
       count: "5,394",
-      desc: "Crop, dairy, livestock and irrigation cooperatives.",
+      desc: t("landing.sectors.agriDesc"),
       icon: Building2,
       edge: "card-edge-primary" as const,
     },
     {
-      name: "Financial SACCOs",
+      name: t("landing.sectors.saccoTitle"),
       count: "3,981",
-      desc: "Savings and credit organizations regulated by the Central Bank.",
+      desc: t("landing.sectors.saccoDesc"),
       icon: Database,
       edge: "card-edge-success" as const,
     },
     {
-      name: "Housing Groups",
+      name: t("landing.sectors.housingTitle"),
       count: "1,413",
-      desc: "Cooperative housing societies and tenant unions.",
+      desc: t("landing.sectors.housingDesc"),
       icon: Building2,
       edge: "card-edge-info" as const,
     },
     {
-      name: "Transport Unions",
+      name: t("landing.sectors.transportTitle"),
       count: "1,156",
-      desc: "Operator unions, logistics and ride-share cooperatives.",
+      desc: t("landing.sectors.transportDesc"),
       icon: Building2,
       edge: "card-edge-warning" as const,
     },
     {
-      name: "Artisans & Manufacturing",
+      name: t("landing.sectors.artisanTitle"),
       count: "898",
-      desc: "Producer collectives and craft federations.",
+      desc: t("landing.sectors.artisanDesc"),
       icon: Building2,
       edge: "card-edge" as const,
     },
@@ -462,15 +490,14 @@ function Sectors() {
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border/80 pb-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-              Sectors served
+              {t("landing.sectors.badge")}
             </p>
             <h2 className="font-heading mt-3 text-3xl font-bold tracking-tight md:text-4xl text-foreground">
-              Every cooperative, one registry.
+              {t("landing.sectors.title")}
             </h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            CoopData supports the full lifecycle of every recognized cooperative structure under
-            national law — from registration through dissolution.
+            {t("landing.sectors.subtitle")}
           </p>
         </div>
         <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -491,7 +518,7 @@ function Sectors() {
               <div className="mt-6 pt-4 border-t border-border/50">
                 <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-success">
                   <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                  {s.count} active
+                  {s.count} {t("landing.sectors.active")}
                 </span>
               </div>
             </li>
@@ -503,50 +530,53 @@ function Sectors() {
 }
 
 function Capabilities() {
+  const { t } = useTranslation();
   const caps = [
     {
       icon: Users,
-      title: "Role-based access for 6 user types",
-      body: "From ministry officials to field officers — every action permissioned and auditable.",
+      title: t("landing.capabilities.rbacTitle"),
+      body: t("landing.capabilities.rbacBody"),
       edge: "card-edge-primary" as const,
     },
     {
       icon: ClipboardListIcon,
-      title: "Configurable data collection",
-      body: "No-code dynamic questionnaires with conditional logic, validation and approval workflows.",
+      title: t("landing.capabilities.dataTitle"),
+      body: t("landing.capabilities.dataBody"),
       edge: "card-edge-success" as const,
     },
     {
       icon: Wifi,
-      title: "Offline-first field capture",
-      body: "Progressive Web App with background sync and conflict resolution for tablet field officers.",
+      title: t("landing.capabilities.offlineTitle"),
+      body: t("landing.capabilities.offlineBody"),
       edge: "card-edge-warning" as const,
     },
     {
       icon: FileBarChart,
-      title: "Regulator-grade reporting",
-      body: "Schedule, export and distribute PDF, XLSX, CSV and DOCX reports across the federation network.",
+      title: t("landing.capabilities.reportingTitle"),
+      body: t("landing.capabilities.reportingBody"),
       edge: "card-edge-info" as const,
     },
     {
       icon: BarChart3,
-      title: "PowerBI-class analytics",
-      body: "Drill-down dashboards, geographic heatmaps, gender and youth indices, time comparisons.",
+      title: t("landing.capabilities.analyticsTitle"),
+      body: t("landing.capabilities.analyticsBody"),
       edge: "card-edge" as const,
     },
     {
       icon: Lock,
-      title: "Security & audit",
-      body: "MFA, session management, device control, full audit timeline and access logs.",
+      title: t("landing.capabilities.securityTitle"),
+      body: t("landing.capabilities.securityBody"),
       edge: "card-edge-danger" as const,
     },
   ];
   return (
     <section id="capabilities" className="border-b border-border bg-surface py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Capabilities</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+          {t("landing.capabilities.badge")}
+        </p>
         <h2 className="font-heading mt-3 max-w-2xl text-3xl font-bold tracking-tight md:text-4xl text-foreground">
-          A national-scale operating system for the cooperative sector.
+          {t("landing.capabilities.title")}
         </h2>
         <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {caps.map((c) => (
@@ -570,26 +600,27 @@ function Capabilities() {
 }
 
 function Announcements() {
+  const { t } = useTranslation();
   const news = [
     {
       tag: "Policy",
       date: "Oct 22, 2025",
-      title: "New compliance scoring methodology adopted for Q4 returns",
-      body: "All federations must re-baseline their internal scoring against the updated rubric by November 15.",
+      title: t("landing.announcements.news1Title"),
+      body: t("landing.announcements.news1Body"),
       edge: "card-edge-warning" as const,
     },
     {
       tag: "Release",
       date: "Oct 18, 2025",
-      title: "CoopData v4.2 introduces offline questionnaires for field officers",
-      body: "Field officers can now capture full audit visits offline and synchronize on reconnect.",
+      title: t("landing.announcements.news2Title"),
+      body: t("landing.announcements.news2Body"),
       edge: "card-edge-success" as const,
     },
     {
       tag: "Notice",
       date: "Oct 10, 2025",
-      title: "Mandatory MFA roll-out for all federation accounts",
-      body: "All federation users must enable MFA before November 30, 2025.",
+      title: t("landing.announcements.news3Title"),
+      body: t("landing.announcements.news3Body"),
       edge: "card-edge-danger" as const,
     },
   ];
@@ -599,17 +630,17 @@ function Announcements() {
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border/80 pb-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-              News & announcements
+              {t("landing.announcements.badge")}
             </p>
             <h2 className="font-heading mt-3 text-3xl font-bold tracking-tight md:text-4xl text-foreground">
-              Updates from the Ministry.
+              {t("landing.announcements.title")}
             </h2>
           </div>
           <a
             href="#"
             className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-accent hover:underline"
           >
-            All announcements <ChevronRight className="size-4" />
+            {t("landing.announcements.allLink")} <ChevronRight className="size-4" />
           </a>
         </div>
         <ul className="mt-12 grid gap-6 md:grid-cols-3">
@@ -635,7 +666,7 @@ function Announcements() {
                   href="#"
                   className="inline-flex items-center text-sm font-semibold text-accent hover:underline"
                 >
-                  Read full update <ChevronRight className="ml-1 size-4" />
+                  {t("landing.announcements.readFull")} <ChevronRight className="ml-1 size-4" />
                 </a>
               </div>
             </li>
@@ -647,32 +678,33 @@ function Announcements() {
 }
 
 function FAQ() {
+  const { t } = useTranslation();
   const faqs = [
     {
-      q: "Who can register on CoopData?",
-      a: "Any cooperative recognized under the Cooperative Societies Act may be registered by an authorized federation officer or ministry official.",
+      q: t("landing.faq.q1"),
+      a: t("landing.faq.a1"),
     },
     {
-      q: "Is the platform accessible offline?",
-      a: "Yes — field officers can capture data through the Progressive Web App and synchronize automatically when connectivity is restored.",
+      q: t("landing.faq.q2"),
+      a: t("landing.faq.a2"),
     },
     {
-      q: "What languages are supported?",
-      a: "CoopData ships with English, SiSwati and Portuguese interfaces. Additional languages are added on request.",
+      q: t("landing.faq.q3"),
+      a: t("landing.faq.a3"),
     },
     {
-      q: "How is my cooperative data protected?",
-      a: "All data is encrypted in transit and at rest, with role-based access, multi-factor authentication and full audit logging.",
+      q: t("landing.faq.q4"),
+      a: t("landing.faq.a4"),
     },
   ];
   return (
     <section id="faq" className="border-b border-border bg-surface py-24">
       <div className="mx-auto max-w-4xl px-6 lg:px-8">
         <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-          FAQ
+          {t("landing.faq.badge")}
         </p>
         <h2 className="font-heading mt-3 text-center text-3xl font-bold tracking-tight md:text-4xl text-foreground">
-          Frequently asked.
+          {t("landing.faq.title")}
         </h2>
         <ul className="mt-12 divide-y divide-border rounded-xl border border-border bg-background shadow-sm overflow-hidden">
           {faqs.map((f) => (
@@ -715,6 +747,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 function CTA() {
+  const { t } = useTranslation();
   const handleLogin = useLoginRedirect();
 
   return (
@@ -723,27 +756,26 @@ function CTA() {
         <div className="relative overflow-hidden rounded-2xl bg-primary p-10 text-primary-foreground lg:p-14 shadow-xl card-edge-primary">
           <div className="absolute -right-20 -top-20 size-72 rounded-full bg-accent/20 blur-[100px]" />
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-foreground/75">
-            Get access
+            {t("landing.cta.badge")}
           </p>
           <h2 className="font-heading mt-3 max-w-2xl text-3xl font-bold tracking-tight md:text-4xl text-white leading-tight">
-            Empower your cooperative or federation with CoopData today.
+            {t("landing.cta.title")}
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-primary-foreground/75">
-            Federation officers issue access by invitation. If your organization is registered,
-            contact your federation administrator.
+            {t("landing.cta.desc")}
           </p>
           <div className="mt-8 flex flex-wrap gap-3.5">
             <button
               onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-accent/90"
             >
-              Sign in
+              {t("landing.header.signIn")}
             </button>
             <button
               onClick={handleLogin}
               className="press-feedback inline-flex items-center gap-2 rounded-xl border border-primary-foreground/20 bg-primary-foreground/5 px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
             >
-              Explore the platform <ArrowRight className="size-4" />
+              {t("landing.cta.explore")} <ArrowRight className="size-4" />
             </button>
           </div>
         </div>
@@ -753,6 +785,7 @@ function CTA() {
 }
 
 function PublicFooter() {
+  const { t } = useTranslation();
   return (
     <footer className="border-t border-border bg-surface">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 text-sm md:grid-cols-4 lg:px-8">
@@ -760,23 +793,41 @@ function PublicFooter() {
           <div className="flex items-center gap-3">
             <img
               src="/coopdatalogo.png"
-              alt="CoopData logo"
+              alt={t("common.logoAlt")}
               className="size-14 shrink-0 rounded-lg object-contain"
             />
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            A national digital service of the Ministry of Commerce & Cooperative Development.
+            {t("landing.footer.badge")}
           </p>
         </div>
         {[
-          { h: "Platform", l: ["Cooperatives", "Data Collection", "Reports", "Analytics"] },
           {
-            h: "Resources",
-            l: ["Documentation", "Help Center", "Onboarding Guides", "API Reference"],
+            h: t("landing.footer.platformCol"),
+            l: [
+              t("landing.footer.platform.cooperatives"),
+              t("landing.footer.platform.dataCollection"),
+              t("landing.footer.platform.reports"),
+              t("landing.footer.platform.analytics"),
+            ],
           },
           {
-            h: "Legal",
-            l: ["Privacy Policy", "Terms of Use", "Accessibility Statement", "Contact"],
+            h: t("landing.footer.resourcesCol"),
+            l: [
+              t("landing.footer.resources.documentation"),
+              t("landing.footer.resources.helpCenter"),
+              t("landing.footer.resources.onboardingGuides"),
+              t("landing.footer.resources.apiReference"),
+            ],
+          },
+          {
+            h: t("landing.footer.legalCol"),
+            l: [
+              t("landing.footer.legal.privacyPolicy"),
+              t("landing.footer.legal.termsOfUse"),
+              t("landing.footer.legal.accessibilityStatement"),
+              t("landing.footer.legal.contact"),
+            ],
           },
         ].map((c) => (
           <div key={c.h} className="space-y-3">
@@ -797,14 +848,12 @@ function PublicFooter() {
       </div>
       <div className="border-t border-border/80 bg-muted/10">
         <div className="mx-auto flex flex-wrap items-center justify-between gap-3 px-6 py-5 text-xs text-muted-foreground lg:px-8 max-w-7xl">
-          <p>
-            © {new Date().getFullYear()} Ministry of Commerce & Cooperative Development. All rights
-            reserved.
-          </p>
+          <p>{t("landing.footer.copyright", { year: new Date().getFullYear() })}</p>
           <div className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-success animate-pulse" />
             <span>
-              System status: <span className="font-bold text-success">All systems operational</span>
+              {t("landing.footer.systemStatus")}{" "}
+              <span className="font-bold text-success">{t("landing.footer.allOperational")}</span>
             </span>
           </div>
         </div>

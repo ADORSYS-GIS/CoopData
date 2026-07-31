@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 interface FinancialIndicatorsProps {
   reportingYear: number;
@@ -44,158 +46,168 @@ interface IndicatorRow {
   ) => number | null;
 }
 
-const INDICATOR_ROWS: IndicatorRow[] = [
-  // 1. Patrimonial Sufficiency
-  {
-    label: "PATRIMONIAL SUFFICIENCY (SUFICIENCIA PATRIMONIAL)",
-    isHeader: true,
-    unit: "%",
-    computeFormula: () => null,
-  },
-  {
-    label: "  Capital Adequacy Ratio: Total Equity / Total Assets",
-    unit: "%",
-    computeFormula: (kpis) => kpis["capital_adequacy_ratio"]?.value ?? null,
-  },
-
-  // 2. Asset Quality
-  {
-    label: "ASSET STRUCTURE & QUALITY (ESTRUCTURA Y CALIDAD DE ACTIVOS)",
-    isHeader: true,
-    unit: "%",
-    computeFormula: () => null,
-  },
-  {
-    label: "  Earning Assets / Total Assets",
-    unit: "%",
-    computeFormula: (kpis, accounts) => {
-      const grossLoans = accounts[1200] || 0;
-      const totalAssets = accounts[1999] || 0;
-      return totalAssets > 0 ? (grossLoans / totalAssets) * 100 : null;
+function buildIndicatorRows(t: TFunction): IndicatorRow[] {
+  return [
+    // 1. Patrimonial Sufficiency
+    {
+      label: t("analytics.indicatorPatrimonialSuff"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
     },
-  },
-  {
-    label: "  Earning Assets / Cost-Bearing Liabilities",
-    unit: "%",
-    computeFormula: (kpis, accounts) => {
-      const grossLoans = accounts[1200] || 0;
-      const deposits = accounts[2100] || 0;
-      return deposits > 0 ? (grossLoans / deposits) * 100 : null;
+    {
+      label: t("analytics.indicatorCarEqAssets"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["capital_adequacy_ratio"]?.value ?? null,
     },
-  },
 
-  // 3. Delinquency
-  {
-    label: "DELINQUENCY RATIOS (INDICES DE MOROSIDAD)",
-    isHeader: true,
-    unit: "%",
-    computeFormula: () => null,
-  },
-  {
-    label: "  Total Delinquency Ratio (NPL Ratio)",
-    unit: "%",
-    computeFormula: (kpis) => kpis["npl_ratio"]?.value ?? null,
-  },
-  {
-    label: "  Portfolio at Risk > 30 Days (PAR 30)",
-    unit: "%",
-    computeFormula: (kpis) => kpis["par30"]?.value ?? null,
-  },
-  {
-    label: "  Productive Loan Delinquency",
-    unit: "%",
-    computeFormula: (kpis, accounts) => {
-      const arrears = (accounts[1202] || 0) + (accounts[1203] || 0) + (accounts[1204] || 0);
-      const gross = accounts[1200] || 1;
-      return arrears > 0 ? (arrears / gross) * 100 : 0;
+    // 2. Asset Quality
+    {
+      label: t("analytics.indicatorAssetStructure"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
     },
-  },
-
-  // 4. Provision Coverage
-  {
-    label: "PROVISION COVERAGE FOR ARREARS",
-    isHeader: true,
-    unit: "%",
-    computeFormula: () => null,
-  },
-  {
-    label: "  Loan Loss Provisions / Total Arrears (Coverage)",
-    unit: "%",
-    computeFormula: (kpis) => kpis["loan_loss_coverage"]?.value ?? null,
-  },
-
-  // 5. Operating Efficiency
-  {
-    label: "MICROECONOMIC EFFICIENCY (EFICIENCIA MICROECONOMICA)",
-    isHeader: true,
-    unit: "%",
-    computeFormula: () => null,
-  },
-  {
-    label: "  Operating Expense Ratio: Operating Expenses / Total Assets",
-    unit: "%",
-    computeFormula: (kpis) => kpis["operating_expense_ratio"]?.value ?? null,
-  },
-  {
-    label: "  Operating Expenses / Net Interest Margin",
-    unit: "%",
-    computeFormula: (kpis, accounts) => {
-      const opex =
-        (accounts[5201] || 0) +
-        (accounts[5202] || 0) +
-        (accounts[5203] || 0) +
-        (accounts[5204] || 0);
-      const inc = (accounts[4101] || 0) + (accounts[4102] || 0);
-      const exp = (accounts[5101] || 0) + (accounts[5102] || 0);
-      const margin = inc - exp;
-      return margin > 0 ? (opex / margin) * 100 : null;
+    {
+      label: t("analytics.indicatorEarningAssets"),
+      unit: "%",
+      computeFormula: (kpis, accounts) => {
+        const grossLoans = accounts[1200] || 0;
+        const totalAssets = accounts[1999] || 0;
+        return totalAssets > 0 ? (grossLoans / totalAssets) * 100 : null;
+      },
     },
-  },
-
-  // 6. Profitability
-  { label: "PROFITABILITY (RENTABILIDAD)", isHeader: true, unit: "%", computeFormula: () => null },
-  {
-    label: "  Return on Assets (ROA)",
-    unit: "%",
-    computeFormula: (kpis) => kpis["roa"]?.value ?? null,
-  },
-  {
-    label: "  Return on Equity (ROE)",
-    unit: "%",
-    computeFormula: (kpis) => kpis["roe"]?.value ?? null,
-  },
-  {
-    label: "  Operational Self-Sufficiency (OSS)",
-    unit: "%",
-    computeFormula: (kpis) => kpis["operational_self_sufficiency"]?.value ?? null,
-  },
-
-  // 7. Liquidity & Intermediation
-  {
-    label: "FINANCIAL INTERMEDIATION & LIQUIDITY (LIQUIDEZ)",
-    isHeader: true,
-    unit: "%",
-    computeFormula: () => null,
-  },
-  {
-    label: "  Liquid Funds Ratio: Liquid Assets / Total Assets",
-    unit: "%",
-    computeFormula: (kpis) => kpis["liquid_funds_ratio"]?.value ?? null,
-  },
-  {
-    label: "  Gross Loans / Member Deposits",
-    unit: "%",
-    computeFormula: (kpis, accounts) => {
-      const grossLoans = accounts[1200] || 0;
-      const deposits = accounts[2100] || 0;
-      return deposits > 0 ? (grossLoans / deposits) * 100 : null;
+    {
+      label: t("analytics.indicatorEarningLiabilities"),
+      unit: "%",
+      computeFormula: (kpis, accounts) => {
+        const grossLoans = accounts[1200] || 0;
+        const deposits = accounts[2100] || 0;
+        return deposits > 0 ? (grossLoans / deposits) * 100 : null;
+      },
     },
-  },
-];
+
+    // 3. Delinquency
+    {
+      label: t("analytics.indicatorDelinquencyRatios"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
+    },
+    {
+      label: t("analytics.indicatorTotalDelinquency"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["npl_ratio"]?.value ?? null,
+    },
+    {
+      label: t("analytics.indicatorPar30"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["par30"]?.value ?? null,
+    },
+    {
+      label: t("analytics.indicatorProductiveDelinquency"),
+      unit: "%",
+      computeFormula: (kpis, accounts) => {
+        const arrears = (accounts[1202] || 0) + (accounts[1203] || 0) + (accounts[1204] || 0);
+        const gross = accounts[1200] || 1;
+        return arrears > 0 ? (arrears / gross) * 100 : 0;
+      },
+    },
+
+    // 4. Provision Coverage
+    {
+      label: t("analytics.indicatorProvisionCoverage"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
+    },
+    {
+      label: t("analytics.indicatorCoverageRatio"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["loan_loss_coverage"]?.value ?? null,
+    },
+
+    // 5. Operating Efficiency
+    {
+      label: t("analytics.indicatorMicroeconomicEfficiency"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
+    },
+    {
+      label: t("analytics.indicatorOpexRatio"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["operating_expense_ratio"]?.value ?? null,
+    },
+    {
+      label: t("analytics.indicatorOpexMargin"),
+      unit: "%",
+      computeFormula: (kpis, accounts) => {
+        const opex =
+          (accounts[5201] || 0) +
+          (accounts[5202] || 0) +
+          (accounts[5203] || 0) +
+          (accounts[5204] || 0);
+        const inc = (accounts[4101] || 0) + (accounts[4102] || 0);
+        const exp = (accounts[5101] || 0) + (accounts[5102] || 0);
+        const margin = inc - exp;
+        return margin > 0 ? (opex / margin) * 100 : null;
+      },
+    },
+
+    // 6. Profitability
+    {
+      label: t("analytics.indicatorProfitability"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
+    },
+    {
+      label: t("analytics.indicatorRoa"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["roa"]?.value ?? null,
+    },
+    {
+      label: t("analytics.indicatorRoe"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["roe"]?.value ?? null,
+    },
+    {
+      label: t("analytics.indicatorOss"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["operational_self_sufficiency"]?.value ?? null,
+    },
+
+    // 7. Liquidity & Intermediation
+    {
+      label: t("analytics.indicatorIntermediationLiquidity"),
+      isHeader: true,
+      unit: "%",
+      computeFormula: () => null,
+    },
+    {
+      label: t("analytics.indicatorLiquidFunds"),
+      unit: "%",
+      computeFormula: (kpis) => kpis["liquid_funds_ratio"]?.value ?? null,
+    },
+    {
+      label: t("analytics.indicatorLoansDeposits"),
+      unit: "%",
+      computeFormula: (kpis, accounts) => {
+        const grossLoans = accounts[1200] || 0;
+        const deposits = accounts[2100] || 0;
+        return deposits > 0 ? (grossLoans / deposits) * 100 : null;
+      },
+    },
+  ];
+}
 
 export function FinancialIndicators({ reportingYear, filterParams }: FinancialIndicatorsProps) {
+  const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
+
+  const indicatorRows = useMemo(() => buildIndicatorRows(t), [t]);
 
   // Fetch KPI dataset scoped by filters
   const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({
@@ -270,7 +282,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
-        Loading financial indicators...
+        {t("analytics.loadingFinancialIndicators")}
       </div>
     );
   }
@@ -280,9 +292,11 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
       {/* Excel Blue Banner with Slicers */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Financial Indicators</h2>
+          <h2 className="text-xl font-bold tracking-tight">
+            {t("analytics.financialIndicatorsTitle")}
+          </h2>
           <p className="text-xs text-blue-200/80 mt-1 font-medium">
-            Supervisory Audits, Financial Ratios & Performance Indicators ({reportingYear})
+            {t("analytics.financialIndicatorsSubtitle", { year: reportingYear })}
           </p>
         </div>
 
@@ -290,7 +304,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
         <div className="flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
-              Date
+              {t("analytics.date")}
             </span>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
@@ -309,15 +323,15 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
-              Cooperatives
+              {t("analytics.cooperativesLabel")}
             </span>
             <div className="relative">
               <Select onValueChange={handleCoopToggle}>
                 <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
                   <span>
                     {selectedCoopIds.length === 0
-                      ? "All Cooperatives"
-                      : `${selectedCoopIds.length} Selected`}
+                      ? t("analytics.allCooperatives")
+                      : t("analytics.selectedCount", { count: selectedCoopIds.length })}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -325,7 +339,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                     value="clear_all_custom_option"
                     className="text-xs font-bold text-red-600"
                   >
-                    Reset Selection (All)
+                    {t("analytics.resetSelection")}
                   </SelectItem>
                   {coopMatrices.map((coop) => (
                     <SelectItem key={coop.id} value={coop.id} className="text-xs font-medium">
@@ -351,24 +365,23 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
       <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
         <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold block mb-1">Financial Ratios & Mappings:</span>
-          This dashboard aggregates key prudential and efficiency ratios:
+          <span className="font-bold block mb-1">{t("analytics.financialRatiosMappings")}</span>
+          {t("analytics.financialRatiosMappingsDesc")}
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
             <li>
-              <strong>Capital Adequacy Ratio</strong>: Measures solvency by comparing institutional
-              equity to total assets.
+              <strong>{t("analytics.capitalAdequacyRatioLabel")}</strong>:{" "}
+              {t("analytics.ratiosCarInfo")}
             </li>
             <li>
-              <strong>Delinquency / NPL</strong>: Outstanding loans in arrears past 90 days relative
-              to gross portfolio.
+              <strong>{t("analytics.delinquencyNplLabel")}</strong>:{" "}
+              {t("analytics.ratiosDelinquencyInfo")}
             </li>
             <li>
-              <strong>ROA / ROE</strong>: Profitability metrics comparing net surplus to assets and
-              equity.
+              <strong>{t("analytics.roaRoeLabel")}</strong>: {t("analytics.ratiosRoaRoeInfo")}
             </li>
             <li>
-              <strong>Operating Efficiency</strong>: Operational overhead cost weight relative to
-              interest spreads.
+              <strong>{t("analytics.operatingEfficiencyLabel")}</strong>:{" "}
+              {t("analytics.ratiosOperatingEfficiencyInfo")}
             </li>
           </ul>
         </div>
@@ -376,8 +389,8 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
 
       {/* Grid Comparative Table */}
       <Card
-        title="Prudential & Financial Ratios Spreadsheet Grid"
-        subtitle="Side-by-side indicator analysis"
+        title={t("analytics.prudentialGridTitle")}
+        subtitle={t("analytics.sideBySideIndicatorAnalysis")}
       >
         {filteredMatrices.length > 0 ? (
           <div className="overflow-x-auto border border-border rounded-xl">
@@ -385,7 +398,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="py-3 px-4 w-96 sticky left-0 bg-background border-r border-border z-10">
-                    Financial Indicator / Key Ratios
+                    {t("analytics.financialIndicatorKeyRatios")}
                   </th>
                   {filteredMatrices.map((coop) => (
                     <th
@@ -398,7 +411,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                 </tr>
               </thead>
               <tbody className="divide-y divide-border font-mono text-[11px]">
-                {INDICATOR_ROWS.map((row, rIdx) => {
+                {indicatorRows.map((row, rIdx) => {
                   if (row.isHeader) {
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
@@ -438,7 +451,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
           </div>
         ) : (
           <div className="flex h-48 items-center justify-center text-muted-foreground text-xs">
-            No cooperative data found for this period.
+            {t("analytics.noCoopDataForPeriod")}
           </div>
         )}
       </Card>

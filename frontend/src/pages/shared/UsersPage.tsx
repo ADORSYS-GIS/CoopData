@@ -4,22 +4,16 @@ import { useApexes } from "@/hooks/apexes/useApexes";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useUserRole } from "@/lib/auth";
 import { Link } from "@tanstack/react-router";
-import type { Role } from "@/constants/roles";
-
-const SUBTITLE: Record<Role, string> = {
-  ministry: "Select an apex to oversee its user accounts.",
-  federation: "Select an apex within your federation to manage its members.",
-  apex: "Select a cooperative to manage its members.",
-  cooperative: "View members within your cooperative.",
-};
+import { useTranslation } from "react-i18next";
 
 // ─── Federation / Ministry view: list apexes → drill into apex members ───────
 
 function ApexList() {
+  const { t } = useTranslation();
   const { data: apexes, isLoading, error } = useApexes();
 
   if (isLoading) return <CenteredSpinner />;
-  if (error) return <ErrorBlock message={String(error)} label="Failed to load apexes" />;
+  if (error) return <ErrorBlock message={String(error)} label={t("users.failedLoadApexes")} />;
 
   const list = apexes ?? [];
   const totalCoops = list.reduce((s, a) => s + (a.sub_groups?.length ?? 0), 0);
@@ -31,34 +25,34 @@ function ApexList() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 mb-6">
         <StatCard
           icon={Network}
-          label="Total Apexes"
+          label={t("users.totalApexes")}
           value={String(list.length)}
-          subtitle="Oversight bodies"
+          subtitle={t("users.oversightBodies")}
           tone="primary"
         />
         <StatCard
           icon={Building2}
-          label="Cooperatives"
+          label={t("users.cooperatives")}
           value={String(totalCoops)}
-          subtitle="Across all apexes"
+          subtitle={t("users.acrossAllApexes")}
           tone="accent"
         />
         <StatCard
           icon={Users}
-          label="Avg Co-op / Apex"
+          label={t("users.avgCoopApex")}
           value={String(avgPerApex)}
-          subtitle={`${apexesWithCoops} apexes have cooperatives`}
+          subtitle={t("users.apexesHaveCoops", { count: apexesWithCoops })}
           tone="info"
         />
       </div>
 
-      <SectionHeader title="Apex Organizations" count={list.length} unit="apex" />
+      <SectionHeader title={t("users.apexOrganizations")} count={list.length} unit="apex" />
 
       {list.length === 0 ? (
         <EmptyState
           icon={Network}
-          title="No apexes available"
-          hint="Create an apex first on the Apexes page."
+          title={t("users.noApexesAvailable")}
+          hint={t("users.createApexFirst")}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -74,7 +68,7 @@ function ApexList() {
                   <Network className="size-5" />
                 </div>
                 <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent border border-accent/20">
-                  Manage <ArrowRight className="size-3" />
+                  {t("users.manage")} <ArrowRight className="size-3" />
                 </span>
               </div>
               <div className="flex-1 mb-4">
@@ -82,12 +76,13 @@ function ApexList() {
                   {a.name}
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                  {a.description ?? "No description."}
+                  {a.description ?? t("users.noDescription")}
                 </p>
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-border/60">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                  <Building2 className="size-3" /> {a.sub_groups?.length ?? 0} cooperatives
+                  <Building2 className="size-3" />{" "}
+                  {t("users.cooperativesCount", { count: a.sub_groups?.length ?? 0 })}
                 </span>
               </div>
               <div className="absolute inset-x-0 bottom-0 h-0.5 rounded-b-2xl bg-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
@@ -104,46 +99,43 @@ function ApexList() {
 type CoopItem = { id: string; name: string; description?: string | null };
 
 function CooperativeList() {
+  const { t } = useTranslation();
   const { data: rawData, isLoading, error } = useCooperatives();
   const coops = (rawData as CoopItem[]) ?? [];
 
   if (isLoading) return <CenteredSpinner />;
-  if (error) return <ErrorBlock message={String(error)} label="Failed to load cooperatives" />;
+  if (error) return <ErrorBlock message={String(error)} label={t("users.failedLoadCoops")} />;
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         <StatCard
           icon={Building2}
-          label="Cooperatives"
+          label={t("users.cooperatives")}
           value={String(coops.length)}
-          subtitle="Under your apex"
+          subtitle={t("users.underYourApex")}
           tone="primary"
         />
         <StatCard
           icon={Network}
-          label="Named Co-ops"
+          label={t("users.namedCoops")}
           value={String(coops.filter((c) => (c.name ?? "").trim().length > 0).length)}
-          subtitle="Ready for members"
+          subtitle={t("users.readyForMembers")}
           tone="accent"
         />
       </div>
 
-      <SectionHeader title="Cooperatives" count={coops.length} unit="cooperative" />
+      <SectionHeader
+        title={t("users.cooperatives")}
+        count={coops.length}
+        unit={t("users.sectionHeaderUnitCoop")}
+      />
 
       {coops.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title="No cooperatives yet"
-          hint={
-            <span>
-              Go to{" "}
-              <Link to="/app/cooperatives" className="text-accent underline">
-                Cooperatives
-              </Link>{" "}
-              to register your first one.
-            </span>
-          }
+          title={t("users.noCooperativesYet")}
+          hint={<span>{t("users.goToCooperativesRegister")}</span>}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,7 +151,7 @@ function CooperativeList() {
                   <Building2 className="size-5" />
                 </div>
                 <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent border border-accent/20">
-                  Manage Members <ArrowRight className="size-3" />
+                  {t("users.manageMembers")} <ArrowRight className="size-3" />
                 </span>
               </div>
               <div className="flex-1 mb-4">
@@ -167,12 +159,12 @@ function CooperativeList() {
                   {c.name}
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                  {c.description ?? "No description."}
+                  {c.description ?? t("users.noDescription")}
                 </p>
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-border/60">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
-                  <Users className="size-3" /> Members
+                  <Users className="size-3" /> {t("users.members")}
                 </span>
               </div>
               <div className="absolute inset-x-0 bottom-0 h-0.5 rounded-b-2xl bg-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
@@ -205,15 +197,17 @@ function ErrorBlock({ label, message }: { label: string; message: string }) {
 }
 
 function SectionHeader({ title, count, unit }: { title: string; count: number; unit: string }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-4 flex items-center justify-between">
       <div>
         <h2 className="font-heading text-sm font-bold text-foreground">{title}</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Click to manage members</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("users.sectionHeaderDesc")}</p>
       </div>
       <span className="text-xs font-semibold text-muted-foreground">
         {count} {unit}
-        {count !== 1 ? "s" : ""}
+        {count !== 1 && unit === "apex" ? "es" : ""}
+        {count !== 1 && unit === "cooperative" ? "s" : ""}
       </span>
     </div>
   );
@@ -242,12 +236,13 @@ function EmptyState({
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export const UsersPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
 
   if (!role) return null;
 
   return (
-    <AppShell title="Users & Roles" subtitle={SUBTITLE[role]}>
+    <AppShell title={t("users.title")} subtitle={t(`users.subtitle.${role}`)}>
       <div className="space-y-2">{role === "apex" ? <CooperativeList /> : <ApexList />}</div>
     </AppShell>
   );

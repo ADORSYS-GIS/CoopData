@@ -64,6 +64,8 @@ import { useLoans } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -82,33 +84,36 @@ function statusTone(status: string): "success" | "warning" | "danger" | "info" |
   return map[status] ?? "info";
 }
 
-function statusLabel(s: string) {
-  const labels: Record<string, string> = {
-    draft: "Draft",
-    awaiting_coop_validation: "Awaiting Validation",
-    submitted: "Submitted",
-    in_review: "In Review",
-    apex_review: "Apex Review",
-    apex_returned: "Returned by Apex",
-    federation_review: "Federation Review",
-    federation_returned: "Returned by Federation",
-    ministry_review: "Ministry Review",
-    approved: "Approved",
-    rejected: "Rejected",
+function statusLabel(s: string, t: TFunction) {
+  const keysMap: Record<string, string> = {
+    draft: "submissions.status.draft",
+    awaiting_coop_validation: "submissions.status.awaitingValidation",
+    submitted: "submissions.status.submitted",
+    in_review: "submissions.status.inReview",
+    apex_review: "submissions.status.apexReview",
+    apex_returned: "submissions.status.apexReturned",
+    federation_review: "submissions.status.federationReview",
+    federation_returned: "submissions.status.federationReturned",
+    ministry_review: "submissions.status.ministryReview",
+    approved: "submissions.status.approved",
+    rejected: "submissions.status.rejected",
   };
-  return labels[s] ?? s;
+  const key = keysMap[s];
+  return key ? t(key) : s;
 }
 
 function sectionStatusTone(status: string): "neutral" | "warning" | "success" {
   return status === "ready" ? "success" : status === "in_progress" ? "warning" : "neutral";
 }
 
-function sectionStatusLabel(status: string) {
-  return (
-    ({ pending: "Pending", in_progress: "In Progress", ready: "Ready" } as Record<string, string>)[
-      status
-    ] ?? status
-  );
+function sectionStatusLabel(status: string, t: TFunction) {
+  const map: Record<string, string> = {
+    pending: "submissions.detail.pendingStatus",
+    in_progress: "submissions.detail.inProgressStatus",
+    ready: "submissions.detail.readyStatus",
+  };
+  const key = map[status];
+  return key ? t(key) : status;
 }
 
 const isQuestionnaireFilled = (q: { id?: string } | null | undefined): boolean => {
@@ -404,6 +409,7 @@ const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export const SubmissionDetailPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -604,7 +610,7 @@ export const SubmissionDetailPage: React.FC = () => {
   ];
 
   return (
-    <AppShell title="Submission Detail" subtitle="Review data, validate, and submit to Apex">
+    <AppShell title={t("submissions.detail.title")} subtitle={t("submissions.detail.subtitle")}>
       {/* Back nav */}
       <div className="mb-6">
         <Link
@@ -614,13 +620,13 @@ export const SubmissionDetailPage: React.FC = () => {
           <div className="size-7 rounded-lg border border-border bg-surface grid place-items-center group-hover:border-border/80 group-hover:bg-muted transition-colors">
             <ArrowLeft className="size-3.5" />
           </div>
-          Back to Submissions
+          {t("submissions.detail.back")}
         </Link>
       </div>
 
       {isLoading && (
         <div className="flex items-center justify-center py-24 text-muted-foreground">
-          <Loader2 className="size-6 animate-spin mr-2" /> Loading submission…
+          <Loader2 className="size-6 animate-spin mr-2" /> {t("submissions.detail.loading")}
         </div>
       )}
 
@@ -628,7 +634,7 @@ export const SubmissionDetailPage: React.FC = () => {
         <div className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-5">
           <AlertCircle className="size-5 text-destructive shrink-0" />
           <p className="text-sm">
-            {error instanceof Error ? error.message : "Failed to load submission"}
+            {error instanceof Error ? error.message : t("submissions.detail.failed")}
           </p>
         </div>
       )}
@@ -667,16 +673,18 @@ export const SubmissionDetailPage: React.FC = () => {
                       {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
                     </h2>
                     <StatusPill tone={statusTone(submission.status)}>
-                      {statusLabel(submission.status)}
+                      {statusLabel(submission.status, t)}
                     </StatusPill>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Reporting year{" "}
+                    {t("submissions.reportingYear")}{" "}
                     <span className="font-semibold text-foreground">
                       {submission.reporting_year}
                     </span>
                     {" · "}
-                    <span className="capitalize font-medium">{submission.current_tier}</span> tier
+                    <span className="capitalize font-medium">
+                      {t("submissions.detail.tier", { tier: submission.current_tier })}
+                    </span>
                   </p>
                 </div>
                 {isCooperative && submission.status !== "approved" && (
@@ -690,7 +698,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     ) : (
                       <Trash2 className="size-3.5" />
                     )}
-                    Delete Submission
+                    {t("submissions.detail.deleteSubmission")}
                   </button>
                 )}
               </div>
@@ -700,11 +708,12 @@ export const SubmissionDetailPage: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <Calendar className="size-3.5 text-muted-foreground/60" />
                   <span>
-                    Created{" "}
-                    {new Date(submission.created_at).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
+                    {t("submissions.detail.created", {
+                      date: new Date(submission.created_at).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }),
                     })}
                   </span>
                 </div>
@@ -716,12 +725,16 @@ export const SubmissionDetailPage: React.FC = () => {
                 <div className="hidden sm:block h-3 w-px bg-border" />
                 <div className="flex items-center gap-1.5">
                   <Clock className="size-3.5 text-muted-foreground/60" />
-                  <span className="capitalize">{submission.priority} Priority</span>
+                  <span className="capitalize">
+                    {t("submissions.detail.priority", { priority: submission.priority })}
+                  </span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-border" />
                 <div className="flex items-center gap-1.5">
                   <FileText className="size-3.5 text-muted-foreground/60" />
-                  <span className="capitalize font-medium">{submission.current_tier} tier</span>
+                  <span className="capitalize font-medium">
+                    {t("submissions.detail.tier", { tier: submission.current_tier })}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1897,6 +1910,7 @@ function NfTable({
   isUpdating?: boolean;
 }) {
   const [open, setOpen] = useState(true);
+  const { t } = useTranslation();
   const fmt = (col: string) => col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const cell = (val: unknown) => {
     if (val === null || val === undefined || val === "")
@@ -1914,7 +1928,7 @@ function NfTable({
         <div className="flex items-center gap-2">
           {section && (
             <StatusPill tone={sectionStatusTone(section.status)}>
-              {sectionStatusLabel(section.status)}
+              {sectionStatusLabel(section.status, t)}
             </StatusPill>
           )}
           {canMarkReady && !isReady && isInProgress && (

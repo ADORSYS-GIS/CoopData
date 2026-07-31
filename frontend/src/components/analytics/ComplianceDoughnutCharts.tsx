@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { TrafficLightDistribution } from "@/hooks/analytics/useNationalOverview";
 
 interface ComplianceDoughnutChartsProps {
@@ -13,6 +14,7 @@ const labels: Record<string, string> = {
 };
 
 export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutChartsProps) {
+  const { t } = useTranslation();
   const dataList = Object.entries(distributions)
     .filter(([key]) => labels[key] !== undefined)
     .map(([key, dist]) => {
@@ -21,9 +23,13 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
         name: labels[key],
         total,
         data: [
-          { name: "Healthy", value: dist.green_count, fill: "var(--success)" },
-          { name: "Watch", value: dist.amber_count, fill: "var(--warning)" },
-          { name: "Risk", value: dist.red_count, fill: "var(--destructive)" },
+          { name: t("analytics.legendHealthy"), value: dist.green_count, fill: "var(--success)" },
+          { name: t("analytics.legendWatch"), value: dist.amber_count, fill: "var(--warning)" },
+          {
+            name: t("analytics.complianceRisk"),
+            value: dist.red_count,
+            fill: "var(--destructive)",
+          },
         ].filter((d) => d.value > 0),
       };
     });
@@ -34,13 +40,13 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
     <div>
       <div className="flex items-center gap-4 mb-6 flex-wrap justify-center text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-success" /> Healthy
+          <span className="size-2.5 rounded-full bg-success" /> {t("analytics.legendHealthy")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-warning" /> Watch
+          <span className="size-2.5 rounded-full bg-warning" /> {t("analytics.legendWatch")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-destructive" /> Risk
+          <span className="size-2.5 rounded-full bg-destructive" /> {t("analytics.complianceRisk")}
         </span>
       </div>
 
@@ -73,7 +79,10 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
                     }}
                     itemStyle={{ color: "var(--foreground)" }}
                     formatter={(value: number, name: string) => [
-                      `${value} coops (${Math.round((value / Math.max(item.total, 1)) * 100)}%)`,
+                      t("analytics.complianceCoopsWithPct", {
+                        value,
+                        pct: Math.round((value / Math.max(item.total, 1)) * 100),
+                      }),
                       name,
                     ]}
                   />

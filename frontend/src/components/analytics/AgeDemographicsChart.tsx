@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
 
 interface AgeDemographicsChartProps {
@@ -6,16 +7,17 @@ interface AgeDemographicsChartProps {
 }
 
 export function AgeDemographicsChart({ data }: AgeDemographicsChartProps) {
+  const { t } = useTranslation();
   const ageData = [
-    { name: "Youth (18-35)", value: data.age_18_35, fill: "var(--chart-4)" },
-    { name: "Adults (36-50)", value: data.age_36_50, fill: "var(--chart-5)" },
-    { name: "Seniors (50+)", value: data.over_50, fill: "var(--chart-1)" },
-    { name: "Minors (<18)", value: data.under_18, fill: "var(--muted-foreground)" },
+    { name: t("analytics.ageYouth"), value: data.age_18_35, fill: "var(--chart-4)" },
+    { name: t("analytics.ageAdults"), value: data.age_36_50, fill: "var(--chart-5)" },
+    { name: t("analytics.ageSeniors"), value: data.over_50, fill: "var(--chart-1)" },
+    { name: t("analytics.ageMinors"), value: data.under_18, fill: "var(--muted-foreground)" },
   ].filter((d) => d.value > 0);
 
   const geoData = [
-    { name: "Urban", value: data.urban, fill: "var(--chart-2)" },
-    { name: "Rural", value: data.rural, fill: "var(--chart-3)" },
+    { name: t("analytics.geoUrban"), value: data.urban, fill: "var(--chart-2)" },
+    { name: t("analytics.geoRural"), value: data.rural, fill: "var(--chart-3)" },
   ].filter((d) => d.value > 0);
 
   const renderDoughnut = (
@@ -71,11 +73,11 @@ export function AgeDemographicsChart({ data }: AgeDemographicsChartProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {renderDoughnut(
-        "Age Breakdown",
+        t("analytics.ageBreakdown"),
         ageData,
         data.under_18 + data.age_18_35 + data.age_36_50 + data.over_50,
       )}
-      {renderDoughnut("Geographic Spread", geoData, data.urban + data.rural)}
+      {renderDoughnut(t("analytics.geographicSpread"), geoData, data.urban + data.rural)}
     </div>
   );
 }

@@ -3,10 +3,13 @@ import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useAuth, ROLES, useUserRole } from "@/lib/auth";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 function ChangePasswordCard() {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -87,12 +90,14 @@ function ChangePasswordCard() {
   );
 
   return (
-    <Card title="Change Account Password" subtitle="Rotate your credentials securely" edge="none">
+    <Card title={t("profile.changePassword")} subtitle={t("profile.rotateCredentials")} edge="none">
       <div className="space-y-4">
         <div className="grid sm:grid-cols-3 gap-4">
-          {field("Current Password", current, setCurrent, showC, () => setShowC(!showC))}
-          {field("New Password", next, setNext, showN, () => setShowN(!showN))}
-          {field("Confirm Password", confirm, setConfirm, showCo, () => setShowCo(!showCo))}
+          {field(t("profile.currentPassword"), current, setCurrent, showC, () => setShowC(!showC))}
+          {field(t("profile.newPassword"), next, setNext, showN, () => setShowN(!showN))}
+          {field(t("profile.confirmPassword"), confirm, setConfirm, showCo, () =>
+            setShowCo(!showCo),
+          )}
         </div>
         <div className="flex justify-end">
           <button
@@ -106,7 +111,7 @@ function ChangePasswordCard() {
             ) : (
               <KeyRound className="size-4" />
             )}
-            Update password
+            {t("profile.updatePassword")}
           </button>
         </div>
       </div>
@@ -115,6 +120,7 @@ function ChangePasswordCard() {
 }
 
 export const ProfilePage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const role = useUserRole();
   const [mfaActive, setMfaActive] = useState(true);
@@ -186,10 +192,7 @@ export const ProfilePage: React.FC = () => {
   const allowedCount = capabilities.filter((c) => c.allowed).length;
 
   return (
-    <AppShell
-      title="User Profile"
-      subtitle="Manage your identity settings and security configurations"
-    >
+    <AppShell title={t("profile.title")} subtitle={t("profile.subtitle")}>
       <div className="space-y-6 max-w-5xl mx-auto">
         {/* Hero */}
         <Card edge="primary">
@@ -203,7 +206,7 @@ export const ProfilePage: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h2 className="font-heading text-xl font-bold text-foreground">{user.name}</h2>
-                <StatusPill tone="success">Active Session</StatusPill>
+                <StatusPill tone="success">{t("profile.activeSession")}</StatusPill>
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">{currentRole.label}</p>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-3 text-xs text-muted-foreground">
@@ -223,11 +226,11 @@ export const ProfilePage: React.FC = () => {
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left — Security only */}
-          <div className="lg:col-span-1">
+          {/* Left — Security & Language */}
+          <div className="lg:col-span-1 space-y-6">
             <Card
-              title="Security Preferences"
-              subtitle="Account protection settings"
+              title={t("profile.securityPreferences")}
+              subtitle={t("profile.accountProtection")}
               edge="warning"
             >
               <div className="space-y-4">
@@ -235,13 +238,9 @@ export const ProfilePage: React.FC = () => {
                   <div className="space-y-1 pr-4">
                     <div className="flex items-center gap-2">
                       <Shield className="size-4 text-accent" />
-                      <p className="text-sm font-semibold text-foreground">
-                        Multi-Factor Authentication
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{t("profile.mfa")}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Require secondary email OTP verification on login
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t("profile.mfaDesc")}</p>
                   </div>
                   <button
                     onClick={() => {
@@ -260,7 +259,7 @@ export const ProfilePage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Clock className="size-4 text-accent" />
                       <span className="text-sm font-semibold text-foreground">
-                        Auto-Lockout Session
+                        {t("profile.autoLockout")}
                       </span>
                     </div>
                     <span className="text-sm font-mono font-bold text-accent tabular-nums">
@@ -283,22 +282,40 @@ export const ProfilePage: React.FC = () => {
                 </div>
               </div>
             </Card>
+
+            <Card
+              title={t("profile.languagePreference")}
+              subtitle={t("profile.chooseLanguage")}
+              edge="info"
+            >
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t("profile.languageDesc")}
+                </p>
+                <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-muted/30">
+                  <span className="text-sm font-semibold text-foreground">Language</span>
+                  <div className="ml-auto">
+                    <LanguageSwitcher />
+                  </div>
+                </div>
+              </div>
+            </Card>
           </div>
 
           {/* Right — Permissions + Password */}
           <div className="lg:col-span-2 space-y-6">
             <Card
-              title="Role Scope & Ecosystem Permissions"
-              subtitle="Your explicit security credentials matrix"
+              title={t("profile.roleScope")}
+              subtitle={t("profile.securityCredentialsMatrix")}
               edge="accent"
             >
               <div className="-mx-5 -mb-5 overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-y border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      <th className="px-5 py-3">Permission Scope</th>
-                      <th className="px-5 py-3 text-center">Status</th>
-                      <th className="px-5 py-3">Access Area</th>
+                      <th className="px-5 py-3">{t("profile.permissionScope")}</th>
+                      <th className="px-5 py-3 text-center">{t("profile.status")}</th>
+                      <th className="px-5 py-3">{t("profile.accessArea")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -314,7 +331,7 @@ export const ProfilePage: React.FC = () => {
                         </td>
                         <td className="px-5 py-3 text-center">
                           <StatusPill tone={cap.allowed ? "success" : "danger"}>
-                            {cap.allowed ? "Allowed" : "Restricted"}
+                            {cap.allowed ? t("profile.allowed") : t("profile.restricted")}
                           </StatusPill>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">{cap.scope}</td>

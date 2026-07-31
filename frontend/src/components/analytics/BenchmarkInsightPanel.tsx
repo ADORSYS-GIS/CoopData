@@ -10,6 +10,9 @@ import {
 import { Card } from "@/components/app-shell";
 import type { KpiItemResponse } from "@/hooks/submissions/useCooperativeKpis";
 import type { BenchmarkResponse } from "@/hooks/analytics/useBenchmarks";
+import { useTranslation } from "react-i18next";
+
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,77 +38,34 @@ interface Props {
   isLoading?: boolean;
 }
 
-// ── KPI display metadata ──────────────────────────────────────────────────────
-
-const KPI_DISPLAY_NAMES: Record<string, string> = {
-  par30: "PAR30 (Portfolio at Risk)",
-  par90: "PAR90 (Non-Performing Loans)",
-  roa: "Return on Assets",
-  roe: "Return on Equity",
-  capital_adequacy_ratio: "Capital Adequacy Ratio",
-  liquid_funds_ratio: "Liquid Funds Ratio",
-  operating_expense_ratio: "Operating Expense Ratio",
-  operational_self_sufficiency: "Operational Self-Sufficiency",
-  loan_loss_coverage: "Loan Loss Coverage",
-};
-
 /** KPIs where a lower value is better (e.g. delinquency, cost ratios). */
 const LOWER_IS_BETTER = new Set(["par30", "par90", "npl_ratio", "operating_expense_ratio"]);
-
-const SUGGESTIONS: Record<string, { above: string; below: string }> = {
-  par30: {
-    above:
-      "Portfolio delinquency is elevated. Consider strengthening loan recovery and tightening credit assessment.",
-    below: "Strong portfolio quality — your delinquency rate is well managed.",
-  },
-  par90: {
-    above:
-      "Non-performing loans are above sector average. Review write-off policies and recovery strategies.",
-    below: "Non-performing loan ratio is well controlled.",
-  },
-  capital_adequacy_ratio: {
-    above: "Well-capitalised with a solid buffer against unexpected losses.",
-    below: "Capital buffer is thin. Consider retaining more surplus before dividend distribution.",
-  },
-  liquid_funds_ratio: {
-    above: "Strong liquidity position — member withdrawal obligations are well covered.",
-    below: "Low liquidity may affect your ability to meet member withdrawals promptly.",
-  },
-  roa: {
-    above: "Above-average asset profitability — efficient use of resources.",
-    below: "Review operating costs or loan pricing to improve returns on assets.",
-  },
-  roe: {
-    above: "Strong returns on member equity.",
-    below: "Equity returns are below sector peers. Review pricing and cost efficiency.",
-  },
-  operating_expense_ratio: {
-    above: "Operating costs are low relative to assets — good cost discipline.",
-    below: "Operating expenses are high relative to assets. Identify efficiency opportunities.",
-  },
-  operational_self_sufficiency: {
-    above: "Financially self-sufficient — income covers all operating costs.",
-    below: "Operating expenses exceed income. Review cost structures urgently.",
-  },
-  loan_loss_coverage: {
-    above: "Loan loss provisions adequately cover at-risk loans.",
-    below:
-      "Provisions may be insufficient relative to loans in arrears. Consider increasing reserves.",
-  },
-};
-
-const DEFAULT_SUGGESTION = {
-  above: "Your performance is above sector average.",
-  below: "Your performance is below sector average. Review relevant processes.",
-};
 
 // ── Pure insight generation ───────────────────────────────────────────────────
 
 export function generateInsights(
   kpis: KpiItemResponse[],
   benchmarks: BenchmarkResponse[],
+  t?: TranslateFn,
 ): Insight[] {
   const insights: Insight[] = [];
+  const tr: TranslateFn =
+    t ??
+    ((key: string, options?: Record<string, unknown>) => {
+      if (options?.defaultValue) return String(options.defaultValue);
+      // Map default fallback values for testing
+      if (key.includes("aboveDirection")) return "above";
+      if (key.includes("belowDirection")) return "below";
+      if (key.includes("message")) {
+        const match = key.match(
+          /Your (.*) is (.*), (.*)% (above|below) the sector average of (.*)\./,
+        );
+        return options
+          ? `Your ${options.displayName} is ${options.coopVal}, ${options.pctDiff}% ${options.direction} the sector average of ${options.benchVal}.`
+          : key;
+      }
+      return key;
+    });
 
   for (const kpi of kpis) {
     const bench = benchmarks.find((b) => b.kpi_name === kpi.name);
@@ -131,8 +91,13 @@ export function generateInsights(
         ? "critical"
         : "warning";
 
-    const suggestions = SUGGESTIONS[kpi.name] ?? DEFAULT_SUGGESTION;
-    const displayName = KPI_DISPLAY_NAMES[kpi.name] ?? kpi.name;
+    const displayName = tr(`insights.kpis.${kpi.name}`, { defaultValue: kpi.name });
+    const suggestion = tr(`insights.suggestions.${kpi.name}.${direction}`, {
+      defaultValue:
+        direction === "above"
+          ? tr("insights.suggestions.default.above")
+          : tr("insights.suggestions.default.below"),
+    });
 
     // Format benchmark for display
     const benchFormatted =
@@ -151,8 +116,15 @@ export function generateInsights(
       pctDiff,
       direction,
       severity,
-      message: `Your ${displayName} is ${kpi.formatted}, ${pctDiff.toFixed(1)}% ${direction} the sector average of ${benchFormatted}.`,
-      suggestion: direction === "above" ? suggestions.above : suggestions.below,
+      message: tr("insights.message", {
+        displayName,
+        coopVal: kpi.formatted,
+        pctDiff: pctDiff.toFixed(1),
+        direction:
+          direction === "above" ? tr("insights.aboveDirection") : tr("insights.belowDirection"),
+        benchVal: benchFormatted,
+      }),
+      suggestion,
     });
   }
 
@@ -189,6 +161,7 @@ const SeverityIcon = ({ severity }: { severity: InsightSeverity }) => {
 };
 
 const InsightRow = ({ insight }: { insight: Insight }) => {
+  const { t } = useTranslation();
   const styles = SEVERITY_STYLES[insight.severity];
   const barPct = Math.min((insight.coopValue / (insight.benchmarkValue * 1.5)) * 100, 100);
   const benchPct = Math.min((insight.benchmarkValue / (insight.benchmarkValue * 1.5)) * 100, 100);
@@ -206,15 +179,15 @@ const InsightRow = ({ insight }: { insight: Insight }) => {
         <span
           className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${styles.bg} ${styles.text} border ${styles.border}`}
         >
-          {insight.direction === "above" ? "▲ Above" : "▼ Below"}
+          {insight.direction === "above" ? t("insights.aboveLabel") : t("insights.belowLabel")}
         </span>
       </div>
 
       {/* Comparison bar */}
       <div className="space-y-1.5 pt-1">
         <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-          <span>Your value</span>
-          <span>Sector avg</span>
+          <span>{t("insights.yourValue")}</span>
+          <span>{t("insights.sectorAvg")}</span>
         </div>
         <div className="relative h-2 rounded-full bg-muted overflow-hidden">
           <div
@@ -265,25 +238,28 @@ export function BenchmarkInsightPanel({
   cooperativeType,
   isLoading = false,
 }: Props) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
-  const insights = generateInsights(kpis, benchmarks);
+  const insights = generateInsights(kpis, benchmarks, t);
   const showAll = expanded;
   const visibleInsights = showAll ? insights : insights.slice(0, INITIAL_VISIBLE);
   const hiddenCount = showAll ? 0 : insights.length - INITIAL_VISIBLE;
 
   return (
     <Card
-      title="Performance Insights"
+      title={t("insights.title")}
       subtitle={
         cooperativeType
-          ? `Comparing your cooperative to other ${cooperativeType.toUpperCase()} peers`
-          : "How your cooperative compares to sector peers"
+          ? t("insights.comparePeers", { type: cooperativeType.toUpperCase() })
+          : t("insights.comparePeersFallback")
       }
       action={
         insights.length > 0 && (
           <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-            {insights.length} insight{insights.length !== 1 ? "s" : ""}
+            {insights.length === 1
+              ? t("insights.insightCount", { count: 1 })
+              : t("insights.insightCount_plural", { count: insights.length })}
           </span>
         )
       }
@@ -294,22 +270,16 @@ export function BenchmarkInsightPanel({
         <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-3">
           <BarChart2 className="size-10 opacity-30" />
           <div>
-            <p className="text-sm font-semibold">No benchmark data available yet</p>
-            <p className="text-xs mt-1">
-              Sector benchmarks will appear once enough cooperatives have approved submissions.
-            </p>
+            <p className="text-sm font-semibold">{t("insights.noBenchmark")}</p>
+            <p className="text-xs mt-1">{t("insights.noBenchmarkDesc")}</p>
           </div>
         </div>
       ) : insights.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-3">
           <TrendingUp className="size-10 text-success opacity-60" />
           <div>
-            <p className="text-sm font-semibold text-success">
-              All metrics within 5% of sector average
-            </p>
-            <p className="text-xs mt-1">
-              Your cooperative is performing in line with sector peers.
-            </p>
+            <p className="text-sm font-semibold text-success">{t("insights.inLine")}</p>
+            <p className="text-xs mt-1">{t("insights.inLineDesc")}</p>
           </div>
         </div>
       ) : (
@@ -326,11 +296,12 @@ export function BenchmarkInsightPanel({
             >
               {expanded ? (
                 <>
-                  <ChevronUp className="size-3.5" /> Show less
+                  <ChevronUp className="size-3.5" /> {t("insights.showLess")}
                 </>
               ) : (
                 <>
-                  <ChevronDown className="size-3.5" /> See all {insights.length} insights
+                  <ChevronDown className="size-3.5" />{" "}
+                  {t("insights.seeAll", { count: insights.length })}
                 </>
               )}
             </button>

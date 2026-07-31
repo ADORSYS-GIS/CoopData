@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useNfUpload } from "@/hooks/non-financial/useNfUpload";
 import { toast } from "sonner";
 import type { NfUploadResponse } from "@/types/non-financial";
+import { useTranslation } from "react-i18next";
 
 interface NfUploadZoneProps {
   submissionId?: string;
@@ -12,26 +13,30 @@ interface NfUploadZoneProps {
 }
 
 export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZoneProps) {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadMutation = useNfUpload();
 
-  const handleFileSelect = useCallback((selectedFile: File) => {
-    const validExtensions = [".xlsx", ".xls"];
-    const ext = selectedFile.name.substring(selectedFile.name.lastIndexOf(".")).toLowerCase();
-    if (!validExtensions.includes(ext)) {
-      toast.error("Unsupported file type. Please upload an Excel file (.xlsx or .xls).");
-      return;
-    }
-    if (selectedFile.size > 50 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 50 MB.");
-      return;
-    }
-    setFile(selectedFile);
-    setIsDragging(false);
-  }, []);
+  const handleFileSelect = useCallback(
+    (selectedFile: File) => {
+      const validExtensions = [".xlsx", ".xls"];
+      const ext = selectedFile.name.substring(selectedFile.name.lastIndexOf(".")).toLowerCase();
+      if (!validExtensions.includes(ext)) {
+        toast.error(t("nf.unsupportedFileType"));
+        return;
+      }
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        toast.error(t("nf.fileTooLarge"));
+        return;
+      }
+      setFile(selectedFile);
+      setIsDragging(false);
+    },
+    [t],
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -60,16 +65,16 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
 
   const handleUpload = async () => {
     if (!file) {
-      toast.error("Please select an Excel file to upload.");
+      toast.error(t("nf.selectFileFirst"));
       return;
     }
     try {
       const result = await uploadMutation.mutateAsync({ file, submissionId });
-      toast.success(`Upload complete: ${result.rows_imported.members} members imported.`);
+      toast.success(t("nf.uploadComplete", { count: result.rows_imported.members }));
       onUploadComplete?.(result);
       setFile(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
+      toast.error(err instanceof Error ? err.message : t("nf.uploadFailed"));
     }
   };
 
@@ -83,7 +88,7 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
           <Upload className="size-4" />
-          Upload Non-Financial Data
+          {t("nf.uploadTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -108,10 +113,10 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
           />
           <FileSpreadsheet className="size-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm font-semibold text-foreground">
-            {file ? file.name : "Drop your Excel file here"}
+            {file ? file.name : t("nf.dropFileHere")}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {file ? `${(file.size / 1024).toFixed(0)} KB` : ".xlsx or .xls — up to 50 MB"}
+            {file ? `${(file.size / 1024).toFixed(0)} KB` : t("nf.fileSizeHint")}
           </p>
         </div>
 
@@ -138,18 +143,16 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
         >
           {uploadMutation.isPending ? (
             <>
-              <Loader2 className="size-4 animate-spin" /> Uploading & Parsing...
+              <Loader2 className="size-4 animate-spin" /> {t("nf.uploadingParsing")}
             </>
           ) : (
             <>
-              <Upload className="size-4" /> Upload & Parse
+              <Upload className="size-4" /> {t("nf.uploadParse")}
             </>
           )}
         </Button>
 
-        <p className="text-xs text-muted-foreground">
-          Expected sheets: NF MSHIP, NF S, NF LOANS, NF FS, Farm Coop
-        </p>
+        <p className="text-xs text-muted-foreground">{t("nf.expectedSheets")}</p>
       </CardContent>
     </Card>
   );

@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiClient } from "@/openapi-client";
+import { useTranslation } from "react-i18next";
 
 interface CustomKpiItem {
   id: string;
@@ -80,6 +81,7 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const [evalCoopId, setEvalCoopId] = useState<string>("none");
   const [evalResult, setEvalResult] = useState<{
     value: number;
@@ -88,7 +90,6 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
   } | null>(null);
   const [isRunningEval, setIsRunningEval] = useState(false);
 
-  // Reset evaluator when drawer closes or KPI changes
   useEffect(() => {
     setEvalCoopId("none");
     setEvalResult(null);
@@ -111,13 +112,13 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
         setEvalResult({
           value: 0,
           is_valid: false,
-          error: "Failed to evaluate formula for this cooperative",
+          error: t("analytics.evalFailed"),
         });
       } else {
         setEvalResult(data ?? null);
       }
     } catch {
-      setEvalResult({ value: 0, is_valid: false, error: "Network error during evaluation" });
+      setEvalResult({ value: 0, is_valid: false, error: t("analytics.evalNetworkError") });
     } finally {
       setIsRunningEval(false);
     }
@@ -189,25 +190,23 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
                   {kpi.name}
                 </SheetTitle>
                 <SheetDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                  {kpi.description || "No description provided for this indicator."}
+                  {kpi.description || t("analytics.noDescriptionProvided")}
                 </SheetDescription>
               </SheetHeader>
 
               <div className="space-y-4">
-                {/* Visual formula block */}
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Mathematical Formula
+                    {t("analytics.mathematicalFormula")}
                   </Label>
                   <Card className="border border-blue-100 bg-blue-50/20 p-4">
                     <CardContent className="p-0">{renderFormulaTokens(kpi.formula)}</CardContent>
                   </Card>
                 </div>
 
-                {/* Raw Formula string */}
                 <div className="space-y-1">
                   <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Raw Formula Syntax
+                    {t("analytics.rawFormulaSyntax")}
                   </Label>
                   <pre className="text-xs bg-slate-50 dark:bg-slate-900 border border-slate-100 p-2 rounded-lg font-mono overflow-x-auto text-slate-700">
                     {kpi.formula}
@@ -217,7 +216,7 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">
-                      Created Date
+                      {t("analytics.createdDate")}
                     </Label>
                     <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 mt-1">
                       <Calendar className="h-4 w-4 text-blue-500" />
@@ -230,14 +229,14 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
                   </div>
                   <div>
                     <Label className="text-xs font-medium text-muted-foreground">
-                      System Average
+                      {t("analytics.systemAverage")}
                     </Label>
                     <p className="text-sm font-bold text-blue-700 mt-1 font-mono">
                       {systemAvg !== undefined ? (
                         systemAvg.toFixed(2)
                       ) : (
                         <span className="italic text-xs font-normal text-muted-foreground">
-                          No data
+                          {t("analytics.noData")}
                         </span>
                       )}
                     </p>
@@ -246,23 +245,21 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
 
                 <hr className="border-blue-100 my-4" />
 
-                {/* Interactive Cooperative Evaluator */}
                 <div className="space-y-3">
                   <Label className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
-                    <RefreshCw className="h-3.5 w-3.5" /> Interactive Evaluation Tool
+                    <RefreshCw className="h-3.5 w-3.5" /> {t("analytics.interactiveEvalTool")}
                   </Label>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    Choose an ESwatini cooperative to evaluate this custom formula dynamically using
-                    their specific submitted data.
+                    {t("analytics.evalToolDesc")}
                   </p>
 
                   <div className="flex gap-2">
                     <Select value={evalCoopId} onValueChange={handleCoopEvalChange}>
                       <SelectTrigger className="flex-1 rounded-xl border-blue-200">
-                        <SelectValue placeholder="Select Cooperative..." />
+                        <SelectValue placeholder={t("analytics.selectCooperative")} />
                       </SelectTrigger>
                       <SelectContent className="z-[60]">
-                        <SelectItem value="none">Choose a cooperative...</SelectItem>
+                        <SelectItem value="none">{t("analytics.chooseCooperative")}</SelectItem>
                         {cooperatives.map((c) => (
                           <SelectItem key={c.cooperative_id} value={c.cooperative_id}>
                             {c.name}
@@ -276,13 +273,14 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
                     <div className="mt-3 p-4 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/30 to-indigo-50/20">
                       {isRunningEval ? (
                         <div className="flex items-center justify-center py-4 text-xs text-muted-foreground gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Evaluating...
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />{" "}
+                          {t("analytics.evaluating")}
                         </div>
                       ) : evalResult ? (
                         evalResult.is_valid ? (
                           <div className="text-center py-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                              Evaluation Result
+                              {t("analytics.evalResult")}
                             </span>
                             <span className="text-3xl font-extrabold text-blue-700 font-mono block mt-1">
                               {evalResult.value >= 1000
@@ -292,19 +290,19 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
                                 : evalResult.value.toFixed(2)}
                             </span>
                             <span className="text-[10px] text-emerald-600 font-medium mt-1 inline-flex items-center gap-1">
-                              <Check className="h-3 w-3" /> Syntax evaluates successfully
+                              <Check className="h-3 w-3" /> {t("analytics.syntaxEvaluatesOk")}
                             </span>
                           </div>
                         ) : (
                           <div className="text-center py-2 text-destructive">
                             <span className="text-[10px] font-bold uppercase tracking-wider block">
-                              Evaluation Failed
+                              {t("analytics.evalFailedTitle")}
                             </span>
                             <span className="text-xs font-semibold mt-1 block leading-relaxed">
-                              {evalResult.error || "Missing financial statement data"}
+                              {evalResult.error || t("analytics.missingFsData")}
                             </span>
                             <span className="text-[10px] text-red-500 mt-1 inline-flex items-center gap-1">
-                              <X className="h-3 w-3" /> Formula fails execution
+                              <X className="h-3 w-3" /> {t("analytics.formulaFailsExec")}
                             </span>
                           </div>
                         )
@@ -315,20 +313,19 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex gap-2 pt-6 border-t border-blue-50">
               <Button
                 variant="outline"
                 onClick={() => onDelete(kpi)}
                 className="flex-1 text-destructive hover:bg-destructive/10 border-destructive/20 rounded-xl"
               >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete KPI
+                <Trash2 className="h-4 w-4 mr-2" /> {t("analytics.deleteKpi")}
               </Button>
               <Button
                 onClick={() => onEdit(kpi)}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 rounded-xl"
               >
-                <Edit2 className="h-4 w-4 mr-2" /> Edit KPI
+                <Edit2 className="h-4 w-4 mr-2" /> {t("analytics.editKpi")}
               </Button>
             </div>
           </div>

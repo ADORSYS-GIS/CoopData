@@ -35,20 +35,7 @@ import {
 } from "@/hooks/submissions/useSubmissions";
 import { getAccessToken } from "@/services/shared/authService";
 import { useState, useRef, useEffect } from "react";
-
-const titleByRole: Record<Role, string> = {
-  ministry: "Reporting Center",
-  federation: "Federation Reports",
-  apex: "Apex Reports",
-  cooperative: "My Reports",
-};
-
-const subtitleByRole: Record<Role, string> = {
-  ministry: "Generate and download intelligence reports across the cooperative ecosystem",
-  federation: "Generate and download reports for your federation and its apex organizations",
-  apex: "Generate and download reports for cooperatives under your apex organization",
-  cooperative: "View and export reports from your submitted data and analytics",
-};
+import { useTranslation } from "react-i18next";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -85,14 +72,17 @@ const STATUS_CONFIG: Record<
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[status.toLowerCase()] ?? STATUS_CONFIG["draft"];
   const Icon = config.icon;
+  const label = t(`reports.status.${status.toLowerCase()}`, { defaultValue: config.label });
+
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${config.className}`}
     >
       <Icon className="size-3" />
-      {config.label}
+      {label}
     </span>
   );
 }
@@ -112,6 +102,7 @@ function ExportButton({
   onExport: (id: string, format: ExportFormat, name: string) => void;
   isExporting: string | null;
 }) {
+  const { t } = useTranslation();
   const isThis = isExporting === submissionId;
 
   return (
@@ -122,11 +113,11 @@ function ExportButton({
     >
       {isThis ? (
         <>
-          <Loader2 className="size-3.5 animate-spin" /> Exporting…
+          <Loader2 className="size-3.5 animate-spin" /> {t("reports.exporting")}
         </>
       ) : (
         <>
-          <Download className="size-3.5" /> Export PDF
+          <Download className="size-3.5" /> {t("reports.exportPdf")}
         </>
       )}
     </button>
@@ -136,6 +127,7 @@ function ExportButton({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const ReportsPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
   const { user } = useAuth();
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -146,6 +138,20 @@ export const ReportsPage: React.FC = () => {
   const ministryQuery = useMinistrySubmissions({ all: true, enabled: role === "ministry" });
 
   if (!role) return null;
+
+  const titleByRole: Record<Role, string> = {
+    ministry: t("reports.title.ministry"),
+    federation: t("reports.title.federation"),
+    apex: t("reports.title.apex"),
+    cooperative: t("reports.title.cooperative"),
+  };
+
+  const subtitleByRole: Record<Role, string> = {
+    ministry: t("reports.subtitle.ministry"),
+    federation: t("reports.subtitle.federation"),
+    apex: t("reports.subtitle.apex"),
+    cooperative: t("reports.subtitle.cooperative"),
+  };
 
   const submissions = (() => {
     if (role === "cooperative") return cooperativeQuery.data ?? [];
@@ -192,10 +198,10 @@ export const ReportsPage: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(link.href);
-      toast.success(`Report exported as ${format.toUpperCase()}!`);
+      toast.success(t("reports.exportSuccess", { format: format.toUpperCase() }));
     } catch (err) {
       console.error(err);
-      toast.error("Failed to export report.");
+      toast.error(t("reports.exportFailed"));
     } finally {
       setIsExporting(null);
     }
@@ -216,15 +222,17 @@ export const ReportsPage: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div>
                 <h2 className="font-heading font-bold text-foreground text-[15px]">
-                  Recent Data Submissions
+                  {t("reports.recentDataSubmissions")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Most recently submitted financial statements — click Export to download
+                  {t("reports.recentDataSubmissionsDesc")}
                 </p>
               </div>
               {recentSubmissions.length > 0 && (
                 <span className="text-xs font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                  {recentSubmissions.length} entries
+                  {recentSubmissions.length === 1
+                    ? t("reports.entriesCount", { count: 1 })
+                    : t("reports.entriesCount_plural", { count: recentSubmissions.length })}
                 </span>
               )}
             </div>
@@ -232,23 +240,23 @@ export const ReportsPage: React.FC = () => {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                 <Loader2 className="size-7 animate-spin text-accent" />
-                <span className="text-sm">Loading submissions…</span>
+                <span className="text-sm">{t("reports.loadingSubmissions")}</span>
               </div>
             ) : recentSubmissions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                 <div className="size-14 rounded-2xl bg-muted grid place-items-center">
                   <FileBarChart2 className="size-7 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm font-medium">No submissions yet</p>
-                <p className="text-xs text-muted-foreground/60">Submitted data will appear here</p>
+                <p className="text-sm font-semibold">{t("reports.noSubmissions")}</p>
+                <p className="text-xs text-muted-foreground/60">{t("reports.submittedDataWill")}</p>
               </div>
             ) : (
               <>
                 <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-2.5 bg-muted/40 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span>Cooperative / Year</span>
-                  <span className="text-center">Status</span>
-                  <span className="text-right">Date</span>
-                  <span className="text-right">Export</span>
+                  <span>{t("reports.cooperativeYear")}</span>
+                  <span className="text-center">{t("reports.statusHeader")}</span>
+                  <span className="text-right">{t("reports.dateHeader")}</span>
+                  <span className="text-right">{t("reports.exportHeader")}</span>
                 </div>
 
                 <ul className="divide-y divide-border">
@@ -282,7 +290,7 @@ export const ReportsPage: React.FC = () => {
                               {coopName}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {s.reporting_year} Financial Report
+                              {t("reports.financialReportLabel", { year: s.reporting_year })}
                             </p>
                           </div>
                         </div>
@@ -314,8 +322,7 @@ export const ReportsPage: React.FC = () => {
 
                 <div className="px-6 py-3 border-t border-border bg-muted/20 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <ChevronRight className="size-3 shrink-0" />
-                  Showing the {recentSubmissions.length} most recent submissions. Use the Export
-                  Panel above for consolidated reports.
+                  {t("reports.showingMostRecent", { count: recentSubmissions.length })}
                 </div>
               </>
             )}

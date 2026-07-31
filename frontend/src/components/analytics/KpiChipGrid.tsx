@@ -1,9 +1,4 @@
-/**
- * KpiChipGrid — visual scorecard showing traffic-light status
- * for every cooperative × KPI combination.
- * Rows = cooperatives, Columns = KPI names.
- * Cells are colored dots only (green / amber / red / grey).
- */
+import { useTranslation } from "react-i18next";
 
 interface CoopKpiEntry {
   name: string;
@@ -31,41 +26,46 @@ const kpiLabels: Record<string, string> = {
   deposits_to_loans: "D/L",
 };
 
-function statusDot(status: string | null): { bg: string; label: string } {
+function statusDot(
+  status: string | null,
+  t: (key: string) => string,
+): { bg: string; label: string } {
   switch (status) {
     case "green":
-      return { bg: "#22c55e", label: "Healthy" };
+      return { bg: "#22c55e", label: t("analytics.healthy") };
     case "amber":
-      return { bg: "#f59e0b", label: "Watch" };
+      return { bg: "#f59e0b", label: t("analytics.watch") };
     case "red":
-      return { bg: "#ef4444", label: "Risk" };
+      return { bg: "#ef4444", label: t("analytics.risk") };
     default:
-      return { bg: "#94a3b8", label: "No data" };
+      return { bg: "#94a3b8", label: t("analytics.noData") };
   }
 }
 
 export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGridProps) {
+  const { t } = useTranslation();
   const visible = cooperatives.slice(0, maxRows);
 
   if (visible.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
-        <span className="text-sm font-semibold">No cooperative data available</span>
-        <span className="text-xs">Approved submissions will appear here.</span>
+        <span className="text-sm font-semibold">{t("analytics.noCoopData")}</span>
+        <span className="text-xs">{t("analytics.approvedSubmissionsHint")}</span>
       </div>
     );
   }
 
+  const legendItems = [
+    { color: "#22c55e", label: t("analytics.healthy") },
+    { color: "#f59e0b", label: t("analytics.watch") },
+    { color: "#ef4444", label: t("analytics.risk") },
+    { color: "#94a3b8", label: t("analytics.noData") },
+  ];
+
   return (
     <div className="overflow-x-auto">
-      {/* Legend */}
       <div className="flex items-center gap-4 mb-3 flex-wrap">
-        {[
-          { color: "#22c55e", label: "Healthy" },
-          { color: "#f59e0b", label: "Watch" },
-          { color: "#ef4444", label: "Risk" },
-          { color: "#94a3b8", label: "No data" },
-        ].map((l) => (
+        {legendItems.map((l) => (
           <span
             key={l.label}
             className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
@@ -80,7 +80,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
         <thead>
           <tr className="border-b border-border">
             <th className="text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground pb-2 pr-4 w-44">
-              Cooperative
+              {t("analytics.cooperative")}
             </th>
             {kpiKeys.map((k) => (
               <th
@@ -112,13 +112,13 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
               </td>
               {kpiKeys.map((k) => {
                 const kpi = coop.kpis[k];
-                const dot = statusDot(kpi?.status ?? null);
+                const dot = statusDot(kpi?.status ?? null, t);
                 return (
                   <td key={k} className="text-center py-2 px-2">
                     <span
                       className="inline-flex size-5 rounded-full items-center justify-center mx-auto cursor-default"
                       style={{ background: `${dot.bg}22` }}
-                      title={kpi ? `${kpi.formatted} — ${dot.label}` : "No data"}
+                      title={kpi ? `${kpi.formatted} — ${dot.label}` : t("analytics.noData")}
                     >
                       <span className="size-2.5 rounded-full" style={{ background: dot.bg }} />
                     </span>
@@ -132,7 +132,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
 
       {cooperatives.length > maxRows && (
         <p className="text-[11px] text-muted-foreground mt-3 text-center">
-          Showing {maxRows} of {cooperatives.length} cooperatives
+          {t("analytics.showingOf", { shown: maxRows, total: cooperatives.length })}
         </p>
       )}
     </div>

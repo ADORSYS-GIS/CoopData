@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 
 interface CustomKpiItem {
   id: string;
@@ -17,12 +18,12 @@ interface CustomKpiCardProps {
 }
 
 export const CustomKpiCard: React.FC<CustomKpiCardProps> = ({ kpi, value, onClick }) => {
+  const { t } = useTranslation();
   return (
     <Card
       onClick={onClick}
       className="relative overflow-hidden group border border-blue-100 bg-white hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer rounded-xl"
     >
-      {/* Thin top accent bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-900 via-indigo-800 to-blue-950" />
 
       <CardHeader className="pb-2 pt-5 px-4 flex flex-row items-start justify-between gap-3">
@@ -42,7 +43,7 @@ export const CustomKpiCard: React.FC<CustomKpiCardProps> = ({ kpi, value, onClic
       <CardContent className="pb-4 px-4">
         <div className="flex justify-between items-baseline mb-3">
           <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            Avg
+            {t("analytics.avg")}
           </span>
           <span className="text-base font-extrabold text-blue-700 font-mono">
             {value !== undefined && value !== null ? (
@@ -52,7 +53,9 @@ export const CustomKpiCard: React.FC<CustomKpiCardProps> = ({ kpi, value, onClic
                 value.toFixed(2)
               )
             ) : (
-              <span className="text-xs text-muted-foreground/50 font-normal italic">No Data</span>
+              <span className="text-xs text-muted-foreground/50 font-normal italic">
+                {t("analytics.noData")}
+              </span>
             )}
           </span>
         </div>

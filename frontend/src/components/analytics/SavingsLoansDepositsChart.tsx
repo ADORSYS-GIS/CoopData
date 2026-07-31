@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface TrendDataPoint {
   month: string;
@@ -23,6 +24,7 @@ interface SavingsLoansDepositsChartProps {
 }
 
 export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartProps) {
+  const { t } = useTranslation();
   // Compute Net Variation for each data point
   const formattedData = React.useMemo(() => {
     return data.map((item) => {
@@ -45,10 +47,10 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
       <div>
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-          Savings, Loans & Deposits
+          {t("analytics.savingsLoansDepositsTitle")}
         </span>
         <span className="text-xs text-slate-500 font-medium block mt-0.5">
-          Your monthly financial breakdown & variation
+          {t("analytics.monthlyFinancialBreakdown")}
         </span>
       </div>
 
@@ -94,11 +96,11 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
               formatter={(value: number, name: string) => [
                 `$${value.toLocaleString()}`,
                 name === "liquidity"
-                  ? "Savings"
+                  ? t("analytics.savingsShort")
                   : name === "loans"
-                    ? "Loans"
+                    ? t("analytics.loansLabel")
                     : name === "savings"
-                      ? "Deposits"
+                      ? t("analytics.depositsLabel")
                       : name,
               ]}
             />
@@ -112,7 +114,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="liquidity"
-              name="Savings"
+              name={t("analytics.savingsShort")}
               fill="#3b82f6"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -122,7 +124,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="loans"
-              name="Loans"
+              name={t("analytics.loansLabel")}
               fill="#10b981"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -132,7 +134,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="savings"
-              name="Deposits"
+              name={t("analytics.depositsLabel")}
               fill="#f59e0b"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -143,7 +145,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
               yAxisId="right"
               type="monotone"
               dataKey="netVariation"
-              name="Net Variation"
+              name={t("analytics.netVariation")}
               stroke="#8b5cf6"
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}

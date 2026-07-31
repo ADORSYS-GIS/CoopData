@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 interface PortfolioClassificationProps {
   reportingYear: number;
@@ -42,126 +44,135 @@ interface ClassificationRow {
   computeFormula?: (coopData: Record<number, number>) => number;
 }
 
-const CLASSIFICATION_ROWS: ClassificationRow[] = [
+function buildClassificationRows(t: TFunction): ClassificationRow[] {
+  const b = (letter: string, days: string) => t("analytics.daysBucket", { letter, days });
+
+  const productive = [
+    b("a", t("analytics.days1to30")),
+    b("a", t("analytics.days31to90")),
+    b("a", t("analytics.days91to180")),
+    b("a", t("analytics.days181to360")),
+    b("a", t("analytics.daysMore360")),
+  ];
+  const consumption = [
+    b("b", t("analytics.days1to30")),
+    b("b", t("analytics.days31to90")),
+    b("b", t("analytics.days91to180")),
+    b("b", t("analytics.daysMore180")),
+  ];
+  const housing = [
+    b("c", t("analytics.days1to30")),
+    b("c", t("analytics.days31to90")),
+    b("c", t("analytics.days91to360")),
+    b("c", t("analytics.daysMore360")),
+  ];
+  const microcredit = [
+    b("d", t("analytics.days1to30")),
+    b("d", t("analytics.days31to90")),
+    b("d", t("analytics.days91to180")),
+    b("d", t("analytics.days181to360")),
+    b("d", t("analytics.daysMore360")),
+  ];
+  const publicHousing = [
+    b("h", t("analytics.days1to30")),
+    b("h", t("analytics.days31to90")),
+    b("h", t("analytics.days91to360")),
+    b("h", t("analytics.daysMore360")),
+  ];
+  const educational = [
+    b("i", t("analytics.days1to30")),
+    b("i", t("analytics.days31to90")),
+    b("i", t("analytics.days91to180")),
+    b("i", t("analytics.days181to360")),
+    b("i", t("analytics.daysMore360")),
+  ];
+
+  const mapBuckets = (letters: string[], source: string[]): string[] =>
+    source.map((days) => b(letters[source.indexOf(days)], days));
+
+  const rows: ClassificationRow[] = [];
+
   // 1. Performing
-  { label: "TOTAL PERFORMING LOANS", isHeader: true, codes: [1201] },
-  { label: "PRODUCTIVE LOANS PERFORMING", isHeader: true, codes: [] },
-  { label: "  a. 1 to 30 Days", codes: [] },
-  { label: "  a. 31 to 90 Days", codes: [] },
-  { label: "  a. 91 to 180 Days", codes: [] },
-  { label: "  a. 181 to 360 Days", codes: [] },
-  { label: "  a. More than 360 Days", codes: [] },
-  { label: "CONSUMPTION LOANS PERFORMING", isHeader: true, codes: [] },
-  { label: "  b. 1 to 30 Days", codes: [] },
-  { label: "  b. 31 to 90 Days", codes: [] },
-  { label: "  b. 91 to 180 Days", codes: [] },
-  { label: "  b. More than 180 Days", codes: [] },
-  { label: "HOUSING & REAL ESTATE LOANS PERFORMING", isHeader: true, codes: [] },
-  { label: "  c. 1 to 30 Days", codes: [] },
-  { label: "  c. 31 to 90 Days", codes: [] },
-  { label: "  c. 91 to 360 Days", codes: [] },
-  { label: "  c. More than 360 Days", codes: [] },
-  { label: "MICROCREDIT LOANS PERFORMING", isHeader: true, codes: [] },
-  { label: "  d. 1 to 30 Days", codes: [] },
-  { label: "  d. 31 to 90 Days", codes: [] },
-  { label: "  d. 91 to 180 Days", codes: [] },
-  { label: "  d. 181 to 360 Days", codes: [] },
-  { label: "  d. More than 360 Days", codes: [] },
-  { label: "PUBLIC INTEREST HOUSING PERFORMING", isHeader: true, codes: [] },
-  { label: "  h. 1 to 30 Days", codes: [] },
-  { label: "  h. 31 to 90 Days", codes: [] },
-  { label: "  h. 91 to 360 Days", codes: [] },
-  { label: "  h. More than 360 Days", codes: [] },
-  { label: "EDUCATIONAL LOANS PERFORMING", isHeader: true, codes: [] },
-  { label: "  i. 1 to 30 Days", codes: [] },
-  { label: "  i. 31 to 90 Days", codes: [] },
-  { label: "  i. 91 to 180 Days", codes: [] },
-  { label: "  i. 181 to 360 Days", codes: [] },
-  { label: "  i. More than 360 Days", codes: [] },
+  rows.push({ label: t("analytics.pcTotalPerformingHeader"), isHeader: true, codes: [1201] });
+  rows.push({ label: t("analytics.pcProductivePerforming"), isHeader: true, codes: [] });
+  productive.forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcConsumptionPerforming"), isHeader: true, codes: [] });
+  consumption.forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcHousingPerforming"), isHeader: true, codes: [] });
+  housing.forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcMicrocreditPerforming"), isHeader: true, codes: [] });
+  microcredit.forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcPublicHousingPerforming"), isHeader: true, codes: [] });
+  publicHousing.forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcEducationalPerforming"), isHeader: true, codes: [] });
+  educational.forEach((l) => rows.push({ label: l, codes: [] }));
 
   // 2. Non-Accrual
-  { label: "TOTAL NON-ACCRUAL PORTFOLIO", isHeader: true, codes: [], computeFormula: () => 0 },
-  { label: "PRODUCTIVE LOANS (NON-ACCRUAL)", isHeader: true, codes: [] },
-  { label: "  j. 1 to 30 Days", codes: [] },
-  { label: "  j. 31 to 90 Days", codes: [] },
-  { label: "  j. 91 to 180 Days", codes: [] },
-  { label: "  j. 181 to 360 Days", codes: [] },
-  { label: "  j. More than 360 Days", codes: [] },
-  { label: "CONSUMPTION LOANS (NON-ACCRUAL)", isHeader: true, codes: [] },
-  { label: "  k. 1 to 30 Days", codes: [] },
-  { label: "  k. 31 to 90 Days", codes: [] },
-  { label: "  k. 91 to 180 Days", codes: [] },
-  { label: "  k. More than 180 Days", codes: [] },
-  { label: "HOUSING & REAL ESTATE LOANS (NON-ACCRUAL)", isHeader: true, codes: [] },
-  { label: "  l. 1 to 30 Days", codes: [] },
-  { label: "  l. 31 to 90 Days", codes: [] },
-  { label: "  l. 91 to 360 Days", codes: [] },
-  { label: "  l. More than 360 Days", codes: [] },
-  { label: "MICROCREDIT LOANS (NON-ACCRUAL)", isHeader: true, codes: [] },
-  { label: "  m. 1 to 30 Days", codes: [] },
-  { label: "  m. 31 to 90 Days", codes: [] },
-  { label: "  m. 91 to 180 Days", codes: [] },
-  { label: "  m. 181 to 360 Days", codes: [] },
-  { label: "  m. More than 360 Days", codes: [] },
-  { label: "PUBLIC INTEREST HOUSING (NON-ACCRUAL)", isHeader: true, codes: [] },
-  { label: "  p. 1 to 30 Days", codes: [] },
-  { label: "  p. 31 to 90 Days", codes: [] },
-  { label: "  p. 91 to 360 Days", codes: [] },
-  { label: "  p. More than 360 Days", codes: [] },
-  { label: "EDUCATIONAL LOANS (NON-ACCRUAL)", isHeader: true, codes: [] },
-  { label: "  q. 1 to 30 Days", codes: [] },
-  { label: "  q. 31 to 90 Days", codes: [] },
-  { label: "  q. 91 to 180 Days", codes: [] },
-  { label: "  q. 181 to 360 Days", codes: [] },
-  { label: "  q. More than 360 Days", codes: [] },
+  rows.push({
+    label: t("analytics.pcTotalNonAccrual"),
+    isHeader: true,
+    codes: [],
+    computeFormula: () => 0,
+  });
+  rows.push({ label: t("analytics.pcProductiveNonAccrual"), isHeader: true, codes: [] });
+  mapBuckets(["j", "j", "j", "j", "j"], productive).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
+  rows.push({ label: t("analytics.pcConsumptionNonAccrual"), isHeader: true, codes: [] });
+  mapBuckets(["k", "k", "k", "k"], consumption).forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcHousingNonAccrual"), isHeader: true, codes: [] });
+  mapBuckets(["l", "l", "l", "l"], housing).forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcMicrocreditNonAccrual"), isHeader: true, codes: [] });
+  mapBuckets(["m", "m", "m", "m", "m"], microcredit).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
+  rows.push({ label: t("analytics.pcPublicHousingNonAccrual"), isHeader: true, codes: [] });
+  mapBuckets(["p", "p", "p", "p"], publicHousing).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
+  rows.push({ label: t("analytics.pcEducationalNonAccrual"), isHeader: true, codes: [] });
+  mapBuckets(["q", "q", "q", "q", "q"], educational).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
 
   // 3. Arrears / Past Due
-  {
-    label: "TOTAL ARREARS / PAST DUE PORTFOLIO",
+  rows.push({
+    label: t("analytics.pcTotalArrearsHeader"),
     isHeader: true,
     codes: [],
     computeFormula: (coop) => (coop[1202] || 0) + (coop[1203] || 0) + (coop[1204] || 0),
-  },
-  { label: "PRODUCTIVE LOANS (PAST DUE)", isHeader: true, codes: [] },
-  { label: "  r. 1 to 30 Days", codes: [] },
-  { label: "  r. 31 to 90 Days", codes: [] },
-  { label: "  r. 91 to 180 Days", codes: [] },
-  { label: "  r. 181 to 360 Days", codes: [] },
-  { label: "  r. More than 360 Days", codes: [] },
-  { label: "CONSUMPTION LOANS (PAST DUE)", isHeader: true, codes: [] },
-  { label: "  s. 1 to 30 Days", codes: [] },
-  { label: "  s. 31 to 90 Days", codes: [] },
-  { label: "  s. 91 to 180 Days", codes: [] },
-  { label: "  s. More than 180 Days", codes: [] },
-  { label: "HOUSING & REAL ESTATE LOANS (PAST DUE)", isHeader: true, codes: [] },
-  { label: "  t. 1 to 30 Days", codes: [] },
-  { label: "  t. 31 to 90 Days", codes: [] },
-  { label: "  t. 91 to 360 Days", codes: [] },
-  { label: "  t. More than 360 Days", codes: [] },
-  { label: "MICROCREDIT LOANS (PAST DUE)", isHeader: true, codes: [] },
-  { label: "  u. 1 to 30 Days", codes: [] },
-  { label: "  u. 31 to 90 Days", codes: [] },
-  { label: "  u. 91 to 180 Days", codes: [] },
-  { label: "  u. 181 to 360 Days", codes: [] },
-  { label: "  u. More than 360 Days", codes: [] },
-  { label: "PUBLIC INTEREST HOUSING (PAST DUE)", isHeader: true, codes: [] },
-  { label: "  y. 1 to 30 Days", codes: [] },
-  { label: "  y. 31 to 90 Days", codes: [] },
-  { label: "  y. 91 to 360 Days", codes: [] },
-  { label: "  y. More than 360 Days", codes: [] },
-  { label: "EDUCATIONAL LOANS (PAST DUE)", isHeader: true, codes: [] },
-  { label: "  z. 1 to 30 Days", codes: [] },
-  { label: "  z. 31 to 90 Days", codes: [] },
-  { label: "  z. 91 to 180 Days", codes: [] },
-  { label: "  z. 181 to 360 Days", codes: [] },
-  { label: "  z. More than 360 Days", codes: [] },
+  });
+  rows.push({ label: t("analytics.pcProductivePastDue"), isHeader: true, codes: [] });
+  mapBuckets(["r", "r", "r", "r", "r"], productive).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
+  rows.push({ label: t("analytics.pcConsumptionPastDue"), isHeader: true, codes: [] });
+  mapBuckets(["s", "s", "s", "s"], consumption).forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcHousingPastDue"), isHeader: true, codes: [] });
+  mapBuckets(["t", "t", "t", "t"], housing).forEach((l) => rows.push({ label: l, codes: [] }));
+  rows.push({ label: t("analytics.pcMicrocreditPastDue"), isHeader: true, codes: [] });
+  mapBuckets(["u", "u", "u", "u", "u"], microcredit).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
+  rows.push({ label: t("analytics.pcPublicHousingPastDue"), isHeader: true, codes: [] });
+  mapBuckets(["y", "y", "y", "y"], publicHousing).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
+  rows.push({ label: t("analytics.pcEducationalPastDue"), isHeader: true, codes: [] });
+  mapBuckets(["z", "z", "z", "z", "z"], educational).forEach((l) =>
+    rows.push({ label: l, codes: [] }),
+  );
 
   // 4. Non-Performing
-  { label: "TOTAL NON-PERFORMING / IMPAIRED PORTFOLIO", isHeader: true, codes: [1205] },
+  rows.push({
+    label: t("analytics.pcTotalNonPerformingHeader"),
+    isHeader: true,
+    codes: [1205],
+  });
 
   // 5. Total Gross
-  {
-    label: "TOTAL GROSS PORTFOLIO",
+  rows.push({
+    label: t("analytics.pcTotalGross"),
     isHeader: true,
     codes: [],
     computeFormula: (coop) =>
@@ -170,14 +181,19 @@ const CLASSIFICATION_ROWS: ClassificationRow[] = [
       (coop[1203] || 0) +
       (coop[1204] || 0) +
       (coop[1205] || 0),
-  },
+  });
 
   // 6. Provisions
-  { label: "LOAN LOSS PROVISIONS", isHeader: true, codes: [1250, 1251, 1252], multiplier: -1 },
+  rows.push({
+    label: t("analytics.pcLoanLossProvisionsHeader"),
+    isHeader: true,
+    codes: [1250, 1251, 1252],
+    multiplier: -1,
+  });
 
   // 7. Total Net
-  {
-    label: "TOTAL NET PORTFOLIO",
+  rows.push({
+    label: t("analytics.pcTotalNet"),
     isHeader: true,
     codes: [],
     computeFormula: (coop) => {
@@ -190,15 +206,20 @@ const CLASSIFICATION_ROWS: ClassificationRow[] = [
       const provs = (coop[1250] || 0) + (coop[1251] || 0) + (coop[1252] || 0);
       return gross - provs;
     },
-  },
-];
+  });
+
+  return rows;
+}
 
 export function PortfolioClassification({
   reportingYear,
   filterParams,
 }: PortfolioClassificationProps) {
+  const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
+
+  const classificationRows = useMemo(() => buildClassificationRows(t), [t]);
 
   // Fetch KPI dataset scoped by filters
   const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({
@@ -269,7 +290,7 @@ export function PortfolioClassification({
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
-        Loading portfolio classification grid...
+        {t("analytics.loadingPortfolioClassification")}
       </div>
     );
   }
@@ -279,9 +300,11 @@ export function PortfolioClassification({
       {/* Excel Blue Banner with Slicers */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Portfolio Classification Statistics</h2>
+          <h2 className="text-xl font-bold tracking-tight">
+            {t("analytics.portfolioClassificationTitle")}
+          </h2>
           <p className="text-xs text-blue-200/80 mt-1 font-medium">
-            Maturity Aging Brackets & Category Breakdown ({reportingYear})
+            {t("analytics.portfolioClassificationSubtitle", { year: reportingYear })}
           </p>
         </div>
 
@@ -289,7 +312,7 @@ export function PortfolioClassification({
         <div className="flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
-              Date
+              {t("analytics.date")}
             </span>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
@@ -308,15 +331,15 @@ export function PortfolioClassification({
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
-              Cooperatives
+              {t("analytics.cooperativesLabel")}
             </span>
             <div className="relative">
               <Select onValueChange={handleCoopToggle}>
                 <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
                   <span>
                     {selectedCoopIds.length === 0
-                      ? "All Cooperatives"
-                      : `${selectedCoopIds.length} Selected`}
+                      ? t("analytics.allCooperatives")
+                      : t("analytics.selectedCount", { count: selectedCoopIds.length })}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -324,7 +347,7 @@ export function PortfolioClassification({
                     value="clear_all_custom_option"
                     className="text-xs font-bold text-red-600"
                   >
-                    Reset Selection (All)
+                    {t("analytics.resetSelection")}
                   </SelectItem>
                   {coopMatrices.map((coop) => (
                     <SelectItem key={coop.id} value={coop.id} className="text-xs font-medium">
@@ -350,41 +373,38 @@ export function PortfolioClassification({
       <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
         <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold block mb-1">Spreadsheet Account Mapping:</span>
-          The cooperative's raw credit portfolio is mapped to the standard chart of accounts:
+          <span className="font-bold block mb-1">{t("analytics.spreadsheetAccountMapping")}</span>
+          {t("analytics.spreadsheetAccountMappingDesc")}
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
             <li>
-              <strong>Total Performing Loans</strong>: Mapped to account code 1201.
+              <strong>{t("analytics.pcTotalPerformingLoans")}</strong>:{" "}
+              {t("analytics.pcTotalPerformingCode")}
             </li>
             <li>
-              <strong>Total Arrears / Past Due</strong>: Sum of account codes 1202 (1-30 days), 1203
-              (31-60 days), and 1204 (61-90 days).
+              <strong>{t("analytics.pcTotalArrears")}</strong>: {t("analytics.pcTotalArrearsCode")}
             </li>
             <li>
-              <strong>Total Non-Performing</strong>: Mapped to account code 1205 (non-performing
-              loans &gt; 90 days).
+              <strong>{t("analytics.pcTotalNonPerforming")}</strong>:{" "}
+              {t("analytics.pcTotalNonPerformingCode")}
             </li>
             <li>
-              <strong>Loan Loss Provisions</strong>: Mapped to account code 1250.
+              <strong>{t("analytics.pcLoanLossProvisions")}</strong>:{" "}
+              {t("analytics.pcLoanLossProvisionsCode")}
             </li>
           </ul>
-          Note: Product-specific subcategories (Productive, Consumption, Microcredit, etc.) are
-          consolidated into the main category totals in the standard chart of accounts.
+          {t("analytics.pcNote")}
         </div>
       </div>
 
       {/* Grid Comparative Table */}
-      <Card
-        title="Portfolio Classification Spreadsheet Grid"
-        subtitle="Side-by-side comparison sheet"
-      >
+      <Card title={t("analytics.pcGridTitle")} subtitle={t("analytics.sideBySideComparison")}>
         {filteredMatrices.length > 0 ? (
           <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="py-3 px-4 w-96 sticky left-0 bg-background border-r border-border z-10">
-                    Category & Maturity
+                    {t("analytics.categoryMaturity")}
                   </th>
                   {filteredMatrices.map((coop) => (
                     <th
@@ -397,7 +417,7 @@ export function PortfolioClassification({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border font-mono text-[11px]">
-                {CLASSIFICATION_ROWS.map((row, rIdx) => {
+                {classificationRows.map((row, rIdx) => {
                   if (row.isHeader) {
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
@@ -449,7 +469,7 @@ export function PortfolioClassification({
           </div>
         ) : (
           <div className="flex h-48 items-center justify-center text-muted-foreground text-xs">
-            No cooperative data found for this period.
+            {t("analytics.noCoopDataForPeriod")}
           </div>
         )}
       </Card>

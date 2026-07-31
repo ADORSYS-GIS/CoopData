@@ -6,6 +6,7 @@ import type {
   FixedDepositKPIs,
 } from "@/lib/kpi-calculations";
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface KPICardProps {
   label: string;
@@ -87,37 +88,35 @@ interface KPIGridProps {
 }
 
 export function FinancialKPIGrid({ kpis, type }: KPIGridProps) {
+  const { t } = useTranslation();
+
   if (!kpis) {
-    return (
-      <div className="p-8 text-center text-muted-foreground">
-        No financial data available to calculate KPIs. Please submit a financial statement.
-      </div>
-    );
+    return <div className="p-8 text-center text-muted-foreground">{t("kpis.noFinancialData")}</div>;
   }
 
   const sizeKPIs = [
     {
-      label: "Total Assets",
+      label: t("kpis.totalAssets"),
       value: kpis.totalAssets.formatted,
       description: kpis.totalAssets.description,
     },
     {
-      label: "Gross Loan Portfolio",
+      label: t("kpis.grossLoanPortfolio"),
       value: kpis.grossLoanPortfolio.formatted,
       description: kpis.grossLoanPortfolio.description,
     },
     {
-      label: "Net Loan Portfolio",
+      label: t("kpis.netLoanPortfolio"),
       value: kpis.netLoanPortfolio.formatted,
       description: kpis.netLoanPortfolio.description,
     },
     {
-      label: "Member Deposits",
+      label: t("kpis.memberDeposits"),
       value: kpis.totalMemberDeposits.formatted,
       description: kpis.totalMemberDeposits.description,
     },
     {
-      label: "Total Equity",
+      label: t("kpis.totalEquity"),
       value: kpis.totalEquity.formatted,
       description: kpis.totalEquity.description,
     },
@@ -125,26 +124,26 @@ export function FinancialKPIGrid({ kpis, type }: KPIGridProps) {
 
   const portfolioKPIs = [
     {
-      label: "PAR 30 (>30 days)",
+      label: t("kpis.par30"),
       value: kpis.par30.formatted,
       status: kpis.par30.status,
       benchmark: kpis.par30.benchmark,
     },
     {
-      label: "PAR 60 (>60 days)",
+      label: t("kpis.par60"),
       value: kpis.par60.formatted,
       status: kpis.par60.status,
       benchmark: kpis.par60.benchmark,
     },
     {
-      label: "PAR 90 (>90 days)",
+      label: t("kpis.par90"),
       value: kpis.par90.formatted,
       status: kpis.par90.status,
       benchmark: kpis.par90.benchmark,
     },
-    { label: "NPL Ratio", value: kpis.nplRatio.formatted },
+    { label: t("kpis.nplRatio"), value: kpis.nplRatio.formatted },
     {
-      label: "Loan Loss Coverage",
+      label: t("kpis.loanLossCoverage"),
       value: kpis.loanLossCoverage.formatted,
       status: kpis.loanLossCoverage.status,
       benchmark: kpis.loanLossCoverage.benchmark,
@@ -153,27 +152,27 @@ export function FinancialKPIGrid({ kpis, type }: KPIGridProps) {
 
   const profitabilityKPIs = [
     {
-      label: "ROA",
+      label: t("kpis.roa"),
       value: kpis.roa.formatted,
       status: kpis.roa.status,
       benchmark: kpis.roa.benchmark,
     },
     {
-      label: "ROE",
+      label: t("kpis.roe"),
       value: kpis.roe.formatted,
       status: kpis.roe.status,
       benchmark: kpis.roe.benchmark,
     },
-    { label: "Financial Revenue Ratio", value: kpis.financialRevenueRatio.formatted },
+    { label: t("kpis.financialRevenueRatio"), value: kpis.financialRevenueRatio.formatted },
     {
-      label: "Operating Expense Ratio",
+      label: t("kpis.operatingExpenseRatio"),
       value: kpis.operatingExpenseRatio.formatted,
       status: kpis.operatingExpenseRatio.status,
       benchmark: kpis.operatingExpenseRatio.benchmark,
     },
-    { label: "Net Interest Margin", value: kpis.netInterestMargin.formatted },
+    { label: t("kpis.netInterestMargin"), value: kpis.netInterestMargin.formatted },
     {
-      label: "Operational Self-Sufficiency",
+      label: t("kpis.operationalSelfSufficiency"),
       value: kpis.operationalSelfSufficiency.formatted,
       status: kpis.operationalSelfSufficiency.status,
       benchmark: kpis.operationalSelfSufficiency.benchmark,
@@ -182,36 +181,36 @@ export function FinancialKPIGrid({ kpis, type }: KPIGridProps) {
 
   const liquidityKPIs = [
     {
-      label: "Current Ratio",
+      label: t("kpis.currentRatio"),
       value: kpis.currentRatio.formatted,
       status: kpis.currentRatio.status,
       benchmark: kpis.currentRatio.benchmark,
     },
     {
-      label: "Cash Ratio",
+      label: t("kpis.cashRatio"),
       value: kpis.cashRatio.formatted,
       status: kpis.cashRatio.status,
       benchmark: kpis.cashRatio.benchmark,
     },
     {
-      label: "Capital Adequacy",
+      label: t("kpis.capitalAdequacy"),
       value: kpis.capitalAdequacyRatio.formatted,
       status: kpis.capitalAdequacyRatio.status,
       benchmark: kpis.capitalAdequacyRatio.benchmark,
     },
     {
-      label: "Debt-to-Equity",
+      label: t("kpis.debtToEquity"),
       value: kpis.debtToEquity.formatted,
       status: kpis.debtToEquity.status,
       benchmark: kpis.debtToEquity.benchmark,
     },
     {
-      label: "Liquid Funds Ratio",
+      label: t("kpis.liquidFundsRatio"),
       value: kpis.liquidFundsRatio.formatted,
       status: kpis.liquidFundsRatio.status,
       benchmark: kpis.liquidFundsRatio.benchmark,
     },
-    { label: "Deposits to Loans", value: kpis.depositsToLoans.formatted },
+    { label: t("kpis.depositsToLoans"), value: kpis.depositsToLoans.formatted },
   ];
 
   const getKPIs = () => {
@@ -251,53 +250,55 @@ interface MembershipKPIGridProps {
 }
 
 export function MembershipKPIGrid({ kpis }: MembershipKPIGridProps) {
+  const { t } = useTranslation();
+
   if (!kpis) {
     return (
-      <div className="p-8 text-center text-muted-foreground">No membership data available.</div>
+      <div className="p-8 text-center text-muted-foreground">{t("kpis.noMembershipData")}</div>
     );
   }
 
   const kpiList = [
     {
-      label: "Total Members",
+      label: t("kpis.totalMembers"),
       value: kpis.totalMembers.formatted,
       description: kpis.totalMembers.description,
     },
     {
-      label: "Growth Rate",
+      label: t("kpis.growthRate"),
       value: kpis.membershipGrowthRate.formatted,
       status: kpis.membershipGrowthRate.status,
       benchmark: kpis.membershipGrowthRate.benchmark,
     },
     {
-      label: "Dormancy Rate",
+      label: t("kpis.dormancyRate"),
       value: kpis.dormancyRate.formatted,
       status: kpis.dormancyRate.status,
       benchmark: kpis.dormancyRate.benchmark,
     },
     {
-      label: "Exit Rate",
+      label: t("kpis.exitRate"),
       value: kpis.exitRate.formatted,
       status: kpis.exitRate.status,
       benchmark: kpis.exitRate.benchmark,
     },
     {
-      label: "Active Members",
+      label: t("kpis.activeMembers"),
       value: kpis.activeMembersRatio.formatted,
       status: kpis.activeMembersRatio.status,
       benchmark: kpis.activeMembersRatio.benchmark,
     },
     {
-      label: "AGM Participation",
+      label: t("kpis.agmParticipation"),
       value: kpis.agmParticipationRate.formatted,
       status: kpis.agmParticipationRate.status,
       benchmark: kpis.agmParticipationRate.benchmark,
     },
-    { label: "Women Members", value: kpis.womenMembersPercent.formatted },
-    { label: "Youth Members", value: kpis.youthMembersPercent.formatted },
-    { label: "Rural Members", value: kpis.ruralMembersPercent.formatted },
-    { label: "Women in Governance", value: kpis.womenInGovernancePercent.formatted },
-    { label: "Youth in Governance", value: kpis.youthInGovernancePercent.formatted },
+    { label: t("kpis.womenMembers"), value: kpis.womenMembersPercent.formatted },
+    { label: t("kpis.youthMembers"), value: kpis.youthMembersPercent.formatted },
+    { label: t("kpis.ruralMembers"), value: kpis.ruralMembersPercent.formatted },
+    { label: t("kpis.womenInGovernance"), value: kpis.womenInGovernancePercent.formatted },
+    { label: t("kpis.youthInGovernance"), value: kpis.youthInGovernancePercent.formatted },
   ];
 
   return (
@@ -314,36 +315,38 @@ interface LoanKPIGridProps {
 }
 
 export function LoanKPIGrid({ kpis }: LoanKPIGridProps) {
+  const { t } = useTranslation();
+
   if (!kpis) {
-    return <div className="p-8 text-center text-muted-foreground">No loan data available.</div>;
+    return <div className="p-8 text-center text-muted-foreground">{t("kpis.noLoanData")}</div>;
   }
 
   const kpiList = [
-    { label: "Credit Penetration", value: kpis.creditPenetration.formatted },
+    { label: t("kpis.creditPenetration"), value: kpis.creditPenetration.formatted },
     {
-      label: "On-Time Repayment",
+      label: t("kpis.onTimeRepayment"),
       value: kpis.onTimeRepaymentRatio.formatted,
       status: kpis.onTimeRepaymentRatio.status,
       benchmark: kpis.onTimeRepaymentRatio.benchmark,
     },
     {
-      label: "Loans in Arrears",
+      label: t("kpis.loansInArrears"),
       value: kpis.loansInArrearsPercent.formatted,
       status: kpis.loansInArrearsPercent.status,
       benchmark: kpis.loansInArrearsPercent.benchmark,
     },
     {
-      label: "Restructured Loans",
+      label: t("kpis.restructuredLoans"),
       value: kpis.restructuredLoansRatio.formatted,
       status: kpis.restructuredLoansRatio.status,
       benchmark: kpis.restructuredLoansRatio.benchmark,
     },
-    { label: "Women Borrowers", value: kpis.womenBorrowersPercent.formatted },
-    { label: "Youth Borrowers", value: kpis.youthBorrowersPercent.formatted },
-    { label: "Rural Borrowers", value: kpis.ruralBorrowersPercent.formatted },
-    { label: "Average Loan Size", value: kpis.averageLoanSize.formatted },
-    { label: "Loans per Member", value: kpis.loansPerMember.formatted },
-    { label: "Avg Interest Rate", value: kpis.averageInterestRate.formatted },
+    { label: t("kpis.womenBorrowers"), value: kpis.womenBorrowersPercent.formatted },
+    { label: t("kpis.youthBorrowers"), value: kpis.youthBorrowersPercent.formatted },
+    { label: t("kpis.ruralBorrowers"), value: kpis.ruralBorrowersPercent.formatted },
+    { label: t("kpis.averageLoanSize"), value: kpis.averageLoanSize.formatted },
+    { label: t("kpis.loansPerMember"), value: kpis.loansPerMember.formatted },
+    { label: t("kpis.avgInterestRate"), value: kpis.averageInterestRate.formatted },
   ];
 
   return (
@@ -373,24 +376,25 @@ export function ComplianceScoreDisplay({
   components,
   summary,
 }: ComplianceScoreDisplayProps) {
+  const { t } = useTranslation();
   const statusColors = {
     green: {
       bg: "bg-success/10",
       border: "border-success/20",
       text: "text-success",
-      label: "Compliant",
+      label: t("kpis.compliant"),
     },
     amber: {
       bg: "bg-warning/10",
       border: "border-warning/20",
       text: "text-warning-foreground",
-      label: "Needs Attention",
+      label: t("kpis.needsAttention"),
     },
     red: {
       bg: "bg-destructive/10",
       border: "border-destructive/20",
       text: "text-destructive",
-      label: "Non-Compliant",
+      label: t("kpis.nonCompliant"),
     },
   };
 
@@ -400,7 +404,7 @@ export function ComplianceScoreDisplay({
     <div className={`rounded-xl ${colors.bg} ${colors.border} border p-6`}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-bold text-foreground">Compliance Score</h3>
+          <h3 className="text-lg font-bold text-foreground">{t("kpis.complianceScore")}</h3>
           <p className="text-sm text-muted-foreground">{summary}</p>
         </div>
         <div className="text-right">
@@ -411,7 +415,7 @@ export function ComplianceScoreDisplay({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Timely Submission (30%)</span>
+          <span className="text-sm text-muted-foreground">{t("kpis.timelySubmission")}</span>
           <span className="text-sm font-bold text-foreground">
             {components.timelySubmission.toFixed(0)}%
           </span>
@@ -421,7 +425,7 @@ export function ComplianceScoreDisplay({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Data Quality (25%)</span>
+          <span className="text-sm text-muted-foreground">{t("kpis.dataQuality")}</span>
           <span className="text-sm font-bold text-foreground">
             {components.dataQuality.toFixed(0)}%
           </span>
@@ -431,7 +435,7 @@ export function ComplianceScoreDisplay({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Financial Ratios (25%)</span>
+          <span className="text-sm text-muted-foreground">{t("kpis.financialRatios")}</span>
           <span className="text-sm font-bold text-foreground">
             {components.financialRatios.toFixed(0)}%
           </span>
@@ -441,7 +445,7 @@ export function ComplianceScoreDisplay({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Documentation (20%)</span>
+          <span className="text-sm text-muted-foreground">{t("kpis.documentation")}</span>
           <span className="text-sm font-bold text-foreground">
             {components.documentation.toFixed(0)}%
           </span>
@@ -465,6 +469,8 @@ interface BenchmarkChartProps {
 }
 
 export function BenchmarkChart({ title, cooperatives }: BenchmarkChartProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-xl border border-border bg-surface p-6">
       <h3 className="text-sm font-bold text-foreground mb-4">{title}</h3>
@@ -492,8 +498,8 @@ export function BenchmarkChart({ title, cooperatives }: BenchmarkChartProps) {
                 />
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>Regional: {coop.regional.toFixed(1)}%</span>
-                <span>National: {coop.national.toFixed(1)}%</span>
+                <span>{t("kpis.regionalLabel", { value: coop.regional.toFixed(1) })}%</span>
+                <span>{t("kpis.nationalLabel", { value: coop.national.toFixed(1) })}%</span>
               </div>
             </div>
           );
@@ -502,15 +508,15 @@ export function BenchmarkChart({ title, cooperatives }: BenchmarkChartProps) {
       <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-sm bg-primary" />
-          <span>Cooperative</span>
+          <span>{t("kpis.cooperative")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-sm bg-primary/50" />
-          <span>Regional Avg</span>
+          <span>{t("kpis.regionalAvg")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-sm bg-muted-foreground/30" />
-          <span>National Avg</span>
+          <span>{t("kpis.nationalAvg")}</span>
         </div>
       </div>
     </div>

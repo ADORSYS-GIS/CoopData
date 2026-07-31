@@ -35,6 +35,7 @@ import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // COOPERATIVE DASHBOARD — real data only
@@ -53,6 +54,7 @@ const LOAN_PORTFOLIO_LABELS = [
 ];
 
 export function CooperativeDashboard() {
+  const { t } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useCooperativeStats();
   const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
 
@@ -80,33 +82,53 @@ export function CooperativeDashboard() {
   // Database status from real counts
   const databaseStatus = [
     {
-      name: "Membership",
+      name: t("dashboard.coop.dbMembership"),
       records: membersData?.total ?? 0,
-      status: (membersData?.total ?? 0) > 0 ? "Current" : "Empty",
+      status:
+        (membersData?.total ?? 0) > 0
+          ? t("dashboard.coop.statusCurrent")
+          : t("dashboard.coop.statusEmpty"),
+      statusKey: (membersData?.total ?? 0) > 0 ? "Current" : "Empty",
       icon: Users,
     },
     {
-      name: "Savings",
+      name: t("dashboard.coop.dbSavings"),
       records: savingsData?.total ?? 0,
-      status: (savingsData?.total ?? 0) > 0 ? "Current" : "Empty",
+      status:
+        (savingsData?.total ?? 0) > 0
+          ? t("dashboard.coop.statusCurrent")
+          : t("dashboard.coop.statusEmpty"),
+      statusKey: (savingsData?.total ?? 0) > 0 ? "Current" : "Empty",
       icon: Wallet,
     },
     {
-      name: "Fixed Deposits",
+      name: t("dashboard.coop.dbFixedDeposits"),
       records: fixedDepositsData?.total ?? 0,
-      status: (fixedDepositsData?.total ?? 0) > 0 ? "Current" : "Empty",
+      status:
+        (fixedDepositsData?.total ?? 0) > 0
+          ? t("dashboard.coop.statusCurrent")
+          : t("dashboard.coop.statusEmpty"),
+      statusKey: (fixedDepositsData?.total ?? 0) > 0 ? "Current" : "Empty",
       icon: TrendingUp,
     },
     {
-      name: "Loans",
+      name: t("dashboard.coop.dbLoans"),
       records: loansData?.total ?? 0,
-      status: (loansData?.total ?? 0) > 0 ? "Current" : "Empty",
+      status:
+        (loansData?.total ?? 0) > 0
+          ? t("dashboard.coop.statusCurrent")
+          : t("dashboard.coop.statusEmpty"),
+      statusKey: (loansData?.total ?? 0) > 0 ? "Current" : "Empty",
       icon: BarChart3,
     },
     {
-      name: "Multi-purpose",
+      name: t("dashboard.coop.dbMultipurpose"),
       records: farmCoopData?.total ?? 0,
-      status: (farmCoopData?.total ?? 0) > 0 ? "Current" : "Empty",
+      status:
+        (farmCoopData?.total ?? 0) > 0
+          ? t("dashboard.coop.statusCurrent")
+          : t("dashboard.coop.statusEmpty"),
+      statusKey: (farmCoopData?.total ?? 0) > 0 ? "Current" : "Empty",
       icon: Database,
     },
   ];
@@ -115,15 +137,15 @@ export function CooperativeDashboard() {
   const par30 = getKpi("par30")?.value ?? 0;
   const par90 = getKpi("par90")?.value ?? 0;
   const loanPortfolio = [
-    { name: "Performing", value: Math.max(0, 100 - par30) },
-    { name: "Watch List", value: Math.max(0, par30 - par90) },
-    { name: "Non-Performing", value: par90 },
+    { name: t("dashboard.coop.performing"), value: Math.max(0, 100 - par30) },
+    { name: t("dashboard.coop.watchList"), value: Math.max(0, par30 - par90) },
+    { name: t("dashboard.coop.nonPerforming"), value: par90 },
   ].filter((s) => s.value > 0);
 
   // Build compliance radial from OSS KPI
   const ossValue = getKpi("operational_self_sufficiency")?.value ?? 0;
   const complianceRadial = [
-    { name: "Self-Sufficiency", value: Math.min(ossValue, 150), fill: accentColor },
+    { name: t("dashboard.coop.oss"), value: Math.min(ossValue, 150), fill: accentColor },
   ];
 
   const profile = {
@@ -147,12 +169,12 @@ export function CooperativeDashboard() {
 
   const statusLabel = (status: string): string => {
     const labels: Record<string, string> = {
-      draft: "Draft",
-      submitted: "Submitted",
-      in_review: "In Review",
-      approved: "Approved",
-      rejected: "Rejected",
-      returned: "Returned",
+      draft: t("dashboard.status.draft"),
+      submitted: t("dashboard.status.submitted"),
+      in_review: t("dashboard.status.inReview"),
+      approved: t("dashboard.status.approved"),
+      rejected: t("dashboard.status.rejected"),
+      returned: t("dashboard.status.changesRequested"),
     };
     return labels[status] ?? status;
   };
@@ -165,15 +187,15 @@ export function CooperativeDashboard() {
   }));
 
   const financialOverview = [
-    { name: "Total Assets", value: getKpi("total_assets")?.value ?? 0 },
-    { name: "Gross Loans", value: getKpi("gross_loan_portfolio")?.value ?? 0 },
-    { name: "Member Deposits", value: getKpi("total_member_deposits")?.value ?? 0 },
+    { name: t("dashboard.coop.assets"), value: getKpi("total_assets")?.value ?? 0 },
+    { name: t("dashboard.coop.loans"), value: getKpi("gross_loan_portfolio")?.value ?? 0 },
+    { name: t("dashboard.coop.deposits"), value: getKpi("total_member_deposits")?.value ?? 0 },
   ];
 
   return (
     <AppShell
-      title="Cooperative Workspace"
-      subtitle={`${profile.name} · Upload data, track submissions, view analytics`}
+      title={t("dashboard.coop.title")}
+      subtitle={`${t("dashboard.coop.title")} · ${t("dashboard.coop.subtitleSuffix")}`}
       actions={
         <div className="flex items-center gap-2">
           <Link
@@ -181,7 +203,7 @@ export function CooperativeDashboard() {
             className="press-feedback hidden items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors sm:inline-flex"
           >
             <BarChart3 className="size-4 text-accent" />
-            View all statistics
+            {t("dashboard.apex.viewAllStats")}
           </Link>
         </div>
       }
@@ -202,36 +224,36 @@ export function CooperativeDashboard() {
           ) : (
             <>
               <StatCard
-                label="Total Submissions"
+                label={t("dashboard.coop.totalSubmissions")}
                 value={totalSubs.toString()}
-                subtitle="All data returns"
+                subtitle={t("dashboard.coop.allDataReturns")}
                 icon={Database}
                 tone="primary"
-                info="The total number of data submissions created across all time periods."
+                info={t("dashboard.coop.totalSubmissionsInfo")}
               />
               <StatCard
-                label="Pending"
+                label={t("dashboard.coop.pending")}
                 value={pendingSubs.toString()}
-                subtitle="Awaiting review"
+                subtitle={t("dashboard.coop.awaitingReview")}
                 icon={ShieldCheck}
                 tone="warning"
-                info="Submissions that have been filed but are pending review from Apex or Federation managers."
+                info={t("dashboard.coop.pendingInfo")}
               />
               <StatCard
-                label="Approved"
+                label={t("dashboard.coop.approved")}
                 value={approvedSubs.toString()}
-                subtitle="Finalized declarations"
+                subtitle={t("dashboard.coop.finalizedDeclarations")}
                 icon={CheckCircle2}
                 tone="success"
-                info="Submissions that have been fully reviewed and approved by the regulatory hierarchy."
+                info={t("dashboard.coop.approvedInfo")}
               />
               <StatCard
-                label="Rejected"
+                label={t("dashboard.coop.rejected")}
                 value={rejectedSubs.toString()}
-                subtitle="Requires correction"
+                subtitle={t("dashboard.coop.requiresCorrection")}
                 icon={TrendingDown}
                 tone="danger"
-                info="Submissions that failed validation and were returned for correction."
+                info={t("dashboard.coop.rejectedInfo")}
               />
             </>
           )}
@@ -239,9 +261,9 @@ export function CooperativeDashboard() {
 
         {/* ── Database Status Grid ── */}
         <Card
-          title="Database Status"
-          subtitle="Current state of your 5 cooperative databases"
-          info="Live record count of the entities currently registered within your cooperative's internal ledgers."
+          title={t("dashboard.coop.databaseStatus")}
+          subtitle={t("dashboard.coop.databaseStatusSub")}
+          info={t("dashboard.coop.databaseStatusInfo")}
         >
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {databaseStatus.map((db) => (
@@ -253,9 +275,9 @@ export function CooperativeDashboard() {
                   <db.icon className="size-4 text-foreground" />
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      db.status === "Current"
+                      db.statusKey === "Current"
                         ? "bg-success/10 text-success"
-                        : db.status === "Empty"
+                        : db.statusKey === "Empty"
                           ? "bg-muted text-muted-foreground"
                           : "bg-warning/10 text-warning-foreground"
                     }`}
@@ -266,7 +288,9 @@ export function CooperativeDashboard() {
                 <p className="font-heading text-lg font-bold text-foreground num">
                   {db.records.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{db.name} records</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {db.name} {t("dashboard.coop.records")}
+                </p>
               </div>
             ))}
           </div>
@@ -276,9 +300,9 @@ export function CooperativeDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             className="lg:col-span-2"
-            title="Portfolio Balance Overview"
-            subtitle="Assets vs Loans vs Deposits"
-            info="A comparative breakdown of your cooperative's core financial pillars, showing capitalization (Assets), capital deployment (Loans), and liquidity (Deposits)."
+            title={t("dashboard.coop.portfolioBalance")}
+            subtitle={t("dashboard.coop.portfolioBalanceSub")}
+            info={t("dashboard.coop.portfolioBalanceInfo")}
           >
             {kpisLoading ? (
               <div className="h-72 flex items-center justify-center">
@@ -314,7 +338,7 @@ export function CooperativeDashboard() {
                         fontSize: 12,
                         color: "var(--foreground)",
                       }}
-                      formatter={(val: number) => [`$${val.toLocaleString()}`, "Amount"]}
+                      formatter={(val: number) => [`$${val.toLocaleString()}`, t("common.amount")]}
                     />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {financialOverview.map((entry, index) => (
@@ -337,19 +361,17 @@ export function CooperativeDashboard() {
               <div className="h-72 flex flex-col items-center justify-center text-center text-muted-foreground gap-3">
                 <BarChart3 className="size-10 opacity-30" />
                 <div>
-                  <p className="text-sm font-semibold">No financial data yet</p>
-                  <p className="text-xs mt-1">
-                    Upload a financial statement to see your data here.
-                  </p>
+                  <p className="text-sm font-semibold">{t("dashboard.coop.noFinancialData")}</p>
+                  <p className="text-xs mt-1">{t("dashboard.coop.noFinancialDataSub")}</p>
                 </div>
               </div>
             )}
           </Card>
 
           <Card
-            title="Loan Portfolio Quality"
-            subtitle={kpisData ? "Derived from PAR ratios" : "No data yet"}
-            info="Distribution of your loan portfolio across performing and non-performing categories, derived from Portfolio at Risk (PAR) metrics."
+            title={t("dashboard.coop.portfolioQuality")}
+            subtitle={kpisData ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")}
+            info={t("dashboard.coop.portfolioQualityInfo")}
           >
             {kpisLoading ? (
               <div className="h-52 flex flex-col gap-3 pt-2">
@@ -412,7 +434,7 @@ export function CooperativeDashboard() {
             ) : (
               <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
                 <BarChart3 className="size-8 opacity-30" />
-                <p className="text-xs">Submit a financial statement to see loan quality data.</p>
+                <p className="text-xs">{t("dashboard.coop.submitFinancialStatement")}</p>
               </div>
             )}
           </Card>
@@ -421,16 +443,16 @@ export function CooperativeDashboard() {
         {/* ── Financial Growth Trend ── */}
         <div className="grid lg:grid-cols-1 gap-6">
           <Card
-            title="Financial Growth Trend"
-            subtitle="Assets, loans & savings over the reporting year"
-            info="Month-over-month trajectory of your cooperative's key financial balances, indicating growth and seasonal fluctuations."
+            title={t("dashboard.coop.growthTrend")}
+            subtitle={t("dashboard.coop.growthTrendSub")}
+            info={t("dashboard.coop.growthTrendInfo")}
           >
             {trendPoints.length > 0 ? (
               <CoopTrendAreaChart data={trendPoints} />
             ) : (
               <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-center gap-2">
                 <TrendingUp className="size-8 opacity-30" />
-                <p className="text-sm">No trend data available for the year.</p>
+                <p className="text-sm">{t("dashboard.coop.noTrendData")}</p>
               </div>
             )}
           </Card>
@@ -439,38 +461,38 @@ export function CooperativeDashboard() {
         {/* ── Charts Row 2: OSS + Membership counts from real data ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
-            title="Membership Summary"
-            subtitle="Total members in your cooperative database"
-            info="The total registered headcount of active members affiliated with this cooperative."
+            title={t("dashboard.coop.membershipSummary")}
+            subtitle={t("dashboard.coop.membershipSummarySub")}
+            info={t("dashboard.coop.membershipSummaryInfo")}
           >
             <div className="flex flex-col gap-4 pt-2">
               {(membersData?.total ?? 0) > 0 ? (
                 <>
                   <div className="rounded-xl border border-border bg-surface p-5">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Total Members
+                      {t("dashboard.coop.membershipSummarySub")}
                     </p>
                     <p className="font-heading text-3xl font-bold text-foreground num mt-1">
                       {(membersData?.total ?? 0).toLocaleString()}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground text-center">
-                    Demographic breakdown available in Data Collection.
+                    {t("dashboard.coop.demographicBreakdown")}
                   </p>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
                   <Users className="size-8 opacity-30" />
-                  <p className="text-xs">No membership records uploaded yet.</p>
+                  <p className="text-xs">{t("dashboard.coop.noMembership")}</p>
                 </div>
               )}
             </div>
           </Card>
 
           <Card
-            title="Database Coverage"
-            subtitle="Records across all 5 databases"
-            info="A summary of the record counts present across all five required non-financial ledgers."
+            title={t("dashboard.coop.dbCoverage")}
+            subtitle={t("dashboard.coop.dbCoverageSub")}
+            info={t("dashboard.coop.dbCoverageInfo")}
           >
             <div className="flex flex-col gap-2 pt-2">
               {databaseStatus.map((db) => {
@@ -493,9 +515,9 @@ export function CooperativeDashboard() {
           </Card>
 
           <Card
-            title="Operational Self-Sufficiency"
-            subtitle={kpisData ? "Income vs operating expenses" : "No data yet"}
-            info="Measures the extent to which operating revenues cover operating expenses. A value above 100% indicates profitability."
+            title={t("dashboard.coop.oss")}
+            subtitle={kpisData ? t("dashboard.coop.ossSub") : t("dashboard.coop.noData")}
+            info={t("dashboard.coop.ossInfo")}
           >
             {kpisLoading ? (
               <div className="h-52 flex flex-col items-center gap-3 pt-4">
@@ -545,18 +567,20 @@ export function CooperativeDashboard() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {ossValue >= 110
-                      ? "Fully self-sufficient"
+                      ? t("dashboard.coop.fullySelfSufficient")
                       : ossValue >= 100
-                        ? "Breaking even"
-                        : "Below self-sufficiency"}
+                        ? t("dashboard.coop.breakingEven")
+                        : t("dashboard.coop.belowSelfSufficiency")}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Benchmark: 110%</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {t("dashboard.coop.benchmarkOss")}
+                  </p>
                 </div>
               </>
             ) : (
               <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
                 <ShieldCheck className="size-8 opacity-30" />
-                <p className="text-xs">Submit a financial statement to see OSS data.</p>
+                <p className="text-xs">{t("dashboard.coop.submitStatementOss")}</p>
               </div>
             )}
           </Card>
@@ -564,13 +588,16 @@ export function CooperativeDashboard() {
 
         {/* ── Key Financial Metrics (real KPI data) ── */}
         <Card
-          title="Key Financial Metrics"
+          title={t("dashboard.coop.keyMetrics")}
           subtitle={
             latestSubmission
-              ? `From your ${latestSubmission.reporting_year} submission · ${latestSubmission.status}`
-              : "Extracted from your latest financial statement"
+              ? t("dashboard.coop.keyMetricsSub", {
+                  year: latestSubmission.reporting_year,
+                  status: statusLabel(latestSubmission.status),
+                })
+              : t("dashboard.coop.keyMetricsSubFallback")
           }
-          info="A curated snapshot of critical financial and regulatory compliance indicators drawn from the most recent financial statement."
+          info={t("dashboard.coop.keyMetricsInfo")}
         >
           {kpisLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -589,13 +616,13 @@ export function CooperativeDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {(
                 [
-                  { label: "Total Assets", kpiName: "total_assets" },
-                  { label: "Gross Loans", kpiName: "gross_loan_portfolio" },
-                  { label: "Member Deposits", kpiName: "total_member_deposits" },
-                  { label: "Net Surplus", kpiName: "net_surplus" },
-                  { label: "NPL Ratio", kpiName: "npl_ratio" },
+                  { label: t("dashboard.coop.assets"), kpiName: "total_assets" },
+                  { label: t("dashboard.coop.loans"), kpiName: "gross_loan_portfolio" },
+                  { label: t("dashboard.coop.deposits"), kpiName: "total_member_deposits" },
+                  { label: t("dashboard.coop.netSurplus"), kpiName: "net_surplus" },
+                  { label: t("dashboard.coop.nplRatio"), kpiName: "npl_ratio" },
                   {
-                    label: "Capital Adequacy",
+                    label: t("dashboard.coop.capitalAdequacy"),
                     kpiName: "capital_adequacy_ratio",
                   },
                 ] as const
@@ -625,7 +652,7 @@ export function CooperativeDashboard() {
                         </p>
                         {kpi.benchmark !== undefined && (
                           <p className="text-[10px] text-muted-foreground mt-1">
-                            Benchmark:{" "}
+                            {t("common.benchmark")}:{" "}
                             {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
                           </p>
                         )}
@@ -642,18 +669,18 @@ export function CooperativeDashboard() {
 
         {/* ── Submission History ── */}
         <Card
-          title="Submission History"
-          subtitle="Track review cycle statuses on your filings"
-          info="A chronological log of all past and present data declarations, their reference numbers, and their current position in the approval workflow."
+          title={t("dashboard.coop.history")}
+          subtitle={t("dashboard.coop.historySub")}
+          info={t("dashboard.coop.historyInfo")}
         >
           <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3">Reference</th>
-                  <th className="px-5 py-3">Year</th>
-                  <th className="px-5 py-3">Filed On</th>
-                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">{t("dashboard.coop.colReference")}</th>
+                  <th className="px-5 py-3">{t("dashboard.coop.colYear")}</th>
+                  <th className="px-5 py-3">{t("dashboard.coop.colFiledOn")}</th>
+                  <th className="px-5 py-3">{t("dashboard.coop.colStatus")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -677,8 +704,8 @@ export function CooperativeDashboard() {
                 ) : realSubmissions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      <p className="text-sm font-semibold">No submissions yet</p>
-                      <p className="text-xs mt-1">Create a new submission to get started.</p>
+                      <p className="text-sm font-semibold">{t("dashboard.apex.noSubmissions")}</p>
+                      <p className="text-xs mt-1">{t("dashboard.coop.noSubmissionsSub")}</p>
                     </td>
                   </tr>
                 ) : (

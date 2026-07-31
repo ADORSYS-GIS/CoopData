@@ -5,6 +5,7 @@ import type {
   OtherAssets,
 } from "@/lib/financial-data";
 import { DollarSign, Calculator } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface AssetsSectionProps {
   liquidAssets: LiquidAssets;
@@ -33,6 +34,7 @@ export function AssetsSection({
   onChange,
   totals,
 }: AssetsSectionProps) {
+  const { t } = useTranslation();
   const formatNumber = (n: number) => n.toLocaleString();
 
   const handleNumberInput = (
@@ -52,12 +54,12 @@ export function AssetsSection({
           <span className="size-6 rounded-lg bg-accent/10 text-accent grid place-items-center text-xs font-bold">
             1100
           </span>
-          Liquid Assets
+          {t("financial.liquidAssets")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Cash on Hand (1101)
+              {t("financial.cashOnHand")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -72,7 +74,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Cash at Bank - Current (1102)
+              {t("financial.cashAtBankCurrent")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -89,7 +91,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Cash at Bank - Savings (1103)
+              {t("financial.cashAtBankSavings")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -106,7 +108,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Short-term Investments (1104)
+              {t("financial.shortTermInvestments")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -123,7 +125,7 @@ export function AssetsSection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Liquid Assets:</span>
+          <span className="text-muted-foreground">{t("financial.totalLiquidAssets")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalLiquidAssets)}
           </span>
@@ -136,12 +138,12 @@ export function AssetsSection({
           <span className="size-6 rounded-lg bg-info/10 text-info grid place-items-center text-xs font-bold">
             1200
           </span>
-          Loans & Advances to Members
+          {t("financial.loansAdvancesToMembers")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Performing Loan Portfolio (1201)
+              {t("financial.performingLoanPortfolio")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -158,7 +160,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Loans in Arrears 1-30 Days (1202)
+              {t("financial.loansInArrears1_30")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -175,7 +177,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Loans in Arrears 31-60 Days (1203)
+              {t("financial.loansInArrears31_60")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -192,7 +194,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Loans in Arrears 61-90 Days (1204)
+              {t("financial.loansInArrears61_90")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -209,7 +211,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Non-Performing Loans &gt;90 Days (1205)
+              {t("financial.nonPerformingLoans")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -227,7 +229,7 @@ export function AssetsSection({
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <Calculator className="size-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Gross Loan Portfolio:</span>
+          <span className="text-muted-foreground">{t("financial.grossLoanPortfolio")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.grossLoanPortfolio)}
           </span>
@@ -240,12 +242,12 @@ export function AssetsSection({
           <span className="size-6 rounded-lg bg-warning/15 text-warning-foreground grid place-items-center text-xs font-bold">
             1250
           </span>
-          Allowance for Loan Losses
+          {t("financial.allowanceForLoanLosses")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              General Loan Loss Provision (1251)
+              {t("financial.generalLoanLossProvision")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -266,7 +268,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Specific Loan Loss Provision (1252)
+              {t("financial.specificLoanLossProvision")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -287,7 +289,7 @@ export function AssetsSection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Loan Loss Provisions:</span>
+          <span className="text-muted-foreground">{t("financial.totalLoanLossProvisions")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalLoanLossProvisions)}
           </span>
@@ -300,12 +302,12 @@ export function AssetsSection({
           <span className="size-6 rounded-lg bg-success/10 text-success grid place-items-center text-xs font-bold">
             1300
           </span>
-          Other Assets
+          {t("financial.otherAssets")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Accounts Receivable (1301)
+              {t("financial.accountsReceivable")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -322,7 +324,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Prepaid Expenses (1302)
+              {t("financial.prepaidExpenses")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -339,7 +341,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Fixed Assets - Cost (1303)
+              {t("financial.fixedAssetsCost")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -356,8 +358,8 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Accumulated Depreciation (1304)
-              <span className="text-destructive ml-1">(negative)</span>
+              {t("financial.accumulatedDepreciation")}
+              <span className="text-destructive ml-1">({t("financial.negative")})</span>
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -375,7 +377,7 @@ export function AssetsSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Intangible Assets (1305)
+              {t("financial.intangibleAssets")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -392,7 +394,7 @@ export function AssetsSection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Other Assets:</span>
+          <span className="text-muted-foreground">{t("financial.totalOtherAssets")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalOtherAssets)}
           </span>
@@ -405,7 +407,7 @@ export function AssetsSection({
           <span className="size-8 rounded-lg bg-primary text-primary-foreground grid place-items-center text-sm font-bold">
             1999
           </span>
-          <span className="font-semibold text-foreground">TOTAL ASSETS</span>
+          <span className="font-semibold text-foreground">{t("financial.totalAssets")}</span>
         </div>
         <span className="text-xl font-bold text-foreground">
           ${formatNumber(totals.totalAssets)}

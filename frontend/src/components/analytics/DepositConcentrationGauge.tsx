@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { FixedDepositStats } from "@/hooks/analytics/useNfStatistics";
 
 interface Props {
@@ -6,11 +7,13 @@ interface Props {
 }
 
 export function DepositConcentrationGauge({ stats }: Props) {
+  const { t } = useTranslation();
+
   // If no fixed deposits, show empty state
   if (stats.total_fds === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-        No term deposits data available
+        {t("analytics.concentrationNoData")}
       </div>
     );
   }
@@ -28,8 +31,8 @@ export function DepositConcentrationGauge({ stats }: Props) {
   const bgColor = "var(--muted)";
 
   const data = [
-    { name: "Top 5% Depositors", value: safeRisk },
-    { name: "Other Depositors", value: remaining },
+    { name: t("analytics.concentrationTop5"), value: safeRisk },
+    { name: t("analytics.concentrationOther"), value: remaining },
   ];
 
   return (
@@ -54,7 +57,7 @@ export function DepositConcentrationGauge({ stats }: Props) {
               <Cell key="rest" fill={bgColor} />
             </Pie>
             <Tooltip
-              formatter={(val: number) => [`${val.toFixed(1)}%`, "Concentration"]}
+              formatter={(val: number) => [`${val.toFixed(1)}%`, t("analytics.concentrationLabel")]}
               contentStyle={{
                 borderRadius: "8px",
                 border: "1px solid var(--border)",
@@ -67,13 +70,12 @@ export function DepositConcentrationGauge({ stats }: Props) {
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pb-4">
           <span className="text-3xl font-black text-foreground num">{safeRisk.toFixed(1)}%</span>
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Concentration Risk
+            {t("analytics.concentrationRisk")}
           </span>
         </div>
       </div>
       <div className="text-center mt-2 max-w-xs text-xs text-muted-foreground leading-relaxed">
-        Percentage of total term deposits held by the top 5% of members. A high number implies
-        liquidity risk.
+        {t("analytics.concentrationDesc")}
       </div>
     </div>
   );

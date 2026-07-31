@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "react-i18next";
 
 interface VariableDef {
   name: string;
@@ -73,25 +74,16 @@ const CATEGORY_COLORS: Record<string, string> = {
     "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  assets: "Assets (Raw)",
-  liabilities: "Liabilities (Raw)",
-  equity: "Equity (Raw)",
-  income: "Income (Raw)",
-  expenses: "Expenses (Raw)",
-  governance: "Governance & Compliance",
-  membership: "Membership Stats",
-  other: "Other Indicators",
-};
-
-const OPERATORS = [
-  { symbol: "+", icon: PlusIcon, label: "Add" },
-  { symbol: "-", icon: Minus, label: "Subtract" },
-  { symbol: "*", icon: XIcon, label: "Multiply" },
-  { symbol: "/", icon: Divide, label: "Divide" },
-  { symbol: "(", icon: null, label: "(" },
-  { symbol: ")", icon: null, label: ")" },
-];
+const CATEGORIES = [
+  "assets",
+  "liabilities",
+  "equity",
+  "income",
+  "expenses",
+  "governance",
+  "membership",
+  "other",
+] as const;
 
 export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   isOpen,
@@ -105,6 +97,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   evaluateFormula,
   isSaving,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [formula, setFormula] = useState("");
@@ -116,7 +109,26 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("assets");
 
-  // Sync state with props when dialog state changes
+  const CATEGORY_LABELS: Record<string, string> = {
+    assets: t("analytics.catAssets"),
+    liabilities: t("analytics.catLiabilities"),
+    equity: t("analytics.catEquity"),
+    income: t("analytics.catIncome"),
+    expenses: t("analytics.catExpenses"),
+    governance: t("analytics.catGovernance"),
+    membership: t("analytics.catMembership"),
+    other: t("analytics.catOther"),
+  };
+
+  const OPERATORS = [
+    { symbol: "+", icon: PlusIcon, label: t("analytics.opAdd") },
+    { symbol: "-", icon: Minus, label: t("analytics.opSubtract") },
+    { symbol: "*", icon: XIcon, label: t("analytics.opMultiply") },
+    { symbol: "/", icon: Divide, label: t("analytics.opDivide") },
+    { symbol: "(", icon: null, label: "(" },
+    { symbol: ")", icon: null, label: ")" },
+  ];
+
   useEffect(() => {
     if (isOpen) {
       setName(initialName);
@@ -133,7 +145,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
       const result = await evaluateFormula(formula);
       setTestResult(result ?? null);
     } catch {
-      setTestResult({ is_valid: false, value: 0, error: "Network error during evaluation" });
+      setTestResult({ is_valid: false, value: 0, error: t("analytics.evalNetworkError") });
     } finally {
       setIsEvaluating(false);
     }
@@ -155,7 +167,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
     setFormula((prev) => {
       const trimmed = prev.trimEnd();
       const needsSpace = trimmed.length > 0 && op !== "(";
-      return (needsSpace ? trimmed + " " : trimmed) + op + (op === ")" ? " " : " ");
+      return (needsSpace ? trimmed + " " : trimmed) + op + " ";
     });
   };
 
@@ -174,22 +186,19 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-blue-950 font-bold">
             <Calculator className="h-5 w-5 text-blue-600" />
-            {editingKpiId ? "Edit Custom KPI Formula" : "Create Custom KPI Formula"}
+            {editingKpiId ? t("analytics.editKpiFormula") : t("analytics.createKpiFormula")}
           </DialogTitle>
-          <DialogDescription>
-            Build a mathematical formula using existing system variables. Combine KPIs with basic
-            operations.
-          </DialogDescription>
+          <DialogDescription>{t("analytics.kpiFormulaDesc")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-5 py-4">
           <div className="grid gap-2">
             <Label htmlFor="dialog-kpi-name" className="text-sm font-semibold">
-              Indicator Name
+              {t("analytics.indicatorName")}
             </Label>
             <Input
               id="dialog-kpi-name"
-              placeholder="e.g. Adjusted Equity Ratio"
+              placeholder={t("analytics.formulaNamePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="border-blue-200 focus-visible:ring-blue-500 rounded-xl"
@@ -197,11 +206,12 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="dialog-kpi-description" className="text-sm font-semibold">
-              Description <span className="text-muted-foreground font-normal">(Optional)</span>
+              {t("analytics.description")}{" "}
+              <span className="text-muted-foreground font-normal">{t("analytics.optional")}</span>
             </Label>
             <Textarea
               id="dialog-kpi-description"
-              placeholder="Explain what this metric calculates and why it matters..."
+              placeholder={t("analytics.formulaDescPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
@@ -209,23 +219,11 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             />
           </div>
 
-          {/* Variable selection tabs */}
           <div className="grid gap-2">
-            <Label className="text-sm font-semibold">Available Variables</Label>
+            <Label className="text-sm font-semibold">{t("analytics.availableVariables")}</Label>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full flex-wrap justify-start gap-1 bg-slate-50 dark:bg-slate-900 p-1 rounded-xl h-auto border border-slate-100">
-                {(
-                  [
-                    "assets",
-                    "liabilities",
-                    "equity",
-                    "income",
-                    "expenses",
-                    "governance",
-                    "membership",
-                    "other",
-                  ] as const
-                ).map((cat) => (
+                {CATEGORIES.map((cat) => (
                   <TabsTrigger
                     key={cat}
                     value={cat}
@@ -235,18 +233,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                   </TabsTrigger>
                 ))}
               </TabsList>
-              {(
-                [
-                  "assets",
-                  "liabilities",
-                  "equity",
-                  "income",
-                  "expenses",
-                  "governance",
-                  "membership",
-                  "other",
-                ] as const
-              ).map((cat) => (
+              {CATEGORIES.map((cat) => (
                 <TabsContent key={cat} value={cat} className="mt-2 outline-none">
                   <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 border border-blue-100 rounded-xl bg-slate-50/50">
                     {allVariables
@@ -284,9 +271,8 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             </Tabs>
           </div>
 
-          {/* Operators row */}
           <div className="grid gap-2">
-            <Label className="text-sm font-semibold">Quick Operators</Label>
+            <Label className="text-sm font-semibold">{t("analytics.quickOperators")}</Label>
             <div className="flex flex-wrap gap-1.5">
               {OPERATORS.map((op) => (
                 <Button
@@ -302,11 +288,10 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             </div>
           </div>
 
-          {/* Formula Input */}
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="dialog-formula-editor" className="text-sm font-semibold">
-                Mathematical Formula
+                {t("analytics.mathematicalFormula")}
               </Label>
               <Button
                 variant="ghost"
@@ -314,14 +299,14 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                 className="h-6 text-xs text-muted-foreground hover:bg-blue-50 rounded-lg"
                 onClick={() => setFormula("")}
               >
-                Clear
+                {t("analytics.clear")}
               </Button>
             </div>
             <div className="relative">
               <Textarea
                 id="dialog-formula-editor"
                 className="font-mono text-sm min-h-[60px] border-blue-200 focus-visible:ring-blue-500 pr-8 rounded-xl"
-                placeholder="e.g. total_equity / total_assets * 100"
+                placeholder={t("analytics.formulaPlaceholder")}
                 value={formula}
                 onChange={(e) => setFormula(e.target.value)}
               />
@@ -346,12 +331,10 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               </div>
             )}
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-              <Info className="h-3.5 w-3.5 text-blue-500" /> Use standard math operators: +, -, *,
-              /, (, )
+              <Info className="h-3.5 w-3.5 text-blue-500" /> {t("analytics.mathOperatorsHint")}
             </p>
           </div>
 
-          {/* Test Button and results */}
           <div className="flex items-center gap-3">
             <Button
               variant="secondary"
@@ -364,7 +347,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               ) : (
                 <BarChart3 className="mr-2 h-4 w-4" />
               )}
-              Test Formula Syntax
+              {t("analytics.testFormulaSyntax")}
             </Button>
             {testResult && (
               <div
@@ -377,12 +360,12 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                 {testResult.is_valid ? (
                   <>
                     <Check className="h-4 w-4 text-emerald-600" />
-                    Valid (Test Result: {testResult.value.toFixed(2)})
+                    {t("analytics.validTestResult", { value: testResult.value.toFixed(2) })}
                   </>
                 ) : (
                   <>
                     <X className="h-4 w-4 text-red-600" />
-                    {testResult.error || "Syntax error"}
+                    {testResult.error || t("analytics.syntaxError")}
                   </>
                 )}
               </div>
@@ -392,7 +375,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} className="rounded-xl">
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={handleSaveClick}
@@ -404,7 +387,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
             )}
-            {editingKpiId ? "Save Changes" : "Save Custom KPI"}
+            {editingKpiId ? t("analytics.saveChanges") : t("analytics.saveCustomKpi")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface TrendDataPoint {
   month: string;
@@ -23,6 +24,7 @@ interface PortfolioOverviewChartProps {
 }
 
 export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
+  const { t } = useTranslation();
   const [range, setRange] = useState<"1D" | "5D" | "1M" | "1Y">("1Y");
 
   // Format Y-axis ticks in thousands or millions
@@ -45,7 +47,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-            Portfolio Overview
+            {t("analytics.portfolioOverview")}
           </span>
           <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
             ${(totalBalance / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K
@@ -132,7 +134,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               yAxisId="left"
               type="monotone"
               dataKey="liquidity"
-              name="Savings (Liquid Funds)"
+              name={t("analytics.savingsLiquidFunds")}
               stroke="#3b82f6"
               strokeWidth={2}
               strokeDasharray="4 4"
@@ -144,7 +146,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               yAxisId="left"
               type="monotone"
               dataKey="loans"
-              name="Loans"
+              name={t("analytics.loansLabel")}
               stroke="#10b981"
               strokeWidth={2}
               strokeDasharray="4 4"
@@ -156,7 +158,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               yAxisId="right"
               type="monotone"
               dataKey="savings"
-              name="Deposits"
+              name={t("analytics.depositsLabel")}
               stroke="#f59e0b"
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}

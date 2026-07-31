@@ -1,5 +1,6 @@
 import type { FinancialIncome, OtherIncome } from "@/lib/financial-data";
 import { DollarSign, Calculator } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface IncomeSectionProps {
   financialIncome: FinancialIncome;
@@ -18,6 +19,7 @@ export function IncomeSection({
   onChange,
   totals,
 }: IncomeSectionProps) {
+  const { t } = useTranslation();
   const formatNumber = (n: number) => n.toLocaleString();
 
   const handleNumberInput = (
@@ -37,12 +39,12 @@ export function IncomeSection({
           <span className="size-6 rounded-lg bg-success/10 text-success grid place-items-center text-xs font-bold">
             4100
           </span>
-          Financial Income
+          {t("financial.financialIncome")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Interest Income on Loans (4101)
+              {t("financial.interestIncomeLoans")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -59,7 +61,7 @@ export function IncomeSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Fees & Commissions Income (4102)
+              {t("financial.feesCommissionsIncome")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -77,7 +79,7 @@ export function IncomeSection({
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <Calculator className="size-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Total Financial Income:</span>
+          <span className="text-muted-foreground">{t("financial.totalFinancialIncome")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalFinancialIncome)}
           </span>
@@ -90,12 +92,12 @@ export function IncomeSection({
           <span className="size-6 rounded-lg bg-info/10 text-info grid place-items-center text-xs font-bold">
             4200
           </span>
-          Other Income
+          {t("financial.otherIncome")}
         </h4>
         <div className="grid grid-cols-1 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Other Operating Income (4201)
+              {t("financial.otherOperatingIncome")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -112,7 +114,7 @@ export function IncomeSection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Other Income:</span>
+          <span className="text-muted-foreground">{t("financial.totalOtherIncome")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalOtherIncome)}
           </span>
@@ -125,7 +127,7 @@ export function IncomeSection({
           <span className="size-8 rounded-lg bg-success text-success-foreground grid place-items-center text-sm font-bold">
             4999
           </span>
-          <span className="font-semibold text-foreground">TOTAL INCOME</span>
+          <span className="font-semibold text-foreground">{t("financial.totalIncome")}</span>
         </div>
         <span className="text-xl font-bold text-success">${formatNumber(totals.totalIncome)}</span>
       </div>
