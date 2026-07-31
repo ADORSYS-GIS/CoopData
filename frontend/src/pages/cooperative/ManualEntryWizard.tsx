@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import {
@@ -27,7 +26,9 @@ import {
 } from "@/hooks/submissions/useManualEntry";
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
-import { getAccessToken } from "@/services/shared/authService";
+import { useSubmission } from "@/hooks/submissions/useSubmissions";
+import { apiClient } from "@/openapi-client";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { MemberRecord } from "@/lib/financial-data";
 
 // Import types & helpers from manual-entry/ sub-directory
@@ -42,33 +43,34 @@ import type {
 import {
   fmt,
   createEmptyFarmCoop,
-  generateMockFinancialGrid,
   ACTIVE_ACCOUNT_CODES,
   ACCOUNT_METADATA,
   createEmptyFinancialGrid,
-  generateMockNonFinancialData,
   mapAgeGroup,
   mapAgeGroupToFrontend,
   mapDpdCategory,
   mapDpdCategoryToFrontend,
 } from "./manual-entry/helpers";
+import {
+  generateMockFinancialGrid,
+  generateMockNonFinancialData,
+} from "./manual-entry/mockData";
 
 // Import subcomponents
-import { MemberRow } from "./manual-entry/MemberRow";
-import { SavingsRow } from "./manual-entry/SavingsRow";
-import { LoanRow } from "./manual-entry/LoanRow";
-import { FixedDepositRow } from "./manual-entry/FixedDepositRow";
 import { FarmCoopForm } from "./manual-entry/FarmCoopForm";
 import { ReviewSummary } from "./manual-entry/ReviewSummary";
 import { FinancialExcelGrid } from "./manual-entry/FinancialExcelGrid";
+import { MembersStep } from "./manual-entry/MembersStep";
+import { SavingsStep } from "./manual-entry/SavingsStep";
+import { LoansStep } from "./manual-entry/LoansStep";
+import { DepositsStep } from "./manual-entry/DepositsStep";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export function ManualEntryWizard() {
   const { id: submissionId } = useParams({ from: Route.id });
   const navigate = useNavigate();
 
-  const { data: submission } = useSubmission(submissionId);
+  const { data: submission, isLoading: isSubmissionLoading } = useSubmission(submissionId);
 
   const search = Route.useSearch();
   const initialStep = search.step || "financial";
@@ -115,102 +117,126 @@ export function ManualEntryWizard() {
   const deleteNonFinancialData = useDeleteManualNonFinancialData(submissionId);
 
   // ── Existing Data Query Loaders ──
-  const { data: existingLineItems } = useQuery({
+  const { data: existingLineItems, isLoading: existingLineItemsLoading } = useQuery({
     queryKey: ["submission-line-items", submission?.financial_statement_id],
     queryFn: async () => {
       if (!submission?.financial_statement_id) return null;
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/financial-statements/${submission.financial_statement_id}/line-items`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/financial-statements/{id}/line-items",
         {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+          params: { path: { id: submission.financial_statement_id } },
+        }
       );
-      if (!r.ok) throw new Error("Failed to fetch existing line items");
-      return r.json() as Promise<{ account_code: number | null; value: number; month: number }[]>;
+      if (error) throw new Error((error as any).message || "Failed to fetch existing line items");
+      return data;
     },
     enabled: !!submission?.financial_statement_id && isFinancialWizard,
   });
 
-  const { data: existingMembers } = useQuery({
+  const { data: existingMembers, isLoading: existingMembersLoading } = useQuery({
     queryKey: ["manual-entry-members", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/members?submission_id=${submissionId}&limit=1000`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/non-financial/members",
         {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+          params: {
+            query: {
+              submission_id: submissionId,
+              page_size: 1000,
+            },
+          },
+        }
       );
-      if (!r.ok) throw new Error("Failed to fetch existing members");
-      return r.json() as Promise<{ items: any[] }>;
+      if (error) throw new Error((error as any).message || "Failed to fetch existing members");
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingSavings } = useQuery({
+  const { data: existingSavings, isLoading: existingSavingsLoading } = useQuery({
     queryKey: ["manual-entry-savings", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/savings?submission_id=${submissionId}&limit=1000`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/non-financial/savings",
         {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+          params: {
+            query: {
+              submission_id: submissionId,
+              page_size: 1000,
+            },
+          },
+        }
       );
-      if (!r.ok) throw new Error("Failed to fetch existing savings accounts");
-      return r.json() as Promise<{ items: any[] }>;
+      if (error) throw new Error((error as any).message || "Failed to fetch existing savings accounts");
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingLoans } = useQuery({
+  const { data: existingLoans, isLoading: existingLoansLoading } = useQuery({
     queryKey: ["manual-entry-loans", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/loans?submission_id=${submissionId}&limit=1000`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/non-financial/loans",
         {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+          params: {
+            query: {
+              submission_id: submissionId,
+              page_size: 1000,
+            },
+          },
+        }
       );
-      if (!r.ok) throw new Error("Failed to fetch existing loans");
-      return r.json() as Promise<{ items: any[] }>;
+      if (error) throw new Error((error as any).message || "Failed to fetch existing loans");
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingDeposits } = useQuery({
+  const { data: existingDeposits, isLoading: existingDepositsLoading } = useQuery({
     queryKey: ["manual-entry-deposits", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/fixed-deposits?submission_id=${submissionId}&limit=1000`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/non-financial/fixed-deposits",
         {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+          params: {
+            query: {
+              submission_id: submissionId,
+              page_size: 1000,
+            },
+          },
+        }
       );
-      if (!r.ok) throw new Error("Failed to fetch existing fixed deposits");
-      return r.json() as Promise<{ items: any[] }>;
+      if (error) throw new Error((error as any).message || "Failed to fetch existing fixed deposits");
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingFarm } = useQuery({
+  const { data: existingFarm, isLoading: existingFarmLoading } = useQuery({
     queryKey: ["manual-entry-farm", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/farm-coop?submission_id=${submissionId}&limit=10`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/non-financial/farm-coop",
         {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+          params: {
+            query: {
+              submission_id: submissionId,
+              page_size: 10,
+            },
+          },
+        }
       );
-      if (!r.ok) throw new Error("Failed to fetch existing farm profile");
-      return r.json() as Promise<{ items: any[] }>;
+      if (error) throw new Error((error as any).message || "Failed to fetch existing farm profile");
+      return data;
     },
     enabled: !isFinancialWizard,
   });
+
+  const isDataLoading = isSubmissionLoading || 
+    (isFinancialWizard 
+      ? (submission?.financial_statement_id ? existingLineItemsLoading : false)
+      : (existingMembersLoading || existingSavingsLoading || existingLoansLoading || existingDepositsLoading || existingFarmLoading));
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
@@ -226,9 +252,10 @@ export function ManualEntryWizard() {
   }, [existingLineItems]);
 
   useEffect(() => {
-    if (existingMembers?.items) {
+    const list = existingMembers?.data || (existingMembers as any)?.items;
+    if (list) {
       setMembers(
-        existingMembers.items.map((m: any) => ({
+        list.map((m: any) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberId: m.member_id,
           joinDate: m.join_date,
@@ -246,9 +273,10 @@ export function ManualEntryWizard() {
   }, [existingMembers]);
 
   useEffect(() => {
-    if (existingSavings?.items) {
+    const list = existingSavings?.data || (existingSavings as any)?.items;
+    if (list) {
       setSavings(
-        existingSavings.items.map((s: any) => ({
+        list.map((s: any) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberBusinessId: s.member_business_id || "",
           savingsAccountId: s.savings_account_id,
@@ -270,9 +298,10 @@ export function ManualEntryWizard() {
   }, [existingSavings]);
 
   useEffect(() => {
-    if (existingLoans?.items) {
+    const list = existingLoans?.data || (existingLoans as any)?.items;
+    if (list) {
       setLoans(
-        existingLoans.items.map((l: any) => ({
+        list.map((l: any) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberBusinessId: l.member_business_id || "",
           loanId: l.loan_id,
@@ -301,9 +330,10 @@ export function ManualEntryWizard() {
   }, [existingLoans]);
 
   useEffect(() => {
-    if (existingDeposits?.items) {
+    const list = existingDeposits?.data || (existingDeposits as any)?.items;
+    if (list) {
       setFixedDeposits(
-        existingDeposits.items.map((f: any) => ({
+        list.map((f: any) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberBusinessId: f.member_business_id || "",
           fixedDepositId: f.fixed_deposit_id,
@@ -326,8 +356,9 @@ export function ManualEntryWizard() {
   }, [existingDeposits]);
 
   useEffect(() => {
-    if (existingFarm?.items?.[0]) {
-      const f = existingFarm.items[0];
+    const list = existingFarm?.data || (existingFarm as any)?.items;
+    if (list?.[0]) {
+      const f = list[0];
       setFarmCoop({
         cooperativeType: f.cooperative_type,
         primaryActivities: f.primary_activities,
@@ -987,6 +1018,19 @@ export function ManualEntryWizard() {
   const isDeletingFS = deleteFinancialStatement.isPending;
   const isDeletingNF = deleteNonFinancialData.isPending;
 
+  if (isDataLoading) {
+    return (
+      <AppShell
+        title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
+      >
+        <div className="max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center space-y-4 font-sans">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground font-medium">Loading manual entry data...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
@@ -1077,15 +1121,17 @@ export function ManualEntryWizard() {
                   <option value="fiscal">Fiscal Year (Jul–Jun)</option>
                 </select>
               </div>
-              <button
-                onClick={() => {
-                  setFinancialData(generateMockFinancialGrid());
-                  toast.success("Test financial statement grid populated!");
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
-              >
-                🧪 Populate Test Data
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  onClick={() => {
+                    setFinancialData(generateMockFinancialGrid());
+                    toast.success("Test financial statement grid populated!");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
+                >
+                  🧪 Populate Test Data
+                </button>
+              )}
               {submission?.financial_statement_id && (
                 <button
                   onClick={handleDeleteFinancial}
@@ -1127,22 +1173,24 @@ export function ManualEntryWizard() {
 
           {!isFinancialWizard && (
             <div className="ml-auto flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const mock = generateMockNonFinancialData();
-                  setMembers(mock.members);
-                  setSavings(mock.savings);
-                  setLoans(mock.loans);
-                  setFixedDeposits(mock.fixedDeposits);
-                  setFarmCoop(mock.farmCoop);
-                  toast.success(
-                    "Test databases (membership, savings, loans, deposits, and farm profile) populated!",
-                  );
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
-              >
-                🧪 Populate Test Databases
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  onClick={() => {
+                    const mock = generateMockNonFinancialData();
+                    setMembers(mock.members);
+                    setSavings(mock.savings);
+                    setLoans(mock.loans);
+                    setFixedDeposits(mock.fixedDeposits);
+                    setFarmCoop(mock.farmCoop);
+                    toast.success(
+                      "Test databases (membership, savings, loans, deposits, and farm profile) populated!",
+                    );
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
+                >
+                  🧪 Populate Test Databases
+                </button>
+              )}
               <button
                 onClick={handleDeleteNonFinancial}
                 disabled={isDeletingNF}
@@ -1161,407 +1209,84 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Financial Statement ──────────────────────────────────── */}
         {step === "financial" && (
-          <Card className="p-6">
-            <FinancialExcelGrid
-              accountingYear={accountingYear}
-              currency={currency}
-              financialData={financialData}
-              onChange={handleFinancialCellChange}
-            />
-          </Card>
+          <ErrorBoundary stepName="Financial Statement Step">
+            <Card className="p-6">
+              <FinancialExcelGrid
+                accountingYear={accountingYear}
+                currency={currency}
+                financialData={financialData}
+                onChange={handleFinancialCellChange}
+              />
+            </Card>
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Members ─────────────────────────────────────────────── */}
         {step === "members" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Membership Register</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Define members first so they can be referenced in savings, loans and deposit
-                  ledgers.
-                </p>
-              </div>
-              <button
-                onClick={addMember}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors animate-pulse-subtle"
-              >
-                + Add Member
-              </button>
-            </div>
-
-            {members.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <Users className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No members yet</p>
-                <p className="text-xs mt-1">
-                  Click "+ Add Member" to begin entering member records
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1000px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Join Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Gender
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Age Group
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                        Region
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Urban/Rural
-                      </th>
-                      <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                        AGM Attendance
-                      </th>
-                      <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                        Voted
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((m, i) => (
-                      <MemberRow
-                        key={m._rowKey}
-                        member={m}
-                        idx={i}
-                        onUpdate={updateMember}
-                        onRemove={removeMember}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {members.length} row{members.length !== 1 ? "s" : ""}
-              </span>
-              <button onClick={addMember} className="text-primary hover:underline font-medium">
-                + Add another member
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Members Register Step">
+            <MembersStep
+              members={members}
+              addMember={addMember}
+              updateMember={updateMember}
+              removeMember={removeMember}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Savings ─────────────────────────────────────────────── */}
         {step === "savings" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Savings Ledger</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Record savings accounts for entered members. All fields are optional except Member
-                  ID.
-                </p>
-              </div>
-              <button
-                onClick={addSavings}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                + Add Savings Record
-              </button>
-            </div>
-
-            {savings.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <DollarSign className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No savings accounts yet</p>
-                <p className="text-xs mt-1">
-                  Click "+ Add Savings Record" to begin entering savings accounts
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1200px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Account ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Open Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Frequency
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Last Contrib Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                        Contribs Count
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Trend
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Interest Rate
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Balance
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {savings.map((s, i) => (
-                      <SavingsRow
-                        key={s._rowKey}
-                        record={s}
-                        idx={i}
-                        memberIds={memberIds}
-                        onUpdate={updateSavings}
-                        onRemove={removeSavings}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {savings.length} savings account{savings.length !== 1 ? "s" : ""}
-              </span>
-              <button onClick={addSavings} className="text-primary hover:underline font-medium">
-                + Add another savings record
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Savings Ledger Step">
+            <SavingsStep
+              savings={savings}
+              addSavings={addSavings}
+              memberIds={memberIds}
+              updateSavings={updateSavings}
+              removeSavings={removeSavings}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Loans ───────────────────────────────────────────────── */}
         {step === "loans" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Loan Book</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Record active loans and classification categories.
-                </p>
-              </div>
-              <button
-                onClick={addLoan}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                + Add Loan Record
-              </button>
-            </div>
-
-            {loans.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <TrendingUp className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No loans recorded yet</p>
-                <p className="text-xs mt-1">Click "+ Add Loan Record" to begin entering loans</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1400px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Loan ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Product Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Start Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Maturity Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Borrower Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        DPD Category
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                        Interest Rate
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Principal
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Balance
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loans.map((l, i) => (
-                      <LoanRow
-                        key={l._rowKey}
-                        record={l}
-                        idx={i}
-                        memberIds={memberIds}
-                        onUpdate={updateLoan}
-                        onRemove={removeLoan}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {loans.length} loan record{loans.length !== 1 ? "s" : ""}
-              </span>
-              <button onClick={addLoan} className="text-primary hover:underline font-medium">
-                + Add another loan record
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Loans Register Step">
+            <LoansStep
+              loans={loans}
+              addLoan={addLoan}
+              memberIds={memberIds}
+              updateLoan={updateLoan}
+              removeLoan={removeLoan}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Fixed Deposits ──────────────────────────────────────── */}
         {step === "deposits" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Fixed Deposits</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Record active term/fixed deposits.
-                </p>
-              </div>
-              <button
-                onClick={addFixedDeposit}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                + Add Deposit
-              </button>
-            </div>
-
-            {fixedDeposits.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <Clock className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No fixed deposits yet</p>
-                <p className="text-xs mt-1">
-                  Click "+ Add Deposit" to begin entering fixed deposits
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1200px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Deposit ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Start Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Maturity Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Tenure
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                        Interest Rate
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Balance
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fixedDeposits.map((fd, i) => (
-                      <FixedDepositRow
-                        key={fd._rowKey}
-                        record={fd}
-                        idx={i}
-                        memberIds={memberIds}
-                        onUpdate={updateFixedDeposit}
-                        onRemove={removeFixedDeposit}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {fixedDeposits.length} deposit record{fixedDeposits.length !== 1 ? "s" : ""}
-              </span>
-              <button
-                onClick={addFixedDeposit}
-                className="text-primary hover:underline font-medium"
-              >
-                + Add another deposit record
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Fixed Deposits Step">
+            <DepositsStep
+              fixedDeposits={fixedDeposits}
+              addFixedDeposit={addFixedDeposit}
+              memberIds={memberIds}
+              updateFixedDeposit={updateFixedDeposit}
+              removeFixedDeposit={removeFixedDeposit}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Farm Profile ────────────────────────────────────────── */}
         {step === "farm" && (
-          <Card className="p-6">
-            <div className="border-b border-border pb-4 mb-6 font-sans">
-              <h3 className="text-sm font-bold text-foreground">Farm Cooperative Profile</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Complete this profile if this cooperative operates in agricultural production or
-                multipurpose activities.
-              </p>
-            </div>
+          <ErrorBoundary stepName="Farm Profile Step">
+            <Card className="p-6">
+              <div className="border-b border-border pb-4 mb-6 font-sans">
+                <h3 className="text-sm font-bold text-foreground">Farm Cooperative Profile</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Complete this profile if this cooperative operates in agricultural production or
+                  multipurpose activities.
+                </p>
+              </div>
 
-            <FarmCoopForm data={farmCoop} onChange={updateFarmCoop} />
-          </Card>
+              <FarmCoopForm data={farmCoop} onChange={updateFarmCoop} />
+            </Card>
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Review ─────────────────────────────────────────────── */}
@@ -1678,23 +1403,4 @@ export function ManualEntryWizard() {
       </div>
     </AppShell>
   );
-}
-
-function useSubmission(id: string) {
-  return useQuery({
-    queryKey: ["submission", id],
-    queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(`${API_BASE}/api/v1/cooperative/submissions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error("Failed to fetch submission");
-      return r.json() as Promise<{
-        id: string;
-        reporting_year: number;
-        status: string;
-        financial_statement_id: string | null;
-      }>;
-    },
-  });
 }

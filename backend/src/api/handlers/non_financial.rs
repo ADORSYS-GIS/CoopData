@@ -1911,6 +1911,7 @@ pub async fn delete_farm_coop(
 pub async fn create_manual_members(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(submission_id): Path<Uuid>,
     Json(body): Json<crate::api::dto::non_financial::ManualMembersRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -1940,29 +1941,9 @@ pub async fn create_manual_members(
 
     let now = chrono::Utc::now();
 
-    // Clear all existing non-financial data for this submission first
-    state
-        .savings_account_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .loan_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .fixed_deposit_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .farm_coop_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .member_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
+    // ── Phase 1: Build all active models in memory (zero DB calls) ───────────────
 
-    // Create members
+    // Members
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     let mut generated_ids = Vec::new();
 
@@ -1989,21 +1970,16 @@ pub async fn create_manual_members(
         });
     }
 
-    if !member_active_models.is_empty() {
-        state.member_repo.bulk_upsert(member_active_models).await?;
-    }
-
-    // Build the mapping from member_id to generated Uuid
+    // Build the member_id → uuid mapping from pre-assigned UUIDs (no DB needed)
     let mut member_map: HashMap<String, Uuid> = HashMap::new();
     for (i, m) in body.members.iter().enumerate() {
         member_map.insert(m.member_id.clone(), generated_ids[i]);
     }
 
-    // Insert savings accounts
-    let mut savings_imported = 0;
-    if let Some(savings) = body.savings_accounts {
-        let mut savings_active_models: Vec<savings_account::ActiveModel> = Vec::new();
-        for record in &savings {
+    // Savings accounts
+    let mut savings_active_models: Vec<savings_account::ActiveModel> = Vec::new();
+    if let Some(ref savings) = body.savings_accounts {
+        for record in savings {
             let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
                 AppError::ValidationError(format!(
                     "Member '{}' not found for savings account '{}'",
@@ -2032,19 +2008,12 @@ pub async fn create_manual_members(
                 updated_at: Set(now),
             });
         }
-        if !savings_active_models.is_empty() {
-            savings_imported = state
-                .savings_account_repo
-                .bulk_upsert(savings_active_models)
-                .await?;
-        }
     }
 
-    // Insert loans
-    let mut loans_imported = 0;
-    if let Some(loans) = body.loans {
-        let mut loan_active_models: Vec<loan::ActiveModel> = Vec::new();
-        for record in &loans {
+    // Loans
+    let mut loan_active_models: Vec<loan::ActiveModel> = Vec::new();
+    if let Some(ref loans) = body.loans {
+        for record in loans {
             let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
                 AppError::ValidationError(format!(
                     "Member '{}' not found for loan '{}'",
@@ -2080,16 +2049,12 @@ pub async fn create_manual_members(
                 updated_at: Set(now),
             });
         }
-        if !loan_active_models.is_empty() {
-            loans_imported = state.loan_repo.bulk_upsert(loan_active_models).await?;
-        }
     }
 
-    // Insert fixed deposits
-    let mut fd_imported = 0;
-    if let Some(fds) = body.fixed_deposits {
-        let mut fd_active_models: Vec<fixed_deposit::ActiveModel> = Vec::new();
-        for record in &fds {
+    // Fixed deposits
+    let mut fd_active_models: Vec<fixed_deposit::ActiveModel> = Vec::new();
+    if let Some(ref fds) = body.fixed_deposits {
+        for record in fds {
             let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
                 AppError::ValidationError(format!(
                     "Member '{}' not found for fixed deposit '{}'",
@@ -2119,19 +2084,12 @@ pub async fn create_manual_members(
                 updated_at: Set(now),
             });
         }
-        if !fd_active_models.is_empty() {
-            fd_imported = state
-                .fixed_deposit_repo
-                .bulk_upsert(fd_active_models)
-                .await?;
-        }
     }
 
-    // Insert farm coop
-    let mut farm_coop_imported = 0;
-    if let Some(farm_coops) = body.farm_coop {
-        let mut farm_coop_active_models: Vec<farm_coop::ActiveModel> = Vec::new();
-        for record in &farm_coops {
+    // Farm coop
+    let mut farm_coop_active_models: Vec<farm_coop::ActiveModel> = Vec::new();
+    if let Some(ref farm_coops) = body.farm_coop {
+        for record in farm_coops {
             farm_coop_active_models.push(farm_coop::ActiveModel {
                 id: Set(Uuid::new_v4()),
                 cooperative_id: Set(coop_id),
@@ -2162,15 +2120,211 @@ pub async fn create_manual_members(
                 updated_at: Set(now),
             });
         }
-        if !farm_coop_active_models.is_empty() {
-            farm_coop_imported = state
-                .farm_coop_repo
-                .bulk_insert(farm_coop_active_models)
-                .await?;
-        }
     }
 
-    // Mark submission sections as "in_progress" (similar to upload pipeline)
+    // ── Phase 2: Atomically delete old data + insert new data in one transaction ──
+
+    use sea_orm::{
+        sea_query::OnConflict, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait,
+    };
+
+    let savings_imported: u64;
+    let loans_imported: u64;
+    let fd_imported: u64;
+    let farm_coop_imported: u64;
+
+    {
+        let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
+
+        // Delete all existing non-financial data for this submission
+        savings_account::Entity::delete_many()
+            .filter(savings_account::Column::CooperativeId.eq(coop_id))
+            .filter(savings_account::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        loan::Entity::delete_many()
+            .filter(loan::Column::CooperativeId.eq(coop_id))
+            .filter(loan::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        fixed_deposit::Entity::delete_many()
+            .filter(fixed_deposit::Column::CooperativeId.eq(coop_id))
+            .filter(fixed_deposit::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        farm_coop::Entity::delete_many()
+            .filter(farm_coop::Column::CooperativeId.eq(coop_id))
+            .filter(farm_coop::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        member::Entity::delete_many()
+            .filter(member::Column::CooperativeId.eq(coop_id))
+            .filter(member::Column::SubmissionId.eq(submission_id))
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        // Insert members
+        if !member_active_models.is_empty() {
+            member::Entity::insert_many(member_active_models)
+                .on_conflict(
+                    OnConflict::columns([member::Column::CooperativeId, member::Column::MemberId])
+                        .update_columns([
+                            member::Column::JoinDate,
+                            member::Column::Status,
+                            member::Column::ExitDate,
+                            member::Column::Gender,
+                            member::Column::AgeGroup,
+                            member::Column::Region,
+                            member::Column::UrbanRural,
+                            member::Column::AgmAttendance,
+                            member::Column::LeadershipRole,
+                            member::Column::VotingExercised,
+                            member::Column::SubmissionId,
+                        ])
+                        .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+        }
+
+        // Insert savings accounts
+        savings_imported = if !savings_active_models.is_empty() {
+            let count = savings_active_models.len() as u64;
+            savings_account::Entity::insert_many(savings_active_models)
+                .on_conflict(
+                    OnConflict::columns([
+                        savings_account::Column::CooperativeId,
+                        savings_account::Column::SavingsAccountId,
+                    ])
+                    .update_columns([
+                        savings_account::Column::SubmissionId,
+                        savings_account::Column::MemberId,
+                        savings_account::Column::AccountType,
+                        savings_account::Column::AccountOpeningDate,
+                        savings_account::Column::AccountStatus,
+                        savings_account::Column::ContributionFrequency,
+                        savings_account::Column::LastContributionDate,
+                        savings_account::Column::NumberOfContributions,
+                        savings_account::Column::BalanceTrend,
+                        savings_account::Column::ZeroBalanceFlag,
+                        savings_account::Column::WithdrawalFrequencyCategory,
+                        savings_account::Column::EmergencyWithdrawalsFlag,
+                        savings_account::Column::InterestRate,
+                        savings_account::Column::Balance,
+                        savings_account::Column::UpdatedAt,
+                    ])
+                    .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        // Insert loans
+        loans_imported = if !loan_active_models.is_empty() {
+            let count = loan_active_models.len() as u64;
+            loan::Entity::insert_many(loan_active_models)
+                .on_conflict(
+                    OnConflict::columns([loan::Column::CooperativeId, loan::Column::LoanId])
+                        .update_columns([
+                            loan::Column::SubmissionId,
+                            loan::Column::MemberId,
+                            loan::Column::LoanProductType,
+                            loan::Column::LoanStartDate,
+                            loan::Column::LoanMaturityDate,
+                            loan::Column::LoanStatus,
+                            loan::Column::BorrowerType,
+                            loan::Column::YouthBorrowerFlag,
+                            loan::Column::WomenBorrowerFlag,
+                            loan::Column::RuralBorrowerFlag,
+                            loan::Column::RepaymentRegularity,
+                            loan::Column::DaysPastDueCategory,
+                            loan::Column::MissedInstallmentsCount,
+                            loan::Column::RestructuredLoanFlag,
+                            loan::Column::NumberOfRestructurings,
+                            loan::Column::EarlySettlementFlag,
+                            loan::Column::MultipleLoansFlag,
+                            loan::Column::LargeBorrowerFlag,
+                            loan::Column::InterestRate,
+                            loan::Column::Balance,
+                            loan::Column::LoanAmount,
+                        ])
+                        .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        // Insert fixed deposits
+        fd_imported = if !fd_active_models.is_empty() {
+            let count = fd_active_models.len() as u64;
+            fixed_deposit::Entity::insert_many(fd_active_models)
+                .on_conflict(
+                    OnConflict::columns([
+                        fixed_deposit::Column::CooperativeId,
+                        fixed_deposit::Column::FixedDepositId,
+                    ])
+                    .update_columns([
+                        fixed_deposit::Column::SubmissionId,
+                        fixed_deposit::Column::MemberId,
+                        fixed_deposit::Column::DepositType,
+                        fixed_deposit::Column::StartDate,
+                        fixed_deposit::Column::MaturityDate,
+                        fixed_deposit::Column::Status,
+                        fixed_deposit::Column::TenureCategory,
+                        fixed_deposit::Column::OriginalTenureSelected,
+                        fixed_deposit::Column::EarlyWithdrawalFlag,
+                        fixed_deposit::Column::RolloverAtMaturityFlag,
+                        fixed_deposit::Column::NumberOfRenewals,
+                        fixed_deposit::Column::ChangeInTenureAtRenewal,
+                        fixed_deposit::Column::SingleDepositorDependencyFlag,
+                        fixed_deposit::Column::InterestRate,
+                        fixed_deposit::Column::Balance,
+                    ])
+                    .to_owned(),
+                )
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        // Insert farm coop
+        farm_coop_imported = if !farm_coop_active_models.is_empty() {
+            let count = farm_coop_active_models.len() as u64;
+            farm_coop::Entity::insert_many(farm_coop_active_models)
+                .exec(&txn)
+                .await
+                .map_err(AppError::DatabaseError)?;
+            count
+        } else {
+            0
+        };
+
+        txn.commit().await.map_err(AppError::DatabaseError)?;
+    }
+
+    // ── Section status updates (outside transaction — non-critical metadata) ────
+
     if !body.members.is_empty() {
         if let Some(sec) = state
             .section_repo
@@ -2231,6 +2385,27 @@ pub async fn create_manual_members(
                 .await?;
         }
     }
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "members",
+            Some(&submission_id.to_string()),
+            Some(serde_json::json!({
+                "members_count": body.members.len(),
+                "savings_count": body.savings_accounts.as_ref().map(|x| x.len()).unwrap_or(0),
+                "loans_count": body.loans.as_ref().map(|x| x.len()).unwrap_or(0),
+                "deposits_count": body.fixed_deposits.as_ref().map(|x| x.len()).unwrap_or(0),
+                "farm_coop_count": body.farm_coop.as_ref().map(|x| x.len()).unwrap_or(0),
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     Ok(StatusCode::CREATED)
 }
@@ -2239,7 +2414,7 @@ pub async fn create_manual_members(
     delete,
     path = "/api/v1/cooperative/submissions/{id}/non-financial",
     responses(
-        (status = 200, description = "Non-financial data deleted successfully"),
+        (status = 204, description = "Non-financial data deleted successfully"),
         (status = 404, description = "Submission not found")
     ),
     tag = "Cooperative",
@@ -2301,5 +2476,5 @@ pub async fn delete_non_financial_data(
         }
     }
 
-    Ok(StatusCode::OK)
+    Ok(StatusCode::NO_CONTENT)
 }

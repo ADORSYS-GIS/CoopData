@@ -124,6 +124,16 @@ impl QuestionnaireRepository {
         if let Some(coop_id) = cooperative_id {
             query = query.filter(QuestionnaireResponseColumn::CooperativeId.eq(coop_id));
         }
+        if let Some(r) = region {
+            if let Some(reg) = crate::entities::enums::EswatiniRegion::parse(&r) {
+                query = query.filter(crate::entities::cooperative::Column::Region.eq(reg));
+            } else {
+                query = query.filter(crate::entities::cooperative::Column::Region.is_null().and(crate::entities::cooperative::Column::Region.is_not_null()));
+            }
+        }
+        if let Some(s) = sector {
+            query = query.filter(crate::entities::cooperative::Column::Sector.eq(s));
+        }
 
         let results = query.all(&self.db).await.map_err(AppError::DatabaseError)?;
 
@@ -133,27 +143,7 @@ impl QuestionnaireRepository {
         )> = results
             .into_iter()
             .filter_map(|(resp, opt_coop)| {
-                if let Some(coop) = opt_coop {
-                    let region_match = match &region {
-                        Some(r) => coop
-                            .region
-                            .as_ref()
-                            .map(|reg| reg.as_str() == r)
-                            .unwrap_or(false),
-                        None => true,
-                    };
-                    let sector_match = match &sector {
-                        Some(s) => coop.sector.as_ref().map(|sec| sec == s).unwrap_or(false),
-                        None => true,
-                    };
-                    if region_match && sector_match {
-                        Some((resp, coop))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+                opt_coop.map(|coop| (resp, coop))
             })
             .collect();
 
