@@ -20,6 +20,7 @@ interface ConsolidatedDashboardSheetProps {
   priorData?: NationalOverviewResponse;
   totalApexes?: number;
   narratives?: string;
+  riskNarratives?: string;
 }
 
 export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProps> = ({
@@ -30,6 +31,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   priorData,
   totalApexes,
   narratives,
+  riskNarratives,
 }) => {
   const { total_cooperatives, cooperatives_with_data, distributions, cooperatives } = data;
   const priorCoops = priorData?.cooperatives || [];
@@ -162,6 +164,18 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
 
         <h2 className="text-xl font-bold text-blue-800 mb-4">"Executive Dashboard"</h2>
 
+        <AiInsightBox
+          title={`${tier} Executive Dashboard — AI Insight`}
+          content={narratives}
+          fallbackContent={
+            <>
+              This executive dashboard consolidates financial performance, KPI compliance, and risk
+              distribution across all cooperatives within the {tier.toLowerCase()} for the reporting
+              period.
+            </>
+          }
+        />
+
         {/* Header Table */}
         <h3 className="text-sm font-bold text-slate-800 mb-1">Header</h3>
         <table className="w-full text-left text-xs mb-6 border-collapse">
@@ -199,18 +213,6 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
             )}
           </tbody>
         </table>
-
-        <AiInsightBox
-          title={`${tier} Executive Dashboard — AI Insight`}
-          content={narratives}
-          fallbackContent={
-            <>
-              This executive dashboard consolidates financial performance, KPI compliance, and risk
-              distribution across all cooperatives within the {tier.toLowerCase()} for the reporting
-              period.
-            </>
-          }
-        />
 
         {/* Consolidated Financial Position */}
         <h3 className="text-sm font-bold text-slate-800 mb-1">Consolidated Financial Position</h3>
@@ -376,6 +378,18 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
         <h3 className="text-sm font-bold text-slate-800 mb-1">
           Risk Distribution (Number of Coops)
         </h3>
+
+        <AiInsightBox
+          title={`${tier} Risk Distribution — AI Insight`}
+          content={riskNarratives}
+          fallbackContent={
+            <>
+              This risk distribution analysis covers the green/amber/red breakdown across all
+              cooperatives within the {tier.toLowerCase()} for the reporting period.
+            </>
+          }
+        />
+
         <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-4">
           <div className="h-64">
             <BarChart
@@ -418,7 +432,6 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
             </BarChart>
           </div>
         </div>
-
         <table className="w-full text-left text-[11px] mb-8 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">

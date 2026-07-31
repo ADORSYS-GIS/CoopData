@@ -12,17 +12,20 @@ import {
 } from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface FederationApexComparisonSheetProps {
   federationName: string;
   year: number;
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const FederationApexComparisonSheet: React.FC<FederationApexComparisonSheetProps> = ({
   federationName,
   year,
   data,
+  narratives,
 }) => {
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
@@ -105,6 +108,17 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
         </div>
 
         <div className="flex-1 flex flex-col gap-8 min-h-0">
+          <AiInsightBox
+            title="Apex Comparison & Filing Compliance — AI Insight"
+            content={narratives}
+            fallbackContent={
+              <>
+                This apex comparison analyzes filing rates, average PAR30, and ROA differences
+                across apex networks within the federation.
+              </>
+            }
+          />
+
           <div className="border border-slate-300 p-6 rounded-lg bg-white shrink-0">
             <h3 className="text-xl font-bold text-slate-800 text-center mb-6">
               Filing Rate & Avg PAR30 by Apex

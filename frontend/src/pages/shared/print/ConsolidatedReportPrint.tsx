@@ -50,13 +50,14 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
         year={year}
         data={data}
         priorData={priorData}
-        narratives={narratives?.sector_overview}
+        narratives={narratives?.executive_dashboard}
+        riskNarratives={narratives?.risk_distribution}
       />
 
       {tier === "Apex" && (
         <>
           <ConsolidatedCoopDetailSheet data={data} />
-          <ConsolidatedRiskWatchSheet data={data} narratives={narratives?.risk_assessment} />
+          <ConsolidatedRiskWatchSheet data={data} narratives={narratives?.risk_watch} />
         </>
       )}
     </div>

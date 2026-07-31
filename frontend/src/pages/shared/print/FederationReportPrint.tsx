@@ -64,7 +64,8 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         data={data}
         priorData={priorData}
         totalApexes={totalApexes}
-        narratives={narratives?.sector_overview}
+        narratives={narratives?.executive_dashboard}
+        riskNarratives={narratives?.risk_distribution}
       />
 
       {/* Sheet 1 (Continued): Sector Breakdown */}
@@ -72,21 +73,26 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         federationName={entityName}
         year={year}
         data={data}
-        narratives={narratives?.sector_composition}
+        narratives={narratives?.sector_breakdown}
       />
 
       {/* Sheet 1 (Continued): Apex Distribution */}
       <FederationApexDistributionSheet federationName={entityName} year={year} data={data} />
 
       {/* Sheet 2 & 3: Apex Comparison and Filing Compliance */}
-      <FederationApexComparisonSheet federationName={entityName} year={year} data={data} />
+      <FederationApexComparisonSheet
+        federationName={entityName}
+        year={year}
+        data={data}
+        narratives={narratives?.apex_comparison}
+      />
 
       {/* Sheet 4: PEARLS Comparative Analysis */}
       <FederationPearlsSheet
         federationName={entityName}
         year={year}
         data={data}
-        narratives={narratives?.pearls_compliance}
+        narratives={narratives?.pearls_analysis}
       />
 
       {/* Sheet 6: Federation Social Impact Summary */}
@@ -95,7 +101,6 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
         year={year}
         data={data}
         priorData={priorData}
-        narratives={narratives?.social_impact}
       />
     </div>
   );

@@ -18,24 +18,27 @@ pub struct CooperativeNarratives {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApexNarratives {
-    pub sector_overview: String,
-    pub risk_assessment: String,
+    pub executive_dashboard: String,
+    pub risk_distribution: String,
+    pub risk_watch: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FederationNarratives {
-    pub sector_overview: String,
-    pub sector_composition: String,
-    pub pearls_compliance: String,
-    pub social_impact: String,
+    pub executive_dashboard: String,
+    pub risk_distribution: String,
+    pub sector_breakdown: String,
+    pub apex_comparison: String,
+    pub pearls_analysis: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MinistryNarratives {
-    pub sector_overview: String,
-    pub sector_composition: String,
-    pub pearls_compliance: String,
-    pub social_impact: String,
+    pub executive_dashboard: String,
+    pub risk_distribution: String,
+    pub sector_breakdown: String,
+    pub apex_comparison: String,
+    pub pearls_analysis: String,
 }
 
 // ── Input context types (design doc §5.1) ─────────────────────────────────
@@ -431,34 +434,37 @@ impl LlmNarrativeGenerator {
     #[allow(dead_code)]
     fn fallback_apex(ctx: &ApexNarrativeContext) -> ApexNarratives {
         ApexNarratives {
-            sector_overview: format!(
+            executive_dashboard: format!(
                 "{} oversees {} cooperatives for {}.",
                 ctx.apex_name, ctx.total_coops, ctx.reporting_year
             ),
-            risk_assessment: String::new(),
+            risk_distribution: String::new(),
+            risk_watch: String::new(),
         }
     }
 
     #[allow(dead_code)]
     fn fallback_federation(ctx: &FederationNarrativeContext) -> FederationNarratives {
         FederationNarratives {
-            sector_overview: format!(
+            executive_dashboard: format!(
                 "{} oversees {} cooperatives for {}.",
                 ctx.federation_name, ctx.total_coops, ctx.reporting_year
             ),
-            sector_composition: String::new(),
-            pearls_compliance: String::new(),
-            social_impact: String::new(),
+            risk_distribution: String::new(),
+            sector_breakdown: String::new(),
+            apex_comparison: String::new(),
+            pearls_analysis: String::new(),
         }
     }
 
     #[allow(dead_code)]
     fn fallback_ministry(_ctx: &MinistryNarrativeContext) -> MinistryNarratives {
         MinistryNarratives {
-            sector_overview: String::new(),
-            sector_composition: String::new(),
-            pearls_compliance: String::new(),
-            social_impact: String::new(),
+            executive_dashboard: String::new(),
+            risk_distribution: String::new(),
+            sector_breakdown: String::new(),
+            apex_comparison: String::new(),
+            pearls_analysis: String::new(),
         }
     }
 }
@@ -519,34 +525,39 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         &self,
         ctx: &ApexNarrativeContext,
     ) -> AppResult<ApexNarratives> {
-        let overview_prompt = build_apex_executive_dashboard_prompt(ctx);
-        let risk_prompt = build_apex_risk_watch_prompt(ctx);
+        let exec_prompt = build_apex_executive_dashboard_prompt(ctx);
+        let risk_dist_prompt = build_apex_risk_distribution_prompt(ctx);
+        let risk_watch_prompt = build_apex_risk_watch_prompt(ctx);
         
-        tracing::info!("[narrative] 🚀 Starting 2 concurrent LLM calls for apex narratives");
-        tracing::info!(chars = overview_prompt.len(), "[narrative] 📡 Prompt 1/2: overview | chars={}", overview_prompt.len());
-        tracing::info!(chars = risk_prompt.len(), "[narrative] 📡 Prompt 2/2: risk | chars={}", risk_prompt.len());
+        tracing::info!("[narrative] 🚀 Starting 3 concurrent LLM calls for apex narratives");
+        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/3: executive_dashboard | chars={}", exec_prompt.len());
+        tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/3: risk_distribution | chars={}", risk_dist_prompt.len());
+        tracing::info!(chars = risk_watch_prompt.len(), "[narrative] 📡 Prompt 3/3: risk_watch | chars={}", risk_watch_prompt.len());
         
         let start = std::time::Instant::now();
-        let (overview_result, risk_result) = tokio::try_join!(
-            self.chat(&overview_prompt),
-            self.chat(&risk_prompt),
+        let (exec_result, risk_dist_result, risk_watch_result) = tokio::try_join!(
+            self.chat(&exec_prompt),
+            self.chat(&risk_dist_prompt),
+            self.chat(&risk_watch_prompt),
         )?;
         
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
-            "[narrative] ✅ All 2 LLM responses received in {}ms",
+            "[narrative] ✅ All 3 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
         
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(ApexNarratives {
-            sector_overview: Self::parse_json::<SectorOverviewOutput>(&overview_result)?
-                .sector_overview,
-            risk_assessment: Self::parse_json::<RiskAssessmentOutput>(&risk_result)?
-                .risk_assessment,
+            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
+                .executive_dashboard,
+            risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
+                .risk_distribution,
+            risk_watch: Self::parse_json::<RiskWatchOutput>(&risk_watch_result)?
+                .risk_watch,
         });
         
-        tracing::info!("[narrative] ✅ All 2 narratives parsed successfully");
+        tracing::info!("[narrative] ✅ All 3 narratives parsed successfully");
         result
     }
 
@@ -554,44 +565,49 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         &self,
         ctx: &FederationNarrativeContext,
     ) -> AppResult<FederationNarratives> {
-        let overview_prompt = build_fed_executive_dashboard_prompt(ctx);
-        let composition_prompt = build_fed_sector_breakdown_prompt(ctx);
+        let exec_prompt = build_fed_executive_dashboard_prompt(ctx);
+        let risk_dist_prompt = build_fed_risk_distribution_prompt(ctx);
+        let sector_prompt = build_fed_sector_breakdown_prompt(ctx);
+        let apex_cmp_prompt = build_fed_apex_comparison_prompt(ctx);
         let pearls_prompt = build_fed_pearls_analysis_prompt(ctx);
-        let social_prompt = build_fed_social_impact_prompt(ctx);
         
-        tracing::info!("[narrative] 🚀 Starting 4 concurrent LLM calls for federation narratives");
-        tracing::info!(chars = overview_prompt.len(), "[narrative] 📡 Prompt 1/4: overview | chars={}", overview_prompt.len());
-        tracing::info!(chars = composition_prompt.len(), "[narrative] 📡 Prompt 2/4: composition | chars={}", composition_prompt.len());
-        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 3/4: pearls | chars={}", pearls_prompt.len());
-        tracing::info!(chars = social_prompt.len(), "[narrative] 📡 Prompt 4/4: social | chars={}", social_prompt.len());
+        tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for federation narratives");
+        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}", exec_prompt.len());
+        tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}", risk_dist_prompt.len());
+        tracing::info!(chars = sector_prompt.len(), "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}", sector_prompt.len());
+        tracing::info!(chars = apex_cmp_prompt.len(), "[narrative] 📡 Prompt 4/5: apex_comparison | chars={}", apex_cmp_prompt.len());
+        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}", pearls_prompt.len());
         
         let start = std::time::Instant::now();
-        let (overview_result, composition_result, pearls_result, social_result) = tokio::try_join!(
-            self.chat(&overview_prompt),
-            self.chat(&composition_prompt),
+        let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) = tokio::try_join!(
+            self.chat(&exec_prompt),
+            self.chat(&risk_dist_prompt),
+            self.chat(&sector_prompt),
+            self.chat(&apex_cmp_prompt),
             self.chat(&pearls_prompt),
-            self.chat(&social_prompt),
         )?;
         
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
-            "[narrative] ✅ All 4 LLM responses received in {}ms",
+            "[narrative] ✅ All 5 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
         
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(FederationNarratives {
-            sector_overview: Self::parse_json::<SectorOverviewOutput>(&overview_result)?
-                .sector_overview,
-            sector_composition: Self::parse_json::<SectorCompositionOutput>(&composition_result)?
-                .sector_composition,
-            pearls_compliance: Self::parse_json::<PearlsOutput>(&pearls_result)?
-                .pearls_compliance,
-            social_impact: Self::parse_json::<SocialImpactOutput>(&social_result)?
-                .social_impact,
+            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
+                .executive_dashboard,
+            risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
+                .risk_distribution,
+            sector_breakdown: Self::parse_json::<SectorBreakdownOutput>(&sector_result)?
+                .sector_breakdown,
+            apex_comparison: Self::parse_json::<ApexComparisonOutput>(&apex_cmp_result)?
+                .apex_comparison,
+            pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(&pearls_result)?
+                .pearls_analysis,
         });
         
-        tracing::info!("[narrative] ✅ All 4 narratives parsed successfully");
+        tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
         result
     }
 
@@ -599,44 +615,49 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         &self,
         ctx: &MinistryNarrativeContext,
     ) -> AppResult<MinistryNarratives> {
-        let overview_prompt = build_ministry_executive_dashboard_prompt(ctx);
-        let composition_prompt = build_ministry_sector_breakdown_prompt(ctx);
+        let exec_prompt = build_ministry_executive_dashboard_prompt(ctx);
+        let risk_dist_prompt = build_ministry_risk_distribution_prompt(ctx);
+        let sector_prompt = build_ministry_sector_breakdown_prompt(ctx);
+        let apex_cmp_prompt = build_ministry_apex_comparison_prompt(ctx);
         let pearls_prompt = build_ministry_pearls_analysis_prompt(ctx);
-        let social_prompt = build_ministry_social_impact_prompt(ctx);
         
-        tracing::info!("[narrative] 🚀 Starting 4 concurrent LLM calls for ministry narratives");
-        tracing::info!(chars = overview_prompt.len(), "[narrative] 📡 Prompt 1/4: overview | chars={}", overview_prompt.len());
-        tracing::info!(chars = composition_prompt.len(), "[narrative] 📡 Prompt 2/4: composition | chars={}", composition_prompt.len());
-        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 3/4: pearls | chars={}", pearls_prompt.len());
-        tracing::info!(chars = social_prompt.len(), "[narrative] 📡 Prompt 4/4: social | chars={}", social_prompt.len());
+        tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for ministry narratives");
+        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}", exec_prompt.len());
+        tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}", risk_dist_prompt.len());
+        tracing::info!(chars = sector_prompt.len(), "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}", sector_prompt.len());
+        tracing::info!(chars = apex_cmp_prompt.len(), "[narrative] 📡 Prompt 4/5: apex_comparison | chars={}", apex_cmp_prompt.len());
+        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}", pearls_prompt.len());
         
         let start = std::time::Instant::now();
-        let (overview_result, composition_result, pearls_result, social_result) = tokio::try_join!(
-            self.chat(&overview_prompt),
-            self.chat(&composition_prompt),
+        let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) = tokio::try_join!(
+            self.chat(&exec_prompt),
+            self.chat(&risk_dist_prompt),
+            self.chat(&sector_prompt),
+            self.chat(&apex_cmp_prompt),
             self.chat(&pearls_prompt),
-            self.chat(&social_prompt),
         )?;
 
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
-            "[narrative] ✅ All 4 LLM responses received in {}ms",
+            "[narrative] ✅ All 5 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
         
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(MinistryNarratives {
-            sector_overview: Self::parse_json::<SectorOverviewOutput>(&overview_result)?
-                .sector_overview,
-            sector_composition: Self::parse_json::<SectorCompositionOutput>(&composition_result)?
-                .sector_composition,
-            pearls_compliance: Self::parse_json::<PearlsOutput>(&pearls_result)?
-                .pearls_compliance,
-            social_impact: Self::parse_json::<SocialImpactOutput>(&social_result)?
-                .social_impact,
+            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
+                .executive_dashboard,
+            risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
+                .risk_distribution,
+            sector_breakdown: Self::parse_json::<SectorBreakdownOutput>(&sector_result)?
+                .sector_breakdown,
+            apex_comparison: Self::parse_json::<ApexComparisonOutput>(&apex_cmp_result)?
+                .apex_comparison,
+            pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(&pearls_result)?
+                .pearls_analysis,
         });
         
-        tracing::info!("[narrative] ✅ All 4 narratives parsed successfully");
+        tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
         result
     }
 }
@@ -669,28 +690,33 @@ struct BenchmarkOutput {
 }
 
 #[derive(Deserialize)]
-struct SectorOverviewOutput {
-    sector_overview: String,
+struct ExecutiveDashboardOutput {
+    executive_dashboard: String,
 }
 
 #[derive(Deserialize)]
-struct RiskAssessmentOutput {
-    risk_assessment: String,
+struct RiskDistributionOutput {
+    risk_distribution: String,
 }
 
 #[derive(Deserialize)]
-struct SectorCompositionOutput {
-    sector_composition: String,
+struct RiskWatchOutput {
+    risk_watch: String,
 }
 
 #[derive(Deserialize)]
-struct PearlsOutput {
-    pearls_compliance: String,
+struct SectorBreakdownOutput {
+    sector_breakdown: String,
 }
 
 #[derive(Deserialize)]
-struct SocialImpactOutput {
-    social_impact: String,
+struct ApexComparisonOutput {
+    apex_comparison: String,
+}
+
+#[derive(Deserialize)]
+struct PearlsAnalysisOutput {
+    pearls_analysis: String,
 }
 
 // ── Mock implementation ─────────────────────────────────────────────────────
@@ -720,11 +746,12 @@ impl ReportNarrativeGenerator for MockNarrativeGenerator {
         ctx: &ApexNarrativeContext,
     ) -> AppResult<ApexNarratives> {
         Ok(ApexNarratives {
-            sector_overview: format!(
+            executive_dashboard: format!(
                 "[MOCK] {} oversees {} cooperatives for {}.",
                 ctx.apex_name, ctx.total_coops, ctx.reporting_year
             ),
-            risk_assessment: "[MOCK] Risk assessment placeholder.".into(),
+            risk_distribution: "[MOCK] Risk distribution analysis placeholder.".into(),
+            risk_watch: "[MOCK] Risk watch placeholder.".into(),
         })
     }
 
@@ -733,13 +760,14 @@ impl ReportNarrativeGenerator for MockNarrativeGenerator {
         ctx: &FederationNarrativeContext,
     ) -> AppResult<FederationNarratives> {
         Ok(FederationNarratives {
-            sector_overview: format!(
+            executive_dashboard: format!(
                 "[MOCK] {} oversees {} cooperatives for {}.",
                 ctx.federation_name, ctx.total_coops, ctx.reporting_year
             ),
-            sector_composition: "[MOCK] Sector composition placeholder.".into(),
-            pearls_compliance: "[MOCK] PEARLS compliance placeholder.".into(),
-            social_impact: "[MOCK] Social impact placeholder.".into(),
+            risk_distribution: "[MOCK] Risk distribution analysis placeholder.".into(),
+            sector_breakdown: "[MOCK] Sector breakdown placeholder.".into(),
+            apex_comparison: "[MOCK] Apex comparison placeholder.".into(),
+            pearls_analysis: "[MOCK] PEARLS analysis placeholder.".into(),
         })
     }
 
@@ -748,13 +776,14 @@ impl ReportNarrativeGenerator for MockNarrativeGenerator {
         ctx: &MinistryNarrativeContext,
     ) -> AppResult<MinistryNarratives> {
         Ok(MinistryNarratives {
-            sector_overview: format!(
+            executive_dashboard: format!(
                 "[MOCK] National cooperative sector overview for {}.",
                 ctx.reporting_year
             ),
-            sector_composition: "[MOCK] Sector composition placeholder.".into(),
-            pearls_compliance: "[MOCK] PEARLS compliance placeholder.".into(),
-            social_impact: "[MOCK] Social impact placeholder.".into(),
+            risk_distribution: "[MOCK] Risk distribution analysis placeholder.".into(),
+            sector_breakdown: "[MOCK] Sector breakdown placeholder.".into(),
+            apex_comparison: "[MOCK] Apex comparison placeholder.".into(),
+            pearls_analysis: "[MOCK] PEARLS analysis placeholder.".into(),
         })
     }
 }
@@ -1370,7 +1399,7 @@ RULES:
 - Maximum 150 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"sector_overview":"..."}}
+{{"executive_dashboard":"..."}}
 No markdown fences, no explanation."#,
         apex_name = ctx.apex_name,
         reporting_year = ctx.reporting_year,
@@ -1385,6 +1414,50 @@ No markdown fences, no explanation."#,
         avg_credit_pen = ctx.nf_summary.avg_credit_penetration_pct,
         avg_repayment = ctx.nf_summary.avg_on_time_repayment_pct,
         avg_dormancy = ctx.nf_summary.avg_dormancy_pct,
+    )
+}
+
+fn build_apex_risk_distribution_prompt(ctx: &ApexNarrativeContext) -> String {
+    let dist_table = fmt_distributions(&ctx.distributions);
+
+    format!(
+        r#"You are a regulatory risk analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative analysis of the risk distribution across cooperatives at the Apex level.
+
+ENTITY METADATA:
+- Apex Name: {apex_name}
+- Tier: Apex
+- Reporting Year: {reporting_year}
+- Total Cooperatives: {total_coops}
+- Cooperatives with Data: {coops_with_data}
+
+AGGREGATE KPI DISTRIBUTIONS:
+{dist_table}
+
+TASK:
+Generate exactly TWO paragraphs:
+
+1. RISK DISTRIBUTION ANALYSIS (3-4 sentences):
+   Analyze the traffic light distribution across all KPIs. Discuss which KPIs have the highest proportion of green (healthy), amber (watch), and red (risk) cooperatives. Highlight the most concerning distributions.
+
+2. COOPERATIVE DETAIL INSIGHTS (2-3 sentences):
+   Identify patterns in the distribution — are certain KPIs disproportionately dragging cooperatives into red? Provide actionable insights for regulatory focus.
+
+RULES:
+- Use specific percentages and counts from the distribution data
+- Compare KPI distributions to each other
+- Be factual and regulatory in tone
+- Do NOT invent data
+- Do NOT use markdown formatting
+- Maximum 120 words per paragraph
+
+Return ONLY a minified JSON object:
+{{"risk_distribution":"..."}}
+No markdown fences, no explanation."#,
+        apex_name = ctx.apex_name,
+        reporting_year = ctx.reporting_year,
+        total_coops = ctx.total_coops,
+        coops_with_data = ctx.coops_with_data,
+        dist_table = dist_table,
     )
 }
 
@@ -1435,7 +1508,7 @@ RULES:
 - Maximum 120 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"risk_assessment":"..."}}
+{{"risk_watch":"..."}}
 No markdown fences, no explanation."#,
         apex_name = ctx.apex_name,
         reporting_year = ctx.reporting_year,
@@ -1492,7 +1565,7 @@ RULES:
 - Maximum 150 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"sector_overview":"..."}}
+{{"executive_dashboard":"..."}}
 No markdown fences, no explanation."#,
         federation_name = ctx.federation_name,
         reporting_year = ctx.reporting_year,
@@ -1507,6 +1580,50 @@ No markdown fences, no explanation."#,
         avg_credit = ctx.nf_summary.avg_credit_penetration_pct,
         avg_repayment = ctx.nf_summary.avg_on_time_repayment_pct,
         avg_dormancy = ctx.nf_summary.avg_dormancy_pct,
+    )
+}
+
+fn build_fed_risk_distribution_prompt(ctx: &FederationNarrativeContext) -> String {
+    let dist_table = fmt_distributions(&ctx.distributions);
+
+    format!(
+        r#"You are a regulatory risk analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative analysis of the risk distribution across cooperatives at the Federation level.
+
+ENTITY METADATA:
+- Federation Name: {federation_name}
+- Tier: Federation
+- Reporting Year: {reporting_year}
+- Total Cooperatives: {total_coops}
+- Cooperatives with Data: {coops_with_data}
+
+AGGREGATE KPI DISTRIBUTIONS:
+{dist_table}
+
+TASK:
+Generate exactly TWO paragraphs:
+
+1. RISK DISTRIBUTION ANALYSIS (3-4 sentences):
+   Analyze the traffic light distribution across all KPIs. Discuss which KPIs have the highest proportion of green (healthy), amber (watch), and red (risk) cooperatives. Highlight the most concerning distributions.
+
+2. COOPERATIVE DETAIL INSIGHTS (2-3 sentences):
+   Identify patterns in the distribution — are certain KPIs disproportionately dragging cooperatives into red? Provide actionable insights for federation leadership.
+
+RULES:
+- Use specific percentages and counts from the distribution data
+- Compare KPI distributions to each other
+- Be factual and regulatory in tone
+- Do NOT invent data
+- Do NOT use markdown formatting
+- Maximum 120 words per paragraph
+
+Return ONLY a minified JSON object:
+{{"risk_distribution":"..."}}
+No markdown fences, no explanation."#,
+        federation_name = ctx.federation_name,
+        reporting_year = ctx.reporting_year,
+        total_coops = ctx.total_coops,
+        coops_with_data = ctx.coops_with_data,
+        dist_table = dist_table,
     )
 }
 
@@ -1543,12 +1660,86 @@ RULES:
 - Maximum 120 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"sector_composition":"..."}}
+{{"sector_breakdown":"..."}}
 No markdown fences, no explanation."#,
         federation_name = ctx.federation_name,
         reporting_year = ctx.reporting_year,
         total_coops = ctx.total_coops,
         sector_table = sector_table,
+    )
+}
+
+fn build_fed_apex_comparison_prompt(ctx: &FederationNarrativeContext) -> String {
+    // Build apex-level comparison data
+    let mut apex_rows = Vec::new();
+    for apex in &ctx.apexes {
+        let filing_rate = if apex.total_coops > 0 {
+            apex.coops_with_data as f64 / apex.total_coops as f64 * 100.0
+        } else {
+            0.0
+        };
+        let avg_par30 = if !apex.cooperatives.is_empty() {
+            apex.cooperatives.iter().map(|c| c.kpis.get("par30").copied().unwrap_or(0.0)).sum::<f64>()
+                / apex.cooperatives.len() as f64
+        } else {
+            0.0
+        };
+        let avg_roa = if !apex.cooperatives.is_empty() {
+            apex.cooperatives.iter().map(|c| c.kpis.get("roa").copied().unwrap_or(0.0)).sum::<f64>()
+                / apex.cooperatives.len() as f64
+        } else {
+            0.0
+        };
+        apex_rows.push(format!("| {} | {} | {} | {:.1}% | {:.1}% | {:.1}% |",
+            apex.apex_name, apex.total_coops, apex.coops_with_data, filing_rate, avg_par30, avg_roa));
+    }
+    let apex_table = if apex_rows.is_empty() {
+        "(no apex data available)".into()
+    } else {
+        let mut t = String::from("| Apex | Total Coops | Filed | Filing Rate | Avg PAR30 | Avg ROA |\n|------|-------------|-------|-------------|-----------|--------|\n");
+        for row in &apex_rows {
+            t.push_str(row);
+            t.push('\n');
+        }
+        t
+    };
+
+    format!(
+        r#"You are a regulatory analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative comparison of Apex-level performance and filing compliance within a Federation.
+
+ENTITY METADATA:
+- Federation Name: {federation_name}
+- Tier: Federation
+- Reporting Year: {reporting_year}
+- Total Apexes: {total_apexes}
+
+APEX COMPARISON DATA:
+{apex_table}
+
+TASK:
+Generate exactly TWO paragraphs:
+
+1. APEX COMPARISON (3-4 sentences):
+   Compare the performance of apexes within the federation. Discuss filing rates, average PAR30, and ROA differences. Identify which apexes are leading and which are lagging.
+
+2. FILING COMPLIANCE INSIGHTS (2-3 sentences):
+   Analyze filing compliance across apexes. Highlight apexes with low filing rates and recommend actions to improve compliance.
+
+RULES:
+- Use specific numbers and apex names
+- Compare apexes objectively
+- Be factual and regulatory in tone
+- Do NOT invent data
+- Do NOT use markdown formatting
+- Maximum 120 words per paragraph
+
+Return ONLY a minified JSON object:
+{{"apex_comparison":"..."}}
+No markdown fences, no explanation."#,
+        federation_name = ctx.federation_name,
+        reporting_year = ctx.reporting_year,
+        total_apexes = ctx.apexes.len(),
+        apex_table = apex_table,
     )
 }
 
@@ -1586,71 +1777,12 @@ RULES:
 - Maximum 120 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"pearls_compliance":"..."}}
+{{"pearls_analysis":"..."}}
 No markdown fences, no explanation."#,
         federation_name = ctx.federation_name,
         reporting_year = ctx.reporting_year,
         coops_with_data = ctx.coops_with_data,
         pearls_table = pearls_table,
-    )
-}
-
-fn build_fed_social_impact_prompt(ctx: &FederationNarrativeContext) -> String {
-    let total_members: u64 = ctx.apexes.iter().flat_map(|a| a.cooperatives.iter()).map(|c| c.nf.total_members).sum();
-
-    format!(
-        r#"You are a social impact analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative analysis of cooperative social impact at the Federation level.
-
-ENTITY METADATA:
-- Federation Name: {federation_name}
-- Tier: Federation
-- Reporting Year: {reporting_year}
-- Total Cooperatives: {total_coops}
-
-AGGREGATE NON-FINANCIAL METRICS:
-- Total Members: {total_members}
-- Average Active Members %: {avg_active:.1}%
-- Average Savings Penetration: {avg_savings:.1}%
-- Average Credit Penetration: {avg_credit:.1}%
-- Average On-Time Repayment: {avg_repayment:.1}%
-- Average Dormancy: {avg_dormancy:.1}%
-- Average AGM Participation: {avg_agm:.1}%
-- Average Women %: {avg_women:.1}%
-- Average Youth %: {avg_youth:.1}%
-- Average Rural %: {avg_rural:.1}%
-
-TASK:
-Generate exactly TWO paragraphs:
-
-1. SOCIAL IMPACT OVERVIEW (3-4 sentences):
-   Analyze the sector's social impact — membership diversity, financial inclusion, and community engagement. Compare to national averages.
-
-2. INCLUSION RECOMMENDATIONS (2-3 sentences):
-   Highlight cooperatives excelling in social impact and those needing improvement. Reference specific metrics.
-
-RULES:
-- Use specific percentages and counts
-- Be factual about inclusion metrics
-- Do NOT invent data
-- Do NOT use markdown formatting
-- Maximum 120 words per paragraph
-
-Return ONLY a minified JSON object:
-{{"social_impact":"..."}}
-No markdown fences, no explanation."#,
-        federation_name = ctx.federation_name,
-        reporting_year = ctx.reporting_year,
-        total_coops = ctx.total_coops,
-        total_members = total_members,
-        avg_active = ctx.nf_summary.avg_active_members_pct,
-        avg_savings = ctx.nf_summary.avg_savings_penetration_pct,
-        avg_credit = ctx.nf_summary.avg_credit_penetration_pct,
-        avg_repayment = ctx.nf_summary.avg_on_time_repayment_pct,
-        avg_dormancy = ctx.nf_summary.avg_dormancy_pct,
-        avg_agm = ctx.nf_summary.avg_agm_participation_pct,
-        avg_women = ctx.nf_summary.avg_women_pct,
-        avg_youth = ctx.nf_summary.avg_youth_pct,
-        avg_rural = ctx.nf_summary.avg_rural_pct,
     )
 }
 
@@ -1714,7 +1846,7 @@ RULES:
 - Maximum 150 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"sector_overview":"..."}}
+{{"executive_dashboard":"..."}}
 No markdown fences, no explanation."#,
         reporting_year = ctx.reporting_year,
         total_coops = ctx.total_coops,
@@ -1728,6 +1860,48 @@ No markdown fences, no explanation."#,
         avg_credit = ctx.nf_summary.avg_credit_penetration_pct,
         avg_repayment = ctx.nf_summary.avg_on_time_repayment_pct,
         avg_dormancy = ctx.nf_summary.avg_dormancy_pct,
+    )
+}
+
+fn build_ministry_risk_distribution_prompt(ctx: &MinistryNarrativeContext) -> String {
+    let dist_table = fmt_distributions(&ctx.distributions);
+
+    format!(
+        r#"You are a regulatory risk analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative analysis of the national risk distribution across cooperatives.
+
+ENTITY METADATA:
+- Tier: Ministry (National)
+- Reporting Year: {reporting_year}
+- Total Cooperatives: {total_coops}
+- Cooperatives with Data: {coops_with_data}
+
+AGGREGATE KPI DISTRIBUTIONS:
+{dist_table}
+
+TASK:
+Generate exactly TWO paragraphs:
+
+1. RISK DISTRIBUTION ANALYSIS (3-4 sentences):
+   Analyze the traffic light distribution across all KPIs. Discuss which KPIs have the highest proportion of green (healthy), amber (watch), and red (risk) cooperatives. Highlight the most concerning distributions.
+
+2. NATIONAL INSIGHTS (2-3 sentences):
+   Identify patterns in the distribution — are certain KPIs disproportionately dragging cooperatives into red? Provide actionable insights for ministry leadership.
+
+RULES:
+- Use specific percentages and counts from the distribution data
+- Compare KPI distributions to each other
+- Be factual and regulatory in tone
+- Do NOT invent data
+- Do NOT use markdown formatting
+- Maximum 120 words per paragraph
+
+Return ONLY a minified JSON object:
+{{"risk_distribution":"..."}}
+No markdown fences, no explanation."#,
+        reporting_year = ctx.reporting_year,
+        total_coops = ctx.total_coops,
+        coops_with_data = ctx.coops_with_data,
+        dist_table = dist_table,
     )
 }
 
@@ -1762,10 +1936,78 @@ RULES:
 - Maximum 120 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"sector_composition":"..."}}
+{{"sector_breakdown":"..."}}
 No markdown fences, no explanation."#,
         reporting_year = ctx.reporting_year,
         total_coops = ctx.total_coops,
+        sector_table = sector_table,
+    )
+}
+
+fn build_ministry_apex_comparison_prompt(ctx: &MinistryNarrativeContext) -> String {
+    // Build sector-level comparison data (ministry has no apexes, compare by sector)
+    let mut sector_rows = Vec::new();
+    use std::collections::HashMap as StdHashMap;
+    let mut by_sector: StdHashMap<String, Vec<&CoopKpiRowData>> = StdHashMap::new();
+    for c in &ctx.cooperatives {
+        let sector = c.sector.as_deref().unwrap_or("Unknown").to_string();
+        by_sector.entry(sector).or_default().push(c);
+    }
+    for (sector, list) in &by_sector {
+        let total = list.len();
+        let filed = list.iter().filter(|c| c.kpis.contains_key("par30")).count();
+        let filing_rate = if total > 0 { filed as f64 / total as f64 * 100.0 } else { 0.0 };
+        let avg_par30 = list.iter().map(|c| c.kpis.get("par30").copied().unwrap_or(0.0)).sum::<f64>()
+            / if total > 0 { total as f64 } else { 1.0 };
+        let avg_roa = list.iter().map(|c| c.kpis.get("roa").copied().unwrap_or(0.0)).sum::<f64>()
+            / if total > 0 { total as f64 } else { 1.0 };
+        sector_rows.push(format!("| {} | {} | {} | {:.1}% | {:.1}% | {:.1}% |",
+            sector, total, filed, filing_rate, avg_par30, avg_roa));
+    }
+    let sector_table = if sector_rows.is_empty() {
+        "(no sector data available)".into()
+    } else {
+        let mut t = String::from("| Sector | Total Coops | Filed | Filing Rate | Avg PAR30 | Avg ROA |\n|--------|-------------|-------|-------------|-----------|--------|\n");
+        for row in &sector_rows {
+            t.push_str(row);
+            t.push('\n');
+        }
+        t
+    };
+
+    format!(
+        r#"You are a regulatory analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative comparison of sector-level performance and filing compliance at the National level.
+
+ENTITY METADATA:
+- Tier: Ministry (National)
+- Reporting Year: {reporting_year}
+- Total Sectors: {total_sectors}
+
+SECTOR COMPARISON DATA:
+{sector_table}
+
+TASK:
+Generate exactly TWO paragraphs:
+
+1. SECTOR COMPARISON (3-4 sentences):
+   Compare the performance of sectors nationally. Discuss filing rates, average PAR30, and ROA differences. Identify which sectors are leading and which are lagging.
+
+2. FILING COMPLIANCE INSIGHTS (2-3 sentences):
+   Analyze filing compliance across sectors. Highlight sectors with low filing rates and recommend actions to improve compliance.
+
+RULES:
+- Use specific numbers and sector names
+- Compare sectors objectively
+- Be factual and regulatory in tone
+- Do NOT invent data
+- Do NOT use markdown formatting
+- Maximum 120 words per paragraph
+
+Return ONLY a minified JSON object:
+{{"apex_comparison":"..."}}
+No markdown fences, no explanation."#,
+        reporting_year = ctx.reporting_year,
+        total_sectors = by_sector.len(),
         sector_table = sector_table,
     )
 }
@@ -1802,68 +2044,11 @@ RULES:
 - Maximum 120 words per paragraph
 
 Return ONLY a minified JSON object:
-{{"pearls_compliance":"..."}}
+{{"pearls_analysis":"..."}}
 No markdown fences, no explanation."#,
         reporting_year = ctx.reporting_year,
         coops_with_data = ctx.coops_with_data,
         pearls_table = pearls_table,
-    )
-}
-
-fn build_ministry_social_impact_prompt(ctx: &MinistryNarrativeContext) -> String {
-    let total_members: u64 = ctx.cooperatives.iter().map(|c| c.nf.total_members).sum();
-
-    format!(
-        r#"You are a social impact analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative analysis of cooperative social impact at the Ministry level.
-
-ENTITY METADATA:
-- Tier: Ministry (National)
-- Reporting Year: {reporting_year}
-- Total Cooperatives: {total_coops}
-
-AGGREGATE NON-FINANCIAL METRICS:
-- Total Members: {total_members}
-- Average Active Members %: {avg_active:.1}%
-- Average Savings Penetration: {avg_savings:.1}%
-- Average Credit Penetration: {avg_credit:.1}%
-- Average On-Time Repayment: {avg_repayment:.1}%
-- Average Dormancy: {avg_dormancy:.1}%
-- Average AGM Participation: {avg_agm:.1}%
-- Average Women %: {avg_women:.1}%
-- Average Youth %: {avg_youth:.1}%
-- Average Rural %: {avg_rural:.1}%
-
-TASK:
-Generate exactly TWO paragraphs:
-
-1. SOCIAL IMPACT OVERVIEW (3-4 sentences):
-   Analyze the sector's social impact — membership diversity, financial inclusion, and community engagement. Compare to national averages.
-
-2. INCLUSION RECOMMENDATIONS (2-3 sentences):
-   Highlight cooperatives excelling in social impact and those needing improvement. Reference specific metrics.
-
-RULES:
-- Use specific percentages and counts
-- Be factual about inclusion metrics
-- Do NOT invent data
-- Do NOT use markdown formatting
-- Maximum 120 words per paragraph
-
-Return ONLY a minified JSON object:
-{{"social_impact":"..."}}
-No markdown fences, no explanation."#,
-        reporting_year = ctx.reporting_year,
-        total_coops = ctx.total_coops,
-        total_members = total_members,
-        avg_active = ctx.nf_summary.avg_active_members_pct,
-        avg_savings = ctx.nf_summary.avg_savings_penetration_pct,
-        avg_credit = ctx.nf_summary.avg_credit_penetration_pct,
-        avg_repayment = ctx.nf_summary.avg_on_time_repayment_pct,
-        avg_dormancy = ctx.nf_summary.avg_dormancy_pct,
-        avg_agm = ctx.nf_summary.avg_agm_participation_pct,
-        avg_women = ctx.nf_summary.avg_women_pct,
-        avg_youth = ctx.nf_summary.avg_youth_pct,
-        avg_rural = ctx.nf_summary.avg_rural_pct,
     )
 }
 
@@ -2126,28 +2311,31 @@ pub fn encode_cooperative_narrative_params(narratives: &CooperativeNarratives) -
 
 pub fn encode_apex_narrative_params(narratives: &ApexNarratives) -> String {
     format!(
-        "&sector_overview={}&risk_assessment={}",
-        urlencoding::encode(&narratives.sector_overview),
-        urlencoding::encode(&narratives.risk_assessment),
+        "&executive_dashboard={}&risk_distribution={}&risk_watch={}",
+        urlencoding::encode(&narratives.executive_dashboard),
+        urlencoding::encode(&narratives.risk_distribution),
+        urlencoding::encode(&narratives.risk_watch),
     )
 }
 
 pub fn encode_federation_narrative_params(narratives: &FederationNarratives) -> String {
     format!(
-        "&sector_overview={}&sector_composition={}&pearls_compliance={}&social_impact={}",
-        urlencoding::encode(&narratives.sector_overview),
-        urlencoding::encode(&narratives.sector_composition),
-        urlencoding::encode(&narratives.pearls_compliance),
-        urlencoding::encode(&narratives.social_impact),
+        "&executive_dashboard={}&risk_distribution={}&sector_breakdown={}&apex_comparison={}&pearls_analysis={}",
+        urlencoding::encode(&narratives.executive_dashboard),
+        urlencoding::encode(&narratives.risk_distribution),
+        urlencoding::encode(&narratives.sector_breakdown),
+        urlencoding::encode(&narratives.apex_comparison),
+        urlencoding::encode(&narratives.pearls_analysis),
     )
 }
 
 pub fn encode_ministry_narrative_params(narratives: &MinistryNarratives) -> String {
     format!(
-        "&sector_overview={}&sector_composition={}&pearls_compliance={}&social_impact={}",
-        urlencoding::encode(&narratives.sector_overview),
-        urlencoding::encode(&narratives.sector_composition),
-        urlencoding::encode(&narratives.pearls_compliance),
-        urlencoding::encode(&narratives.social_impact),
+        "&executive_dashboard={}&risk_distribution={}&sector_breakdown={}&apex_comparison={}&pearls_analysis={}",
+        urlencoding::encode(&narratives.executive_dashboard),
+        urlencoding::encode(&narratives.risk_distribution),
+        urlencoding::encode(&narratives.sector_breakdown),
+        urlencoding::encode(&narratives.apex_comparison),
+        urlencoding::encode(&narratives.pearls_analysis),
     )
 }

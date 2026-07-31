@@ -2,15 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
 
 export interface ApexNarratives {
-  sector_overview: string;
-  risk_assessment: string;
+  executive_dashboard: string;
+  risk_distribution: string;
+  risk_watch: string;
 }
 
 export interface FederationNarratives {
-  sector_overview: string;
-  sector_composition: string;
-  pearls_compliance: string;
-  social_impact: string;
+  executive_dashboard: string;
+  risk_distribution: string;
+  sector_breakdown: string;
+  apex_comparison: string;
+  pearls_analysis: string;
 }
 
 export type MinistryNarratives = FederationNarratives;

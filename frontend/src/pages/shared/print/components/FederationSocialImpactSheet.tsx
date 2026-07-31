@@ -1,14 +1,12 @@
 import React, { useEffect } from "react";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
-import { AiInsightBox } from "./AiInsightBox";
 
 interface FederationSocialImpactSheetProps {
   federationName: string;
   year: number;
   data: NationalOverviewResponse;
   priorData?: NationalOverviewResponse;
-  narratives?: string;
 }
 
 export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetProps> = ({
@@ -16,7 +14,6 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
   year,
   data,
   priorData,
-  narratives,
 }) => {
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
   const priorCoops: CoopKpiRow[] = priorData?.cooperatives || [];
@@ -111,17 +108,6 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col gap-8">
-        <AiInsightBox
-          title="Social Impact — AI Assessment"
-          content={narratives}
-          fallbackContent={
-            <>
-              This section summarizes social impact metrics including membership reach, credit flow
-              to priority segments, and year-on-year trends across the federation's cooperative
-              network.
-            </>
-          }
-        />
         <div>
           <table className="w-full text-sm border-collapse">
             <thead>
