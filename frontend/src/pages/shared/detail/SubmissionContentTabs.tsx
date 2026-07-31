@@ -103,6 +103,10 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  if (!submission) {
+    return null;
+  }
+
   return (
     <div className="font-sans">
       {submission.submission_method === "questionnaire" ? (

@@ -10,9 +10,11 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::apex::ApexStatsResponse;
+#[allow(unused_imports)]
 use crate::api::dto::submission::{
     CooperativeStatsResponse, CreateSubmissionRequest, SubmissionResponse,
     SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
+    MembershipStatsResponse, PortfolioBreakdownResponse,
 };
 use crate::auth::claims::Claims;
 
@@ -1652,7 +1654,7 @@ pub async fn list_submission_reviews(
     path = "/api/v1/cooperative/submissions/{id}/portfolio-breakdown",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Portfolio breakdown", body = crate::api::dto::submission::PortfolioBreakdownResponse),
+        (status = 200, description = "Portfolio breakdown", body = PortfolioBreakdownResponse),
         (status = 403, description = "Access denied"),
         (status = 404, description = "Submission not found")
     ),
@@ -1695,7 +1697,7 @@ pub async fn get_portfolio_breakdown(
     path = "/api/v1/cooperative/submissions/{id}/membership-stats",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Membership stats", body = crate::api::dto::submission::MembershipStatsResponse),
+        (status = 200, description = "Membership stats", body = MembershipStatsResponse),
         (status = 403, description = "Access denied"),
         (status = 404, description = "Submission not found")
     ),

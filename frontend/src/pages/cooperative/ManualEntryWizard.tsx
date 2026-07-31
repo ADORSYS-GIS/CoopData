@@ -289,7 +289,7 @@ export function ManualEntryWizard() {
       setSavings(
         list.map((s) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: s.member_business_id || "",
+          memberBusinessId: s.member_id || "",
           savingsAccountId: s.savings_account_id,
           accountType: s.account_type as "Voluntary" | "Mandatory" | "Fixed",
           accountOpeningDate: s.account_opening_date,
@@ -314,7 +314,7 @@ export function ManualEntryWizard() {
       setLoans(
         list.map((l) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: l.member_business_id || "",
+          memberBusinessId: l.member_id || "",
           loanId: l.loan_id,
           loanProductType: l.loan_product_type,
           loanStartDate: l.loan_start_date,
@@ -329,7 +329,7 @@ export function ManualEntryWizard() {
             "0" | "1-30" | "31-60" | "61-90" | "91+",
           missedInstallmentsCount: l.missed_installments_count,
           restructuredLoanFlag: l.restructured_loan_flag,
-          number_of_restructurings: l.number_of_restructurings,
+          numberOfRestructurings: l.number_of_restructurings || 0,
           earlySettlementFlag: l.early_settlement_flag,
           multipleLoansFlag: l.multiple_loans_flag,
           largeBorrowerFlag: l.large_borrower_flag,
@@ -347,7 +347,7 @@ export function ManualEntryWizard() {
       setFixedDeposits(
         list.map((f) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: f.member_business_id || "",
+          memberBusinessId: f.member_id || "",
           fixedDepositId: f.fixed_deposit_id,
           depositType: f.deposit_type,
           startDate: f.start_date,

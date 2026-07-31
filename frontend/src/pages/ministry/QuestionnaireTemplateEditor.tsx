@@ -54,8 +54,8 @@ interface FieldConfig {
   key: string;
   label: string;
   type: string;
-  required: boolean;
-  options: string[];
+  required?: boolean;
+  options?: string[];
   description?: string;
 }
 
@@ -194,7 +194,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     setModalLabel(field.label);
     setModalDescription(field.description || "");
     setModalType(field.type);
-    setModalRequired(field.required);
+    setModalRequired(!!field.required);
     setModalOptions(field.options || []);
     setNewOptionText("");
     setIsModalOpen(true);
