@@ -297,24 +297,10 @@ impl LlmNarrativeGenerator {
             if res.status().as_u16() == 429 {
                 let text = res.text().await.unwrap_or_default();
                 
-                // Check for QUOTA EXHAUSTION (permanent until billing/plan reset)
-                // Gemini: "Quota exceeded for metric: ... limit: 20"
-                // OpenAI: "You exceeded your current quota"
-                let is_quota_exhausted = text.contains("Quota exceeded")
-                    || text.contains("exceeded your current quota")
-                    || text.contains("quota_exceeded");
-                
-                if is_quota_exhausted {
-                    tracing::error!(
-                        attempt,
-                        "[narrative] 💳 Quota exhausted — failing immediately (no retry). Quota won't recover during retries."
-                    );
-                    return Err(AppError::ExternalServiceError(format!(
-                        "Narrative LLM quota exhausted (credits depleted): {text}"
-                    )));
-                }
-                
-                // Rate limited (temporary) — parse response body for Gemini's retryDelay
+                // Parse the retry delay from the response body.
+                // Gemini always includes "Please retry in Xs" or "retryDelay": "Xs" even on quota errors.
+                // If a retry delay is present, the rate limit is TEMPORARY — wait and retry.
+                // Only fail immediately if there's NO retry hint (truly permanent quota exhaustion).
                 let delay_ms = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
                     // Gemini format: { "error": { "retryDelay": "46s", ... } }
                     let retry_delay = json["error"]["retryDelay"]
@@ -322,16 +308,8 @@ impl LlmNarrativeGenerator {
                         .or_else(|| json["retryDelay"].as_str());
                     
                     if let Some(delay_str) = retry_delay {
-                        // Parse "46s" → 46000ms
-                        let secs: u64 = delay_str
-                            .trim_end_matches('s')
-                            .parse()
-                            .unwrap_or(0);
-                        if secs > 0 {
-                            secs * 1000
-                        } else {
-                            BASE_DELAY_MS * 2u64.pow(attempt - 1)
-                        }
+                        let secs: u64 = delay_str.trim_end_matches('s').parse().unwrap_or(0);
+                        if secs > 0 { secs * 1000 } else { BASE_DELAY_MS * 2u64.pow(attempt - 1) }
                     } else {
                         // Fallback: check "Please retry in 46.926118825s" in message
                         let msg = json["error"]["message"].as_str().unwrap_or("");
@@ -339,31 +317,38 @@ impl LlmNarrativeGenerator {
                             let num_str = &msg[pos + 16..];
                             if let Some(end) = num_str.find('s') {
                                 let secs: u64 = num_str[..end].parse().unwrap_or(0);
-                                if secs > 0 {
-                                    secs * 1000
-                                } else {
-                                    BASE_DELAY_MS * 2u64.pow(attempt - 1)
-                                }
+                                if secs > 0 { secs * 1000 } else { BASE_DELAY_MS * 2u64.pow(attempt - 1) }
                             } else {
                                 BASE_DELAY_MS * 2u64.pow(attempt - 1)
                             }
                         } else {
-                            BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                            // No retry hint at all — this is a permanent quota exhaustion (e.g. daily limit hit, no billing)
+                            tracing::error!(
+                                attempt,
+                                "[narrative] 💳 Quota exhausted with no retry hint — failing immediately."
+                            );
+                            return Err(AppError::ExternalServiceError(format!(
+                                "Narrative LLM quota exhausted (no retry delay): {text}"
+                            )));
                         }
                     }
                 } else {
-                    // Not JSON — use exponential backoff
-                    BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                    // Not JSON — no retry hint possible, fail
+                    return Err(AppError::ExternalServiceError(format!(
+                        "Narrative LLM quota/rate error (non-JSON): {text}"
+                    )));
                 };
 
+                // We have a retry delay — use it. Gemini tells us exactly when the quota resets.
                 if attempt < MAX_RETRIES {
                     tracing::warn!(
                         attempt,
                         max_retries = MAX_RETRIES,
                         delay_ms,
-                        "[narrative] ⏳ Rate limited (429), retrying in {}ms ({}s)",
-                        delay_ms,
-                        delay_ms / 1000
+                        "[narrative] ⏳ Rate/quota limited (429), waiting {}s as Gemini requested (attempt {}/{})",
+                        delay_ms / 1000,
+                        attempt,
+                        MAX_RETRIES
                     );
                     tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
                     continue;
