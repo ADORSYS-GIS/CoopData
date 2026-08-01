@@ -13,6 +13,52 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/analytics/comparative-statements": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_comparative_statements",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_ids",
+            "in": "query",
+            "description": "Comma-separated cooperative UUIDs to filter",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comparative statements grid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparativeStatementsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/consolidated-nf-statistics": {
       "get": {
         "tags": [
@@ -86,139 +132,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "Forbidden"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/custom-kpis": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "list_custom_kpis",
-        "responses": {
-          "200": {
-            "description": "List of custom KPIs",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CustomKpiDto"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "create_custom_kpi",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCustomKpiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Custom KPI created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CustomKpiDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid formula"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/custom-kpis/evaluate": {
-      "post": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "evaluate_custom_kpi",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EvaluateKpiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Evaluation result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EvaluateKpiResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/custom-kpis/{id}": {
-      "delete": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "delete_custom_kpi",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of the custom KPI to delete",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Custom KPI deleted"
-          },
-          "401": {
-            "description": "Unauthorized"
           },
           "403": {
             "description": "Forbidden"
@@ -436,6 +349,69 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/questionnaire": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "get_questionnaire_analytics",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Questionnaire aggregated analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireAnalyticsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -1266,11 +1242,11 @@
           "Export"
         ],
         "summary": "GET /api/v1/apex/export",
-        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nExports a consolidated multi-sheet Excel file of all cooperatives within the user's scope.",
+        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nExports a consolidated PDF report of all cooperatives within the user's scope.",
         "operationId": "export_bulk_consolidated",
         "responses": {
           "200": {
-            "description": "Consolidated Excel workbook file stream"
+            "description": "Consolidated PDF file stream"
           },
           "403": {
             "description": "Forbidden"
@@ -2943,6 +2919,40 @@
         }
       }
     },
+    "/api/v1/cooperative/questionnaire-templates/active": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_active_template_coop",
+        "parameters": [
+          {
+            "name": "questionnaire_type",
+            "in": "query",
+            "description": "financial or non_financial",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active questionnaire template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireTemplateDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active template for this type"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/stats": {
       "get": {
         "tags": [
@@ -3113,7 +3123,7 @@
           "Export"
         ],
         "summary": "GET /api/v1/cooperative/submissions/{id}/export",
-        "description": "GET /api/v1/apex/submissions/{id}/export\nExports a single cooperative submission in XLSX, CSV, DOCX, or PDF.",
+        "description": "Exports a single cooperative submission in PDF.",
         "operationId": "export_single_submission",
         "parameters": [
           {
@@ -3124,15 +3134,6 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "description": "Export format (xlsx, csv, docx, pdf)",
-            "required": true,
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -3188,6 +3189,53 @@
         ]
       }
     },
+    "/api/v1/cooperative/submissions/{id}/financial-statement/line-items": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_submission_line_items",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "include_prior_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Line items for submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionLineItemsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
     "/api/v1/cooperative/submissions/{id}/kpis": {
       "get": {
         "tags": [
@@ -3203,6 +3251,15 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "include_prior_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
             }
           }
         ],
@@ -3224,6 +3281,171 @@
             "description": "Submission or financial statement not found"
           }
         }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/manual-financial-statement": {
+      "post": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "create_manual_financial_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualFinancialStatementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Financial statement manually created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialStatementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/manual-members": {
+      "post": {
+        "tags": [
+          "Non-Financial"
+        ],
+        "operationId": "create_manual_members",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualMembersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Members and accounts manually created"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/membership-stats": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_membership_stats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membership stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/non-financial": {
+      "delete": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "delete_non_financial_data",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Non-financial data deleted successfully"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v1/cooperative/submissions/{id}/non-financial-indicators": {
@@ -3309,6 +3531,133 @@
           },
           "403": {
             "description": "Scope violation"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/portfolio-breakdown": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_portfolio_breakdown",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio breakdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioBreakdownResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/questionnaire": {
+      "get": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "get_questionnaire_response",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questionnaire_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Questionnaire retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "save_questionnaire_response",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveQuestionnaireRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Questionnaire saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - submission is not a draft"
           },
           "404": {
             "description": "Submission not found"
@@ -4462,6 +4811,51 @@
         }
       }
     },
+    "/api/v1/ministry/apexes": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "ministry_list_apexes",
+        "parameters": [
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Keycloak Federation ID to filter by",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of apexes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApexResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - ministry role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ministry/audit-logs": {
       "get": {
         "tags": [
@@ -4574,6 +4968,161 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/custom-kpis": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "list_custom_kpis",
+        "responses": {
+          "200": {
+            "description": "List of custom KPIs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomKpiDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "create_custom_kpi",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomKpiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Custom KPI created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomKpiDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid formula"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/custom-kpis/evaluate": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "evaluate_custom_kpi",
+        "parameters": [
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateKpiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateKpiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/custom-kpis/{id}": {
+      "delete": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "delete_custom_kpi",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the custom KPI to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Custom KPI deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       }
@@ -5240,6 +5789,198 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/questionnaire-templates": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "list_templates",
+        "responses": {
+          "200": {
+            "description": "All questionnaire templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuestionnaireTemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "create_template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Template created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireTemplateDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/questionnaire-templates/{id}": {
+      "get": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "get_template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Questionnaire template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireTemplateDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "update_template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Template updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireTemplateDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot edit active template"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "delete_template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Template deleted"
+          },
+          "400": {
+            "description": "Cannot delete active template"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/ministry/questionnaire-templates/{id}/activate": {
+      "post": {
+        "tags": [
+          "Ministry"
+        ],
+        "operationId": "activate_template",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template activated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionnaireTemplateDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }
@@ -6042,6 +6783,33 @@
           }
         }
       },
+      "AgeDemographics": {
+        "type": "object",
+        "required": [
+          "age_18_25",
+          "age_26_35",
+          "age_36_60",
+          "age_61plus"
+        ],
+        "properties": {
+          "age_18_25": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "age_26_35": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "age_36_60": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "age_61plus": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AgeGroup": {
         "type": "string",
         "enum": [
@@ -6395,6 +7163,39 @@
           }
         }
       },
+      "ComparativeStatementsParams": {
+        "type": "object",
+        "properties": {
+          "cooperative_ids": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "ComparativeStatementsResponse": {
+        "type": "object",
+        "required": [
+          "year",
+          "grids"
+        ],
+        "properties": {
+          "grids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CooperativeStatementGrid"
+            }
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ConsolidationCoopTypeRowResponse": {
         "type": "object",
         "required": [
@@ -6498,6 +7299,15 @@
           "custom_kpis"
         ],
         "properties": {
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "apex_name": {
+            "type": "string",
+            "nullable": true
+          },
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
@@ -6550,6 +7360,11 @@
         "required": [
           "has_data",
           "total_members",
+          "active_members",
+          "active_borrowers",
+          "women_borrowers",
+          "youth_borrowers",
+          "rural_borrowers",
           "active_members_pct",
           "savings_penetration_pct",
           "credit_penetration_pct",
@@ -6561,6 +7376,16 @@
           "fd_early_withdrawal_pct"
         ],
         "properties": {
+          "active_borrowers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "active_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "active_members_pct": {
             "type": "number",
             "format": "double"
@@ -6596,11 +7421,26 @@
             "type": "number",
             "format": "double"
           },
+          "rural_borrowers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "savings_penetration_pct": {
             "type": "number",
             "format": "double"
           },
           "total_members": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "women_borrowers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "youth_borrowers": {
             "type": "integer",
             "format": "int64",
             "minimum": 0
@@ -6630,6 +7470,32 @@
           }
         }
       },
+      "CooperativeLineItem": {
+        "type": "object",
+        "required": [
+          "account_name",
+          "value",
+          "month"
+        ],
+        "properties": {
+          "account_code": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "CooperativeProfileResponse": {
         "type": "object",
         "required": [
@@ -6637,6 +7503,7 @@
           "name",
           "status",
           "accounting_year",
+          "tier",
           "created_at",
           "updated_at"
         ],
@@ -6729,6 +7596,9 @@
           "status": {
             "type": "string"
           },
+          "tier": {
+            "type": "string"
+          },
           "tin": {
             "type": "string",
             "nullable": true
@@ -6771,6 +7641,29 @@
           "region": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "CooperativeStatementGrid": {
+        "type": "object",
+        "required": [
+          "cooperative_id",
+          "cooperative_name",
+          "line_items"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cooperative_name": {
+            "type": "string"
+          },
+          "line_items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CooperativeLineItem"
+            }
           }
         }
       },
@@ -6910,6 +7803,9 @@
           "status": {
             "type": "string"
           },
+          "tier": {
+            "type": "string"
+          },
           "tin": {
             "type": "string",
             "nullable": true
@@ -6980,6 +7876,9 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "tier": {
             "type": "string"
           },
           "tin": {
@@ -7448,7 +8347,27 @@
           "reporting_year": {
             "type": "integer",
             "format": "int32"
+          },
+          "submission_method": {
+            "type": "string"
           }
+        }
+      },
+      "CreateTemplateRequest": {
+        "type": "object",
+        "required": [
+          "questionnaire_type",
+          "label",
+          "sections"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "questionnaire_type": {
+            "type": "string"
+          },
+          "sections": {}
         }
       },
       "CreateUserRequest": {
@@ -8483,6 +9402,15 @@
           }
         }
       },
+      "KpisQueryParams": {
+        "type": "object",
+        "properties": {
+          "include_prior_year": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
       "LineItemBulkUpdateRequest": {
         "type": "object",
         "required": [
@@ -8852,6 +9780,484 @@
           "WrittenOff"
         ]
       },
+      "ManualFarmCoopEntry": {
+        "type": "object",
+        "required": [
+          "cooperative_type",
+          "primary_activities",
+          "operational_status",
+          "active_producer_flag",
+          "production_type",
+          "participation_frequency",
+          "delivery_compliance",
+          "production_cycle_type",
+          "use_of_production_planning",
+          "use_of_shared_inputs",
+          "quality_compliance_flag",
+          "market_channel_type",
+          "formal_offtake_agreement",
+          "buyer_concentration_flag",
+          "price_predictability_category",
+          "access_to_storage",
+          "access_to_processing_facilities",
+          "transport_coordination",
+          "climate_exposure_type",
+          "irrigation_access",
+          "climate_mitigation_practices"
+        ],
+        "properties": {
+          "access_to_processing_facilities": {
+            "type": "boolean"
+          },
+          "access_to_storage": {
+            "type": "boolean"
+          },
+          "active_producer_flag": {
+            "type": "boolean"
+          },
+          "buyer_concentration_flag": {
+            "type": "boolean"
+          },
+          "climate_exposure_type": {
+            "type": "string"
+          },
+          "climate_mitigation_practices": {
+            "type": "string"
+          },
+          "cooperative_type": {
+            "type": "string"
+          },
+          "delivery_compliance": {
+            "type": "string"
+          },
+          "formal_offtake_agreement": {
+            "type": "boolean"
+          },
+          "irrigation_access": {
+            "type": "boolean"
+          },
+          "market_channel_type": {
+            "type": "string"
+          },
+          "operational_status": {
+            "type": "string"
+          },
+          "participation_frequency": {
+            "type": "string"
+          },
+          "price_predictability_category": {
+            "type": "string"
+          },
+          "primary_activities": {
+            "type": "string"
+          },
+          "production_cycle_type": {
+            "type": "string"
+          },
+          "production_type": {
+            "type": "string"
+          },
+          "quality_compliance_flag": {
+            "type": "boolean"
+          },
+          "transport_coordination": {
+            "type": "string"
+          },
+          "use_of_production_planning": {
+            "type": "boolean"
+          },
+          "use_of_shared_inputs": {
+            "type": "boolean"
+          },
+          "year_of_establishment": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "ManualFinancialStatementRequest": {
+        "type": "object",
+        "required": [
+          "accounting_year",
+          "currency",
+          "line_items"
+        ],
+        "properties": {
+          "accounting_year": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "line_items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualLineItemRequest"
+            }
+          }
+        }
+      },
+      "ManualFixedDepositEntry": {
+        "type": "object",
+        "required": [
+          "member_business_id",
+          "fixed_deposit_id",
+          "deposit_type",
+          "start_date",
+          "maturity_date",
+          "status",
+          "tenure_category",
+          "original_tenure_selected",
+          "early_withdrawal_flag",
+          "rollover_at_maturity_flag",
+          "number_of_renewals",
+          "change_in_tenure_at_renewal",
+          "single_depositor_dependency_flag",
+          "interest_rate",
+          "balance"
+        ],
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "change_in_tenure_at_renewal": {
+            "type": "boolean"
+          },
+          "deposit_type": {
+            "type": "string"
+          },
+          "early_withdrawal_flag": {
+            "type": "boolean"
+          },
+          "fixed_deposit_id": {
+            "type": "string"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "maturity_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "member_business_id": {
+            "type": "string"
+          },
+          "number_of_renewals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "original_tenure_selected": {
+            "type": "string"
+          },
+          "rollover_at_maturity_flag": {
+            "type": "boolean"
+          },
+          "single_depositor_dependency_flag": {
+            "type": "boolean"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FdStatus"
+          },
+          "tenure_category": {
+            "type": "string"
+          }
+        }
+      },
+      "ManualLineItemRequest": {
+        "type": "object",
+        "required": [
+          "account_name",
+          "account_category",
+          "account_subcategory",
+          "month"
+        ],
+        "properties": {
+          "account_category": {
+            "type": "string"
+          },
+          "account_code": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "account_subcategory": {
+            "type": "string"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "ManualLoanEntry": {
+        "type": "object",
+        "required": [
+          "member_business_id",
+          "loan_id",
+          "loan_product_type",
+          "loan_start_date",
+          "loan_maturity_date",
+          "loan_status",
+          "borrower_type",
+          "youth_borrower_flag",
+          "women_borrower_flag",
+          "rural_borrower_flag",
+          "repayment_regularity",
+          "days_past_due_category",
+          "missed_installments_count",
+          "restructured_loan_flag",
+          "number_of_restructurings",
+          "early_settlement_flag",
+          "multiple_loans_flag",
+          "large_borrower_flag",
+          "interest_rate",
+          "balance",
+          "loan_amount"
+        ],
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "borrower_type": {
+            "type": "string"
+          },
+          "days_past_due_category": {
+            "$ref": "#/components/schemas/DpdCategory"
+          },
+          "early_settlement_flag": {
+            "type": "boolean"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "large_borrower_flag": {
+            "type": "boolean"
+          },
+          "loan_amount": {
+            "type": "string"
+          },
+          "loan_id": {
+            "type": "string"
+          },
+          "loan_maturity_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "loan_product_type": {
+            "type": "string"
+          },
+          "loan_start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "loan_status": {
+            "$ref": "#/components/schemas/LoanStatus"
+          },
+          "member_business_id": {
+            "type": "string"
+          },
+          "missed_installments_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "multiple_loans_flag": {
+            "type": "boolean"
+          },
+          "number_of_restructurings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repayment_regularity": {
+            "type": "string"
+          },
+          "restructured_loan_flag": {
+            "type": "boolean"
+          },
+          "rural_borrower_flag": {
+            "type": "boolean"
+          },
+          "women_borrower_flag": {
+            "type": "boolean"
+          },
+          "youth_borrower_flag": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ManualMemberEntry": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "join_date",
+          "status",
+          "gender",
+          "age_group",
+          "region",
+          "urban_rural",
+          "agm_attendance",
+          "voting_exercised"
+        ],
+        "properties": {
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "agm_attendance": {
+            "type": "boolean"
+          },
+          "exit_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "join_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "leadership_role": {
+            "type": "string",
+            "nullable": true
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/EswatiniRegion"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemberStatus"
+          },
+          "urban_rural": {
+            "$ref": "#/components/schemas/UrbanRural"
+          },
+          "voting_exercised": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ManualMembersRequest": {
+        "type": "object",
+        "required": [
+          "members"
+        ],
+        "properties": {
+          "farm_coop": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualFarmCoopEntry"
+            },
+            "nullable": true
+          },
+          "fixed_deposits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualFixedDepositEntry"
+            },
+            "nullable": true
+          },
+          "loans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualLoanEntry"
+            },
+            "nullable": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualMemberEntry"
+            }
+          },
+          "savings_accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualSavingsAccountEntry"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ManualSavingsAccountEntry": {
+        "type": "object",
+        "required": [
+          "member_business_id",
+          "savings_account_id",
+          "account_type",
+          "account_opening_date",
+          "account_status",
+          "contribution_frequency",
+          "number_of_contributions",
+          "balance_trend",
+          "zero_balance_flag",
+          "withdrawal_frequency_category",
+          "emergency_withdrawals_flag",
+          "interest_rate",
+          "balance"
+        ],
+        "properties": {
+          "account_opening_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "account_status": {
+            "type": "string"
+          },
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "balance_trend": {
+            "type": "string"
+          },
+          "contribution_frequency": {
+            "type": "string"
+          },
+          "emergency_withdrawals_flag": {
+            "type": "boolean"
+          },
+          "interest_rate": {
+            "type": "string"
+          },
+          "last_contribution_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "member_business_id": {
+            "type": "string"
+          },
+          "number_of_contributions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "savings_account_id": {
+            "type": "string"
+          },
+          "withdrawal_frequency_category": {
+            "type": "string"
+          },
+          "zero_balance_flag": {
+            "type": "boolean"
+          }
+        }
+      },
       "MemberResponse": {
         "type": "object",
         "required": [
@@ -9056,6 +10462,48 @@
           "youth_pct": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "MembershipStatsResponse": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "male_members",
+          "female_members",
+          "youth_members",
+          "active_members",
+          "inactive_members",
+          "agm_attendance"
+        ],
+        "properties": {
+          "active_members": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "agm_attendance": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "female_members": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "inactive_members": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "male_members": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "youth_members": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -10121,6 +11569,273 @@
           }
         }
       },
+      "PortfolioBreakdownResponse": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "categories"
+        ],
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortfolioCategoryDto"
+            }
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PortfolioCategoryDto": {
+        "type": "object",
+        "required": [
+          "category",
+          "balance",
+          "count"
+        ],
+        "properties": {
+          "balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "category": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "QuestionnaireAnalyticsDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "cooperative_name",
+          "questionnaire_type",
+          "reporting_year",
+          "region",
+          "total_members",
+          "total_share_capital",
+          "net_income"
+        ],
+        "properties": {
+          "cooperative_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "net_income": {
+            "type": "number",
+            "format": "double"
+          },
+          "questionnaire_type": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_share_capital": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "QuestionnaireAnalyticsResponse": {
+        "type": "object",
+        "required": [
+          "total_reporting_cooperatives",
+          "total_registered_members",
+          "total_active_members",
+          "total_members_male",
+          "total_members_female",
+          "total_share_capital",
+          "total_borrowed_funds",
+          "total_savings_value",
+          "total_loans_outstanding",
+          "total_income",
+          "total_expenditure",
+          "total_net_income",
+          "members_by_age",
+          "region_counts",
+          "sector_counts",
+          "details"
+        ],
+        "properties": {
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionnaireAnalyticsDetail"
+            }
+          },
+          "members_by_age": {
+            "$ref": "#/components/schemas/AgeDemographics"
+          },
+          "region_counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "sector_counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "total_active_members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_borrowed_funds": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_expenditure": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_income": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_loans_outstanding": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_members_female": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_members_male": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_net_income": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_registered_members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_reporting_cooperatives": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_savings_value": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_share_capital": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "QuestionnaireResponseDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "cooperative_id",
+          "questionnaire_type",
+          "reporting_year",
+          "answers",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "answers": {},
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questionnaire_type": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "QuestionnaireTemplateDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "questionnaire_type",
+          "version",
+          "label",
+          "sections",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "questionnaire_type": {
+            "type": "string"
+          },
+          "sections": {},
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RegionCompliancePoint": {
         "type": "object",
         "required": [
@@ -10270,6 +11985,19 @@
           "value_text": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "SaveQuestionnaireRequest": {
+        "type": "object",
+        "required": [
+          "questionnaire_type",
+          "answers"
+        ],
+        "properties": {
+          "answers": {},
+          "questionnaire_type": {
+            "type": "string"
           }
         }
       },
@@ -10581,6 +12309,13 @@
               "$ref": "#/components/schemas/KpiItemResponse"
             }
           },
+          "prior_year_kpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiItemResponse"
+            },
+            "nullable": true
+          },
           "reporting_year": {
             "type": "integer",
             "format": "int32"
@@ -10595,6 +12330,32 @@
           }
         }
       },
+      "SubmissionLineItemsResponse": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "current_year"
+        ],
+        "properties": {
+          "current_year": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineItemResponse"
+            }
+          },
+          "prior_year": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineItemResponse"
+            },
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "SubmissionResponse": {
         "type": "object",
         "required": [
@@ -10604,6 +12365,7 @@
           "status",
           "current_tier",
           "priority",
+          "submission_method",
           "created_at",
           "updated_at",
           "sections"
@@ -10688,6 +12450,9 @@
             "description": "Per-section readiness statuses"
           },
           "status": {
+            "type": "string"
+          },
+          "submission_method": {
             "type": "string"
           },
           "submitted_at": {
@@ -11399,6 +13164,18 @@
         "properties": {
           "status": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateTemplateRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "sections": {
+            "nullable": true
           }
         }
       },

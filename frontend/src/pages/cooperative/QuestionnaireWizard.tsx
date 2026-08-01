@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -22,7 +21,23 @@ import {
   useActiveTemplate,
 } from "@/hooks/submissions/useQuestionnaire";
 import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
+
+export interface TemplateField {
+  key: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  description?: string;
+  options?: string[];
+}
+
+export interface TemplateSection {
+  id: string;
+  title: string;
+  icon: string;
+  description?: string;
+  fields: TemplateField[];
+}
 
 interface QuestionnaireWizardProps {
   submissionId: string;
@@ -46,7 +61,7 @@ const getEmoji = (iconName: string): string => {
 
 // ─── Field Input Renderer ──────────────────────────────────────────────────────
 const FieldInput: React.FC<{
-  field: { key: string; label: string; type: string; options?: string[]; required?: boolean };
+  field: TemplateField;
   value: unknown;
   onChange: (key: string, value: unknown) => void;
 }> = ({ field, value, onChange }) => {
@@ -142,7 +157,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     }
   }, [existing]);
 
-  const sections = template?.sections || [];
+  const sections = (template?.sections || []) as unknown as TemplateSection[];
   const section = sections[currentSection];
 
   const handleFieldChange = (key: string, value: unknown) => {
@@ -151,8 +166,8 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
   const handlePopulateTestData = () => {
     const mockAnswers: Record<string, unknown> = { ...answers };
-    sections.forEach((sec: any) => {
-      (sec.fields || []).forEach((field: any) => {
+    sections.forEach((sec: TemplateSection) => {
+      (sec.fields || []).forEach((field: TemplateField) => {
         if (field.type === "number") {
           if (field.key.includes("rate") || field.key.includes("percent")) {
             mockAnswers[field.key] = Math.floor(Math.random() * 15) + 5;
@@ -198,14 +213,16 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   const handleSaveAndNext = async () => {
     // Validate current section's required fields
     const missing: string[] = [];
-    (section.fields || []).forEach((field: any) => {
-      if (field.required) {
-        const val = answers[field.key];
-        if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
-          missing.push(field.label);
+    if (section) {
+      (section.fields || []).forEach((field: TemplateField) => {
+        if (field.required) {
+          const val = answers[field.key];
+          if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
+            missing.push(field.label);
+          }
         }
-      }
-    });
+      });
+    }
 
     if (missing.length > 0) {
       toast.error(t("questionnaire.requiredFieldsSection", { fields: missing.join(", ") }));
@@ -222,8 +239,8 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   const handleSubmitAll = async () => {
     // Validate all sections
     const missing: Array<{ sectionTitle: string; fieldLabel: string; sectionIndex: number }> = [];
-    sections.forEach((sec: any, secIdx: number) => {
-      (sec.fields || []).forEach((field: any) => {
+    sections.forEach((sec: TemplateSection, secIdx: number) => {
+      (sec.fields || []).forEach((field: TemplateField) => {
         if (field.required) {
           const val = answers[field.key];
           if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
@@ -346,12 +363,14 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   <AlertCircle className="size-4" /> {t("questionnaire.failedSave")}
                 </span>
               )}
-              <button
-                onClick={handlePopulateTestData}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/45 bg-primary/5 hover:bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
-              >
-                {t("questionnaire.populateTestData")}
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  onClick={handlePopulateTestData}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/45 bg-primary/5 hover:bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
+                >
+                  🧪 Populate Test Data
+                </button>
+              )}
               <button
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
@@ -375,20 +394,19 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
           {/* Section tabs (scrollable) */}
           <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-none">
-            {sections.map((s: any, idx: number) => {
+            {sections.map((s: TemplateSection, idx: number) => {
               const isComplete = idx < currentSection;
               const isCurrent = idx === currentSection;
               return (
                 <button
                   key={s.id}
                   onClick={() => setCurrentSection(idx)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    isCurrent
+                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${isCurrent
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : isComplete
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                  }`}
+                    }`}
                 >
                   {isComplete ? (
                     <CheckCircle2 className="size-3" />
@@ -406,37 +424,45 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
       {/* Section body */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-start gap-4">
-          <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-xl shrink-0">
-            {getEmoji(section.icon || "")}
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">{section.title}</h2>
-            {section.description && (
-              <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {(section.fields || []).map((field: any) => (
-            <div
-              key={field.key}
-              className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
-            >
-              <label className="text-sm font-medium text-foreground/80 mb-0.5">
-                {field.label}
-                {field.required && <span className="text-destructive ml-0.5">*</span>}
-              </label>
-              {field.description && (
-                <span className="text-xs text-muted-foreground -mt-1 mb-1 leading-relaxed">
-                  {field.description}
-                </span>
-              )}
-              <FieldInput field={field} value={answers[field.key]} onChange={handleFieldChange} />
+        {section && (
+          <>
+            <div className="mb-6 flex items-start gap-4">
+              <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-xl shrink-0">
+                {getEmoji(section.icon || "")}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">{section.title}</h2>
+                {section.description && (
+                  <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(section.fields || []).map((field: TemplateField) => (
+                <div
+                  key={field.key}
+                  className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
+                >
+                  <label className="text-sm font-medium text-foreground/80 mb-0.5">
+                    {field.label}
+                    {field.required && <span className="text-destructive ml-0.5">*</span>}
+                  </label>
+                  {field.description && (
+                    <span className="text-xs text-muted-foreground -mt-1 mb-1 leading-relaxed">
+                      {field.description}
+                    </span>
+                  )}
+                  <FieldInput
+                    field={field}
+                    value={answers[field.key]}
+                    onChange={handleFieldChange}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Navigation */}
         <div className="mt-8 flex items-center justify-between border-t border-border/50 pt-6">

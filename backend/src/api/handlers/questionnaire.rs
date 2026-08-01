@@ -1,4 +1,5 @@
 use crate::{
+    api::middleware::AuditContext,
     auth::Claims,
     entities::enums::SubmissionStatus,
     error::{AppError, AppResult},
@@ -132,9 +133,16 @@ pub async fn get_questionnaire_response(
 pub async fn save_questionnaire_response(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(submission_id): Path<Uuid>,
     Json(body): Json<SaveQuestionnaireRequest>,
 ) -> AppResult<impl IntoResponse> {
+    if body.questionnaire_type != "financial" && body.questionnaire_type != "non_financial" {
+        return Err(AppError::BadRequest(
+            "Invalid questionnaire type. Must be 'financial' or 'non_financial'".into(),
+        ));
+    }
+
     let sub = state
         .submission_repo
         .find_by_id(submission_id)
@@ -167,7 +175,7 @@ pub async fn save_questionnaire_response(
         .save_response(
             submission_id,
             sub.cooperative_id,
-            body.questionnaire_type,
+            body.questionnaire_type.clone(),
             sub.reporting_year,
             body.answers,
         )
@@ -210,6 +218,25 @@ pub async fn save_questionnaire_response(
             .section_repo
             .update_status(section.id, "ready")
             .await?;
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "UPDATE",
+            "questionnaire_response",
+            Some(&saved.id.to_string()),
+            Some(serde_json::json!({
+                "submission_id": submission_id,
+                "questionnaire_type": saved.questionnaire_type
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((StatusCode::OK, Json(QuestionnaireResponseDto::from(saved))))
@@ -300,8 +327,17 @@ fn get_i32_from_json(json: &serde_json::Value, keys: &[&str]) -> i32 {
 )]
 pub async fn get_questionnaire_analytics(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Query(params): Query<QuestionnaireAnalyticsParams>,
 ) -> AppResult<impl IntoResponse> {
+    // Scope filtering: ministry sees all; everyone else is scoped to their own cooperative
+    let scoped_cooperative_id = if claims.has_role("ministry") {
+        params.cooperative_id
+    } else {
+        let coop_id = state.cooperative_id_from_claims(&claims).await?;
+        Some(coop_id)
+    };
+
     let responses = state
         .questionnaire_repo
         .find_responses_with_filters(
@@ -309,7 +345,7 @@ pub async fn get_questionnaire_analytics(
             None,
             params.region,
             params.sector,
-            params.cooperative_id,
+            scoped_cooperative_id,
         )
         .await?;
 

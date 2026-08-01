@@ -211,6 +211,18 @@ pub async fn delete_template(
     Ok(StatusCode::NO_CONTENT)
 }
 
+async fn get_active_template_helper(
+    state: &AppState,
+    q_type: &str,
+) -> AppResult<QuestionnaireTemplateDto> {
+    let template = state
+        .questionnaire_template_repo
+        .find_active(q_type)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q_type)))?;
+    Ok(QuestionnaireTemplateDto::from(template))
+}
+
 // ─── Shared: Get active template (coop fills form, reviewers show labels) ─────
 
 #[utoipa::path(
@@ -228,14 +240,8 @@ pub async fn get_active_template_coop(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let template = state
-        .questionnaire_template_repo
-        .find_active(&q.questionnaire_type)
-        .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
-        })?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    Ok(Json(dto))
 }
 
 /// Same as above but for apex reviewers
@@ -244,14 +250,8 @@ pub async fn get_active_template_apex(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let template = state
-        .questionnaire_template_repo
-        .find_active(&q.questionnaire_type)
-        .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
-        })?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    Ok(Json(dto))
 }
 
 /// Same as above but for federation reviewers
@@ -260,14 +260,8 @@ pub async fn get_active_template_federation(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let template = state
-        .questionnaire_template_repo
-        .find_active(&q.questionnaire_type)
-        .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
-        })?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    Ok(Json(dto))
 }
 
 /// Same as above but for ministry reviewers
@@ -276,12 +270,6 @@ pub async fn get_active_template_ministry(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let template = state
-        .questionnaire_template_repo
-        .find_active(&q.questionnaire_type)
-        .await?
-        .ok_or_else(|| {
-            AppError::NotFound(format!("No active {} template found", q.questionnaire_type))
-        })?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    Ok(Json(dto))
 }

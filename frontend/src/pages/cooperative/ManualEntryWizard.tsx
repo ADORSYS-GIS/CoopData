@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import {
@@ -27,9 +26,12 @@ import {
 } from "@/hooks/submissions/useManualEntry";
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
-import { getAccessToken } from "@/services/shared/authService";
-import { useTranslation } from "react-i18next";
+import { useSubmission } from "@/hooks/submissions/useSubmissions";
+import { apiClient } from "@/openapi-client";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { MemberRecord } from "@/lib/financial-data";
+
+import type { ManualLineItemRequest } from "@/types/manual-entry";
 
 // Import types & helpers from manual-entry/ sub-directory
 import type {
@@ -43,34 +45,31 @@ import type {
 import {
   fmt,
   createEmptyFarmCoop,
-  generateMockFinancialGrid,
   ACTIVE_ACCOUNT_CODES,
   ACCOUNT_METADATA,
   createEmptyFinancialGrid,
-  generateMockNonFinancialData,
   mapAgeGroup,
   mapAgeGroupToFrontend,
   mapDpdCategory,
   mapDpdCategoryToFrontend,
 } from "./manual-entry/helpers";
+import { generateMockFinancialGrid, generateMockNonFinancialData } from "./manual-entry/mockData";
 
 // Import subcomponents
-import { MemberRow } from "./manual-entry/MemberRow";
-import { SavingsRow } from "./manual-entry/SavingsRow";
-import { LoanRow } from "./manual-entry/LoanRow";
-import { FixedDepositRow } from "./manual-entry/FixedDepositRow";
 import { FarmCoopForm } from "./manual-entry/FarmCoopForm";
 import { ReviewSummary } from "./manual-entry/ReviewSummary";
 import { FinancialExcelGrid } from "./manual-entry/FinancialExcelGrid";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+import { MembersStep } from "./manual-entry/MembersStep";
+import { SavingsStep } from "./manual-entry/SavingsStep";
+import { LoansStep } from "./manual-entry/LoansStep";
+import { DepositsStep } from "./manual-entry/DepositsStep";
 
 export function ManualEntryWizard() {
   const { t } = useTranslation();
   const { id: submissionId } = useParams({ from: Route.id });
   const navigate = useNavigate();
 
-  const { data: submission } = useSubmission(submissionId);
+  const { data: submission, isLoading: isSubmissionLoading } = useSubmission(submissionId);
 
   const search = Route.useSearch();
   const initialStep = search.step || "financial";
@@ -117,102 +116,139 @@ export function ManualEntryWizard() {
   const deleteNonFinancialData = useDeleteManualNonFinancialData(submissionId);
 
   // ── Existing Data Query Loaders ──
-  const { data: existingLineItems } = useQuery({
+  const { data: existingLineItems, isLoading: existingLineItemsLoading } = useQuery({
     queryKey: ["submission-line-items", submission?.financial_statement_id],
     queryFn: async () => {
       if (!submission?.financial_statement_id) return null;
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/financial-statements/${submission.financial_statement_id}/line-items`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/financial-statements/{id}/line-items",
         {
-          headers: { Authorization: `Bearer ${token}` },
+          params: { path: { id: submission.financial_statement_id } },
         },
       );
-      if (!r.ok) throw new Error("Failed to fetch existing line items");
-      return r.json() as Promise<{ account_code: number | null; value: number; month: number }[]>;
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing line items",
+        );
+      return data;
     },
     enabled: !!submission?.financial_statement_id && isFinancialWizard,
   });
 
-  const { data: existingMembers } = useQuery({
+  const { data: existingMembers, isLoading: existingMembersLoading } = useQuery({
     queryKey: ["manual-entry-members", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/members?submission_id=${submissionId}&limit=1000`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/members", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 1000,
+          },
         },
-      );
-      if (!r.ok) throw new Error("Failed to fetch existing members");
-      return r.json() as Promise<{ items: any[] }>;
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing members",
+        );
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingSavings } = useQuery({
+  const { data: existingSavings, isLoading: existingSavingsLoading } = useQuery({
     queryKey: ["manual-entry-savings", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/savings?submission_id=${submissionId}&limit=1000`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/savings", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 1000,
+          },
         },
-      );
-      if (!r.ok) throw new Error("Failed to fetch existing savings accounts");
-      return r.json() as Promise<{ items: any[] }>;
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing savings accounts",
+        );
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingLoans } = useQuery({
+  const { data: existingLoans, isLoading: existingLoansLoading } = useQuery({
     queryKey: ["manual-entry-loans", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/loans?submission_id=${submissionId}&limit=1000`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/loans", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 1000,
+          },
         },
-      );
-      if (!r.ok) throw new Error("Failed to fetch existing loans");
-      return r.json() as Promise<{ items: any[] }>;
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing loans",
+        );
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingDeposits } = useQuery({
+  const { data: existingDeposits, isLoading: existingDepositsLoading } = useQuery({
     queryKey: ["manual-entry-deposits", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/fixed-deposits?submission_id=${submissionId}&limit=1000`,
+      const { data, error } = await apiClient.GET(
+        "/api/v1/cooperative/non-financial/fixed-deposits",
         {
-          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            query: {
+              submission_id: submissionId,
+              page_size: 1000,
+            },
+          },
         },
       );
-      if (!r.ok) throw new Error("Failed to fetch existing fixed deposits");
-      return r.json() as Promise<{ items: any[] }>;
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing fixed deposits",
+        );
+      return data;
     },
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingFarm } = useQuery({
+  const { data: existingFarm, isLoading: existingFarmLoading } = useQuery({
     queryKey: ["manual-entry-farm", submissionId],
     queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(
-        `${API_BASE}/api/v1/cooperative/non-financial/farm-coop?submission_id=${submissionId}&limit=10`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/farm-coop", {
+        params: {
+          query: {
+            submission_id: submissionId,
+            page_size: 10,
+          },
         },
-      );
-      if (!r.ok) throw new Error("Failed to fetch existing farm profile");
-      return r.json() as Promise<{ items: any[] }>;
+      });
+      if (error)
+        throw new Error(
+          (error as { message?: string }).message || "Failed to fetch existing farm profile",
+        );
+      return data;
     },
     enabled: !isFinancialWizard,
   });
+
+  const isDataLoading =
+    isSubmissionLoading ||
+    (isFinancialWizard
+      ? submission?.financial_statement_id
+        ? existingLineItemsLoading
+        : false
+      : existingMembersLoading ||
+      existingSavingsLoading ||
+      existingLoansLoading ||
+      existingDepositsLoading ||
+      existingFarmLoading);
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
@@ -228,18 +264,19 @@ export function ManualEntryWizard() {
   }, [existingLineItems]);
 
   useEffect(() => {
-    if (existingMembers?.items) {
+    const list = existingMembers?.data;
+    if (list) {
       setMembers(
-        existingMembers.items.map((m: any) => ({
+        list.map((m) => ({
           _rowKey: Math.random().toString(36).slice(2),
           memberId: m.member_id,
           joinDate: m.join_date,
-          status: m.status,
-          exitDate: m.exit_date,
-          gender: m.gender,
-          ageGroup: mapAgeGroupToFrontend(m.age_group) as any,
+          status: m.status as "Active" | "Dormant" | "Exited",
+          exitDate: m.exit_date ?? undefined,
+          gender: m.gender as "Male" | "Female" | "Other",
+          ageGroup: mapAgeGroupToFrontend(m.age_group) as "<18" | "18-35" | "36-50" | "50+",
           region: m.region,
-          urbanRural: m.urban_rural,
+          urbanRural: m.urban_rural as "Urban" | "Rural",
           agmAttendance: m.agm_attendance,
           votingExercised: m.voting_exercised,
         })),
@@ -248,17 +285,18 @@ export function ManualEntryWizard() {
   }, [existingMembers]);
 
   useEffect(() => {
-    if (existingSavings?.items) {
+    const list = existingSavings?.data;
+    if (list) {
       setSavings(
-        existingSavings.items.map((s: any) => ({
+        list.map((s) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: s.member_business_id || "",
+          memberBusinessId: s.member_id || "",
           savingsAccountId: s.savings_account_id,
-          accountType: s.account_type,
+          accountType: s.account_type as "Voluntary" | "Mandatory" | "Fixed",
           accountOpeningDate: s.account_opening_date,
           accountStatus: s.account_status,
           contributionFrequency: s.contribution_frequency,
-          lastContributionDate: s.last_contribution_date,
+          lastContributionDate: s.last_contribution_date || "",
           numberOfContributions: s.number_of_contributions,
           balanceTrend: s.balance_trend,
           zeroBalanceFlag: s.zero_balance_flag,
@@ -272,25 +310,27 @@ export function ManualEntryWizard() {
   }, [existingSavings]);
 
   useEffect(() => {
-    if (existingLoans?.items) {
+    const list = existingLoans?.data;
+    if (list) {
       setLoans(
-        existingLoans.items.map((l: any) => ({
+        list.map((l) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: l.member_business_id || "",
+          memberBusinessId: l.member_id || "",
           loanId: l.loan_id,
           loanProductType: l.loan_product_type,
           loanStartDate: l.loan_start_date,
           loanMaturityDate: l.loan_maturity_date,
-          loanStatus: l.loan_status,
+          loanStatus: l.loan_status as "Performing" | "Arrears" | "Restructured" | "WrittenOff",
           borrowerType: l.borrower_type,
           youthBorrowerFlag: l.youth_borrower_flag,
           womenBorrowerFlag: l.women_borrower_flag,
           ruralBorrowerFlag: l.rural_borrower_flag,
           repaymentRegularity: l.repayment_regularity,
-          daysPastDueCategory: mapDpdCategoryToFrontend(l.days_past_due_category) as any,
+          daysPastDueCategory: mapDpdCategoryToFrontend(l.days_past_due_category) as
+            "0" | "1-30" | "31-60" | "61-90" | "91+",
           missedInstallmentsCount: l.missed_installments_count,
           restructuredLoanFlag: l.restructured_loan_flag,
-          numberOfRestructurings: l.number_of_restructurings,
+          numberOfRestructurings: l.number_of_restructurings || 0,
           earlySettlementFlag: l.early_settlement_flag,
           multipleLoansFlag: l.multiple_loans_flag,
           largeBorrowerFlag: l.large_borrower_flag,
@@ -303,16 +343,17 @@ export function ManualEntryWizard() {
   }, [existingLoans]);
 
   useEffect(() => {
-    if (existingDeposits?.items) {
+    const list = existingDeposits?.data;
+    if (list) {
       setFixedDeposits(
-        existingDeposits.items.map((f: any) => ({
+        list.map((f) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: f.member_business_id || "",
+          memberBusinessId: f.member_id || "",
           fixedDepositId: f.fixed_deposit_id,
           depositType: f.deposit_type,
           startDate: f.start_date,
           maturityDate: f.maturity_date,
-          status: f.status,
+          status: f.status as "Active" | "Matured" | "Withdrawn" | "RolledOver",
           tenureCategory: f.tenure_category,
           originalTenureSelected: f.original_tenure_selected,
           earlyWithdrawalFlag: f.early_withdrawal_flag,
@@ -328,8 +369,9 @@ export function ManualEntryWizard() {
   }, [existingDeposits]);
 
   useEffect(() => {
-    if (existingFarm?.items?.[0]) {
-      const f = existingFarm.items[0];
+    const list = existingFarm?.data;
+    if (list?.[0]) {
+      const f = list[0];
       setFarmCoop({
         cooperativeType: f.cooperative_type,
         primaryActivities: f.primary_activities,
@@ -484,6 +526,7 @@ export function ManualEntryWizard() {
     ]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSavings = useCallback((key: string, field: keyof WizardSavings, value: any) => {
     setSavings((prev) => prev.map((s) => (s._rowKey === key ? { ...s, [field]: value } : s)));
   }, []);
@@ -523,6 +566,7 @@ export function ManualEntryWizard() {
     ]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateLoan = useCallback((key: string, field: keyof WizardLoan, value: any) => {
     setLoans((prev) => prev.map((l) => (l._rowKey === key ? { ...l, [field]: value } : l)));
   }, []);
@@ -557,6 +601,7 @@ export function ManualEntryWizard() {
   };
 
   const updateFixedDeposit = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (key: string, field: keyof WizardFixedDeposit, value: any) => {
       setFixedDeposits((prev) =>
         prev.map((f) => (f._rowKey === key ? { ...f, [field]: value } : f)),
@@ -570,6 +615,7 @@ export function ManualEntryWizard() {
   }, []);
 
   // ── Farm Coop ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateFarmCoop = useCallback((field: keyof WizardFarmCoop, value: any) => {
     setFarmCoop((prev) => ({ ...prev, [field]: value }));
   }, []);
@@ -613,7 +659,7 @@ export function ManualEntryWizard() {
 
   // ── Submit handlers ──
   const doSubmitFinancial = async () => {
-    const lineItems: any[] = [];
+    const lineItems: ManualLineItemRequest[] = [];
     const getValLocal = (code: number, m: number) => financialData[code]?.[m] || 0;
 
     // 1. Map editable base accounts
@@ -872,95 +918,95 @@ export function ManualEntryWizard() {
       savings_accounts:
         savings.length > 0
           ? savings.map((s) => ({
-              member_business_id: s.memberBusinessId,
-              savings_account_id: s.savingsAccountId,
-              account_type: s.accountType,
-              account_opening_date: s.accountOpeningDate,
-              account_status: s.accountStatus,
-              contribution_frequency: s.contributionFrequency,
-              last_contribution_date: s.lastContributionDate || null,
-              number_of_contributions: Number(s.numberOfContributions) || 0,
-              balance_trend: s.balanceTrend,
-              zero_balance_flag: s.zeroBalanceFlag,
-              withdrawal_frequency_category: s.withdrawalFrequencyCategory,
-              emergency_withdrawals_flag: s.emergencyWithdrawalsFlag,
-              interest_rate: Number(s.interestRate) || 0,
-              balance: Number(s.balance) || 0,
-            }))
+            member_business_id: s.memberBusinessId,
+            savings_account_id: s.savingsAccountId,
+            account_type: s.accountType,
+            account_opening_date: s.accountOpeningDate,
+            account_status: s.accountStatus,
+            contribution_frequency: s.contributionFrequency,
+            last_contribution_date: s.lastContributionDate || null,
+            number_of_contributions: Number(s.numberOfContributions) || 0,
+            balance_trend: s.balanceTrend,
+            zero_balance_flag: s.zeroBalanceFlag,
+            withdrawal_frequency_category: s.withdrawalFrequencyCategory,
+            emergency_withdrawals_flag: s.emergencyWithdrawalsFlag,
+            interest_rate: Number(s.interestRate) || 0,
+            balance: Number(s.balance) || 0,
+          }))
           : null,
       loans:
         loans.length > 0
           ? loans.map((l) => ({
-              member_business_id: l.memberBusinessId,
-              loan_id: l.loanId,
-              loan_product_type: l.loanProductType,
-              loan_start_date: l.loanStartDate,
-              loan_maturity_date: l.loanMaturityDate,
-              loan_status: l.loanStatus,
-              borrower_type: l.borrowerType,
-              youth_borrower_flag: l.youthBorrowerFlag,
-              women_borrower_flag: l.womenBorrowerFlag,
-              rural_borrower_flag: l.ruralBorrowerFlag,
-              repayment_regularity: l.repaymentRegularity,
-              days_past_due_category: mapDpdCategory(l.daysPastDueCategory),
-              missed_installments_count: Number(l.missedInstallmentsCount) || 0,
-              restructured_loan_flag: l.restructuredLoanFlag,
-              number_of_restructurings: Number(l.numberOfRestructurings) || 0,
-              early_settlement_flag: l.earlySettlementFlag,
-              multiple_loans_flag: l.multipleLoansFlag,
-              large_borrower_flag: l.largeBorrowerFlag,
-              interest_rate: Number(l.interestRate) || 0,
-              balance: Number(l.balance) || 0,
-              loan_amount: Number(l.loanAmount) || 0,
-            }))
+            member_business_id: l.memberBusinessId,
+            loan_id: l.loanId,
+            loan_product_type: l.loanProductType,
+            loan_start_date: l.loanStartDate,
+            loan_maturity_date: l.loanMaturityDate,
+            loan_status: l.loanStatus,
+            borrower_type: l.borrowerType,
+            youth_borrower_flag: l.youthBorrowerFlag,
+            women_borrower_flag: l.womenBorrowerFlag,
+            rural_borrower_flag: l.ruralBorrowerFlag,
+            repayment_regularity: l.repaymentRegularity,
+            days_past_due_category: mapDpdCategory(l.daysPastDueCategory),
+            missed_installments_count: Number(l.missedInstallmentsCount) || 0,
+            restructured_loan_flag: l.restructuredLoanFlag,
+            number_of_restructurings: Number(l.numberOfRestructurings) || 0,
+            early_settlement_flag: l.earlySettlementFlag,
+            multiple_loans_flag: l.multipleLoansFlag,
+            large_borrower_flag: l.largeBorrowerFlag,
+            interest_rate: Number(l.interestRate) || 0,
+            balance: Number(l.balance) || 0,
+            loan_amount: Number(l.loanAmount) || 0,
+          }))
           : null,
       fixed_deposits:
         fixedDeposits.length > 0
           ? fixedDeposits.map((f) => ({
-              member_business_id: f.memberBusinessId,
-              fixed_deposit_id: f.fixedDepositId,
-              deposit_type: f.depositType,
-              start_date: f.startDate,
-              maturity_date: f.maturityDate,
-              status: f.status,
-              tenure_category: f.tenureCategory,
-              original_tenure_selected: f.originalTenureSelected,
-              early_withdrawal_flag: f.earlyWithdrawalFlag,
-              rollover_at_maturity_flag: f.rolloverAtMaturityFlag,
-              number_of_renewals: Number(f.numberOfRenewals) || 0,
-              change_in_tenure_at_renewal: f.changeInTenureAtRenewal,
-              single_depositor_dependency_flag: f.singleDepositorDependencyFlag,
-              interest_rate: Number(f.interestRate) || 0,
-              balance: Number(f.balance) || 0,
-            }))
+            member_business_id: f.memberBusinessId,
+            fixed_deposit_id: f.fixedDepositId,
+            deposit_type: f.depositType,
+            start_date: f.startDate,
+            maturity_date: f.maturityDate,
+            status: f.status,
+            tenure_category: f.tenureCategory,
+            original_tenure_selected: f.originalTenureSelected,
+            early_withdrawal_flag: f.earlyWithdrawalFlag,
+            rollover_at_maturity_flag: f.rolloverAtMaturityFlag,
+            number_of_renewals: Number(f.numberOfRenewals) || 0,
+            change_in_tenure_at_renewal: f.changeInTenureAtRenewal,
+            single_depositor_dependency_flag: f.singleDepositorDependencyFlag,
+            interest_rate: Number(f.interestRate) || 0,
+            balance: Number(f.balance) || 0,
+          }))
           : null,
       farm_coop: farmCoop.cooperativeType
         ? [
-            {
-              cooperative_type: farmCoop.cooperativeType,
-              primary_activities: farmCoop.primaryActivities,
-              year_of_establishment: Number(farmCoop.yearOfEstablishment) || null,
-              operational_status: farmCoop.operationalStatus,
-              active_producer_flag: farmCoop.activeProducerFlag,
-              production_type: farmCoop.productionType,
-              participation_frequency: farmCoop.participationFrequency,
-              delivery_compliance: farmCoop.deliveryCompliance,
-              production_cycle_type: farmCoop.productionCycleType,
-              use_of_production_planning: farmCoop.useOfProductionPlanning,
-              use_of_shared_inputs: farmCoop.useOfSharedInputs,
-              quality_compliance_flag: farmCoop.qualityComplianceFlag,
-              market_channel_type: farmCoop.marketChannelType,
-              formal_offtake_agreement: farmCoop.formalOfftakeAgreement,
-              buyer_concentration_flag: farmCoop.buyerConcentrationFlag,
-              price_predictability_category: farmCoop.pricePredictabilityCategory,
-              access_to_storage: farmCoop.accessToStorage,
-              access_to_processing_facilities: farmCoop.accessToProcessingFacilities,
-              transport_coordination: farmCoop.transportCoordination,
-              climate_exposure_type: farmCoop.climateExposureType,
-              irrigation_access: farmCoop.irrigationAccess,
-              climate_mitigation_practices: farmCoop.climateMitigationPractices,
-            },
-          ]
+          {
+            cooperative_type: farmCoop.cooperativeType,
+            primary_activities: farmCoop.primaryActivities,
+            year_of_establishment: Number(farmCoop.yearOfEstablishment) || null,
+            operational_status: farmCoop.operationalStatus,
+            active_producer_flag: farmCoop.activeProducerFlag,
+            production_type: farmCoop.productionType,
+            participation_frequency: farmCoop.participationFrequency,
+            delivery_compliance: farmCoop.deliveryCompliance,
+            production_cycle_type: farmCoop.productionCycleType,
+            use_of_production_planning: farmCoop.useOfProductionPlanning,
+            use_of_shared_inputs: farmCoop.useOfSharedInputs,
+            quality_compliance_flag: farmCoop.qualityComplianceFlag,
+            market_channel_type: farmCoop.marketChannelType,
+            formal_offtake_agreement: farmCoop.formalOfftakeAgreement,
+            buyer_concentration_flag: farmCoop.buyerConcentrationFlag,
+            price_predictability_category: farmCoop.pricePredictabilityCategory,
+            access_to_storage: farmCoop.accessToStorage,
+            access_to_processing_facilities: farmCoop.accessToProcessingFacilities,
+            transport_coordination: farmCoop.transportCoordination,
+            climate_exposure_type: farmCoop.climateExposureType,
+            irrigation_access: farmCoop.irrigationAccess,
+            climate_mitigation_practices: farmCoop.climateMitigationPractices,
+          },
+        ]
         : null,
     });
   };
@@ -989,11 +1035,22 @@ export function ManualEntryWizard() {
   const isDeletingFS = deleteFinancialStatement.isPending;
   const isDeletingNF = deleteNonFinancialData.isPending;
 
+  if (isDataLoading) {
+    return (
+      <AppShell
+        title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
+      >
+        <div className="max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center space-y-4 font-sans">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground font-medium">Loading manual entry data...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
-      title={
-        isFinancialWizard ? t("manualEntry.titleFinancial") : t("manualEntry.titleNonFinancial")
-      }
+      title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
     >
       <div className="max-w-[96%] mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -1032,13 +1089,12 @@ export function ManualEntryWizard() {
                 <div key={sItem.id} className="flex items-center flex-shrink-0">
                   <div
                     onClick={() => setStep(sItem.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ${
-                      active
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ${active
                         ? "bg-primary text-primary-foreground shadow-sm cursor-default"
                         : filled
                           ? "text-success hover:bg-success/5"
                           : "text-muted-foreground/75 hover:bg-muted/30"
-                    }`}
+                      }`}
                   >
                     {filled ? (
                       <CheckCircle2 className="size-4 text-success" />
@@ -1083,15 +1139,17 @@ export function ManualEntryWizard() {
                   <option value="fiscal">Fiscal Year (Jul–Jun)</option>
                 </select>
               </div>
-              <button
-                onClick={() => {
-                  setFinancialData(generateMockFinancialGrid());
-                  toast.success("Test financial statement grid populated!");
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
-              >
-                🧪 Populate Test Data
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  onClick={() => {
+                    setFinancialData(generateMockFinancialGrid());
+                    toast.success("Test financial statement grid populated!");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
+                >
+                  🧪 Populate Test Data
+                </button>
+              )}
               {submission?.financial_statement_id && (
                 <button
                   onClick={handleDeleteFinancial}
@@ -1108,13 +1166,12 @@ export function ManualEntryWizard() {
               )}
               {/* Balance checker pill */}
               <div
-                className={`ml-auto flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl ${
-                  isBalanced && totalAssets > 0
+                className={`ml-auto flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl ${isBalanced && totalAssets > 0
                     ? "bg-success/10 text-success"
                     : totalAssets === 0
                       ? "bg-muted text-muted-foreground"
                       : "bg-warning/10 text-warning-foreground"
-                }`}
+                  }`}
               >
                 {isBalanced && totalAssets > 0 ? (
                   <CheckCircle2 className="size-3.5" />
@@ -1133,22 +1190,24 @@ export function ManualEntryWizard() {
 
           {!isFinancialWizard && (
             <div className="ml-auto flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const mock = generateMockNonFinancialData();
-                  setMembers(mock.members);
-                  setSavings(mock.savings);
-                  setLoans(mock.loans);
-                  setFixedDeposits(mock.fixedDeposits);
-                  setFarmCoop(mock.farmCoop);
-                  toast.success(
-                    "Test databases (membership, savings, loans, deposits, and farm profile) populated!",
-                  );
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
-              >
-                🧪 Populate Test Databases
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  onClick={() => {
+                    const mock = generateMockNonFinancialData();
+                    setMembers(mock.members);
+                    setSavings(mock.savings);
+                    setLoans(mock.loans);
+                    setFixedDeposits(mock.fixedDeposits);
+                    setFarmCoop(mock.farmCoop);
+                    toast.success(
+                      "Test databases (membership, savings, loans, deposits, and farm profile) populated!",
+                    );
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
+                >
+                  🧪 Populate Test Databases
+                </button>
+              )}
               <button
                 onClick={handleDeleteNonFinancial}
                 disabled={isDeletingNF}
@@ -1167,407 +1226,84 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Financial Statement ──────────────────────────────────── */}
         {step === "financial" && (
-          <Card className="p-6">
-            <FinancialExcelGrid
-              accountingYear={accountingYear}
-              currency={currency}
-              financialData={financialData}
-              onChange={handleFinancialCellChange}
-            />
-          </Card>
+          <ErrorBoundary stepName="Financial Statement Step">
+            <Card className="p-6">
+              <FinancialExcelGrid
+                accountingYear={accountingYear}
+                currency={currency}
+                financialData={financialData}
+                onChange={handleFinancialCellChange}
+              />
+            </Card>
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Members ─────────────────────────────────────────────── */}
         {step === "members" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Membership Register</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Define members first so they can be referenced in savings, loans and deposit
-                  ledgers.
-                </p>
-              </div>
-              <button
-                onClick={addMember}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors animate-pulse-subtle"
-              >
-                + Add Member
-              </button>
-            </div>
-
-            {members.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <Users className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No members yet</p>
-                <p className="text-xs mt-1">
-                  Click "+ Add Member" to begin entering member records
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1000px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Join Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Gender
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Age Group
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                        Region
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Urban/Rural
-                      </th>
-                      <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                        AGM Attendance
-                      </th>
-                      <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                        Voted
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((m, i) => (
-                      <MemberRow
-                        key={m._rowKey}
-                        member={m}
-                        idx={i}
-                        onUpdate={updateMember}
-                        onRemove={removeMember}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {members.length} row{members.length !== 1 ? "s" : ""}
-              </span>
-              <button onClick={addMember} className="text-primary hover:underline font-medium">
-                + Add another member
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Members Register Step">
+            <MembersStep
+              members={members}
+              addMember={addMember}
+              updateMember={updateMember}
+              removeMember={removeMember}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Savings ─────────────────────────────────────────────── */}
         {step === "savings" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Savings Ledger</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Record savings accounts for entered members. All fields are optional except Member
-                  ID.
-                </p>
-              </div>
-              <button
-                onClick={addSavings}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                + Add Savings Record
-              </button>
-            </div>
-
-            {savings.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <DollarSign className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No savings accounts yet</p>
-                <p className="text-xs mt-1">
-                  Click "+ Add Savings Record" to begin entering savings accounts
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1200px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Account ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Open Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Frequency
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Last Contrib Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                        Contribs Count
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Trend
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Interest Rate
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Balance
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {savings.map((s, i) => (
-                      <SavingsRow
-                        key={s._rowKey}
-                        record={s}
-                        idx={i}
-                        memberIds={memberIds}
-                        onUpdate={updateSavings}
-                        onRemove={removeSavings}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {savings.length} savings account{savings.length !== 1 ? "s" : ""}
-              </span>
-              <button onClick={addSavings} className="text-primary hover:underline font-medium">
-                + Add another savings record
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Savings Ledger Step">
+            <SavingsStep
+              savings={savings}
+              addSavings={addSavings}
+              memberIds={memberIds}
+              updateSavings={updateSavings}
+              removeSavings={removeSavings}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Loans ───────────────────────────────────────────────── */}
         {step === "loans" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Loan Book</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Record active loans and classification categories.
-                </p>
-              </div>
-              <button
-                onClick={addLoan}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                + Add Loan Record
-              </button>
-            </div>
-
-            {loans.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <TrendingUp className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No loans recorded yet</p>
-                <p className="text-xs mt-1">Click "+ Add Loan Record" to begin entering loans</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1400px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Loan ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Product Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Start Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Maturity Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        Borrower Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                        DPD Category
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                        Interest Rate
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Principal
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Balance
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loans.map((l, i) => (
-                      <LoanRow
-                        key={l._rowKey}
-                        record={l}
-                        idx={i}
-                        memberIds={memberIds}
-                        onUpdate={updateLoan}
-                        onRemove={removeLoan}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {loans.length} loan record{loans.length !== 1 ? "s" : ""}
-              </span>
-              <button onClick={addLoan} className="text-primary hover:underline font-medium">
-                + Add another loan record
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Loans Register Step">
+            <LoansStep
+              loans={loans}
+              addLoan={addLoan}
+              memberIds={memberIds}
+              updateLoan={updateLoan}
+              removeLoan={removeLoan}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Fixed Deposits ──────────────────────────────────────── */}
         {step === "deposits" && (
-          <Card className="overflow-hidden font-sans">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Fixed Deposits</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Record active term/fixed deposits.
-                </p>
-              </div>
-              <button
-                onClick={addFixedDeposit}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                + Add Deposit
-              </button>
-            </div>
-
-            {fixedDeposits.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                <Clock className="size-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No fixed deposits yet</p>
-                <p className="text-xs mt-1">
-                  Click "+ Add Deposit" to begin entering fixed deposits
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1200px]">
-                  <thead>
-                    <tr className="bg-muted/30">
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-8">
-                        #
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Member ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Deposit ID
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Start Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                        Maturity Date
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Tenure
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                        Interest Rate
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                        Balance
-                      </th>
-                      <th className="px-2 py-2 w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fixedDeposits.map((fd, i) => (
-                      <FixedDepositRow
-                        key={fd._rowKey}
-                        record={fd}
-                        idx={i}
-                        memberIds={memberIds}
-                        onUpdate={updateFixedDeposit}
-                        onRemove={removeFixedDeposit}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-              <span>
-                {fixedDeposits.length} deposit record{fixedDeposits.length !== 1 ? "s" : ""}
-              </span>
-              <button
-                onClick={addFixedDeposit}
-                className="text-primary hover:underline font-medium"
-              >
-                + Add another deposit record
-              </button>
-            </div>
-          </Card>
+          <ErrorBoundary stepName="Fixed Deposits Step">
+            <DepositsStep
+              fixedDeposits={fixedDeposits}
+              addFixedDeposit={addFixedDeposit}
+              memberIds={memberIds}
+              updateFixedDeposit={updateFixedDeposit}
+              removeFixedDeposit={removeFixedDeposit}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Farm Profile ────────────────────────────────────────── */}
         {step === "farm" && (
-          <Card className="p-6">
-            <div className="border-b border-border pb-4 mb-6 font-sans">
-              <h3 className="text-sm font-bold text-foreground">Farm Cooperative Profile</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Complete this profile if this cooperative operates in agricultural production or
-                multipurpose activities.
-              </p>
-            </div>
+          <ErrorBoundary stepName="Farm Profile Step">
+            <Card className="p-6">
+              <div className="border-b border-border pb-4 mb-6 font-sans">
+                <h3 className="text-sm font-bold text-foreground">Farm Cooperative Profile</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Complete this profile if this cooperative operates in agricultural production or
+                  multipurpose activities.
+                </p>
+              </div>
 
-            <FarmCoopForm data={farmCoop} onChange={updateFarmCoop} />
-          </Card>
+              <FarmCoopForm data={farmCoop} onChange={updateFarmCoop} />
+            </Card>
+          </ErrorBoundary>
         )}
 
         {/* ── STEP: Review ─────────────────────────────────────────────── */}
@@ -1684,23 +1420,4 @@ export function ManualEntryWizard() {
       </div>
     </AppShell>
   );
-}
-
-function useSubmission(id: string) {
-  return useQuery({
-    queryKey: ["submission", id],
-    queryFn: async () => {
-      const token = getAccessToken();
-      const r = await fetch(`${API_BASE}/api/v1/cooperative/submissions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error("Failed to fetch submission");
-      return r.json() as Promise<{
-        id: string;
-        reporting_year: number;
-        status: string;
-        financial_statement_id: string | null;
-      }>;
-    },
-  });
 }

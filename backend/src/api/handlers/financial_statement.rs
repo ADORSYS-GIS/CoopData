@@ -17,6 +17,7 @@ use crate::api::dto::financial::{
     SubmissionActivityPoint, SubmissionActivityResponse, SubmissionKpisResponse,
     SubmissionLineItemsResponse,
 };
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 
 use crate::error::{AppError, AppResult};
@@ -240,9 +241,9 @@ pub async fn update_line_items(
     let mut updated = vec![];
     for update in body.updates {
         if let Some(value) = update.value {
-            use rust_decimal::prelude::FromPrimitive;
-            let decimal =
-                rust_decimal::Decimal::from_f64(value).unwrap_or(rust_decimal::Decimal::ZERO);
+            use std::str::FromStr;
+            let decimal = rust_decimal::Decimal::from_str(&value.to_string())
+                .unwrap_or(rust_decimal::Decimal::ZERO);
             let item = state
                 .line_item_repo
                 .update_value(update.id, decimal, update.account_code)
@@ -270,6 +271,7 @@ pub async fn update_line_items(
 pub async fn create_manual_financial_statement(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(submission_id): Path<Uuid>,
     Json(body): Json<crate::api::dto::financial::ManualFinancialStatementRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -300,21 +302,12 @@ pub async fn create_manual_financial_statement(
         ));
     }
 
-    // Check for existing financial statement — replace if found (same as upload)
-    if let Some(existing_fs) = state
+    // Check for existing FS so we can delete it inside the transaction
+    let existing_fs_id = state
         .financial_statement_repo
         .find_by_submission(submission_id)
         .await?
-    {
-        tracing::info!(
-            fs_id = %existing_fs.id,
-            "Replacing existing financial statement with manual entry"
-        );
-        state
-            .financial_statement_repo
-            .delete(existing_fs.id)
-            .await?;
-    }
+        .map(|fs| fs.id);
 
     let fs_id = Uuid::new_v4();
     let accounting_year =
@@ -325,30 +318,20 @@ pub async fn create_manual_financial_statement(
         Currency::Szl
     };
 
-    // Create financial statement record
-    let fs_model = FsModel {
-        id: Set(fs_id),
-        submission_id: Set(submission_id),
-        cooperative_id: Set(coop.id),
-        reporting_year: Set(submission.reporting_year),
-        accounting_year: Set(accounting_year),
-        currency: Set(currency),
-        is_validated: Set(false),
-        validation_errors: Set(None),
-        created_at: Set(chrono::Utc::now()),
-        updated_at: Set(chrono::Utc::now()),
-    };
-    let created_fs = state.financial_statement_repo.create(fs_model).await?;
-
-    // Create line items
+    // ── Build line item active models in memory (no DB calls yet) ───────────────
+    let mut line_item_models: Vec<LineItemModel> = Vec::new();
     for item in body.line_items {
-        use rust_decimal::prelude::FromPrimitive;
-        let value = rust_decimal::Decimal::from_f64(item.value.unwrap_or(0.0))
+        use std::str::FromStr;
+        let raw = item.value.unwrap_or(0.0);
+        let value = rust_decimal::Decimal::from_str(&raw.to_string())
             .unwrap_or(rust_decimal::Decimal::ZERO);
-        let category =
-            AccountCategory::parse(&item.account_category).unwrap_or(AccountCategory::Assets);
-
-        let model = LineItemModel {
+        let category = AccountCategory::parse(&item.account_category).ok_or_else(|| {
+            AppError::BadRequest(format!(
+                "Invalid account category: {}",
+                item.account_category
+            ))
+        })?;
+        line_item_models.push(LineItemModel {
             id: Set(Uuid::new_v4()),
             financial_statement_id: Set(fs_id),
             account_code: Set(item.account_code),
@@ -363,9 +346,53 @@ pub async fn create_manual_financial_statement(
             raw_label: Set(None),
             created_at: Set(chrono::Utc::now()),
             updated_at: Set(chrono::Utc::now()),
-        };
-        state.line_item_repo.create(model).await?;
+        });
     }
+
+    // ── Atomically: delete old FS (if any) → create new FS → bulk-insert line items ──
+    use sea_orm::{EntityTrait, TransactionTrait};
+
+    let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
+
+    if let Some(old_id) = existing_fs_id {
+        tracing::info!(
+            fs_id = %old_id,
+            "Replacing existing financial statement with manual entry"
+        );
+        crate::entities::financial_statement::Entity::delete_by_id(old_id)
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+    }
+
+    let fs_model = FsModel {
+        id: Set(fs_id),
+        submission_id: Set(submission_id),
+        cooperative_id: Set(coop.id),
+        reporting_year: Set(submission.reporting_year),
+        accounting_year: Set(accounting_year),
+        currency: Set(currency),
+        is_validated: Set(false),
+        validation_errors: Set(None),
+        created_at: Set(chrono::Utc::now()),
+        updated_at: Set(chrono::Utc::now()),
+    };
+    use sea_orm::ActiveModelTrait as _;
+    let created_fs = fs_model
+        .insert(&txn)
+        .await
+        .map_err(AppError::DatabaseError)?;
+
+    if !line_item_models.is_empty() {
+        crate::entities::balance_sheet_line_item::Entity::insert_many(line_item_models)
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+    }
+
+    txn.commit().await.map_err(AppError::DatabaseError)?;
+
+    // ── Post-transaction: run validation + section status (best-effort) ──────────
 
     // Run abnormality detector / validation
     let coa = state.coa_repo.find_all().await?;
@@ -400,6 +427,26 @@ pub async fn create_manual_financial_statement(
             .section_repo
             .update_status(sec.id, "in_progress")
             .await?;
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "financial_statement",
+            Some(&created_fs.id.to_string()),
+            Some(serde_json::json!({
+                "submission_id": submission_id,
+                "accounting_year": body.accounting_year,
+                "currency": body.currency
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
     }
 
     Ok((
