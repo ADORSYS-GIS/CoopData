@@ -104,6 +104,9 @@ pub async fn export_bulk_consolidated(
     Extension(claims): Extension<Arc<Claims>>,
     Query(mut query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
+    if let Some(year) = query.reporting_year {
+        query.reporting_year = Some(year.clamp(1900, 2100));
+    }
     if query.apex_id.is_none() && claims.is_apex() {
         if let Ok(id) =
             crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await
@@ -325,6 +328,12 @@ pub async fn generate_submission_narratives(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
+    if !claims.is_ministry() {
+        return Err(AppError::Forbidden(
+            "Only Ministry admin users can trigger manual narrative generation".into(),
+        ));
+    }
+
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
 
@@ -515,7 +524,7 @@ pub async fn get_apex_narratives(
     Path(id): Path<String>,
     Query(params): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let year = params.reporting_year.unwrap_or(2025);
+    let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
     let apex = state
         .apex_repo
         .find_by_keycloak_id(&id)
@@ -550,7 +559,7 @@ pub async fn get_federation_narratives(
     Path(id): Path<String>,
     Query(params): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let year = params.reporting_year.unwrap_or(2025);
+    let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
     let federation = state
         .federation_repo
         .find_by_keycloak_id(&id)
@@ -583,7 +592,7 @@ pub async fn get_ministry_narratives(
     State(state): State<AppState>,
     Query(params): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let year = params.reporting_year.unwrap_or(2025);
+    let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
     let cached = state
         .ministry_narratives_repo
         .find_by_year(year)
