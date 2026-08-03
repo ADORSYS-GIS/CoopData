@@ -1,4 +1,5 @@
 import { Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { MemberRow } from "./MemberRow";
 import type { WizardMember } from "./types";
@@ -12,28 +13,30 @@ interface MembersStepProps {
 }
 
 export function MembersStep({ members, addMember, updateMember, removeMember }: MembersStepProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className="overflow-hidden font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Membership Register</h3>
+          <h3 className="text-sm font-bold text-foreground">{t("membersStep.title")}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Define members first so they can be referenced in savings, loans and deposit ledgers.
+            {t("membersStep.desc")}
           </p>
         </div>
         <button
           onClick={addMember}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          + Add Member
+          {t("membersStep.addBtn")}
         </button>
       </div>
 
       {members.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <Users className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">No members yet</p>
-          <p className="text-xs mt-1">Click "+ Add Member" to begin entering member records</p>
+          <p className="text-sm font-medium">{t("membersStep.emptyTitle")}</p>
+          <p className="text-xs mt-1">{t("membersStep.emptyDesc")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -44,31 +47,31 @@ export function MembersStep({ members, addMember, updateMember, removeMember }: 
                   #
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                  Member ID
+                  {t("membersStep.tableHeaders.memberId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Join Date
+                  {t("membersStep.tableHeaders.joinDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Status
+                  {t("membersStep.tableHeaders.status")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Gender
+                  {t("membersStep.tableHeaders.gender")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Age Group
+                  {t("membersStep.tableHeaders.ageGroup")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                  Region
+                  {t("membersStep.tableHeaders.region")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Urban/Rural
+                  {t("membersStep.tableHeaders.urbanRural")}
                 </th>
                 <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  AGM Attendance
+                  {t("membersStep.tableHeaders.agmAttendance")}
                 </th>
                 <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Voted
+                  {t("membersStep.tableHeaders.voted")}
                 </th>
                 <th className="px-2 py-2 w-8" />
               </tr>
@@ -90,10 +93,10 @@ export function MembersStep({ members, addMember, updateMember, removeMember }: 
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
         <span>
-          {members.length} row{members.length !== 1 ? "s" : ""}
+          {t("membersStep.rowCount", { count: members.length })}
         </span>
         <button onClick={addMember} className="text-primary hover:underline font-medium">
-          + Add another member
+          {t("membersStep.addAnother")}
         </button>
       </div>
     </Card>

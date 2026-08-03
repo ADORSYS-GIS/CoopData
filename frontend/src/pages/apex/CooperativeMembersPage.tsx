@@ -26,6 +26,7 @@ import {
 import { Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 type MemberItem = {
   id: string;
@@ -62,6 +63,7 @@ const Avatar = ({ name }: { name: string }) => {
 };
 
 export const CooperativeMembersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { cooperativeId } = useParams({ from: "/app/cooperative-members/$cooperativeId" });
 
   const { data: coop, isLoading: coopLoading } = useCooperative(cooperativeId);
@@ -93,7 +95,7 @@ export const CooperativeMembersPage: React.FC = () => {
 
   const handleInvite = () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      toast.error("Please fill in all required fields.");
+      toast.error(t("coopMembers.toast.fillRequired"));
       return;
     }
     addMember.mutate(
@@ -106,7 +108,7 @@ export const CooperativeMembersPage: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success(`Invitation sent to ${firstName.trim()} ${lastName.trim()}`);
+          toast.success(t("coopMembers.toast.invitationSent", { firstName: firstName.trim(), lastName: lastName.trim() }));
           setShowInvite(false);
           setFirstName("");
           setLastName("");
@@ -114,7 +116,7 @@ export const CooperativeMembersPage: React.FC = () => {
         },
         onError: (err) => {
           const msg = err instanceof Error ? err.message : String(err);
-          toast.error("Failed to invite member", { description: msg });
+          toast.error(t("coopMembers.toast.inviteFailed"), { description: msg });
         },
       },
     );
@@ -131,12 +133,12 @@ export const CooperativeMembersPage: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success("Member updated.");
+          toast.success(t("coopMembers.toast.memberUpdated"));
           setEditingMember(null);
         },
         onError: (err) => {
           const msg = err instanceof Error ? err.message : String(err);
-          toast.error("Failed to update member", { description: msg });
+          toast.error(t("coopMembers.toast.updateFailed"), { description: msg });
         },
       },
     );
@@ -147,12 +149,12 @@ export const CooperativeMembersPage: React.FC = () => {
       { cooperativeId, userId: m.id },
       {
         onSuccess: () => {
-          toast.success(`Removed ${displayName(m)}.`);
+          toast.success(t("coopMembers.toast.memberRemoved", { name: displayName(m) }));
           setConfirmRemove(null);
         },
         onError: (err) => {
           const msg = err instanceof Error ? err.message : String(err);
-          toast.error("Failed to remove member", { description: msg });
+          toast.error(t("coopMembers.toast.removeFailed"), { description: msg });
           setConfirmRemove(null);
         },
       },
@@ -163,10 +165,10 @@ export const CooperativeMembersPage: React.FC = () => {
     resend.mutate(
       { cooperativeId, userId: m.id },
       {
-        onSuccess: () => toast.success(`Verification email resent to ${displayName(m)}.`),
+        onSuccess: () => toast.success(t("coopMembers.toast.emailResent", { name: displayName(m) })),
         onError: (err) => {
           const msg = err instanceof Error ? err.message : String(err);
-          toast.error("Failed to resend email", { description: msg });
+          toast.error(t("coopMembers.toast.resendFailed"), { description: msg });
         },
       },
     );
@@ -174,7 +176,7 @@ export const CooperativeMembersPage: React.FC = () => {
 
   if (coopLoading) {
     return (
-      <AppShell title="Cooperative Members" subtitle="Loading…">
+      <AppShell title={t("coopMembers.title")} subtitle={t("coopMembers.loading")}>
         <div className="flex min-h-[50dvh] items-center justify-center">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -185,13 +187,13 @@ export const CooperativeMembersPage: React.FC = () => {
   return (
     <AppShell
       title={coopData?.name ?? cooperativeId}
-      subtitle={`Manage members of ${coopData?.name ?? "this cooperative"}`}
+      subtitle={t("coopMembers.subtitle", { name: coopData?.name ?? t("coopMembers.thisCoop") })}
       actions={
         <button
           onClick={() => setShowInvite(true)}
           className="press-feedback inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[var(--shadow-elev-2)]"
         >
-          <Plus className="size-4" /> Invite member
+          <Plus className="size-4" /> {t("coopMembers.inviteMember")}
         </button>
       }
     >
@@ -199,7 +201,7 @@ export const CooperativeMembersPage: React.FC = () => {
         to="/app/cooperatives"
         className="mb-5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft className="size-3.5" /> Back to cooperatives
+        <ArrowLeft className="size-3.5" /> {t("coopMembers.backToCoops")}
       </Link>
 
       <div className="mb-5 rounded-2xl border border-border bg-gradient-to-br from-surface to-muted/20 p-5 shadow-[var(--shadow-elev-1)]">
@@ -209,19 +211,19 @@ export const CooperativeMembersPage: React.FC = () => {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="font-heading text-lg font-bold text-foreground truncate">
-              {coopData?.name ?? "Cooperative"}
+              {coopData?.name ?? t("coopMembers.cooperative")}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {coopData?.description ?? "No description"}
+              {coopData?.description ?? t("coopMembers.noDescription")}
             </p>
           </div>
           <div className="hidden sm:flex flex-col items-end gap-1">
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700">
               <Shield className="size-3.5" />
-              Cooperative role
+              {t("coopMembers.cooperativeRole")}
             </span>
             <span className="text-[11px] text-muted-foreground">
-              {members.length} member{members.length !== 1 ? "s" : ""}
+              {members.length} {members.length !== 1 ? t("coopMembers.membersCountPlural") : t("coopMembers.membersCountSingular")}
             </span>
           </div>
         </div>
@@ -234,7 +236,7 @@ export const CooperativeMembersPage: React.FC = () => {
               <div className="flex size-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
                 <Plus className="size-4" />
               </div>
-              <h3 className="font-heading text-sm font-bold text-foreground">Invite new member</h3>
+              <h3 className="font-heading text-sm font-bold text-foreground">{t("coopMembers.inviteNewMember")}</h3>
             </div>
             <button
               onClick={() => setShowInvite(false)}
@@ -246,37 +248,37 @@ export const CooperativeMembersPage: React.FC = () => {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                First name *
+                {t("coopMembers.firstName")} *
               </label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="e.g. Jean"
+                placeholder={t("coopMembers.placeholderFirstName")}
                 className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
               />
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Last name *
+                {t("coopMembers.lastName")} *
               </label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                placeholder="e.g. Dupont"
+                placeholder={t("coopMembers.placeholderLastName")}
                 className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
               />
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Email *
+                {t("coopMembers.email")} *
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder={t("coopMembers.placeholderEmail")}
                 className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
               />
             </div>
@@ -287,7 +289,7 @@ export const CooperativeMembersPage: React.FC = () => {
               onClick={() => setShowInvite(false)}
               className="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
             >
-              Cancel
+              {t("coopMembers.cancel")}
             </button>
             <button
               type="button"
@@ -300,7 +302,7 @@ export const CooperativeMembersPage: React.FC = () => {
               ) : (
                 <Mail className="size-3.5" />
               )}
-              Send invitation
+              {t("coopMembers.sendInvitation")}
             </button>
           </div>
         </div>
@@ -310,7 +312,7 @@ export const CooperativeMembersPage: React.FC = () => {
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/20">
           <div className="flex items-center gap-2">
             <Users className="size-4 text-accent" />
-            <span className="text-sm font-semibold text-foreground">Members</span>
+            <span className="text-sm font-semibold text-foreground">{t("coopMembers.members")}</span>
             {members.length > 0 && (
               <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
                 {members.length}
@@ -328,13 +330,13 @@ export const CooperativeMembersPage: React.FC = () => {
             <div className="flex size-14 items-center justify-center rounded-2xl bg-muted mb-4">
               <Users className="size-7 text-muted-foreground/50" />
             </div>
-            <p className="font-semibold text-sm text-foreground">No members yet</p>
-            <p className="text-xs mt-1">Invite a member to get started.</p>
+            <p className="font-semibold text-sm text-foreground">{t("coopMembers.noMembersYet")}</p>
+            <p className="text-xs mt-1">{t("coopMembers.noMembersDesc")}</p>
             <button
               onClick={() => setShowInvite(true)}
               className="mt-4 press-feedback inline-flex items-center gap-1.5 rounded-xl bg-accent/10 border border-accent/20 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent/15 transition-colors"
             >
-              <Plus className="size-3.5" /> Invite first member
+              <Plus className="size-3.5" /> {t("coopMembers.inviteFirstMember")}
             </button>
           </div>
         ) : (
@@ -355,19 +357,19 @@ export const CooperativeMembersPage: React.FC = () => {
                   </div>
                   {m.status === "PENDING" && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                      <Clock className="size-3" />
-                      Pending
+                       <Clock className="size-3" />
+                      {t("coopMembers.status.pending")}
                     </span>
                   )}
                   {m.status === "ACTIVE" && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                       <CheckCircle2 className="size-3" />
-                      Active
+                      {t("coopMembers.status.active")}
                     </span>
                   )}
                   <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                     <Shield className="size-3" />
-                    Cooperative
+                    {t("coopMembers.roleLabel")}
                   </span>
                   <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button
@@ -376,7 +378,7 @@ export const CooperativeMembersPage: React.FC = () => {
                         setEditFirst(m.first_name ?? "");
                         setEditLast(m.last_name ?? "");
                       }}
-                      title="Edit member"
+                      title={t("coopMembers.editMember")}
                       className="press-feedback flex size-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-300 transition-colors"
                     >
                       <Pencil className="size-3.5" />
@@ -384,7 +386,7 @@ export const CooperativeMembersPage: React.FC = () => {
                     <button
                       onClick={() => handleResend(m)}
                       disabled={resend.isPending}
-                      title="Resend verification email"
+                      title={t("coopMembers.resendVerificationEmail")}
                       className="press-feedback flex size-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 hover:bg-sky-100 hover:border-sky-300 transition-colors disabled:opacity-40"
                     >
                       {resend.isPending ? (
@@ -395,7 +397,7 @@ export const CooperativeMembersPage: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setConfirmRemove(m)}
-                      title="Remove member"
+                      title={t("coopMembers.removeMemberTitle")}
                       className="press-feedback flex size-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors"
                     >
                       <UserMinus className="size-3.5" />
@@ -420,7 +422,7 @@ export const CooperativeMembersPage: React.FC = () => {
                 <Pencil className="size-4" />
               </div>
               <div>
-                <h3 className="font-heading text-base font-bold text-foreground">Edit member</h3>
+                <h3 className="font-heading text-base font-bold text-foreground">{t("coopMembers.editMember")}</h3>
                 <p className="text-xs text-muted-foreground">
                   {editingMember.email ?? editingMember.id}
                 </p>
@@ -435,7 +437,7 @@ export const CooperativeMembersPage: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  First name
+                  {t("coopMembers.firstName")}
                 </label>
                 <input
                   type="text"
@@ -446,7 +448,7 @@ export const CooperativeMembersPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Last name
+                  {t("coopMembers.lastName")}
                 </label>
                 <input
                   type="text"
@@ -461,7 +463,7 @@ export const CooperativeMembersPage: React.FC = () => {
                 onClick={() => setEditingMember(null)}
                 className="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
               >
-                Cancel
+                {t("coopMembers.cancel")}
               </button>
               <button
                 onClick={handleSaveEdit}
@@ -470,7 +472,7 @@ export const CooperativeMembersPage: React.FC = () => {
               >
                 {updateMember.isPending && <Loader2 className="size-3.5 animate-spin" />}
                 <CheckCircle2 className="size-3.5" />
-                Save changes
+                {t("coopMembers.saveChanges")}
               </button>
             </div>
           </div>
@@ -488,19 +490,17 @@ export const CooperativeMembersPage: React.FC = () => {
               <div className="flex size-9 items-center justify-center rounded-xl bg-red-100 text-red-600">
                 <AlertCircle className="size-4" />
               </div>
-              <h3 className="font-heading text-base font-bold text-foreground">Remove member</h3>
+              <h3 className="font-heading text-base font-bold text-foreground">{t("coopMembers.removeMemberTitle")}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Remove{" "}
-              <span className="font-semibold text-foreground">{displayName(confirmRemove)}</span>{" "}
-              from this cooperative? They will lose access immediately.
+              {t("coopMembers.removeMemberConfirm", { name: displayName(confirmRemove) })}
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirmRemove(null)}
                 className="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
               >
-                Cancel
+                {t("coopMembers.cancel")}
               </button>
               <button
                 onClick={() => handleRemove(confirmRemove)}
@@ -509,7 +509,7 @@ export const CooperativeMembersPage: React.FC = () => {
               >
                 {removeMember.isPending && <Loader2 className="size-3.5 animate-spin" />}
                 <UserMinus className="size-3.5" />
-                Remove
+                {t("coopMembers.remove")}
               </button>
             </div>
           </div>

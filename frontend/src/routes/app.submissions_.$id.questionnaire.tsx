@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { QuestionnaireWizard } from "@/pages/cooperative/QuestionnaireWizard";
 import { ClipboardList, FileSpreadsheet, ChevronLeft, BarChart3 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const qSearchSchema = z.object({
   type: z.enum(["financial", "non_financial"]).optional(),
@@ -12,14 +13,14 @@ const qSearchSchema = z.object({
 
 // ─── Type Selector (shown when no ?type= search param) ────────────────────────
 function QuestionnaireSelectorPage({ submissionId }: { submissionId: string }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const options = [
     {
       type: "financial" as const,
-      title: "Financial Questionnaire",
-      description:
-        "For Financial Primary Cooperatives (SACCOs). Covers membership, savings, loans, and financial performance.",
+      title: t("questionnaireSelector.financialTitle"),
+      description: t("questionnaireSelector.financialDesc"),
       icon: BarChart3,
       borderColor: "border-blue-500/20",
       bgColor: "from-blue-500/10 to-indigo-500/10",
@@ -28,9 +29,8 @@ function QuestionnaireSelectorPage({ submissionId }: { submissionId: string }) {
     },
     {
       type: "non_financial" as const,
-      title: "Non-Financial Questionnaire",
-      description:
-        "For Non-Financial Primary Cooperatives (Agriculture, Handicraft, Livestock etc.). Covers operations, membership, and key activities.",
+      title: t("questionnaireSelector.nonFinancialTitle"),
+      description: t("questionnaireSelector.nonFinancialDesc"),
       icon: ClipboardList,
       borderColor: "border-emerald-500/20",
       bgColor: "from-emerald-500/10 to-teal-500/10",
@@ -52,17 +52,16 @@ function QuestionnaireSelectorPage({ submissionId }: { submissionId: string }) {
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="size-4" />
-          Back to Submission
+          {t("questionnaireSelector.backToSubmission")}
         </button>
 
         <div className="mt-8 mb-8 text-center">
           <div className="size-16 rounded-3xl bg-primary/10 grid place-items-center mx-auto mb-4">
             <FileSpreadsheet className="size-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Select Questionnaire Type</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("questionnaireSelector.selectType")}</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Choose the questionnaire that matches your cooperative's primary focus. Your answers are
-            saved automatically as a draft.
+            {t("questionnaireSelector.description")}
           </p>
         </div>
 

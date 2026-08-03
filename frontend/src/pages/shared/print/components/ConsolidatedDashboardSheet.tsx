@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart,
   Bar,
@@ -28,6 +29,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   priorData,
   totalApexes,
 }) => {
+  const { t } = useTranslation();
   const { total_cooperatives, cooperatives_with_data, distributions, cooperatives } = data;
   const priorCoops = priorData?.cooperatives || [];
 
@@ -147,40 +149,39 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   ];
 
   return (
-    <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page">
+    <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page font-sans">
       <div>
         <h1 className="text-3xl font-bold mb-2 text-slate-900 border-b-2 border-slate-900 pb-2">
-          {tier} Consolidated Report
+          {t("printReports.dashboard.consolidatedReport", { tier: t(`common.roles.${tier.toLowerCase()}`, tier) })}
         </h1>
         <p className="text-sm text-slate-600 mb-6 italic">
-          Purpose: Show {tier.toLowerCase()} leadership which cooperatives are healthy, which need
-          attention, and overall {tier.toLowerCase()} health.
+          {t("printReports.dashboard.purposeDesc", { tier: t(`common.roles.${tier.toLowerCase()}`, tier) })}
         </p>
 
-        <h2 className="text-xl font-bold text-blue-800 mb-4">"Executive Dashboard"</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">{t("printReports.dashboard.executiveDashboard")}</h2>
 
         {/* Header Table */}
-        <h3 className="text-sm font-bold text-slate-800 mb-1">Header</h3>
+        <h3 className="text-sm font-bold text-slate-800 mb-1">{t("printReports.dashboard.header")}</h3>
         <table className="w-full text-left text-xs mb-6 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-2 border border-slate-700 w-1/4">Field</th>
-              <th className="p-2 border border-slate-700 w-1/4">Value</th>
-              <th className="p-2 border border-slate-700 w-1/4">Field</th>
-              <th className="p-2 border border-slate-700 w-1/4">Value</th>
+              <th className="p-2 border border-slate-700 w-1/4">{t("printReports.dashboard.field")}</th>
+              <th className="p-2 border border-slate-700 w-1/4">{t("printReports.dashboard.value")}</th>
+              <th className="p-2 border border-slate-700 w-1/4">{t("printReports.dashboard.field")}</th>
+              <th className="p-2 border border-slate-700 w-1/4">{t("printReports.dashboard.value")}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">{tier}</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t(`common.roles.${tier.toLowerCase()}`, tier)}</td>
               <td className="p-2 border border-slate-300 font-bold">{entityName}</td>
-              <td className="p-2 border border-slate-300 bg-slate-50">Period</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.period")}</td>
               <td className="p-2 border border-slate-300 font-bold">{year}</td>
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Cooperatives</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.cooperatives")}</td>
               <td className="p-2 border border-slate-300 font-bold">{total_cooperatives}</td>
-              <td className="p-2 border border-slate-300 bg-slate-50">Submitted</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.submitted")}</td>
               <td className="p-2 border border-slate-300 font-bold">
                 {cooperatives_with_data} (
                 {((cooperatives_with_data / total_cooperatives) * 100).toFixed(1)}%)
@@ -188,7 +189,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
             </tr>
             {(tier === "Federation" || tier === "Ministry") && totalApexes !== undefined && (
               <tr>
-                <td className="p-2 border border-slate-300 bg-slate-50">Active Apexes</td>
+                <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.activeApexes")}</td>
                 <td className="p-2 border border-slate-300 font-bold" colSpan={3}>
                   {totalApexes}
                 </td>
@@ -198,19 +199,19 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
         </table>
 
         {/* Consolidated Financial Position */}
-        <h3 className="text-sm font-bold text-slate-800 mb-1">Consolidated Financial Position</h3>
+        <h3 className="text-sm font-bold text-slate-800 mb-1">{t("printReports.dashboard.financialPositionTitle")}</h3>
         <table className="w-full text-left text-xs mb-6 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-2 border border-slate-700">Metric</th>
-              <th className="p-2 border border-slate-700 text-right">Current</th>
-              <th className="p-2 border border-slate-700 text-right">Prior Year</th>
-              <th className="p-2 border border-slate-700 text-right">YoY Change</th>
+              <th className="p-2 border border-slate-700">{t("printReports.dashboard.metric")}</th>
+              <th className="p-2 border border-slate-700 text-right">{t("printReports.dashboard.current")}</th>
+              <th className="p-2 border border-slate-700 text-right">{t("printReports.dashboard.priorYear")}</th>
+              <th className="p-2 border border-slate-700 text-right">{t("printReports.dashboard.yoyChange")}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Total Assets</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.totalAssets")}</td>
               <td className="p-2 border border-slate-300 text-right">
                 E {fmtNum(currentFin.assets)}
               </td>
@@ -220,7 +221,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               {renderYoY(currentFin.assets, priorFin.assets)}
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Total GLP</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.totalGlp")}</td>
               <td className="p-2 border border-slate-300 text-right">E {fmtNum(currentFin.glp)}</td>
               <td className="p-2 border border-slate-300 text-right">
                 {priorFin.glp ? `E ${fmtNum(priorFin.glp)}` : "-"}
@@ -228,7 +229,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               {renderYoY(currentFin.glp, priorFin.glp)}
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Total Deposits</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.totalDeposits")}</td>
               <td className="p-2 border border-slate-300 text-right">
                 E {fmtNum(currentFin.deposits)}
               </td>
@@ -238,7 +239,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               {renderYoY(currentFin.deposits, priorFin.deposits)}
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Total Equity</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.totalEquity")}</td>
               <td className="p-2 border border-slate-300 text-right">
                 E {fmtNum(currentFin.equity)}
               </td>
@@ -248,7 +249,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               {renderYoY(currentFin.equity, priorFin.equity)}
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Total Net Surplus</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.totalNetSurplus")}</td>
               <td className="p-2 border border-slate-300 text-right">
                 E {fmtNum(currentFin.surplus)}
               </td>
@@ -258,7 +259,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               {renderYoY(currentFin.surplus, priorFin.surplus)}
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Total Members</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.totalMembers")}</td>
               <td className="p-2 border border-slate-300 text-right">
                 {fmtNum(currentFin.members)}
               </td>
@@ -271,19 +272,19 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
         </table>
 
         {/* Consolidated KPIs */}
-        <h3 className="text-sm font-bold text-slate-800 mb-1">Consolidated KPIs</h3>
+        <h3 className="text-sm font-bold text-slate-800 mb-1">{t("printReports.dashboard.kpisTitle")}</h3>
         <table className="w-full text-left text-xs mb-8 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-2 border border-slate-700">KPI</th>
-              <th className="p-2 border border-slate-700 text-center">Current</th>
-              <th className="p-2 border border-slate-700 text-center">Prior</th>
-              <th className="p-2 border border-slate-700 text-center">Status</th>
+              <th className="p-2 border border-slate-700">{t("printReports.dashboard.kpi")}</th>
+              <th className="p-2 border border-slate-700 text-center">{t("printReports.dashboard.current")}</th>
+              <th className="p-2 border border-slate-700 text-center">{t("printReports.dashboard.prior")}</th>
+              <th className="p-2 border border-slate-700 text-center">{t("printReports.dashboard.status")}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Average PAR30</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.avgPar30")}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">
                 {currAvgs.par30.toFixed(1)}%
               </td>
@@ -295,7 +296,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               </td>
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Average CAR</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.avgCar")}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">
                 {currAvgs.car.toFixed(1)}%
               </td>
@@ -307,7 +308,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               </td>
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Average ROA</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.avgRoa")}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">
                 {currAvgs.roa.toFixed(1)}%
               </td>
@@ -319,7 +320,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               </td>
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Average ROE</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.avgRoe")}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">
                 {currAvgs.roe.toFixed(1)}%
               </td>
@@ -331,7 +332,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               </td>
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Average OER</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.avgOer")}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">
                 {currAvgs.oer.toFixed(1)}%
               </td>
@@ -343,7 +344,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               </td>
             </tr>
             <tr>
-              <td className="p-2 border border-slate-300 bg-slate-50">Avg Loan Loss Coverage</td>
+              <td className="p-2 border border-slate-300 bg-slate-50">{t("printReports.dashboard.avgLlc")}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">
                 {currAvgs.llc.toFixed(1)}%
               </td>
@@ -359,7 +360,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
 
         {/* Risk Distribution */}
         <h3 className="text-sm font-bold text-slate-800 mb-1">
-          Risk Distribution (Number of Coops)
+          {t("printReports.dashboard.riskDistributionTitle")}
         </h3>
         <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-4">
           <div className="h-64">
@@ -381,21 +382,21 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
               <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
               <Bar
                 dataKey="green_count"
-                name="Green (Healthy)"
+                name={t("printReports.dashboard.greenHealthy")}
                 fill="#10b981"
                 radius={[2, 2, 0, 0]}
                 isAnimationActive={false}
               />
               <Bar
                 dataKey="amber_count"
-                name="Amber (Watch)"
+                name={t("printReports.dashboard.amberWatch")}
                 fill="#f59e0b"
                 radius={[2, 2, 0, 0]}
                 isAnimationActive={false}
               />
               <Bar
                 dataKey="red_count"
-                name="Red (Risk)"
+                name={t("printReports.dashboard.redRisk")}
                 fill="#ef4444"
                 radius={[2, 2, 0, 0]}
                 isAnimationActive={false}
@@ -407,15 +408,15 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
         <table className="w-full text-left text-[11px] mb-8 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-2 border border-slate-700 w-1/4">Indicator</th>
+              <th className="p-2 border border-slate-700 w-1/4">{t("printReports.dashboard.indicator")}</th>
               <th className="p-2 border border-slate-700 w-1/4 text-center">
-                <span className="w-2 h-2 inline-block rounded-full bg-green-500 mr-1"></span> Green
+                <span className="w-2 h-2 inline-block rounded-full bg-green-500 mr-1"></span> {t("printReports.dashboard.green")}
               </th>
               <th className="p-2 border border-slate-700 w-1/4 text-center">
-                <span className="w-2 h-2 inline-block rounded-full bg-amber-500 mr-1"></span> Amber
+                <span className="w-2 h-2 inline-block rounded-full bg-amber-500 mr-1"></span> {t("printReports.dashboard.amber")}
               </th>
               <th className="p-2 border border-slate-700 w-1/4 text-center">
-                <span className="w-2 h-2 inline-block rounded-full bg-red-500 mr-1"></span> Red
+                <span className="w-2 h-2 inline-block rounded-full bg-red-500 mr-1"></span> {t("printReports.dashboard.red")}
               </th>
             </tr>
           </thead>
@@ -440,3 +441,4 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
     </div>
   );
 };
+export default ConsolidatedDashboardSheet;

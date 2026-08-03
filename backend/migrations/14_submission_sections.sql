@@ -16,6 +16,3 @@ CREATE TABLE IF NOT EXISTS submission_sections (
 -- Valid statuses: pending, in_progress, ready
 
 CREATE INDEX IF NOT EXISTS idx_submission_sections_submission_id ON submission_sections(submission_id);
-
--- Down
-DROP TABLE IF EXISTS submission_sections;

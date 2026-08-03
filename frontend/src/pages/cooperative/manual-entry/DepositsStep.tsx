@@ -1,4 +1,5 @@
 import { Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { FixedDepositRow } from "./FixedDepositRow";
 import type { WizardFixedDeposit } from "./types";
@@ -18,29 +19,31 @@ export function DepositsStep({
   updateFixedDeposit,
   removeFixedDeposit,
 }: DepositsStepProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className="overflow-hidden font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Fixed Deposits</h3>
+          <h3 className="text-sm font-bold text-foreground">{t("depositsStep.title")}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Record fixed/time deposits. All fields are optional except Member ID.
+            {t("depositsStep.desc")}
           </p>
         </div>
         <button
           onClick={addFixedDeposit}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          + Add Deposit Record
+          {t("depositsStep.addBtn")}
         </button>
       </div>
 
       {fixedDeposits.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <Clock className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">No fixed deposits yet</p>
+          <p className="text-sm font-medium">{t("depositsStep.emptyTitle")}</p>
           <p className="text-xs mt-1">
-            Click "+ Add Deposit Record" to begin entering fixed deposits
+            {t("depositsStep.emptyDesc")}
           </p>
         </div>
       ) : (
@@ -52,40 +55,31 @@ export function DepositsStep({
                   #
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Member ID
+                  {t("depositsStep.tableHeaders.memberId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Deposit ID
+                  {t("depositsStep.tableHeaders.depositId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Type
+                  {t("depositsStep.tableHeaders.type")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Start Date
+                  {t("depositsStep.tableHeaders.startDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Maturity Date
+                  {t("depositsStep.tableHeaders.maturityDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                  Status
+                  {t("depositsStep.tableHeaders.status")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Tenure
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Early W/D
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Rollover
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Single Dep Dep
+                  {t("depositsStep.tableHeaders.tenure")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                  Interest Rate
+                  {t("depositsStep.tableHeaders.interestRate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Balance
+                  {t("depositsStep.tableHeaders.balance")}
                 </th>
                 <th className="px-2 py-2 w-8" />
               </tr>
@@ -108,10 +102,10 @@ export function DepositsStep({
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
         <span>
-          {fixedDeposits.length} deposit{fixedDeposits.length !== 1 ? "s" : ""}
+          {t("depositsStep.rowCount", { count: fixedDeposits.length })}
         </span>
         <button onClick={addFixedDeposit} className="text-primary hover:underline font-medium">
-          + Add another deposit record
+          {t("depositsStep.addAnother")}
         </button>
       </div>
     </Card>

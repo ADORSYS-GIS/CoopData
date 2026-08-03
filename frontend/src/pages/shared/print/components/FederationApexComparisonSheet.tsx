@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+import { useTranslation } from "react-i18next";
 
 interface FederationApexComparisonSheetProps {
   federationName: string;
@@ -24,12 +25,13 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
   year,
   data,
 }) => {
+  const { t } = useTranslation();
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
   // Group by Apex
   const apexGroups: Record<string, CoopKpiRow[]> = {};
   cooperatives.forEach((c) => {
-    const a = c.apex_name || "Unaffiliated";
+    const a = c.apex_name || t("printReports.unaffiliated");
     if (!apexGroups[a]) apexGroups[a] = [];
     apexGroups[a].push(c);
   });
@@ -95,11 +97,11 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       >
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Apex Comparison</h1>
+            <h1 className="text-3xl font-bold text-slate-900">{t("printReports.apexComparison")}</h1>
             <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
           </div>
           <div className="text-right">
-            <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
+            <p className="text-lg font-semibold text-slate-700">{t("printReports.period", { year })}</p>
             <p className="text-sm text-slate-500"></p>
           </div>
         </div>
@@ -107,7 +109,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
         <div className="flex-1 flex flex-col gap-8 min-h-0">
           <div className="border border-slate-300 p-6 rounded-lg bg-white shrink-0">
             <h3 className="text-xl font-bold text-slate-800 text-center mb-6">
-              Filing Rate & Avg PAR30 by Apex
+              {t("printReports.filingRateAvgParByApex")}
             </h3>
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -121,7 +123,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                     yAxisId="left"
                     domain={[0, 100]}
                     label={{
-                      value: "Filing Rate (%)",
+                      value: t("printReports.filingRatePct"),
                       angle: -90,
                       position: "insideLeft",
                       offset: 0,
@@ -136,7 +138,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                     orientation="right"
                     domain={[0, 20]}
                     label={{
-                      value: "Avg PAR30 (%)",
+                      value: t("printReports.avgParPct"),
                       angle: 90,
                       position: "insideRight",
                       offset: 0,
@@ -174,17 +176,17 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="p-3 text-left border border-slate-900">Apex</th>
-                  <th className="p-3 text-right border border-slate-900">Coops</th>
-                  <th className="p-3 text-right border border-slate-900">Submitted</th>
-                  <th className="p-3 text-right border border-slate-900">Approved</th>
-                  <th className="p-3 text-right border border-slate-900">Filing%</th>
-                  <th className="p-3 text-right border border-slate-900">Assets</th>
-                  <th className="p-3 text-right border border-slate-900">Avg PAR30</th>
-                  <th className="p-3 text-right border border-slate-900">Avg CAR</th>
-                  <th className="p-3 text-right border border-slate-900">Avg ROA</th>
-                  <th className="p-3 text-right border border-slate-900">Avg OER</th>
-                  <th className="p-3 text-center border border-slate-900">Risk</th>
+                  <th className="p-3 text-left border border-slate-900">{t("printReports.headers.apex")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.coops")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.submitted")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.approved")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.filingPct")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.assets")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgPar30")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgCar")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgRoa")}</th>
+                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgOer")}</th>
+                  <th className="p-3 text-center border border-slate-900">{t("printReports.headers.risk")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,11 +274,11 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       >
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Filing Compliance by Apex</h1>
+            <h1 className="text-3xl font-bold text-slate-900">{t("printReports.filingComplianceByApex")}</h1>
             <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
           </div>
           <div className="text-right">
-            <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
+            <p className="text-lg font-semibold text-slate-700">{t("printReports.period", { year })}</p>
             <p className="text-sm text-slate-500"></p>
           </div>
         </div>
@@ -285,16 +287,16 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900">Apex</th>
-                <th className="p-3 text-right border border-slate-900">Total</th>
-                <th className="p-3 text-right border border-slate-900">Submitted</th>
-                <th className="p-3 text-right border border-slate-900">Approved</th>
-                <th className="p-3 text-right border border-slate-900">Returned</th>
-                <th className="p-3 text-right border border-slate-900">Pending</th>
-                <th className="p-3 text-right border border-slate-900">On Time</th>
-                <th className="p-3 text-right border border-slate-900">Late</th>
-                <th className="p-3 text-right border border-slate-900">Not Filed</th>
-                <th className="p-3 text-right border border-slate-900">Compliance%</th>
+                <th className="p-3 text-left border border-slate-900">{t("printReports.headers.apex")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.total")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.submitted")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.approved")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.returned")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.pending")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.onTime")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.late")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.notFiled")}</th>
+                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.compliancePct")}</th>
               </tr>
             </thead>
             <tbody>
@@ -317,7 +319,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                 </tr>
               ))}
               <tr className="bg-slate-100 font-bold border-t-2 border-slate-900">
-                <td className="p-3 border border-slate-300">Total</td>
+                <td className="p-3 border border-slate-300">{t("printReports.total")}</td>
                 <td className="p-3 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.coops, 0)}
                 </td>

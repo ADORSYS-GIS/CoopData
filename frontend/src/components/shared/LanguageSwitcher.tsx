@@ -8,7 +8,12 @@ import {
 } from "@/components/ui/select";
 import { Globe } from "lucide-react";
 
-const LANGUAGES = [{ code: "en", name: "English" }];
+const LANGUAGES = [
+  { code: "en", name: "English" },
+  { code: "pt", name: "Português" },
+  { code: "ss", name: "SiSwati" },
+  { code: "fr", name: "Français" },
+];
 
 export const LanguageSwitcher = ({ className = "" }: { className?: string }) => {
   const { i18n, t } = useTranslation();

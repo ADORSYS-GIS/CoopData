@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Loader2, AlertCircle, ZoomOut, ZoomIn, Maximize2, ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getAccessToken } from "@/services/shared/authService";
 
 export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
+  const { t } = useTranslation();
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -89,7 +91,7 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
     return (
       <div className="flex items-center justify-center h-[420px] text-muted-foreground rounded-xl border border-border bg-muted/10 font-sans">
         <Loader2 className="size-6 animate-spin mr-2" />
-        <span className="text-sm">Loading document…</span>
+        <span className="text-sm">{t("submissions.detail.documentViewer.loading")}</span>
       </div>
     );
   }
@@ -98,8 +100,8 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
     return (
       <div className="flex flex-col items-center justify-center h-[420px] text-muted-foreground rounded-xl border border-border bg-muted/10 font-sans">
         <AlertCircle className="size-10 mb-3 opacity-40" />
-        <p className="text-sm font-medium">Failed to load document</p>
-        <p className="text-xs text-muted-foreground mt-1">The file may no longer be available</p>
+        <p className="text-sm font-medium">{t("submissions.detail.documentViewer.failedLoad")}</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("submissions.detail.documentViewer.fileUnavailable")}</p>
       </div>
     );
   }
@@ -114,7 +116,7 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
               <button
                 onClick={zoomOut}
                 disabled={zoom <= 0.25}
-                title="Zoom out"
+                title={t("submissions.detail.documentViewer.zoomOut")}
                 className="inline-flex items-center justify-center size-7 rounded-md hover:bg-muted/60 disabled:opacity-40 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <ZoomOut className="size-4" />
@@ -125,14 +127,14 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
               <button
                 onClick={zoomIn}
                 disabled={zoom >= 4}
-                title="Zoom in"
+                title={t("submissions.detail.documentViewer.zoomIn")}
                 className="inline-flex items-center justify-center size-7 rounded-md hover:bg-muted/60 disabled:opacity-40 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <ZoomIn className="size-4" />
               </button>
               <button
                 onClick={resetView}
-                title="Reset view"
+                title={t("submissions.detail.documentViewer.resetView")}
                 className="inline-flex items-center justify-center size-7 rounded-md hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground ml-1 cursor-pointer"
               >
                 <Maximize2 className="size-4" />
@@ -143,16 +145,16 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
         <div className="flex items-center gap-2">
           {isPdf && (
             <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/50 rounded px-2 py-0.5">
-              PDF — use browser scroll to zoom
+              {t("submissions.detail.documentViewer.pdfHint")}
             </span>
           )}
           <button
             onClick={openInTab}
-            title="Open in new tab"
+            title={t("submissions.detail.documentViewer.openInNewTab")}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1 hover:bg-muted/60 transition-colors cursor-pointer"
           >
             <ExternalLink className="size-3.5" />
-            Open full
+            {t("submissions.detail.documentViewer.openFull")}
           </button>
         </div>
       </div>
@@ -163,7 +165,7 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
           src={blobUrl}
           className="w-full border-0"
           style={{ height: "72vh", minHeight: 480 }}
-          title="Financial Statement"
+          title={t("submissions.detail.documentViewer.iframeTitle")}
         />
       ) : (
         <div
@@ -182,7 +184,7 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
         >
           <img
             src={blobUrl}
-            alt="Financial Statement"
+            alt={t("submissions.detail.documentViewer.iframeTitle")}
             draggable={false}
             style={{
               position: "absolute",
@@ -199,12 +201,12 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
           />
           {zoom > 1 && (
             <div className="absolute bottom-3 right-3 text-[10px] text-white/50 bg-black/30 rounded px-2 py-1 pointer-events-none select-none">
-              Scroll to zoom · Drag to pan
+              {t("submissions.detail.documentViewer.zoomPanHint")}
             </div>
           )}
           {zoom <= 1 && (
             <div className="absolute bottom-3 right-3 text-[10px] text-white/50 bg-black/30 rounded px-2 py-1 pointer-events-none select-none">
-              Scroll to zoom
+              {t("submissions.detail.documentViewer.zoomHint")}
             </div>
           )}
         </div>

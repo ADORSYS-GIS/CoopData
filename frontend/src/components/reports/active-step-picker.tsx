@@ -7,6 +7,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ActiveStepPickerProps {
   activeStepKey: string;
@@ -63,19 +64,20 @@ export function ActiveStepPicker({
   selectedYear,
   onSelectYear,
 }: ActiveStepPickerProps) {
+  const { t } = useTranslation();
   if (activeStepKey === "fed") {
     return (
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Select Federation
+          {t("stepPicker.selectFederation")}
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> Loading federations…
+            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingFederations")}
           </div>
         ) : federationList.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted rounded-xl p-3">
-            No federations found.
+            {t("stepPicker.noFederations")}
           </p>
         ) : (
           <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
@@ -109,15 +111,15 @@ export function ActiveStepPicker({
     return (
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Select Apex Organization
+          {t("stepPicker.selectApex")}
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> Loading apexes…
+            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingApexes")}
           </div>
         ) : apexList.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted rounded-xl p-3">
-            No apex organizations found under the selected federation.
+            {t("stepPicker.noApexes")}
           </p>
         ) : (
           <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
@@ -151,15 +153,15 @@ export function ActiveStepPicker({
     return (
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Select Cooperative
+          {t("stepPicker.selectCooperative")}
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> Loading cooperatives…
+            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingCooperatives")}
           </div>
         ) : cooperativeList.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted rounded-xl p-3">
-            No cooperatives found under the selected apex organization.
+            {t("stepPicker.noCooperatives")}
           </p>
         ) : (
           <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
@@ -193,18 +195,17 @@ export function ActiveStepPicker({
     return (
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Select Submission
+          {t("stepPicker.selectSubmission")}
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> Loading submissions…
+            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingSubmissions")}
           </div>
         ) : filteredSubmissions.length === 0 ? (
           <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
             <FileText className="size-4 shrink-0 mt-0.5" />
             <span>
-              No approved or submitted reports found for this cooperative. Only submitted and
-              approved submissions can be exported.
+              {t("stepPicker.noSubmissions")}
             </span>
           </div>
         ) : (
@@ -221,7 +222,7 @@ export function ActiveStepPicker({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{sub.reporting_year} Financial Report</p>
+                  <p className="font-semibold truncate">{sub.reporting_year} {t("stepPicker.financialReport")}</p>
                   <p
                     className={`text-[11px] mt-0.5 capitalize ${
                       selectedSubmissionId === sub.id ? "text-primary/70" : "text-muted-foreground"
@@ -256,16 +257,16 @@ export function ActiveStepPicker({
     return (
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-          Select Reporting Year
+          {t("stepPicker.selectYear")}
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> Loading years…
+            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingYears")}
           </div>
         ) : availableYears.length === 0 ? (
           <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
             <FileText className="size-4 shrink-0 mt-0.5" />
-            <span>No data available to export for the selected organization.</span>
+            <span>{t("stepPicker.noData")}</span>
           </div>
         ) : (
           <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
@@ -281,7 +282,7 @@ export function ActiveStepPicker({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{year} Consolidated Report</p>
+                  <p className="font-semibold truncate">{year} {t("stepPicker.consolidatedReport")}</p>
                 </div>
                 {selectedYear === year && <CheckCircle2 className="size-4 shrink-0 text-primary" />}
               </button>

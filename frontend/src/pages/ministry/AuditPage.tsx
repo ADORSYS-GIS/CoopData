@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Eye,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { useAuditLogs, type AuditLog, type AuditLogFilters } from "@/hooks/audit/useAuditLogs";
 import {
@@ -63,6 +64,7 @@ const actionTone: Record<string, string> = {
 };
 
 export const AuditPage: React.FC = () => {
+  const { t } = useTranslation();
   const [action, setAction] = useState("");
   const [resourceType, setResourceType] = useState("");
   const [actor, setActor] = useState("");
@@ -94,42 +96,42 @@ export const AuditPage: React.FC = () => {
 
   return (
     <AppShell
-      title="Audit Log"
-      subtitle="Full activity history — every create, update, invite and delete across the platform"
+      title={t("auditLog.title")}
+      subtitle={t("auditLog.subtitle")}
     >
       <div className="-m-2 space-y-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 shadow-inner">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={ClipboardList}
-            label="Total Events"
+            label={t("auditLog.totalEvents")}
             value={String(total)}
-            subtitle="Across all filters"
+            subtitle={t("auditLog.acrossAllFilters")}
             tone="primary"
           />
           <StatCard
             icon={Activity}
-            label="Actions this page"
+            label={t("auditLog.actionsThisPage")}
             value={String(uniqueActions.size)}
-            subtitle="Distinct action types"
+            subtitle={t("auditLog.distinctActionTypes")}
             tone="accent"
           />
           <StatCard
             icon={Globe}
-            label="Resources this page"
+            label={t("auditLog.resourcesThisPage")}
             value={String(uniqueResources.size)}
-            subtitle="Resource types shown"
+            subtitle={t("auditLog.resourceTypesShown")}
             tone="info"
           />
           <StatCard
             icon={ShieldCheck}
-            label="Active Actors"
+            label={t("auditLog.activeActors")}
             value={String(uniqueActors.size)}
-            subtitle="Users on this page"
+            subtitle={t("auditLog.usersOnThisPage")}
             tone="success"
           />
         </div>
 
-        <Card title="Audit Events" subtitle="Filter and search platform activity">
+        <Card title={t("auditLog.cardTitle")} subtitle={t("auditLog.cardSubtitle")}>
           <div className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 md:grid-cols-4">
             <div className="relative md:col-span-2">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
@@ -139,7 +141,7 @@ export const AuditPage: React.FC = () => {
                   setActor(e.target.value);
                   resetPage();
                 }}
-                placeholder="Filter by actor Keycloak ID…"
+                placeholder={t("auditLog.filterActorPlaceholder")}
                 className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
               />
             </div>
@@ -153,7 +155,7 @@ export const AuditPage: React.FC = () => {
             >
               {ACTION_OPTIONS.map((a) => (
                 <option key={a} value={a}>
-                  {a || "All actions"}
+                  {a || t("auditLog.allActions")}
                 </option>
               ))}
             </select>
@@ -167,7 +169,7 @@ export const AuditPage: React.FC = () => {
             >
               {RESOURCE_OPTIONS.map((r) => (
                 <option key={r} value={r}>
-                  {r || "All resources"}
+                  {r || t("auditLog.allResources")}
                 </option>
               ))}
             </select>
@@ -180,14 +182,14 @@ export const AuditPage: React.FC = () => {
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <AlertCircle className="mb-2 size-8 text-destructive" />
-              <p className="text-sm font-semibold">Failed to load audit logs</p>
+              <p className="text-sm font-semibold">{t("auditLog.failedLoad")}</p>
               <p className="mt-1 text-xs">{String(error)}</p>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <ClipboardList className="mb-2 size-8 opacity-50" />
-              <p className="text-sm font-semibold">No audit events found</p>
-              <p className="mt-1 text-xs">Try adjusting your filters.</p>
+              <p className="text-sm font-semibold">{t("auditLog.noEventsFound")}</p>
+              <p className="mt-1 text-xs">{t("auditLog.adjustFilters")}</p>
             </div>
           ) : (
             <>
@@ -195,12 +197,12 @@ export const AuditPage: React.FC = () => {
                 <table className="w-full border-collapse text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
-                      <th className="px-5 py-3.5">When</th>
-                      <th className="px-5 py-3.5">Action</th>
-                      <th className="px-5 py-3.5">Resource</th>
-                      <th className="px-5 py-3.5 hidden md:table-cell">Actor</th>
-                      <th className="px-5 py-3.5 hidden lg:table-cell">IP</th>
-                      <th className="px-5 py-3.5 text-right">Details</th>
+                      <th className="px-5 py-3.5">{t("auditLog.tableHeaders.when")}</th>
+                      <th className="px-5 py-3.5">{t("auditLog.tableHeaders.action")}</th>
+                      <th className="px-5 py-3.5">{t("auditLog.tableHeaders.resource")}</th>
+                      <th className="px-5 py-3.5 hidden md:table-cell">{t("auditLog.tableHeaders.actor")}</th>
+                      <th className="px-5 py-3.5 hidden lg:table-cell">{t("auditLog.tableHeaders.ip")}</th>
+                      <th className="px-5 py-3.5 text-right">{t("auditLog.tableHeaders.details")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -238,9 +240,9 @@ export const AuditPage: React.FC = () => {
                           <button
                             onClick={() => setSelected(log)}
                             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-accent hover:bg-accent/10 transition-colors"
-                            aria-label="View details"
+                            aria-label={t("auditLog.viewDetailsAria")}
                           >
-                            <Eye className="size-3.5" /> View
+                            <Eye className="size-3.5" /> {t("auditLog.viewBtn")}
                           </button>
                         </td>
                       </tr>
@@ -251,7 +253,7 @@ export const AuditPage: React.FC = () => {
 
               <div className="flex flex-col items-center justify-between gap-3 px-5 py-4 sm:flex-row">
                 <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <label className="font-medium">Rows per page</label>
+                  <label className="font-medium">{t("auditLog.rowsPerPage")}</label>
                   <select
                     value={perPage}
                     onChange={(e) => {
@@ -268,8 +270,12 @@ export const AuditPage: React.FC = () => {
                   </select>
                   <span className="ml-2 font-medium text-slate-500">
                     {isFetching
-                      ? "Updating…"
-                      : `Page ${page} of ${Math.max(totalPages, 1)} · ${total} total`}
+                      ? t("auditLog.updating")
+                      : t("auditLog.pageIndicator", {
+                          page,
+                          totalPages: Math.max(totalPages, 1),
+                          total,
+                        })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -278,7 +284,7 @@ export const AuditPage: React.FC = () => {
                     disabled={page <= 1}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <ChevronLeft className="size-4" /> Prev
+                    <ChevronLeft className="size-4" /> {t("auditLog.prev")}
                   </button>
                   <span className="text-xs font-bold text-slate-700">
                     {page} / {Math.max(totalPages, 1)}
@@ -288,7 +294,7 @@ export const AuditPage: React.FC = () => {
                     disabled={page >= totalPages}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Next <ChevronRight className="size-4" />
+                    {t("auditLog.next")} <ChevronRight className="size-4" />
                   </button>
                 </div>
               </div>
@@ -301,23 +307,23 @@ export const AuditPage: React.FC = () => {
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Audit Event Details</DialogTitle>
+            <DialogTitle>{t("auditLog.dialogTitle")}</DialogTitle>
             <DialogDescription>
               {selected ? formatDateTime(selected.created_at) : ""}
             </DialogDescription>
           </DialogHeader>
           {selected && (
             <div className="space-y-3 text-sm">
-              <DetailRow label="Action" value={selected.action} />
-              <DetailRow label="Resource Type" value={selected.resource_type} />
-              <DetailRow label="Resource ID" value={selected.resource_keycloak_id ?? "—"} />
-              <DetailRow label="Actor Keycloak ID" value={selected.actor_keycloak_id} />
-              {selected.actor_id && <DetailRow label="Actor User ID" value={selected.actor_id} />}
-              <DetailRow label="IP Address" value={selected.ip_address ?? "—"} />
-              {selected.user_agent && <DetailRow label="User Agent" value={selected.user_agent} />}
+              <DetailRow label={t("auditLog.detailRowLabels.action")} value={selected.action} />
+              <DetailRow label={t("auditLog.detailRowLabels.resourceType")} value={selected.resource_type} />
+              <DetailRow label={t("auditLog.detailRowLabels.resourceId")} value={selected.resource_keycloak_id ?? "—"} />
+              <DetailRow label={t("auditLog.detailRowLabels.actorKeycloakId")} value={selected.actor_keycloak_id} />
+              {selected.actor_id && <DetailRow label={t("auditLog.detailRowLabels.actorUserId")} value={selected.actor_id} />}
+              <DetailRow label={t("auditLog.detailRowLabels.ipAddress")} value={selected.ip_address ?? "—"} />
+              {selected.user_agent && <DetailRow label={t("auditLog.detailRowLabels.userAgent")} value={selected.user_agent} />}
               <div>
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Details (JSON)
+                  {t("auditLog.detailsJson")}
                 </p>
                 <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                   {selected.details ? JSON.stringify(selected.details, null, 2) : "—"}
@@ -339,3 +345,4 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+export default AuditPage;

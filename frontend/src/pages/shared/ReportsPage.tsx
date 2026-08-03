@@ -180,7 +180,7 @@ export const ReportsPage: React.FC = () => {
 
   // Resolve cooperative name: use field from submission, fall back to Keycloak org name
   const resolveCoopName = (s: (typeof submissions)[number]) =>
-    s.cooperative_name ?? user?.organizationName ?? "My Cooperative";
+    s.cooperative_name ?? user?.organizationName ?? t("reports.myCooperative");
 
   const handleExport = async (submissionId: string, format: string, filename: string) => {
     setIsExporting(submissionId);

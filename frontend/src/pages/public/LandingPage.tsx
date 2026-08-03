@@ -21,6 +21,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 
 export const LandingPage: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -93,6 +94,7 @@ function PublicHeader() {
           </a>
         </nav>
         <div className="flex items-center gap-2.5">
+          <LanguageSwitcher />
           <button
             onClick={handleLogin}
             className="rounded-lg px-3.5 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"

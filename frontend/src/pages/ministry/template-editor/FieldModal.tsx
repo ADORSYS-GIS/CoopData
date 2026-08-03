@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface FieldModalProps {
   isModalOpen: boolean;
@@ -40,6 +41,8 @@ export const FieldModal: React.FC<FieldModalProps> = ({
   deleteOption,
   handleSaveModalField,
 }) => {
+  const { t } = useTranslation();
+
   if (!isModalOpen) return null;
 
   return (
@@ -48,7 +51,7 @@ export const FieldModal: React.FC<FieldModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border/80 px-6 py-4">
           <h3 className="text-base font-bold text-foreground">
-            {modalFieldIndex === null ? "Add Question" : "Edit Question"}
+            {modalFieldIndex === null ? t("templateEditor.fieldModal.addTitle") : t("templateEditor.fieldModal.editTitle")}
           </h3>
           <button
             onClick={() => setIsModalOpen(false)}
@@ -62,26 +65,26 @@ export const FieldModal: React.FC<FieldModalProps> = ({
         <div className="p-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-muted-foreground uppercase">
-              Question Label / Prompt
+              {t("templateEditor.fieldModal.labelPrompt")}
             </label>
             <input
               type="text"
               value={modalLabel}
               onChange={(e) => setModalLabel(e.target.value)}
-              placeholder="e.g. Total Registered Members"
+              placeholder={t("templateEditor.fieldModal.placeholderLabel")}
               className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-muted-foreground uppercase">
-              Description / Help Text
+              {t("templateEditor.fieldModal.descHelp")}
             </label>
             <input
               type="text"
               value={modalDescription}
               onChange={(e) => setModalDescription(e.target.value)}
-              placeholder="Optional guidance text for cooperatives..."
+              placeholder={t("templateEditor.fieldModal.placeholderDesc")}
               className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
             />
           </div>
@@ -89,18 +92,18 @@ export const FieldModal: React.FC<FieldModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-muted-foreground uppercase">
-                Input Type
+                {t("templateEditor.fieldModal.inputType")}
               </label>
               <select
                 value={modalType}
                 onChange={(e) => setModalType(e.target.value)}
                 className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45 select-custom"
               >
-                <option value="text">Short Text</option>
-                <option value="number">Number</option>
-                <option value="select">Dropdown Choice</option>
-                <option value="textarea">Paragraph Text</option>
-                <option value="date">Date picker</option>
+                <option value="text">{t("templateEditor.fieldModal.typeShortText")}</option>
+                <option value="number">{t("templateEditor.fieldModal.typeNumber")}</option>
+                <option value="select">{t("templateEditor.fieldModal.typeDropdown")}</option>
+                <option value="textarea">{t("templateEditor.fieldModal.typeParagraph")}</option>
+                <option value="date">{t("templateEditor.fieldModal.typeDatePicker")}</option>
               </select>
             </div>
 
@@ -112,7 +115,7 @@ export const FieldModal: React.FC<FieldModalProps> = ({
                   onChange={(e) => setModalRequired(e.target.checked)}
                   className="size-4 rounded border-border text-primary focus:ring-primary"
                 />
-                <span className="text-xs text-foreground font-semibold">Required question</span>
+                <span className="text-xs text-foreground font-semibold">{t("templateEditor.fieldModal.requiredQuestion")}</span>
               </label>
             </div>
           </div>
@@ -121,12 +124,12 @@ export const FieldModal: React.FC<FieldModalProps> = ({
           {modalType === "select" && (
             <div className="border-t border-border/60 pt-4 flex flex-col gap-3">
               <label className="text-xs font-bold text-muted-foreground uppercase">
-                Dropdown Choices
+                {t("templateEditor.fieldModal.dropdownChoices")}
               </label>
 
               {modalOptions.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic bg-muted/40 border rounded-xl p-3 text-center">
-                  No choices added yet. Add choices below.
+                  {t("templateEditor.fieldModal.noChoices")}
                 </p>
               ) : (
                 <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
@@ -154,7 +157,7 @@ export const FieldModal: React.FC<FieldModalProps> = ({
                   type="text"
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}
-                  placeholder="Add a choice (e.g. Yes)"
+                  placeholder={t("templateEditor.fieldModal.placeholderChoice")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -168,7 +171,7 @@ export const FieldModal: React.FC<FieldModalProps> = ({
                   onClick={addOption}
                   className="px-3 py-1.5 bg-primary text-primary-foreground font-semibold text-xs rounded-xl hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
                 >
-                  Add Option
+                  {t("templateEditor.fieldModal.addOptionBtn")}
                 </button>
               </div>
             </div>
@@ -182,14 +185,14 @@ export const FieldModal: React.FC<FieldModalProps> = ({
             onClick={() => setIsModalOpen(false)}
             className="rounded-xl border border-border px-4 py-2 text-xs font-semibold hover:bg-muted/50 transition-colors text-foreground bg-card cursor-pointer"
           >
-            Cancel
+            {t("templateEditor.fieldModal.cancel")}
           </button>
           <button
             type="button"
             onClick={handleSaveModalField}
             className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm cursor-pointer"
           >
-            Apply Field
+            {t("templateEditor.fieldModal.applyField")}
           </button>
         </div>
       </div>

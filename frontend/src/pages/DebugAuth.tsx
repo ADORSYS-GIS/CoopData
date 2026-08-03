@@ -2,43 +2,45 @@ import { useAuth } from "@/context/AuthContext";
 import { getUserProfile } from "@/services/shared/authService";
 import { AppShell } from "@/components/app-shell";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export function DebugAuth() {
+  const { t } = useTranslation();
   const auth = useAuth();
   const profile = getUserProfile();
 
   return (
-    <AppShell title="Debug Authentication" subtitle="Check JWT token and user profile">
+    <AppShell title={t("debugAuth.title")} subtitle={t("debugAuth.subtitle")}>
       <div className="space-y-6">
         <div className="flex gap-4 mb-6">
           <Link
             to="/app/apexes"
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            Go to Apexes
+            {t("debugAuth.goToApexes")}
           </Link>
           <Link
             to="/app/profile"
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
-            Go to Profile
+            {t("debugAuth.goToProfile")}
           </Link>
           <Link
             to="/app/users"
             className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
           >
-            Go to Users
+            {t("debugAuth.goToUsers")}
           </Link>
           <Link
             to="/app/dashboard"
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           >
-            Back to Dashboard
+            {t("debugAuth.backToDashboard")}
           </Link>
         </div>
 
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <h4 className="font-bold">🔍 Testing API Call</h4>
+          <h4 className="font-bold">{t("debugAuth.testingApiCall")}</h4>
           <button
             onClick={async () => {
               console.log("[DEBUG] Testing API call manually...");
@@ -78,12 +80,12 @@ export function DebugAuth() {
             }}
             className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
           >
-            Test API Call Manually
+            {t("debugAuth.testApiCallBtn")}
           </button>
         </div>
 
         <div className="bg-muted/30 p-4 rounded-lg">
-          <h3 className="font-semibold mb-2">Auth Context</h3>
+          <h3 className="font-semibold mb-2">{t("debugAuth.authContext")}</h3>
           <pre className="text-xs overflow-auto">
             {JSON.stringify(
               {
@@ -126,7 +128,7 @@ export function DebugAuth() {
           }}
           className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
         >
-          Log Token to Console
+          {t("debugAuth.logTokenBtn")}
         </button>
       </div>
     </AppShell>

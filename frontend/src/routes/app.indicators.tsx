@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppShell } from "@/components/app-shell";
 import { NonFinancialCatalogManager } from "@/components/submissions/non-financial-catalog-manager";
+import { useTranslation } from "react-i18next";
 
 function IndicatorsRoute() {
+  const { t } = useTranslation();
   return (
     <ProtectedRoute allowedRoles={["ministry"]}>
       <AppShell
-        title="Non-Financial Indicators"
-        subtitle="Configure the periodic KPIs that cooperatives must report each submission cycle"
+        title={t("submissions.catalogManager.routeTitle")}
+        subtitle={t("submissions.catalogManager.routeSubtitle")}
       >
         <NonFinancialCatalogManager />
       </AppShell>

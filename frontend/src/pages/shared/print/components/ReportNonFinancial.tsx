@@ -2,6 +2,7 @@ import React from "react";
 import { ReportDataProps } from "./types";
 import { findKpi } from "./utils";
 import { PieChart, Pie, Legend } from "recharts";
+import { useTranslation } from "react-i18next";
 
 export const ReportNonFinancial: React.FC<ReportDataProps> = ({
   portfolioData,
@@ -11,18 +12,19 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
   submission,
   submissionId,
 }) => {
+  const { t } = useTranslation();
   const totalMembers =
     (membershipData.active_members || 0) + (membershipData.inactive_members || 0);
 
   return (
     <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        Non-Financial Highlights
+        {t("printReports.nonFinancialHighlights")}
       </h2>
 
       <div className="flex flex-col items-center justify-center mb-10 mt-4">
         <h3 className="text-sm font-bold text-slate-800 mb-2">
-          Membership Composition ({totalMembers} Total)
+          {t("printReports.membershipComposition", { total: totalMembers })}
         </h3>
         <PieChart width={400} height={300}>
           <Pie
@@ -58,16 +60,16 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
       <table className="w-full text-left text-xs border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-3 py-2 font-semibold">Metric</th>
-            <th className="px-3 py-2 font-semibold">Value</th>
-            <th className="px-3 py-2 font-semibold">YoY</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.headers.metric")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.headers.value")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.headers.yoy")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
           <tr className="hover:bg-slate-50">
-            <td className="px-3 py-2">Total Members</td>
+            <td className="px-3 py-2">{t("printReports.totalMembers")}</td>
             <td className="px-3 py-2">
-              {totalMembers} (Active: {membershipData.active_members},{" "}
+              {totalMembers} ({t("printReports.active")}: {membershipData.active_members},{" "}
               {totalMembers > 0
                 ? Math.round((membershipData.active_members / totalMembers) * 100)
                 : 0}
@@ -76,20 +78,20 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
             <td className="px-3 py-2">—</td>
           </tr>
           <tr className="hover:bg-slate-50">
-            <td className="px-3 py-2">Youth Members</td>
+            <td className="px-3 py-2">{t("printReports.youthMembers")}</td>
             <td className="px-3 py-2">{membershipData.youth_members}</td>
             <td className="px-3 py-2">—</td>
           </tr>
           <tr className="hover:bg-slate-50">
-            <td className="px-3 py-2">Active Loans</td>
+            <td className="px-3 py-2">{t("printReports.activeLoans")}</td>
             <td className="px-3 py-2">
-              {portfolioData.categories.reduce((acc, c) => acc + c.count, 0)} (Loan Balance:{" "}
+              {portfolioData.categories.reduce((acc, c) => acc + c.count, 0)} ({t("printReports.loanBalance")}:{" "}
               {findKpi(kpiMap, "gross_loan_portfolio")?.formatted ?? "—"})
             </td>
             <td className="px-3 py-2">—</td>
           </tr>
           <tr className="hover:bg-slate-50">
-            <td className="px-3 py-2">AGM Attendance</td>
+            <td className="px-3 py-2">{t("printReports.agmAttendance")}</td>
             <td className="px-3 py-2">
               {membershipData.agm_attendance} (
               {totalMembers > 0
@@ -102,22 +104,22 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
         </tbody>
       </table>
 
-      <h4 className="text-sm font-bold text-slate-800 mb-2">Data Columns Reference</h4>
+      <h4 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.dataColumnsReference")}</h4>
       <table className="w-full text-left text-[10px] border-collapse page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">Metric</th>
-            <th className="px-2 py-1 font-semibold">Current Value</th>
-            <th className="px-2 py-1 font-semibold">Unit</th>
-            <th className="px-2 py-1 font-semibold">Prior Year</th>
-            <th className="px-2 py-1 font-semibold">YoY Change</th>
-            <th className="px-2 py-1 font-semibold">YoY %</th>
-            <th className="px-2 py-1 font-semibold">Trend</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.metric")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.currentValue")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.unit")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.priorYear")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.yoyChange")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.yoyPercent")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.trend")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
           <tr>
-            <td className="px-2 py-1">Total Assets</td>
+            <td className="px-2 py-1">{t("printReports.totalAssets")}</td>
             <td className="px-2 py-1">{findKpi(kpiMap, "total_assets")?.formatted}</td>
             <td className="px-2 py-1">SZL</td>
             <td className="px-2 py-1">
@@ -128,7 +130,7 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
             <td className="px-2 py-1">—</td>
           </tr>
           <tr>
-            <td className="px-2 py-1">PAR30</td>
+            <td className="px-2 py-1">{t("printReports.par30")}</td>
             <td className="px-2 py-1">{findKpi(kpiMap, "par30")?.formatted}</td>
             <td className="px-2 py-1">%</td>
             <td className="px-2 py-1">

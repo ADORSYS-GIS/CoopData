@@ -5,8 +5,3 @@
 ALTER TABLE members
     ALTER COLUMN region TYPE eswatini_region
     USING region::eswatini_region;
-
--- Down
-ALTER TABLE members
-    ALTER COLUMN region TYPE VARCHAR(50)
-    USING region::text;

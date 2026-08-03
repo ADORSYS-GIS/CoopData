@@ -21,6 +21,7 @@ import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function FederationAnalyticsView({ filterValues, onFilterChange }: Props) {
+  const { t } = useTranslation();
   const year = Number(filterValues.year);
 
   const params = useMemo(
@@ -94,7 +96,7 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground p-8">
-        <Loader2 className="size-5 animate-spin" /> Loading federation analytics…
+        <Loader2 className="size-5 animate-spin" /> {t("federationAnalytics.loading")}
       </div>
     );
   }
@@ -126,17 +128,17 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
       {/* Apex & Regional Distributions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
-          title="Apex Distribution"
-          subtitle="Cooperatives & members by apex"
-          info="Displays the number of cooperatives and active members under each Apex organization."
+          title={t("federationAnalytics.apexDistTitle")}
+          subtitle={t("federationAnalytics.apexDistSubtitle")}
+          info={t("federationAnalytics.apexDistInfo")}
         >
           <ApexDistributionBar cooperatives={coops} />
         </Card>
 
         <Card
-          title="Regional Portfolio Distribution"
-          subtitle="Total assets, loans and deposits by region"
-          info="Displays the aggregate financial balances distributed across different geographical regions."
+          title={t("federationAnalytics.regionalPortfolioTitle")}
+          subtitle={t("federationAnalytics.regionalPortfolioSubtitle")}
+          info={t("federationAnalytics.regionalPortfolioInfo")}
         >
           <RegionalGroupedBar cooperatives={coops} />
         </Card>
@@ -145,18 +147,18 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Efficiency leaderboard (OER — lower = better) */}
         <Card
-          title="Operational Efficiency Ranking"
-          subtitle="Best and worst OER cooperatives (lower = more efficient)"
-          info="Highlights the cooperatives with the best and worst Operational Expense Ratios to identify excellence and areas requiring intervention."
+          title={t("federationAnalytics.oerRankingTitle")}
+          subtitle={t("federationAnalytics.oerRankingSubtitle")}
+          info={t("federationAnalytics.oerRankingInfo")}
         >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="operating_expense_ratio" />
         </Card>
 
         {/* ROA leaderboard */}
         <Card
-          title="Profitability Ranking"
-          subtitle="Best and worst ROA cooperatives"
-          info="Highlights the cooperatives with the highest and lowest Return on Assets, indicating overall profitability and resource utilization."
+          title={t("federationAnalytics.profitabilityRankingTitle")}
+          subtitle={t("federationAnalytics.profitabilityRankingSubtitle")}
+          info={t("federationAnalytics.profitabilityRankingInfo")}
         >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
         </Card>
@@ -165,18 +167,18 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {coops.length > 0 && (
           <Card
-            title="Network Performance Radar"
-            subtitle="Comparative KPI profile across cooperatives"
-            info="A radar chart visualizing average performance across multiple dimensions including Management Efficiency, Asset Quality, and Capital Adequacy."
+            title={t("federationAnalytics.radarTitle")}
+            subtitle={t("federationAnalytics.radarSubtitle")}
+            info={t("federationAnalytics.radarInfo")}
           >
             <ApexRadarChart data={coops} />
           </Card>
         )}
         {coops.length > 0 && (
           <Card
-            title="Network Loan Provisioning Gap"
-            subtitle="Unprotected at-risk capital visualization"
-            info="Visualizes the gap between the Gross Loan Portfolio, the Portfolio at Risk (PAR30), and the actual Loan Loss Provisions set aside to cover those risks."
+            title={t("federationAnalytics.loanGapTitle")}
+            subtitle={t("federationAnalytics.loanGapSubtitle")}
+            info={t("federationAnalytics.loanGapInfo")}
           >
             <LoanProvisioningWaterfall
               glp={aggMetrics.totalGLP}
@@ -190,9 +192,9 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
       {/* Traffic-light compliance bars */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
         <Card
-          title="Compliance Traffic-Light Distribution"
-          subtitle="KPI health across the federation"
-          info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators."
+          title={t("federationAnalytics.complianceTitle")}
+          subtitle={t("federationAnalytics.complianceSubtitle")}
+          info={t("federationAnalytics.complianceInfo")}
         >
           <ComplianceDoughnutCharts distributions={overview.distributions} />
         </Card>
@@ -200,7 +202,7 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
 
       {coops.length === 0 && (
         <div className="rounded-xl border border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-          No cooperative data available for the selected filters and reporting year.
+          {t("federationAnalytics.noData")}
         </div>
       )}
     </div>

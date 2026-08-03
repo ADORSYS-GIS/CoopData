@@ -455,7 +455,7 @@ function SubmissionTable({
                           }}
                           disabled={deleteSubmission.isPending}
                           className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title="Delete Submission"
+                          title={t("submissions.detail.deleteSubmission")}
                         >
                           <Trash2 className="size-3.5" />
                         </button>

@@ -10,6 +10,7 @@ import {
 import { Card } from "@/components/app-shell";
 import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
 import type { FilterConfig, AnalyticsFilterValues } from "./analyticsTypes";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   filters: FilterConfig[];
@@ -38,6 +39,7 @@ export function AnalyticsFilterBar({
   onClear,
 }: Props) {
   const [showFilters, setShowFilters] = useState(false);
+  const { t } = useTranslation();
 
   const activeCount = Object.entries(filterValues).filter(
     ([k, v]) => k !== "year" && v !== "all",
@@ -64,7 +66,7 @@ export function AnalyticsFilterBar({
         {/* Year selector */}
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold">
           <Calendar className="size-3.5 text-primary" />
-          <span className="text-muted-foreground uppercase whitespace-nowrap">Year:</span>
+          <span className="text-muted-foreground uppercase whitespace-nowrap">{t("analyticsFilter.year")}:</span>
           <Select value={filterValues.year} onValueChange={(v) => onFilterChange("year", v)}>
             <SelectTrigger className="h-auto border-none bg-transparent p-0 font-bold shadow-none focus:ring-0 [&>svg]:opacity-50">
               <SelectValue />
@@ -90,7 +92,7 @@ export function AnalyticsFilterBar({
             }`}
           >
             <Filter className="size-3.5" />
-            Filters
+            {t("analyticsFilter.filters")}
             {activeCount > 0 && (
               <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center">
                 {activeCount}
@@ -130,7 +132,7 @@ export function AnalyticsFilterBar({
             onClick={onClear}
             className="text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
           >
-            Clear all
+            {t("analyticsFilter.clearAll")}
           </button>
         )}
 
@@ -143,7 +145,7 @@ export function AnalyticsFilterBar({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="size-4 text-primary" />
-              <span className="font-heading font-bold text-sm">Filter Analytics</span>
+              <span className="font-heading font-bold text-sm">{t("analyticsFilter.filterAnalytics")}</span>
             </div>
             <button
               onClick={() => setShowFilters(false)}

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -368,7 +369,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   onClick={handlePopulateTestData}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/45 bg-primary/5 hover:bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
                 >
-                  🧪 Populate Test Data
+                  {t("questionnaire.populateTestData")}
                 </button>
               )}
               <button

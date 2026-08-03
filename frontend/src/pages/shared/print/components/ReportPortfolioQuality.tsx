@@ -2,6 +2,7 @@ import React from "react";
 import { ReportDataProps } from "./types";
 import { findKpi, formatCurrency } from "./utils";
 import { PieChart, Pie, Cell, Legend } from "recharts";
+import { useTranslation } from "react-i18next";
 
 export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
   portfolioData,
@@ -9,12 +10,13 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
   submission,
   submissionId,
 }) => {
+  const { t } = useTranslation();
   const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"];
 
   return (
     <div className="w-[210mm] h-[296mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        Sheet 3: "Portfolio Quality"
+        {t("printReports.portfolioQualityTitle")}
       </h2>
 
       <div className="flex justify-center mb-10 h-[250px] relative mt-4">
@@ -41,17 +43,17 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
           />
         </PieChart>
         <div className="absolute top-0 left-0 w-full text-center">
-          <h3 className="text-sm font-bold text-slate-800">Portfolio Distribution</h3>
+          <h3 className="text-sm font-bold text-slate-800">{t("printReports.portfolioDistribution")}</h3>
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">"Portfolio Quality"</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-4">{t("printReports.portfolioQuality")}</h3>
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">Category</th>
-            <th className="px-2 py-1 font-semibold text-right">Amount (SZL)</th>
-            <th className="px-2 py-1 font-semibold text-right">% of Portfolio</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.category")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.amountSzl")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.percentOfPortfolio")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -69,7 +71,7 @@ export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
             </tr>
           ))}
           <tr className="bg-slate-100 font-bold">
-            <td className="px-2 py-1">Total</td>
+            <td className="px-2 py-1">{t("printReports.total")}</td>
             <td className="px-2 py-1 text-right">
               {formatCurrency(
                 (portfolioData.categories || []).reduce((acc, c) => acc + c.balance, 0),

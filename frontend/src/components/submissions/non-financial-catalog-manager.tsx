@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -7,10 +8,6 @@ import {
   Edit2,
   HelpCircle,
   X,
-  PlusCircle,
-  ToggleLeft,
-  ToggleRight,
-  Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -34,7 +31,8 @@ import {
 } from "@/hooks/submissions/useNonFinancialIndicators";
 
 export const NonFinancialCatalogManager: React.FC = () => {
-  const { data: catalog, isLoading, isError } = useIndicatorCatalog();
+  const { t } = useTranslation();
+  const { data: catalog, isLoading } = useIndicatorCatalog();
   const createMutation = useCreateCatalogItem();
   const updateMutation = useUpdateCatalogItem();
   const deleteMutation = useDeleteCatalogItem();
@@ -82,7 +80,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
     e.preventDefault();
 
     if (!displayName.trim()) {
-      toast.error("Display name is required");
+      toast.error(t("submissions.catalogManager.toastDisplayNameRequired"));
       return;
     }
 
@@ -101,11 +99,11 @@ export const NonFinancialCatalogManager: React.FC = () => {
             is_required: isRequired,
           },
         });
-        toast.success("Indicator catalog item updated!");
+        toast.success(t("submissions.catalogManager.toastItemUpdated"));
       } else {
         // Create flow
         if (!indicatorName.trim()) {
-          toast.error("Indicator name is required");
+          toast.error(t("submissions.catalogManager.toastIndicatorNameRequired"));
           return;
         }
         // Format indicator_name as snake_case automatically
@@ -122,18 +120,18 @@ export const NonFinancialCatalogManager: React.FC = () => {
           coop_type: cType,
           is_required: isRequired,
         });
-        toast.success("Indicator created and catalog seeded!");
+        toast.success(t("submissions.catalogManager.toastCreated"));
       }
       resetForm();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An error occurred");
+      toast.error(err instanceof Error ? err.message : t("submissions.catalogManager.toastErrorOccurred"));
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (
       !confirm(
-        `Are you sure you want to delete the indicator "${name}"? This will fail if cooperatives have already submitted entries for it.`,
+        t("submissions.catalogManager.confirmDelete", { name }),
       )
     ) {
       return;
@@ -141,47 +139,46 @@ export const NonFinancialCatalogManager: React.FC = () => {
 
     try {
       await deleteMutation.mutateAsync(id);
-      toast.success("Indicator deleted from catalog");
+      toast.success(t("submissions.catalogManager.toastDeleted"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete indicator");
+      toast.error(err instanceof Error ? err.message : t("submissions.catalogManager.toastDeleteFailed"));
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12 text-muted-foreground">
+      <div className="flex items-center justify-center p-12 text-muted-foreground font-sans">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading indicator catalog...
+        {t("submissions.catalogManager.loading")}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold tracking-tight">Non-Financial Indicator Catalog</h2>
+          <h2 className="text-lg font-bold tracking-tight">{t("submissions.catalogManager.title")}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure periodic KPIs (board composition, training, audits) that cooperatives must
-            submit.
+            {t("submissions.catalogManager.subtitle")}
           </p>
         </div>
         {!isFormOpen && (
           <Button
             onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 self-start sm:self-auto"
+            className="flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Plus className="size-4" /> Add Indicator
+            <Plus className="size-4" /> {t("submissions.catalogManager.btnAddIndicator")}
           </Button>
         )}
       </div>
 
       {isFormOpen && (
         <Card
-          title={editingItem ? "Edit Catalog Indicator" : "Add New Catalog Indicator"}
-          subtitle="Define indicator constraints, validation type, and scoping rule"
+          title={editingItem ? t("submissions.catalogManager.titleEdit") : t("submissions.catalogManager.titleAdd")}
+          subtitle={t("submissions.catalogManager.cardSubtitle")}
           action={
-            <Button variant="ghost" size="icon" onClick={resetForm}>
+            <Button variant="ghost" size="icon" onClick={resetForm} className="cursor-pointer">
               <X className="size-4" />
             </Button>
           }
@@ -191,16 +188,16 @@ export const NonFinancialCatalogManager: React.FC = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="indicator-name">
-                  Indicator Name / Key{" "}
+                  {t("submissions.catalogManager.labelNameKey")}{" "}
                   {!editingItem && (
                     <span className="text-[10px] text-muted-foreground font-normal">
-                      (auto-slugified to snake_case)
+                      {t("submissions.catalogManager.autoSlugified")}
                     </span>
                   )}
                 </Label>
                 <Input
                   id="indicator-name"
-                  placeholder="e.g. board_size_women"
+                  placeholder={t("submissions.catalogManager.placeholderNameKey")}
                   value={indicatorName}
                   onChange={(e) => setIndicatorName(e.target.value)}
                   disabled={!!editingItem}
@@ -209,10 +206,10 @@ export const NonFinancialCatalogManager: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="display-name">Display Name</Label>
+                <Label htmlFor="display-name">{t("submissions.catalogManager.labelDisplayName")}</Label>
                 <Input
                   id="display-name"
-                  placeholder="e.g. Women on Board"
+                  placeholder={t("submissions.catalogManager.placeholderDisplayName")}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
@@ -220,47 +217,47 @@ export const NonFinancialCatalogManager: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="data-type">Data Validation Type</Label>
+                <Label htmlFor="data-type">{t("submissions.catalogManager.labelDataType")}</Label>
                 <Select
                   value={dataType}
                   onValueChange={(val) => setDataType(val as "Number" | "Text" | "Boolean")}
                 >
-                  <SelectTrigger id="data-type">
+                  <SelectTrigger id="data-type" className="cursor-pointer">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Number">Number</SelectItem>
-                    <SelectItem value="Text">Text</SelectItem>
-                    <SelectItem value="Boolean">Boolean</SelectItem>
+                    <SelectItem value="Number" className="cursor-pointer">{t("submissions.catalogManager.dataTypes.Number")}</SelectItem>
+                    <SelectItem value="Text" className="cursor-pointer">{t("submissions.catalogManager.dataTypes.Text")}</SelectItem>
+                    <SelectItem value="Boolean" className="cursor-pointer">{t("submissions.catalogManager.dataTypes.Boolean")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="coop-type">Scope / Cooperative Type Scoping</Label>
+                <Label htmlFor="coop-type">{t("submissions.catalogManager.labelScope")}</Label>
                 <Select value={coopType} onValueChange={setCoopType}>
-                  <SelectTrigger id="coop-type">
+                  <SelectTrigger id="coop-type" className="cursor-pointer">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Cooperatives</SelectItem>
-                    <SelectItem value="sacco">sacco</SelectItem>
-                    <SelectItem value="multipurpose">multipurpose</SelectItem>
-                    <SelectItem value="farm">farm</SelectItem>
-                    <SelectItem value="housing">housing</SelectItem>
-                    <SelectItem value="transport">transport</SelectItem>
-                    <SelectItem value="finance">finance</SelectItem>
-                    <SelectItem value="other">other</SelectItem>
+                    <SelectItem value="all" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.all")}</SelectItem>
+                    <SelectItem value="sacco" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.sacco")}</SelectItem>
+                    <SelectItem value="multipurpose" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.multipurpose")}</SelectItem>
+                    <SelectItem value="farm" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.farm")}</SelectItem>
+                    <SelectItem value="housing" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.housing")}</SelectItem>
+                    <SelectItem value="transport" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.transport")}</SelectItem>
+                    <SelectItem value="finance" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.finance")}</SelectItem>
+                    <SelectItem value="other" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.other")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">Description / Guide instructions</Label>
+              <Label htmlFor="description">{t("submissions.catalogManager.labelDescription")}</Label>
               <Textarea
                 id="description"
-                placeholder="Describe how the cooperative manager should report this value..."
+                placeholder={t("submissions.catalogManager.placeholderDescription")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
@@ -270,28 +267,27 @@ export const NonFinancialCatalogManager: React.FC = () => {
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-dashed">
               <div className="space-y-0.5">
                 <Label htmlFor="is-required" className="text-sm font-semibold">
-                  Required Field
+                  {t("submissions.catalogManager.labelRequiredField")}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  If toggled, the cooperative cannot finalize their submission without filling this
-                  field.
+                  {t("submissions.catalogManager.descRequiredField")}
                 </p>
               </div>
               <Switch id="is-required" checked={isRequired} onCheckedChange={setIsRequired} />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={resetForm}>
-                Cancel
+              <Button type="button" variant="outline" onClick={resetForm} className="cursor-pointer">
+                {t("submissions.catalogManager.btnCancel")}
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="cursor-pointer">
                 {createMutation.isPending || updateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    {t("submissions.catalogManager.btnSaving")}
                   </>
                 ) : (
-                  "Save Indicator"
+                  t("submissions.catalogManager.btnSaveIndicator")
                 )}
               </Button>
             </div>
@@ -313,21 +309,21 @@ export const NonFinancialCatalogManager: React.FC = () => {
                     {item.indicator_name}
                   </span>
                   <span className="text-[10px] font-medium bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                    {item.data_type}
+                    {t(`submissions.catalogManager.dataTypes.${item.data_type}`, item.data_type)}
                   </span>
                   {item.coop_type && (
                     <span className="text-[10px] font-medium bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full capitalize">
-                      {item.coop_type}
+                      {t(`submissions.catalogManager.coopTypes.${item.coop_type}`, item.coop_type)}
                     </span>
                   )}
                   {item.is_required && (
                     <span className="text-[10px] font-bold bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
-                      Required
+                      {t("submissions.catalogManager.badgeRequired")}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  {item.description || "No description provided."}
+                  {item.description || t("submissions.catalogManager.noDescription")}
                 </p>
               </div>
 
@@ -336,7 +332,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleOpenEdit(item)}
-                  className="h-8 w-8 hover:bg-muted"
+                  className="h-8 w-8 hover:bg-muted cursor-pointer"
                 >
                   <Edit2 className="size-3.5 text-muted-foreground hover:text-foreground" />
                 </Button>
@@ -344,7 +340,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleDelete(item.id, item.display_name)}
-                  className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                  className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive text-muted-foreground cursor-pointer"
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
@@ -355,10 +351,9 @@ export const NonFinancialCatalogManager: React.FC = () => {
       ) : (
         <div className="text-center py-16 border border-dashed rounded-2xl bg-muted/20">
           <HelpCircle className="mx-auto h-10 w-10 text-muted-foreground/60 mb-2" />
-          <h3 className="text-sm font-semibold">No Indicators Defined</h3>
+          <h3 className="text-sm font-semibold">{t("submissions.catalogManager.emptyTitle")}</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-            The catalog is currently empty. Click the button above to add the first periodic
-            reporting indicator.
+            {t("submissions.catalogManager.emptyDesc")}
           </p>
         </div>
       )}

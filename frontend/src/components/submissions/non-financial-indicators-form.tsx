@@ -16,6 +16,7 @@ import {
 } from "@/hooks/submissions/useNonFinancialIndicators";
 import { useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface NonFinancialIndicatorsFormProps {
   submissionId: string;
@@ -26,6 +27,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
   submissionId,
   isReadOnly = false,
 }) => {
+  const { t } = useTranslation();
   const { data: profile } = useMyCooperativeProfile();
   const { data: catalog, isLoading: isLoadingCatalog } = useIndicatorCatalog(
     profile?.institution_type || undefined,
@@ -119,21 +121,21 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
         if (item.data_type === "Number") {
           const numVal = val.value_numeric;
           if (numVal === undefined || numVal === null || isNaN(Number(numVal))) {
-            toast.error(`"${item.display_name}" is required and must be a number.`);
+            toast.error(t("nfIndicatorsForm.requiredNumber", { field: item.display_name }));
             return;
           }
         }
         if (item.data_type === "Text") {
           const textVal = val.value_text;
           if (textVal === undefined || textVal === null || String(textVal).trim() === "") {
-            toast.error(`"${item.display_name}" is required and must contain text.`);
+            toast.error(t("nfIndicatorsForm.requiredText", { field: item.display_name }));
             return;
           }
         }
         if (item.data_type === "Boolean") {
           const boolVal = val.value_boolean;
           if (boolVal === undefined || boolVal === null) {
-            toast.error(`"${item.display_name}" is required.`);
+            toast.error(t("nfIndicatorsForm.requiredBoolean", { field: item.display_name }));
             return;
           }
         }
@@ -157,9 +159,9 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
 
     try {
       await saveMutation.mutateAsync(toSave);
-      toast.success("Non-financial indicators saved successfully!");
+      toast.success(t("nfIndicatorsForm.savedSuccess"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save indicators");
+      toast.error(err instanceof Error ? err.message : t("nfIndicatorsForm.savedError"));
     }
   };
 
@@ -167,7 +169,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading indicators...
+        {t("nfIndicatorsForm.loading")}
       </div>
     );
   }
@@ -176,10 +178,9 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
     return (
       <div className="text-center p-8 border rounded-xl bg-muted/20">
         <HelpCircle className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
-        <p className="text-sm font-medium">No custom indicators found for your cooperative type.</p>
+        <p className="text-sm font-medium">{t("nfIndicatorsForm.noCatalog")}</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Ministry officials have not defined any periodic requirements for{" "}
-          {profile?.institution_type || "your cooperative type"}.
+          {t("nfIndicatorsForm.noCatalogDesc", { type: profile?.institution_type || t("nfIndicatorsForm.yourCoopType") })}
         </p>
       </div>
     );
@@ -189,9 +190,9 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold tracking-tight">Non-Financial Periodic Indicators</h2>
+          <h2 className="text-lg font-bold tracking-tight">{t("nfIndicatorsForm.title")}</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Complete the fields below as requested by the Ministry of Cooperatives.
+            {t("nfIndicatorsForm.subtitle")}
           </p>
         </div>
       </div>
@@ -215,7 +216,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
                       </span>
                       {isFieldRequired && (
                         <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
-                          Required
+                          {t("nfIndicatorsForm.required")}
                         </span>
                       )}
                     </div>
@@ -231,7 +232,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
                       <Input
                         type="number"
                         step="any"
-                        placeholder="Enter numerical value..."
+                        placeholder={t("nfIndicatorsForm.enterNumber")}
                         value={val.value_numeric !== undefined ? val.value_numeric : ""}
                         disabled={isReadOnly}
                         onChange={(e) => {
@@ -245,7 +246,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
 
                     {item.data_type === "Text" && (
                       <Textarea
-                        placeholder="Enter details..."
+                        placeholder={t("nfIndicatorsForm.enterDetails")}
                         value={val.value_text || ""}
                         disabled={isReadOnly}
                         rows={2}
@@ -269,7 +270,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
                           htmlFor={`switch-${item.id}`}
                           className="text-xs text-muted-foreground font-medium cursor-pointer select-none"
                         >
-                          {val.value_boolean ? "Yes / Confirmed" : "No / Unconfirmed"}
+                          {val.value_boolean ? t("nfIndicatorsForm.yes") : t("nfIndicatorsForm.no")}
                         </Label>
                       </div>
                     )}
@@ -290,12 +291,12 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
               {saveMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
+                  {t("nfIndicatorsForm.saving")}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  Save Indicators
+                  {t("nfIndicatorsForm.saveButton")}
                 </>
               )}
             </Button>
@@ -306,8 +307,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
           <Alert className="bg-muted/40 border border-muted-foreground/10 mt-4">
             <Info className="h-4 w-4 text-muted-foreground" />
             <AlertDescription className="text-xs text-muted-foreground">
-              These indicator fields are read-only because the submission has already been finalized
-              or you are accessing this from a supervisor role.
+              {t("nfIndicatorsForm.readOnlyNotice")}
             </AlertDescription>
           </Alert>
         )}

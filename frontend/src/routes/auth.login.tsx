@@ -2,8 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 function AuthLoginHandler() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading, user, login } = useAuth();
 
   useEffect(() => {
@@ -28,7 +30,7 @@ function AuthLoginHandler() {
     <div className="flex min-h-dvh items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
-        <p className="text-sm text-muted-foreground">Redirecting to login…</p>
+        <p className="text-sm text-muted-foreground">{t("auth.redirecting")}</p>
       </div>
     </div>
   );

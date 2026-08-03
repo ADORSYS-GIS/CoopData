@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Trash2,
@@ -79,16 +80,7 @@ const CATEGORY_COLORS: Record<string, string> = {
     "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  assets: "Assets (Raw)",
-  liabilities: "Liabilities (Raw)",
-  equity: "Equity (Raw)",
-  income: "Income (Raw)",
-  expenses: "Expenses (Raw)",
-  governance: "Governance & Compliance",
-  membership: "Membership Stats",
-  other: "Other Indicators",
-};
+// Category colors map
 
 const OPERATORS = [
   { symbol: "+", icon: PlusIcon, label: "Add" },
@@ -113,6 +105,7 @@ interface Props {
 }
 
 export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
+  const { t } = useTranslation();
   const { kpis, isLoading, createKpi, deleteKpi, evaluateFormula, isCreating } = useCustomKpis();
   const { data: catalog } = useIndicatorCatalog();
 
@@ -463,16 +456,16 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
 
   const handleCreate = async () => {
     if (!name.trim() || !formula.trim()) {
-      toast.error("Name and formula are required");
+      toast.error(t("customKpiBuilder.toastNameFormulaRequired"));
       return;
     }
     try {
       await createKpi({ name, description, formula });
-      toast.success("Custom KPI created successfully");
+      toast.success(t("customKpiBuilder.toastCreateSuccess"));
       setIsOpen(false);
       resetForm();
     } catch {
-      toast.error("Failed to create Custom KPI");
+      toast.error(t("customKpiBuilder.toastCreateFailed"));
     }
   };
 
@@ -558,10 +551,10 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
         <div>
           <CardTitle className="text-xl font-bold flex items-center gap-2 text-violet-900">
             <Sparkles className="h-5 w-5 text-violet-600" />
-            Custom KPI Formulas
+            {t("customKpiBuilder.title")}
           </CardTitle>
           <CardDescription>
-            Define dynamic indicators by combining existing KPIs with mathematical operations.
+            {t("customKpiBuilder.description")}
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -573,34 +566,33 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
               className="text-muted-foreground"
             >
               {showValues ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-              {showValues ? "Hide Values" : "Show Values"}
+              {showValues ? t("customKpiBuilder.hideValues") : t("customKpiBuilder.showValues")}
             </Button>
           )}
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button className="bg-violet-600 hover:bg-violet-700 shadow-sm">
-                <Plus className="mr-2 h-4 w-4" /> New Custom KPI
+                <Plus className="mr-2 h-4 w-4" /> {t("customKpiBuilder.newKpiBtn")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[680px] max-h-[92vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5 text-violet-600" />
-                  Create Custom KPI
+                  {t("customKpiBuilder.createKpiTitle")}
                 </DialogTitle>
                 <DialogDescription>
-                  Build a mathematical formula using existing system variables. Combine KPIs with
-                  arithmetic operations to create derived indicators.
+                  {t("customKpiBuilder.createKpiDesc")}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-5 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name" className="text-sm font-semibold">
-                    Indicator Name
+                    {t("customKpiBuilder.indicatorName")}
                   </Label>
                   <Input
                     id="name"
-                    placeholder="e.g. Adjusted Equity Ratio"
+                    placeholder={t("customKpiBuilder.namePlaceholder")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="border-violet-200 focus-visible:ring-violet-500"
@@ -608,12 +600,12 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="description" className="text-sm font-semibold">
-                    Description{" "}
-                    <span className="text-muted-foreground font-normal">(Optional)</span>
+                    {t("customKpiBuilder.descriptionLabel")}{" "}
+                    <span className="text-muted-foreground font-normal">({t("customKpiBuilder.optional")})</span>
                   </Label>
                   <Textarea
                     id="description"
-                    placeholder="Explain what this metric calculates and why it matters..."
+                    placeholder={t("customKpiBuilder.descPlaceholder")}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
@@ -621,7 +613,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label className="text-sm font-semibold">Available Variables</Label>
+                  <Label className="text-sm font-semibold">{t("customKpiBuilder.availableVariables")}</Label>
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="w-full flex-wrap justify-start gap-1 bg-muted/50 p-1 rounded-lg h-auto">
                       {(
@@ -637,11 +629,11 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         ] as const
                       ).map((cat) => (
                         <TabsTrigger
-                          key={cat}
-                          value={cat}
-                          className="text-xs px-3 py-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                           key={cat}
+                           value={cat}
+                           className="text-xs px-3 py-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
                         >
-                          {CATEGORY_LABELS[cat]}
+                          {t(`customKpiBuilder.categories.${cat}`)}
                         </TabsTrigger>
                       ))}
                     </TabsList>
@@ -695,7 +687,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label className="text-sm font-semibold">Quick Operators</Label>
+                  <Label className="text-sm font-semibold">{t("customKpiBuilder.quickOperators")}</Label>
                   <div className="flex flex-wrap gap-1.5">
                     {OPERATORS.map((op) => (
                       <Button
@@ -714,7 +706,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="formula" className="text-sm font-semibold">
-                      Mathematical Formula
+                      {t("customKpiBuilder.mathFormula")}
                     </Label>
                     <Button
                       variant="ghost"
@@ -722,14 +714,14 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                       className="h-6 text-xs text-muted-foreground"
                       onClick={() => setFormula("")}
                     >
-                      Clear
+                      {t("customKpiBuilder.clear")}
                     </Button>
                   </div>
                   <div className="relative">
                     <Textarea
                       id="formula"
                       className="font-mono text-sm min-h-[60px] border-violet-200 focus-visible:ring-violet-500 pr-8"
-                      placeholder="e.g. total_equity / total_assets * 100"
+                      placeholder={t("customKpiBuilder.formulaPlaceholder")}
                       value={formula}
                       onChange={(e) => setFormula(e.target.value)}
                     />
@@ -754,7 +746,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Info className="h-3 w-3" /> Use standard math operators: +, -, *, /, (, )
+                    <Info className="h-3 w-3" /> {t("customKpiBuilder.mathOperatorsInfo")}
                   </p>
                 </div>
 
@@ -770,7 +762,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     ) : (
                       <BarChart3 className="mr-2 h-4 w-4" />
                     )}
-                    Test Formula
+                    {t("customKpiBuilder.testFormulaBtn")}
                   </Button>
                   {testResult && (
                     <div
@@ -783,12 +775,12 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                       {testResult.is_valid ? (
                         <>
                           <Check className="h-4 w-4" />
-                          Result: {testResult.value.toFixed(2)}
+                          {t("customKpiBuilder.testResultPrefix")} {testResult.value.toFixed(2)}
                         </>
                       ) : (
                         <>
                           <X className="h-4 w-4" />
-                          {testResult.error || "Invalid formula"}
+                          {testResult.error || t("customKpiBuilder.invalidFormula")}
                         </>
                       )}
                     </div>
@@ -797,7 +789,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsOpen(false)}>
-                  Cancel
+                  {t("customKpiBuilder.cancel")}
                 </Button>
                 <Button
                   onClick={handleCreate}
@@ -809,7 +801,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                   ) : (
                     <Sparkles className="mr-2 h-4 w-4" />
                   )}
-                  Save Custom KPI
+                  {t("customKpiBuilder.saveKpiBtn")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -826,10 +818,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-100 mb-4">
               <Calculator className="h-8 w-8 text-violet-600" />
             </div>
-            <p className="text-lg font-semibold text-violet-900">No custom KPIs defined yet</p>
+            <p className="text-lg font-semibold text-violet-900">{t("customKpiBuilder.emptyTitle")}</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-              Create custom indicators by combining existing financial KPIs with mathematical
-              formulas. Define your own metrics tailored to your oversight needs.
+              {t("customKpiBuilder.emptyDesc")}
             </p>
           </div>
         ) : (
@@ -858,7 +849,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                             size="icon"
                             className="h-7 w-7 text-destructive hover:bg-destructive/10"
                             onClick={() => {
-                              if (confirm(`Delete "${kpi.name}" custom KPI?`)) {
+                              if (confirm(t("customKpiBuilder.deleteConfirm", { name: kpi.name }))) {
                                 deleteKpi(kpi.id);
                               }
                             }}
@@ -882,7 +873,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                             </div>
                           ) : (
                             <div className="mb-2 text-sm text-muted-foreground italic">
-                              No data available
+                              {t("customKpiBuilder.noData")}
                             </div>
                           )}
                           <div className="bg-muted/50 p-1.5 rounded text-[10px] font-mono text-muted-foreground overflow-x-auto whitespace-nowrap">
@@ -903,16 +894,15 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     <div>
                       <CardTitle className="text-lg font-bold text-violet-950 flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-violet-600 animate-pulse" />
-                        Cooperative Custom KPI Breakdown
+                        {t("customKpiBuilder.breakdownTitle")}
                       </CardTitle>
                       <CardDescription>
-                        Evaluate and rank individual cooperative performances using your defined
-                        formulas.
+                        {t("customKpiBuilder.breakdownDesc")}
                       </CardDescription>
                     </div>
                     <div className="w-full md:w-72">
                       <Input
-                        placeholder="Search cooperative or region..."
+                        placeholder={t("customKpiBuilder.searchPlaceholder")}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="border-violet-200 focus-visible:ring-violet-500 shadow-sm"
@@ -930,7 +920,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                             className="p-4 cursor-pointer hover:bg-muted/100 hover:text-foreground transition-colors select-none whitespace-nowrap min-w-[220px]"
                           >
                             <div className="flex items-center gap-1">
-                              Cooperative Name
+                              {t("customKpiBuilder.cooperativeName")}
                               {sortField === "name" &&
                                 (sortDirection === "asc" ? (
                                   <ChevronUp className="h-4 w-4 text-violet-600" />
@@ -944,7 +934,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                             className="p-4 cursor-pointer hover:bg-muted/100 hover:text-foreground transition-colors select-none whitespace-nowrap"
                           >
                             <div className="flex items-center gap-1">
-                              Region
+                              {t("customKpiBuilder.region")}
                               {sortField === "region" &&
                                 (sortDirection === "asc" ? (
                                   <ChevronUp className="h-4 w-4 text-violet-600" />
@@ -979,7 +969,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                               colSpan={kpis.length + 2}
                               className="p-8 text-center text-muted-foreground italic"
                             >
-                              No matching cooperatives found.
+                              {t("customKpiBuilder.noMatchingCoops")}
                             </td>
                           </tr>
                         ) : (
@@ -1006,7 +996,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                                       )
                                     ) : (
                                       <span className="text-muted-foreground/40 font-normal italic text-xs">
-                                        No Data
+                                        {t("customKpiBuilder.noData")}
                                       </span>
                                     )}
                                   </td>

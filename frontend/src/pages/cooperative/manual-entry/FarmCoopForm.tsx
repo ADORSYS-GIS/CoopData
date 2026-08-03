@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { WizardFarmCoop } from "./types";
 
 interface FarmCoopFormProps {
@@ -6,33 +7,41 @@ interface FarmCoopFormProps {
 }
 
 export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* General Settings */}
       <div className="space-y-4">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          General Profile
+          {t("farmCoopForm.generalProfile")}
         </h4>
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-foreground block">Cooperative Type</label>
+          <label className="text-xs font-semibold text-foreground block">
+            {t("farmCoopForm.cooperativeType")}
+          </label>
           <input
             value={data.cooperativeType}
             onChange={(e) => onChange("cooperativeType", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
-            placeholder="e.g. Farm, Multipurpose"
+            placeholder={t("farmCoopForm.coopTypePlaceholder")}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-foreground block">Primary Activities</label>
+          <label className="text-xs font-semibold text-foreground block">
+            {t("farmCoopForm.primaryActivities")}
+          </label>
           <input
             value={data.primaryActivities}
             onChange={(e) => onChange("primaryActivities", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
-            placeholder="e.g. Maize Farming, Input Supply"
+            placeholder={t("farmCoopForm.activitiesPlaceholder")}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-foreground block">Establishment Year</label>
+          <label className="text-xs font-semibold text-foreground block">
+            {t("farmCoopForm.establishmentYear")}
+          </label>
           <input
             type="number"
             value={data.yearOfEstablishment}
@@ -45,42 +54,44 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
       {/* Production Details */}
       <div className="space-y-4">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          Production & Mitigation
+          {t("farmCoopForm.productionMitigation")}
         </h4>
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-foreground block">Production Type</label>
+          <label className="text-xs font-semibold text-foreground block">
+            {t("farmCoopForm.productionType")}
+          </label>
           <select
             value={data.productionType}
             onChange={(e) => onChange("productionType", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
           >
-            <option value="Crop">Crop Farming</option>
-            <option value="Livestock">Livestock</option>
-            <option value="Dairy">Dairy</option>
-            <option value="Mixed">Mixed</option>
+            <option value="Crop">{t("farmCoopForm.productionTypes.Crop")}</option>
+            <option value="Livestock">{t("farmCoopForm.productionTypes.Livestock")}</option>
+            <option value="Dairy">{t("farmCoopForm.productionTypes.Dairy")}</option>
+            <option value="Mixed">{t("farmCoopForm.productionTypes.Mixed")}</option>
           </select>
         </div>
         <div className="space-y-2">
           <label className="text-xs font-semibold text-foreground block">
-            Climate Exposure Type
+            {t("farmCoopForm.climateExposure")}
           </label>
           <select
             value={data.climateExposureType}
             onChange={(e) => onChange("climateExposureType", e.target.value)}
             className="w-full text-sm bg-muted/20 border border-border rounded-xl px-3 py-2 text-foreground"
           >
-            <option value="Low">Low Exposure</option>
-            <option value="Medium">Medium Exposure</option>
-            <option value="High">High Exposure</option>
+            <option value="Low">{t("farmCoopForm.exposureTypes.Low")}</option>
+            <option value="Medium">{t("farmCoopForm.exposureTypes.Medium")}</option>
+            <option value="High">{t("farmCoopForm.exposureTypes.High")}</option>
           </select>
         </div>
         <div className="space-y-2 flex items-center justify-between py-1.5 font-sans">
           <div>
             <label className="text-xs font-semibold text-foreground block">
-              Active Producer Status
+              {t("farmCoopForm.activeProducer")}
             </label>
             <span className="text-[10px] text-muted-foreground">
-              Are members actively producing?
+              {t("farmCoopForm.activeProducerDesc")}
             </span>
           </div>
           <input
@@ -92,9 +103,11 @@ export function FarmCoopForm({ data, onChange }: FarmCoopFormProps) {
         </div>
         <div className="space-y-2 flex items-center justify-between py-1.5 font-sans">
           <div>
-            <label className="text-xs font-semibold text-foreground block">Irrigation Access</label>
+            <label className="text-xs font-semibold text-foreground block">
+              {t("farmCoopForm.irrigationAccess")}
+            </label>
             <span className="text-[10px] text-muted-foreground">
-              Do members have access to irrigation?
+              {t("farmCoopForm.irrigationAccessDesc")}
             </span>
           </div>
           <input

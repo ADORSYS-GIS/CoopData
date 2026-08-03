@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import {
   FileSpreadsheet,
   AlertTriangle,
@@ -45,6 +46,7 @@ import { FinancialStatementUpload } from "@/components/upload/financial-statemen
 type Tab = "assets" | "liabilities" | "equity" | "income" | "expenses" | "summary";
 
 export const FinancialStatementPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
   const [activeTab, setActiveTab] = useState<Tab>("assets");
   const [balanceSheet, setBalanceSheet] = useState(createEmptyBalanceSheet());
@@ -60,7 +62,7 @@ export const FinancialStatementPage: React.FC = () => {
     setBalanceSheet(data);
     setDataPopulated(true);
     setShowUpload(false);
-    toast.success("Financial data applied! Review each section and edit as needed.");
+    toast.success(t("financialStatement.toastDataApplied"));
   };
 
   const handleSectionChange = (
@@ -151,24 +153,24 @@ export const FinancialStatementPage: React.FC = () => {
 
   const handleSaveDraft = () => {
     localStorage.setItem("coopdata_draft_financial", JSON.stringify(balanceSheet));
-    toast.success("Draft saved successfully");
+    toast.success(t("financialStatement.toastDraftSaved"));
   };
 
   const handleSubmit = async () => {
     if (!isBalanced) {
-      toast.error("Balance sheet must balance before submission");
+      toast.error(t("financialStatement.toastMustBalance"));
       return;
     }
 
     if (!validation.isValid) {
-      toast.error("Please fix validation errors before submission");
+      toast.error(t("financialStatement.toastFixErrors"));
       return;
     }
 
     setIsSubmitting(true);
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    toast.success("Financial statement submitted successfully!");
+    toast.success(t("financialStatement.toastSubmitSuccess"));
     setIsSubmitting(false);
   };
 
@@ -179,22 +181,22 @@ export const FinancialStatementPage: React.FC = () => {
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "assets", label: "Assets", icon: <span className="text-xs font-bold">1000</span> },
+    { id: "assets", label: t("financialStatement.assets"), icon: <span className="text-xs font-bold">1000</span> },
     {
       id: "liabilities",
-      label: "Liabilities",
+      label: t("financialStatement.liabilities"),
       icon: <span className="text-xs font-bold">2000</span>,
     },
-    { id: "equity", label: "Equity", icon: <span className="text-xs font-bold">3000</span> },
-    { id: "income", label: "Income", icon: <span className="text-xs font-bold">4000</span> },
-    { id: "expenses", label: "Expenses", icon: <span className="text-xs font-bold">5000</span> },
-    { id: "summary", label: "Summary", icon: <FileSpreadsheet className="size-4" /> },
+    { id: "equity", label: t("financialStatement.equity"), icon: <span className="text-xs font-bold">3000</span> },
+    { id: "income", label: t("financialStatement.income"), icon: <span className="text-xs font-bold">4000</span> },
+    { id: "expenses", label: t("financialStatement.expenses"), icon: <span className="text-xs font-bold">5000</span> },
+    { id: "summary", label: t("financialStatement.summary"), icon: <FileSpreadsheet className="size-4" /> },
   ];
 
   return (
     <AppShell
-      title="Financial Statement Entry"
-      subtitle="Complete balance sheet and income statement for cooperative filing"
+      title={t("financialStatement.title")}
+      subtitle={t("financialStatement.subtitle")}
       actions={
         <div className="flex items-center gap-2">
           <button
@@ -203,7 +205,7 @@ export const FinancialStatementPage: React.FC = () => {
             className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="size-4" />
-            Save Draft
+            {t("financialStatement.saveDraft")}
           </button>
           <button
             onClick={handleSubmit}
@@ -211,7 +213,7 @@ export const FinancialStatementPage: React.FC = () => {
             className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="size-4" />
-            {isSubmitting ? "Submitting..." : "Submit Filing"}
+            {isSubmitting ? t("financialStatement.submitting") : t("financialStatement.submitFiling")}
           </button>
         </div>
       }
@@ -226,13 +228,13 @@ export const FinancialStatementPage: React.FC = () => {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground">
                 {dataPopulated
-                  ? "Data populated from uploaded document"
-                  : "Upload a financial statement to auto-fill this form"}
+                  ? t("financialStatement.bannerDataPopulated")
+                  : t("financialStatement.bannerUploadAutoFill")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {dataPopulated
-                  ? "Review each section carefully and edit any values before submitting."
-                  : "Upload a PDF or image of your balance sheet. Extracted data will populate the form fields."}
+                  ? t("financialStatement.bannerReviewCarefully")
+                  : t("financialStatement.bannerUploadPdf")}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -241,12 +243,12 @@ export const FinancialStatementPage: React.FC = () => {
                   onClick={() => {
                     setBalanceSheet(createEmptyBalanceSheet());
                     setDataPopulated(false);
-                    toast.success("Form cleared. You can start fresh or upload again.");
+                    toast.success(t("financialStatement.toastFormCleared"));
                   }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                 >
                   <X className="size-3.5" />
-                  Clear Data
+                  {t("financialStatement.clearData")}
                 </button>
               )}
               <button
@@ -254,7 +256,7 @@ export const FinancialStatementPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Upload className="size-3.5" />
-                {dataPopulated ? "Upload Different" : "Upload Document"}
+                {dataPopulated ? t("financialStatement.uploadDifferent") : t("financialStatement.uploadDocument")}
               </button>
             </div>
           </div>
@@ -263,8 +265,8 @@ export const FinancialStatementPage: React.FC = () => {
         {/* Upload Panel */}
         {showUpload && !isReadOnly && (
           <Card
-            title="Upload Financial Statement"
-            subtitle="Upload a PDF or image to extract financial data automatically"
+            title={t("financialStatement.uploadPanelTitle")}
+            subtitle={t("financialStatement.uploadPanelSubtitle")}
             edge="accent"
             action={
               <button
@@ -272,7 +274,7 @@ export const FinancialStatementPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
               >
                 <X className="size-3.5" />
-                Close
+                {t("financialStatement.close")}
               </button>
             }
           >
@@ -296,17 +298,17 @@ export const FinancialStatementPage: React.FC = () => {
               )}
               <div>
                 <p className="font-semibold text-foreground">
-                  {isBalanced ? "Balance Sheet Balanced" : "Balance Sheet Not Balanced"}
+                  {isBalanced ? t("financialStatement.balanced") : t("financialStatement.notBalanced")}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {isBalanced
-                    ? "Assets = Liabilities + Equity"
-                    : `Difference: ${formatCurrency(Math.abs(balanceDifference))}`}
+                    ? t("financialStatement.assetsLiabilitiesEquity")
+                    : t("financialStatement.difference", { diff: formatCurrency(Math.abs(balanceDifference)) })}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">Net Surplus/(Deficit)</p>
+              <p className="text-xs text-muted-foreground">{t("financialStatement.netSurplusDeficit")}</p>
               <p
                 className={`text-lg font-bold ${netSurplus >= 0 ? "text-success" : "text-destructive"}`}
               >
@@ -323,7 +325,7 @@ export const FinancialStatementPage: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-semibold text-foreground">Validation Errors</p>
+                <p className="font-semibold text-foreground">{t("financialStatement.validationErrors")}</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   {validation.errors.map((err, i) => (
                     <li key={i}>• {err.message}</li>
@@ -409,43 +411,43 @@ export const FinancialStatementPage: React.FC = () => {
 
           {activeTab === "summary" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-bold text-foreground">Financial Statement Summary</h3>
+              <h3 className="text-lg font-bold text-foreground">{t("financialStatement.summaryTitle")}</h3>
 
               {/* Balance Sheet Summary */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl border border-border bg-surface">
-                  <p className="text-sm text-muted-foreground mb-1">Total Assets</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalAssets")}</p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(assetTotals.totalAssets)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">Codes 1000-1999</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t("financialStatement.codesAssets")}</p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-surface">
-                  <p className="text-sm text-muted-foreground mb-1">Total Liabilities</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalLiabilities")}</p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(liabilityTotals.totalLiabilities)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">Codes 2000-2999</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t("financialStatement.codesLiabilities")}</p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-surface">
-                  <p className="text-sm text-muted-foreground mb-1">Total Equity</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalEquity")}</p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(equityTotals.totalEquity)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">Codes 3000-3999</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t("financialStatement.codesEquity")}</p>
                 </div>
               </div>
 
               {/* Income Statement Summary */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl border border-success/20 bg-success/5">
-                  <p className="text-sm text-muted-foreground mb-1">Total Income</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalIncome")}</p>
                   <p className="text-2xl font-bold text-success">
                     {formatCurrency(incomeTotals.totalIncome)}
                   </p>
                 </div>
                 <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5">
-                  <p className="text-sm text-muted-foreground mb-1">Total Expenses</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalExpenses")}</p>
                   <p className="text-2xl font-bold text-destructive">
                     {formatCurrency(expenseTotals.totalExpenses)}
                   </p>
@@ -458,7 +460,7 @@ export const FinancialStatementPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Net Surplus / (Deficit)</p>
+                    <p className="text-sm text-muted-foreground">{t("financialStatement.netSurplusDeficit")}</p>
                     <p
                       className={`text-3xl font-bold ${netSurplus >= 0 ? "text-success" : "text-destructive"}`}
                     >
@@ -467,7 +469,7 @@ export const FinancialStatementPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Balance Check</p>
+                    <p className="text-sm text-muted-foreground">{t("financialStatement.balanceCheck")}</p>
                     <div
                       className={`flex items-center gap-2 ${isBalanced ? "text-success" : "text-warning-foreground"}`}
                     >
@@ -478,8 +480,8 @@ export const FinancialStatementPage: React.FC = () => {
                       )}
                       <span className="font-semibold">
                         {isBalanced
-                          ? "Balanced"
-                          : `Off by ${formatCurrency(Math.abs(balanceDifference))}`}
+                          ? t("financialStatement.balancedLabel")
+                          : t("financialStatement.offBy", { diff: formatCurrency(Math.abs(balanceDifference)) })}
                       </span>
                     </div>
                   </div>
@@ -494,7 +496,7 @@ export const FinancialStatementPage: React.FC = () => {
                   className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="size-4" />
-                  Save Draft
+                  {t("financialStatement.saveDraft")}
                 </button>
                 <button
                   onClick={handleSubmit}
@@ -502,7 +504,7 @@ export const FinancialStatementPage: React.FC = () => {
                   className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="size-4" />
-                  {isSubmitting ? "Submitting..." : "Submit Financial Statement"}
+                  {isSubmitting ? t("financialStatement.submitting") : t("financialStatement.submitFinancialStatement")}
                 </button>
               </div>
             </div>
@@ -528,7 +530,7 @@ export const FinancialStatementPage: React.FC = () => {
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft className="size-4" />
-            Previous
+            {t("financialStatement.previous")}
           </button>
           <button
             onClick={() => {
@@ -546,7 +548,7 @@ export const FinancialStatementPage: React.FC = () => {
             disabled={activeTab === "summary"}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            {t("financialStatement.next")}
             <ArrowRight className="size-4" />
           </button>
         </div>

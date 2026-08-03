@@ -57,7 +57,7 @@ import { QuestionnaireResponseViewer } from "@/components/submissions/Questionna
 import { useQuestionnaire } from "@/hooks/submissions/useQuestionnaire";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { NfUploadResponse } from "@/types/non-financial";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -154,7 +154,7 @@ export const SubmissionDetailPage: React.FC = () => {
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
 
-  const params = { submission_id: id ?? "", page: 1, page_size: 1 };
+  const params = useMemo(() => ({ submission_id: id ?? "", page: 1, page_size: 1 }), [id]);
   const { data: membersData } = useMembers(id ? params : undefined);
   const { data: savingsData } = useSavings(id ? params : undefined);
   const { data: loansData } = useLoans(id ? params : undefined);
@@ -191,6 +191,64 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const updateSection = useUpdateSubmissionSection(id ?? "");
 
+  const sectionMeta = useMemo(() => [
+    {
+      key: "financial",
+      label: t("submissions.detail.sections.financial.label"),
+      description: t("submissions.detail.sections.financial.description"),
+      tab: "financial",
+      icon: FileText,
+      pendingAction: t("submissions.detail.sections.financial.pendingAction"),
+      progressAction: t("submissions.detail.sections.financial.progressAction"),
+      readyAction: t("submissions.detail.sections.financial.readyAction"),
+    },
+    {
+      key: "members",
+      label: t("submissions.detail.sections.members.label"),
+      description: t("submissions.detail.sections.members.description"),
+      tab: "databases",
+      icon: Database,
+      pendingAction: t("submissions.detail.sections.members.pendingAction"),
+      readyAction: t("submissions.detail.sections.members.readyAction"),
+    },
+    {
+      key: "savings",
+      label: t("submissions.detail.sections.savings.label"),
+      description: t("submissions.detail.sections.savings.description"),
+      tab: "databases",
+      icon: Database,
+      pendingAction: t("submissions.detail.sections.savings.pendingAction"),
+      readyAction: t("submissions.detail.sections.savings.readyAction"),
+    },
+    {
+      key: "loans",
+      label: t("submissions.detail.sections.loans.label"),
+      description: t("submissions.detail.sections.loans.description"),
+      tab: "databases",
+      icon: Database,
+      pendingAction: t("submissions.detail.sections.loans.pendingAction"),
+      readyAction: t("submissions.detail.sections.loans.readyAction"),
+    },
+    {
+      key: "fixed_deposits",
+      label: t("submissions.detail.sections.fixed_deposits.label"),
+      description: t("submissions.detail.sections.fixed_deposits.description"),
+      tab: "databases",
+      icon: Database,
+      pendingAction: t("submissions.detail.sections.fixed_deposits.pendingAction"),
+      readyAction: t("submissions.detail.sections.fixed_deposits.readyAction"),
+    },
+    {
+      key: "farm_coop",
+      label: t("submissions.detail.sections.farm_coop.label"),
+      description: t("submissions.detail.sections.farm_coop.description"),
+      tab: "databases",
+      icon: Database,
+      pendingAction: t("submissions.detail.sections.farm_coop.pendingAction"),
+      readyAction: t("submissions.detail.sections.farm_coop.readyAction"),
+    },
+  ], [t]);
+
   if (!role) return null;
 
   const isReadOnly = submission ? submission.status !== "draft" || role !== "cooperative" : true;
@@ -222,10 +280,10 @@ export const SubmissionDetailPage: React.FC = () => {
     if (!id) return;
     try {
       await submitMutation.mutateAsync(id);
-      toast.success("Submission sent to Apex for review");
+      toast.success(t("submissions.detail.toastSubmitted"));
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to submit");
+      toast.error(e instanceof Error ? e.message : t("submissions.detail.toastSubmitFailed"));
     }
   };
 
@@ -233,10 +291,10 @@ export const SubmissionDetailPage: React.FC = () => {
     if (!id) return;
     try {
       await deleteMutation.mutateAsync(id);
-      toast.success("Draft deleted");
+      toast.success(t("submissions.detail.toastDraftDeleted"));
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete");
+      toast.error(e instanceof Error ? e.message : t("submissions.detail.toastDeleteFailed"));
     }
   };
 
@@ -255,7 +313,7 @@ export const SubmissionDetailPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["ministry-submissions"] });
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Review action failed");
+      toast.error(e instanceof Error ? e.message : t("submissions.detail.actionConfirmFailed"));
     }
   };
 
@@ -265,64 +323,6 @@ export const SubmissionDetailPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", id] });
     queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
   };
-
-  const sectionMeta = [
-    {
-      key: "financial",
-      label: "Financial Statement",
-      description: "Upload and review audited financial statement",
-      tab: "financial",
-      icon: FileText,
-      pendingAction: "Upload File",
-      progressAction: "Review & Mark Ready",
-      readyAction: "View Statement",
-    },
-    {
-      key: "members",
-      label: "Membership Register",
-      description: "Register of active, youth, women, and rural members",
-      tab: "databases",
-      icon: Database,
-      pendingAction: "Upload Excel",
-      readyAction: "View Register",
-    },
-    {
-      key: "savings",
-      label: "Savings Ledger",
-      description: "Details of member savings accounts and frequencies",
-      tab: "databases",
-      icon: Database,
-      pendingAction: "Upload Excel",
-      readyAction: "View Savings",
-    },
-    {
-      key: "loans",
-      label: "Loan Book",
-      description: "Current loan status, balances, and risk classifications",
-      tab: "databases",
-      icon: Database,
-      pendingAction: "Upload Excel",
-      readyAction: "View Loans",
-    },
-    {
-      key: "fixed_deposits",
-      label: "Fixed Deposits",
-      description: "Term deposits, renewed accounts, and maturities",
-      tab: "databases",
-      icon: Database,
-      pendingAction: "Upload Excel",
-      readyAction: "View Deposits",
-    },
-    {
-      key: "farm_coop",
-      label: "Farm Cooperative Data (Optional)",
-      description: "Production types, activities and compliance metrics",
-      tab: "databases",
-      icon: Database,
-      pendingAction: "Upload Excel",
-      readyAction: "View Farm Data",
-    },
-  ];
 
   return (
     <AppShell title={t("submissions.detail.title")} subtitle={t("submissions.detail.subtitle")}>
@@ -462,16 +462,14 @@ export const SubmissionDetailPage: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground">
-                    AI is extracting your financial data
+                    {t("submissions.detail.aiExtracting")}
                     <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
                       <span className="size-1.5 rounded-full bg-accent animate-pulse" />
                       {extractionJob?.status ?? "processing"}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Parsing the uploaded document and mapping values to the Chart of Accounts. This
-                    process takes about 1 minute to 1 minute 30 seconds. Please do not close or
-                    refresh this page.
+                    {t("submissions.detail.aiExtractingDesc")}
                   </p>
                   <div className="mt-3 h-1.5 w-full bg-accent/10 rounded-full overflow-hidden">
                     <div
@@ -503,12 +501,10 @@ export const SubmissionDetailPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-heading text-[14px] font-semibold text-foreground">
-                        Submission Readiness Center
+                        {t("submissions.detail.readinessCenter")}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        All 6 mandatory sections must be marked{" "}
-                        <span className="font-semibold text-success">Ready</span> before submitting
-                        to the Apex
+                        {t("submissions.detail.readinessDesc", { readyLabel: t("submissions.detail.readyLabel") })}
                       </p>
                     </div>
                   </div>
@@ -517,7 +513,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tabular-nums ${allReady ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
                       }`}
                   >
-                    {readyCount}/{totalSectionsCount} done
+                    {t("submissions.detail.doneCount", { count: readyCount, total: totalSectionsCount })}
                   </div>
                 </div>
 
@@ -619,7 +615,11 @@ export const SubmissionDetailPage: React.FC = () => {
                                     : "bg-muted-foreground/40"
                                 }`}
                             />
-                            {isReady ? "Ready" : isInProgress ? "In Progress" : "Pending"}
+                            {isReady
+                              ? t("submissions.detail.readyStatus")
+                              : isInProgress
+                                ? t("submissions.detail.inProgressStatus")
+                                : t("submissions.detail.pendingStatus")}
                           </span>
 
                           {isReady ? (
@@ -631,7 +631,7 @@ export const SubmissionDetailPage: React.FC = () => {
                               }}
                               className="text-[11px] font-semibold text-success hover:underline transition-colors"
                             >
-                              View →
+                              {t("submissions.detail.sections.financial.readyAction").split(" ")[0]} →
                             </button>
                           ) : (
                             <div className="flex items-center gap-2">
@@ -645,10 +645,10 @@ export const SubmissionDetailPage: React.FC = () => {
                                           section: m.key,
                                           status: "ready",
                                         });
-                                        toast.success(`${m.label} marked ready`);
+                                        toast.success(t("submissions.detail.toastMarkedReady", { name: m.label }));
                                       } catch (e) {
                                         toast.error(
-                                          e instanceof Error ? e.message : "Failed to update",
+                                          e instanceof Error ? e.message : t("submissions.detail.toastUpdateFailed"),
                                         );
                                       } finally {
                                         setUpdatingSectionKey(null);
@@ -662,7 +662,7 @@ export const SubmissionDetailPage: React.FC = () => {
                                     ) : (
                                       <CheckCircle2 className="size-2.5" />
                                     )}
-                                    Mark Ready
+                                    {t("submissions.detail.readyLabel")}
                                   </button>
                                 )}
                               <button
@@ -693,7 +693,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       <>
                         <CheckCircle2 className="size-4 text-success shrink-0" />
                         <span className="font-semibold text-success text-xs sm:text-sm">
-                          All sections ready — you can submit now!
+                          {t("submissions.detail.allReadyMsg")}
                         </span>
                       </>
                     ) : (
@@ -701,12 +701,12 @@ export const SubmissionDetailPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <AlertCircle className="size-4 text-muted-foreground shrink-0" />
                           <span className="text-muted-foreground text-xs font-semibold">
-                            Complete all sections to enable submission
+                            {t("submissions.detail.completeAll")}
                           </span>
                         </div>
                         {remainingSections.length > 0 && (
                           <p className="text-[10px] text-muted-foreground/70 pl-6 capitalize">
-                            Remaining: {remainingSections.join(" · ")}
+                            {t("submissions.detail.remaining", { sections: remainingSections.join(" · ") })}
                           </p>
                         )}
                       </div>
@@ -725,14 +725,14 @@ export const SubmissionDetailPage: React.FC = () => {
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        Delete Draft
+                        {t("submissions.detail.deleteDraft")}
                       </button>
                     )}
                     <button
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitMutation.isPending}
                       title={
-                        !allReady ? "Please mark all 7 sections as ready to submit" : undefined
+                        !allReady ? t("submissions.detail.pleaseMarkAll") : undefined
                       }
                       className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all shadow-sm ${canSubmit
                           ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md"
@@ -744,7 +744,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : (
                         <Send className="size-4" />
                       )}
-                      Submit to Apex
+                      {t("submissions.detail.submitToApex")}
                     </button>
                   </div>
                 </div>
@@ -754,16 +754,16 @@ export const SubmissionDetailPage: React.FC = () => {
 
           {role === "apex" && submission.status === "submitted" && (
             <ReviewActionPanel
-              title="Apex Review"
-              description="Approve to forward to federation, or return to cooperative for corrections"
+              title={t("submissions.detail.apexReviewTitle")}
+              description={t("submissions.detail.apexReviewDesc")}
               comment={reviewComment}
               setComment={setReviewComment}
               onApprove={() =>
-                handleReviewAction(apexApprove, "Approved and forwarded to federation")
+                handleReviewAction(apexApprove, t("submissions.detail.apexReviewApprovedMsg"))
               }
-              onReturn={() => handleReviewAction(apexReturn, "Returned to cooperative")}
-              approveLabel="Approve & Forward"
-              returnLabel="Request Changes"
+              onReturn={() => handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))}
+              approveLabel={t("submissions.detail.btnApproveForward")}
+              returnLabel={t("submissions.detail.btnRequestChanges")}
               isPending={apexApprove.isPending || apexReturn.isPending}
             />
           )}
@@ -772,16 +772,16 @@ export const SubmissionDetailPage: React.FC = () => {
             submission.status === "in_review" &&
             submission.current_tier === "federation" && (
               <ReviewActionPanel
-                title="Federation Review"
-                description="Approve to forward to ministry, or return to apex for corrections"
+                title={t("submissions.detail.fedReviewTitle")}
+                description={t("submissions.detail.fedReviewDesc")}
                 comment={reviewComment}
                 setComment={setReviewComment}
                 onApprove={() =>
-                  handleReviewAction(federationApprove, "Approved and forwarded to ministry")
+                  handleReviewAction(federationApprove, t("submissions.detail.fedReviewApprovedMsg"))
                 }
-                onReturn={() => handleReviewAction(federationReturn, "Returned to apex")}
-                approveLabel="Approve & Forward"
-                returnLabel="Return to Apex"
+                onReturn={() => handleReviewAction(federationReturn, t("submissions.detail.fedReviewReturnedMsg"))}
+                approveLabel={t("submissions.detail.btnApproveForward")}
+                returnLabel={t("submissions.detail.btnReturnToApex")}
                 isPending={federationApprove.isPending || federationReturn.isPending}
               />
             )}
@@ -790,20 +790,20 @@ export const SubmissionDetailPage: React.FC = () => {
             submission.status === "in_review" &&
             submission.current_tier === "ministry" && (
               <ReviewActionPanel
-                title="Ministry Review"
-                description="Approve to finalize, or reject this submission"
+                title={t("submissions.detail.minReviewTitle")}
+                description={t("submissions.detail.minReviewDesc")}
                 comment={reviewComment}
                 setComment={setReviewComment}
-                onApprove={() => handleReviewAction(ministryApprove, "Submission approved")}
-                onReject={() => handleReviewAction(ministryReject, "Submission rejected")}
-                approveLabel="Approve"
-                rejectLabel="Reject"
+                onApprove={() => handleReviewAction(ministryApprove, t("submissions.detail.minReviewApprovedMsg"))}
+                onReject={() => handleReviewAction(ministryReject, t("submissions.detail.minReviewRejectedMsg"))}
+                approveLabel={t("submissions.detail.btnApprove")}
+                rejectLabel={t("submissions.detail.btnReject")}
                 isPending={ministryApprove.isPending || ministryReject.isPending}
               />
             )}
 
           {reviews && reviews.length > 0 && (
-            <Card title="Review History" subtitle="Audit trail for this submission">
+            <Card title={t("submissions.detail.reviewHistory")} subtitle={t("submissions.detail.auditTrail")}>
               <div className="space-y-0">
                 {reviews.map((r, idx) => (
                   <div
@@ -836,9 +836,13 @@ export const SubmissionDetailPage: React.FC = () => {
                     {/* Content */}
                     <div className="flex-1 min-w-0 pt-1 pb-2">
                       <div className="flex items-center gap-2 flex-wrap text-xs mb-1">
-                        <span className="font-bold capitalize text-foreground">{r.action}</span>
+                        <span className="font-bold capitalize text-foreground">
+                          {t("submissions.detail.actions." + r.action, r.action)}
+                        </span>
                         <span className="text-muted-foreground/50">·</span>
-                        <span className="text-muted-foreground capitalize">{r.tier} tier</span>
+                        <span className="text-muted-foreground capitalize">
+                          {t("submissions.detail.timelineTier", { tier: r.tier })}
+                        </span>
                         <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground">
                           {new Date(r.created_at).toLocaleString("en-GB", {
@@ -911,6 +915,7 @@ function ReviewActionPanel({
   rejectLabel?: string;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   const hasComment = comment.trim().length > 0;
   const borderCls = onReject
     ? "border-l-4 border-l-destructive/50"
@@ -928,8 +933,8 @@ function ReviewActionPanel({
         onChange={(e) => setComment(e.target.value)}
         placeholder={
           onReturn || onReject
-            ? "Provide a reason for returning/rejecting (required)…"
-            : "Add a comment (optional)…"
+            ? t("submissions.detail.reviewPlaceholderReason")
+            : t("submissions.detail.reviewPlaceholderComment")
         }
         rows={2}
         className="w-full rounded-xl border border-input bg-muted/30 px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/20 resize-none"
@@ -951,7 +956,7 @@ function ReviewActionPanel({
           <button
             onClick={onReturn}
             disabled={isPending || !hasComment}
-            title={!hasComment ? "A comment is required to return" : undefined}
+            title={!hasComment ? t("submissions.detail.reviewTitleReturn") : undefined}
             className="inline-flex items-center gap-2 rounded-xl border border-warning/40 px-5 py-2.5 text-sm font-semibold text-warning-foreground hover:bg-warning/8 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
@@ -966,7 +971,7 @@ function ReviewActionPanel({
           <button
             onClick={onReject}
             disabled={isPending || !hasComment}
-            title={!hasComment ? "A comment is required to reject" : undefined}
+            title={!hasComment ? t("submissions.detail.reviewTitleReject") : undefined}
             className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
@@ -979,7 +984,7 @@ function ReviewActionPanel({
         )}
         {(onReturn || onReject) && !hasComment && (
           <p className="text-[11px] text-muted-foreground ml-1">
-            A comment is required to send back
+            {t("submissions.detail.reviewCommentRequired")}
           </p>
         )}
       </div>

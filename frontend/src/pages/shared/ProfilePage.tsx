@@ -20,15 +20,15 @@ function ChangePasswordCard() {
 
   const handle = async () => {
     if (!current || !next || !confirm) {
-      toast.error("Please fill in all password fields.");
+      toast.error(t("profile.fillAllFields"));
       return;
     }
     if (next !== confirm) {
-      toast.error("New passwords do not match.");
+      toast.error(t("profile.passwordsNoMatch"));
       return;
     }
     if (next.length < 8) {
-      toast.error("New password must be at least 8 characters.");
+      toast.error(t("profile.passwordTooShort"));
       return;
     }
 
@@ -50,12 +50,12 @@ function ChangePasswordCard() {
         toast.error(json.message ?? json.error ?? `Error ${res.status}`);
         return;
       }
-      toast.success(json.message ?? "Password updated successfully!");
+      toast.success(json.message ?? t("profile.passwordUpdated"));
       setCurrent("");
       setNext("");
       setConfirm("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Unexpected error.");
+      toast.error(e instanceof Error ? e.message : t("profile.unexpectedError"));
     } finally {
       setLoading(false);
     }
@@ -134,54 +134,34 @@ export const ProfilePage: React.FC = () => {
     switch (role) {
       case "ministry":
         return [
-          {
-            name: "User Account Provisioning",
-            allowed: true,
-            scope: "Regional & Cooperative managers",
-          },
-          {
-            name: "Filing Approvals / Sign-off",
-            allowed: true,
-            scope: "National compliance scale",
-          },
-          { name: "Access System Audit Trails", allowed: true, scope: "View only" },
-          { name: "System Configuration", allowed: true, scope: "National settings" },
-          { name: "View All Cooperatives", allowed: true, scope: "National scope" },
+          { name: t("profile.caps.userProvisioning"), allowed: true, scope: t("profile.caps.scope.regionalCoopManagers") },
+          { name: t("profile.caps.filingApprovals"), allowed: true, scope: t("profile.caps.scope.nationalCompliance") },
+          { name: t("profile.caps.auditTrails"), allowed: true, scope: t("profile.caps.scope.viewOnly") },
+          { name: t("profile.caps.systemConfig"), allowed: true, scope: t("profile.caps.scope.nationalSettings") },
+          { name: t("profile.caps.viewAllCoops"), allowed: true, scope: t("profile.caps.scope.nationalScope") },
         ];
       case "federation":
         return [
-          {
-            name: "User Account Provisioning",
-            allowed: true,
-            scope: "Cooperative Managers under federation",
-          },
-          { name: "Filing Approvals / Sign-off", allowed: true, scope: "Federation submissions" },
-          { name: "Access System Audit Trails", allowed: true, scope: "Federation scope" },
-          { name: "View Cooperatives", allowed: true, scope: "Federation scope" },
-          { name: "Generate Reports", allowed: true, scope: "Federation scope" },
+          { name: t("profile.caps.userProvisioning"), allowed: true, scope: t("profile.caps.scope.coopManagersFed") },
+          { name: t("profile.caps.filingApprovals"), allowed: true, scope: t("profile.caps.scope.federationSubmissions") },
+          { name: t("profile.caps.auditTrails"), allowed: true, scope: t("profile.caps.scope.federationScope") },
+          { name: t("profile.caps.viewCooperatives"), allowed: true, scope: t("profile.caps.scope.federationScope") },
+          { name: t("profile.caps.generateReports"), allowed: true, scope: t("profile.caps.scope.federationScope") },
         ];
       case "apex":
         return [
-          {
-            name: "Review Cooperative Submissions",
-            allowed: true,
-            scope: "Cooperatives under apex",
-          },
-          {
-            name: "Approve / Reject / Request Changes",
-            allowed: true,
-            scope: "Cooperative submissions",
-          },
-          { name: "Manage Cooperatives", allowed: true, scope: "Apex scope" },
-          { name: "Create Cooperative Users", allowed: true, scope: "Apex scope" },
-          { name: "Generate Reports", allowed: true, scope: "Apex scope" },
+          { name: t("profile.caps.reviewSubmissions"), allowed: true, scope: t("profile.caps.scope.coopsUnderApex") },
+          { name: t("profile.caps.approveReject"), allowed: true, scope: t("profile.caps.scope.coopSubmissions") },
+          { name: t("profile.caps.manageCoops"), allowed: true, scope: t("profile.caps.scope.apexScope") },
+          { name: t("profile.caps.createCoopUsers"), allowed: true, scope: t("profile.caps.scope.apexScope") },
+          { name: t("profile.caps.generateReports"), allowed: true, scope: t("profile.caps.scope.apexScope") },
         ];
       case "cooperative":
         return [
-          { name: "Filing Returns & Disclosures", allowed: true, scope: "Own Cooperative only" },
-          { name: "Manage Cooperative Roster", allowed: true, scope: "Own Cooperative only" },
-          { name: "View Own Reports", allowed: true, scope: "Own Cooperative only" },
-          { name: "Submit Financial Statements", allowed: true, scope: "Own Cooperative only" },
+          { name: t("profile.caps.filingReturns"), allowed: true, scope: t("profile.caps.scope.ownCoopOnly") },
+          { name: t("profile.caps.manageRoster"), allowed: true, scope: t("profile.caps.scope.ownCoopOnly") },
+          { name: t("profile.caps.viewOwnReports"), allowed: true, scope: t("profile.caps.scope.ownCoopOnly") },
+          { name: t("profile.caps.submitStatements"), allowed: true, scope: t("profile.caps.scope.ownCoopOnly") },
         ];
       default:
         return [];
@@ -214,11 +194,11 @@ export const ProfilePage: React.FC = () => {
                   <Mail className="size-3.5 text-accent" /> {user.email}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Locate className="size-3.5 text-accent" /> {user.region} Region
+                  <Locate className="size-3.5 text-accent" /> {user.region} {t("profile.region")}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Shield className="size-3.5 text-accent" /> {allowedCount} of{" "}
-                  {capabilities.length} permissions granted
+                  <Shield className="size-3.5 text-accent" /> {allowedCount} {t("profile.of")}{" "}
+                  {capabilities.length} {t("profile.permissionsGranted")}
                 </span>
               </div>
             </div>
@@ -263,22 +243,22 @@ export const ProfilePage: React.FC = () => {
                       </span>
                     </div>
                     <span className="text-sm font-mono font-bold text-accent tabular-nums">
-                      {sessionTimeout} min
+                      {t("profile.minutes", { count: sessionTimeout })}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="180"
-                    step="15"
-                    value={sessionTimeout}
-                    onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
-                    className="w-full accent-accent h-1.5 rounded-lg outline-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                    <span>15 min</span>
-                    <span>180 min</span>
-                  </div>
+                   <input
+                     type="range"
+                     min="15"
+                     max="180"
+                     step="15"
+                     value={sessionTimeout}
+                     onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
+                     className="w-full accent-accent h-1.5 rounded-lg outline-none cursor-pointer"
+                   />
+                   <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
+                     <span>{t("profile.minutes", { count: 15 })}</span>
+                     <span>{t("profile.minutes", { count: 180 })}</span>
+                   </div>
                 </div>
               </div>
             </Card>
@@ -293,7 +273,7 @@ export const ProfilePage: React.FC = () => {
                   {t("profile.languageDesc")}
                 </p>
                 <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-muted/30">
-                  <span className="text-sm font-semibold text-foreground">Language</span>
+                  <span className="text-sm font-semibold text-foreground">{t("profile.language")}</span>
                   <div className="ml-auto">
                     <LanguageSwitcher />
                   </div>

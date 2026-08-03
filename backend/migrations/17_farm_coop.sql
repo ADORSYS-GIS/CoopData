@@ -34,5 +34,4 @@ CREATE TABLE IF NOT EXISTS farm_coop (
 CREATE INDEX IF NOT EXISTS idx_farm_coop_cooperative_id ON farm_coop(cooperative_id);
 CREATE INDEX IF NOT EXISTS idx_farm_coop_submission_id  ON farm_coop(submission_id);
 
--- Down
-DROP TABLE IF EXISTS farm_coop;
+

@@ -23,6 +23,7 @@ import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useUserRole } from "@/lib/auth";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 import type { components } from "@/openapi-client/api";
+import { useTranslation } from "react-i18next";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
 
 interface Props {
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function CooperativeAnalyticsView({ filterValues }: Props) {
+  const { t } = useTranslation();
   const reportingYear = Number(filterValues.year);
   const role = useUserRole();
 
@@ -74,14 +76,14 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
             : ("neutral" as const),
       trendValue:
         k.status === "green"
-          ? "Healthy"
+          ? t("analytics.healthy")
           : k.status === "amber"
-            ? "Watch"
+            ? t("analytics.watch")
             : k.status === "red"
-              ? "Risk"
-              : "Neutral",
+              ? t("analytics.risk")
+              : t("analytics.unknown"),
     }));
-  }, [kpisData]);
+  }, [kpisData, t]);
 
   const trendPoints = useMemo(
     () =>
@@ -99,162 +101,162 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     const m = nfStats.membership;
     return [
       {
-        name: "My Cooperative",
+        name: t("cooperativeAnalytics.myCooperative"),
         dormancy_pct: m.dormancy_pct,
         active_members_pct: m.active_pct,
         total_members: m.total,
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const membershipMetrics = useMemo(() => {
     if (!nfStats?.membership) return [];
     const m = nfStats.membership;
     return [
       {
-        label: "Total Members",
+        label: t("cooperativeAnalytics.totalMembers"),
         value: m.total.toLocaleString(),
-        tooltip: "Total number of registered cooperative members",
+        tooltip: t("cooperativeAnalytics.totalMembersTooltip"),
         trend: "up" as const,
-        trendValue: "+12 this year",
+        trendValue: t("cooperativeAnalytics.totalMembersTrend"),
       },
       {
-        label: "Active Members",
+        label: t("cooperativeAnalytics.activeMembers"),
         value: m.active.toLocaleString(),
-        tooltip: "Members with transactions in the last 90 days",
+        tooltip: t("cooperativeAnalytics.activeMembersTooltip"),
         trend: "up" as const,
-        trendValue: `${m.active_pct.toFixed(1)}% of total`,
+        trendValue: t("cooperativeAnalytics.activeMembersTrend", { pct: m.active_pct.toFixed(1) }),
       },
       {
-        label: "Dormant Members",
+        label: t("cooperativeAnalytics.dormantMembers"),
         value: m.dormant.toLocaleString(),
-        tooltip: "Members with no transactions in the last 90 days",
+        tooltip: t("cooperativeAnalytics.dormantMembersTooltip"),
         trend: m.dormancy_pct > 20 ? ("down" as const) : ("neutral" as const),
-        trendValue: `${m.dormancy_pct.toFixed(1)}% dormancy rate`,
+        trendValue: t("cooperativeAnalytics.dormantMembersTrend", { pct: m.dormancy_pct.toFixed(1) }),
       },
       {
-        label: "Youth Members",
+        label: t("cooperativeAnalytics.youthMembers"),
         value: m.age_18_35.toLocaleString(),
-        tooltip: "Members under 35 years old",
+        tooltip: t("cooperativeAnalytics.youthMembersTooltip"),
         trend: "neutral" as const,
-        trendValue: `${m.youth_pct.toFixed(1)}% of total`,
+        trendValue: t("cooperativeAnalytics.youthMembersTrend", { pct: m.youth_pct.toFixed(1) }),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const savingsMetrics = useMemo(() => {
     if (!nfStats?.savings) return [];
     const s = nfStats.savings;
     return [
       {
-        label: "Savings Accounts",
+        label: t("cooperativeAnalytics.savingsAccounts"),
         value: s.total_accounts.toLocaleString(),
-        tooltip: "Total number of active savings accounts",
+        tooltip: t("cooperativeAnalytics.savingsAccountsTooltip"),
         trend: "up" as const,
-        trendValue: `${s.active_accounts} active`,
+        trendValue: t("cooperativeAnalytics.savingsAccountsTrend", { count: s.active_accounts }),
       },
       {
-        label: "Total Savings",
+        label: t("cooperativeAnalytics.totalSavings"),
         value: `$${(s.total_balance / 1000).toFixed(1)}K`,
-        tooltip: "Total balance across all savings accounts",
+        tooltip: t("cooperativeAnalytics.totalSavingsTooltip"),
         trend: "up" as const,
-        trendValue: `Avg: $${s.average_balance.toFixed(0)}`,
+        trendValue: t("cooperativeAnalytics.totalSavingsTrend", { value: s.average_balance.toFixed(0) }),
       },
       {
-        label: "Active Savers",
+        label: t("cooperativeAnalytics.activeSavers"),
         value: s.active_accounts.toLocaleString(),
-        tooltip: "Members with deposits in the last 30 days",
+        tooltip: t("cooperativeAnalytics.activeSaversTooltip"),
         trend: "up" as const,
-        trendValue: `${s.active_savers_pct.toFixed(1)}% penetration`,
+        trendValue: t("cooperativeAnalytics.activeSaversTrend", { pct: s.active_savers_pct.toFixed(1) }),
       },
       {
-        label: "Regular Savers",
+        label: t("cooperativeAnalytics.regularSavers"),
         value: `${s.regular_savers_pct.toFixed(1)}%`,
-        tooltip: "Percentage of members with consistent monthly deposits",
+        tooltip: t("cooperativeAnalytics.regularSaversTooltip"),
         trend: s.regular_savers_pct > 50 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Consistent deposits",
+        trendValue: t("cooperativeAnalytics.regularSaversTrend"),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const loanMetrics = useMemo(() => {
     if (!nfStats?.loans) return [];
     const l = nfStats.loans;
     return [
       {
-        label: "Loan Accounts",
+        label: t("cooperativeAnalytics.loanAccounts"),
         value: l.total_loans.toLocaleString(),
-        tooltip: "Total number of active loan accounts",
+        tooltip: t("cooperativeAnalytics.loanAccountsTooltip"),
         trend: "up" as const,
-        trendValue: `${l.active_loans} active`,
+        trendValue: t("cooperativeAnalytics.loanAccountsTrend", { count: l.active_loans }),
       },
       {
-        label: "Total Loans",
+        label: t("cooperativeAnalytics.totalLoans"),
         value: `$${(l.total_loan_amount / 1000).toFixed(1)}K`,
-        tooltip: "Total outstanding loan balance",
+        tooltip: t("cooperativeAnalytics.totalLoansTooltip"),
         trend: "up" as const,
-        trendValue: `Avg: $${l.average_loan_size.toFixed(0)}`,
+        trendValue: t("cooperativeAnalytics.totalLoansTrend", { value: l.average_loan_size.toFixed(0) }),
       },
       {
-        label: "Loans in Arrears",
+        label: t("cooperativeAnalytics.loansInArrears"),
         value: l.arrears.toLocaleString(),
-        tooltip: "Number of loans with payments overdue by 30+ days",
+        tooltip: t("cooperativeAnalytics.loansInArrearsTooltip"),
         trend: l.arrears_rate_pct > 5 ? ("down" as const) : ("up" as const),
-        trendValue: `${l.arrears_rate_pct.toFixed(1)}% arrears rate`,
+        trendValue: t("cooperativeAnalytics.loansInArrearsTrend", { pct: l.arrears_rate_pct.toFixed(1) }),
       },
       {
-        label: "On-time Repayment",
+        label: t("cooperativeAnalytics.onTimeRepayment"),
         value: `${l.on_time_repayment_pct.toFixed(1)}%`,
-        tooltip: "Percentage of loans repaid on schedule",
+        tooltip: t("cooperativeAnalytics.onTimeRepaymentTooltip"),
         trend: l.on_time_repayment_pct > 90 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Repayment performance",
+        trendValue: t("cooperativeAnalytics.onTimeRepaymentTrend"),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const fdMetrics = useMemo(() => {
     if (!nfStats?.fixed_deposits) return [];
     const fd = nfStats.fixed_deposits;
     return [
       {
-        label: "FD Accounts",
+        label: t("cooperativeAnalytics.fdAccounts"),
         value: fd.total_fds.toLocaleString(),
-        tooltip: "Total number of active fixed deposit accounts",
+        tooltip: t("cooperativeAnalytics.fdAccountsTooltip"),
         trend: "up" as const,
-        trendValue: `${fd.active_fds} active`,
+        trendValue: t("cooperativeAnalytics.fdAccountsTrend", { count: fd.active_fds }),
       },
       {
-        label: "Total FD Balance",
+        label: t("cooperativeAnalytics.totalFdBalance"),
         value: `$${(fd.total_balance / 1000).toFixed(1)}K`,
-        tooltip: "Total balance across all fixed deposits",
+        tooltip: t("cooperativeAnalytics.totalFdBalanceTooltip"),
         trend: "up" as const,
-        trendValue: `Avg: $${fd.average_balance.toFixed(0)}`,
+        trendValue: t("cooperativeAnalytics.totalFdBalanceTrend", { value: fd.average_balance.toFixed(0) }),
       },
       {
-        label: "FD Penetration",
+        label: t("cooperativeAnalytics.fdPenetration"),
         value: `${fd.fd_penetration_pct.toFixed(1)}%`,
-        tooltip: "Percentage of members with fixed deposits",
+        tooltip: t("cooperativeAnalytics.fdPenetrationTooltip"),
         trend: fd.fd_penetration_pct > 20 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Member participation",
+        trendValue: t("cooperativeAnalytics.fdPenetrationTrend"),
       },
       {
-        label: "Rollover Rate",
+        label: t("cooperativeAnalytics.rolloverRate"),
         value: `${fd.rollover_rate_pct.toFixed(1)}%`,
-        tooltip: "Percentage of matured FDs rolled over",
+        tooltip: t("cooperativeAnalytics.rolloverRateTooltip"),
         trend: fd.rollover_rate_pct > 70 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Retention rate",
+        trendValue: t("cooperativeAnalytics.rolloverRateTrend"),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   if (!latestSubmission) {
     return (
       <Card
-        title="No Submission Data"
-        info="Analytics are derived from your latest data submission. You must submit data to view these charts."
+        title={t("cooperativeAnalytics.noSubmissionTitle")}
+        info={t("cooperativeAnalytics.noSubmissionInfo")}
       >
         <p className="text-sm text-muted-foreground">
-          No submission found for your cooperative. Submit financial data to unlock analytics.
+          {t("cooperativeAnalytics.noSubmissionDesc")}
         </p>
       </Card>
     );
@@ -268,7 +270,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     <div className="space-y-6">
       {kpisLoading ? (
         <div className="flex items-center gap-2 text-muted-foreground text-sm p-4">
-          <Loader2 className="size-4 animate-spin" /> Loading financial KPIs…
+          <Loader2 className="size-4 animate-spin" /> {t("cooperativeAnalytics.loadingKpis")}
         </div>
       ) : null}
 
@@ -280,9 +282,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
-          title="Regulatory Compliance"
-          subtitle="Core ratio thresholds (CAR ≥10%, Liquidity ≥15%, NPL ≤5%)"
-          info="Monitors your cooperative's compliance with critical financial regulations. Capital Adequacy ensures sufficient equity against risk, Liquidity measures cash available for short-term obligations, and NPL tracks loan defaults."
+          title={t("cooperativeAnalytics.regComplianceTitle")}
+          subtitle={t("cooperativeAnalytics.regComplianceSubtitle")}
+          info={t("cooperativeAnalytics.regComplianceInfo")}
         >
           <ComplianceRadialGauges
             carValue={kpiMap["capital_adequacy_ratio"] ?? 0}
@@ -293,9 +295,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
         {nfStats && (
           <Card
-            title="Savings Portfolio Health"
-            subtitle="Account activity and penetration"
-            info="Analyzes the vitality of your savings base. Savings Penetration shows the percentage of members holding savings, Regular Savers tracks consistent monthly deposits, and Active Savers indicates recent deposit activity."
+            title={t("cooperativeAnalytics.savingsPortfolioTitle")}
+            subtitle={t("cooperativeAnalytics.savingsPortfolioSubtitle")}
+            info={t("cooperativeAnalytics.savingsPortfolioInfo")}
           >
             <SavingsRadialGauges data={nfStats.savings} />
           </Card>
@@ -367,9 +369,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         />
         {kpisData && (
           <Card
-            title="Loan Provisioning Gap"
-            subtitle="Unprotected at-risk capital visualization"
-            info="A waterfall breakdown of your gross loan portfolio. It highlights 'At-Risk Capital' by subtracting your loan loss provisions from your non-performing loans (arrears), showing potential unprotected losses."
+            title={t("cooperativeAnalytics.loanProvTitle")}
+            subtitle={t("cooperativeAnalytics.loanProvSubtitle")}
+            info={t("cooperativeAnalytics.loanProvInfo")}
           >
             <LoanProvisioningWaterfall
               glp={kpiMap["gross_loan_portfolio"] ?? 0}
@@ -383,9 +385,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {nfStats && (
           <Card
-            title="Liquidity Risk"
-            subtitle="Term deposit concentration"
-            info="Assesses liquidity risk by examining the concentration of fixed (term) deposits. High concentration in a few accounts or short-term maturities can pose withdrawal risks."
+            title={t("cooperativeAnalytics.liquidityRiskTitle")}
+            subtitle={t("cooperativeAnalytics.liquidityRiskSubtitle")}
+            info={t("cooperativeAnalytics.liquidityRiskInfo")}
           >
             <DepositConcentrationGauge stats={nfStats.fixed_deposits} />
           </Card>
@@ -393,9 +395,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
         {nfStats && (
           <Card
-            title="Democratic Engagement"
-            subtitle="Member governance participation"
-            info="Measures the democratic health of the cooperative by tracking member participation in governance activities, such as voting in the Annual General Meeting (AGM)."
+            title={t("cooperativeAnalytics.democraticTitle")}
+            subtitle={t("cooperativeAnalytics.democraticSubtitle")}
+            info={t("cooperativeAnalytics.democraticInfo")}
           >
             <GovernanceFunnel stats={nfStats.membership} />
           </Card>
@@ -403,9 +405,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
         {nfStats && (
           <Card
-            title="Financial Inclusion"
-            subtitle="Credit access for target demographics"
-            info="Tracks the distribution of credit access across key demographics (e.g., Women, Youth) to ensure the cooperative is fulfilling its inclusive mandate."
+            title={t("cooperativeAnalytics.inclusionTitle")}
+            subtitle={t("cooperativeAnalytics.inclusionSubtitle")}
+            info={t("cooperativeAnalytics.inclusionInfo")}
           >
             <FinancialInclusionBar stats={nfStats.loans} />
           </Card>
@@ -414,30 +416,30 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
       {nfStats?.membership && membershipMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">Membership Overview</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.membershipOverview")}</h3>
           <MetricsGridCards metrics={membershipMetrics} columns={4} />
         </div>
       )}
 
       {nfStats?.savings && savingsMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">Savings Portfolio Metrics</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.savingsMetrics")}</h3>
           <MetricsGridCards metrics={savingsMetrics} columns={4} />
         </div>
       )}
 
       {nfStats?.loans && loanMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">Loan Portfolio Metrics</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.loanMetrics")}</h3>
           <MetricsGridCards metrics={loanMetrics} columns={4} />
         </div>
       )}
 
       {nfStats && (
         <Card
-          title="Loan Portfolio"
-          subtitle="Performing vs. arrears breakdown"
-          info="A detailed breakdown of active loans, comparing performing loans (on-time) against loans in arrears (delayed payments), categorized by demographics."
+          title={t("cooperativeAnalytics.loanPortfolioTitle")}
+          subtitle={t("cooperativeAnalytics.loanPortfolioSubtitle")}
+          info={t("cooperativeAnalytics.loanPortfolioInfo")}
         >
           <LoanDualBar data={nfStats.loans} />
         </Card>
@@ -445,7 +447,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
       {nfStats?.fixed_deposits && fdMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">Fixed Deposit Metrics</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.fdMetrics")}</h3>
           <MetricsGridCards metrics={fdMetrics} columns={4} />
         </div>
       )}
@@ -453,9 +455,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {nfStats && (
           <Card
-            title="Membership Demographics"
-            subtitle="Gender and activity distribution"
-            info="Visualizes the demographic makeup of your member base, including gender ratios and the proportion of active versus dormant accounts."
+            title={t("cooperativeAnalytics.memberDemoTitle")}
+            subtitle={t("cooperativeAnalytics.memberDemoSubtitle")}
+            info={t("cooperativeAnalytics.memberDemoInfo")}
           >
             <GenderStatusDoughnuts data={nfStats.membership} />
           </Card>
@@ -463,8 +465,8 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
         {dormancyData.length > 0 && (
           <Card
-            title="Member Engagement Indicators"
-            info="A leaderboard showing the highest rates of member dormancy, helping identify areas where member re-engagement efforts are needed."
+            title={t("cooperativeAnalytics.dormancyLeaderboardTitle")}
+            info={t("cooperativeAnalytics.dormancyLeaderboardInfo")}
           >
             <DormancyLeaderboard data={dormancyData} />
           </Card>
@@ -473,9 +475,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
       {nfStats && nfStats.farm_coop.total_coops > 0 && (
         <Card
-          title="Agricultural Resilience"
-          subtitle="Physical and operational infrastructure scores"
-          info="A radar analysis evaluating the cooperative's agricultural infrastructure, including storage capacity, processing facilities, and mechanization levels."
+          title={t("cooperativeAnalytics.agriResilienceTitle")}
+          subtitle={t("cooperativeAnalytics.agriResilienceSubtitle")}
+          info={t("cooperativeAnalytics.agriResilienceInfo")}
         >
           <AgriResilienceRadar stats={nfStats.farm_coop} />
         </Card>
@@ -486,10 +488,10 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           <ShieldCheck className="size-4 text-amber-600 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
-              Submission pending approval
+              {t("cooperativeAnalytics.pendingApprovalTitle")}
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-              Full analytics are available after your submission is approved by the Apex.
+              {t("cooperativeAnalytics.pendingApprovalDesc")}
             </p>
           </div>
         </div>

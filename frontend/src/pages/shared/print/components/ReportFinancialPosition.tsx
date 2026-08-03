@@ -2,12 +2,14 @@ import React, { useMemo } from "react";
 import { ReportDataProps } from "./types";
 import { getLineItem, calculateYoY, formatCurrency } from "./utils";
 import { LineItemResponse } from "@/hooks/submissions/useCooperativeKpis";
+import { useTranslation } from "react-i18next";
 
 export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
   lineItemsData,
   submission,
   submissionId,
 }) => {
+  const { t } = useTranslation();
   const assetsYoY = calculateYoY(
     getLineItem(lineItemsData, 1999),
     getLineItem(lineItemsData, 1999, true),
@@ -94,27 +96,26 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
   return (
     <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        Sheet 2: "Financial Position"
+        {t("printReports.financialPositionTitle")}
       </h2>
 
       <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">
-        <p className="font-semibold mb-1">Narrative</p>
-        Total assets showed a{" "}
-        {assetsYoY.startsWith("+") || assetsYoY === "—" ? "positive trend" : "decline"}{" "}
-        year-on-year, driven by changes in member deposits and equity. The detailed balance sheet
-        and income statement below reflect the financial health for the period.
+        <p className="font-semibold mb-1">{t("printReports.narrative")}</p>
+        {t("printReports.totalAssetsNarrativeStart")}{" "}
+        {assetsYoY.startsWith("+") || assetsYoY === "—" ? t("printReports.positiveTrend") : t("printReports.decline")}{" "}
+        {t("printReports.totalAssetsNarrativeEnd")}
       </div>
 
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">Balance Sheet</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-4">{t("printReports.balanceSheet")}</h3>
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">Account Code</th>
-            <th className="px-2 py-1 font-semibold">Account Name</th>
-            <th className="px-2 py-1 font-semibold text-right">Current Year (SZL)</th>
-            <th className="px-2 py-1 font-semibold text-right">Prior Year (SZL)</th>
-            <th className="px-2 py-1 font-semibold text-right">YoY Change</th>
-            <th className="px-2 py-1 font-semibold text-right">% of Assets</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountCode")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountName")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.currentYearSzl")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.priorYearSzl")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.yoyChange")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.percentOfAssets")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -123,23 +124,23 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
           ) : (
             <tr>
               <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">
-                No balance sheet data available
+                {t("printReports.noBalanceSheetData")}
               </td>
             </tr>
           )}
         </tbody>
       </table>
 
-      <h3 className="text-sm font-bold text-slate-800 mb-2">Income Statement</h3>
+      <h3 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.incomeStatement")}</h3>
       <table className="w-full text-left text-[10px] border-collapse page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">Account Code</th>
-            <th className="px-2 py-1 font-semibold">Account Name</th>
-            <th className="px-2 py-1 font-semibold text-right">Current Year (SZL)</th>
-            <th className="px-2 py-1 font-semibold text-right">Prior Year (SZL)</th>
-            <th className="px-2 py-1 font-semibold text-right">YoY Change</th>
-            <th className="px-2 py-1 font-semibold text-right">% of Income</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountCode")}</th>
+            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountName")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.currentYearSzl")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.priorYearSzl")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.yoyChange")}</th>
+            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.percentOfIncome")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -148,7 +149,7 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
           ) : (
             <tr>
               <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">
-                No income statement data available
+                {t("printReports.noIncomeStatementData")}
               </td>
             </tr>
           )}

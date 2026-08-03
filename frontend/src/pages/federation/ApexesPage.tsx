@@ -12,6 +12,7 @@ import {
   ChevronRight,
   UserCog,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import {
   useApexes,
@@ -30,6 +31,7 @@ import { toast } from "sonner";
 type ApexResponse = components["schemas"]["ApexResponse"];
 
 export const ApexesPage: React.FC = () => {
+  const { t } = useTranslation();
   const { data: apexesData, isLoading, error } = useApexes();
   const createApex = useCreateApex();
   const updateApex = useUpdateApex();
@@ -56,19 +58,19 @@ export const ApexesPage: React.FC = () => {
     e.preventDefault();
     const name = createName.trim();
     if (!name) {
-      toast.error("Apex name is required.");
+      toast.error(t("apexesPage.toastNameRequired"));
       return;
     }
     createApex.mutate(
       { name, description: createDescription.trim() || undefined },
       {
         onSuccess: () => {
-          toast.success(`Apex "${name}" created successfully.`);
+          toast.success(t("apexesPage.toastCreated", { name }));
           setIsCreateOpen(false);
           setCreateName("");
           setCreateDescription("");
         },
-        onError: (err) => toast.error("Failed to create apex", { description: String(err) }),
+        onError: (err) => toast.error(t("apexesPage.toastCreateFailed"), { description: String(err) }),
       },
     );
   };
@@ -84,7 +86,7 @@ export const ApexesPage: React.FC = () => {
     if (!editingApex) return;
     const name = editName.trim();
     if (!name) {
-      toast.error("Apex name is required.");
+      toast.error(t("apexesPage.toastNameRequired"));
       return;
     }
     updateApex.mutate(
@@ -95,10 +97,10 @@ export const ApexesPage: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success(`Updated "${name}"`);
+          toast.success(t("apexesPage.toastUpdated", { name }));
           setEditingApex(null);
         },
-        onError: (err) => toast.error("Failed to update apex", { description: String(err) }),
+        onError: (err) => toast.error(t("apexesPage.toastUpdateFailed"), { description: String(err) }),
       },
     );
   };
@@ -114,12 +116,12 @@ export const ApexesPage: React.FC = () => {
         { id: deletingApex.id, verificationToken },
         {
           onSuccess: () => {
-            toast.success(`Deleted "${deletingApex.name}"`);
+            toast.success(t("apexesPage.toastDeleted", { name: deletingApex.name }));
             setDeletingApex(null);
             resolve();
           },
           onError: (err) => {
-            toast.error("Failed to delete apex", { description: String(err) });
+            toast.error(t("apexesPage.toastDeleteFailed"), { description: String(err) });
             reject(err);
           },
         },
@@ -139,7 +141,7 @@ export const ApexesPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <AppShell title="Apex Organizations" subtitle="Manage apex bodies under your federation">
+      <AppShell title={t("apexesPage.title")} subtitle={t("apexesPage.subtitle")}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -149,10 +151,10 @@ export const ApexesPage: React.FC = () => {
 
   if (error) {
     return (
-      <AppShell title="Apex Organizations" subtitle="Manage apex bodies under your federation">
+      <AppShell title={t("apexesPage.title")} subtitle={t("apexesPage.subtitle")}>
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <AlertCircle className="size-8 mb-2 text-destructive" />
-          <p className="font-semibold text-sm">Failed to load apexes</p>
+          <p className="font-semibold text-sm">{t("apexesPage.failedLoad")}</p>
           <p className="text-xs mt-1">{String(error)}</p>
         </div>
       </AppShell>
@@ -161,14 +163,14 @@ export const ApexesPage: React.FC = () => {
 
   return (
     <AppShell
-      title="Apex Organizations"
-      subtitle="Manage apex bodies and their cooperatives under your federation"
+      title={t("apexesPage.title")}
+      subtitle={t("apexesPage.manageSubtitle")}
       actions={
         <button
           onClick={() => setIsCreateOpen(true)}
           className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[var(--shadow-elev-2)]"
         >
-          <Plus className="size-4" /> Register apex
+          <Plus className="size-4" /> {t("apexesPage.registerApexBtn")}
         </button>
       }
     >
@@ -176,42 +178,42 @@ export const ApexesPage: React.FC = () => {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={Network}
-            label="Total Apexes"
+            label={t("apexesPage.totalApexes")}
             value={String(apexes.length)}
-            subtitle="Oversight bodies"
+            subtitle={t("apexesPage.oversightBodies")}
             tone="primary"
           />
           <StatCard
             icon={Building2}
-            label="Cooperatives"
+            label={t("apexesPage.cooperatives")}
             value={String(totalCoops)}
-            subtitle="Across all apexes"
+            subtitle={t("apexesPage.acrossAllApexes")}
             tone="success"
           />
           <StatCard
             icon={Network}
-            label="Apexes With Co-ops"
+            label={t("apexesPage.apexesWithCoops")}
             value={String(apexesWithCoops)}
-            subtitle="Have ≥1 cooperative"
+            subtitle={t("apexesPage.haveAtLeastOneCoop")}
             tone="accent"
           />
           <StatCard
             icon={Users}
-            label="Avg Co-op / Apex"
+            label={t("apexesPage.avgCoopApex")}
             value={String(avgCoopsPerApex)}
-            subtitle="Cooperatives per apex"
+            subtitle={t("apexesPage.coopsPerApex")}
             tone="info"
           />
         </div>
 
-        <Card title="Apex Directory" subtitle="Search, edit and manage member access">
+        <Card title={t("apexesPage.directoryTitle")} subtitle={t("apexesPage.directorySubtitle")}>
           <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
             <div className="relative min-w-[280px] max-w-md w-full">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or description..."
+                placeholder={t("apexesPage.searchPlaceholder")}
                 className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
               />
             </div>
@@ -221,10 +223,10 @@ export const ApexesPage: React.FC = () => {
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
-                  <th className="px-5 py-3.5">Apex Organization</th>
-                  <th className="px-5 py-3.5 hidden md:table-cell">Description</th>
-                  <th className="px-5 py-3.5 text-right">Cooperatives</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
+                  <th className="px-5 py-3.5">{t("apexesPage.tableHeaders.apexOrg")}</th>
+                  <th className="px-5 py-3.5 hidden md:table-cell">{t("apexesPage.tableHeaders.description")}</th>
+                  <th className="px-5 py-3.5 text-right">{t("apexesPage.tableHeaders.cooperatives")}</th>
+                  <th className="px-5 py-3.5 text-right">{t("apexesPage.tableHeaders.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -235,13 +237,13 @@ export const ApexesPage: React.FC = () => {
                         <Network className="size-8 text-slate-400 mb-2" />
                         <p className="font-bold text-sm text-slate-900">
                           {apexes.length === 0
-                            ? "No apexes registered yet"
-                            : "No apexes match your search"}
+                            ? t("apexesPage.noApexesRegistered")
+                            : t("apexesPage.noApexesMatchSearch")}
                         </p>
                         <p className="text-xs mt-1">
                           {apexes.length === 0
-                            ? "Register your first apex organization to get started."
-                            : "Try adjusting your search parameters."}
+                            ? t("apexesPage.registerFirst")
+                            : t("apexesPage.adjustSearch")}
                         </p>
                       </div>
                     </td>
@@ -279,24 +281,24 @@ export const ApexesPage: React.FC = () => {
                           <Link
                             to="/app/users/$apexId"
                             params={{ apexId: a.id }}
-                            title="Manage members"
+                            title={t("apexesPage.tooltipMembers")}
                             className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"
                           >
                             <Users className="size-3.5" />
-                            Members
+                            {t("apexesPage.members")}
                             <ChevronRight className="size-3" />
                           </Link>
                           <button
                             onClick={() => handleEdit(a)}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-100"
-                            title="Edit"
+                            title={t("apexesPage.tooltipEdit")}
                           >
                             <Pencil className="size-3.5" />
                           </button>
                           <button
                             onClick={() => setDeletingApex(a)}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-red-200 bg-red-50 text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
-                            title="Delete"
+                            title={t("apexesPage.tooltipDelete")}
                           >
                             <Trash2 className="size-3.5" />
                           </button>
@@ -311,7 +313,10 @@ export const ApexesPage: React.FC = () => {
 
           <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-600">
             <p>
-              Showing {filteredApexes.length} of {apexes.length} apexes
+              {t("apexesPage.showingCount", {
+                filtered: filteredApexes.length,
+                total: apexes.length,
+              })}
             </p>
           </div>
         </Card>
@@ -328,7 +333,7 @@ export const ApexesPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Network className="size-5 text-accent" />
                 <h3 className="font-heading text-lg font-bold text-foreground">
-                  Register Apex Organization
+                  {t("apexesPage.registerApexTitle")}
                 </h3>
               </div>
               <button
@@ -341,25 +346,25 @@ export const ApexesPage: React.FC = () => {
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Apex Name *
+                  {t("apexesPage.apexNameLabel")}
                 </label>
                 <input
                   type="text"
                   required
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
-                  placeholder="e.g. Manzini Agricultural Apex"
+                  placeholder={t("apexesPage.apexNamePlaceholder")}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all"
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Description
+                  {t("apexesPage.tableHeaders.description")}
                 </label>
                 <textarea
                   value={createDescription}
                   onChange={(e) => setCreateDescription(e.target.value)}
-                  placeholder="Optional description of this apex organization"
+                  placeholder={t("apexesPage.descPlaceholder")}
                   rows={3}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all resize-none"
                 />
@@ -370,7 +375,7 @@ export const ApexesPage: React.FC = () => {
                   onClick={() => setIsCreateOpen(false)}
                   className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
                 >
-                  Cancel
+                  {t("apexesPage.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -378,7 +383,7 @@ export const ApexesPage: React.FC = () => {
                   className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 >
                   {createApex.isPending && <Loader2 className="size-3.5 animate-spin" />}
-                  Register Apex
+                  {t("apexesPage.registerApexBtn")}
                 </button>
               </div>
             </form>
@@ -397,7 +402,7 @@ export const ApexesPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Pencil className="size-5 text-accent" />
                 <h3 className="font-heading text-lg font-bold text-foreground">
-                  Edit Apex Organization
+                  {t("apexesPage.editApexTitle")}
                 </h3>
               </div>
               <button
@@ -410,7 +415,7 @@ export const ApexesPage: React.FC = () => {
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Apex Name *
+                  {t("apexesPage.apexNameLabel")}
                 </label>
                 <input
                   type="text"
@@ -422,12 +427,12 @@ export const ApexesPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Description
+                  {t("apexesPage.tableHeaders.description")}
                 </label>
                 <textarea
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Optional description"
+                  placeholder={t("apexesPage.descEditPlaceholder")}
                   rows={3}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 transition-all resize-none"
                 />
@@ -438,7 +443,7 @@ export const ApexesPage: React.FC = () => {
                   onClick={() => setEditingApex(null)}
                   className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
                 >
-                  Cancel
+                  {t("apexesPage.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -446,7 +451,7 @@ export const ApexesPage: React.FC = () => {
                   className="press-feedback px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 >
                   {updateApex.isPending && <Loader2 className="size-3.5 animate-spin" />}
-                  Save Changes
+                  {t("apexesPage.saveChanges")}
                 </button>
               </div>
             </form>

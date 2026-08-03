@@ -15,6 +15,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import type { BalanceSheet } from "@/lib/financial-data";
 import { createEmptyBalanceSheet } from "@/lib/financial-data";
 
@@ -321,6 +322,7 @@ export function FinancialStatementUpload({
   onDataExtracted,
   onClose,
 }: FinancialStatementUploadProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<UploadStep>("upload");
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
   const [extractionProgress, setExtractionProgress] = useState(0);
@@ -337,16 +339,16 @@ export function FinancialStatementUpload({
   const handleFileSelect = useCallback((file: File) => {
     const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
     if (!validTypes.includes(file.type)) {
-      toast.error("Unsupported file type. Please upload a PDF, PNG, JPG, or WebP file.");
+      toast.error(t("financialStatementUpload.toastUnsupported"));
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 20 MB.");
+      toast.error(t("financialStatementUpload.toastTooLarge"));
       return;
     }
     setSelectedFile(file);
-    toast.success(`File selected: ${file.name}`);
-  }, []);
+    toast.success(t("financialStatementUpload.toastSelected", { name: file.name }));
+  }, [t]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -375,13 +377,13 @@ export function FinancialStatementUpload({
 
     // Simulate extraction progress
     const steps = [
-      { progress: 15, delay: 400, message: "Uploading document..." },
-      { progress: 30, delay: 600, message: "Analyzing document structure..." },
-      { progress: 50, delay: 800, message: "Extracting financial data..." },
-      { progress: 70, delay: 600, message: "Matching account codes..." },
-      { progress: 85, delay: 500, message: "Validating extracted values..." },
-      { progress: 95, delay: 400, message: "Finalizing extraction..." },
-      { progress: 100, delay: 300, message: "Complete!" },
+      { progress: 15, delay: 400, message: t("financialStatementUpload.progressSteps.uploading") },
+      { progress: 30, delay: 600, message: t("financialStatementUpload.progressSteps.analyzing") },
+      { progress: 50, delay: 800, message: t("financialStatementUpload.progressSteps.extracting") },
+      { progress: 70, delay: 600, message: t("financialStatementUpload.progressSteps.extracting") },
+      { progress: 85, delay: 500, message: t("financialStatementUpload.progressSteps.almostDone") },
+      { progress: 95, delay: 400, message: t("financialStatementUpload.progressSteps.almostDone") },
+      { progress: 100, delay: 300, message: t("financialStatementUpload.success.title") },
     ];
 
     let totalDelay = 0;
@@ -399,17 +401,20 @@ export function FinancialStatementUpload({
       setExtractionResult(result);
       setStep("review");
       toast.success(
-        `Extracted ${result.fieldsExtracted} fields from ${result.pagesProcessed} page(s)`,
+        t("financialStatementUpload.toastExtracted", {
+          count: result.fieldsExtracted,
+          name: result.pagesProcessed,
+        }),
       );
     }, totalDelay + 500);
-  }, [selectedFile]);
+  }, [selectedFile, t]);
 
   const handleApplyData = useCallback(() => {
     if (!extractionResult) return;
     setStep("complete");
     onDataExtracted(extractionResult.balanceSheet);
-    toast.success("Financial data applied to statement form. Review and edit as needed.");
-  }, [extractionResult, onDataExtracted]);
+    toast.success(t("financialStatementUpload.toastConfirmed"));
+  }, [extractionResult, onDataExtracted, t]);
 
   const handleReset = useCallback(() => {
     setStep("upload");
@@ -453,15 +458,15 @@ export function FinancialStatementUpload({
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">
-                Drop your financial statement here
+                {t("financialStatementUpload.dropStatement")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                PDF, PNG, or JPG — data will be extracted automatically
+                {t("financialStatementUpload.fileSpec")}
               </p>
             </div>
             <div className="flex items-center gap-3 mt-2">
               <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                Supported formats
+                {t("financialStatementUpload.supportedFormats")}
               </span>
               <div className="flex gap-2">
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
@@ -472,7 +477,7 @@ export function FinancialStatementUpload({
                 </span>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground">Maximum file size: 20 MB</p>
+            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.maxSize")}</p>
           </div>
         </div>
 
@@ -510,17 +515,14 @@ export function FinancialStatementUpload({
               className="mt-3 w-full inline-flex justify-center items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Eye className="size-4" />
-              Extract Financial Data
+              {t("financialStatementUpload.extractFinancialData")}
             </button>
           </Card>
         )}
 
         <div className="p-3 rounded-lg bg-info/5 border border-info/20">
           <p className="text-xs text-muted-foreground">
-            <strong className="text-foreground">How it works:</strong> Upload your audited financial
-            statement (balance sheet, income statement). Our system uses OCR and pattern recognition
-            to extract account codes and values. You'll review and validate all extracted data
-            before it populates the financial statement form.
+            <strong className="text-foreground">{t("financialStatementUpload.howItWorks")}</strong> {t("financialStatementUpload.howItWorksDesc")}
           </p>
         </div>
       </div>
@@ -536,16 +538,16 @@ export function FinancialStatementUpload({
             <Loader2 className="size-8 animate-spin" />
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-foreground">Extracting Financial Data</p>
+            <p className="text-lg font-bold text-foreground">{t("financialStatementUpload.extractingTitle")}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Analyzing document structure and identifying account codes...
+              {t("financialStatementUpload.extractingDesc")}
             </p>
           </div>
         </div>
         <div className="max-w-md mx-auto space-y-3">
           <Progress value={extractionProgress} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{extractionProgress}% complete</span>
+            <span>{t("financialStatementUpload.percentComplete", { progress: extractionProgress })}</span>
             <span>
               {extractionProgress < 30
                 ? "Uploading..."
@@ -559,9 +561,9 @@ export function FinancialStatementUpload({
         </div>
         <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
           {[
-            { label: "Pages", value: extractionProgress > 30 ? "Scanning" : "—" },
-            { label: "Codes Found", value: extractionProgress > 50 ? "26+" : "—" },
-            { label: "Confidence", value: extractionProgress > 70 ? "High" : "—" },
+            { label: t("financialStatementUpload.stats.pages"), value: extractionProgress > 30 ? t("financialStatementUpload.stats.scanning") : "—" },
+            { label: t("financialStatementUpload.stats.codesFound"), value: extractionProgress > 50 ? "26+" : "—" },
+            { label: t("financialStatementUpload.stats.confidence"), value: extractionProgress > 70 ? t("financialStatementUpload.confidenceLevel.high") : "—" },
           ].map((stat) => (
             <div key={stat.label} className="text-center p-3 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -584,26 +586,26 @@ export function FinancialStatementUpload({
         {/* Extraction Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-success/5 border border-success/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-success">High</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-success">{t("financialStatementUpload.confidenceLevel.high")}</p>
             <p className="text-xl font-bold text-foreground">{highConfidence}</p>
-            <p className="text-[10px] text-muted-foreground">Confident fields</p>
+            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.confident")}</p>
           </div>
           <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
             <p className="text-[10px] uppercase tracking-wider font-bold text-warning-foreground">
-              Medium
+              {t("financialStatementUpload.confidenceLevel.medium")}
             </p>
             <p className="text-xl font-bold text-foreground">{medConfidence}</p>
-            <p className="text-[10px] text-muted-foreground">Verify fields</p>
+            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.verify")}</p>
           </div>
           <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-destructive">Low</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-destructive">{t("financialStatementUpload.confidenceLevel.low")}</p>
             <p className="text-xl font-bold text-foreground">{lowConfidence}</p>
-            <p className="text-[10px] text-muted-foreground">Manual review</p>
+            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.manual")}</p>
           </div>
           <div className="p-3 rounded-lg bg-info/5 border border-info/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-info">Overall</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-info">{t("financialStatementUpload.confidenceLevel.overall")}</p>
             <p className="text-xl font-bold text-foreground">{extractionResult.confidence}%</p>
-            <p className="text-[10px] text-muted-foreground">Confidence score</p>
+            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.score")}</p>
           </div>
         </div>
 
@@ -637,9 +639,12 @@ export function FinancialStatementUpload({
               {extractionResult.fileName}
             </p>
             <p className="text-xs text-muted-foreground">
-              {extractionResult.fileType} · {extractionResult.fileSize} ·{" "}
-              {extractionResult.pagesProcessed} page(s) · {extractionResult.fieldsExtracted} fields
-              extracted
+              {t("financialStatementUpload.docInfo.summary", {
+                type: extractionResult.fileType,
+                size: extractionResult.fileSize,
+                pages: extractionResult.pagesProcessed,
+                fields: extractionResult.fieldsExtracted,
+              })}
             </p>
           </div>
         </div>
@@ -648,18 +653,18 @@ export function FinancialStatementUpload({
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 bg-muted/60 border-b border-border">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Extracted Account Codes
+              {t("financialStatementUpload.table.extractedAccountCodes")}
             </p>
           </div>
           <div className="max-h-64 overflow-y-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-semibold">Code</th>
-                  <th className="px-3 py-2 text-left font-semibold">Account</th>
-                  <th className="px-3 py-2 text-right font-semibold">Value</th>
-                  <th className="px-3 py-2 text-left font-semibold">Source</th>
-                  <th className="px-3 py-2 text-center font-semibold">Confidence</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t("financialStatementUpload.table.code")}</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t("financialStatementUpload.table.account")}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t("financialStatementUpload.table.value")}</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t("financialStatementUpload.table.source")}</th>
+                  <th className="px-3 py-2 text-center font-semibold">{t("financialStatementUpload.table.confidence")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -686,7 +691,7 @@ export function FinancialStatementUpload({
                         {field.confidence === "high" && <CheckCircle2 className="size-3" />}
                         {field.confidence === "medium" && <Eye className="size-3" />}
                         {field.confidence === "low" && <AlertTriangle className="size-3" />}
-                        {field.confidence}
+                        {t(`financialStatementUpload.confidenceLevel.${field.confidence}`)}
                       </span>
                     </td>
                   </tr>
@@ -703,14 +708,14 @@ export function FinancialStatementUpload({
             className="flex-1 inline-flex justify-center items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
             <Trash2 className="size-4" />
-            Discard & Upload Different
+            {t("financialStatementUpload.actions.discard")}
           </button>
           <button
             onClick={handleApplyData}
             className="flex-1 inline-flex justify-center items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Edit3 className="size-4" />
-            Apply to Financial Statement
+            {t("financialStatementUpload.actions.apply")}
             <ArrowRight className="size-4" />
           </button>
         </div>
@@ -726,10 +731,9 @@ export function FinancialStatementUpload({
           <CheckCircle2 className="size-8" />
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-foreground">Data Applied Successfully</p>
+          <p className="text-lg font-bold text-foreground">{t("financialStatementUpload.success.title")}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Your financial statement form has been populated with the extracted data. Review and
-            edit the values as needed before submitting.
+            {t("financialStatementUpload.success.desc")}
           </p>
         </div>
         <div className="flex gap-3">
@@ -738,13 +742,13 @@ export function FinancialStatementUpload({
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <ArrowRight className="size-4" />
-            Go to Financial Statement
+            {t("financialStatementUpload.success.goToStatement")}
           </button>
           <button
             onClick={handleReset}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            Upload Another
+            {t("financialStatementUpload.success.uploadAnother")}
           </button>
         </div>
       </div>
