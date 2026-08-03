@@ -64,25 +64,41 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
   const kpiGridMetrics = useMemo(() => {
     if (!kpisData?.kpis) return [];
-    return kpisData.kpis.map((k: components["schemas"]["KpiItemResponse"]) => ({
-      label: k.name.replace(/_/g, " "),
-      value: k.formatted || String(k.value),
-      tooltip: k.description || k.name,
-      trend:
-        k.status === "green"
-          ? ("up" as const)
-          : k.status === "red"
-            ? ("down" as const)
-            : ("neutral" as const),
-      trendValue:
-        k.status === "green"
-          ? t("analytics.healthy")
-          : k.status === "amber"
-            ? t("analytics.watch")
+
+    const CORE_KPI_NAMES = new Set([
+      "NPL_RATIO",
+      "CAPITAL_ADEQUACY_RATIO",
+      "LIQUID_FUNDS_RATIO",
+      "ROA",
+      "ROE",
+      "NET_SURPLUS",
+      "PAR30",
+      "OPERATING_EXPENSE_RATIO"
+    ]);
+
+    return kpisData.kpis
+      .filter((k: components["schemas"]["KpiItemResponse"]) =>
+        CORE_KPI_NAMES.has(k.name.toUpperCase())
+      )
+      .map((k: components["schemas"]["KpiItemResponse"]) => ({
+        label: k.name.replace(/_/g, " "),
+        value: k.formatted || String(k.value),
+        tooltip: k.description || k.name,
+        trend:
+          k.status === "green"
+            ? ("up" as const)
             : k.status === "red"
-              ? t("analytics.risk")
-              : t("analytics.unknown"),
-    }));
+              ? ("down" as const)
+              : ("neutral" as const),
+        trendValue:
+          k.status === "green"
+            ? t("analytics.healthy")
+            : k.status === "amber"
+              ? t("analytics.watch" )
+              : k.status === "red"
+                ? t("analytics.risk")
+                : t("analytics.unknown"),
+      }));
   }, [kpisData, t]);
 
   const trendPoints = useMemo(
