@@ -1048,7 +1048,7 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
                 federation_id: sea_orm::Set(federation.id),
                 organization_keycloak_id: sea_orm::Set(keycloak_org_id),
                 display_name: sea_orm::Set(apex.name.clone()),
-                metadata: sea_orm::Set(None),
+                metadata: sea_orm::Set(Some(serde_json::json!({}))),
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };
