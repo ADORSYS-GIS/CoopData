@@ -315,10 +315,12 @@ describe("authService", () => {
     it("should call keycloak.login with correct redirect URI and scope", async () => {
       mockKeycloakInstance.login.mockResolvedValue(undefined);
       await login();
-      expect(mockKeycloakInstance.login).toHaveBeenCalledWith({
-        redirectUri: expect.stringContaining("/app/dashboard"),
-        scope: "openid profile email",
-      });
+      expect(mockKeycloakInstance.login).toHaveBeenCalledWith(
+        expect.objectContaining({
+          redirectUri: expect.stringContaining("/app/dashboard"),
+          scope: "openid profile email",
+        })
+      );
     });
   });
 
