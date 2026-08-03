@@ -11,149 +11,41 @@ import {
   PieChart,
   Pie,
   Cell,
-  RadialBarChart,
-  RadialBar,
 } from "recharts";
 import {
   ShieldCheck,
-  Users,
-  Wallet,
   CheckCircle2,
-  TrendingUp,
   TrendingDown,
   Database,
   BarChart3,
+  Building2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCooperativeStats, useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
-import { useMembers } from "@/hooks/non-financial/useMembers";
-import { useSavings } from "@/hooks/non-financial/useSavings";
-import { useLoans } from "@/hooks/non-financial/useLoans";
-import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
-import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
-import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
-import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
+import { useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
 import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────
-// COOPERATIVE DASHBOARD — real data only
+// COOPERATIVE DASHBOARD — essential statistics and profile only
 // ─────────────────────────────────────────────────────────────────────
 
 const accentColor = "var(--accent)";
 const accentOpacities = [1, 0.72, 0.48, 0.32, 0.18];
 
-// Loan portfolio category labels mapped from KPI names
-const LOAN_PORTFOLIO_LABELS = [
-  { name: "Performing", kpiKey: null },
-  { name: "Watch List", kpiKey: null },
-  { name: "Substandard", kpiKey: null },
-  { name: "Doubtful", kpiKey: null },
-  { name: "Loss", kpiKey: null },
-];
-
 export function CooperativeDashboard() {
   const { t } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useCooperativeStats();
   const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
+  const { data: profile, isLoading: profileLoading } = useMyCooperativeProfile();
 
   // Real KPI data from the latest submission
   const latestSubmission = useLatestSubmission();
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latestSubmission?.id);
 
-  const reportingYear = latestSubmission?.reporting_year ?? new Date().getFullYear();
-  const { data: trendData } = useMonthlyTrend(
-    { reportingYear, cooperativeId: latestSubmission?.cooperative_id },
-    !!latestSubmission &&
-      (latestSubmission.status === "approved" || latestSubmission.status === "submitted"),
-  );
-
-  // Real database record counts — page_size:1 to get just the total cheaply
-  const { data: membersData } = useMembers({ page: 1, page_size: 1 });
-  const { data: savingsData } = useSavings({ page: 1, page_size: 1 });
-  const { data: loansData } = useLoans({ page: 1, page_size: 1 });
-  const { data: fixedDepositsData } = useFixedDeposits({ page: 1, page_size: 1 });
-  const { data: farmCoopData } = useFarmCoops({ page: 1, page_size: 1 });
-
   // Helper: find a KPI by name from the API response
   const getKpi = (name: string) => kpisData?.kpis.find((k) => k.name === name);
-
-  // Database status from real counts
-  const databaseStatus = [
-    {
-      name: t("dashboard.coop.dbMembership"),
-      records: membersData?.total ?? 0,
-      status:
-        (membersData?.total ?? 0) > 0
-          ? t("dashboard.coop.statusCurrent")
-          : t("dashboard.coop.statusEmpty"),
-      statusKey: (membersData?.total ?? 0) > 0 ? "Current" : "Empty",
-      icon: Users,
-    },
-    {
-      name: t("dashboard.coop.dbSavings"),
-      records: savingsData?.total ?? 0,
-      status:
-        (savingsData?.total ?? 0) > 0
-          ? t("dashboard.coop.statusCurrent")
-          : t("dashboard.coop.statusEmpty"),
-      statusKey: (savingsData?.total ?? 0) > 0 ? "Current" : "Empty",
-      icon: Wallet,
-    },
-    {
-      name: t("dashboard.coop.dbFixedDeposits"),
-      records: fixedDepositsData?.total ?? 0,
-      status:
-        (fixedDepositsData?.total ?? 0) > 0
-          ? t("dashboard.coop.statusCurrent")
-          : t("dashboard.coop.statusEmpty"),
-      statusKey: (fixedDepositsData?.total ?? 0) > 0 ? "Current" : "Empty",
-      icon: TrendingUp,
-    },
-    {
-      name: t("dashboard.coop.dbLoans"),
-      records: loansData?.total ?? 0,
-      status:
-        (loansData?.total ?? 0) > 0
-          ? t("dashboard.coop.statusCurrent")
-          : t("dashboard.coop.statusEmpty"),
-      statusKey: (loansData?.total ?? 0) > 0 ? "Current" : "Empty",
-      icon: BarChart3,
-    },
-    {
-      name: t("dashboard.coop.dbMultipurpose"),
-      records: farmCoopData?.total ?? 0,
-      status:
-        (farmCoopData?.total ?? 0) > 0
-          ? t("dashboard.coop.statusCurrent")
-          : t("dashboard.coop.statusEmpty"),
-      statusKey: (farmCoopData?.total ?? 0) > 0 ? "Current" : "Empty",
-      icon: Database,
-    },
-  ];
-
-  // Build loan portfolio donut from real KPI data
-  const par30 = getKpi("par30")?.value ?? 0;
-  const par90 = getKpi("par90")?.value ?? 0;
-  const loanPortfolio = [
-    { name: t("dashboard.coop.performing"), value: Math.max(0, 100 - par30) },
-    { name: t("dashboard.coop.watchList"), value: Math.max(0, par30 - par90) },
-    { name: t("dashboard.coop.nonPerforming"), value: par90 },
-  ].filter((s) => s.value > 0);
-
-  // Build compliance radial from OSS KPI
-  const ossValue = getKpi("operational_self_sufficiency")?.value ?? 0;
-  const complianceRadial = [
-    { name: t("dashboard.coop.oss"), value: Math.min(ossValue, 150), fill: accentColor },
-  ];
-
-  const profile = {
-    name: "My Cooperative",
-    regNo: "—",
-    region: "—",
-    sector: "—",
-  };
 
   const totalSubs = stats?.total_submissions ?? 0;
   const pendingSubs = stats?.pending_submissions ?? 0;
@@ -179,23 +71,28 @@ export function CooperativeDashboard() {
     return labels[status] ?? status;
   };
 
-  const trendPoints = (trendData?.months ?? []).map((m) => ({
-    month: m.month_label,
-    liquidity: m.assets,
-    savings: m.savings,
-    loans: m.loans,
-  }));
-
+  // Build financial overview bar chart data
   const financialOverview = [
     { name: t("dashboard.coop.assets"), value: getKpi("total_assets")?.value ?? 0 },
     { name: t("dashboard.coop.loans"), value: getKpi("gross_loan_portfolio")?.value ?? 0 },
     { name: t("dashboard.coop.deposits"), value: getKpi("total_member_deposits")?.value ?? 0 },
   ];
 
+  // Build loan portfolio quality pie chart data
+  const par30 = getKpi("par30")?.value ?? 0;
+  const par90 = getKpi("par90")?.value ?? 0;
+  const loanPortfolio = [
+    { name: t("dashboard.coop.performing"), value: Math.max(0, 100 - par30) },
+    { name: t("dashboard.coop.watchList"), value: Math.max(0, par30 - par90) },
+    { name: t("dashboard.coop.nonPerforming"), value: par90 },
+  ].filter((s) => s.value > 0);
+
+  const isLoading = statsLoading || subsLoading || profileLoading || kpisLoading;
+
   return (
     <AppShell
-      title={t("dashboard.coop.title")}
-      subtitle={`${t("dashboard.coop.title")} · ${t("dashboard.coop.subtitleSuffix")}`}
+      title={profile?.name ?? t("dashboard.coop.title")}
+      subtitle={`${profile?.name ?? t("dashboard.coop.title")} · ${t("dashboard.coop.subtitleSuffix")}`}
       actions={
         <div className="flex items-center gap-2">
           <Link
@@ -211,7 +108,7 @@ export function CooperativeDashboard() {
       <div className="space-y-6">
         {/* ── KPI Stats Row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {statsLoading ? (
+          {isLoading ? (
             <div className="col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="rounded-xl border border-border bg-surface p-4 space-y-3">
@@ -259,44 +156,122 @@ export function CooperativeDashboard() {
           )}
         </div>
 
-        {/* ── Database Status Grid ── */}
-        <Card
-          title={t("dashboard.coop.databaseStatus")}
-          subtitle={t("dashboard.coop.databaseStatusSub")}
-          info={t("dashboard.coop.databaseStatusInfo")}
-        >
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {databaseStatus.map((db) => (
-              <div
-                key={db.name}
-                className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <db.icon className="size-4 text-foreground" />
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      db.statusKey === "Current"
-                        ? "bg-success/10 text-success"
-                        : db.statusKey === "Empty"
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-warning/10 text-warning-foreground"
-                    }`}
-                  >
-                    {db.status}
-                  </span>
-                </div>
-                <p className="font-heading text-lg font-bold text-foreground num">
-                  {db.records.toLocaleString()}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {db.name} {t("dashboard.coop.records")}
-                </p>
+        {/* ── Profile & Core Financial Metrics Grid ── */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <Card
+            title={profile?.name ?? "Profile"}
+            subtitle="Cooperative identity and registry summary"
+          >
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 mb-3 border-b border-border/50 pb-2">
+                <Building2 className="size-4 text-accent" />
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground">Cooperative Details</span>
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Region
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {profile?.region ?? "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Institution Type
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {profile?.institution_type ?? "—"}
+                </span>
+              </div>
+            </div>
+          </Card>
 
-        {/* ── Charts Row 1: Balance Breakdown & Portfolio Quality ── */}
+          {/* Key Financial Metrics */}
+          <div className="lg:col-span-2">
+            <Card
+              title={t("dashboard.coop.keyMetrics")}
+              subtitle={
+                latestSubmission
+                  ? t("dashboard.coop.keyMetricsSub", {
+                      year: latestSubmission.reporting_year,
+                      status: statusLabel(latestSubmission.status),
+                    })
+                  : t("dashboard.coop.keyMetricsSubFallback")
+              }
+              info={t("dashboard.coop.keyMetricsInfo")}
+            >
+              {kpisLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-border bg-surface p-4 animate-pulse space-y-2"
+                    >
+                      <div className="h-2.5 w-16 rounded bg-muted" />
+                      <div className="h-6 w-14 rounded bg-muted" />
+                      <div className="h-2 w-10 rounded bg-muted" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {(
+                    [
+                      { label: t("dashboard.coop.assets"), kpiName: "total_assets" },
+                      { label: t("dashboard.coop.loans"), kpiName: "gross_loan_portfolio" },
+                      { label: t("dashboard.coop.deposits"), kpiName: "total_member_deposits" },
+                      { label: t("dashboard.coop.netSurplus"), kpiName: "net_surplus" },
+                      { label: t("dashboard.coop.nplRatio"), kpiName: "npl_ratio" },
+                      {
+                        label: t("dashboard.coop.capitalAdequacy"),
+                        kpiName: "capital_adequacy_ratio",
+                      },
+                    ] as const
+                  ).map((metric) => {
+                    const kpi = getKpi(metric.kpiName);
+                    const statusColor =
+                      kpi?.status === "green"
+                        ? "text-success"
+                        : kpi?.status === "red"
+                          ? "text-destructive"
+                          : kpi?.status === "amber"
+                            ? "text-warning-foreground"
+                            : "text-foreground";
+
+                    return (
+                      <div
+                        key={metric.label}
+                        className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                          {metric.label}
+                        </p>
+                        {kpi ? (
+                          <>
+                            <p className={`font-heading text-lg font-bold num ${statusColor}`}>
+                              {kpi.formatted}
+                            </p>
+                            {kpi.benchmark !== undefined && (
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {t("common.benchmark")}:{" "}
+                                {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="font-heading text-lg font-bold text-muted-foreground num">—</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+
+        {/* ── Charts Row: Balance Breakdown & Portfolio Quality ── */}
         <div className="grid lg:grid-cols-3 gap-6">
           <Card
             className="lg:col-span-2"
@@ -384,7 +359,7 @@ export function CooperativeDashboard() {
               </div>
             ) : loanPortfolio.length > 0 ? (
               <>
-                <div className="h-52">
+                <div className="h-44">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -439,233 +414,6 @@ export function CooperativeDashboard() {
             )}
           </Card>
         </div>
-
-        {/* ── Financial Growth Trend ── */}
-        <div className="grid lg:grid-cols-1 gap-6">
-          <Card
-            title={t("dashboard.coop.growthTrend")}
-            subtitle={t("dashboard.coop.growthTrendSub")}
-            info={t("dashboard.coop.growthTrendInfo")}
-          >
-            {trendPoints.length > 0 ? (
-              <CoopTrendAreaChart data={trendPoints} />
-            ) : (
-              <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-center gap-2">
-                <TrendingUp className="size-8 opacity-30" />
-                <p className="text-sm">{t("dashboard.coop.noTrendData")}</p>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* ── Charts Row 2: OSS + Membership counts from real data ── */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card
-            title={t("dashboard.coop.membershipSummary")}
-            subtitle={t("dashboard.coop.membershipSummarySub")}
-            info={t("dashboard.coop.membershipSummaryInfo")}
-          >
-            <div className="flex flex-col gap-4 pt-2">
-              {(membersData?.total ?? 0) > 0 ? (
-                <>
-                  <div className="rounded-xl border border-border bg-surface p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {t("dashboard.coop.membershipSummarySub")}
-                    </p>
-                    <p className="font-heading text-3xl font-bold text-foreground num mt-1">
-                      {(membersData?.total ?? 0).toLocaleString()}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    {t("dashboard.coop.demographicBreakdown")}
-                  </p>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
-                  <Users className="size-8 opacity-30" />
-                  <p className="text-xs">{t("dashboard.coop.noMembership")}</p>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card
-            title={t("dashboard.coop.dbCoverage")}
-            subtitle={t("dashboard.coop.dbCoverageSub")}
-            info={t("dashboard.coop.dbCoverageInfo")}
-          >
-            <div className="flex flex-col gap-2 pt-2">
-              {databaseStatus.map((db) => {
-                const hasData = db.records > 0;
-                return (
-                  <div key={db.name} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <db.icon className="size-3.5 shrink-0" />
-                      {db.name}
-                    </span>
-                    <span
-                      className={`font-bold num ${hasData ? "text-foreground" : "text-muted-foreground"}`}
-                    >
-                      {hasData ? db.records.toLocaleString() : "—"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          <Card
-            title={t("dashboard.coop.oss")}
-            subtitle={kpisData ? t("dashboard.coop.ossSub") : t("dashboard.coop.noData")}
-            info={t("dashboard.coop.ossInfo")}
-          >
-            {kpisLoading ? (
-              <div className="h-52 flex flex-col items-center gap-3 pt-4">
-                <Skeleton className="h-36 w-36 rounded-full" />
-                <Skeleton className="h-6 w-16" />
-                <Skeleton className="h-2 w-24" />
-              </div>
-            ) : ossValue > 0 ? (
-              <>
-                <div className="h-52">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="60%"
-                      outerRadius="90%"
-                      data={complianceRadial}
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      <RadialBar
-                        dataKey="value"
-                        cornerRadius={10}
-                        fill={
-                          ossValue >= 110
-                            ? "var(--success)"
-                            : ossValue >= 100
-                              ? "var(--warning)"
-                              : "var(--destructive)"
-                        }
-                        background={{ fill: "var(--muted)" }}
-                      />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="text-center -mt-4">
-                  <p
-                    className={`font-heading text-4xl font-bold num ${
-                      ossValue >= 110
-                        ? "text-success"
-                        : ossValue >= 100
-                          ? "text-warning-foreground"
-                          : "text-destructive"
-                    }`}
-                  >
-                    {ossValue.toFixed(1)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {ossValue >= 110
-                      ? t("dashboard.coop.fullySelfSufficient")
-                      : ossValue >= 100
-                        ? t("dashboard.coop.breakingEven")
-                        : t("dashboard.coop.belowSelfSufficiency")}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {t("dashboard.coop.benchmarkOss")}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
-                <ShieldCheck className="size-8 opacity-30" />
-                <p className="text-xs">{t("dashboard.coop.submitStatementOss")}</p>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* ── Key Financial Metrics (real KPI data) ── */}
-        <Card
-          title={t("dashboard.coop.keyMetrics")}
-          subtitle={
-            latestSubmission
-              ? t("dashboard.coop.keyMetricsSub", {
-                  year: latestSubmission.reporting_year,
-                  status: statusLabel(latestSubmission.status),
-                })
-              : t("dashboard.coop.keyMetricsSubFallback")
-          }
-          info={t("dashboard.coop.keyMetricsInfo")}
-        >
-          {kpisLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-border bg-surface p-4 animate-pulse space-y-2"
-                >
-                  <div className="h-2.5 w-16 rounded bg-muted" />
-                  <div className="h-6 w-14 rounded bg-muted" />
-                  <div className="h-2 w-10 rounded bg-muted" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {(
-                [
-                  { label: t("dashboard.coop.assets"), kpiName: "total_assets" },
-                  { label: t("dashboard.coop.loans"), kpiName: "gross_loan_portfolio" },
-                  { label: t("dashboard.coop.deposits"), kpiName: "total_member_deposits" },
-                  { label: t("dashboard.coop.netSurplus"), kpiName: "net_surplus" },
-                  { label: t("dashboard.coop.nplRatio"), kpiName: "npl_ratio" },
-                  {
-                    label: t("dashboard.coop.capitalAdequacy"),
-                    kpiName: "capital_adequacy_ratio",
-                  },
-                ] as const
-              ).map((metric) => {
-                const kpi = getKpi(metric.kpiName);
-                const statusColor =
-                  kpi?.status === "green"
-                    ? "text-success"
-                    : kpi?.status === "red"
-                      ? "text-destructive"
-                      : kpi?.status === "amber"
-                        ? "text-warning-foreground"
-                        : "text-foreground";
-
-                return (
-                  <div
-                    key={metric.label}
-                    className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                      {metric.label}
-                    </p>
-                    {kpi ? (
-                      <>
-                        <p className={`font-heading text-xl font-bold num ${statusColor}`}>
-                          {kpi.formatted}
-                        </p>
-                        {kpi.benchmark !== undefined && (
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {t("common.benchmark")}:{" "}
-                            {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="font-heading text-xl font-bold text-muted-foreground num">—</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
 
         {/* ── Submission History ── */}
         <Card
