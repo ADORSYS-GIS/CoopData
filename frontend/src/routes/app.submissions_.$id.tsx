@@ -1,15 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { SubmissionDetailPage } from "@/pages/shared/SubmissionDetailPage";
 
-function SubmissionDetailRoute() {
+function SubmissionDetailLayout() {
   return (
     <ProtectedRoute>
-      <SubmissionDetailPage />
+      <Outlet />
     </ProtectedRoute>
   );
 }
 
 export const Route = createFileRoute("/app/submissions_/$id")({
-  component: SubmissionDetailRoute,
+  component: SubmissionDetailLayout,
 });

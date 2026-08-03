@@ -8,10 +8,11 @@ use coop_data_backend::{
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
-    KpiRecordRepository, LoanRepository, MemberRepository, MinistryReportNarrativesRepository,
-    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    OrganizationRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,MinistryReportNarrativesRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
+    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -71,6 +72,8 @@ impl TestApp {
         let narrative_generator = coop_data_backend::services::report_narrative::create_narrative_generator(&config);
         let ministry_narratives_repo =
             coop_data_backend::repositories::MinistryReportNarrativesRepository::new(db.clone());
+        let questionnaire_repo = QuestionnaireRepository::new(db.clone());
+        let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -94,6 +97,8 @@ impl TestApp {
             flag_repo,
             review_repo,
             section_repo,
+            questionnaire_repo,
+            questionnaire_template_repo,
             non_financial_indicator_catalog_repo,
             non_financial_indicator_entry_repo,
             extractor,

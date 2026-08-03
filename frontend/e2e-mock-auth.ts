@@ -73,10 +73,19 @@ export default function KeycloakMock(config) {
     transform(code, id) {
       if (!enabled) return null;
       if (id.includes("authService") && id.endsWith(".ts")) {
-        return code.replace(
+        let newCode = code.replace(
           /export function waitForKeycloakReady[\s\S]*?^\}/m,
           `export function waitForKeycloakReady(timeoutMs = 8000) { return Promise.resolve(true); }`,
         );
+        newCode = newCode.replace(
+          /async function loadCachedTokens\(\)[\s\S]*?^\}/m,
+          `async function loadCachedTokens() { return null; }`,
+        );
+        newCode = newCode.replace(
+          /async function persistTokens\(\)[\s\S]*?^\}/m,
+          `async function persistTokens() { return; }`,
+        );
+        return newCode;
       }
       return null;
     },
