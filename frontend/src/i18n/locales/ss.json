@@ -1582,6 +1582,13 @@
     "originalTenure": "Isikhatsi Sokuqala"
   },
   "analytics": {
+    "tab": {
+      "consolidatedDashboard": "Ideshibhodi Ehihlanganisiwe",
+      "cooperativeRankings": "Izinga Lemakhopharethi",
+      "portfolioClassification": "Ukuhlukaniswa Kwephothifoliyo",
+      "incomeStatement": "Sitatimende Semali Engenayo",
+      "financialIndicators": "Tinkhombandlela Zetimali"
+    },
     "noPerformanceData": "Akukho data yekusebenta etholakalako",
     "noTrendData": "Akukho data yettrend etholakalako",
     "liquidity": "Imali Enyakazayo",

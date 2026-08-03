@@ -1582,6 +1582,13 @@
     "originalTenure": "Prazo Original"
   },
   "analytics": {
+    "tab": {
+      "consolidatedDashboard": "Painel Consolidado",
+      "cooperativeRankings": "Classificações das Cooperativas",
+      "portfolioClassification": "Classificação do Portfólio",
+      "incomeStatement": "Demonstração de Resultados",
+      "financialIndicators": "Indicadores Financeiros"
+    },
     "noPerformanceData": "Nenhum dado de desempenho disponível",
     "noTrendData": "Nenhum dado de tendência disponível",
     "liquidity": "Liquidez",

@@ -1582,6 +1582,13 @@
     "originalTenure": "Original Tenure"
   },
   "analytics": {
+    "tab": {
+      "consolidatedDashboard": "Consolidated Dashboard",
+      "cooperativeRankings": "Cooperative Rankings",
+      "portfolioClassification": "Portfolio Classification",
+      "incomeStatement": "Income Statement",
+      "financialIndicators": "Financial Indicators"
+    },
     "noPerformanceData": "No performance data available",
     "noTrendData": "No trend data available",
     "liquidity": "Liquidity",

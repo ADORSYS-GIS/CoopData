@@ -19,50 +19,50 @@
 
                 <#-- Main brand content -->
                 <div class="brand-content">
-                    <h2>Trusted access for every cooperative stakeholder.</h2>
-                    <p>CoopData enforces role-based access and device verification for every ministry official, federation officer, cooperative manager, and regional officer.</p>
+                    <h2>${msg("brandTitle")}</h2>
+                    <p>${msg("brandBody")}</p>
                     <ul class="brand-features">
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Role-specific dashboards and permissions
+                            ${msg("featureRoleDashboards")}
                         </li>
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Secure data submission and validation
+                            ${msg("featureSecureSubmission")}
                         </li>
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Full audit trail on every action
+                            ${msg("featureAuditTrail")}
                         </li>
                     </ul>
                 </div>
 
                 <p class="brand-footer">
-                    &copy; ${.now?string('yyyy')} Ministry of Commerce & Cooperative Development
+                    &copy; ${.now?string('yyyy')} ${msg("ministryName")}
                 </p>
             </aside>
 
             <#-- Right Form Panel -->
-            <main class="form-panel">
+             <main class="form-panel">
                 <#-- Top bar -->
                 <div class="top-bar">
-                    <a href="/" class="back-link">
+                    <a href="${(client.baseUrl)!'/'}" class="back-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
                         </svg>
-                        Back to home
+                        ${msg("backToHome")}
                     </a>
                     <p class="top-bar-help">
-                        Need access? <a href="${url.registrationUrl}" class="invitation-link">Request invitation</a>
+                        ${msg("needAccess")} <a href="${url.registrationUrl}" class="invitation-link">${msg("requestInvitation")}</a>
                     </p>
                 </div>
 
@@ -72,8 +72,8 @@
                         <div class="form-logo">
                             <img src="${url.resourcesPath}/img/coopdatalogo.png" alt="CoopData Logo" />
                         </div>
-                        <h1>Sign in to CoopData</h1>
-                        <p>Enter your credentials to access your dashboard.</p>
+                        <h1>${msg("signInTitle")}</h1>
+                        <p>${msg("signInSubtitle")}</p>
                     </div>
 
                     <#if realm.password>
