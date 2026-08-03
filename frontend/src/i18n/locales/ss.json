@@ -125,7 +125,21 @@
     "pageX": "Ikhasi {{page}}",
     "verifyingCredentials": "Kucinisekisa imitfombo…",
     "amount": "Inani",
-    "benchmark": "Isilinganiso"
+    "benchmark": "Isilinganiso",
+    "months": {
+      "jan": "31 Bhim",
+      "feb": "28 Indl",
+      "mar": "31 Indl-lenk",
+      "apr": "30 Mab",
+      "may": "31 Inkh",
+      "jun": "30 Inhl",
+      "jul": "31 Khol",
+      "aug": "31 Ingc",
+      "sep": "30 Inyo",
+      "oct": "31 Imph",
+      "nov": "30 Lwe",
+      "dec": "31 Ingo"
+    }
   },
   "unauthorized": {
     "title": "Ukufinyelela Kunqatsiwe",

@@ -125,7 +125,21 @@
     "pageX": "Page {{page}}",
     "verifyingCredentials": "Vérification des identifiants…",
     "amount": "Montant",
-    "benchmark": "Référence"
+    "benchmark": "Référence",
+    "months": {
+      "jan": "31 Janv",
+      "feb": "28 Févr",
+      "mar": "31 Mars",
+      "apr": "30 Avr",
+      "may": "31 Mai",
+      "jun": "30 Juin",
+      "jul": "31 Juil",
+      "aug": "31 Août",
+      "sep": "30 Sept",
+      "oct": "31 Oct",
+      "nov": "30 Nov",
+      "dec": "31 Déc"
+    }
   },
   "unauthorized": {
     "title": "Accès refusé",

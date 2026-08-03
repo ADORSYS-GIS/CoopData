@@ -1008,10 +1008,57 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
         .find_by_keycloak_id(&apex.id)
         .await
         .ok()
-        .flatten()
-        .ok_or_else(|| AppError::Forbidden("Apex group not found in database".into()))?;
+        .flatten();
 
-    Ok(apex_pg.id)
+    let apex_pg_id = match apex_pg {
+        Some(a) => a.id,
+        None => {
+            tracing::warn!(apex_keycloak_id = %apex.id, "Apex group not found in database, auto-backfilling tracking record");
+
+            // Try to find parent federation
+            let org_id = apex.attributes.as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first().cloned());
+
+            let federation = if let Some(ref o_id) = org_id {
+                state.federation_repo.find_by_keycloak_id(o_id).await.ok().flatten()
+            } else {
+                None
+            };
+
+            let federation = match federation {
+                Some(fed) => fed,
+                None => {
+                    use sea_orm::EntityTrait;
+                    let all_feds = crate::entities::federation::Entity::find()
+                        .all(&state.db)
+                        .await
+                        .map_err(AppError::DatabaseError)?;
+                    all_feds.first().cloned().ok_or_else(|| {
+                        AppError::Forbidden("No federations exist in database to link the apex".into())
+                    })?
+                }
+            };
+
+            let keycloak_org_id = org_id.unwrap_or_else(|| federation.keycloak_id.clone());
+
+            let new_apex = crate::entities::apex::ActiveModel {
+                id: sea_orm::Set(Uuid::new_v4()),
+                keycloak_id: sea_orm::Set(apex.id.clone()),
+                federation_id: sea_orm::Set(federation.id),
+                organization_keycloak_id: sea_orm::Set(keycloak_org_id),
+                display_name: sea_orm::Set(apex.name.clone()),
+                metadata: sea_orm::Set(None),
+                created_at: sea_orm::Set(chrono::Utc::now()),
+                updated_at: sea_orm::Set(chrono::Utc::now()),
+            };
+
+            let inserted = state.apex_repo.create(new_apex).await?;
+            inserted.id
+        }
+    };
+
+    Ok(apex_pg_id)
 }
 
 /// Resolves the calling cooperative user's DB record from JWT claims.
