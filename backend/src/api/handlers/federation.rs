@@ -112,6 +112,7 @@ pub async fn create_federation(
         keycloak_id: sea_orm::Set(org.id.clone()),
         display_name: sea_orm::Set(display_name.clone()),
         is_active: sea_orm::Set(true),
+        metadata: sea_orm::Set(None),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };

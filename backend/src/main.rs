@@ -6,16 +6,19 @@ use coop_data_backend::{
     auth::JwtValidator,
     config::AppConfig,
     database,
-    services::{ai_extraction::create_extractor, cache::CacheService, keycloak::KeycloakService},
+    services::{
+        ai_extraction::create_extractor, cache::CacheService, keycloak::KeycloakService,
+        create_narrative_generator,
+    },
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, CalamineNfParser,
     ChartOfAccountsRepository, CooperativeRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, LoanRepository,
-    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    ObjectStorageService, OrganizationRepository, QuestionnaireRepository,
-    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
+    NonFinancialIndicatorEntryRepository, ObjectStorageService, OrganizationRepository,
+    QuestionnaireRepository,
+    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository, SubmissionReviewRepository,
+    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
 };
 
 #[tokio::main]
@@ -71,11 +74,13 @@ async fn main() -> anyhow::Result<()> {
     let loan_repo = LoanRepository::new(db.clone());
     let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
     let farm_coop_repo = FarmCoopRepository::new(db.clone());
+    let ministry_narratives_repo = MinistryReportNarrativesRepository::new(db.clone());
     let questionnaire_repo = QuestionnaireRepository::new(db.clone());
     let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
     let extractor = create_extractor(&config);
+    let narrative_generator = create_narrative_generator(&config);
     let storage = ObjectStorageService::new(&config).await?;
     let nf_excel_parser = CalamineNfParser::new();
 
@@ -117,6 +122,7 @@ async fn main() -> anyhow::Result<()> {
         custom_kpi_repo,
         kpi_record_repo,
         extractor,
+        narrative_generator,
         member_repo,
         savings_account_repo,
         loan_repo,
@@ -125,6 +131,8 @@ async fn main() -> anyhow::Result<()> {
         storage,
         nf_excel_parser,
         gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+        ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+        ministry_narratives_repo,
     };
 
     // Backfill computed KPIs for existing submissions

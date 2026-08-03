@@ -1,11 +1,13 @@
 import React from "react";
 import { ReportDataProps } from "./types";
+import { AiInsightBox } from "./AiInsightBox";
 import { useTranslation } from "react-i18next";
 
 export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
   kpisData,
   submission,
   submissionId,
+  narratives,
 }) => {
   const { t } = useTranslation();
   return (
@@ -14,10 +16,17 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
         {t("printReports.pearlsBenchmarkComparisonTitle")}
       </h2>
 
-      <div className="bg-slate-50 p-4 mb-6 text-xs text-slate-700 leading-relaxed border border-slate-200 rounded">
-        <p className="font-semibold mb-1">{t("printReports.narrative")}</p>
-        {t("printReports.pearlsNarrative")}
-      </div>
+      <AiInsightBox
+        title="Benchmark Analysis"
+        content={narratives?.benchmark_comparison}
+        fallbackContent={
+          <>
+            This section compares the cooperative's key performance indicators against the standard
+            PEARLS and sector benchmarks. Status indicators highlight areas of strength and
+            potential risk.
+          </>
+        }
+      />
 
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>
@@ -44,15 +53,14 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
               </td>
               <td className="px-2 py-1 text-center">
                 <span
-                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                    kpi.status === "green"
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${kpi.status === "green"
                       ? "bg-green-100 text-green-800"
                       : kpi.status === "amber"
                         ? "bg-amber-100 text-amber-800"
                         : kpi.status === "red"
                           ? "bg-red-100 text-red-800"
                           : "bg-slate-100 text-slate-800"
-                  }`}
+                    }`}
                 >
                   {kpi.status || "N/A"}
                 </span>

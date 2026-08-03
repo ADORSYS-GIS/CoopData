@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ReportDataProps } from "./types";
 import { findKpi, formatCurrency, calculateYoY } from "./utils";
 import { ShieldAlert, ShieldCheck, Shield } from "lucide-react";
+import { AiInsightBox } from "./AiInsightBox";
 
 export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   submission,
@@ -11,6 +12,7 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   coopName,
   kpiMap,
   kpisData,
+  narratives,
 }) => {
   const { t } = useTranslation();
   const complianceKpis = [
@@ -90,11 +92,18 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
         </div>
       </div>
 
-      {/* Sector Context */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-xs text-blue-900 leading-relaxed">
-        <p className="font-semibold mb-1">{t("printReports.sectorContext")}</p>
-        {t("printReports.sectorContextDesc", { assets: totalAssetsFormatted })}
-      </div>
+      {/* AI Insight */}
+      <AiInsightBox
+        title="Executive Summary & Key Strengths"
+        content={narratives?.executive_summary}
+        fallbackContent={
+          <>
+            This cooperative's total assets represent {totalAssetsFormatted} of the national
+            cooperative sector total. The sector's average PAR30 is roughly 8.2%, and this
+            cooperative's asset quality continues to be monitored closely against regulatory limits.
+          </>
+        }
+      />
 
       {/* Financial Highlights */}
       <h4 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.financialHighlights")}</h4>

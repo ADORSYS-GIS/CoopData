@@ -13,17 +13,20 @@ import {
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
 import { useTranslation } from "react-i18next";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface FederationSectorSheetProps {
   federationName: string;
   year: number;
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
   federationName,
   year,
   data,
+  narratives,
 }) => {
   const { t } = useTranslation();
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
@@ -201,15 +204,20 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
         </div>
 
         {/* Narrative */}
-        <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-900 text-sm leading-relaxed">
-          {t("printReports.sectorNarrativeStart", { assets: totalAssets.toLocaleString(undefined, { maximumFractionDigits: 0 }) })}
-          {" "}
-          {t("printReports.sectorNarrativeFiling", { pct: totalFilingPct.toFixed(1), count: cooperatives.length })}
-          <br />
-          <em>
-            {t("printReports.sectorNarrativeNote")}
-          </em>
-        </div>
+        <AiInsightBox
+          title="Sector Composition — AI Insight"
+          content={narratives}
+          fallbackContent={
+            <>
+              The federation's total assets for the reported period are{" "}
+              <strong>
+                E {totalAssets.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </strong>
+              . Filing rates stand at <strong>{totalFilingPct.toFixed(1)}%</strong> across{" "}
+              {cooperatives.length} member cooperatives.
+            </>
+          }
+        />
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { NationalOverviewResponse, CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface ConsolidatedDashboardSheetProps {
   tier: "Apex" | "Federation" | "Ministry";
@@ -19,6 +20,8 @@ interface ConsolidatedDashboardSheetProps {
   data: NationalOverviewResponse;
   priorData?: NationalOverviewResponse;
   totalApexes?: number;
+  narratives?: string;
+  riskNarratives?: string;
 }
 
 export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProps> = ({
@@ -28,6 +31,8 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   data,
   priorData,
   totalApexes,
+  narratives,
+  riskNarratives,
 }) => {
   const { t } = useTranslation();
   const { total_cooperatives, cooperatives_with_data, distributions, cooperatives } = data;
@@ -159,6 +164,18 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
         </p>
 
         <h2 className="text-xl font-bold text-blue-800 mb-4">{t("printReports.dashboard.executiveDashboard")}</h2>
+
+        <AiInsightBox
+          title={`${tier} Executive Dashboard — AI Insight`}
+          content={narratives}
+          fallbackContent={
+            <>
+              This executive dashboard consolidates financial performance, KPI compliance, and risk
+              distribution across all cooperatives within the {tier.toLowerCase()} for the reporting
+              period.
+            </>
+          }
+        />
 
         {/* Header Table */}
         <h3 className="text-sm font-bold text-slate-800 mb-1">{t("printReports.dashboard.header")}</h3>
@@ -362,6 +379,18 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
         <h3 className="text-sm font-bold text-slate-800 mb-1">
           {t("printReports.dashboard.riskDistributionTitle")}
         </h3>
+
+        <AiInsightBox
+          title={`${tier} Risk Distribution — AI Insight`}
+          content={riskNarratives}
+          fallbackContent={
+            <>
+              This risk distribution analysis covers the green/amber/red breakdown across all
+              cooperatives within the {tier.toLowerCase()} for the reporting period.
+            </>
+          }
+        />
+
         <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-4">
           <div className="h-64">
             <BarChart
@@ -404,7 +433,6 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
             </BarChart>
           </div>
         </div>
-
         <table className="w-full text-left text-[11px] mb-8 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">

@@ -126,6 +126,11 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/submissions/{id}/export",
             get(crate::api::handlers::export::export_single_submission),
         )
+        .route(
+            "/submissions/{id}/narratives",
+            get(crate::api::handlers::export::get_submission_narratives)
+                .post(crate::api::handlers::export::generate_submission_narratives),
+        )
         .route("/submissions/{id}/kpis", get(get_submission_kpis))
         .route(
             "/submissions/{id}/financial-statement/line-items",

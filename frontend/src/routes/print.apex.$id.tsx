@@ -3,6 +3,7 @@ import { ConsolidatedReportPrint } from "@/pages/shared/print/ConsolidatedReport
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useApex } from "@/hooks/apexes/useApexes";
 import { useTranslation } from "react-i18next";
+import { useApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/apex/$id")({
   component: PrintComponent,
@@ -34,6 +35,8 @@ function PrintComponent() {
     token,
   );
 
+  const { data: narratives } = useApexNarratives(id, currentYear, token);
+
   const isLoading = isLoadingCurrent || isLoadingPrior;
 
   if (isLoading || !overviewData) {
@@ -54,6 +57,7 @@ function PrintComponent() {
       year={currentYear}
       data={overviewData}
       priorData={priorData}
+      narratives={narratives}
     />
   );
 }

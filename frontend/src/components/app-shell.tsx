@@ -32,7 +32,7 @@ import {
   Calculator,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode, useState, useEffect } from "react";
+import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
@@ -149,6 +149,23 @@ function Sidebar({
 
   const isCollapsed = collapsed && !mobile;
 
+  const userContextLabel = useMemo(() => {
+    if (isCollapsed) return null;
+    const ctx =
+      effectiveRole === "ministry"
+        ? t("common.national")
+        : effectiveRole === "federation"
+          ? (user?.organizationName ?? user?.region ?? null)
+          : effectiveRole === "apex" || effectiveRole === "cooperative"
+            ? (user?.cooperationName ?? user?.region ?? null)
+            : null;
+    return ctx ? (
+      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
+        {ctx}
+      </p>
+    ) : null;
+  }, [isCollapsed, effectiveRole, user, t]);
+
   return (
     <aside
       className={`flex shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-300 ${
@@ -210,8 +227,7 @@ function Sidebar({
                   <li key={item.to}>
                     <Link
                       to={item.to}
-                      onClick={(e) => {
-                        console.log("[Sidebar] Clicking link:", item.to);
+                      onClick={() => {
                         onClose?.();
                       }}
                       title={isCollapsed ? translatedLabel : undefined}
@@ -277,22 +293,7 @@ function Sidebar({
                 <p className="text-[11px] text-sidebar-foreground/75 truncate">
                   {t(`roles.${currentRole.id}`)}
                 </p>
-                {!isCollapsed &&
-                  (() => {
-                    const ctx =
-                      effectiveRole === "ministry"
-                        ? t("common.national")
-                        : effectiveRole === "federation"
-                          ? (user?.organizationName ?? user?.region ?? null)
-                          : effectiveRole === "apex" || effectiveRole === "cooperative"
-                            ? (user?.cooperationName ?? user?.region ?? null)
-                            : null;
-                    return ctx ? (
-                      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
-                        {ctx}
-                      </p>
-                    ) : null;
-                  })()}
+                {userContextLabel}
               </div>
             )}
           </Link>

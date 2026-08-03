@@ -3,6 +3,7 @@ import { FederationReportPrint } from "@/pages/shared/print/FederationReportPrin
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederation } from "@/hooks/federations/useFederations";
 import { useTranslation } from "react-i18next";
+import { useFederationNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/federation/$id")({
   component: PrintComponent,
@@ -34,6 +35,8 @@ function PrintComponent() {
     token,
   );
 
+  const { data: narratives } = useFederationNarratives(id, currentYear, token);
+
   const isLoading = isLoadingCurrent || isLoadingPrior;
 
   if (isLoading || !overviewData) {
@@ -54,6 +57,7 @@ function PrintComponent() {
         year={currentYear}
         data={overviewData}
         priorData={priorData}
+        narratives={narratives}
       />
     </div>
   );

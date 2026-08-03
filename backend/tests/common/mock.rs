@@ -8,7 +8,7 @@ use coop_data_backend::{
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
-    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
+    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,MinistryReportNarrativesRepository,
     NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
     QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
@@ -69,6 +69,9 @@ impl TestApp {
             NonFinancialIndicatorEntryRepository::new(db.clone());
         let custom_kpi_repo = CustomKpiRepository::new(db.clone());
         let kpi_record_repo = KpiRecordRepository::new(db.clone());
+        let narrative_generator = coop_data_backend::services::report_narrative::create_narrative_generator(&config);
+        let ministry_narratives_repo =
+            coop_data_backend::repositories::MinistryReportNarrativesRepository::new(db.clone());
         let questionnaire_repo = QuestionnaireRepository::new(db.clone());
         let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
 
@@ -108,7 +111,10 @@ impl TestApp {
             kpi_record_repo,
             storage,
             gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+            ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+            narrative_generator,
             nf_excel_parser,
+            ministry_narratives_repo,
         };
 
         TestApp { state }

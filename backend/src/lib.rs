@@ -20,13 +20,14 @@ pub use repositories::{
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
     CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
-    MemberRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationRepository, QuestionnaireRepository, QuestionnaireTemplateRepository,
     SavingsAccountRepository, SubmissionRepository, SubmissionReviewRepository,
     SubmissionSectionRepository, UploadedFileRepository, UserRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
+pub use services::report_narrative::ReportNarrativeGenerator;
 pub use services::{AuditService, CalamineNfParser, ObjectStorageService};
 
 #[derive(Clone)]
@@ -63,6 +64,7 @@ pub struct AppState {
     pub kpi_record_repo: crate::repositories::kpi_record::KpiRecordRepository,
     // services
     pub extractor: std::sync::Arc<dyn Extractor>,
+    pub narrative_generator: std::sync::Arc<dyn ReportNarrativeGenerator>,
     pub member_repo: MemberRepository,
     pub savings_account_repo: SavingsAccountRepository,
     pub loan_repo: LoanRepository,
@@ -71,6 +73,8 @@ pub struct AppState {
     pub storage: ObjectStorageService,
     pub nf_excel_parser: CalamineNfParser,
     pub gotenberg_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
+    pub ai_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
+    pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
 }
 
 impl AppState {

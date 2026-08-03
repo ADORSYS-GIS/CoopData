@@ -21,20 +21,6 @@ interface FinancialIndicatorsProps {
   filterParams?: NationalOverviewParams;
 }
 
-const MONTH_OPTIONS = [
-  { value: "1", label: "31. Jan " },
-  { value: "2", label: "28. Feb " },
-  { value: "3", label: "31. Mar " },
-  { value: "4", label: "30. Apr " },
-  { value: "5", label: "31. May " },
-  { value: "6", label: "30. Jun " },
-  { value: "7", label: "31. Jul " },
-  { value: "8", label: "31. Aug " },
-  { value: "9", label: "30. Sep " },
-  { value: "10", label: "31. Oct " },
-  { value: "11", label: "30. Nov " },
-  { value: "12", label: "31. Dec " },
-];
 
 interface IndicatorRow {
   label: string;
@@ -205,6 +191,21 @@ function buildIndicatorRows(t: TFunction): IndicatorRow[] {
 export function FinancialIndicators({ reportingYear, filterParams }: FinancialIndicatorsProps) {
   const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
+
+  const monthOptions = useMemo(() => [
+    { value: "1", label: t("common.months.jan", "31. Jan ") },
+    { value: "2", label: t("common.months.feb", "28. Feb ") },
+    { value: "3", label: t("common.months.mar", "31. Mar ") },
+    { value: "4", label: t("common.months.apr", "30. Apr ") },
+    { value: "5", label: t("common.months.may", "31. May ") },
+    { value: "6", label: t("common.months.jun", "30. Jun ") },
+    { value: "7", label: t("common.months.jul", "31. Jul ") },
+    { value: "8", label: t("common.months.aug", "31. Aug ") },
+    { value: "9", label: t("common.months.sep", "30. Sep ") },
+    { value: "10", label: t("common.months.oct", "31. Oct ") },
+    { value: "11", label: t("common.months.nov", "30. Nov ") },
+    { value: "12", label: t("common.months.dec", "31. Dec ") },
+  ], [t]);
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 
   const indicatorRows = useMemo(() => buildIndicatorRows(t), [t]);
@@ -311,7 +312,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MONTH_OPTIONS.map((m) => (
+                {monthOptions.map((m) => (
                   <SelectItem key={m.value} value={m.value} className="text-xs font-medium">
                     {m.label}
                     {reportingYear}

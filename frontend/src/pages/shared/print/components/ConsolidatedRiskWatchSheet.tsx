@@ -5,9 +5,11 @@ import type {
   CoopKpiRow,
   KpiValue,
 } from "@/hooks/analytics/useNationalOverview";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface ConsolidatedRiskWatchSheetProps {
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProps> = ({ data }) => {

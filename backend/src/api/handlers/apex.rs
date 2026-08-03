@@ -88,6 +88,7 @@ pub async fn create_apex(
                 keycloak_id: sea_orm::Set(org_id.clone()),
                 display_name: sea_orm::Set(body.name.clone()),
                 is_active: sea_orm::Set(true),
+                metadata: sea_orm::Set(None),
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };
@@ -109,6 +110,7 @@ pub async fn create_apex(
         federation_id: sea_orm::Set(federation_pg_id),
         organization_keycloak_id: sea_orm::Set(org_id.clone()),
         display_name: sea_orm::Set(body.name.clone()),
+        metadata: sea_orm::Set(None),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
