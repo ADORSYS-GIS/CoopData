@@ -73,7 +73,6 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     label: "System",
     items: [
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
-      { to: "/app/indicators", label: "Indicators", icon: ClipboardList },
       { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
@@ -120,7 +119,6 @@ function Sidebar({
     if (item.to === "/app/custom-kpis") return t("nav.customKpis");
 
     if (item.to === "/app/audit") return t("nav.auditLog");
-    if (item.to === "/app/indicators") return t("nav.indicators");
     if (item.to === "/app/questionnaire-templates") return t("nav.questionnaireForms");
     if (item.to === "/app/users") return t("nav.usersAndRoles");
     if (item.to === "/app/settings") return t("nav.settings");

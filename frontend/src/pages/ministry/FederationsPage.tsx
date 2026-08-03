@@ -146,26 +146,7 @@ function createColumns(
       header: t("federationsPage.tableHeaders.cooperatives"),
       cell: ({ row }) => <span className="text-sm">{row.original.cooperative_count ?? 0}</span>,
     },
-    {
-      accessorKey: "members",
-      header: t("federationsPage.tableHeaders.members"),
-      cell: () => (
-        <span className="text-sm font-medium">
-          <Users className="inline size-3 mr-1" />
-          842
-        </span>
-      ),
-    },
-    {
-      accessorKey: "portfolio",
-      header: t("federationsPage.tableHeaders.portfolio"),
-      cell: () => (
-        <span className="text-sm font-medium text-emerald-600">
-          <TrendingUp className="inline size-3 mr-1" />
-          $2.4M
-        </span>
-      ),
-    },
+
     {
       accessorKey: "enabled",
       header: t("federationsPage.tableHeaders.status"),
