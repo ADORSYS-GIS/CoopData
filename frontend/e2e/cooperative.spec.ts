@@ -14,9 +14,9 @@ test.describe("Cooperative user navigation", () => {
 
   test("should see cooperative dashboard title", async ({ page }) => {
     await page.goto("/app/dashboard");
-    await expect(
-      page.getByRole("heading", { name: "Cooperative Workspace" }),
-    ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Cooperative Workspace" })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("should access submissions page", async ({ page }) => {

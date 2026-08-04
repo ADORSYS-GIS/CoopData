@@ -8,11 +8,11 @@ use coop_data_backend::{
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
-    KpiRecordRepository, LoanRepository, MemberRepository,
-    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    OrganizationRepository, QuestionnaireRepository, QuestionnaireTemplateRepository,
-    SavingsAccountRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
+    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
