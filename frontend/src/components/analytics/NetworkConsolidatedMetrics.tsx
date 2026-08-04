@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
 import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
@@ -27,6 +28,7 @@ export interface NetworkConsolidatedMetricsProps {
   };
   totalCooperatives: number;
   cooperativesWithData: number;
+  totalApexes?: number;
 }
 
 export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProps> = ({
@@ -34,7 +36,9 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   networkTrend,
   totalCooperatives,
   cooperativesWithData,
+  totalApexes,
 }) => {
+  const { t } = useTranslation();
   const networkTrendPoints = useMemo(
     () =>
       (networkTrend?.months ?? []).map((m) => ({
@@ -46,194 +50,224 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
     [networkTrend],
   );
 
+  const fallbackTrendPoints = useMemo(
+    () =>
+      ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map(
+        (m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }),
+      ),
+    [],
+  );
+
   const networkKpiGridMetrics = useMemo(() => {
     if (!nfStats) return [];
-    return [
+
+    const baseMetrics = [
       {
-        label: "Total Cooperatives",
+        label: t("analytics.netTotalCooperatives"),
         value: cooperativesWithData,
-        tooltip:
-          "Cooperatives that have successfully submitted and had their data approved for this reporting year.",
+        tooltip: t("analytics.netTotalCooperativesTooltip"),
         trend: "neutral" as const,
-        trendValue: `of ${totalCooperatives}`,
+        trendValue: t("analytics.netOfX", { total: totalCooperatives }),
       },
       {
-        label: "Total Members",
+        label: t("analytics.netTotalMembers"),
         value: nfStats.membership.total.toLocaleString(),
-        tooltip: "Total registered members across the network.",
+        tooltip: t("analytics.netTotalMembersTooltip"),
         trend: "up" as const,
-        trendValue: `${nfStats.membership.active_pct.toFixed(1)}% Active`,
+        trendValue: t("analytics.netActivePct", {
+          pct: nfStats.membership.active_pct.toFixed(1),
+        }),
       },
       {
-        label: "Total Savings",
+        label: t("analytics.netTotalSavings"),
         value: `$${(nfStats.savings.total_balance / 1000).toFixed(1)}K`,
-        tooltip: "Aggregate savings deposits held by all cooperatives.",
+        tooltip: t("analytics.netTotalSavingsTooltip"),
         trend: "up" as const,
-        trendValue: `Avg: $${nfStats.savings.average_balance.toFixed(0)}`,
+        trendValue: t("analytics.netAvg", {
+          amount: nfStats.savings.average_balance.toFixed(0),
+        }),
       },
       {
-        label: "Total Loans",
+        label: t("analytics.netTotalLoans"),
         value: `$${(nfStats.loans.total_loan_amount / 1000).toFixed(1)}K`,
-        tooltip: "Aggregate outstanding loan portfolio across all cooperatives.",
+        tooltip: t("analytics.netTotalLoansTooltip"),
         trend: "up" as const,
-        trendValue: `${nfStats.loans.arrears_rate_pct.toFixed(1)}% Arrears`,
+        trendValue: t("analytics.netArrearsPct", {
+          pct: nfStats.loans.arrears_rate_pct.toFixed(1),
+        }),
       },
       {
-        label: "Fixed Deposits",
+        label: t("analytics.netFixedDeposits"),
         value: `$${(nfStats.fixed_deposits.total_balance / 1000).toFixed(1)}K`,
-        tooltip: "Aggregate fixed term deposits held by all cooperatives.",
+        tooltip: t("analytics.netFixedDepositsTooltip"),
         trend: "neutral" as const,
-        trendValue: `${nfStats.fixed_deposits.fd_penetration_pct.toFixed(1)}% Pen`,
+        trendValue: t("analytics.netPenPct", {
+          pct: nfStats.fixed_deposits.fd_penetration_pct.toFixed(1),
+        }),
       },
       {
-        label: "On-time Repayment",
+        label: t("analytics.netOnTimeRepayment"),
         value: `${nfStats.loans.on_time_repayment_pct.toFixed(1)}%`,
-        tooltip: "Aggregate percentage of loans repaid on schedule across the network.",
+        tooltip: t("analytics.netOnTimeRepaymentTooltip"),
         trend: "up" as const,
-        trendValue: "Healthy",
+        trendValue: t("analytics.legendHealthy"),
       },
     ];
-  }, [nfStats, totalCooperatives, cooperativesWithData]);
+
+    if (totalApexes !== undefined) {
+      baseMetrics.unshift({
+        label: t("analytics.netTotalApexes"),
+        value: totalApexes.toLocaleString(),
+        tooltip: t("analytics.netTotalApexesTooltip"),
+        trend: "neutral" as const,
+        trendValue: t("analytics.netNetworkScale"),
+      });
+    }
+
+    return baseMetrics;
+  }, [nfStats, totalCooperatives, cooperativesWithData, totalApexes, t]);
 
   const membershipMetrics = useMemo(() => {
     if (!nfStats?.membership) return [];
     const m = nfStats.membership;
     return [
       {
-        label: "Total Members",
+        label: t("analytics.netTotalMembers"),
         value: m.total.toLocaleString(),
-        tooltip: "Total number of registered cooperative members across the network",
+        tooltip: t("analytics.netTotalMembersTooltip2"),
         trend: "up" as const,
-        trendValue: "Network scale",
+        trendValue: t("analytics.netNetworkScale"),
       },
       {
-        label: "Active Members",
+        label: t("analytics.netActiveMembers"),
         value: m.active.toLocaleString(),
-        tooltip: "Members with transactions in the last 90 days",
+        tooltip: t("analytics.netActiveMembersTooltip"),
         trend: "up" as const,
-        trendValue: `${m.active_pct.toFixed(1)}% of total`,
+        trendValue: t("analytics.netOfTotalPct", { pct: m.active_pct.toFixed(1) }),
       },
       {
-        label: "Dormant Members",
+        label: t("analytics.netDormantMembers"),
         value: m.dormant.toLocaleString(),
-        tooltip: "Members with no transactions in the last 90 days",
+        tooltip: t("analytics.netDormantMembersTooltip"),
         trend: m.dormancy_pct > 20 ? ("down" as const) : ("neutral" as const),
-        trendValue: `${m.dormancy_pct.toFixed(1)}% dormancy rate`,
+        trendValue: t("analytics.netDormancyRatePct", { pct: m.dormancy_pct.toFixed(1) }),
       },
       {
-        label: "Youth Members",
+        label: t("analytics.netYouthMembers"),
         value: m.age_18_35.toLocaleString(),
-        tooltip: "Members under 35 years old",
+        tooltip: t("analytics.netYouthMembersTooltip"),
         trend: "neutral" as const,
-        trendValue: `${m.youth_pct.toFixed(1)}% of total`,
+        trendValue: t("analytics.netOfTotalPct", { pct: m.youth_pct.toFixed(1) }),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const savingsMetrics = useMemo(() => {
     if (!nfStats?.savings) return [];
     const s = nfStats.savings;
     return [
       {
-        label: "Savings Accounts",
+        label: t("analytics.netSavingsAccounts"),
         value: s.total_accounts.toLocaleString(),
-        tooltip: "Total number of active savings accounts across the network",
+        tooltip: t("analytics.netSavingsAccountsTooltip"),
         trend: "up" as const,
-        trendValue: `${s.active_accounts} active`,
+        trendValue: t("analytics.netXActive", { count: s.active_accounts }),
       },
       {
-        label: "Total Savings",
+        label: t("analytics.netTotalSavings"),
         value: `$${(s.total_balance / 1000).toFixed(1)}K`,
-        tooltip: "Total balance across all savings accounts",
+        tooltip: t("analytics.netTotalSavingsTooltip2"),
         trend: "up" as const,
-        trendValue: `Avg: $${s.average_balance.toFixed(0)}`,
+        trendValue: t("analytics.netAvg", { amount: s.average_balance.toFixed(0) }),
       },
       {
-        label: "Active Savers",
+        label: t("analytics.netActiveSavers"),
         value: s.active_accounts.toLocaleString(),
-        tooltip: "Members with deposits in the last 30 days",
+        tooltip: t("analytics.netActiveSaversTooltip"),
         trend: "up" as const,
-        trendValue: `${s.active_savers_pct.toFixed(1)}% penetration`,
+        trendValue: t("analytics.netPenetrationPct", {
+          pct: s.active_savers_pct.toFixed(1),
+        }),
       },
       {
-        label: "Regular Savers",
+        label: t("analytics.netRegularSavers"),
         value: `${s.regular_savers_pct.toFixed(1)}%`,
-        tooltip: "Percentage of members with consistent monthly deposits",
+        tooltip: t("analytics.netRegularSaversTooltip"),
         trend: s.regular_savers_pct > 50 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Consistent deposits",
+        trendValue: t("analytics.netConsistentDeposits"),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const loanMetrics = useMemo(() => {
     if (!nfStats?.loans) return [];
     const l = nfStats.loans;
     return [
       {
-        label: "Loan Accounts",
+        label: t("analytics.netLoanAccounts"),
         value: l.total_loans.toLocaleString(),
-        tooltip: "Total number of active loan accounts",
+        tooltip: t("analytics.netLoanAccountsTooltip"),
         trend: "up" as const,
-        trendValue: `${l.active_loans} active`,
+        trendValue: t("analytics.netXActive", { count: l.active_loans }),
       },
       {
-        label: "Total Loans",
+        label: t("analytics.netTotalLoans"),
         value: `$${(l.total_loan_amount / 1000).toFixed(1)}K`,
-        tooltip: "Total outstanding loan balance across the network",
+        tooltip: t("analytics.netTotalLoansTooltip2"),
         trend: "up" as const,
-        trendValue: `Avg: $${l.average_loan_size.toFixed(0)}`,
+        trendValue: t("analytics.netAvg", { amount: l.average_loan_size.toFixed(0) }),
       },
       {
-        label: "Loans in Arrears",
+        label: t("analytics.netLoansInArrears"),
         value: l.arrears.toLocaleString(),
-        tooltip: "Number of loans with payments overdue by 30+ days",
+        tooltip: t("analytics.netLoansInArrearsTooltip"),
         trend: l.arrears_rate_pct > 5 ? ("down" as const) : ("up" as const),
-        trendValue: `${l.arrears_rate_pct.toFixed(1)}% arrears rate`,
+        trendValue: t("analytics.netArrearsRatePct", { pct: l.arrears_rate_pct.toFixed(1) }),
       },
       {
-        label: "On-time Repayment",
+        label: t("analytics.netOnTimeRepayment"),
         value: `${l.on_time_repayment_pct.toFixed(1)}%`,
-        tooltip: "Percentage of loans repaid on schedule",
+        tooltip: t("analytics.netOnTimeRepaymentTooltip2"),
         trend: l.on_time_repayment_pct > 90 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Repayment performance",
+        trendValue: t("analytics.netRepaymentPerformance"),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   const fdMetrics = useMemo(() => {
     if (!nfStats?.fixed_deposits) return [];
     const fd = nfStats.fixed_deposits;
     return [
       {
-        label: "FD Accounts",
+        label: t("analytics.netFdAccounts"),
         value: fd.total_fds.toLocaleString(),
-        tooltip: "Total number of active fixed deposit accounts",
+        tooltip: t("analytics.netFdAccountsTooltip"),
         trend: "up" as const,
-        trendValue: `${fd.active_fds} active`,
+        trendValue: t("analytics.netXActive", { count: fd.active_fds }),
       },
       {
-        label: "Total FD Balance",
+        label: t("analytics.netTotalFdBalance"),
         value: `$${(fd.total_balance / 1000).toFixed(1)}K`,
-        tooltip: "Total balance across all fixed deposits",
+        tooltip: t("analytics.netTotalFdBalanceTooltip"),
         trend: "up" as const,
-        trendValue: `Avg: $${fd.average_balance.toFixed(0)}`,
+        trendValue: t("analytics.netAvg", { amount: fd.average_balance.toFixed(0) }),
       },
       {
-        label: "FD Penetration",
+        label: t("analytics.netFdPenetration"),
         value: `${fd.fd_penetration_pct.toFixed(1)}%`,
-        tooltip: "Percentage of members with fixed deposits",
+        tooltip: t("analytics.netFdPenetrationTooltip"),
         trend: fd.fd_penetration_pct > 20 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Member participation",
+        trendValue: t("analytics.netMemberParticipation"),
       },
       {
-        label: "Rollover Rate",
+        label: t("analytics.netRolloverRate"),
         value: `${fd.rollover_rate_pct.toFixed(1)}%`,
-        tooltip: "Percentage of matured FDs rolled over",
+        tooltip: t("analytics.netRolloverRateTooltip"),
         trend: fd.rollover_rate_pct > 70 ? ("up" as const) : ("neutral" as const),
-        trendValue: "Retention rate",
+        trendValue: t("analytics.netRetentionRate"),
       },
     ];
-  }, [nfStats]);
+  }, [nfStats, t]);
 
   return (
     <>
@@ -247,24 +281,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
         <div className="lg:col-span-3">
           <PortfolioOverviewChart
-            data={
-              networkTrendPoints.length > 0
-                ? networkTrendPoints
-                : [
-                    "Jan",
-                    "Feb",
-                    "Mar",
-                    "Apr",
-                    "May",
-                    "Jun",
-                    "Jul",
-                    "Aug",
-                    "Sep",
-                    "Oct",
-                    "Nov",
-                    "Dec",
-                  ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
-            }
+            data={networkTrendPoints.length > 0 ? networkTrendPoints : fallbackTrendPoints}
           />
         </div>
         <div className="lg:col-span-2">
@@ -287,30 +304,13 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       {/* Row 2: Monthly Breakdown & Savings Health */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <SavingsLoansDepositsChart
-          data={
-            networkTrendPoints.length > 0
-              ? networkTrendPoints
-              : [
-                  "Jan",
-                  "Feb",
-                  "Mar",
-                  "Apr",
-                  "May",
-                  "Jun",
-                  "Jul",
-                  "Aug",
-                  "Sep",
-                  "Oct",
-                  "Nov",
-                  "Dec",
-                ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
-          }
+          data={networkTrendPoints.length > 0 ? networkTrendPoints : fallbackTrendPoints}
         />
         {nfStats && (
           <Card
-            title="Network Savings Portfolio Health"
-            subtitle="Account activity and penetration"
-            info="Analyzes the vitality of the aggregated savings base. Savings Penetration shows the percentage of members holding savings, Regular Savers tracks consistent monthly deposits, and Active Savers indicates recent deposit activity."
+            title={t("analytics.netSavingsPortfolioHealth")}
+            subtitle={t("analytics.netSavingsPortfolioHealthSub")}
+            info={t("analytics.netSavingsPortfolioHealthInfo")}
           >
             <SavingsRadialGauges data={nfStats.savings} />
           </Card>
@@ -319,21 +319,27 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
 
       {nfStats?.membership && membershipMetrics.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-sm font-bold text-foreground mb-3">Membership Overview</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("analytics.netMembershipOverview")}
+          </h3>
           <MetricsGridCards metrics={membershipMetrics} columns={4} />
         </div>
       )}
 
       {nfStats?.savings && savingsMetrics.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-sm font-bold text-foreground mb-3">Savings Portfolio Metrics</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("analytics.netSavingsPortfolioMetrics")}
+          </h3>
           <MetricsGridCards metrics={savingsMetrics} columns={4} />
         </div>
       )}
 
       {nfStats?.loans && loanMetrics.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-sm font-bold text-foreground mb-3">Loan Portfolio Metrics</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("analytics.netLoanPortfolioMetrics")}
+          </h3>
           <MetricsGridCards metrics={loanMetrics} columns={4} />
         </div>
       )}
@@ -341,9 +347,9 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       {nfStats && (
         <div className="mt-6">
           <Card
-            title="Loan Portfolio Breakdown"
-            subtitle="Performing vs. arrears across the network"
-            info="A detailed breakdown of active loans across the network, comparing performing loans against loans in arrears, categorized by demographics."
+            title={t("analytics.netLoanPortfolioBreakdown")}
+            subtitle={t("analytics.netLoanPortfolioBreakdownSub")}
+            info={t("analytics.netLoanPortfolioBreakdownInfo")}
           >
             <LoanDualBar data={nfStats.loans} />
           </Card>
@@ -352,7 +358,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
 
       {nfStats?.fixed_deposits && fdMetrics.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-sm font-bold text-foreground mb-3">Fixed Deposit Metrics</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">{t("analytics.netFdMetrics")}</h3>
           <MetricsGridCards metrics={fdMetrics} columns={4} />
         </div>
       )}
@@ -360,27 +366,27 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {nfStats && (
           <Card
-            title="Network Liquidity Risk"
-            subtitle="Term deposit concentration"
-            info="Assesses aggregate liquidity risk by examining the concentration of fixed (term) deposits across the network."
+            title={t("analytics.netLiquidityRisk")}
+            subtitle={t("analytics.netLiquidityRiskSub")}
+            info={t("analytics.netLiquidityRiskInfo")}
           >
             <DepositConcentrationGauge stats={nfStats.fixed_deposits} />
           </Card>
         )}
         {nfStats && (
           <Card
-            title="Network Governance"
-            subtitle="Aggregate democratic participation"
-            info="Measures the democratic health of the network by tracking aggregate member participation in governance activities."
+            title={t("analytics.netGovernance")}
+            subtitle={t("analytics.netGovernanceSub")}
+            info={t("analytics.netGovernanceInfo")}
           >
             <GovernanceFunnel stats={nfStats.membership} />
           </Card>
         )}
         {nfStats && (
           <Card
-            title="Financial Inclusion"
-            subtitle="Aggregate credit access"
-            info="Tracks the distribution of credit access across key demographics to ensure the network is fulfilling its inclusive mandate."
+            title={t("analytics.deepDiveFinancialInclusion")}
+            subtitle={t("analytics.netInclusionSub")}
+            info={t("analytics.netInclusionInfo")}
           >
             <FinancialInclusionBar stats={nfStats.loans} />
           </Card>
@@ -390,18 +396,18 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {nfStats && (
           <Card
-            title="Network Demographics"
-            subtitle="Aggregate membership profile"
-            info="Visualizes the demographic makeup of the entire member base, including gender ratios and the proportion of active versus dormant accounts."
+            title={t("analytics.netDemographics")}
+            subtitle={t("analytics.netDemographicsSub")}
+            info={t("analytics.netDemographicsInfo")}
           >
             <GenderStatusDoughnuts data={nfStats.membership} />
           </Card>
         )}
         {nfStats && (
           <Card
-            title="Age & Geography Breakdown"
-            subtitle="Member age distribution and geographic spread"
-            info="Visualizes the distribution of members across various age groups and their geographic dispersion (Urban vs. Rural)."
+            title={t("analytics.netAgeGeography")}
+            subtitle={t("analytics.netAgeGeographySub")}
+            info={t("analytics.netAgeGeographyInfo")}
           >
             <AgeDemographicsChart data={nfStats.membership} />
           </Card>

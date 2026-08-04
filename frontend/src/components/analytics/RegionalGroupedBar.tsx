@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 
 interface RegionalGroupedBarProps {
@@ -15,12 +16,13 @@ interface RegionalGroupedBarProps {
 }
 
 export function RegionalGroupedBar({ cooperatives }: RegionalGroupedBarProps) {
+  const { t } = useTranslation();
   // Aggregate data by region
   const regionMap = new Map<string, { Assets: number; Loans: number; Deposits: number }>();
 
   cooperatives.forEach((coop) => {
     if (!coop.has_data) return;
-    const region = coop.region ?? "Unknown";
+    const region = coop.region ?? t("analytics.unknown");
 
     if (!regionMap.has(region)) {
       regionMap.set(region, { Assets: 0, Loans: 0, Deposits: 0 });
@@ -71,9 +73,24 @@ export function RegionalGroupedBar({ cooperatives }: RegionalGroupedBarProps) {
             cursor={{ fill: "var(--muted)", opacity: 0.3 }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="Assets" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Loans" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Deposits" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="Assets"
+            name={t("analytics.assets")}
+            fill="var(--chart-1)"
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="Loans"
+            name={t("analytics.loansLabel")}
+            fill="var(--chart-2)"
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="Deposits"
+            name={t("analytics.depositsLabel")}
+            fill="var(--chart-3)"
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

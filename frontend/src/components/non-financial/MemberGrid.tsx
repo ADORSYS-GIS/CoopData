@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
-import { createMemberColumns } from "./MemberColumns";
+import { useMemberColumns } from "./MemberColumns";
 import type { NfMemberResponse } from "@/types/non-financial";
+import { useTranslation } from "react-i18next";
 
 interface MemberGridProps {
   members: NfMemberResponse[];
@@ -21,7 +22,8 @@ export function MemberGrid({
   onEdit,
   onDelete,
 }: MemberGridProps) {
-  const columns = createMemberColumns(
+  const { t } = useTranslation();
+  const columns = useMemberColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
   );
 
@@ -31,7 +33,7 @@ export function MemberGrid({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
-          Members
+          {t("nf.members")}
           <Badge variant="secondary">{members.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -40,7 +42,7 @@ export function MemberGrid({
           columns={columns}
           data={members}
           isLoading={isLoading}
-          emptyMessage="No members found. Upload an Excel file or add members manually."
+          emptyMessage={t("nf.emptyMembers")}
           pageSize={10}
           getRowClassName={(row) =>
             errorSet.has((row as NfMemberResponse).id) ? "bg-destructive/5" : undefined

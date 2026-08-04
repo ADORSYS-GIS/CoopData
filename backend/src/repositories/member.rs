@@ -100,7 +100,7 @@ impl MemberRepository {
         let count = models.len() as u64;
         member::Entity::insert_many(models)
             .on_conflict(
-                OnConflict::columns([MemberColumn::CooperativeId, MemberColumn::MemberId])
+                OnConflict::columns([MemberColumn::SubmissionId, MemberColumn::MemberId])
                     .update_columns([
                         MemberColumn::JoinDate,
                         MemberColumn::Status,
@@ -162,5 +162,57 @@ impl MemberRepository {
             .one(&self.db)
             .await
             .map_err(AppError::DatabaseError)
+    }
+
+    pub async fn get_membership_stats(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Uuid,
+    ) -> AppResult<crate::api::dto::submission::MembershipStatsResponse> {
+        let members = member::Entity::find()
+            .filter(MemberColumn::CooperativeId.eq(cooperative_id))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        let mut male = 0;
+        let mut female = 0;
+        let mut youth = 0;
+        let mut active = 0;
+        let mut inactive = 0;
+        let mut agm = 0;
+
+        for m in members {
+            match m.gender {
+                crate::entities::enums::Gender::Male => male += 1,
+                crate::entities::enums::Gender::Female => female += 1,
+                _ => {}
+            }
+
+            match m.age_group {
+                crate::entities::enums::AgeGroup::Under18
+                | crate::entities::enums::AgeGroup::Between18And35 => youth += 1,
+                _ => {}
+            }
+
+            match m.status {
+                crate::entities::enums::MemberStatus::Active => active += 1,
+                _ => inactive += 1,
+            }
+
+            if m.agm_attendance {
+                agm += 1;
+            }
+        }
+
+        Ok(crate::api::dto::submission::MembershipStatsResponse {
+            submission_id,
+            male_members: male,
+            female_members: female,
+            youth_members: youth,
+            active_members: active,
+            inactive_members: inactive,
+            agm_attendance: agm,
+        })
     }
 }

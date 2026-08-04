@@ -15,7 +15,9 @@ use crate::api::dto::financial::{
     MinistryStatsResponse, MonthlyTrendPoint, MonthlyTrendResponse, RegionCompliancePoint,
     RegionComplianceResponse, SectorBreakdownPoint, SectorBreakdownResponse,
     SubmissionActivityPoint, SubmissionActivityResponse, SubmissionKpisResponse,
+    SubmissionLineItemsResponse,
 };
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 
 use crate::error::{AppError, AppResult};
@@ -59,32 +61,48 @@ pub(crate) async fn filter_cooperatives(
         ));
     }
 
-    // Resolve federation_id: frontend sends Keycloak org UUID (as Uuid), but DB stores it as String.
-    // Look up the Postgres federation by matching keycloak_id (string). Fall back to direct DB UUID match.
-    let resolved_fed_db_id: Option<Uuid> = if let Some(kc_fed_uuid) = federation_id {
-        let kc_fed_str = kc_fed_uuid.to_string();
-        // Try keycloak_id string lookup first
-        if let Some(fed) = state.federation_repo.find_by_keycloak_id(&kc_fed_str).await.unwrap_or(None) {
-            Some(fed.id)
+    let mut allowed_apex_ids = None;
+    if let Some(fid) = federation_id {
+        let fed = if let Ok(Some(f)) = state.federation_repo.find_by_id(fid).await {
+            Some(f)
+        } else if let Ok(Some(f)) = state
+            .federation_repo
+            .find_by_keycloak_id(&fid.to_string())
+            .await
+        {
+            Some(f)
         } else {
-            // Maybe it's already the Postgres DB UUID
-            Some(kc_fed_uuid)
-        }
-    } else {
-        None
-    };
+            None
+        };
 
-    // Resolve apex_id: frontend sends Keycloak group UUID, but DB stores keycloak_id as String.
-    let resolved_apex_db_id: Option<Uuid> = if let Some(kc_apex_uuid) = apex_id {
-        let kc_apex_str = kc_apex_uuid.to_string();
-        if let Some(apex) = state.apex_repo.find_by_keycloak_id(&kc_apex_str).await.unwrap_or(None) {
-            Some(apex.id)
+        if let Some(f) = fed {
+            let apexes = state
+                .apex_repo
+                .find_by_federation_id(f.id)
+                .await
+                .unwrap_or_default();
+            allowed_apex_ids = Some(apexes.into_iter().map(|a| a.id).collect::<Vec<_>>());
         } else {
-            Some(kc_apex_uuid)
+            allowed_apex_ids = Some(vec![]);
         }
-    } else {
-        None
-    };
+    }
+
+    let mut target_apex_id = None;
+    if let Some(aid) = apex_id {
+        let apex = if let Ok(Some(a)) = state.apex_repo.find_by_id(aid).await {
+            Some(a)
+        } else if let Ok(Some(a)) = state.apex_repo.find_by_keycloak_id(&aid.to_string()).await {
+            Some(a)
+        } else {
+            None
+        };
+
+        if let Some(a) = apex {
+            target_apex_id = Some(a.id);
+        } else {
+            target_apex_id = Some(Uuid::new_v4());
+        }
+    }
 
     let filtered = coops
         .into_iter()
@@ -95,16 +113,16 @@ pub(crate) async fn filter_cooperatives(
                 }
             }
             if let Some(ref s) = sector {
-                if s != "all" && c.sector.as_deref() != Some(s.as_str()) {
+                if s != "all" && c.sector.as_ref().map(|x| x.as_str()) != Some(s.as_str()) {
                     return false;
                 }
             }
-            if let Some(fid) = resolved_fed_db_id {
-                if c.federation_org_id != Some(fid) {
+            if let Some(ref allowed) = allowed_apex_ids {
+                if !allowed.contains(&c.apex_id) {
                     return false;
                 }
             }
-            if let Some(aid) = resolved_apex_db_id {
+            if let Some(aid) = target_apex_id {
                 if c.apex_id != aid {
                     return false;
                 }
@@ -223,9 +241,9 @@ pub async fn update_line_items(
     let mut updated = vec![];
     for update in body.updates {
         if let Some(value) = update.value {
-            use rust_decimal::prelude::FromPrimitive;
-            let decimal =
-                rust_decimal::Decimal::from_f64(value).unwrap_or(rust_decimal::Decimal::ZERO);
+            use std::str::FromStr;
+            let decimal = rust_decimal::Decimal::from_str(&value.to_string())
+                .unwrap_or(rust_decimal::Decimal::ZERO);
             let item = state
                 .line_item_repo
                 .update_value(update.id, decimal, update.account_code)
@@ -237,12 +255,218 @@ pub async fn update_line_items(
     Ok((StatusCode::OK, Json(updated)))
 }
 
-// ── S4-T1: KPI computation endpoint ──────────────────────────────────────────
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/manual-financial-statement",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = ManualFinancialStatementRequest,
+    responses(
+        (status = 201, description = "Financial statement manually created", body = FinancialStatementResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn create_manual_financial_statement(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Path(submission_id): Path<Uuid>,
+    Json(body): Json<crate::api::dto::financial::ManualFinancialStatementRequest>,
+) -> AppResult<impl IntoResponse> {
+    use crate::entities::balance_sheet_line_item::ActiveModel as LineItemModel;
+    use crate::entities::enums::{AccountCategory, AccountingYear, Currency, SubmissionStatus};
+    use crate::entities::financial_statement::ActiveModel as FsModel;
+    use crate::services::abnormality_detector::AbnormalityDetector;
+    use sea_orm::Set;
+
+    let coop =
+        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop.id {
+        return Err(AppError::Forbidden(
+            "Submission does not belong to your cooperative".into(),
+        ));
+    }
+
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::Conflict(
+            "Can only add financial statement to a draft submission".into(),
+        ));
+    }
+
+    // Check for existing FS so we can delete it inside the transaction
+    let existing_fs_id = state
+        .financial_statement_repo
+        .find_by_submission(submission_id)
+        .await?
+        .map(|fs| fs.id);
+
+    let fs_id = Uuid::new_v4();
+    let accounting_year =
+        AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar);
+    let currency = if body.currency == "USD" {
+        Currency::Usd
+    } else {
+        Currency::Szl
+    };
+
+    // ── Build line item active models in memory (no DB calls yet) ───────────────
+    let mut line_item_models: Vec<LineItemModel> = Vec::new();
+    for item in body.line_items {
+        use std::str::FromStr;
+        let raw = item.value.unwrap_or(0.0);
+        let value = rust_decimal::Decimal::from_str(&raw.to_string())
+            .unwrap_or(rust_decimal::Decimal::ZERO);
+        let category = AccountCategory::parse(&item.account_category).ok_or_else(|| {
+            AppError::BadRequest(format!(
+                "Invalid account category: {}",
+                item.account_category
+            ))
+        })?;
+        line_item_models.push(LineItemModel {
+            id: Set(Uuid::new_v4()),
+            financial_statement_id: Set(fs_id),
+            account_code: Set(item.account_code),
+            account_name: Set(item.account_name),
+            account_category: Set(category),
+            account_subcategory: Set(item.account_subcategory),
+            month: Set(item.month),
+            value: Set(Some(value)),
+            ai_confidence: Set(None),
+            ai_flagged: Set(item.account_code.is_none()),
+            manually_edited: Set(true),
+            raw_label: Set(None),
+            created_at: Set(chrono::Utc::now()),
+            updated_at: Set(chrono::Utc::now()),
+        });
+    }
+
+    // ── Atomically: delete old FS (if any) → create new FS → bulk-insert line items ──
+    use sea_orm::{EntityTrait, TransactionTrait};
+
+    let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
+
+    if let Some(old_id) = existing_fs_id {
+        tracing::info!(
+            fs_id = %old_id,
+            "Replacing existing financial statement with manual entry"
+        );
+        crate::entities::financial_statement::Entity::delete_by_id(old_id)
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+    }
+
+    let fs_model = FsModel {
+        id: Set(fs_id),
+        submission_id: Set(submission_id),
+        cooperative_id: Set(coop.id),
+        reporting_year: Set(submission.reporting_year),
+        accounting_year: Set(accounting_year),
+        currency: Set(currency),
+        is_validated: Set(false),
+        validation_errors: Set(None),
+        created_at: Set(chrono::Utc::now()),
+        updated_at: Set(chrono::Utc::now()),
+    };
+    use sea_orm::ActiveModelTrait as _;
+    let created_fs = fs_model
+        .insert(&txn)
+        .await
+        .map_err(AppError::DatabaseError)?;
+
+    if !line_item_models.is_empty() {
+        crate::entities::balance_sheet_line_item::Entity::insert_many(line_item_models)
+            .exec(&txn)
+            .await
+            .map_err(AppError::DatabaseError)?;
+    }
+
+    txn.commit().await.map_err(AppError::DatabaseError)?;
+
+    // ── Post-transaction: run validation + section status (best-effort) ──────────
+
+    // Run abnormality detector / validation
+    let coa = state.coa_repo.find_all().await?;
+    let coop_type = coop
+        .institution_type
+        .as_ref()
+        .map(|t| t.as_str().to_string())
+        .unwrap_or_else(|| "sacco".to_string());
+
+    let detector = AbnormalityDetector::new(
+        state.line_item_repo.clone(),
+        state.flag_repo.clone(),
+        state.coa_repo.clone(),
+    );
+    let (errors, warnings) = detector
+        .run(submission_id, coop.id, fs_id, &coa, &coop_type)
+        .await?;
+
+    let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
+    state
+        .financial_statement_repo
+        .set_validation_errors(fs_id, validation_json)
+        .await?;
+
+    // Set financial section status to ready or in_progress (following upload pipeline, we set it to in_progress)
+    if let Some(sec) = state
+        .section_repo
+        .find_by_submission_and_section(submission_id, "financial")
+        .await?
+    {
+        state
+            .section_repo
+            .update_status(sec.id, "in_progress")
+            .await?;
+    }
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "CREATE",
+            "financial_statement",
+            Some(&created_fs.id.to_string()),
+            Some(serde_json::json!({
+                "submission_id": submission_id,
+                "accounting_year": body.accounting_year,
+                "currency": body.currency
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    Ok((
+        StatusCode::CREATED,
+        Json(FinancialStatementResponse::from(created_fs)),
+    ))
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
+pub struct KpisQueryParams {
+    pub include_prior_year: Option<bool>,
+}
 
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/submissions/{id}/kpis",
-    params(("id" = Uuid, Path, description = "Submission ID")),
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        KpisQueryParams
+    ),
     responses(
         (status = 200, description = "Computed KPIs for submission", body = SubmissionKpisResponse),
         (status = 403, description = "Access denied"),
@@ -254,6 +478,7 @@ pub async fn get_submission_kpis(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
+    Query(query): Query<KpisQueryParams>,
 ) -> AppResult<impl IntoResponse> {
     let coop_ids =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -268,42 +493,46 @@ pub async fn get_submission_kpis(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
-    let kpis: Vec<KpiItemResponse> = if !db_kpis.is_empty() {
-        db_kpis
-            .into_iter()
-            .filter(|r| r.kpi_type == "financial")
-            .map(|r| KpiItemResponse {
+    let mut db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
+    if db_kpis.is_empty() {
+        tracing::warn!(
+            submission_id = %id,
+            "KPI records missing from DB, auto-computing and saving on-the-fly"
+        );
+        let workflow = crate::services::submission_workflow::SubmissionWorkflow::new(
+            state.submission_repo.clone(),
+            state.review_repo.clone(),
+            state.flag_repo.clone(),
+            state.section_repo.clone(),
+            state.financial_statement_repo.clone(),
+            state.line_item_repo.clone(),
+            state.kpi_record_repo.clone(),
+            state.db.clone(),
+        );
+        if let Err(e) = workflow
+            .compute_and_save_kpis(id, submission.cooperative_id, submission.reporting_year)
+            .await
+        {
+            tracing::error!("Failed to auto-compute KPIs: {}", e);
+        }
+        db_kpis = state.kpi_record_repo.find_by_submission(id).await?;
+    }
+
+    let kpis: Vec<KpiItemResponse> = db_kpis
+        .into_iter()
+        .map(|r| {
+            let benchmark = crate::services::KpiEngine::get_benchmark(&r.kpi_name);
+            KpiItemResponse {
                 name: r.kpi_name,
                 value: r.value,
                 formatted: r.formatted,
                 unit: r.unit,
                 status: r.status,
-                benchmark: None,
+                benchmark,
                 description: r.description,
-            })
-            .collect()
-    } else {
-        let fs = state
-            .financial_statement_repo
-            .find_by_submission(id)
-            .await?
-            .ok_or_else(|| {
-                AppError::NotFound("No financial statement for this submission".into())
-            })?;
-
-        let line_items = state
-            .line_item_repo
-            .find_by_financial_statement(fs.id)
-            .await?;
-
-        let kpi_set = crate::services::KpiEngine::compute(&line_items);
-        kpi_set
-            .to_vec()
-            .into_iter()
-            .map(KpiItemResponse::from)
-            .collect()
-    };
+            }
+        })
+        .collect();
 
     tracing::info!(
         submission_id = %id,
@@ -311,6 +540,40 @@ pub async fn get_submission_kpis(
         submission_status = %submission.status.as_str(),
         "KPIs retrieved for submission"
     );
+
+    let prior_year_kpis = if query.include_prior_year.unwrap_or(false) {
+        if let Some(prior_sub) = state
+            .submission_repo
+            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .await?
+        {
+            let db_prior_kpis = state
+                .kpi_record_repo
+                .find_by_submission(prior_sub.id)
+                .await?;
+            Some(
+                db_prior_kpis
+                    .into_iter()
+                    .map(|r| {
+                        let benchmark = crate::services::KpiEngine::get_benchmark(&r.kpi_name);
+                        KpiItemResponse {
+                            name: r.kpi_name,
+                            value: r.value,
+                            formatted: r.formatted,
+                            unit: r.unit,
+                            status: r.status,
+                            benchmark,
+                            description: r.description,
+                        }
+                    })
+                    .collect(),
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
 
     Ok((
         StatusCode::OK,
@@ -320,6 +583,90 @@ pub async fn get_submission_kpis(
             computed_at: chrono::Utc::now(),
             submission_status: submission.status.as_str().to_string(),
             kpis,
+            prior_year_kpis,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/financial-statement/line-items",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        KpisQueryParams
+    ),
+    responses(
+        (status = 200, description = "Line items for submission", body = SubmissionLineItemsResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_submission_line_items(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<KpisQueryParams>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let current_fs = state
+        .financial_statement_repo
+        .find_by_submission_id(id)
+        .await?;
+
+    let mut current_year_items = vec![];
+    if let Some(fs) = current_fs {
+        current_year_items = state
+            .line_item_repo
+            .find_by_financial_statement(fs.id)
+            .await?
+            .into_iter()
+            .map(LineItemResponse::from)
+            .collect();
+    }
+
+    let mut prior_year_items = None;
+    if query.include_prior_year.unwrap_or(false) {
+        if let Some(prior_sub) = state
+            .submission_repo
+            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .await?
+        {
+            if let Some(prior_fs) = state
+                .financial_statement_repo
+                .find_by_submission_id(prior_sub.id)
+                .await?
+            {
+                let items = state
+                    .line_item_repo
+                    .find_by_financial_statement(prior_fs.id)
+                    .await?
+                    .into_iter()
+                    .map(LineItemResponse::from)
+                    .collect();
+                prior_year_items = Some(items);
+            }
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(SubmissionLineItemsResponse {
+            submission_id: id,
+            current_year: current_year_items,
+            prior_year: prior_year_items,
         }),
     ))
 }
@@ -1954,7 +2301,11 @@ pub async fn get_sector_breakdown(
     let mut sector_map: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
 
     for coop in &cooperatives {
-        let sector = coop.sector.clone().unwrap_or_else(|| "Other".to_string());
+        let sector = coop
+            .sector
+            .as_ref()
+            .map(|s| s.as_str().to_string())
+            .unwrap_or_else(|| "other".to_string());
         *sector_map.entry(sector).or_insert(0) += 1;
     }
 

@@ -29,6 +29,7 @@ import { FinancialIndicators } from "@/components/analytics/FinancialIndicators"
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes, useMinistryApexes } from "@/hooks/apexes/useApexes";
+import { useTranslation } from "react-i18next";
 import {
   titleByRole,
   subtitleByRole,
@@ -96,7 +97,72 @@ const FILTERS_BY_ROLE: Record<string, FilterConfig[]> = {
 
 // ── Component ───────────────────────────────────────────────────────────────
 export const AnalyticsPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
+
+  // Build filter configs inside component to use t()
+  const REGION_OPTIONS_T: FilterConfig["options"] = [
+    { value: "all", label: t("analytics.allRegions") },
+    { value: "Manzini", label: "Manzini" },
+    { value: "Hhohho", label: "Hhohho" },
+    { value: "Shiselweni", label: "Shiselweni" },
+    { value: "Lubombo", label: "Lubombo" },
+  ];
+
+  const SECTOR_OPTIONS_T: FilterConfig["options"] = [
+    { value: "all", label: t("analytics.allSectors") },
+    { value: "Agriculture", label: t("analytics.sector.agriculture") },
+    { value: "Finance", label: t("analytics.sector.finance") },
+    { value: "Housing", label: t("analytics.sector.housing") },
+    { value: "Transport", label: t("analytics.sector.transport") },
+    { value: "Manufacturing", label: t("analytics.sector.manufacturing") },
+  ];
+
+  const FILTERS_BY_ROLE_T: Record<string, FilterConfig[]> = {
+    ministry: [
+      {
+        id: "federation",
+        label: t("analytics.filter.federation"),
+        options: [{ value: "all", label: t("analytics.allFederations") }],
+      },
+      {
+        id: "apex",
+        label: t("analytics.filter.apex"),
+        options: [{ value: "all", label: t("analytics.allApexes") }],
+      },
+      {
+        id: "cooperative",
+        label: t("analytics.filter.cooperative"),
+        options: [{ value: "all", label: t("analytics.allCooperatives") }],
+      },
+      { id: "region", label: t("analytics.filter.region"), options: REGION_OPTIONS_T },
+      { id: "sector", label: t("analytics.filter.sector"), options: SECTOR_OPTIONS_T },
+    ],
+    federation: [
+      {
+        id: "apex",
+        label: t("analytics.filter.apex"),
+        options: [{ value: "all", label: t("analytics.allApexes") }],
+      },
+      {
+        id: "cooperative",
+        label: t("analytics.filter.cooperative"),
+        options: [{ value: "all", label: t("analytics.allCooperatives") }],
+      },
+      { id: "region", label: t("analytics.filter.region"), options: REGION_OPTIONS_T },
+      { id: "sector", label: t("analytics.filter.sector"), options: SECTOR_OPTIONS_T },
+    ],
+    apex: [
+      {
+        id: "cooperative",
+        label: t("analytics.filter.cooperative"),
+        options: [{ value: "all", label: t("analytics.allCooperatives") }],
+      },
+      { id: "region", label: t("analytics.filter.region"), options: REGION_OPTIONS_T },
+      { id: "sector", label: t("analytics.filter.sector"), options: SECTOR_OPTIONS_T },
+    ],
+    cooperative: [],
+  };
 
   const [filterValues, setFilterValues] = useState<AnalyticsFilterValues>({
     ...defaultFilterValues,
@@ -165,13 +231,13 @@ export const AnalyticsPage: React.FC = () => {
 
   const filters = React.useMemo(() => {
     if (!role) return [];
-    const baseFilters = FILTERS_BY_ROLE[role] ?? [];
+    const baseFilters = FILTERS_BY_ROLE_T[role] ?? [];
     return baseFilters.map((filter) => {
       if (filter.id === "federation" && federations) {
         return {
           ...filter,
           options: [
-            { value: "all", label: "All Federations" },
+            { value: "all", label: t("analytics.allFederations") },
 
             ...federations.map((f: { id: string; name: string }) => ({
               value: f.id,
@@ -189,7 +255,7 @@ export const AnalyticsPage: React.FC = () => {
           ...filter,
           disabled,
           options: [
-            { value: "all", label: "All Apexes" },
+            { value: "all", label: t("analytics.allApexes") },
             ...(apexOptions?.map((a: components["schemas"]["ApexResponse"]) => ({
               value: a.id,
               label: a.name,
@@ -203,7 +269,7 @@ export const AnalyticsPage: React.FC = () => {
           ...filter,
           disabled: false,
           options: [
-            { value: "all", label: "All Cooperatives" },
+            { value: "all", label: t("analytics.allCooperatives") },
             ...overview.cooperatives.map((c) => ({
               value: c.cooperative_id,
               label: c.name,
@@ -272,7 +338,7 @@ export const AnalyticsPage: React.FC = () => {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Consolidated Dashboard
+              {t("analytics.tab.consolidatedDashboard")}
             </button>
             <button
               onClick={() => setActiveTab("ranking")}
@@ -282,7 +348,7 @@ export const AnalyticsPage: React.FC = () => {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Cooperative Rankings
+              {t("analytics.tab.cooperativeRankings")}
             </button>
             <button
               onClick={() => setActiveTab("portfolio")}
@@ -292,7 +358,7 @@ export const AnalyticsPage: React.FC = () => {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Portfolio Classification
+              {t("analytics.tab.portfolioClassification")}
             </button>
             <button
               onClick={() => setActiveTab("income")}
@@ -302,7 +368,7 @@ export const AnalyticsPage: React.FC = () => {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Income Statement
+              {t("analytics.tab.incomeStatement")}
             </button>
             <button
               onClick={() => setActiveTab("indicators")}
@@ -312,7 +378,7 @@ export const AnalyticsPage: React.FC = () => {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Financial Indicators
+              {t("analytics.tab.financialIndicators")}
             </button>
           </div>
         )}

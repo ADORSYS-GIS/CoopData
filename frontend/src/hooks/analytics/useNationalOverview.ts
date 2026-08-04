@@ -26,6 +26,8 @@ export interface CoopKpiRow {
   cooperative_id: string;
   submission_id: string | null;
   name: string;
+  apex_id?: string | null;
+  apex_name?: string | null;
   region: string | null;
   sector: string | null;
   institution_type: string | null;
@@ -38,6 +40,11 @@ export interface CoopKpiRow {
 export interface CoopNfSummary {
   has_data: boolean;
   total_members: number;
+  active_members: number;
+  active_borrowers: number;
+  women_borrowers: number;
+  youth_borrowers: number;
+  rural_borrowers: number;
   active_members_pct: number;
   savings_penetration_pct: number;
   credit_penetration_pct: number;
@@ -88,13 +95,19 @@ const extractErrorMessage = (error: unknown): string => {
   return "Unable to load portfolio analytics.";
 };
 
-export const useNationalOverview = (params: NationalOverviewParams = {}, enabled = true) =>
+export const useNationalOverview = (
+  params: NationalOverviewParams = {},
+  enabled = true,
+  tokenOverride?: string,
+) =>
   useQuery<NationalOverviewResponse>({
     queryKey: ["national-overview", params],
     enabled,
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (apiClient as any).GET("/api/v1/analytics/national-overview", {
+      const headers: Record<string, string> | undefined = tokenOverride
+        ? { Authorization: `Bearer ${tokenOverride}` }
+        : undefined;
+      const { data, error } = await apiClient.GET("/api/v1/analytics/national-overview", {
         params: {
           query: {
             reporting_year: params.reportingYear,
@@ -105,6 +118,7 @@ export const useNationalOverview = (params: NationalOverviewParams = {}, enabled
             apex_id: params.apexId !== "all" ? params.apexId : undefined,
           } as Record<string, unknown>,
         },
+        headers: headers as Record<string, string>,
       });
       if (error) throw new Error(extractErrorMessage(error));
       if (!data) throw new Error("Portfolio analytics response was empty.");

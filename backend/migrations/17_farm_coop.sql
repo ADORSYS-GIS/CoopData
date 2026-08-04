@@ -1,10 +1,13 @@
 -- Migration 15: Farm Cooperative Profile (NF FARM sheet)
 -- Cooperative-level agricultural and production data
 
+-- Ensure unique constraint exists on submissions first
+ALTER TABLE submissions ADD CONSTRAINT submissions_id_cooperative_id_unique UNIQUE (id, cooperative_id);
+
 CREATE TABLE IF NOT EXISTS farm_coop (
   id                              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   cooperative_id                  UUID NOT NULL REFERENCES cooperatives(id) ON DELETE CASCADE,
-  submission_id                   UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  submission_id                   UUID,
   cooperative_type                VARCHAR(100) NOT NULL DEFAULT '',
   primary_activities              TEXT NOT NULL DEFAULT '',
   year_of_establishment           INTEGER,
@@ -28,11 +31,19 @@ CREATE TABLE IF NOT EXISTS farm_coop (
   irrigation_access               BOOLEAN NOT NULL DEFAULT false,
   climate_mitigation_practices    TEXT NOT NULL DEFAULT '',
   created_at                      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at                      TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at                      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT fk_farm_coop_submission FOREIGN KEY (submission_id, cooperative_id) REFERENCES submissions(id, cooperative_id) ON DELETE CASCADE
 );
+
+-- In case table already existed without the constraint:
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'farm_coop') THEN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_farm_coop_submission') THEN
+      ALTER TABLE farm_coop ADD CONSTRAINT fk_farm_coop_submission FOREIGN KEY (submission_id, cooperative_id) REFERENCES submissions(id, cooperative_id) ON DELETE CASCADE;
+    END IF;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_farm_coop_cooperative_id ON farm_coop(cooperative_id);
 CREATE INDEX IF NOT EXISTS idx_farm_coop_submission_id  ON farm_coop(submission_id);
-
--- Down
-DROP TABLE IF EXISTS farm_coop;

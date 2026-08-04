@@ -1,6 +1,6 @@
 use axum::extract::Extension;
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
@@ -40,7 +40,7 @@ pub async fn create_apex(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -88,6 +88,7 @@ pub async fn create_apex(
                 keycloak_id: sea_orm::Set(org_id.clone()),
                 display_name: sea_orm::Set(body.name.clone()),
                 is_active: sea_orm::Set(true),
+                metadata: sea_orm::Set(None),
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };
@@ -109,6 +110,7 @@ pub async fn create_apex(
         federation_id: sea_orm::Set(federation_pg_id),
         organization_keycloak_id: sea_orm::Set(org_id.clone()),
         display_name: sea_orm::Set(body.name.clone()),
+        metadata: sea_orm::Set(Some(serde_json::json!({}))),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
@@ -149,7 +151,7 @@ pub async fn list_apexes(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -165,19 +167,27 @@ pub async fn list_apexes(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let apexes: Vec<ApexResponse> = all_groups
-        .into_iter()
-        .filter(|g| {
-            g.attributes
-                .as_ref()
-                .and_then(|attrs| attrs.get("organization_id"))
-                .and_then(|vals| vals.first())
-                .map(|v| v.as_str())
-                .unwrap_or("")
-                == org_id
-        })
-        .map(ApexResponse::from)
-        .collect();
+    let mut apexes: Vec<ApexResponse> = Vec::new();
+    for group in all_groups {
+        let is_org_apex = group
+            .attributes
+            .as_ref()
+            .and_then(|attrs| attrs.get("organization_id"))
+            .and_then(|vals| vals.first())
+            .map(|v| v.as_str())
+            .unwrap_or("")
+            == org_id;
+        if !is_org_apex {
+            continue;
+        }
+        if let Ok(children) = state.keycloak.get_group_children(&group.id).await {
+            let mut enriched = group;
+            enriched.sub_groups = children;
+            apexes.push(ApexResponse::from(enriched));
+        } else {
+            apexes.push(ApexResponse::from(group));
+        }
+    }
     Ok((StatusCode::OK, Json(apexes)))
 }
 
@@ -196,7 +206,7 @@ pub async fn get_apex(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -233,7 +243,7 @@ pub async fn update_apex(
     Path(id): Path<String>,
     Json(body): Json<UpdateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -350,7 +360,7 @@ pub async fn delete_apex(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -450,7 +460,7 @@ pub async fn add_apex_member(
     Path(id): Path<String>,
     Json(body): Json<AddMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -518,7 +528,7 @@ pub async fn update_apex_member(
     Path((group_id, user_id)): Path<(String, String)>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -581,7 +591,7 @@ pub async fn list_apex_members(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -615,7 +625,7 @@ pub async fn remove_apex_member(
     Extension(audit_ctx): Extension<AuditContext>,
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
-    if !claims.is_federation() {
+    if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
         ));
@@ -760,7 +770,8 @@ pub async fn ministry_list_apexes(
         .into_iter()
         .filter(|g| {
             // Check if organization_id attribute is present (indicates this is an apex)
-            let org_id_opt = g.attributes
+            let org_id_opt = g
+                .attributes
                 .as_ref()
                 .and_then(|attrs| attrs.get("organization_id"))
                 .and_then(|vals| vals.first())
@@ -781,4 +792,3 @@ pub async fn ministry_list_apexes(
 
     Ok((StatusCode::OK, Json(apexes)))
 }
-

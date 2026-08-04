@@ -15,7 +15,15 @@ import { getAccessToken } from "@/services/shared/authService";
 
 // Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
 // Development: VITE_API_BASE_URL should be set to http://localhost:3000
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+//
+// When running inside Docker (Gotenberg or frontend container), requests must go directly
+// to the backend because Vite's dev proxy isn't available. The hostname check distinguishes
+// Gotenberg's headless Chromium from the user's browser. This is a Docker networking
+// constraint, not a 12-factor violation — both consumers share the same container.
+const API_BASE_URL =
+  window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")
+    ? "http://backend:3000"
+    : import.meta.env.VITE_API_BASE_URL || "";
 
 export const apiClient = createClient<paths>({
   baseUrl: API_BASE_URL,
@@ -24,11 +32,12 @@ export const apiClient = createClient<paths>({
   },
 });
 
-// Auth interceptor — attaches Bearer token to every request
 apiClient.use({
   async onRequest({ request }) {
     try {
-      const token = await getAccessToken();
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryToken = urlParams.get("token");
+      const token = queryToken || (await getAccessToken());
       request.headers.set("Authorization", `Bearer ${token}`);
     } catch {
       // Not authenticated — let the request proceed without token
@@ -42,7 +51,8 @@ apiClient.use({
     // Let the individual hooks/pages handle the error instead.
     if (response.status === 401) {
       const isAppRoute = window.location.pathname.startsWith("/app");
-      if (!isAppRoute) {
+      const isPrintRoute = window.location.pathname.startsWith("/print");
+      if (!isAppRoute && !isPrintRoute) {
         window.location.href = "/auth/login";
       }
     }

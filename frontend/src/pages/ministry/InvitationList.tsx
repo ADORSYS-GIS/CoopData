@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -69,24 +70,23 @@ type Federation = components["schemas"]["FederationResponse"];
 // Role is intentionally NOT part of the form — it is always "federation".
 // The Ministry's purpose here is to register federation officers only.
 
-const invitationFormSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
-});
-
-type InvitationFormValues = z.infer<typeof invitationFormSchema>;
+type InvitationFormValues = {
+  email: string;
+  first_name: string;
+  last_name: string;
+};
 
 // ─── Columns ──────────────────────────────────────────────────────────────
 
 function createColumns(
+  t: (key: string) => string,
   onResend: (invitationId: string, email: string) => void,
   onCancel: (invitationId: string, email: string) => void,
 ): ColumnDef<Invitation>[] {
   return [
     {
       accessorKey: "email",
-      header: "Email",
+      header: t("invitationList.tableHeaders.email"),
       cell: ({ row }) => (
         <div>
           <span className="font-medium">{row.getValue<string>("email") || "N/A"}</span>
@@ -100,23 +100,23 @@ function createColumns(
     },
     {
       accessorKey: "email_sent",
-      header: "Status",
+      header: t("invitationList.tableHeaders.status"),
       cell: ({ row }) => {
         const status = row.original.status ?? "PENDING";
         const variant =
           status === "ACCEPTED" ? "default" : status === "EXPIRED" ? "destructive" : "secondary";
         const label =
           status === "EMAIL_VERIFIED"
-            ? "Email Verified"
+            ? t("invitationList.statusEmailVerified")
             : status === "PENDING"
-              ? "Awaiting Verification"
+              ? t("invitationList.statusAwaitingVerification")
               : status;
         return <Badge variant={variant}>{label}</Badge>;
       },
     },
     {
       accessorKey: "created_at",
-      header: "Date Sent",
+      header: t("invitationList.tableHeaders.dateSent"),
       cell: ({ row }) => {
         const timestamp = row.getValue<number | null | undefined>("created_at");
         const formatted = timestamp
@@ -131,14 +131,14 @@ function createColumns(
     },
     {
       id: "actions",
-      header: "Actions",
+      header: t("invitationList.tableHeaders.actions"),
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onResend(row.original.id, row.original.email || "")}
-            title="Resend"
+            title={t("invitationList.tooltipResend")}
           >
             <RefreshCw className="size-3.5" />
           </Button>
@@ -147,7 +147,7 @@ function createColumns(
             size="icon"
             onClick={() => onCancel(row.original.id, row.original.email || "")}
             className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            title="Cancel"
+            title={t("invitationList.tooltipCancel")}
           >
             <Trash2 className="size-3.5" />
           </Button>
@@ -168,6 +168,16 @@ function InvitationForm({
   onSubmit: (values: InvitationFormValues) => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
+
+  const invitationFormSchema = useMemo(() => {
+    return z.object({
+      email: z.string().email(t("invitationList.zod.emailInvalid")),
+      first_name: z.string().min(1, t("invitationList.zod.firstNameRequired")),
+      last_name: z.string().min(1, t("invitationList.zod.lastNameRequired")),
+    });
+  }, [t]);
+
   const form = useForm<InvitationFormValues>({
     resolver: zodResolver(invitationFormSchema),
     defaultValues: {
@@ -185,9 +195,13 @@ function InvitationForm({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address *</FormLabel>
+              <FormLabel>{t("invitationList.formLabelEmail")}</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="user@example.com" {...field} />
+                <Input
+                  type="email"
+                  placeholder={t("invitationList.formPlaceholderEmail")}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -200,9 +214,9 @@ function InvitationForm({
             name="first_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>First Name *</FormLabel>
+                <FormLabel>{t("invitationList.formLabelFirstName")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="John" {...field} />
+                  <Input placeholder={t("invitationList.formPlaceholderFirstName")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -213,9 +227,9 @@ function InvitationForm({
             name="last_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Last Name *</FormLabel>
+                <FormLabel>{t("invitationList.formLabelLastName")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Dlamini" {...field} />
+                  <Input placeholder={t("invitationList.formPlaceholderLastName")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -227,10 +241,11 @@ function InvitationForm({
         <div className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 bg-muted/40">
           <UserCog className="size-4 text-muted-foreground shrink-0" />
           <div>
-            <p className="text-xs font-medium text-foreground">Role: Federation Officer</p>
+            <p className="text-xs font-medium text-foreground">
+              {t("invitationList.roleFedOfficer")}
+            </p>
             <p className="text-xs text-muted-foreground">
-              This person will manage <span className="font-medium">{federationName}</span> on
-              behalf of the Ministry.
+              {t("invitationList.roleDesc", { federationName })}
             </p>
           </div>
         </div>
@@ -238,11 +253,11 @@ function InvitationForm({
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">
-              Cancel
+              {t("invitationList.cancel")}
             </Button>
           </DialogClose>
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Sending..." : "Send Invitation"}
+            {isPending ? t("invitationList.sending") : t("invitationList.sendInvitation")}
           </Button>
         </DialogFooter>
       </form>
@@ -253,6 +268,7 @@ function InvitationForm({
 // ─── Page Component ───────────────────────────────────────────────────────
 
 export const InvitationList: React.FC = () => {
+  const { t } = useTranslation();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
@@ -288,10 +304,13 @@ export const InvitationList: React.FC = () => {
     (f) => f.id === selectedFederationId,
   );
 
-  const columns = createColumns(
-    (invitationId, email) => setConfirmAction({ type: "resend", invitationId, email }),
-    (invitationId, email) => setConfirmAction({ type: "cancel", invitationId, email }),
-  );
+  const columns = useMemo(() => {
+    return createColumns(
+      t,
+      (invitationId, email) => setConfirmAction({ type: "resend", invitationId, email }),
+      (invitationId, email) => setConfirmAction({ type: "cancel", invitationId, email }),
+    );
+  }, [t]);
 
   const table = useReactTable({
     data: (invitations as Invitation[]) ?? [],
@@ -326,13 +345,13 @@ export const InvitationList: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success("Invitation sent", {
-            description: `An invitation has been sent to ${values.email}.`,
+          toast.success(t("invitationList.toastSent"), {
+            description: t("invitationList.toastSentDesc", { email: values.email }),
           });
           setShowCreateModal(false);
         },
         onError: (err) => {
-          toast.error("Failed to send invitation", { description: String(err) });
+          toast.error(t("invitationList.toastSendFailed"), { description: String(err) });
         },
       },
     );
@@ -344,11 +363,11 @@ export const InvitationList: React.FC = () => {
       { federationId: selectedFederationId, invitationId: confirmAction.invitationId },
       {
         onSuccess: () => {
-          toast.success("Invitation resent successfully.");
+          toast.success(t("invitationList.toastResent"));
           setConfirmAction(null);
         },
         onError: (err) => {
-          toast.error("Failed to resend invitation", { description: String(err) });
+          toast.error(t("invitationList.toastResendFailed"), { description: String(err) });
         },
       },
     );
@@ -360,33 +379,36 @@ export const InvitationList: React.FC = () => {
       { federationId: selectedFederationId, invitationId: confirmAction.invitationId },
       {
         onSuccess: () => {
-          toast.success("Invitation cancelled.");
+          toast.success(t("invitationList.toastCancelled"));
           setConfirmAction(null);
         },
         onError: (err) => {
-          toast.error("Failed to cancel invitation", { description: String(err) });
+          toast.error(t("invitationList.toastCancelFailed"), { description: String(err) });
         },
       },
     );
   };
 
   return (
-    <AppShell title="Invitation Management" subtitle="Invite users to federations">
+    <AppShell title={t("invitationList.title")} subtitle={t("invitationList.subtitle")}>
       <div className="space-y-6">
         {/* Federation Selector */}
-        <Card title="Select Federation" subtitle="Choose a federation to manage its invitations">
+        <Card
+          title={t("invitationList.selectFederationTitle")}
+          subtitle={t("invitationList.selectFederationSubtitle")}
+        >
           <div className="flex items-center gap-4">
             {federationsLoading ? (
               <Skeleton className="h-10 w-full max-w-md" />
             ) : (
               <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
                 <SelectTrigger className="w-full max-w-md">
-                  <SelectValue placeholder="Select a federation..." />
+                  <SelectValue placeholder={t("invitationList.selectFederationPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {(federations as Federation[]).length === 0 ? (
                     <div className="px-4 py-3 text-sm text-muted-foreground">
-                      No federations found. Create one first.
+                      {t("invitationList.noFederationsFound")}
                     </div>
                   ) : (
                     (federations as Federation[]).map((f) => (
@@ -404,7 +426,7 @@ export const InvitationList: React.FC = () => {
               className="flex items-center gap-2 shrink-0"
             >
               <Plus className="size-4" />
-              New Invitation
+              {t("invitationList.newInvitationBtn")}
             </Button>
           </div>
         </Card>
@@ -413,12 +435,12 @@ export const InvitationList: React.FC = () => {
         {selectedFederationId && (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard
-              label="Total Invitations"
+              label={t("invitationList.totalInvitations")}
               value={isLoading ? "..." : invitations.length.toString()}
               icon={Mail}
             />
             <StatCard
-              label="Pending"
+              label={t("invitationList.pending")}
               value={
                 isLoading
                   ? "..."
@@ -432,7 +454,7 @@ export const InvitationList: React.FC = () => {
               tone="warning"
             />
             <StatCard
-              label="Sent"
+              label={t("invitationList.sent")}
               value={
                 isLoading
                   ? "..."
@@ -442,7 +464,7 @@ export const InvitationList: React.FC = () => {
               tone="success"
             />
             <StatCard
-              label="Last 30 Days"
+              label={t("invitationList.last30Days")}
               value={isLoading ? "..." : invitations.length.toString()}
               icon={Mail}
               tone="info"
@@ -453,19 +475,21 @@ export const InvitationList: React.FC = () => {
         {/* Invitations Table */}
         <Card
           title={
-            selectedFederation ? `Invitations — ${selectedFederation.name}` : "Pending Invitations"
+            selectedFederation
+              ? t("invitationList.invitationsFederationTitle", { name: selectedFederation.name })
+              : t("invitationList.pendingInvitationsTitle")
           }
           subtitle={
             selectedFederationId
-              ? `${invitations.length} invitation${invitations.length !== 1 ? "s" : ""} found`
-              : "Select a federation above to view invitations"
+              ? t("invitationList.invitationsCount", { count: invitations.length })
+              : t("invitationList.selectFederationPrompt")
           }
         >
           {!selectedFederationId ? (
             <div className="py-12 text-center text-muted-foreground">
               <Mail className="mx-auto mb-3 size-12 opacity-30" />
-              <p className="font-medium">No federation selected</p>
-              <p className="text-sm">Choose a federation from the dropdown above</p>
+              <p className="font-medium">{t("invitationList.noFedSelected")}</p>
+              <p className="text-sm">{t("invitationList.chooseFedHint")}</p>
             </div>
           ) : isLoading ? (
             <div className="space-y-3 py-4">
@@ -476,7 +500,7 @@ export const InvitationList: React.FC = () => {
           ) : error ? (
             <div className="py-8 text-center text-destructive">
               <AlertCircle className="mx-auto mb-2 h-8 w-8" />
-              <p className="font-medium">Failed to load invitations</p>
+              <p className="font-medium">{t("invitationList.failedLoad")}</p>
               <p className="text-sm text-muted-foreground mt-1">{String(error)}</p>
             </div>
           ) : (
@@ -486,7 +510,7 @@ export const InvitationList: React.FC = () => {
                 <div className="relative max-w-sm">
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search by email..."
+                    placeholder={t("invitationList.searchPlaceholder")}
                     value={globalFilter ?? ""}
                     onChange={(e) => setGlobalFilter(e.target.value)}
                     className="pl-9"
@@ -498,10 +522,8 @@ export const InvitationList: React.FC = () => {
               {table.getFilteredRowModel().rows.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground">
                   <Mail className="mx-auto mb-3 h-12 w-12 opacity-30" />
-                  <p className="font-medium">No invitations yet</p>
-                  <p className="text-sm">
-                    Click "New Invitation" to invite someone to this federation
-                  </p>
+                  <p className="font-medium">{t("invitationList.noInvitationsYet")}</p>
+                  <p className="text-sm">{t("invitationList.inviteInstruction")}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -543,8 +565,10 @@ export const InvitationList: React.FC = () => {
               {table.getFilteredRowModel().rows.length > 0 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
                   <div className="text-sm text-muted-foreground text-center sm:text-left">
-                    Showing {table.getFilteredRowModel().rows.length} of {invitations.length}{" "}
-                    invitations
+                    {t("invitationList.showingCount", {
+                      filtered: table.getFilteredRowModel().rows.length,
+                      total: invitations.length,
+                    })}
                   </div>
                   <div className="flex items-center gap-1 flex-wrap justify-center">
                     <Button
@@ -554,7 +578,7 @@ export const InvitationList: React.FC = () => {
                       disabled={!table.getCanPreviousPage()}
                       className="hidden sm:inline-flex"
                     >
-                      First
+                      {t("invitationList.first")}
                     </Button>
                     <Button
                       variant="outline"
@@ -562,9 +586,9 @@ export const InvitationList: React.FC = () => {
                       onClick={() => table.previousPage()}
                       disabled={!table.getCanPreviousPage()}
                     >
-                      Prev
+                      {t("invitationList.prev")}
                     </Button>
-                    <span className="text-sm px-1 whitespace-nowrap">
+                    <span className="text-sm px-1 whitespace-nowrap font-medium">
                       {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
                     </span>
                     <Button
@@ -573,7 +597,7 @@ export const InvitationList: React.FC = () => {
                       onClick={() => table.nextPage()}
                       disabled={!table.getCanNextPage()}
                     >
-                      Next
+                      {t("invitationList.next")}
                     </Button>
                     <Button
                       variant="outline"
@@ -582,7 +606,7 @@ export const InvitationList: React.FC = () => {
                       disabled={!table.getCanNextPage()}
                       className="hidden sm:inline-flex"
                     >
-                      Last
+                      {t("invitationList.last")}
                     </Button>
                   </div>
                 </div>
@@ -598,11 +622,9 @@ export const InvitationList: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mail className="size-5 text-accent" />
-              Invite to {selectedFederation?.name}
+              {t("invitationList.dialogInviteTitle", { name: selectedFederation?.name })}
             </DialogTitle>
-            <DialogDescription>
-              Send an invitation to join the selected federation.
-            </DialogDescription>
+            <DialogDescription>{t("invitationList.dialogInviteDesc")}</DialogDescription>
           </DialogHeader>
           <InvitationForm
             federationName={selectedFederation?.name ?? ""}
@@ -617,16 +639,18 @@ export const InvitationList: React.FC = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction?.type === "resend" ? "Resend Invitation?" : "Cancel Invitation?"}
+              {confirmAction?.type === "resend"
+                ? t("invitationList.confirmResendTitle")
+                : t("invitationList.confirmCancelTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.type === "resend"
-                ? `This will resend the invitation email to ${confirmAction?.email}.`
-                : `This will permanently cancel the invitation to ${confirmAction?.email}. This cannot be undone.`}
+                ? t("invitationList.confirmResendDesc", { email: confirmAction?.email })
+                : t("invitationList.confirmCancelDesc", { email: confirmAction?.email })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Dismiss</AlertDialogCancel>
+            <AlertDialogCancel>{t("invitationList.dismiss")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (confirmAction?.type === "resend") {
@@ -641,7 +665,9 @@ export const InvitationList: React.FC = () => {
                   : ""
               }
             >
-              {confirmAction?.type === "resend" ? "Resend" : "Cancel Invitation"}
+              {confirmAction?.type === "resend"
+                ? t("invitationList.resend")
+                : t("invitationList.cancelInvitation")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -649,3 +675,4 @@ export const InvitationList: React.FC = () => {
     </AppShell>
   );
 };
+export default InvitationList;

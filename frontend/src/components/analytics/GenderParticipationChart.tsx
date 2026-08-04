@@ -1,5 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface GenderParticipationChartProps {
   data: {
@@ -14,10 +15,15 @@ interface GenderParticipationChartProps {
 }
 
 export function GenderParticipationChart({ data }: GenderParticipationChartProps) {
+  const { t } = useTranslation();
+  const women = t("analytics.genderWomen");
+  const men = t("analytics.genderMen");
+  const nonBinary = t("analytics.nonBinaryUndisclosed");
+
   const chartData = [
-    { name: "Women", value: data.female_pct || 0, color: "#0284c7" },
-    { name: "Men", value: data.male_pct || 0, color: "#16a34a" },
-    { name: "Non-binary / Undisclosed", value: data.other_pct || 0, color: "#ea580c" },
+    { name: women, value: data.female_pct || 0, color: "#0284c7" },
+    { name: men, value: data.male_pct || 0, color: "#16a34a" },
+    { name: nonBinary, value: data.other_pct || 0, color: "#ea580c" },
   ].filter((item) => item.value > 0);
 
   // Fallback if no members are populated in the database
@@ -25,9 +31,9 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
     chartData.length > 0
       ? chartData
       : [
-          { name: "Women", value: 50.0, color: "#0284c7" },
-          { name: "Men", value: 40.0, color: "#16a34a" },
-          { name: "Non-binary / Undisclosed", value: 10.0, color: "#ea580c" },
+          { name: women, value: 50.0, color: "#0284c7" },
+          { name: men, value: 40.0, color: "#16a34a" },
+          { name: nonBinary, value: 10.0, color: "#ea580c" },
         ];
 
   const isFallback = chartData.length === 0;
@@ -37,10 +43,10 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-6 h-full flex flex-col justify-between">
       <div>
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-          Gender Participation
+          {t("analytics.genderParticipation")}
         </span>
         <span className="text-xs text-slate-500 font-medium block mt-0.5">
-          Your cooperative membership breakdown
+          {t("analytics.membershipBreakdown")}
         </span>
       </div>
 
@@ -70,7 +76,7 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
             {primaryPct.toFixed(1)}%
           </span>
           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-            Women
+            {t("analytics.genderWomen")}
           </span>
         </div>
       </div>

@@ -122,7 +122,7 @@ impl LoanRepository {
         let count = models.len() as u64;
         loan::Entity::insert_many(models)
             .on_conflict(
-                OnConflict::columns([LoanColumn::CooperativeId, LoanColumn::LoanId])
+                OnConflict::columns([LoanColumn::SubmissionId, LoanColumn::LoanId])
                     .update_columns([
                         LoanColumn::SubmissionId,
                         LoanColumn::MemberId,
@@ -155,5 +155,47 @@ impl LoanRepository {
                 tracing::error!(error = %e, "loan bulk_upsert failed");
                 AppError::DatabaseError(e)
             })
+    }
+
+    pub async fn get_portfolio_breakdown(
+        &self,
+        cooperative_id: Uuid,
+    ) -> AppResult<Vec<crate::api::dto::submission::PortfolioCategoryDto>> {
+        use sea_orm::{sea_query::Expr, FromQueryResult, QuerySelect};
+
+        #[derive(FromQueryResult)]
+        struct BreakdownRow {
+            category: crate::entities::enums::DpdCategory,
+            balance: Option<rust_decimal::Decimal>,
+            count: i64,
+        }
+
+        let rows = loan::Entity::find()
+            .filter(LoanColumn::CooperativeId.eq(cooperative_id))
+            .select_only()
+            .column_as(LoanColumn::DaysPastDueCategory, "category")
+            .column_as(Expr::col(LoanColumn::Balance).sum(), "balance")
+            .column_as(Expr::col(LoanColumn::Id).count(), "count")
+            .group_by(LoanColumn::DaysPastDueCategory)
+            .into_model::<BreakdownRow>()
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        use rust_decimal::prelude::ToPrimitive;
+        Ok(rows
+            .into_iter()
+            .map(|r| crate::api::dto::submission::PortfolioCategoryDto {
+                category: match r.category {
+                    crate::entities::enums::DpdCategory::Zero => "Performing".to_string(),
+                    crate::entities::enums::DpdCategory::Days1To30 => "Watch".to_string(),
+                    crate::entities::enums::DpdCategory::Days31To60 => "Substandard".to_string(),
+                    crate::entities::enums::DpdCategory::Days61To90 => "Doubtful".to_string(),
+                    crate::entities::enums::DpdCategory::Days91Plus => "Loss".to_string(),
+                },
+                balance: r.balance.and_then(|d| d.to_f64()).unwrap_or(0.0),
+                count: r.count,
+            })
+            .collect())
     }
 }

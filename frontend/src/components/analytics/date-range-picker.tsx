@@ -4,6 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export interface DateRange {
   from: Date;
@@ -15,63 +16,64 @@ interface DateRangePreset {
   range: () => DateRange;
 }
 
-const PRESETS: DateRangePreset[] = [
-  {
-    label: "YTD 2025",
-    range: () => ({ from: new Date(2025, 0, 1), to: new Date() }),
-  },
-  {
-    label: "Q1 2025",
-    range: () => ({ from: new Date(2025, 0, 1), to: new Date(2025, 2, 31) }),
-  },
-  {
-    label: "Q2 2025",
-    range: () => ({ from: new Date(2025, 3, 1), to: new Date(2025, 5, 30) }),
-  },
-  {
-    label: "Q3 2025",
-    range: () => ({ from: new Date(2025, 6, 1), to: new Date(2025, 8, 30) }),
-  },
-  {
-    label: "Q4 2025",
-    range: () => ({ from: new Date(2025, 9, 1), to: new Date(2025, 11, 31) }),
-  },
-  {
-    label: "2024 Full Year",
-    range: () => ({ from: new Date(2024, 0, 1), to: new Date(2024, 11, 31) }),
-  },
-  {
-    label: "Last 90 Days",
-    range: () => {
-      const to = new Date();
-      const from = new Date();
-      from.setDate(from.getDate() - 90);
-      return { from, to };
-    },
-  },
-  {
-    label: "Last 30 Days",
-    range: () => {
-      const to = new Date();
-      const from = new Date();
-      from.setDate(from.getDate() - 30);
-      return { from, to };
-    },
-  },
-];
-
 interface DateRangePickerProps {
   value: DateRange;
   onChange: (range: DateRange) => void;
 }
 
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [customFrom, setCustomFrom] = useState(format(value.from, "yyyy-MM-dd"));
   const [customTo, setCustomTo] = useState(format(value.to, "yyyy-MM-dd"));
   const [calendarMonth, setCalendarMonth] = useState<Date>(value.from);
   const fromInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
+
+  const PRESETS: DateRangePreset[] = [
+    {
+      label: t("analytics.ytd2025"),
+      range: () => ({ from: new Date(2025, 0, 1), to: new Date() }),
+    },
+    {
+      label: t("analytics.q1_2025"),
+      range: () => ({ from: new Date(2025, 0, 1), to: new Date(2025, 2, 31) }),
+    },
+    {
+      label: t("analytics.q2_2025"),
+      range: () => ({ from: new Date(2025, 3, 1), to: new Date(2025, 5, 30) }),
+    },
+    {
+      label: t("analytics.q3_2025"),
+      range: () => ({ from: new Date(2025, 6, 1), to: new Date(2025, 8, 30) }),
+    },
+    {
+      label: t("analytics.q4_2025"),
+      range: () => ({ from: new Date(2025, 9, 1), to: new Date(2025, 11, 31) }),
+    },
+    {
+      label: t("analytics.fullYear2024"),
+      range: () => ({ from: new Date(2024, 0, 1), to: new Date(2024, 11, 31) }),
+    },
+    {
+      label: t("analytics.last90Days"),
+      range: () => {
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - 90);
+        return { from, to };
+      },
+    },
+    {
+      label: t("analytics.last30Days"),
+      range: () => {
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - 30);
+        return { from, to };
+      },
+    },
+  ];
 
   useEffect(() => {
     setCustomFrom(format(value.from, "yyyy-MM-dd"));
@@ -136,10 +138,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end">
         <div className="flex">
-          {/* Presets sidebar */}
           <div className="border-r border-border p-3 w-44">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Quick Select
+              {t("analytics.quickSelect")}
             </p>
             <div className="space-y-1">
               {PRESETS.map((preset) => (
@@ -158,7 +159,6 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
             </div>
           </div>
 
-          {/* Calendar + custom inputs */}
           <div className="p-3">
             <Calendar
               mode="range"
@@ -180,14 +180,15 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               defaultMonth={value.from}
             />
 
-            {/* Custom date inputs */}
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                Custom Range
+                {t("analytics.customRange")}
               </p>
               <div className="flex items-center gap-2">
                 <div className="flex-1">
-                  <label className="text-[10px] text-muted-foreground mb-1 block">From</label>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    {t("analytics.from")}
+                  </label>
                   <input
                     ref={fromInputRef}
                     type="date"
@@ -198,7 +199,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 </div>
                 <span className="text-muted-foreground text-xs mt-4">→</span>
                 <div className="flex-1">
-                  <label className="text-[10px] text-muted-foreground mb-1 block">To</label>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    {t("analytics.to")}
+                  </label>
                   <input
                     ref={toInputRef}
                     type="date"
@@ -208,7 +211,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                   />
                 </div>
                 <Button size="sm" onClick={handleCustomApply} className="mt-4 h-7 text-xs">
-                  Apply
+                  {t("analytics.apply")}
                 </Button>
               </div>
             </div>

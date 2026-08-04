@@ -12,6 +12,8 @@ pub struct Model {
     pub federation_id: Uuid,
     pub organization_keycloak_id: String,
     pub display_name: String,
+    #[sea_orm(column_type = "Json")]
+    pub metadata: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

@@ -403,3 +403,141 @@
   font-weight: 700;
   line-height: 1;
 }
+
+/* ── PDF Report Print Styling ──
+   Rendered by Gotenberg (headless Chromium) with emulateMediaType=screen,
+   so these rules are plain CSS (not wrapped in @media print). */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.print-report {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-report .report-page {
+  position: relative;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+}
+
+.print-report table {
+  border-collapse: collapse;
+}
+
+.print-report thead {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-report .page-break-inside-avoid,
+.print-report .break-inside-avoid {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-report .break-after-page {
+  break-after: page;
+  page-break-after: always;
+}
+
+/* ── Professional Report Content Styling ──
+   Applied to Gotenberg-generated report pages to give every sheet a
+   consistent, polished structure: framed sheets, numbered section titles,
+   accent bars, and refined tables. */
+.print-report .report-sheet {
+  position: relative;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #cbd5e1;
+  padding: 0;
+  overflow: hidden;
+}
+
+.print-report .report-sheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0f3b73, #2563eb 55%, #60a5fa);
+  z-index: 5;
+}
+
+.print-report .report-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  color: #1e3a8a;
+  font-size: 1.15rem;
+  margin: 0 0 4px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #2563eb;
+}
+
+.print-report .report-title .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #0f3b73, #2563eb);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.print-report .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #0f3b73;
+  font-size: 0.95rem;
+  margin: 18px 0 8px;
+}
+
+.print-report .section-title::before {
+  content: "";
+  width: 5px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2563eb, #60a5fa);
+}
+
+.print-report .report-sheet table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.print-report .report-sheet thead th {
+  background: linear-gradient(90deg, #0f3b73, #1d4ed8);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 7px 10px;
+  border: 1px solid #1e40af;
+}
+
+.print-report .report-sheet tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.print-report .report-sheet h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.print-report .report-sheet h3::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: #2563eb;
+}

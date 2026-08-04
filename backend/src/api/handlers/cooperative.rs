@@ -24,7 +24,7 @@ use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::cooperative;
 use crate::entities::enums::{
-    AccountingYear, CoopStatus, CooperativeType, EswatiniRegion, UrbanRural,
+    AccountingYear, CoopStatus, CooperativeSector, CooperativeType, EswatiniRegion, UrbanRural,
 };
 use crate::error::{AppError, AppResult};
 use crate::services::VerificationTokenService;
@@ -256,6 +256,7 @@ pub async fn create_cooperative(
                 federation_id: sea_orm::Set(federation_pg.id),
                 organization_keycloak_id: sea_orm::Set(org_id.clone()),
                 display_name: sea_orm::Set(apex_resolved.name.clone()),
+                metadata: sea_orm::Set(None),
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };
@@ -290,7 +291,7 @@ pub async fn create_cooperative(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(Some(body.sector.clone())),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector)),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
@@ -298,6 +299,7 @@ pub async fn create_cooperative(
         accounting_year: sea_orm::Set(
             AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar),
         ),
+        tier: sea_orm::Set(body.tier.clone()),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
@@ -359,6 +361,23 @@ pub async fn list_cooperatives(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
+    if claims.is_ministry() {
+        let list = state.cooperative_repo.list_all().await?;
+        let responses: Vec<CooperativeResponse> = list
+            .into_iter()
+            .map(|c| CooperativeResponse {
+                id: c.id.to_string(),
+                name: c.name,
+                path: None,
+                parent_group_id: Some(c.apex_id.to_string()),
+                description: Some(c.display_name),
+                institution_type: c.institution_type.map(|t| t.as_str().to_string()),
+                region: c.region.map(|r| r.as_str().to_string()),
+            })
+            .collect();
+        return Ok((StatusCode::OK, Json(responses)));
+    }
+
     let apex_id_or_path = claims
         .get_apex_group_id()
         .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
@@ -989,10 +1008,66 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
         .find_by_keycloak_id(&apex.id)
         .await
         .ok()
-        .flatten()
-        .ok_or_else(|| AppError::Forbidden("Apex group not found in database".into()))?;
+        .flatten();
 
-    Ok(apex_pg.id)
+    let apex_pg_id = match apex_pg {
+        Some(a) => a.id,
+        None => {
+            tracing::warn!(apex_keycloak_id = %apex.id, "Apex group not found in database, auto-backfilling tracking record");
+
+            // Try to find parent federation
+            let org_id = apex
+                .attributes
+                .as_ref()
+                .and_then(|attrs| attrs.get("organization_id"))
+                .and_then(|vals| vals.first().cloned());
+
+            let federation = if let Some(ref o_id) = org_id {
+                state
+                    .federation_repo
+                    .find_by_keycloak_id(o_id)
+                    .await
+                    .ok()
+                    .flatten()
+            } else {
+                None
+            };
+
+            let federation = match federation {
+                Some(fed) => fed,
+                None => {
+                    use sea_orm::EntityTrait;
+                    let all_feds = crate::entities::federation::Entity::find()
+                        .all(&state.db)
+                        .await
+                        .map_err(AppError::DatabaseError)?;
+                    all_feds.first().cloned().ok_or_else(|| {
+                        AppError::Forbidden(
+                            "No federations exist in database to link the apex".into(),
+                        )
+                    })?
+                }
+            };
+
+            let keycloak_org_id = org_id.unwrap_or_else(|| federation.keycloak_id.clone());
+
+            let new_apex = crate::entities::apex::ActiveModel {
+                id: sea_orm::Set(Uuid::new_v4()),
+                keycloak_id: sea_orm::Set(apex.id.clone()),
+                federation_id: sea_orm::Set(federation.id),
+                organization_keycloak_id: sea_orm::Set(keycloak_org_id),
+                display_name: sea_orm::Set(apex.name.clone()),
+                metadata: sea_orm::Set(Some(serde_json::json!({}))),
+                created_at: sea_orm::Set(chrono::Utc::now()),
+                updated_at: sea_orm::Set(chrono::Utc::now()),
+            };
+
+            let inserted = state.apex_repo.create(new_apex).await?;
+            inserted.id
+        }
+    };
+
+    Ok(apex_pg_id)
 }
 
 /// Resolves the calling cooperative user's DB record from JWT claims.
@@ -1039,7 +1114,7 @@ pub async fn resolve_caller_cooperative_ids(
     state: &AppState,
     claims: &Claims,
 ) -> AppResult<Vec<Uuid>> {
-    if claims.has_role("ministry") {
+    if claims.has_role("ministry") || claims.is_service_account() {
         let all = state.cooperative_repo.list_all().await?;
         Ok(all.iter().map(|c| c.id).collect())
     } else if claims.has_role("federation") {
@@ -1212,7 +1287,7 @@ pub async fn create_cooperative_profile(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(Some(body.sector.clone())),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector)),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
@@ -1220,6 +1295,7 @@ pub async fn create_cooperative_profile(
         accounting_year: sea_orm::Set(
             AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar),
         ),
+        tier: sea_orm::Set(body.tier.clone()),
         created_at: sea_orm::Set(now),
         updated_at: sea_orm::Set(now),
     };
@@ -1417,7 +1493,7 @@ pub async fn update_cooperative_profile(
         model.phone = sea_orm::Set(Some(v.clone()));
     }
     if let Some(ref v) = body.sector {
-        model.sector = sea_orm::Set(Some(v.clone()));
+        model.sector = sea_orm::Set(CooperativeSector::parse(v));
     }
     if let Some(ref v) = body.responsible_financial {
         model.responsible_financial = sea_orm::Set(Some(*v));

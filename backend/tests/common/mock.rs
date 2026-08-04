@@ -9,9 +9,10 @@ use coop_data_backend::{
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
     KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository, SavingsAccountRepository,
-    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
-    UploadedFileRepository, UserRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
+    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection;
 
@@ -68,6 +69,12 @@ impl TestApp {
             NonFinancialIndicatorEntryRepository::new(db.clone());
         let custom_kpi_repo = CustomKpiRepository::new(db.clone());
         let kpi_record_repo = KpiRecordRepository::new(db.clone());
+        let narrative_generator =
+            coop_data_backend::services::report_narrative::create_narrative_generator(&config);
+        let ministry_narratives_repo =
+            coop_data_backend::repositories::MinistryReportNarrativesRepository::new(db.clone());
+        let questionnaire_repo = QuestionnaireRepository::new(db.clone());
+        let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -91,6 +98,8 @@ impl TestApp {
             flag_repo,
             review_repo,
             section_repo,
+            questionnaire_repo,
+            questionnaire_template_repo,
             non_financial_indicator_catalog_repo,
             non_financial_indicator_entry_repo,
             extractor,
@@ -102,7 +111,11 @@ impl TestApp {
             custom_kpi_repo,
             kpi_record_repo,
             storage,
+            gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+            ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+            narrative_generator,
             nf_excel_parser,
+            ministry_narratives_repo,
         };
 
         TestApp { state }
@@ -125,6 +138,8 @@ pub fn test_config() -> AppConfig {
         jwt_audience: "test-audience".to_string(),
         jwt_issuer_aliases: vec![],
         frontend_url: "http://localhost:5173".to_string(),
+        gotenberg_url: "http://localhost:8081".to_string(),
+        gotenberg_frontend_url: "http://localhost:5173".to_string(),
         environment: Environment::Development,
         extraction_backend: "mock".to_string(),
         ai_provider_url: "https://api.openai.com/v1".to_string(),

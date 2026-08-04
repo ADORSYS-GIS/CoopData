@@ -11,6 +11,12 @@ pub struct CreateSubmissionRequest {
     pub reporting_year: i32,
     #[serde(default = "default_priority")]
     pub priority: String,
+    #[serde(default = "default_submission_method")]
+    pub submission_method: String,
+}
+
+fn default_submission_method() -> String {
+    "manual_grid".to_string()
 }
 
 fn default_priority() -> String {
@@ -45,6 +51,12 @@ pub struct UpdateSectionStatusRequest {
     pub status: String,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateSubmissionMethodRequest {
+    /// One of "upload", "manual", "questionnaire"
+    pub submission_method: String,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SubmissionResponse {
     pub id: Uuid,
@@ -56,6 +68,7 @@ pub struct SubmissionResponse {
     pub submitted_by: Option<Uuid>,
     pub submitted_at: Option<DateTime<Utc>>,
     pub priority: String,
+    pub submission_method: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     /// Financial statement ID, present after upload
@@ -95,6 +108,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             submitted_by: m.submitted_by,
             submitted_at: m.submitted_at,
             priority: m.priority,
+            submission_method: m.submission_method,
             created_at: m.created_at,
             updated_at: m.updated_at,
             financial_statement_id: None,
@@ -188,4 +202,28 @@ impl From<crate::entities::submission_review::Model> for SubmissionReviewRespons
             created_at: m.created_at,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PortfolioCategoryDto {
+    pub category: String,
+    pub balance: f64,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PortfolioBreakdownResponse {
+    pub submission_id: Uuid,
+    pub categories: Vec<PortfolioCategoryDto>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MembershipStatsResponse {
+    pub submission_id: Uuid,
+    pub male_members: i64,
+    pub female_members: i64,
+    pub youth_members: i64,
+    pub active_members: i64,
+    pub inactive_members: i64,
+    pub agm_attendance: i64,
 }

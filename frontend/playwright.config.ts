@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5173",
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5175",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -27,8 +27,8 @@ export default defineConfig({
   webServer: process.env.E2E_SKIP_SERVER
     ? undefined
     : {
-        command: "VITE_E2E_MOCK_AUTH=1 npm run dev",
-        url: "http://localhost:5173",
+        command: "VITE_E2E_MOCK_AUTH=1 npx vite --port 5175",
+        url: "http://localhost:5175",
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
       },

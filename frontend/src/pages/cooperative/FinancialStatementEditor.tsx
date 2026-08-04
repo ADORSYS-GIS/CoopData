@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -20,6 +21,16 @@ import {
 import { toast } from "sonner";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   useFinancialStatement,
   useLineItems,
   useUpdateLineItems,
@@ -27,7 +38,10 @@ import {
   useSubmitSubmission,
   type LineItemResponse,
 } from "@/hooks/submissions/useFinancialStatement";
-import { useDeleteSubmission } from "@/hooks/submissions/useSubmissions";
+import {
+  useDeleteSubmission,
+  useDeleteFinancialStatement,
+} from "@/hooks/submissions/useSubmissions";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -51,102 +65,24 @@ const STATIC_COA_OPTIONS: { code: number; name: string; category: string }[] = O
 
 const STATIC_COA_BY_CODE = new Map(STATIC_COA_OPTIONS.map((o) => [o.code, o]));
 
-// ── Flag explanations (shown in info popover) ─────────────────────────────────
+// ── Flag explanations helper mapping ─────────────────────────────────────────
 
-const FLAG_EXPLANATIONS: Record<string, { what: string; fix: string }> = {
-  // Balance sheet integrity
-  TOTAL_MISMATCH: {
-    what: "The sum of the sub-category line items does not add up to the reported total. This usually means some line items were mapped to the wrong account code, or key accounts are missing.",
-    fix: "Check each line item in the table. Look for rows with 'Low' confidence — they are likely mapped to the wrong code. Use the account code dropdown to reassign them correctly. After fixing, click Re-validate.",
-  },
-  BALANCE_UNBALANCED: {
-    what: "Total Assets ≠ Total Liabilities + Total Equity. The fundamental accounting equation is broken.",
-    fix: "This usually means one or more totals are mapped incorrectly. Verify that code 1999 holds Total Assets, 2999 holds Total Liabilities, and 3999 holds Total Equity. Reassign any misplaced items.",
-  },
-  MISSING_ACCOUNT: {
-    what: "A required account code is missing from the extracted data. The AI could not find or confidently map this field from your document.",
-    fix: "Scroll to the 'Unmapped Items' section at the bottom of the table. Find the item that corresponds to this account and use the 'Assign ↑' dropdown to assign the correct code.",
-  },
-  // Liquidity
-  LIQUIDITY_CRISIS: {
-    what: "Liquid assets (cash + short-term investments) cover less than 50% of short-term liabilities. This is a critical risk indicator.",
-    fix: "Verify that liquid asset codes (1101, 1102, 1103, 1104) and deposit codes (2101, 2102, 2103) are correctly assigned. If the values look right, this is a genuine financial risk requiring management attention.",
-  },
-  LOW_LIQUIDITY: {
-    what: "Liquid assets are below 10% of total assets. Either cash/investments are underreported or the cooperative has very little liquid resources.",
-    fix: "Check that all cash accounts (1101, 1102, 1103) and short-term investments (1104) have been correctly identified and mapped. Look for any cash items in the unmapped section.",
-  },
-  CASH_TOO_LOW: {
-    what: "Cash on hand and at bank is below 2% of total assets, which is dangerously low for daily operations.",
-    fix: "Verify codes 1101 (Cash on Hand), 1102 (Cash at Bank Current), 1103 (Cash at Bank Savings) are correctly mapped with the right values.",
-  },
-  // Credit risk
-  NPL_HIGH: {
-    what: "Non-performing loans exceed 10% of the total loan portfolio. This is above the alert threshold.",
-    fix: "Verify codes 1201–1205 are correctly assigned to the right loan quality buckets. If the data is correct, this reflects a real credit risk requiring management action.",
-  },
-  UNDER_PROVISIONING: {
-    what: "The specific loan loss provision (code 1252) covers less than 50% of non-performing loans (code 1205). This may be a regulatory violation.",
-    fix: "Check that 1252 (Specific Loan Loss Provision) is mapped and stored as a NEGATIVE number. Also verify 1205 (Non-Performing Loans) is correct.",
-  },
-  // Capital
-  LOW_EQUITY: {
-    what: "Equity is below 10% of total assets. The cooperative may be under-capitalised.",
-    fix: "Verify that all equity components are mapped: 3101 (Permanent Share Capital), 3102 (Withdrawable Shares), 3201 (Statutory Reserve), 3301 (Accumulated Surplus), 3302 (Current Year Surplus).",
-  },
-  STATUTORY_RESERVE_MISSING: {
-    what: "The statutory reserve (code 3201) is zero or missing. This is legally required for cooperatives.",
-    fix: "Check if the uploaded document includes a statutory or legal reserve. If it does, find it in the unmapped items and assign code 3201.",
-  },
-  HIGH_LEVERAGE: {
-    what: "The debt-to-equity ratio exceeds the 2:1 target threshold.",
-    fix: "Verify total liabilities (2999) and total equity (3999) are correctly mapped. If the data is accurate, this is a genuine financial concern.",
-  },
-  // Profitability
-  LOW_PROFITABILITY: {
-    what: "Return on Assets (ROA) is below 1%. The cooperative is generating very little profit relative to its asset base.",
-    fix: "Verify income accounts (4101, 4102, 4201) and expense accounts (5101–5301) are all correctly mapped and that the current year surplus (3302) is present.",
-  },
-  // Missing data
-  MISSING_DATA: {
-    what: "A critical field that is required for financial analysis is missing from the extracted data.",
-    fix: "Check the unmapped items section at the bottom of the table. The field may have been extracted but not assigned a code. Use the dropdown to assign the correct account code.",
-  },
-  // Default
-  DEFAULT: {
-    what: "A data quality or financial health issue was detected.",
-    fix: "Review the flagged value, check for misassigned account codes, and click Re-validate after making corrections.",
-  },
-};
-
-function getFlagExplanation(rule: string) {
-  const key = Object.keys(FLAG_EXPLANATIONS).find((k) =>
-    rule.toUpperCase().includes(k.replace(/_/g, " ").split(" ")[0]),
-  );
-  // Try direct prefix matches for known rule patterns
-  if (rule.includes("TOTAL_MISMATCH") || rule.includes("sum of"))
-    return FLAG_EXPLANATIONS.TOTAL_MISMATCH;
-  if (rule.includes("BALANCE") || rule.includes("equation"))
-    return FLAG_EXPLANATIONS.BALANCE_UNBALANCED;
-  if (rule.includes("MISSING_ACCOUNT") || rule.includes("missing"))
-    return FLAG_EXPLANATIONS.MISSING_DATA;
-  if (rule.includes("LIQUIDITY_CRISIS") || rule.includes("Liquidity crisis"))
-    return FLAG_EXPLANATIONS.LIQUIDITY_CRISIS;
-  if (rule.includes("LOW_LIQUIDITY") || rule.includes("10% minimum"))
-    return FLAG_EXPLANATIONS.LOW_LIQUIDITY;
-  if (rule.includes("CASH_TOO_LOW") || rule.includes("Dangerously low"))
-    return FLAG_EXPLANATIONS.CASH_TOO_LOW;
-  if (rule.includes("STATUTORY") || rule.includes("statutory"))
-    return FLAG_EXPLANATIONS.STATUTORY_RESERVE_MISSING;
-  if (rule.includes("LEVERAGE") || rule.includes("Debt-to-Equity"))
-    return FLAG_EXPLANATIONS.HIGH_LEVERAGE;
-  if (rule.includes("LOW_PROFITABILITY") || rule.includes("ROA"))
-    return FLAG_EXPLANATIONS.LOW_PROFITABILITY;
-  if (rule.includes("NPL") || rule.includes("Non-performing")) return FLAG_EXPLANATIONS.NPL_HIGH;
-  if (rule.includes("PROVISION") || rule.includes("provision"))
-    return FLAG_EXPLANATIONS.UNDER_PROVISIONING;
-  if (rule.includes("EQUITY") || rule.includes("equity")) return FLAG_EXPLANATIONS.LOW_EQUITY;
-  return FLAG_EXPLANATIONS.DEFAULT;
+function getFlagExplanationKey(rule: string, message: string) {
+  const text = (rule + " " + message).toUpperCase();
+  if (text.includes("TOTAL_MISMATCH") || text.includes("SUM OF")) return "TOTAL_MISMATCH";
+  if (text.includes("BALANCE") || text.includes("EQUATION")) return "BALANCE_UNBALANCED";
+  if (text.includes("MISSING_ACCOUNT") || text.includes("MISSING")) return "MISSING_DATA";
+  if (text.includes("LIQUIDITY_CRISIS") || text.includes("LIQUIDITY CRISIS"))
+    return "LIQUIDITY_CRISIS";
+  if (text.includes("LOW_LIQUIDITY") || text.includes("10% MINIMUM")) return "LOW_LIQUIDITY";
+  if (text.includes("CASH_TOO_LOW") || text.includes("DANGEROUSLY LOW")) return "CASH_TOO_LOW";
+  if (text.includes("STATUTORY") || text.includes("STATUTORY")) return "STATUTORY_RESERVE_MISSING";
+  if (text.includes("LEVERAGE") || text.includes("DEBT-TO-EQUITY")) return "HIGH_LEVERAGE";
+  if (text.includes("LOW_PROFITABILITY") || text.includes("ROA")) return "LOW_PROFITABILITY";
+  if (text.includes("NPL") || text.includes("NON-PERFORMING")) return "NPL_HIGH";
+  if (text.includes("PROVISION") || text.includes("PROVISION")) return "UNDER_PROVISIONING";
+  if (text.includes("EQUITY") || text.includes("EQUITY")) return "LOW_EQUITY";
+  return "DEFAULT";
 }
 
 // ── Flag row with info popover ────────────────────────────────────────────────
@@ -160,8 +96,9 @@ function FlagRow({
   message: string;
   severity: "error" | "warning" | "info";
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const explanation = getFlagExplanation(rule + " " + message);
+  const explanationKey = getFlagExplanationKey(rule, message);
 
   const colorCls =
     severity === "error"
@@ -189,7 +126,7 @@ function FlagRow({
         </div>
         <button
           onClick={() => setOpen((o) => !o)}
-          title="How to fix this"
+          title={t("financialStatementEditor.flagRow.howToFixTitle")}
           className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors ${
             open
               ? "bg-muted text-foreground"
@@ -197,7 +134,7 @@ function FlagRow({
           }`}
         >
           <Info className="size-3" />
-          How to fix
+          {t("financialStatementEditor.flagRow.howToFix")}
           {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
         </button>
       </div>
@@ -206,15 +143,19 @@ function FlagRow({
         <div className="border-t border-border/60 mx-4 mb-3 pt-3 space-y-2">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-              What this means
+              {t("financialStatementEditor.flagRow.whatThisMeans")}
             </p>
-            <p className="text-xs text-foreground">{explanation.what}</p>
+            <p className="text-xs text-foreground">
+              {t(`financialStatementEditor.flags.${explanationKey}.what`)}
+            </p>
           </div>
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-              How to fix it
+              {t("financialStatementEditor.flagRow.howToFixIt")}
             </p>
-            <p className="text-xs text-foreground">{explanation.fix}</p>
+            <p className="text-xs text-foreground">
+              {t(`financialStatementEditor.flags.${explanationKey}.fix`)}
+            </p>
           </div>
         </div>
       )}
@@ -237,6 +178,7 @@ function ValidationPanel({
   onRevalidate: () => void;
   isRevalidating: boolean;
 }) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const total = errors.length + warnings.length + infos.length;
   if (total === 0) return null;
@@ -250,19 +192,19 @@ function ValidationPanel({
             {errors.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2.5 py-0.5 ring-1 ring-inset ring-destructive/20">
                 <AlertCircle className="size-3" />
-                {errors.length} error{errors.length !== 1 ? "s" : ""}
+                {t("financialStatementEditor.validationPanel.errors", { count: errors.length })}
               </span>
             )}
             {warnings.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-warning-foreground px-2.5 py-0.5 ring-1 ring-inset ring-warning/30">
                 <AlertTriangle className="size-3" />
-                {warnings.length} warning{warnings.length !== 1 ? "s" : ""}
+                {t("financialStatementEditor.validationPanel.warnings", { count: warnings.length })}
               </span>
             )}
             {infos.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 ring-1 ring-inset ring-border">
                 <Info className="size-3" />
-                {infos.length} info
+                {t("financialStatementEditor.validationPanel.infos", { count: infos.length })}
               </span>
             )}
           </div>
@@ -278,7 +220,7 @@ function ValidationPanel({
             ) : (
               <RefreshCw className="size-3" />
             )}
-            Re-validate
+            {t("financialStatementEditor.validationPanel.revalidate")}
           </button>
           <button
             onClick={() => setCollapsed((c) => !c)}
@@ -304,24 +246,6 @@ function ValidationPanel({
       )}
     </div>
   );
-}
-
-// ── Section helpers ───────────────────────────────────────────────────────────
-
-const SECTION_LABELS: Record<string, string> = {
-  financial: "Financial Statement",
-  members: "Members",
-  savings: "Savings Accounts",
-  loans: "Loans",
-  fixed_deposits: "Fixed Deposits",
-  farm_coop: "Farm Coops",
-  indicators: "Non-Financial Indicators",
-};
-
-function SectionIcon({ status }: { status: string }) {
-  if (status === "ready") return <CheckCircle2 className="size-4 text-success" />;
-  if (status === "in_progress") return <CircleDot className="size-4 text-warning-foreground" />;
-  return <CircleDashed className="size-4 text-muted-foreground" />;
 }
 
 // ── Confidence badge ──────────────────────────────────────────────────────────
@@ -356,6 +280,7 @@ export const FinancialStatementEditor: React.FC<{
   isDraft: boolean;
   isCooperative: boolean;
 }> = ({ fsId, submissionId, isDraft, isCooperative }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: fs } = useFinancialStatement(fsId);
   const { data: items = [], isLoading: itemsLoading } = useLineItems(fsId);
@@ -365,6 +290,22 @@ export const FinancialStatementEditor: React.FC<{
   const { data: sections = [] } = useSubmissionSections(submissionId);
   const updateSection = useUpdateSubmissionSection(submissionId);
   const deleteSubmission = useDeleteSubmission();
+  const deleteFs = useDeleteFinancialStatement();
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDeleteFS = async () => {
+    try {
+      await deleteFs.mutateAsync(submissionId);
+      toast.success(t("financialStatementEditor.toasts.fsDeleted"));
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.fsDeleteFailed"),
+      );
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
   // Live CoA from backend — same data the LLM uses, sorted by display_order
   const { data: liveCoaLeafs = [] } = useChartOfAccountsLeafs();
@@ -409,23 +350,27 @@ export const FinancialStatementEditor: React.FC<{
   const handleMarkFinancialReady = async () => {
     try {
       await updateSection.mutateAsync({ section: "financial", status: "ready" });
-      toast.success("Financial section marked as ready");
+      toast.success(t("financialStatementEditor.toasts.sectionReadySuccess"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to update section");
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.sectionUpdateFailed"),
+      );
     }
   };
 
   const saveValue = async (item: LineItemResponse) => {
     const parsed = parseFloat(editValue);
     if (isNaN(parsed)) {
-      toast.error("Value must be a number");
+      toast.error(t("financialStatementEditor.toasts.valMustBeNumber"));
       return;
     }
     try {
       await updateItems.mutateAsync({ updates: [{ id: item.id, value: parsed }] });
       setEditingValueId(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to update");
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.updateFailed"),
+      );
     }
   };
 
@@ -437,37 +382,43 @@ export const FinancialStatementEditor: React.FC<{
       setEditingCodeId(null);
       setCodeSearch("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to assign code");
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.assignCodeFailed"),
+      );
     }
   };
 
   const handleValidate = async () => {
     try {
       await validate.mutateAsync(submissionId);
-      toast.success("Validation complete");
+      toast.success(t("financialStatementEditor.toasts.valComplete"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Validation failed");
+      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.valFailed"));
     }
   };
 
   const handleSubmit = async () => {
     try {
       await submit.mutateAsync(submissionId);
-      toast.success("Submitted to Apex for review");
+      toast.success(t("financialStatementEditor.toasts.submitSuccess"));
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Submit failed");
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.submitFailed"),
+      );
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this entire draft submission? This cannot be undone.")) return;
+    if (!window.confirm(t("financialStatementEditor.deleteDialog.confirmDeleteDraft"))) return;
     try {
       await deleteSubmission.mutateAsync(submissionId);
-      toast.success("Draft deleted");
+      toast.success(t("financialStatementEditor.toasts.draftDeleted"));
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.deleteFailed"),
+      );
     }
   };
 
@@ -481,19 +432,19 @@ export const FinancialStatementEditor: React.FC<{
 
   // Pivot line items by Account (code or label) for 13-month Monthly Matrix view
   const MONTH_HEADERS = [
-    { month: 0, label: "Dec (Prev)" },
-    { month: 1, label: "Jan" },
-    { month: 2, label: "Feb" },
-    { month: 3, label: "Mar" },
-    { month: 4, label: "Apr" },
-    { month: 5, label: "May" },
-    { month: 6, label: "Jun" },
-    { month: 7, label: "Jul" },
-    { month: 8, label: "Aug" },
-    { month: 9, label: "Sep" },
-    { month: 10, label: "Oct" },
-    { month: 11, label: "Nov" },
-    { month: 12, label: "Dec" },
+    { month: 0, label: t("financialStatementEditor.months.decPrev") },
+    { month: 1, label: t("financialStatementEditor.months.jan") },
+    { month: 2, label: t("financialStatementEditor.months.feb") },
+    { month: 3, label: t("financialStatementEditor.months.mar") },
+    { month: 4, label: t("financialStatementEditor.months.apr") },
+    { month: 5, label: t("financialStatementEditor.months.may") },
+    { month: 6, label: t("financialStatementEditor.months.jun") },
+    { month: 7, label: t("financialStatementEditor.months.jul") },
+    { month: 8, label: t("financialStatementEditor.months.aug") },
+    { month: 9, label: t("financialStatementEditor.months.sep") },
+    { month: 10, label: t("financialStatementEditor.months.oct") },
+    { month: 11, label: t("financialStatementEditor.months.nov") },
+    { month: 12, label: t("financialStatementEditor.months.dec") },
   ];
 
   interface MatrixRow {
@@ -536,10 +487,11 @@ export const FinancialStatementEditor: React.FC<{
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
           <Loader2 className="size-4 animate-spin text-accent shrink-0" />
           <div>
-            <p className="text-sm font-semibold">Running AI extraction & re-validation</p>
+            <p className="text-sm font-semibold">
+              {t("financialStatementEditor.aiProgress.title")}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              This process takes about 1 minute to 1 minute 30 seconds. Please do not close or
-              refresh this page.
+              {t("financialStatementEditor.aiProgress.desc")}
             </p>
           </div>
         </div>
@@ -558,8 +510,12 @@ export const FinancialStatementEditor: React.FC<{
 
       {/* Line items grid */}
       <Card
-        title={`Financial Statement — ${fs?.reporting_year ?? ""}`}
-        subtitle={`${items.length} items · ${items.filter((i) => !i.account_code).length} unmapped · ${items.filter((i) => (i.ai_confidence ?? 1) < 0.6).length} low confidence`}
+        title={t("financialStatementEditor.matrix.title", { year: fs?.reporting_year ?? "" })}
+        subtitle={t("financialStatementEditor.matrix.subtitle", {
+          total: items.length,
+          unmapped: items.filter((i) => !i.account_code).length,
+          lowConf: items.filter((i) => (i.ai_confidence ?? 1) < 0.6).length,
+        })}
         action={
           <div className="flex items-center gap-3">
             {isDraft && (
@@ -574,29 +530,60 @@ export const FinancialStatementEditor: React.FC<{
                   ) : (
                     <RefreshCw className="size-3.5" />
                   )}
-                  Re-validate
+                  {t("financialStatementEditor.validationPanel.revalidate")}
                 </button>
+
+                {isCooperative && (
+                  <button
+                    onClick={() =>
+                      navigate({
+                        to: "/app/submissions/$id/manual-entry",
+                        params: { id: submissionId },
+                        search: { step: "financial" },
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="size-3.5" />
+                    {t("edit")}
+                  </button>
+                )}
+
+                {isCooperative && (
+                  <button
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    disabled={deleteFs.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 transition-colors cursor-pointer"
+                  >
+                    {deleteFs.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3.5" />
+                    )}
+                    {t("financialStatementEditor.matrix.deleteStatement")}
+                  </button>
+                )}
 
                 {financialSection && financialSection.status !== "ready" && (
                   <button
                     onClick={handleMarkFinancialReady}
                     disabled={updateSection.isPending || hasErrors}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                    title={hasErrors ? "Resolve errors before marking ready" : ""}
+                    title={hasErrors ? t("financialStatementEditor.matrix.resolveErrorsHint") : ""}
                   >
                     {updateSection.isPending ? (
                       <Loader2 className="size-3.5 animate-spin" />
                     ) : (
                       <CheckCircle2 className="size-3.5" />
                     )}
-                    Mark Section Ready
+                    {t("financialStatementEditor.matrix.markReady")}
                   </button>
                 )}
 
                 {financialSection && financialSection.status === "ready" && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-xs font-bold text-success">
                     <CheckCircle2 className="size-3.5" />
-                    Section Ready
+                    {t("financialStatementEditor.matrix.ready")}
                   </span>
                 )}
               </div>
@@ -607,11 +594,11 @@ export const FinancialStatementEditor: React.FC<{
         {itemsLoading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
             <Loader2 className="size-5 animate-spin mr-2" />
-            Loading line items…
+            {t("financialStatementEditor.matrix.loading")}
           </div>
         ) : items.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground">
-            <p className="text-sm">No line items extracted yet.</p>
+            <p className="text-sm">{t("financialStatementEditor.matrix.empty")}</p>
           </div>
         ) : (
           /* ── 13-Month Matrix Table View ── */
@@ -619,9 +606,11 @@ export const FinancialStatementEditor: React.FC<{
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
-                  <th className="px-3 py-3 w-16 sticky left-0 bg-surface z-10 shadow-sm">Code</th>
+                  <th className="px-3 py-3 w-16 sticky left-0 bg-surface z-10 shadow-sm">
+                    {t("financialStatementEditor.matrix.code")}
+                  </th>
                   <th className="px-4 py-3 min-w-[200px] sticky left-16 bg-surface z-10 shadow-sm border-r border-border">
-                    Account Name
+                    {t("financialStatementEditor.matrix.accountName")}
                   </th>
                   {MONTH_HEADERS.map((mh) => (
                     <th key={mh.month} className="px-3 py-3 text-right min-w-[90px]">
@@ -650,7 +639,7 @@ export const FinancialStatementEditor: React.FC<{
                             <input
                               autoFocus
                               type="text"
-                              placeholder="Code…"
+                              placeholder={t("financialStatementEditor.matrix.codePlaceholder")}
                               value={codeSearch}
                               onChange={(e) => setCodeSearch(e.target.value)}
                               onKeyDown={(e) => {
@@ -664,7 +653,7 @@ export const FinancialStatementEditor: React.FC<{
                             <div className="absolute left-0 top-7 z-20 w-64 rounded-lg border border-border bg-surface shadow-lg font-sans">
                               {filteredCoaOptions.length === 0 ? (
                                 <p className="px-3 py-2 text-xs text-muted-foreground">
-                                  No matches
+                                  {t("financialStatementEditor.matrix.noMatches")}
                                 </p>
                               ) : (
                                 filteredCoaOptions.map((opt) => (
@@ -690,7 +679,11 @@ export const FinancialStatementEditor: React.FC<{
                                 ? "text-warning-foreground font-bold hover:underline cursor-pointer"
                                 : "text-muted-foreground cursor-default"
                             }`}
-                            title={isUnmapped && isDraft ? "Click to assign account code" : ""}
+                            title={
+                              isUnmapped && isDraft
+                                ? t("financialStatementEditor.matrix.assignTooltip")
+                                : ""
+                            }
                           >
                             {row.account_code ?? "NULL"}
                           </button>
@@ -750,7 +743,7 @@ export const FinancialStatementEditor: React.FC<{
                                         minimumFractionDigits: 0,
                                         maximumFractionDigits: 2,
                                       })
-                                    : "—"}
+                                    : t("financialStatementEditor.matrix.valuePlaceholder")}
                                   {isDraft && (
                                     <Edit3 className="size-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
                                   )}
@@ -769,8 +762,29 @@ export const FinancialStatementEditor: React.FC<{
             </table>
           </div>
         )}
-        {/* ── Flat List View (disabled) ── */}
       </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("financialStatementEditor.deleteDialog.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("financialStatementEditor.deleteDialog.desc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("financialStatementEditor.deleteDialog.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFS}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("financialStatementEditor.deleteDialog.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

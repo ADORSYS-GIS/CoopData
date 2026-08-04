@@ -8,6 +8,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   glp: number;
@@ -16,10 +17,12 @@ interface Props {
 }
 
 export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Props) {
+  const { t } = useTranslation();
+
   if (!glp || glp === 0) {
     return (
       <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
-        No loan portfolio data available
+        {t("analytics.noLoanPortfolioData")}
       </div>
     );
   }
@@ -36,28 +39,28 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
   // "transparent" is the hidden bottom base, "solid" is the visible block.
   const data = [
     {
-      name: "Gross Portfolio",
+      name: t("analytics.waterfallGrossPortfolio"),
       transparent: 0,
       solid: glp,
       color: "var(--chart-1)",
       formatted: glp,
     },
     {
-      name: "Performing",
+      name: t("analytics.waterfallPerforming"),
       transparent: arrearsAmount,
       solid: performingAmount,
       color: "var(--chart-2)",
       formatted: performingAmount,
     },
     {
-      name: "Provisions",
+      name: t("analytics.waterfallProvisions"),
       transparent: atRiskAmount,
       solid: provisionsAmount,
       color: "var(--chart-3)",
       formatted: provisionsAmount,
     },
     {
-      name: "At-Risk Capital",
+      name: t("analytics.waterfallAtRiskCapital"),
       transparent: 0,
       solid: atRiskAmount,
       color: "var(--chart-4)",
@@ -103,7 +106,10 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
               props: { payload?: { formatted: string } },
             ) => {
               if (name === "transparent" || !props.payload) return [];
-              return [formatCurrency(Number(props.payload.formatted)), "Amount"];
+              return [
+                formatCurrency(Number(props.payload.formatted)),
+                t("analytics.waterfallAmount"),
+              ];
             }}
           />
           <Bar dataKey="transparent" stackId="a" fill="transparent" />

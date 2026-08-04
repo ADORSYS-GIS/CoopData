@@ -3,6 +3,7 @@ import { CoopTrendAreaChart } from "../CoopTrendAreaChart";
 import { GenderStatusDoughnuts } from "../GenderStatusDoughnuts";
 import { KpiChipGrid } from "../KpiChipGrid";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
+import { useTranslation } from "react-i18next";
 
 interface KpiItem {
   name: string;
@@ -28,7 +29,7 @@ interface CooperativeDashboardProps {
 }
 
 export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDashboardProps) {
-  // Extract values from kpis object
+  const { t } = useTranslation();
   const getKpi = (name: string) => {
     return kpis?.find((k) => k.name === name)?.value || 0;
   };
@@ -40,7 +41,7 @@ export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDa
   const formattedTrendData =
     trendData?.map((m) => ({
       month: m.monthShort ?? m.month_label ?? "",
-      liquidity: m.assets, // Using assets as proxy for liquidity in this mock/trend map
+      liquidity: m.assets,
       savings: m.savings,
       loans: m.loans,
     })) || [];
@@ -49,7 +50,9 @@ export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDa
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-xl border bg-surface p-5 shadow-sm">
-          <h3 className="font-heading font-bold mb-4">Regulatory Compliance Status</h3>
+          <h3 className="font-heading font-bold mb-4">
+            {t("analytics.regulatoryComplianceStatus")}
+          </h3>
           <ComplianceRadialGauges
             carValue={carValue}
             liquidityValue={liquidityValue}
@@ -58,18 +61,18 @@ export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDa
         </div>
 
         <div className="rounded-xl border bg-surface p-5 shadow-sm">
-          <h3 className="font-heading font-bold mb-4">Liquidity & Savings Trend</h3>
+          <h3 className="font-heading font-bold mb-4">{t("analytics.liquiditySavingsTrend")}</h3>
           <CoopTrendAreaChart data={formattedTrendData} />
         </div>
       </div>
 
       <div className="rounded-xl border bg-surface p-5 shadow-sm">
-        <h3 className="font-heading font-bold mb-4">Membership Demographics</h3>
+        <h3 className="font-heading font-bold mb-4">{t("analytics.membershipDemographics")}</h3>
         {nfStats ? (
           <GenderStatusDoughnuts data={nfStats.membership} />
         ) : (
           <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-            No membership data available.
+            {t("analytics.noMembershipData")}
           </div>
         )}
       </div>

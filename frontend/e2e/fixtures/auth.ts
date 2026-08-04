@@ -215,7 +215,7 @@ export async function mockKeycloakAuthenticated(page: Page, role: TestRole) {
 }
 
 export async function mockBackendApi(page: Page) {
-  await page.route("http://localhost:3000/api/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const url = route.request().url();
     const method = route.request().method();
 
@@ -240,7 +240,7 @@ export async function mockBackendApi(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ data: [] }),
+      body: JSON.stringify([]),
     });
   });
 }

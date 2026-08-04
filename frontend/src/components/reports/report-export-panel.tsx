@@ -1,5 +1,14 @@
 import { useState, useMemo } from "react";
-import { Download, FileText, CheckCircle2, X, Loader2, ChevronRight } from "lucide-react";
+import {
+  Download,
+  FileText,
+  CheckCircle2,
+  X,
+  Loader2,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
 import { toast } from "sonner";
@@ -31,20 +40,22 @@ interface ReportExportPanelProps {
 }
 
 export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
+  const { t } = useTranslation();
   const role = useUserRole();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("pdf");
 
   // Step state for drill-down hierarchy
   const [selectedFedId, setSelectedFedId] = useState<string>("");
   const [selectedApexId, setSelectedApexId] = useState<string>("");
   const [selectedCoopId, setSelectedCoopId] = useState<string>("");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("");
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // ── Data sources ────────────────────────────────────────────────────────────
 
@@ -100,6 +111,41 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
   const needsCoopSelector = isIndividual && role !== "cooperative";
   const needsSubmissionSelector = isIndividual;
+  const needsYearSelector = !isIndividual;
+
+  // Dynamically determine available reporting years
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+
+    // For consolidated reports, we only aggregate "approved" submissions.
+    // For other types, we look at all exportable submissions.
+    const relevantSubmissions =
+      selectedOption?.scope === "consolidated"
+        ? rawSubmissions.filter((s) => s.status.toLowerCase() === "approved")
+        : allSubmissions;
+
+    relevantSubmissions.forEach((s) => {
+      let include = true;
+      if (needsFedSelector && selectedFedId && s.federation_id !== selectedFedId) include = false;
+      if (needsApexSelector && selectedApexId && s.apex_id !== selectedApexId) include = false;
+
+      if (include && s.reporting_year) {
+        years.add(s.reporting_year);
+      }
+    });
+
+    return Array.from(years)
+      .sort((a, b) => b - a)
+      .map(String);
+  }, [
+    rawSubmissions,
+    allSubmissions,
+    selectedOption,
+    needsFedSelector,
+    selectedFedId,
+    needsApexSelector,
+    selectedApexId,
+  ]);
 
   // Build federation picker list from RAW submissions
   const federationList = useMemo(() => {
@@ -185,9 +231,15 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsApexSelector) list.push({ key: "apex", label: "Apex" });
     if (needsCoopSelector) list.push({ key: "coop", label: "Cooperative" });
     if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
-    list.push({ key: "format", label: "Format" });
+    if (needsYearSelector) list.push({ key: "year", label: "Year" });
     return list;
-  }, [needsFedSelector, needsApexSelector, needsCoopSelector, needsSubmissionSelector]);
+  }, [
+    needsFedSelector,
+    needsApexSelector,
+    needsCoopSelector,
+    needsSubmissionSelector,
+    needsYearSelector,
+  ]);
 
   const currentStepIndex = useMemo(() => {
     if (needsFedSelector && !selectedFedId) return 0;
@@ -198,7 +250,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsCoopSelector) idx++;
     if (needsSubmissionSelector && !selectedSubmissionId) return idx;
     if (needsSubmissionSelector) idx++;
-    return idx; // format selection
+    if (needsYearSelector && !selectedYear) return idx;
+    return idx;
   }, [
     needsFedSelector,
     selectedFedId,
@@ -208,9 +261,11 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     selectedCoopId,
     needsSubmissionSelector,
     selectedSubmissionId,
+    needsYearSelector,
+    selectedYear,
   ]);
 
-  const activeStepKey: string = steps[currentStepIndex]?.key ?? "format";
+  const activeStepKey: string = steps[currentStepIndex]?.key ?? steps[steps.length - 1]?.key;
 
   if (!role) return null;
 
@@ -219,11 +274,11 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   function openModal(reportId: string) {
     setSelectedReport(reportId);
     const opt = availableReports.find((r) => r.id === reportId);
-    setSelectedFormat(opt?.formats[0] ?? "pdf");
     setSelectedFedId("");
     setSelectedApexId("");
     setSelectedCoopId("");
     setSelectedSubmissionId("");
+    setSelectedYear("");
     setIsModalOpen(true);
   }
 
@@ -235,6 +290,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const isApexSelected = !needsApexSelector || !!selectedApexId;
   const isCoopSelected = !needsCoopSelector || !!selectedCoopId;
   const isSubmissionSelected = !needsSubmissionSelector || !!selectedSubmissionId;
+  const isYearSelected = !needsYearSelector || !!selectedYear;
 
   const canExport =
     !isExporting &&
@@ -242,7 +298,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     isFedSelected &&
     isApexSelected &&
     isCoopSelected &&
-    isSubmissionSelected;
+    isSubmissionSelected &&
+    isYearSelected;
 
   const handleExport = async () => {
     if (!selectedOption || !canExport) return;
@@ -254,13 +311,17 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       let url = "";
       if (isIndividual) {
-        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?format=${selectedFormat}`;
+        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export`;
       } else {
-        const queryParams = new URLSearchParams({ format: selectedFormat });
+        const queryParams = new URLSearchParams();
         if (selectedOption.id === "federation-consolidated" && selectedFedId) {
           queryParams.append("federation_id", selectedFedId);
         } else if (selectedOption.id === "apex-consolidated" && selectedApexId) {
           queryParams.append("apex_id", selectedApexId);
+        }
+
+        if (selectedYear) {
+          queryParams.append("reporting_year", selectedYear);
         }
 
         if (role === "apex") url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
@@ -275,16 +336,16 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       }
 
       const blob = await response.blob();
-      let filename = `${selectedOption.id}_report.${selectedFormat}`;
+      let filename = `${selectedOption.id}_report.pdf`;
 
       if (isIndividual && selectedSubmissionId) {
         const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
         const nameClean = (sub?.cooperative_name ?? "cooperative")
           .replace(/[^a-z0-9]/gi, "_")
           .toLowerCase();
-        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.${selectedFormat}`;
+        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
       } else {
-        filename = `${role}_consolidated_report.${selectedFormat}`;
+        filename = `${role}_consolidated_report.pdf`;
       }
 
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -296,13 +357,58 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
 
-      toast.success(`${selectedOption.label} exported as ${selectedFormat.toUpperCase()}!`);
+      toast.success(t("reportExport.exportedAs", { label: selectedOption.label }));
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
-      toast.error(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(
+        t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }),
+      );
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!selectedOption || !canExport || !isIndividual || !selectedSubmissionId) return;
+
+    setIsRegenerating(true);
+    try {
+      const token = await getAccessToken();
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?regenerate=true`;
+
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `Regeneration failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
+      const nameClean = (sub?.cooperative_name ?? "cooperative")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      const filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success(t("reportExport.regeneratedAndDownloaded"));
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }),
+      );
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -311,15 +417,15 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   return (
     <>
       <Card
-        title="Export Reports"
-        subtitle="Generate and download reports based on your access level"
+        title={t("reportExport.title")}
+        subtitle={t("reportExport.subtitle")}
         className={className}
         action={
           <button
             onClick={() => openModal(availableReports[0]?.id || "")}
             className="press-feedback inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
           >
-            <Download className="size-3.5" /> Export Report
+            <Download className="size-3.5" /> {t("reportExport.exportReport")}
           </button>
         }
       >
@@ -333,11 +439,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${SCOPE_COLORS[report.scope]}`}
-                    >
-                      {SCOPE_LABELS[report.scope]}
-                    </span>
                     <h4 className="font-heading font-bold text-sm text-foreground truncate">
                       {report.label}
                     </h4>
@@ -385,7 +486,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 </div>
                 <div>
                   <h3 className="font-heading text-base font-bold text-foreground">
-                    Export Report
+                    {t("reportExport.exportReport")}
                   </h3>
                   <p className="text-xs text-muted-foreground">{selectedOption.label}</p>
                 </div>
@@ -436,6 +537,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 onClearSubmission={() => {
                   setSelectedSubmissionId("");
                 }}
+                needsYearSelector={needsYearSelector}
+                selectedYear={selectedYear}
+                onClearYear={() => setSelectedYear("")}
               />
 
               {/* Active Step Picker */}
@@ -466,37 +570,46 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   }}
                   filteredSubmissions={filteredSubmissions}
                   selectedSubmissionId={selectedSubmissionId}
-                  onSelectSubmission={(id) => {
-                    setSelectedSubmissionId(id);
-                  }}
-                  selectedOption={selectedOption}
-                  selectedFormat={selectedFormat}
-                  onSelectFormat={(fmt) => setSelectedFormat(fmt)}
-                  isExporting={isExporting}
-                  formatIcons={FORMAT_ICONS}
-                  formatLabels={FORMAT_LABELS}
+                  onSelectSubmission={(id) => setSelectedSubmissionId(id)}
+                  availableYears={availableYears}
+                  selectedYear={selectedYear}
+                  onSelectYear={(year) => setSelectedYear(year)}
                 />
               </div>
 
               {/* Scope info for consolidated */}
-              {activeStepKey === "format" && !isIndividual && role !== "cooperative" && (
-                <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
-                  <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
-                  <span>
-                    {role === "ministry"
-                      ? selectedOption.id === "federation-consolidated"
-                        ? `This report includes consolidated data for federation: ${federationList.find((f) => f.id === selectedFedId)?.name || "selected federation"}.`
-                        : selectedOption.id === "apex-consolidated"
-                          ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
-                          : "This report includes data from all federations, apexes, and cooperatives nationwide."
-                      : role === "federation"
-                        ? selectedOption.id === "apex-consolidated"
-                          ? `This report includes consolidated data for apex: ${apexList.find((a) => a.id === selectedApexId)?.name || "selected apex"}.`
-                          : "This report includes data from all apexes and cooperatives under your federation."
-                        : "This report includes data from all cooperatives under your apex organization."}
-                  </span>
-                </div>
-              )}
+              {activeStepKey === steps[steps.length - 1]?.key &&
+                !isIndividual &&
+                role !== "cooperative" && (
+                  <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
+                    <span>
+                      {role === "ministry"
+                        ? selectedOption.id === "federation-consolidated"
+                          ? t("reportExport.scopeFederation", {
+                              name:
+                                federationList.find((f) => f.id === selectedFedId)?.name ||
+                                t("reportExport.selectedFederation"),
+                            })
+                          : selectedOption.id === "apex-consolidated"
+                            ? t("reportExport.scopeApex", {
+                                name:
+                                  apexList.find((a) => a.id === selectedApexId)?.name ||
+                                  t("reportExport.selectedApex"),
+                              })
+                            : t("reportExport.scopeNational")
+                        : role === "federation"
+                          ? selectedOption.id === "apex-consolidated"
+                            ? t("reportExport.scopeApex", {
+                                name:
+                                  apexList.find((a) => a.id === selectedApexId)?.name ||
+                                  t("reportExport.selectedApex"),
+                              })
+                            : t("reportExport.scopeFederationAll")
+                          : t("reportExport.scopeApexAll")}
+                    </span>
+                  </div>
+                )}
             </div>
 
             {/* Footer */}
@@ -568,24 +681,45 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 <button
                   type="button"
                   onClick={closeModal}
-                  disabled={isExporting}
+                  disabled={isExporting || isRegenerating}
                   className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  {t("reportExport.cancel")}
                 </button>
+                {/* Regenerate button — only for individual submission exports */}
+                {isIndividual && selectedSubmissionId && (
+                  <button
+                    type="button"
+                    onClick={handleRegenerate}
+                    disabled={!canExport || isExporting || isRegenerating}
+                    title={t("reportExport.regenerateTooltip")}
+                    className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors disabled:opacity-40"
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin" />{" "}
+                        {t("reportExport.regenerating")}
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}
+                      </>
+                    )}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleExport}
-                  disabled={!canExport}
+                  disabled={!canExport || isRegenerating}
                   className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-40"
                 >
                   {isExporting ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" /> Exporting…
+                      <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.exporting")}
                     </>
                   ) : (
                     <>
-                      <Download className="size-3.5" /> Export {selectedFormat.toUpperCase()}
+                      <Download className="size-3.5" /> {t("reportExport.exportPdf")}
                     </>
                   )}
                 </button>

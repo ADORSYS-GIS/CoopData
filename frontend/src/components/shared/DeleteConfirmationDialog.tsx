@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, Shield, Fingerprint, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface DeletePreviewData {
   apexes: number;
@@ -49,6 +50,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
   onVerifyIdentity,
   onConfirmDelete,
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("confirm");
   const [typedName, setTypedName] = useState("");
   const [password, setPassword] = useState("");
@@ -105,7 +107,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           setRequiresOtp(true);
           setVerifyError(null);
         } else {
-          setVerifyError(result.message ?? "Verification failed");
+          setVerifyError(result.message ?? t("deleteDialog.verificationFailed"));
         }
       }
     } catch (e) {
@@ -113,7 +115,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
     } finally {
       setVerifying(false);
     }
-  }, [password, otp, onVerifyIdentity, onConfirmDelete, onOpenChange]);
+  }, [password, otp, onVerifyIdentity, onConfirmDelete, onOpenChange, t]);
 
   const entityLabel = entityType.charAt(0).toUpperCase() + entityType.slice(1);
 
@@ -126,9 +128,11 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
               <AlertTriangle className="size-5 text-destructive" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold">Delete {entityLabel}</DialogTitle>
+              <DialogTitle className="text-base font-bold">
+                {t("deleteDialog.deleteTitle", { entity: entityLabel })}
+              </DialogTitle>
               <DialogDescription className="text-xs">
-                This action is permanent and cannot be undone
+                {t("deleteDialog.permanentWarning")}
               </DialogDescription>
             </div>
           </div>
@@ -138,37 +142,41 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           <div className="px-6 pb-6 pt-4 space-y-4">
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
               <p className="text-sm font-medium text-foreground">
-                You are about to delete{" "}
+                {t("deleteDialog.aboutToDelete")}{" "}
                 <span className="font-bold text-destructive">{entityName}</span>
               </p>
 
               {previewLoading ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" />
-                  Calculating cascade impact…
+                  {t("deleteDialog.calculatingImpact")}
                 </div>
               ) : previewData ? (
                 <div className="space-y-1.5">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    This will permanently delete:
+                    {t("deleteDialog.permanentlyDelete")}
                   </p>
                   <div className="grid grid-cols-1 gap-1 text-sm">
                     {previewData.apexes > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Apexes</span>
+                        <span className="text-muted-foreground">{t("deleteDialog.apexes")}</span>
                         <span className="font-bold text-foreground">{previewData.apexes}</span>
                       </div>
                     )}
                     {previewData.cooperatives > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Cooperatives</span>
+                        <span className="text-muted-foreground">
+                          {t("deleteDialog.cooperatives")}
+                        </span>
                         <span className="font-bold text-foreground">
                           {previewData.cooperatives}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Member accounts</span>
+                      <span className="text-muted-foreground">
+                        {t("deleteDialog.memberAccounts")}
+                      </span>
                       <span className="font-bold text-foreground">{previewData.members}</span>
                     </div>
                   </div>
@@ -178,7 +186,8 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
 
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-muted-foreground">
-                Type <span className="font-bold text-foreground">{entityName}</span> to confirm
+                {t("deleteDialog.typeToConfirm")}{" "}
+                <span className="font-bold text-foreground">{entityName}</span>
               </label>
               <Input
                 value={typedName}
@@ -191,7 +200,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)} size="sm">
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -200,7 +209,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                 onClick={handleProceedToVerify}
               >
                 <Shield className="size-3.5 mr-1.5" />
-                Continue
+                {t("deleteDialog.continue")}
               </Button>
             </div>
           </div>
@@ -211,16 +220,16 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Fingerprint className="size-4 text-muted-foreground" />
-                <p className="text-sm font-semibold text-foreground">Verify your identity</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {t("deleteDialog.verifyIdentity")}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Enter your password to confirm this destructive action.
-              </p>
+              <p className="text-xs text-muted-foreground">{t("deleteDialog.enterPassword")}</p>
 
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-muted-foreground">
-                    Password
+                    {t("deleteDialog.password")}
                   </label>
                   <div className="relative">
                     <Input
@@ -228,7 +237,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoFocus
-                      placeholder="Your account password"
+                      placeholder={t("deleteDialog.accountPassword")}
                       className="pr-10"
                     />
                     <button
@@ -245,7 +254,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                 {requiresOtp && (
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-muted-foreground">
-                      Authenticator code (6 digits)
+                      {t("deleteDialog.authenticatorCode")}
                     </label>
                     <Input
                       value={otp}
@@ -270,7 +279,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                 onClick={() => setStep("confirm")}
                 disabled={verifying}
               >
-                Back
+                {t("common.back")}
               </Button>
               <Button
                 variant="destructive"
@@ -283,7 +292,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                 ) : (
                   <Shield className="size-3.5 mr-1.5" />
                 )}
-                {verifying ? "Verifying…" : "Verify & Delete"}
+                {verifying ? t("deleteDialog.verifying") : t("deleteDialog.verifyAndDelete")}
               </Button>
             </div>
           </div>
@@ -292,10 +301,10 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
         {step === "deleting" && (
           <div className="px-6 pb-6 pt-4 flex flex-col items-center justify-center py-8 space-y-3">
             <Loader2 className="size-8 animate-spin text-destructive" />
-            <p className="text-sm font-medium text-foreground">Deleting {entityName}…</p>
-            <p className="text-xs text-muted-foreground">
-              Cascade-deleting all associated entities
+            <p className="text-sm font-medium text-foreground">
+              {t("deleteDialog.deleting", { entity: entityName })}
             </p>
+            <p className="text-xs text-muted-foreground">{t("deleteDialog.cascadeDeleting")}</p>
           </div>
         )}
       </DialogContent>

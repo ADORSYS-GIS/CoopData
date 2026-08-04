@@ -61,21 +61,27 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/members",
       "/app/submissions",
     ],
-    intelligence: ["/app/reports", "/app/analytics", "/app/benchmarking"],
-    system: ["/app/audit", "/app/indicators", "/app/settings"],
+    intelligence: [
+      "/app/reports",
+      "/app/analytics",
+      "/app/basic-analytics",
+      "/app/benchmarking",
+      "/app/custom-kpis",
+    ],
+    system: ["/app/audit", "/app/questionnaire-templates", "/app/settings"],
   },
   federation: {
     oversight: ["/app/dashboard", "/app/apexes", "/app/submissions"],
-    intelligence: ["/app/reports", "/app/analytics", "/app/benchmarking"],
+    intelligence: ["/app/reports", "/app/analytics", "/app/basic-analytics", "/app/benchmarking"],
     system: ["/app/users", "/app/profile"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/submissions"],
-    intelligence: ["/app/reports", "/app/analytics", "/app/benchmarking"],
+    intelligence: ["/app/reports", "/app/analytics"],
   },
   apex: {
     oversight: ["/app/dashboard", "/app/cooperatives", "/app/submissions"],
-    intelligence: ["/app/reports", "/app/analytics", "/app/benchmarking"],
+    intelligence: ["/app/reports", "/app/analytics", "/app/basic-analytics", "/app/benchmarking"],
     system: ["/app/users"],
   },
 };

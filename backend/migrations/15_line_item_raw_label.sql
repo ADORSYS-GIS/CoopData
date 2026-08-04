@@ -2,6 +2,8 @@
 -- Stores the exact text from the uploaded document as extracted by the LLM.
 -- Needed for the human-review grid so cooperatives can see what the AI read.
 
+BEGIN;
+
 ALTER TABLE balance_sheet_line_items
     ADD COLUMN IF NOT EXISTS raw_label VARCHAR(500);
 
@@ -10,6 +12,4 @@ UPDATE balance_sheet_line_items
 SET raw_label = account_name
 WHERE raw_label IS NULL;
 
--- Down
-ALTER TABLE balance_sheet_line_items
-    DROP COLUMN IF EXISTS raw_label;
+COMMIT;

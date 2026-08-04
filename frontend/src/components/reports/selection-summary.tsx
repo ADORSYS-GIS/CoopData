@@ -1,4 +1,5 @@
 import { Globe, Layers, Building2, FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface SelectionSummaryProps {
   needsFedSelector: boolean;
@@ -20,6 +21,10 @@ interface SelectionSummaryProps {
   selectedSubmissionId: string;
   filteredSubmissions: Array<{ id: string; reporting_year: number }>;
   onClearSubmission: () => void;
+
+  needsYearSelector: boolean;
+  selectedYear: string;
+  onClearYear: () => void;
 }
 
 export function SelectionSummary({
@@ -39,7 +44,11 @@ export function SelectionSummary({
   selectedSubmissionId,
   filteredSubmissions,
   onClearSubmission,
+  needsYearSelector,
+  selectedYear,
+  onClearYear,
 }: SelectionSummaryProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       {needsFedSelector && selectedFedId && (
@@ -47,7 +56,8 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <Globe className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              Federation: {federationList.find((f) => f.id === selectedFedId)?.name}
+              {t("selectionSummary.federation")}:{" "}
+              {federationList.find((f) => f.id === selectedFedId)?.name}
             </span>
           </div>
           <button
@@ -55,7 +65,7 @@ export function SelectionSummary({
             onClick={onClearFed}
             className="text-primary hover:underline font-semibold text-[11px] shrink-0"
           >
-            Change
+            {t("selectionSummary.change")}
           </button>
         </div>
       )}
@@ -65,7 +75,7 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <Layers className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              Apex: {apexList.find((a) => a.id === selectedApexId)?.name}
+              {t("selectionSummary.apex")}: {apexList.find((a) => a.id === selectedApexId)?.name}
             </span>
           </div>
           <button
@@ -73,7 +83,7 @@ export function SelectionSummary({
             onClick={onClearApex}
             className="text-primary hover:underline font-semibold text-[11px] shrink-0"
           >
-            Change
+            {t("selectionSummary.change")}
           </button>
         </div>
       )}
@@ -83,7 +93,8 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <Building2 className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              Cooperative: {cooperativeList.find((c) => c.id === selectedCoopId)?.name}
+              {t("selectionSummary.cooperative")}:{" "}
+              {cooperativeList.find((c) => c.id === selectedCoopId)?.name}
             </span>
           </div>
           <button
@@ -91,7 +102,7 @@ export function SelectionSummary({
             onClick={onClearCoop}
             className="text-primary hover:underline font-semibold text-[11px] shrink-0"
           >
-            Change
+            {t("selectionSummary.change")}
           </button>
         </div>
       )}
@@ -101,9 +112,9 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <FileText className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              Submission:{" "}
+              {t("selectionSummary.submission")}:{" "}
               {filteredSubmissions.find((s) => s.id === selectedSubmissionId)?.reporting_year}{" "}
-              Financial Report
+              {t("selectionSummary.financialReport")}
             </span>
           </div>
           <button
@@ -111,7 +122,26 @@ export function SelectionSummary({
             onClick={onClearSubmission}
             className="text-primary hover:underline font-semibold text-[11px] shrink-0"
           >
-            Change
+            {t("selectionSummary.change")}
+          </button>
+        </div>
+      )}
+
+      {needsYearSelector && selectedYear && (
+        <div className="flex items-center justify-between border border-border/80 bg-muted/20 rounded-xl p-3 text-xs">
+          <div className="flex items-center gap-2">
+            <FileText className="size-3.5 text-muted-foreground" />
+            <span className="font-semibold text-foreground truncate max-w-[200px]">
+              {t("selectionSummary.year")}: {selectedYear}{" "}
+              {t("selectionSummary.consolidatedReport")}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClearYear}
+            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+          >
+            {t("selectionSummary.change")}
           </button>
         </div>
       )}

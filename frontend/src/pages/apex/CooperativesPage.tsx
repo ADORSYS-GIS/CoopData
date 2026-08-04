@@ -14,6 +14,7 @@ import {
   XCircle,
   PauseCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -52,6 +53,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export const CooperativesPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: cooperatives, isLoading, error } = useCooperativeProfiles();
   const deleteCoop = useDeleteCooperative();
@@ -76,12 +78,12 @@ export const CooperativesPage: React.FC = () => {
         { id: deletingCoop.id, verificationToken },
         {
           onSuccess: () => {
-            toast.success(`Deleted "${deletingCoop.name}"`);
+            toast.success(t("cooperativesPage.toastDeleted", { name: deletingCoop.name }));
             setDeletingCoop(null);
             resolve();
           },
           onError: (err) => {
-            toast.error("Failed to delete", { description: String(err) });
+            toast.error(t("cooperativesPage.toastDeleteFailed"), { description: String(err) });
             reject(err);
           },
         },
@@ -109,7 +111,7 @@ export const CooperativesPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <AppShell title="Cooperative Management" subtitle="Manage cooperatives under your apex">
+      <AppShell title={t("cooperativesPage.title")} subtitle={t("cooperativesPage.subtitle")}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -119,10 +121,10 @@ export const CooperativesPage: React.FC = () => {
 
   if (error) {
     return (
-      <AppShell title="Cooperative Management" subtitle="Manage cooperatives under your apex">
+      <AppShell title={t("cooperativesPage.title")} subtitle={t("cooperativesPage.subtitle")}>
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <AlertCircle className="size-8 mb-2 text-destructive" />
-          <p className="font-semibold text-sm">Failed to load cooperatives</p>
+          <p className="font-semibold text-sm">{t("cooperativesPage.failedLoad")}</p>
           <p className="text-xs mt-1">{String(error)}</p>
         </div>
       </AppShell>
@@ -131,14 +133,14 @@ export const CooperativesPage: React.FC = () => {
 
   return (
     <AppShell
-      title="Cooperative Management"
-      subtitle="Create and manage cooperatives under your apex"
+      title={t("cooperativesPage.title")}
+      subtitle={t("cooperativesPage.createSubtitle")}
       actions={
         <button
           onClick={() => setIsCreateOpen(true)}
           className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[var(--shadow-elev-2)]"
         >
-          <Plus className="size-4" /> Register cooperative
+          <Plus className="size-4" /> {t("cooperativesPage.registerCoopBtn")}
         </button>
       }
     >
@@ -146,42 +148,48 @@ export const CooperativesPage: React.FC = () => {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={Building2}
-            label="Total Cooperatives"
+            label={t("cooperativesPage.totalCooperatives")}
             value={String(allCoops.length)}
-            subtitle="Under your apex"
+            subtitle={t("cooperativesPage.underYourApex")}
             tone="primary"
           />
           <StatCard
             icon={CheckCircle2}
-            label="Active"
+            label={t("cooperativesPage.active")}
             value={String(activeCount)}
-            subtitle="Operational"
+            subtitle={t("cooperativesPage.operational")}
             tone="success"
           />
           <StatCard
             icon={PauseCircle}
-            label="Inactive / Suspended"
+            label={t("cooperativesPage.inactiveSuspended")}
             value={String(inactiveCount + suspendedCount)}
-            subtitle={`${inactiveCount} inactive, ${suspendedCount} suspended`}
+            subtitle={t("cooperativesPage.inactiveSuspendedDesc", {
+              inactive: inactiveCount,
+              suspended: suspendedCount,
+            })}
             tone="warning"
           />
           <StatCard
             icon={Building2}
-            label="SACCOs"
+            label={t("cooperativesPage.saccos")}
             value={String(saccoCount)}
-            subtitle="Savings & credit coops"
+            subtitle={t("cooperativesPage.saccosDesc")}
             tone="accent"
           />
         </div>
 
-        <Card title="Cooperative Directory" subtitle="Search, view, edit and manage cooperatives">
+        <Card
+          title={t("cooperativesPage.directoryTitle")}
+          subtitle={t("cooperativesPage.directorySubtitle")}
+        >
           <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
             <div className="relative min-w-[280px] max-w-md w-full">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, reg no, region, sector..."
+                placeholder={t("cooperativesPage.searchPlaceholder")}
                 className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
               />
             </div>
@@ -191,13 +199,23 @@ export const CooperativesPage: React.FC = () => {
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
-                  <th className="px-5 py-3.5">Cooperative</th>
-                  <th className="px-5 py-3.5 hidden lg:table-cell">Reg No</th>
-                  <th className="px-5 py-3.5 hidden md:table-cell">Type</th>
-                  <th className="px-5 py-3.5 hidden lg:table-cell">Region</th>
-                  <th className="px-5 py-3.5 hidden xl:table-cell">Sector</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
+                  <th className="px-5 py-3.5">{t("cooperativesPage.tableHeaders.cooperative")}</th>
+                  <th className="px-5 py-3.5 hidden lg:table-cell">
+                    {t("cooperativesPage.tableHeaders.regNo")}
+                  </th>
+                  <th className="px-5 py-3.5 hidden md:table-cell">
+                    {t("cooperativesPage.tableHeaders.type")}
+                  </th>
+                  <th className="px-5 py-3.5 hidden lg:table-cell">
+                    {t("cooperativesPage.tableHeaders.region")}
+                  </th>
+                  <th className="px-5 py-3.5 hidden xl:table-cell">
+                    {t("cooperativesPage.tableHeaders.sector")}
+                  </th>
+                  <th className="px-5 py-3.5">{t("cooperativesPage.tableHeaders.status")}</th>
+                  <th className="px-5 py-3.5 text-right">
+                    {t("cooperativesPage.tableHeaders.actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -208,13 +226,13 @@ export const CooperativesPage: React.FC = () => {
                         <Building2 className="size-8 text-slate-400 mb-2" />
                         <p className="font-bold text-sm text-slate-900">
                           {allCoops.length === 0
-                            ? "No cooperatives registered yet"
-                            : "No cooperatives match your search"}
+                            ? t("cooperativesPage.noCoopsRegistered")
+                            : t("cooperativesPage.noCoopsMatchSearch")}
                         </p>
                         <p className="text-xs mt-1">
                           {allCoops.length === 0
-                            ? "Register your first cooperative to get started."
-                            : "Try adjusting your search."}
+                            ? t("cooperativesPage.registerFirst")
+                            : t("cooperativesPage.adjustSearch")}
                         </p>
                       </div>
                     </td>
@@ -270,7 +288,7 @@ export const CooperativesPage: React.FC = () => {
                                 params: { cooperativeId: c.id },
                               })
                             }
-                            title="View details"
+                            title={t("cooperativesPage.tooltipView")}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"
                           >
                             <Eye className="size-3.5" />
@@ -279,7 +297,7 @@ export const CooperativesPage: React.FC = () => {
                             <Link
                               to="/app/cooperative-members/$cooperativeId"
                               params={{ cooperativeId: c.keycloak_id }}
-                              title="Manage members"
+                              title={t("cooperativesPage.tooltipMembers")}
                               className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-100"
                             >
                               <Users className="size-3.5" />
@@ -289,7 +307,7 @@ export const CooperativesPage: React.FC = () => {
                           <Link
                             to="/app/cooperative-profile/$cooperativeId"
                             params={{ cooperativeId: c.id }}
-                            title="Edit profile"
+                            title={t("cooperativesPage.tooltipEdit")}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-100"
                           >
                             <Pencil className="size-3.5" />
@@ -297,7 +315,7 @@ export const CooperativesPage: React.FC = () => {
                           <button
                             onClick={() => setDeletingCoop(c)}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-red-200 bg-red-50 text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
-                            title="Delete"
+                            title={t("cooperativesPage.tooltipDelete")}
                           >
                             <Trash2 className="size-3.5" />
                           </button>
@@ -312,7 +330,10 @@ export const CooperativesPage: React.FC = () => {
 
           <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-600">
             <p>
-              Showing {filtered.length} of {allCoops.length} cooperatives
+              {t("cooperativesPage.showingCount", {
+                filtered: filtered.length,
+                total: allCoops.length,
+              })}
             </p>
           </div>
         </Card>
@@ -329,7 +350,7 @@ export const CooperativesPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Building2 className="size-5 text-accent" />
                 <h3 className="font-heading text-lg font-bold text-foreground">
-                  Register New Cooperative
+                  {t("cooperativesPage.registerNewTitle")}
                 </h3>
               </div>
               <button

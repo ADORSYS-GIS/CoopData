@@ -1,4 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   Inbox,
   Download,
@@ -67,24 +69,25 @@ function statusTone(status: string): "success" | "warning" | "danger" | "info" |
   }
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, t: TFunction): string {
   const labels: Record<string, string> = {
-    draft: "Draft",
-    awaiting_coop_validation: "Awaiting Validation",
-    submitted: "Submitted",
-    in_review: "In Review",
-    apex_review: "Apex Review",
-    apex_returned: "Returned by Apex",
-    federation_review: "Federation Review",
-    federation_returned: "Returned by Federation",
-    ministry_review: "Ministry Review",
-    approved: "Approved",
-    rejected: "Rejected",
+    draft: t("submissions.status.draft"),
+    awaiting_coop_validation: t("submissions.status.awaitingValidation"),
+    submitted: t("submissions.status.submitted"),
+    in_review: t("submissions.status.inReview"),
+    apex_review: t("submissions.status.apexReview"),
+    apex_returned: t("submissions.status.apexReturned"),
+    federation_review: t("submissions.status.federationReview"),
+    federation_returned: t("submissions.status.federationReturned"),
+    ministry_review: t("submissions.status.ministryReview"),
+    approved: t("submissions.status.approved"),
+    rejected: t("submissions.status.rejected"),
   };
   return labels[status] ?? status;
 }
 
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -93,11 +96,11 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const handleCreate = async () => {
     try {
       const sub = await createSubmission.mutateAsync({ reporting_year: year });
-      toast.success(`Submission for ${year} created`);
+      toast.success(t("submissions.submissionCreated", { year }));
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create submission");
+      toast.error(err instanceof Error ? err.message : t("submissions.failedCreate"));
     }
   };
 
@@ -114,8 +117,12 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
               <Calendar className="size-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">New Submission</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Start a new annual data return</p>
+              <h2 className="text-base font-bold text-foreground">
+                {t("submissions.newSubmission")}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("submissions.startAnnualReturn")}
+              </p>
             </div>
           </div>
           <button
@@ -129,7 +136,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
         {/* Body */}
         <div className="px-6 pb-2">
           <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-            Reporting Year
+            {t("submissions.reportingYear")}
           </label>
           <div className="grid grid-cols-5 gap-2">
             {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map(
@@ -156,7 +163,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
           >
-            Cancel
+            {t("submissions.cancel")}
           </button>
           <button
             onClick={handleCreate}
@@ -168,7 +175,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             ) : (
               <Plus className="size-4" />
             )}
-            Create Submission
+            {t("submissions.createSubmission")}
           </button>
         </div>
       </div>
@@ -191,6 +198,7 @@ function OrgCard({
   onClick: () => void;
   icon?: React.ElementType;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
@@ -204,25 +212,27 @@ function OrgCard({
       </div>
       <p className="text-sm font-bold text-foreground mb-0.5 leading-snug line-clamp-2">{name}</p>
       <p className="text-[11px] text-muted-foreground mb-4">
-        {count} submission{count !== 1 ? "s" : ""}
+        {count === 1
+          ? t("submissions.orgSubmissionsCount", { count })
+          : t("submissions.orgSubmissionsCount_plural", { count })}
       </p>
       <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-[11px] font-semibold border-t border-border/60 pt-3">
         {reviewCount > 0 && (
           <span className="inline-flex items-center gap-1.5 text-warning-foreground">
             <span className="size-1.5 rounded-full bg-warning animate-pulse" />
-            {reviewCount} in review
+            {t("submissions.orgInReview", { count: reviewCount })}
           </span>
         )}
         {approvedCount > 0 && (
           <span className="inline-flex items-center gap-1.5 text-success">
             <span className="size-1.5 rounded-full bg-success" />
-            {approvedCount} approved
+            {t("submissions.orgApproved", { count: approvedCount })}
           </span>
         )}
         {reviewCount === 0 && approvedCount === 0 && (
           <span className="inline-flex items-center gap-1.5 text-muted-foreground/60">
             <span className="size-1.5 rounded-full bg-muted-foreground/40" />
-            No activity
+            {t("submissions.orgNoActivity")}
           </span>
         )}
       </div>
@@ -257,20 +267,21 @@ function SubmissionTable({
   showCoopColumn: boolean;
   onExport: () => void;
 }) {
+  const { t } = useTranslation();
   const role = useUserRole();
   const deleteSubmission = useDeleteSubmission();
   const canValidate = true;
 
   return (
     <Card
-      title="Submission Queue"
-      subtitle="Real-time inbox · track every submission through the review pipeline"
+      title={t("submissions.queue")}
+      subtitle={t("submissions.queueSubtitle")}
       action={
         <button
           onClick={onExport}
           className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors"
         >
-          <Download className="size-3.5" /> Export
+          <Download className="size-3.5" /> {t("submissions.export")}
         </button>
       }
     >
@@ -279,11 +290,11 @@ function SubmissionTable({
         <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-xl p-1 border border-border/60">
           {(
             [
-              ["all", `All (${counts.total})`],
-              ["draft", `Draft (${counts.draft})`],
-              ["submitted", `In Review (${counts.submitted})`],
-              ["approved", `Approved (${counts.approved})`],
-              ["rejected", `Rejected (${counts.rejected})`],
+              ["all", t("submissions.filterAll", { count: counts.total })],
+              ["draft", t("submissions.filterDraft", { count: counts.draft })],
+              ["submitted", t("submissions.filterInReview", { count: counts.submitted })],
+              ["approved", t("submissions.filterApproved", { count: counts.approved })],
+              ["rejected", t("submissions.filterRejected", { count: counts.rejected })],
             ] as [FilterType, string][]
           ).map(([f, label]) => (
             <button
@@ -304,7 +315,7 @@ function SubmissionTable({
           <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by reference or year…"
+            placeholder={t("submissions.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-input bg-muted/30 py-2 pl-9 pr-3 text-xs transition-all focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none placeholder:text-muted-foreground/60"
@@ -316,14 +327,20 @@ function SubmissionTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/20 text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-left">
-              <th className="px-5 py-3.5">Reference</th>
-              {showCoopColumn && <th className="px-5 py-3.5 hidden md:table-cell">Cooperative</th>}
-              <th className="px-5 py-3.5">Year</th>
-              <th className="px-5 py-3.5 hidden md:table-cell">Tier</th>
-              <th className="px-5 py-3.5 hidden lg:table-cell">Created</th>
-              <th className="px-5 py-3.5">Priority</th>
-              <th className="px-5 py-3.5">Status</th>
-              <th className="px-5 py-3.5 text-right">Action</th>
+              <th className="px-5 py-3.5">{t("submissions.tableColReference")}</th>
+              {showCoopColumn && (
+                <th className="px-5 py-3.5 hidden md:table-cell">
+                  {t("submissions.tableColCooperative")}
+                </th>
+              )}
+              <th className="px-5 py-3.5">{t("submissions.tableColYear")}</th>
+              <th className="px-5 py-3.5 hidden md:table-cell">{t("submissions.tableColTier")}</th>
+              <th className="px-5 py-3.5 hidden lg:table-cell">
+                {t("submissions.tableColCreated")}
+              </th>
+              <th className="px-5 py-3.5">{t("submissions.tableColPriority")}</th>
+              <th className="px-5 py-3.5">{t("submissions.tableColStatus")}</th>
+              <th className="px-5 py-3.5 text-right">{t("submissions.tableColAction")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -334,7 +351,7 @@ function SubmissionTable({
                   className="py-16 text-center text-muted-foreground"
                 >
                   <Loader2 className="size-6 mx-auto mb-3 animate-spin text-accent/50" />
-                  <p className="text-xs font-medium">Loading submissions…</p>
+                  <p className="text-xs font-medium">{t("submissions.loading")}</p>
                 </td>
               </tr>
             ) : isError ? (
@@ -344,7 +361,7 @@ function SubmissionTable({
                   className="py-16 text-center text-muted-foreground"
                 >
                   <AlertCircle className="size-8 mx-auto mb-3 text-destructive/50" />
-                  <p className="text-sm font-semibold">Failed to load submissions</p>
+                  <p className="text-sm font-semibold">{t("submissions.failedLoad")}</p>
                   <p className="text-xs mt-1 text-muted-foreground">
                     {error instanceof Error ? error.message : "Unknown error"}
                   </p>
@@ -357,9 +374,9 @@ function SubmissionTable({
                   className="py-16 text-center text-muted-foreground"
                 >
                   <FileText className="size-8 mx-auto mb-3 text-muted-foreground/40" />
-                  <p className="text-sm font-semibold">No submissions found</p>
+                  <p className="text-sm font-semibold">{t("submissions.noSubmissionsFound")}</p>
                   <p className="text-xs mt-1 text-muted-foreground/70">
-                    Adjust the filter or search to see more results.
+                    {t("submissions.adjustFilterSearch")}
                   </p>
                 </td>
               </tr>
@@ -408,7 +425,7 @@ function SubmissionTable({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status)}</StatusPill>
+                    <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status, t)}</StatusPill>
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="inline-flex items-center gap-2 justify-end">
@@ -419,30 +436,34 @@ function SubmissionTable({
                             e.stopPropagation();
                             if (
                               confirm(
-                                `Are you sure you want to delete submission ${s.reference ?? s.id.slice(0, 8)}?`,
+                                t("submissions.deleteConfirmation", {
+                                  ref: s.reference ?? s.id.slice(0, 8),
+                                }),
                               )
                             ) {
                               try {
                                 await deleteSubmission.mutateAsync(s.id);
-                                toast.success("Submission deleted successfully");
+                                toast.success(t("submissions.deleteSuccess"));
                               } catch (err) {
                                 toast.error(
                                   err instanceof Error
                                     ? err.message
-                                    : "Failed to delete submission",
+                                    : t("submissions.deleteFailed"),
                                 );
                               }
                             }
                           }}
                           disabled={deleteSubmission.isPending}
                           className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title="Delete Submission"
+                          title={t("submissions.detail.deleteSubmission")}
                         >
                           <Trash2 className="size-3.5" />
                         </button>
                       )}
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 border border-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-150 group-hover:bg-primary/10">
-                        {canValidate && s.status !== "draft" ? "Review" : "Open"}
+                        {canValidate && s.status !== "draft"
+                          ? t("submissions.actionReview")
+                          : t("submissions.actionOpen")}
                         <ArrowUpRight className="size-3" />
                       </span>
                     </div>
@@ -458,6 +479,7 @@ function SubmissionTable({
 }
 
 export const SubmissionsPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");
@@ -469,7 +491,7 @@ export const SubmissionsPage: React.FC = () => {
 
   const cooperativeQ = useCooperativeSubmissions(role === "cooperative");
   const apexQ = useApexSubmissions(role === "apex");
-  const federationQ = useFederationSubmissions(role === "federation");
+  const federationQ = useFederationSubmissions({ all: true, enabled: role === "federation" });
   const ministryQ = useMinistrySubmissions(role === "ministry");
 
   const {
@@ -550,16 +572,16 @@ export const SubmissionsPage: React.FC = () => {
   const canValidate = role === "federation" || role === "apex" || role === "ministry";
 
   const titleByRole: Record<string, string> = {
-    ministry: "Submissions — National Oversight",
-    federation: "Submissions — Federation Review",
-    apex: "Submissions — Apex Review",
-    cooperative: "My Submissions",
+    ministry: t("submissions.title.ministry"),
+    federation: t("submissions.title.federation"),
+    apex: t("submissions.title.apex"),
+    cooperative: t("submissions.title.cooperative"),
   };
   const subtitleByRole: Record<string, string> = {
-    ministry: "National submission oversight · monitor all inbound data returns",
-    federation: "Review and validate submissions forwarded from apex organizations",
-    apex: "Review and validate submissions from cooperatives under your management",
-    cooperative: "Track and manage your cooperative's data submissions",
+    ministry: t("submissions.subtitle.ministry"),
+    federation: t("submissions.subtitle.federation"),
+    apex: t("submissions.subtitle.apex"),
+    cooperative: t("submissions.subtitle.cooperative"),
   };
 
   const filtered = submissions.filter((s) => {
@@ -603,15 +625,15 @@ export const SubmissionsPage: React.FC = () => {
       {showNewModal && <NewSubmissionModal onClose={() => setShowNewModal(false)} />}
 
       <AppShell
-        title={titleByRole[role] ?? "Submissions"}
-        subtitle={subtitleByRole[role] ?? "Inbound data returns and validation queue"}
+        title={titleByRole[role] ?? t("submissions.title.fallback")}
+        subtitle={subtitleByRole[role] ?? t("submissions.subtitle.fallback")}
         actions={
           isCooperative ? (
             <button
               onClick={() => setShowNewModal(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
             >
-              <Plus className="size-4" /> New Submission
+              <Plus className="size-4" /> {t("submissions.newSubmission")}
             </button>
           ) : undefined
         }
@@ -622,30 +644,30 @@ export const SubmissionsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                   icon={Landmark}
-                  label="Federations"
+                  label={t("submissions.federations")}
                   value={federationGroups.length.toString()}
-                  subtitle="Nationwide"
+                  subtitle={t("submissions.nationwide")}
                   tone="primary"
                 />
                 <StatCard
                   icon={Inbox}
-                  label="Total submissions"
+                  label={t("submissions.totalSubmissions")}
                   value={allSubmissions.length.toString()}
-                  subtitle="All data returns"
+                  subtitle={t("submissions.allDataReturns")}
                   tone="info"
                 />
                 <StatCard
                   icon={CheckCircle2}
-                  label="Approved"
+                  label={t("submissions.approved")}
                   value={(allSubmissions as SubmissionWithName[])
                     .filter((s) => s.status === "approved")
                     .length.toString()}
-                  subtitle="Finalized declarations"
+                  subtitle={t("submissions.finalizedDeclarations")}
                   tone="success"
                 />
                 <StatCard
                   icon={Clock}
-                  label="In Review"
+                  label={t("submissions.inReview")}
                   value={(allSubmissions as SubmissionWithName[])
                     .filter((s) =>
                       [
@@ -657,24 +679,24 @@ export const SubmissionsPage: React.FC = () => {
                       ].includes(s.status),
                     )
                     .length.toString()}
-                  subtitle="Awaiting validation"
+                  subtitle={t("submissions.awaitingValidation")}
                   tone="warning"
                 />
               </div>
 
               <Card
-                title="Select a Federation"
-                subtitle="Choose a federation to view its apex organizations"
+                title={t("submissions.selectFederation")}
+                subtitle={t("submissions.chooseFederationSubtitle")}
               >
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
-                    <p className="text-xs">Loading federations…</p>
+                    <p className="text-xs">{t("submissions.loadingFederations")}</p>
                   </div>
                 ) : isError ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-                    <p className="text-sm font-semibold">Failed to load submissions</p>
+                    <p className="text-sm font-semibold">{t("submissions.failedLoad")}</p>
                     <p className="text-xs mt-1 text-muted-foreground">
                       {error instanceof Error ? error.message : "Unknown error"}
                     </p>
@@ -682,10 +704,10 @@ export const SubmissionsPage: React.FC = () => {
                 ) : federationGroups.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Landmark className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-semibold">No federations with submissions</p>
-                    <p className="text-xs mt-1">
-                      Submissions will appear here once federations forward them.
+                    <p className="text-sm font-semibold">
+                      {t("submissions.noFederationsSubmissions")}
                     </p>
+                    <p className="text-xs mt-1">{t("submissions.submissionsWillAppearHere")}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -725,17 +747,17 @@ export const SubmissionsPage: React.FC = () => {
                 onClick={() => setSelectedFederationId(null)}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
               >
-                <ChevronLeft className="size-4" /> Back to federations
+                <ChevronLeft className="size-4" /> {t("submissions.backToFederations")}
               </button>
 
               <Card
-                title="Select an Apex"
-                subtitle={`Apex organizations under ${selectedFederationId}`}
+                title={t("submissions.selectApex")}
+                subtitle={t("submissions.apexesUnder", { name: selectedFederationId })}
               >
                 {apexGroups.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Network className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-semibold">No apexes with submissions</p>
+                    <p className="text-sm font-semibold">{t("submissions.noApexesSubmissions")}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -778,14 +800,19 @@ export const SubmissionsPage: React.FC = () => {
                 onClick={() => setSelectedApexId(null)}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
               >
-                <ChevronLeft className="size-4" /> Back to apexes
+                <ChevronLeft className="size-4" /> {t("submissions.backToApexes")}
               </button>
 
-              <Card title="Select a Cooperative" subtitle={`Cooperatives under ${selectedApexId}`}>
+              <Card
+                title={t("submissions.selectCooperative")}
+                subtitle={t("submissions.cooperativesUnder", { name: selectedApexId })}
+              >
                 {coopGroups.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Building2 className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-semibold">No cooperatives with submissions</p>
+                    <p className="text-sm font-semibold">
+                      {t("submissions.noCooperativesSubmissions")}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -824,30 +851,30 @@ export const SubmissionsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                   icon={Building2}
-                  label="Apexes"
+                  label={t("submissions.apexes")}
                   value={apexGroups.length.toString()}
-                  subtitle="Under your federation"
+                  subtitle={t("submissions.underYourFederation")}
                   tone="primary"
                 />
                 <StatCard
                   icon={Inbox}
-                  label="Total submissions"
+                  label={t("submissions.totalSubmissions")}
                   value={allSubmissions.length.toString()}
-                  subtitle="All data returns"
+                  subtitle={t("submissions.allDataReturns")}
                   tone="info"
                 />
                 <StatCard
                   icon={CheckCircle2}
-                  label="Approved"
+                  label={t("submissions.approved")}
                   value={(allSubmissions as SubmissionWithName[])
                     .filter((s) => s.status === "approved")
                     .length.toString()}
-                  subtitle="Finalized declarations"
+                  subtitle={t("submissions.finalizedDeclarations")}
                   tone="success"
                 />
                 <StatCard
                   icon={Clock}
-                  label="In Review"
+                  label={t("submissions.inReview")}
                   value={(allSubmissions as SubmissionWithName[])
                     .filter((s) =>
                       [
@@ -859,24 +886,24 @@ export const SubmissionsPage: React.FC = () => {
                       ].includes(s.status),
                     )
                     .length.toString()}
-                  subtitle="Awaiting validation"
+                  subtitle={t("submissions.awaitingValidation")}
                   tone="warning"
                 />
               </div>
 
               <Card
-                title="Select an Apex"
-                subtitle="Choose an apex organization to view its cooperatives"
+                title={t("submissions.selectApex")}
+                subtitle={t("submissions.chooseApexSubtitle")}
               >
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
-                    <p className="text-xs">Loading apexes…</p>
+                    <p className="text-xs">{t("submissions.loadingApexes")}</p>
                   </div>
                 ) : isError ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-                    <p className="text-sm font-semibold">Failed to load submissions</p>
+                    <p className="text-sm font-semibold">{t("submissions.failedLoad")}</p>
                     <p className="text-xs mt-1 text-muted-foreground">
                       {error instanceof Error ? error.message : "Unknown error"}
                     </p>
@@ -884,10 +911,8 @@ export const SubmissionsPage: React.FC = () => {
                 ) : apexGroups.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Building2 className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-semibold">No apexes with submissions</p>
-                    <p className="text-xs mt-1">
-                      Submissions will appear here once apexes forward them.
-                    </p>
+                    <p className="text-sm font-semibold">{t("submissions.noApexesSubmissions")}</p>
+                    <p className="text-xs mt-1">{t("submissions.submissionsAppearApexForward")}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -927,14 +952,19 @@ export const SubmissionsPage: React.FC = () => {
                 onClick={() => setSelectedApexId(null)}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
               >
-                <ChevronLeft className="size-4" /> Back to apexes
+                <ChevronLeft className="size-4" /> {t("submissions.backToApexes")}
               </button>
 
-              <Card title="Select a Cooperative" subtitle={`Cooperatives under ${selectedApexId}`}>
+              <Card
+                title={t("submissions.selectCooperative")}
+                subtitle={t("submissions.cooperativesUnder", { name: selectedApexId })}
+              >
                 {coopGroups.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Building2 className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-semibold">No cooperatives with submissions</p>
+                    <p className="text-sm font-semibold">
+                      {t("submissions.noCooperativesSubmissions")}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -973,30 +1003,30 @@ export const SubmissionsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                   icon={Building2}
-                  label="Cooperatives"
+                  label={t("submissions.cooperatives")}
                   value={coopGroups.length.toString()}
-                  subtitle="Under your management"
+                  subtitle={t("submissions.underYourManagement")}
                   tone="primary"
                 />
                 <StatCard
                   icon={Inbox}
-                  label="Total submissions"
+                  label={t("submissions.totalSubmissions")}
                   value={allSubmissions.length.toString()}
-                  subtitle="All data returns"
+                  subtitle={t("submissions.allDataReturns")}
                   tone="info"
                 />
                 <StatCard
                   icon={CheckCircle2}
-                  label="Approved"
+                  label={t("submissions.approved")}
                   value={(allSubmissions as SubmissionWithName[])
                     .filter((s) => s.status === "approved")
                     .length.toString()}
-                  subtitle="Finalized declarations"
+                  subtitle={t("submissions.finalizedDeclarations")}
                   tone="success"
                 />
                 <StatCard
                   icon={Clock}
-                  label="In Review"
+                  label={t("submissions.inReview")}
                   value={(allSubmissions as SubmissionWithName[])
                     .filter((s) =>
                       [
@@ -1008,24 +1038,24 @@ export const SubmissionsPage: React.FC = () => {
                       ].includes(s.status),
                     )
                     .length.toString()}
-                  subtitle="Awaiting validation"
+                  subtitle={t("submissions.awaitingValidation")}
                   tone="warning"
                 />
               </div>
 
               <Card
-                title="Select a Cooperative"
-                subtitle="Choose a cooperative to view its submissions"
+                title={t("submissions.selectCooperative")}
+                subtitle={t("submissions.chooseCooperativeSubtitle")}
               >
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
-                    <p className="text-xs">Loading cooperatives…</p>
+                    <p className="text-xs">{t("submissions.loadingCooperatives")}</p>
                   </div>
                 ) : isError ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-                    <p className="text-sm font-semibold">Failed to load submissions</p>
+                    <p className="text-sm font-semibold">{t("submissions.failedLoad")}</p>
                     <p className="text-xs mt-1 text-muted-foreground">
                       {error instanceof Error ? error.message : "Unknown error"}
                     </p>
@@ -1033,10 +1063,10 @@ export const SubmissionsPage: React.FC = () => {
                 ) : coopGroups.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     <Building2 className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-semibold">No cooperatives with submissions</p>
-                    <p className="text-xs mt-1">
-                      Submissions will appear here once cooperatives create them.
+                    <p className="text-sm font-semibold">
+                      {t("submissions.noCooperativesSubmissions")}
                     </p>
+                    <p className="text-xs mt-1">{t("submissions.submissionsAppearCoopCreate")}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1077,7 +1107,7 @@ export const SubmissionsPage: React.FC = () => {
                   onClick={() => setSelectedCoopId(null)}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
                 >
-                  <ChevronLeft className="size-4" /> Back to cooperatives
+                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
                 </button>
               )}
               {isFederation && selectedCoopId !== null && (
@@ -1085,7 +1115,7 @@ export const SubmissionsPage: React.FC = () => {
                   onClick={() => setSelectedCoopId(null)}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
                 >
-                  <ChevronLeft className="size-4" /> Back to cooperatives
+                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
                 </button>
               )}
               {isMinistry && selectedCoopId !== null && (
@@ -1093,37 +1123,37 @@ export const SubmissionsPage: React.FC = () => {
                   onClick={() => setSelectedCoopId(null)}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
                 >
-                  <ChevronLeft className="size-4" /> Back to cooperatives
+                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
                 </button>
               )}
 
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                   icon={Inbox}
-                  label="Total submissions"
+                  label={t("submissions.totalSubmissions")}
                   value={counts.total.toString()}
-                  subtitle="All data returns"
+                  subtitle={t("submissions.allDataReturns")}
                   tone="primary"
                 />
                 <StatCard
                   icon={CheckCircle2}
-                  label="Approved"
+                  label={t("submissions.approved")}
                   value={counts.approved.toString()}
-                  subtitle="Finalized declarations"
+                  subtitle={t("submissions.finalizedDeclarations")}
                   tone="success"
                 />
                 <StatCard
                   icon={Clock}
-                  label="In Review"
+                  label={t("submissions.inReview")}
                   value={counts.submitted.toString()}
-                  subtitle="Awaiting validation"
+                  subtitle={t("submissions.awaitingValidation")}
                   tone="warning"
                 />
                 <StatCard
                   icon={XCircle}
-                  label="Rejected"
+                  label={t("submissions.rejected")}
                   value={counts.rejected.toString()}
-                  subtitle="Requires correction"
+                  subtitle={t("submissions.requiresCorrection")}
                   tone="danger"
                 />
               </div>
@@ -1140,7 +1170,7 @@ export const SubmissionsPage: React.FC = () => {
                 counts={counts}
                 onRowClick={(id) => navigate({ to: "/app/submissions/$id", params: { id } })}
                 showCoopColumn={showCoopColumn}
-                onExport={() => toast.success("Exporting submissions registry…")}
+                onExport={() => toast.success(t("submissions.exportingToast"))}
               />
             </>
           )}

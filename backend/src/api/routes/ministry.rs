@@ -110,6 +110,15 @@ pub fn ministry_routes() -> Router<AppState> {
             get(crate::api::handlers::export::export_single_submission),
         )
         .route(
+            "/submissions/{id}/narratives",
+            get(crate::api::handlers::export::get_submission_narratives)
+                .post(crate::api::handlers::export::generate_submission_narratives),
+        )
+        .route(
+            "/narratives",
+            get(crate::api::handlers::export::get_ministry_narratives),
+        )
+        .route(
             "/export",
             get(crate::api::handlers::export::export_bulk_consolidated),
         )
@@ -151,10 +160,31 @@ pub fn ministry_routes() -> Router<AppState> {
         )
         .route(
             "/custom-kpis/{id}",
-            delete(crate::api::handlers::custom_kpi::delete_custom_kpi),
+            axum::routing::put(crate::api::handlers::custom_kpi::update_custom_kpi)
+                .delete(crate::api::handlers::custom_kpi::delete_custom_kpi),
         )
         .route(
             "/custom-kpis/evaluate",
             post(crate::api::handlers::custom_kpi::evaluate_custom_kpi),
+        )
+        // Questionnaire templates
+        .route(
+            "/questionnaire-templates",
+            post(crate::api::handlers::questionnaire_template::create_template)
+                .get(crate::api::handlers::questionnaire_template::list_templates),
+        )
+        .route(
+            "/questionnaire-templates/{id}",
+            get(crate::api::handlers::questionnaire_template::get_template)
+                .put(crate::api::handlers::questionnaire_template::update_template)
+                .delete(crate::api::handlers::questionnaire_template::delete_template),
+        )
+        .route(
+            "/questionnaire-templates/{id}/activate",
+            post(crate::api::handlers::questionnaire_template::activate_template),
+        )
+        .route(
+            "/questionnaire-templates/active",
+            get(crate::api::handlers::questionnaire_template::get_active_template_ministry),
         )
 }

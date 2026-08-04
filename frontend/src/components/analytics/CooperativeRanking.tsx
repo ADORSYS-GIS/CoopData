@@ -22,41 +22,63 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 interface CooperativeRankingProps {
   reportingYear: number;
   filterParams?: NationalOverviewParams;
 }
 
-const MONTH_OPTIONS = [
-  { value: "all", label: "Year Total" },
-  { value: "1", label: "31. Jan " },
-  { value: "2", label: "28. Feb " },
-  { value: "3", label: "31. Mar " },
-  { value: "4", label: "30. Apr " },
-  { value: "5", label: "31. May " },
-  { value: "6", label: "30. Jun " },
-  { value: "7", label: "31. Jul " },
-  { value: "8", label: "31. Aug " },
-  { value: "9", label: "30. Sep " },
-  { value: "10", label: "31. Oct " },
-  { value: "11", label: "30. Nov " },
-  { value: "12", label: "31. Dec " },
-];
+interface MonthOption {
+  value: string;
+  label: string;
+}
 
-const ACCOUNT_METRICS = [
-  { key: "1999", label: "TOTAL ASSETS", isRawCode: true, unit: "SZL" },
-  { key: "1200", label: "GROSS LOANS", isRawCode: true, unit: "SZL" },
-  { key: "1100", label: "LIQUID ASSETS", isRawCode: true, unit: "SZL" },
-  { key: "1300", label: "OTHER ASSETS", isRawCode: true, unit: "SZL" },
-  { key: "2100", label: "MEMBER DEPOSITS", isRawCode: true, unit: "SZL" },
-  { key: "2999", label: "TOTAL LIABILITIES", isRawCode: true, unit: "SZL" },
-  { key: "3999", label: "TOTAL EQUITY", isRawCode: true, unit: "SZL" },
-];
+function buildMonthOptions(t: TFunction): MonthOption[] {
+  return [
+    { value: "all", label: t("analytics.yearTotal") },
+    { value: "1", label: "31. Jan " },
+    { value: "2", label: "28. Feb " },
+    { value: "3", label: "31. Mar " },
+    { value: "4", label: "30. Apr " },
+    { value: "5", label: "31. May " },
+    { value: "6", label: "30. Jun " },
+    { value: "7", label: "31. Jul " },
+    { value: "8", label: "31. Aug " },
+    { value: "9", label: "30. Sep " },
+    { value: "10", label: "31. Oct " },
+    { value: "11", label: "30. Nov " },
+    { value: "12", label: "31. Dec " },
+  ];
+}
+
+interface AccountMetric {
+  key: string;
+  label: string;
+  isRawCode: boolean;
+  unit: string;
+}
+
+function buildAccountMetrics(t: TFunction): AccountMetric[] {
+  return [
+    { key: "1999", label: t("analytics.totalAssetsUppercase"), isRawCode: true, unit: "SZL" },
+    { key: "1200", label: t("analytics.grossLoansUppercase"), isRawCode: true, unit: "SZL" },
+    { key: "1100", label: t("analytics.liquidAssetsUppercase"), isRawCode: true, unit: "SZL" },
+    { key: "1300", label: t("analytics.otherAssetsUppercase"), isRawCode: true, unit: "SZL" },
+    { key: "2100", label: t("analytics.memberDepositsUppercase"), isRawCode: true, unit: "SZL" },
+    { key: "2999", label: t("analytics.totalLiabilitiesUppercase"), isRawCode: true, unit: "SZL" },
+    { key: "3999", label: t("analytics.totalEquityUppercase"), isRawCode: true, unit: "SZL" },
+  ];
+}
 
 export function CooperativeRanking({ reportingYear, filterParams }: CooperativeRankingProps) {
+  const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedMetric, setSelectedMetric] = useState<string>("1999");
+
+  const monthOptions = useMemo(() => buildMonthOptions(t), [t]);
+  const accountMetrics = useMemo(() => buildAccountMetrics(t), [t]);
 
   // Fetch KPI dataset scoped by filters
   const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({
@@ -77,8 +99,8 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
   );
 
   const activeMetricInfo = useMemo(() => {
-    return ACCOUNT_METRICS.find((m) => m.key === selectedMetric);
-  }, [selectedMetric]);
+    return accountMetrics.find((m) => m.key === selectedMetric);
+  }, [selectedMetric, accountMetrics]);
 
   const rawDataList = useMemo(() => {
     if (!comparative?.grids) return [];
@@ -104,11 +126,11 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         value: sum,
         region:
           overview?.cooperatives.find((c) => c.cooperative_id === grid.cooperative_id)?.region ??
-          "Unknown",
+          t("analytics.unknown"),
         status: "healthy",
       };
     });
-  }, [comparative, selectedMonth, selectedMetric, overview]);
+  }, [comparative, selectedMonth, selectedMetric, overview, t]);
 
   const dataList = useMemo(() => {
     return rawDataList;
@@ -144,7 +166,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
-        Loading rankings and comparative sheets...
+        {t("analytics.loadingRankings")}
       </div>
     );
   }
@@ -155,10 +177,10 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
       <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
         <div>
           <h2 className="text-xl font-bold tracking-tight">
-            Financial Statistics of the Cooperative Sector
+            {t("analytics.coopSectorStatistics")}
           </h2>
           <p className="text-xs text-blue-200/80 mt-1 font-medium">
-            Financial Statements Bulletin — Segment 1 ({reportingYear})
+            {t("analytics.bulletinSubtitle", { year: reportingYear })}
           </p>
         </div>
 
@@ -166,14 +188,14 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
-              Date
+              {t("analytics.date")}
             </span>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MONTH_OPTIONS.map((m) => (
+                {monthOptions.map((m) => (
                   <SelectItem key={m.value} value={m.value} className="text-xs font-medium">
                     {m.label}
                     {m.value !== "all" && reportingYear}
@@ -185,14 +207,14 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
-              Account
+              {t("analytics.account")}
             </span>
             <Select value={selectedMetric} onValueChange={setSelectedMetric}>
               <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ACCOUNT_METRICS.map((m) => (
+                {accountMetrics.map((m) => (
                   <SelectItem key={m.key} value={m.key} className="text-xs font-medium">
                     {m.label}
                   </SelectItem>
@@ -207,30 +229,36 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
       <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
         <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold block mb-1">Account Ranking Mapping:</span>
-          The comparative ranking aggregates the raw balance sheet items based on standard account
-          codes:
+          <span className="font-bold block mb-1">{t("analytics.accountRankingMapping")}</span>
+          {t("analytics.accountRankingMappingDesc")}
           <ul className="list-disc pl-4 mt-1 space-y-0.5">
             <li>
-              <strong>Total Assets</strong>: Account code 1999.
+              <strong>{t("analytics.totalAssets")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "1999" })}
             </li>
             <li>
-              <strong>Gross Loans</strong>: Account code 1200.
+              <strong>{t("analytics.grossLoansLabel")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "1200" })}
             </li>
             <li>
-              <strong>Liquid Assets</strong>: Account code 1100.
+              <strong>{t("analytics.liquidAssetsLabel")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "1100" })}
             </li>
             <li>
-              <strong>Other Assets</strong>: Account code 1300.
+              <strong>{t("analytics.otherAssetsLabel")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "1300" })}
             </li>
             <li>
-              <strong>Member Deposits</strong>: Account code 2100.
+              <strong>{t("analytics.memberDepositsLabel")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "2100" })}
             </li>
             <li>
-              <strong>Total Liabilities</strong>: Account code 2999.
+              <strong>{t("analytics.totalLiabilitiesLabel")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "2999" })}
             </li>
             <li>
-              <strong>Total Equity</strong>: Account code 3999.
+              <strong>{t("analytics.totalEquityLabel")}</strong>:{" "}
+              {t("analytics.accountCode", { code: "3999" })}
             </li>
           </ul>
         </div>
@@ -241,17 +269,17 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         {/* Table on the Left */}
         <div className="lg:col-span-2">
           <Card
-            title="Cooperative Contribution Shares"
-            subtitle="Spreadsheet breakdown of principal accounts"
+            title={t("analytics.coopContributionShares")}
+            subtitle={t("analytics.spreadsheetBreakdown")}
           >
             {rankedCoops.length > 0 ? (
               <div className="overflow-x-auto max-h-[480px]">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-border text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/20">
-                      <th className="py-2.5 px-3">Entity</th>
-                      <th className="py-2.5 px-3 text-right">Value (SZL/USD)</th>
-                      <th className="py-2.5 px-3 text-right">Share (%)</th>
+                      <th className="py-2.5 px-3">{t("analytics.entity")}</th>
+                      <th className="py-2.5 px-3 text-right">{t("analytics.valueSzUsd")}</th>
+                      <th className="py-2.5 px-3 text-right">{t("analytics.sharePct")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -281,7 +309,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground text-xs">
-                No cooperatives found.
+                {t("analytics.noCoopsFound")}
               </div>
             )}
           </Card>
@@ -290,8 +318,8 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         {/* Bar Chart on the Right */}
         <div className="lg:col-span-3">
           <Card
-            title="Ranking of Principal Accounts"
-            subtitle="Value contribution of each cooperative (SZL/USD millions)"
+            title={t("analytics.rankingPrincipalAccounts")}
+            subtitle={t("analytics.valueContributionSubtitle")}
           >
             {chartData.length > 0 ? (
               <div className="h-[430px] w-full mt-4">
@@ -323,7 +351,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                       }}
                       formatter={(val: unknown) => [
                         `${Number(val).toFixed(2)}M`,
-                        "Value (Millions)",
+                        t("analytics.valueMillions"),
                       ]}
                     />
                     <Bar dataKey="value" fill="url(#rankingBarGrad)" radius={[2, 2, 0, 0]} />
@@ -332,7 +360,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
               </div>
             ) : (
               <div className="flex h-[380px] items-center justify-center text-muted-foreground text-xs">
-                No statement data matches your selections.
+                {t("analytics.noStatementData")}
               </div>
             )}
           </Card>

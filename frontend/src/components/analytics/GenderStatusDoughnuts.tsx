@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
 
 interface GenderStatusDoughnutsProps {
@@ -6,16 +7,17 @@ interface GenderStatusDoughnutsProps {
 }
 
 export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
+  const { t } = useTranslation();
   const genderData = [
-    { name: "Women", value: data.female, fill: "var(--chart-1)" },
-    { name: "Men", value: data.male, fill: "var(--chart-2)" },
-    { name: "Other", value: data.other, fill: "var(--chart-3)" },
+    { name: t("analytics.genderWomen"), value: data.female, fill: "var(--chart-1)" },
+    { name: t("analytics.genderMen"), value: data.male, fill: "var(--chart-2)" },
+    { name: t("analytics.genderOther"), value: data.other, fill: "var(--chart-3)" },
   ].filter((d) => d.value > 0);
 
   const statusData = [
-    { name: "Active", value: data.active, fill: "var(--success)" },
-    { name: "Dormant", value: data.dormant, fill: "var(--warning)" },
-    { name: "Exited", value: data.exited, fill: "var(--muted-foreground)" },
+    { name: t("analytics.doughnutActive"), value: data.active, fill: "var(--success)" },
+    { name: t("analytics.doughnutDormant"), value: data.dormant, fill: "var(--warning)" },
+    { name: t("analytics.doughnutExited"), value: data.exited, fill: "var(--muted-foreground)" },
   ].filter((d) => d.value > 0);
 
   const renderDoughnut = (
@@ -70,8 +72,16 @@ export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {renderDoughnut("Gender Breakdown", genderData, data.male + data.female + data.other)}
-      {renderDoughnut("Membership Status", statusData, data.active + data.dormant + data.exited)}
+      {renderDoughnut(
+        t("analytics.genderBreakdown"),
+        genderData,
+        data.male + data.female + data.other,
+      )}
+      {renderDoughnut(
+        t("analytics.membershipStatus"),
+        statusData,
+        data.active + data.dormant + data.exited,
+      )}
     </div>
   );
 }

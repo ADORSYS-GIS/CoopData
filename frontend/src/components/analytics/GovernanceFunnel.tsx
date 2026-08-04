@@ -1,4 +1,5 @@
 import { Funnel, FunnelChart, Tooltip, LabelList, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
 
 interface Props {
@@ -6,32 +7,34 @@ interface Props {
 }
 
 export function GovernanceFunnel({ stats }: Props) {
+  const { t } = useTranslation();
+
   if (stats.total === 0) {
     return (
       <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
-        No membership data available
+        {t("analytics.noMembershipData")}
       </div>
     );
   }
 
   const data = [
     {
-      name: "Total Members",
+      name: t("analytics.funnelTotalMembers"),
       value: stats.total,
       fill: "var(--chart-1)",
     },
     {
-      name: "Attended AGM",
+      name: t("analytics.funnelAttendedAgm"),
       value: stats.agm_attendance ?? 0,
       fill: "var(--chart-2)",
     },
     {
-      name: "Voted in Elections",
+      name: t("analytics.funnelVotedElections"),
       value: stats.voting_count ?? 0,
       fill: "var(--chart-3)",
     },
     {
-      name: "Leadership Role",
+      name: t("analytics.funnelLeadershipRole"),
       value: stats.leadership_count ?? 0,
       fill: "var(--chart-4)",
     },
@@ -48,7 +51,7 @@ export function GovernanceFunnel({ stats }: Props) {
               border: "1px solid var(--border)",
               fontSize: "12px",
             }}
-            formatter={(val: number) => [val.toLocaleString(), "Members"]}
+            formatter={(val: number) => [val.toLocaleString(), t("analytics.funnelMembers")]}
           />
           <Funnel dataKey="value" data={data} isAnimationActive>
             <LabelList

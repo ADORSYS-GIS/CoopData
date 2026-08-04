@@ -4,7 +4,7 @@ import { BenchmarkingPage } from "@/pages/shared/BenchmarkingPage";
 
 function BenchmarkingRoute() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["ministry", "federation", "apex"]}>
       <BenchmarkingPage />
     </ProtectedRoute>
   );

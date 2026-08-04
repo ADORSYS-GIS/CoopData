@@ -1,29 +1,31 @@
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 import type { SavingsStats } from "@/hooks/analytics/useNfStatistics";
+import { useTranslation } from "react-i18next";
 
 interface SavingsRadialGaugesProps {
   data: SavingsStats;
 }
 
 export function SavingsRadialGauges({ data }: SavingsRadialGaugesProps) {
+  const { t } = useTranslation();
   const gauges = [
     {
-      title: "Savings Penetration",
+      title: t("analytics.savingsPenetration"),
       value: data.savings_penetration_pct,
       color: "var(--chart-1)",
-      desc: "Members with savings",
+      desc: t("analytics.membersWithSavings"),
     },
     {
-      title: "Regular Savers",
+      title: t("analytics.regularSavers"),
       value: data.regular_savers_pct,
       color: "var(--chart-2)",
-      desc: "Consistent deposits",
+      desc: t("analytics.consistentDeposits"),
     },
     {
-      title: "Active Savers",
+      title: t("analytics.activeSavers"),
       value: data.active_savers_pct,
       color: "var(--chart-3)",
-      desc: "Recent activity",
+      desc: t("analytics.recentActivity"),
     },
   ];
 
@@ -64,7 +66,9 @@ export function SavingsRadialGauges({ data }: SavingsRadialGaugesProps) {
         </div>
       ))}
       <div className="md:col-span-3 text-center mt-4 pt-4 border-t border-border">
-        <p className="text-sm font-semibold text-muted-foreground">Total Savings Balance</p>
+        <p className="text-sm font-semibold text-muted-foreground">
+          {t("analytics.totalSavingsBalance")}
+        </p>
         <p className="font-heading text-2xl font-bold text-foreground num mt-1">
           ${data.total_balance.toLocaleString()}
         </p>

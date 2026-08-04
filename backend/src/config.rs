@@ -18,6 +18,8 @@ pub struct AppConfig {
     pub jwt_audience: String,
     pub jwt_issuer_aliases: Vec<String>,
     pub frontend_url: String,
+    pub gotenberg_url: String,
+    pub gotenberg_frontend_url: String,
     pub environment: Environment,
     // AI extraction
     pub extraction_backend: String, // "mock" | "llm"
@@ -66,6 +68,10 @@ impl AppConfig {
                 .filter(|s| !s.is_empty())
                 .collect(),
             frontend_url: env::var("FRONTEND_URL").expect("FRONTEND_URL must be set"),
+            gotenberg_url: env::var("GOTENBERG_URL")
+                .unwrap_or_else(|_| "http://gotenberg:3000".into()),
+            gotenberg_frontend_url: env::var("GOTENBERG_FRONTEND_URL")
+                .unwrap_or_else(|_| "http://frontend:80".into()),
             environment: env::var("ENVIRONMENT")
                 .map(|s| match s.to_lowercase().as_str() {
                     "production" => Environment::Production,
@@ -140,6 +146,8 @@ mod tests {
             jwt_audience: "x".into(),
             jwt_issuer_aliases: vec![],
             frontend_url: "x".into(),
+            gotenberg_url: "http://localhost:8081".into(),
+            gotenberg_frontend_url: "http://localhost:5173".into(),
             environment: env,
             extraction_backend: "mock".into(),
             ai_provider_url: "https://api.openai.com/v1".into(),

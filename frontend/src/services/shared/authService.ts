@@ -74,7 +74,10 @@ async function doInitKeycloak(): Promise<boolean> {
       pkceMethod: "S256",
       enableLogging: import.meta.env.DEV,
       checkLoginIframe: false,
-      silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
+      silentCheckSsoRedirectUri:
+        typeof window !== "undefined" && window.location.search.includes("no-silent-sso")
+          ? undefined
+          : `${window.location.origin}/silent-check-sso.html`,
       token: cachedTokens?.token ?? undefined,
       refreshToken: cachedTokens?.refreshToken ?? undefined,
       idToken: cachedTokens?.idToken ?? undefined,
@@ -134,9 +137,11 @@ async function doInitKeycloak(): Promise<boolean> {
 
 export async function login(): Promise<void> {
   console.log("[auth] login() called — redirecting to Keycloak");
+  const currentLang = localStorage.getItem("i18nextLng") || "en";
   await keycloak.login({
     redirectUri: window.location.origin + "/app/dashboard",
     scope: "openid profile email",
+    locale: currentLang,
   });
 }
 

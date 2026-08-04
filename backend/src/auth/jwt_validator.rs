@@ -103,8 +103,10 @@ impl JwtValidator {
         validation.validate_exp = true;
         validation.validate_nbf = false;
 
-        let aud_strings: Vec<String> = audiences.to_vec();
-        validation.set_audience(&aud_strings);
+        // Audience is validated manually in `validate()` (see is_valid_audience) so the
+        // trusted backend service account can bypass it. Disable the library-level check
+        // here, otherwise decode() rejects the service-account token before we get a chance.
+        validation.validate_aud = false;
 
         let valid_audiences: HashSet<String> = audiences.iter().cloned().collect();
 
@@ -145,7 +147,12 @@ impl JwtValidator {
             });
         }
 
-        if !self.is_valid_audience(&token_data.claims) {
+        // The backend service account (used by Gotenberg to render PDFs) authenticates
+        // via client_credentials and its token carries Keycloak's default audiences
+        // (realm-management/broker/account) rather than the app's client audience.
+        // It is already trusted to bypass role-based access, so skip the audience
+        // check for it — otherwise the print page's API calls fail with InvalidAudience.
+        if !self.is_valid_audience(&token_data.claims) && !token_data.claims.is_service_account() {
             return Err(JwtError::InvalidAudience);
         }
 

@@ -10,9 +10,11 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::apex::ApexStatsResponse;
+#[allow(unused_imports)]
 use crate::api::dto::submission::{
-    CooperativeStatsResponse, CreateSubmissionRequest, SubmissionResponse,
-    SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
+    CooperativeStatsResponse, CreateSubmissionRequest, MembershipStatsResponse,
+    PortfolioBreakdownResponse, SubmissionResponse, SubmissionReviewResponse,
+    SubmissionSectionResponse, UpdateSectionStatusRequest, UpdateSubmissionMethodRequest,
 };
 use crate::auth::claims::Claims;
 
@@ -81,6 +83,12 @@ pub async fn create_submission(
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
+    let submission_method_val = if coop.tier == "basic" {
+        "questionnaire".to_string()
+    } else {
+        body.submission_method.clone()
+    };
+
     let model = ActiveModel {
         id: Set(Uuid::new_v4()),
         reference: Set(Some(reference)),
@@ -95,6 +103,7 @@ pub async fn create_submission(
         rejection_reason: Set(None),
         priority: Set(body.priority),
         metadata: Set(serde_json::json!({})),
+        submission_method: Set(submission_method_val.clone()),
         created_at: Set(chrono::Utc::now()),
         updated_at: Set(chrono::Utc::now()),
     };
@@ -104,6 +113,7 @@ pub async fn create_submission(
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
             submission.id,
+            &submission_method_val,
         );
     let sections = state
         .section_repo
@@ -237,6 +247,12 @@ pub async fn get_submission(
     }
 
     let mut resp = SubmissionResponse::from(submission);
+
+    // Populate cooperative name from DB so frontend doesn't need a separate Keycloak-based call
+    if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(resp.cooperative_id).await {
+        resp.cooperative_name = Some(coop.name);
+    }
+
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
         let job = state
             .extraction_job_repo
@@ -1099,6 +1115,153 @@ pub async fn ministry_approve_submission(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Compute and persist KPIs on approval
+    if let Err(e) = workflow
+        .compute_and_save_kpis(id, updated.cooperative_id, updated.reporting_year)
+        .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            error = %e,
+            "Failed to compute and save KPIs during ministry approval"
+        );
+    }
+
+    // Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
+    // Stagger tier launches by 65s in the background to avoid Gemini free-tier rate limits (5 req/min)
+    let state_clone = state.clone();
+    let cooperative_id = updated.cooperative_id;
+    let reporting_year = updated.reporting_year;
+    tokio::spawn(async move {
+        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+            state_clone.clone(),
+            id,
+        );
+
+        // Fetch parent Coop
+        let coop = match state_clone
+            .cooperative_repo
+            .find_by_id(cooperative_id)
+            .await
+        {
+            Ok(Some(c)) => c,
+            Ok(None) => {
+                tracing::error!("Cooperative not found in background export thread");
+                return;
+            }
+            Err(e) => {
+                tracing::error!(
+                    "Failed to fetch cooperative in background export thread: {:?}",
+                    e
+                );
+                return;
+            }
+        };
+
+        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+        crate::services::export_generator::ExportGenerator::trigger_apex_export(
+            state_clone.clone(),
+            coop.apex_id,
+            reporting_year,
+        );
+
+        // Fetch parent Apex
+        let apex = match state_clone.apex_repo.find_by_id(coop.apex_id).await {
+            Ok(Some(a)) => a,
+            Ok(None) => {
+                tracing::error!("Apex not found in background export thread");
+                return;
+            }
+            Err(e) => {
+                tracing::error!("Failed to fetch apex in background export thread: {:?}", e);
+                return;
+            }
+        };
+
+        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+        crate::services::export_generator::ExportGenerator::trigger_federation_export(
+            state_clone.clone(),
+            apex.federation_id,
+            reporting_year,
+        );
+
+        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+            state_clone.clone(),
+            reporting_year,
+        );
+
+        // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
+        match state_clone
+            .submission_repo
+            .find_by_cooperative(cooperative_id)
+            .await
+        {
+            Ok(subs) => {
+                let future_subs: Vec<_> = subs
+                    .into_iter()
+                    .filter(|s| {
+                        s.reporting_year > reporting_year
+                            && s.id != id
+                            && s.status == crate::entities::enums::SubmissionStatus::Approved
+                    })
+                    .collect();
+
+                if !future_subs.is_empty() {
+                    tracing::info!(
+                        cooperative_id = %cooperative_id,
+                        current_year = reporting_year,
+                        stale_count = future_subs.len(),
+                        "Invalidating stale exports for future-year submissions"
+                    );
+
+                    for sub in future_subs {
+                        // Delete stale cached PDF from object storage (best-effort)
+                        let pdf_key =
+                            format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                        let _ = state_clone.storage.delete_object(&pdf_key).await;
+
+                        // Trigger background regeneration so the next download gets fresh data
+                        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+                            state_clone.clone(),
+                            sub.id,
+                        );
+                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+                        crate::services::export_generator::ExportGenerator::trigger_apex_export(
+                            state_clone.clone(),
+                            coop.apex_id,
+                            sub.reporting_year,
+                        );
+                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+                        crate::services::export_generator::ExportGenerator::trigger_federation_export(
+                            state_clone.clone(),
+                            apex.federation_id,
+                            sub.reporting_year,
+                        );
+                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+                        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+                            state_clone.clone(),
+                            sub.reporting_year,
+                        );
+
+                        tracing::info!(
+                            stale_submission_id = %sub.id,
+                            stale_year = sub.reporting_year,
+                            "Queued re-generation of stale export"
+                        );
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!(
+                    "Failed to fetch future submissions in background export thread: {:?}",
+                    e
+                );
+            }
+        }
+    });
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -1526,4 +1689,156 @@ pub async fn list_submission_reviews(
         .map(SubmissionReviewResponse::from)
         .collect();
     Ok((StatusCode::OK, Json(responses)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/portfolio-breakdown",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Portfolio breakdown", body = PortfolioBreakdownResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_portfolio_breakdown(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let categories = state
+        .loan_repo
+        .get_portfolio_breakdown(submission.cooperative_id)
+        .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(crate::api::dto::submission::PortfolioBreakdownResponse {
+            submission_id: id,
+            categories,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/membership-stats",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Membership stats", body = MembershipStatsResponse),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn get_membership_stats(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    let stats = state
+        .member_repo
+        .get_membership_stats(submission.cooperative_id, id)
+        .await?;
+
+    Ok((StatusCode::OK, Json(stats)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v1/cooperative/submissions/{id}/method",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = UpdateSubmissionMethodRequest,
+    responses(
+        (status = 200, description = "Submission method updated", body = SubmissionResponse),
+        (status = 400, description = "Invalid method or submission not in draft"),
+        (status = 403, description = "Forbidden — not your cooperative"),
+        (status = 404, description = "Submission not found")
+    ),
+    security(("bearer" = [])),
+    tag = "Cooperative"
+)]
+pub async fn update_submission_method(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<UpdateSubmissionMethodRequest>,
+) -> AppResult<impl IntoResponse> {
+    const VALID_METHODS: [&str; 3] = ["upload", "manual", "questionnaire"];
+
+    let method = body.submission_method.trim().to_string();
+    if !VALID_METHODS.contains(&method.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid submission method '{}'. Valid methods: {}",
+            method,
+            VALID_METHODS.join(", ")
+        )));
+    }
+
+    let coop =
+        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop.id {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot change submission method when submission is in '{}' status",
+            submission.status.as_str()
+        )));
+    }
+
+    if coop.tier == "basic" {
+        return Err(AppError::BadRequest(
+            "Basic cooperatives are restricted to the questionnaire method".into(),
+        ));
+    }
+
+    let updated = state
+        .submission_repo
+        .update_submission_method(id, method)
+        .await?;
+
+    tracing::info!(
+        submission_id = %id,
+        cooperative_id = %coop.id,
+        method = %body.submission_method,
+        "Submission method updated"
+    );
+
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }

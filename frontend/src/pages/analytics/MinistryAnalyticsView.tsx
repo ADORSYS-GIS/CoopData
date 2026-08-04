@@ -16,7 +16,6 @@ import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDough
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { NonFinancialConsolidation } from "@/components/analytics/non-financial-consolidation";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
-import { CustomKpiBuilder } from "@/components/analytics/CustomKpiBuilder";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
@@ -24,6 +23,7 @@ import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -31,6 +31,7 @@ interface Props {
 }
 
 export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
+  const { t } = useTranslation();
   const year = Number(filterValues.year);
 
   const params = useMemo(
@@ -93,7 +94,7 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground p-8">
-        <Loader2 className="size-5 animate-spin" /> Loading national analytics…
+        <Loader2 className="size-5 animate-spin" /> {t("ministryAnalytics.loading")}
       </div>
     );
   }
@@ -119,28 +120,24 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             {
-              label: "Total Cooperatives",
+              label: t("ministryAnalytics.totalCooperatives"),
               value: ministryStats.total_cooperatives?.toLocaleString() ?? "—",
-              tooltip:
-                "Total number of registered cooperatives in the national cooperative registry.",
+              tooltip: t("ministryAnalytics.totalCooperativesTooltip"),
             },
             {
-              label: "Total Submissions",
+              label: t("ministryAnalytics.totalSubmissions"),
               value: ministryStats.total_submissions?.toLocaleString() ?? "—",
-              tooltip:
-                "Total number of data submissions received from all cooperatives across the country.",
+              tooltip: t("ministryAnalytics.totalSubmissionsTooltip"),
             },
             {
-              label: "Pending Review",
+              label: t("ministryAnalytics.pendingReview"),
               value: ministryStats.pending_review_count?.toLocaleString() ?? "—",
-              tooltip:
-                "Submissions currently awaiting review and approval by authorized personnel.",
+              tooltip: t("ministryAnalytics.pendingReviewTooltip"),
             },
             {
-              label: "Approved",
+              label: t("ministryAnalytics.approved"),
               value: ministryStats.approved_count?.toLocaleString() ?? "—",
-              tooltip:
-                "Submissions that have been successfully reviewed and approved this reporting period.",
+              tooltip: t("ministryAnalytics.approvedTooltip"),
             },
           ].map((stat) => (
             <div
@@ -185,9 +182,9 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Macro distribution */}
         <Card
-          title="National Portfolio Distribution"
-          subtitle="Assets, loans and deposits by region"
-          info="Displays the aggregate financial balances distributed across different geographical regions."
+          title={t("ministryAnalytics.nationalPortfolio")}
+          subtitle={t("ministryAnalytics.nationalPortfolioSub")}
+          info={t("ministryAnalytics.nationalPortfolioInfo")}
         >
           <RegionalGroupedBar cooperatives={coops} />
         </Card>
@@ -195,9 +192,9 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
         {/* National loan gap */}
         {coops.length > 0 && (
           <Card
-            title="National Loan Provisioning Gap"
-            subtitle="Unprotected at-risk capital visualization"
-            info="Visualizes the gap between the Gross Loan Portfolio, the Portfolio at Risk (PAR30), and the actual Loan Loss Provisions set aside to cover those risks."
+            title={t("ministryAnalytics.loanProvisioningGap")}
+            subtitle={t("ministryAnalytics.loanProvisioningGapSub")}
+            info={t("ministryAnalytics.loanProvisioningGapInfo")}
           >
             <LoanProvisioningWaterfall
               glp={aggMetrics.totalGLP}
@@ -211,16 +208,16 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
       {/* Top & bottom performers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
-          title="ROA Leaderboard"
-          subtitle="Best and worst performing cooperatives by ROA"
-          info="Highlights the cooperatives with the highest and lowest Return on Assets, indicating overall profitability and resource utilization."
+          title={t("ministryAnalytics.roaLeaderboard")}
+          subtitle={t("ministryAnalytics.roaLeaderboardSub")}
+          info={t("ministryAnalytics.roaLeaderboardInfo")}
         >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
         </Card>
         <Card
-          title="CAR Leaderboard"
-          subtitle="Capital adequacy leaders and laggards"
-          info="Highlights the cooperatives with the highest and lowest Capital Adequacy Ratios, ensuring they maintain sufficient capital to absorb potential losses."
+          title={t("ministryAnalytics.carLeaderboard")}
+          subtitle={t("ministryAnalytics.carLeaderboardSub")}
+          info={t("ministryAnalytics.carLeaderboardInfo")}
         >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="capital_adequacy_ratio" />
         </Card>
@@ -229,43 +226,11 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
       {/* Traffic-light compliance distribution */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
         <Card
-          title="National KPI Traffic-Light Distribution"
-          subtitle="Proportion of cooperatives in each status band"
-          info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators."
+          title={t("ministryAnalytics.kpiTrafficLight")}
+          subtitle={t("ministryAnalytics.kpiTrafficLightSub")}
+          info={t("ministryAnalytics.kpiTrafficLightInfo")}
         >
           <ComplianceDoughnutCharts distributions={overview.distributions} />
-        </Card>
-      )}
-
-      {/* Custom KPI Builder Panel */}
-      <CustomKpiBuilder cooperatives={coops} customKpiValues={overview?.custom_kpis} />
-
-      {/* System-wide Custom KPI Averages */}
-      {overview?.custom_kpis && Object.keys(overview.custom_kpis).length > 0 && (
-        <Card
-          title="Custom KPI System Averages"
-          subtitle="National averages for ministry-defined custom indicators"
-          info="These values represent the system-wide average of each custom KPI formula evaluated across all cooperatives with data."
-        >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Object.entries(overview.custom_kpis).map(([name, value]) => (
-              <div
-                key={name}
-                className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/30 to-white p-4 hover:shadow-md hover:border-violet-300 transition-all duration-200"
-              >
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-400 to-indigo-400 rounded-t-xl" />
-                <p className="text-xs font-semibold text-violet-700 uppercase tracking-wider mb-1">
-                  {name.replace(/_/g, " ")}
-                </p>
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {value >= 1000
-                    ? value.toLocaleString(undefined, { maximumFractionDigits: 1 })
-                    : value.toFixed(2)}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1">National Average</p>
-              </div>
-            ))}
-          </div>
         </Card>
       )}
 
@@ -274,7 +239,7 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
 
       {coops.length === 0 && (
         <div className="rounded-xl border border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-          No cooperative data available for the selected filters and reporting year.
+          {t("ministryAnalytics.noData")}
         </div>
       )}
     </div>

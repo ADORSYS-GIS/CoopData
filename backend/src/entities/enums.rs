@@ -145,7 +145,7 @@ impl ReviewAction {
 use utoipa::ToSchema;
 
 #[derive(
-    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+    Debug, Clone, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "eswatini_region")]
 pub enum EswatiniRegion {
@@ -181,7 +181,7 @@ impl EswatiniRegion {
 }
 
 #[derive(
-    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+    Debug, Clone, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "cooperative_type")]
 pub enum CooperativeType {
@@ -223,6 +223,50 @@ impl CooperativeType {
             Self::Housing => "housing",
             Self::Transport => "transport",
             Self::Finance => "finance",
+            Self::Other => "other",
+        }
+    }
+}
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "cooperative_sector")]
+pub enum CooperativeSector {
+    #[sea_orm(string_value = "agriculture")]
+    Agriculture,
+    #[sea_orm(string_value = "finance")]
+    Finance,
+    #[sea_orm(string_value = "housing")]
+    Housing,
+    #[sea_orm(string_value = "transport")]
+    Transport,
+    #[sea_orm(string_value = "manufacturing")]
+    Manufacturing,
+    #[sea_orm(string_value = "other")]
+    Other,
+}
+
+impl CooperativeSector {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "agriculture" => Some(Self::Agriculture),
+            "finance" | "financial" => Some(Self::Finance),
+            "housing" => Some(Self::Housing),
+            "transport" => Some(Self::Transport),
+            "manufacturing" => Some(Self::Manufacturing),
+            "other" => Some(Self::Other),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Agriculture => "agriculture",
+            Self::Finance => "finance",
+            Self::Housing => "housing",
+            Self::Transport => "transport",
+            Self::Manufacturing => "manufacturing",
             Self::Other => "other",
         }
     }

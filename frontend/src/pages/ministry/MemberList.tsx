@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -9,6 +9,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   useFederations,
@@ -44,11 +45,14 @@ type Member = components["schemas"]["MemberResponse"];
 
 // ─── Columns ──────────────────────────────────────────────────────────────
 
-function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] {
+function createColumns(
+  t: (key: string) => string,
+  onRemove: (member: Member) => void,
+): ColumnDef<Member>[] {
   return [
     {
       accessorKey: "first_name",
-      header: "Name",
+      header: t("memberList.tableHeaders.name"),
       cell: ({ row }) => (
         <div className="font-medium text-foreground">
           {row.original.first_name} {row.original.last_name}
@@ -57,40 +61,40 @@ function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] 
     },
     {
       accessorKey: "email",
-      header: "Email",
+      header: t("memberList.tableHeaders.email"),
       cell: ({ row }) => (
         <span className="text-muted-foreground">{row.getValue<string>("email") ?? "—"}</span>
       ),
     },
     {
       accessorKey: "username",
-      header: "Username",
+      header: t("memberList.tableHeaders.username"),
       cell: ({ row }) => (
         <span className="text-foreground">{row.getValue<string>("username") ?? "—"}</span>
       ),
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: t("memberList.tableHeaders.status"),
       cell: ({ row }) => {
         const status = row.original.status;
         if (status === "ACTIVE") {
           return (
             <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-              Active
+              {t("memberList.statusActive")}
             </Badge>
           );
         }
         return (
           <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
-            Pending
+            {t("memberList.statusPending")}
           </Badge>
         );
       },
     },
     {
       id: "actions",
-      header: "Actions",
+      header: t("memberList.tableHeaders.actions"),
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <Button
@@ -100,7 +104,7 @@ function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] 
             onClick={() => onRemove(row.original)}
           >
             <Trash2 className="size-4" />
-            <span className="sr-only">Remove member</span>
+            <span className="sr-only">{t("memberList.removeMemberSr")}</span>
           </Button>
         </div>
       ),
@@ -111,6 +115,7 @@ function createColumns(onRemove: (member: Member) => void): ColumnDef<Member>[] 
 // ─── Page Component ───────────────────────────────────────────────────────
 
 export const MemberList: React.FC = () => {
+  const { t } = useTranslation();
   const { data: federations = [], isLoading: federationsLoading } = useFederations();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
 
@@ -140,19 +145,21 @@ export const MemberList: React.FC = () => {
       {
         onSuccess: () => {
           toast.success(
-            `Removed "${deleteTarget.first_name ?? deleteTarget.email ?? deleteTarget.id}" from federation`,
+            t("memberList.toastRemoved", {
+              name: deleteTarget.first_name ?? deleteTarget.email ?? deleteTarget.id,
+            }),
           );
           setDeleteTarget(null);
           refetchMembers();
         },
         onError: (err) => {
-          toast.error("Failed to remove member", { description: String(err) });
+          toast.error(t("memberList.toastRemoveFailed"), { description: String(err) });
         },
       },
     );
   };
 
-  const columns = createColumns((member) => setDeleteTarget(member));
+  const columns = useMemo(() => createColumns(t, (member) => setDeleteTarget(member)), [t]);
 
   const table = useReactTable({
     data: (members as Member[]) ?? [],
@@ -178,10 +185,13 @@ export const MemberList: React.FC = () => {
   const pendingMembers = (members as Member[]).filter((m) => m.status === "PENDING").length;
 
   return (
-    <AppShell title="Member Management" subtitle="View and manage federation members">
+    <AppShell title={t("memberList.title")} subtitle={t("memberList.subtitle")}>
       <div className="space-y-6">
         {/* Federation Selector */}
-        <Card title="Select Federation" subtitle="Choose a federation to view its members">
+        <Card
+          title={t("memberList.selectFederationTitle")}
+          subtitle={t("memberList.selectFederationSubtitle")}
+        >
           <div className="flex items-center gap-4">
             <div className="flex-1">
               {federationsLoading ? (
@@ -189,7 +199,7 @@ export const MemberList: React.FC = () => {
               ) : (
                 <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a federation..." />
+                    <SelectValue placeholder={t("memberList.selectFederationPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {federations.map((f: components["schemas"]["FederationResponse"]) => (
@@ -209,30 +219,30 @@ export const MemberList: React.FC = () => {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard
               icon={Users}
-              label="Total Members"
+              label={t("memberList.totalMembers")}
               value={String((members as Member[]).length)}
-              subtitle="All registered members"
+              subtitle={t("memberList.allRegisteredMembers")}
               tone="primary"
             />
             <StatCard
               icon={UserCheck}
-              label="Active Members"
+              label={t("memberList.activeMembers")}
               value={String(activeMembers)}
-              subtitle="Accepted invitation"
+              subtitle={t("memberList.acceptedInvitation")}
               tone="success"
             />
             <StatCard
               icon={UserCog}
-              label="Pending Members"
+              label={t("memberList.pendingMembers")}
               value={String(pendingMembers)}
-              subtitle="Awaiting verification"
+              subtitle={t("memberList.awaitingVerification")}
               tone="warning"
             />
             <StatCard
               icon={Users}
-              label="Federations"
+              label={t("memberList.federations")}
               value={String(federations.length)}
-              subtitle="Total federations"
+              subtitle={t("memberList.totalFederations")}
               tone="info"
             />
           </div>
@@ -241,13 +251,15 @@ export const MemberList: React.FC = () => {
         {/* Members Table */}
         {selectedFederationId && (
           <Card
-            title="Federation Members"
-            subtitle={`${table.getFilteredRowModel().rows.length} members found`}
+            title={t("memberList.federationMembersTitle")}
+            subtitle={t("memberList.membersFound", {
+              count: table.getFilteredRowModel().rows.length,
+            })}
             action={
               <div className="relative w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search members..."
+                  placeholder={t("memberList.searchPlaceholder")}
                   value={globalFilter ?? ""}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-9"
@@ -263,19 +275,17 @@ export const MemberList: React.FC = () => {
               </div>
             ) : membersError ? (
               <div className="py-8 text-center text-destructive">
-                <p>Failed to load members: {String(membersError)}</p>
+                <p>{t("memberList.failedLoad", { error: String(membersError) })}</p>
                 <Button variant="outline" className="mt-3" onClick={() => window.location.reload()}>
-                  Retry
+                  {t("memberList.retry")}
                 </Button>
               </div>
             ) : table.getFilteredRowModel().rows.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
                 <Users className="mx-auto mb-3 size-12 opacity-30" />
-                <p className="text-lg font-medium">No members found</p>
+                <p className="text-lg font-medium">{t("memberList.noMembersFound")}</p>
                 <p className="text-sm">
-                  {globalFilter
-                    ? "Try adjusting your search query"
-                    : "This federation has no members yet"}
+                  {globalFilter ? t("memberList.adjustSearchQuery") : t("memberList.noMembersYet")}
                 </p>
               </div>
             ) : (
@@ -317,8 +327,10 @@ export const MemberList: React.FC = () => {
                 {/* Pagination */}
                 <div className="flex items-center justify-between space-x-2 py-4">
                   <div className="text-sm text-muted-foreground">
-                    Showing {table.getFilteredRowModel().rows.length} of{" "}
-                    {(members as Member[]).length} members
+                    {t("memberList.showingCount", {
+                      filtered: table.getFilteredRowModel().rows.length,
+                      total: (members as Member[]).length,
+                    })}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
@@ -327,7 +339,7 @@ export const MemberList: React.FC = () => {
                       onClick={() => table.setPageIndex(0)}
                       disabled={!table.getCanPreviousPage()}
                     >
-                      First
+                      {t("memberList.first")}
                     </Button>
                     <Button
                       variant="outline"
@@ -335,10 +347,13 @@ export const MemberList: React.FC = () => {
                       onClick={() => table.previousPage()}
                       disabled={!table.getCanPreviousPage()}
                     >
-                      Previous
+                      {t("memberList.previous")}
                     </Button>
-                    <span className="text-sm">
-                      Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                    <span className="text-sm font-medium">
+                      {t("memberList.pageIndicator", {
+                        current: table.getState().pagination.pageIndex + 1,
+                        total: table.getPageCount(),
+                      })}
                     </span>
                     <Button
                       variant="outline"
@@ -346,7 +361,7 @@ export const MemberList: React.FC = () => {
                       onClick={() => table.nextPage()}
                       disabled={!table.getCanNextPage()}
                     >
-                      Next
+                      {t("memberList.next")}
                     </Button>
                     <Button
                       variant="outline"
@@ -354,7 +369,7 @@ export const MemberList: React.FC = () => {
                       onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                       disabled={!table.getCanNextPage()}
                     >
-                      Last
+                      {t("memberList.last")}
                     </Button>
                   </div>
                 </div>
@@ -365,13 +380,11 @@ export const MemberList: React.FC = () => {
 
         {/* Empty state when no federation selected */}
         {!selectedFederationId && !federationsLoading && (
-          <Card title="No Federation Selected">
+          <Card title={t("memberList.noFedSelectedTitle")}>
             <div className="py-12 text-center text-muted-foreground">
               <Users className="mx-auto mb-3 size-12 opacity-30" />
-              <p className="text-lg font-medium">Select a federation</p>
-              <p className="text-sm">
-                Choose a federation from the dropdown above to view its members
-              </p>
+              <p className="text-lg font-medium">{t("memberList.noFedSelectedDesc")}</p>
+              <p className="text-sm">{t("memberList.noFedSelectedHint")}</p>
             </div>
           </Card>
         )}
@@ -381,23 +394,20 @@ export const MemberList: React.FC = () => {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove member?</AlertDialogTitle>
+            <AlertDialogTitle>{t("memberList.removeMemberTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove{" "}
-              <span className="font-medium text-foreground">
-                {deleteTarget?.first_name ?? deleteTarget?.email ?? "this member"}
-              </span>{" "}
-              from the federation. They will lose access to all federation resources. This action
-              cannot be undone.
+              {t("memberList.removeMemberDesc", {
+                name: deleteTarget?.first_name ?? deleteTarget?.email ?? "this member",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("memberList.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemoveConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {removeMemberMutation.isPending ? "Removing..." : "Remove"}
+              {removeMemberMutation.isPending ? t("memberList.removing") : t("memberList.remove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

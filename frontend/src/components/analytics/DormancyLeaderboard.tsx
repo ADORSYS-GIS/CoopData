@@ -1,8 +1,3 @@
-/**
- * DormancyLeaderboard — horizontal ranked bar chart showing
- * cooperative dormancy % sorted worst → best.
- * PDF-inspired: mirrors "SACCO Dormancy Analysis" bar chart.
- */
 import {
   BarChart,
   Bar,
@@ -13,6 +8,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface DormancyEntry {
   name: string;
@@ -33,6 +29,7 @@ function dormancyColor(pct: number): string {
 }
 
 export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardProps) {
+  const { t } = useTranslation();
   const sorted = [...data]
     .sort((a, b) => b.dormancy_pct - a.dormancy_pct)
     .slice(0, maxRows)
@@ -45,8 +42,8 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
   if (sorted.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
-        <span className="text-sm font-semibold">No membership data available</span>
-        <span className="text-xs">Submit non-financial data to see dormancy analysis.</span>
+        <span className="text-sm font-semibold">{t("analytics.noMembershipData")}</span>
+        <span className="text-xs">{t("analytics.dormancyHint")}</span>
       </div>
     );
   }
@@ -55,16 +52,15 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
 
   return (
     <div>
-      {/* Legend */}
       <div className="flex items-center gap-4 mb-4 flex-wrap text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-emerald-500" /> &lt;10% — Healthy
+          <span className="size-2.5 rounded-full bg-emerald-500" /> {t("analytics.legendHealthy")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-amber-500" /> 10–20% — Watch
+          <span className="size-2.5 rounded-full bg-amber-500" /> {t("analytics.legendWatch")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-red-500" /> &gt;20% — Critical
+          <span className="size-2.5 rounded-full bg-red-500" /> {t("analytics.legendCritical")}
         </span>
       </div>
       <div style={{ height: chartHeight }}>
@@ -110,11 +106,13 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
                 const entry = props?.payload;
                 return [
                   <span key="val">
-                    <strong>{value.toFixed(1)}%</strong> dormant
+                    <strong>{value.toFixed(1)}%</strong> {t("analytics.dormant")}
                     <br />
                     <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-                      {entry?.total_members?.toLocaleString()} total members ·{" "}
-                      {entry?.active_members_pct?.toFixed(1)}% active
+                      {t("analytics.membersActivePct", {
+                        total: entry?.total_members?.toLocaleString() ?? "0",
+                        active: entry?.active_members_pct?.toFixed(1) ?? "0",
+                      })}
                     </span>
                   </span>,
                   "",
@@ -123,7 +121,12 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
               labelFormatter={(label) => `${label}`}
               cursor={{ fill: "var(--muted)", opacity: 0.3 }}
             />
-            <Bar dataKey="dormancy_pct" radius={[0, 6, 6, 0]} name="Dormancy %" minPointSize={5}>
+            <Bar
+              dataKey="dormancy_pct"
+              radius={[0, 6, 6, 0]}
+              name={t("analytics.dormancyPct")}
+              minPointSize={5}
+            >
               {sorted.map((entry) => (
                 <Cell key={entry.fullName} fill={dormancyColor(entry.dormancy_pct)} />
               ))}

@@ -129,6 +129,51 @@ pub async fn delete_custom_kpi(
 }
 
 #[utoipa::path(
+    put,
+    path = "/api/v1/ministry/custom-kpis/{id}",
+    params(
+        ("id" = Uuid, Path, description = "ID of the custom KPI to update")
+    ),
+    request_body = CreateCustomKpiRequest,
+    responses(
+        (status = 200, description = "Custom KPI updated", body = CustomKpiDto),
+        (status = 400, description = "Invalid formula"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not Found")
+    ),
+    tag = "Analytics"
+)]
+pub async fn update_custom_kpi(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<CreateCustomKpiRequest>,
+) -> AppResult<impl IntoResponse> {
+    if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
+        return Err(AppError::Forbidden(
+            "Only Ministry users can update Custom KPIs".into(),
+        ));
+    }
+
+    if let Err(e) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&payload.formula)
+    {
+        return Err(AppError::BadRequest(format!(
+            "Invalid formula syntax: {}",
+            e
+        )));
+    }
+
+    let kpi = state
+        .custom_kpi_repo
+        .update(id, payload.name, payload.description, payload.formula)
+        .await?;
+
+    let response: CustomKpiDto = kpi.into();
+    Ok((StatusCode::OK, Json(response)))
+}
+
+#[utoipa::path(
     post,
     path = "/api/v1/ministry/custom-kpis/evaluate",
     params(EvaluateKpiParams),
@@ -199,11 +244,10 @@ pub async fn evaluate_custom_kpi(
     let use_real_data = params.cooperative_id.is_some() || params.submission_id.is_some();
 
     let raw_account_codes = [
-        1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252,
-        1300, 1301, 1302, 1303, 1304, 1305, 1999, 2100, 2101, 2102, 2103, 2200, 2201, 2202,
-        2300, 2301, 2302, 2303, 2999, 3100, 3101, 3102, 3200, 3201, 3202, 3203, 3300, 3301,
-        3302, 3999, 4101, 4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999,
-        6999,
+        1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252, 1300,
+        1301, 1302, 1303, 1304, 1305, 1999, 2100, 2101, 2102, 2103, 2200, 2201, 2202, 2300, 2301,
+        2302, 2303, 2999, 3100, 3101, 3102, 3200, 3201, 3202, 3203, 3300, 3301, 3302, 3999, 4101,
+        4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999, 6999,
     ];
 
     if use_real_data {
@@ -241,8 +285,16 @@ pub async fn evaluate_custom_kpi(
 
         if let Some(submission_id) = target_sub_id {
             // Load and insert raw account code values
-            if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(submission_id).await {
-                if let Ok(line_items) = state.line_item_repo.find_by_financial_statement(fs.id).await {
+            if let Ok(Some(fs)) = state
+                .financial_statement_repo
+                .find_by_submission(submission_id)
+                .await
+            {
+                if let Ok(line_items) = state
+                    .line_item_repo
+                    .find_by_financial_statement(fs.id)
+                    .await
+                {
                     for item in line_items {
                         if let Some(code) = item.account_code {
                             let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
@@ -272,7 +324,11 @@ pub async fn evaluate_custom_kpi(
                         let val_f64 = if let Some(val) = entry.value_numeric {
                             val.to_f64().unwrap_or(0.0)
                         } else if let Some(val) = entry.value_boolean {
-                            if val { 1.0 } else { 0.0 }
+                            if val {
+                                1.0
+                            } else {
+                                0.0
+                            }
                         } else {
                             0.0
                         };

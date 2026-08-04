@@ -30,6 +30,8 @@ pub struct CreateCooperativeRequest {
     pub registered_on: NaiveDate,
     #[serde(default = "default_accounting_year")]
     pub accounting_year: String,
+    #[serde(default = "default_tier")]
+    pub tier: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -104,6 +106,8 @@ pub struct CreateCooperativeProfileRequest {
     pub registered_on: NaiveDate,
     #[serde(default = "default_accounting_year")]
     pub accounting_year: String,
+    #[serde(default = "default_tier")]
+    pub tier: String,
     #[serde(default)]
     pub apex_group_id: Option<Uuid>,
     #[serde(default)]
@@ -116,6 +120,10 @@ fn default_status() -> String {
 
 fn default_accounting_year() -> String {
     "calendar".to_string()
+}
+
+fn default_tier() -> String {
+    "standard".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -175,6 +183,7 @@ pub struct CooperativeProfileResponse {
     pub status: String,
     pub registered_on: Option<NaiveDate>,
     pub accounting_year: String,
+    pub tier: String,
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
 }
@@ -197,12 +206,13 @@ impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
             region: m.region.map(|r| r.as_str().to_string()),
             geographic_classif: m.geographic_classif.map(|g| g.as_str().to_string()),
             phone: m.phone,
-            sector: m.sector,
+            sector: m.sector.map(|s| s.as_str().to_string()),
             responsible_financial: m.responsible_financial,
             responsible_non_financial: m.responsible_non_financial,
             status: m.status.as_str().to_string(),
             registered_on: m.registered_on,
             accounting_year: m.accounting_year.as_str().to_string(),
+            tier: m.tier,
             created_at: m.created_at,
             updated_at: m.updated_at,
         }

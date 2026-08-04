@@ -14,31 +14,40 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as PrintMinistryRouteImport } from './routes/print.ministry'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppQuestionnaireTemplatesRouteImport } from './routes/app.questionnaire-templates'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
 import { Route as AppMembersRouteImport } from './routes/app.members'
 import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
-import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
+import { Route as AppBasicAnalyticsRouteImport } from './routes/app.basic-analytics'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
+import { Route as PrintFederationIdRouteImport } from './routes/print.federation.$id'
+import { Route as PrintCooperativeIdRouteImport } from './routes/print.cooperative.$id'
+import { Route as PrintApexIdRouteImport } from './routes/print.apex.$id'
 import { Route as AppUsersApexIdRouteImport } from './routes/app.users.$apexId'
 import { Route as AppSubmissionsIdRouteImport } from './routes/app.submissions_.$id'
 import { Route as AppCooperativeCooperativeIdRouteImport } from './routes/app.cooperative.$cooperativeId'
 import { Route as AppCooperativeProfileCooperativeIdRouteImport } from './routes/app.cooperative-profile.$cooperativeId'
 import { Route as AppCooperativeMembersCooperativeIdRouteImport } from './routes/app.cooperative-members.$cooperativeId'
+import { Route as AppSubmissionsIdIndexRouteImport } from './routes/app.submissions_.$id.index'
+import { Route as AppSubmissionsIdQuestionnaireRouteImport } from './routes/app.submissions_.$id.questionnaire'
+import { Route as AppSubmissionsIdManualEntryRouteImport } from './routes/app.submissions_.$id.manual-entry'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
   id: '/unauthorized',
@@ -65,6 +74,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const PrintMinistryRoute = PrintMinistryRouteImport.update({
+  id: '/print/ministry',
+  path: '/print/ministry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -90,6 +104,12 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppQuestionnaireTemplatesRoute =
+  AppQuestionnaireTemplatesRouteImport.update({
+    id: '/questionnaire-templates',
+    path: '/questionnaire-templates',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -108,11 +128,6 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
   id: '/invitations',
   path: '/invitations',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
-  id: '/indicators',
-  path: '/indicators',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
@@ -135,6 +150,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomKpisRoute = AppCustomKpisRouteImport.update({
+  id: '/custom-kpis',
+  path: '/custom-kpis',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCooperativesRoute = AppCooperativesRouteImport.update({
   id: '/cooperatives',
   path: '/cooperatives',
@@ -143,6 +163,11 @@ const AppCooperativesRoute = AppCooperativesRouteImport.update({
 const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
   id: '/benchmarking',
   path: '/benchmarking',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBasicAnalyticsRoute = AppBasicAnalyticsRouteImport.update({
+  id: '/basic-analytics',
+  path: '/basic-analytics',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAuditRoute = AppAuditRouteImport.update({
@@ -164,6 +189,21 @@ const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppUsersRoute,
+} as any)
+const PrintFederationIdRoute = PrintFederationIdRouteImport.update({
+  id: '/print/federation/$id',
+  path: '/print/federation/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintCooperativeIdRoute = PrintCooperativeIdRouteImport.update({
+  id: '/print/cooperative/$id',
+  path: '/print/cooperative/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintApexIdRoute = PrintApexIdRouteImport.update({
+  id: '/print/apex/$id',
+  path: '/print/apex/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppUsersApexIdRoute = AppUsersApexIdRouteImport.update({
   id: '/$apexId',
@@ -193,6 +233,23 @@ const AppCooperativeMembersCooperativeIdRoute =
     path: '/cooperative-members/$cooperativeId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppSubmissionsIdIndexRoute = AppSubmissionsIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSubmissionsIdRoute,
+} as any)
+const AppSubmissionsIdQuestionnaireRoute =
+  AppSubmissionsIdQuestionnaireRouteImport.update({
+    id: '/questionnaire',
+    path: '/questionnaire',
+    getParentRoute: () => AppSubmissionsIdRoute,
+  } as any)
+const AppSubmissionsIdManualEntryRoute =
+  AppSubmissionsIdManualEntryRouteImport.update({
+    id: '/manual-entry',
+    path: '/manual-entry',
+    getParentRoute: () => AppSubmissionsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -202,29 +259,38 @@ export interface FileRoutesByFullPath {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/questionnaire-templates': typeof AppQuestionnaireTemplatesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
   '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
-  '/app/submissions/$id': typeof AppSubmissionsIdRoute
+  '/app/submissions/$id': typeof AppSubmissionsIdRouteWithChildren
   '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
   '/app/users/': typeof AppUsersIndexRoute
+  '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
+  '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
+  '/app/submissions/$id/': typeof AppSubmissionsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -233,28 +299,36 @@ export interface FileRoutesByTo {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/questionnaire-templates': typeof AppQuestionnaireTemplatesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/auth/login': typeof AuthLoginRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
   '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
-  '/app/submissions/$id': typeof AppSubmissionsIdRoute
   '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
   '/app/users': typeof AppUsersIndexRoute
+  '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
+  '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
+  '/app/submissions/$id': typeof AppSubmissionsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -265,29 +339,38 @@ export interface FileRoutesById {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
+  '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/questionnaire-templates': typeof AppQuestionnaireTemplatesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
+  '/print/ministry': typeof PrintMinistryRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
   '/app/cooperative/$cooperativeId': typeof AppCooperativeCooperativeIdRoute
-  '/app/submissions_/$id': typeof AppSubmissionsIdRoute
+  '/app/submissions_/$id': typeof AppSubmissionsIdRouteWithChildren
   '/app/users/$apexId': typeof AppUsersApexIdRoute
+  '/print/apex/$id': typeof PrintApexIdRoute
+  '/print/cooperative/$id': typeof PrintCooperativeIdRoute
+  '/print/federation/$id': typeof PrintFederationIdRoute
   '/app/users/': typeof AppUsersIndexRoute
+  '/app/submissions_/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
+  '/app/submissions_/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
+  '/app/submissions_/$id/': typeof AppSubmissionsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -299,29 +382,38 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/basic-analytics'
     | '/app/benchmarking'
     | '/app/cooperatives'
+    | '/app/custom-kpis'
     | '/app/dashboard'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
-    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
+    | '/app/questionnaire-templates'
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
     | '/app/users'
     | '/auth/login'
+    | '/print/ministry'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
     | '/app/cooperative/$cooperativeId'
     | '/app/submissions/$id'
     | '/app/users/$apexId'
+    | '/print/apex/$id'
+    | '/print/cooperative/$id'
+    | '/print/federation/$id'
     | '/app/users/'
+    | '/app/submissions/$id/manual-entry'
+    | '/app/submissions/$id/questionnaire'
+    | '/app/submissions/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -330,28 +422,36 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/basic-analytics'
     | '/app/benchmarking'
     | '/app/cooperatives'
+    | '/app/custom-kpis'
     | '/app/dashboard'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
-    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
+    | '/app/questionnaire-templates'
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
     | '/auth/login'
+    | '/print/ministry'
     | '/app'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
     | '/app/cooperative/$cooperativeId'
-    | '/app/submissions/$id'
     | '/app/users/$apexId'
+    | '/print/apex/$id'
+    | '/print/cooperative/$id'
+    | '/print/federation/$id'
     | '/app/users'
+    | '/app/submissions/$id/manual-entry'
+    | '/app/submissions/$id/questionnaire'
+    | '/app/submissions/$id'
   id:
     | '__root__'
     | '/'
@@ -361,29 +461,38 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
+    | '/app/basic-analytics'
     | '/app/benchmarking'
     | '/app/cooperatives'
+    | '/app/custom-kpis'
     | '/app/dashboard'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
-    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
+    | '/app/questionnaire-templates'
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
     | '/app/users'
     | '/auth/login'
+    | '/print/ministry'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
     | '/app/cooperative/$cooperativeId'
     | '/app/submissions_/$id'
     | '/app/users/$apexId'
+    | '/print/apex/$id'
+    | '/print/cooperative/$id'
+    | '/print/federation/$id'
     | '/app/users/'
+    | '/app/submissions_/$id/manual-entry'
+    | '/app/submissions_/$id/questionnaire'
+    | '/app/submissions_/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -391,6 +500,10 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   UnauthorizedRoute: typeof UnauthorizedRoute
+  PrintMinistryRoute: typeof PrintMinistryRoute
+  PrintApexIdRoute: typeof PrintApexIdRoute
+  PrintCooperativeIdRoute: typeof PrintCooperativeIdRoute
+  PrintFederationIdRoute: typeof PrintFederationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -430,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/print/ministry': {
+      id: '/print/ministry'
+      path: '/print/ministry'
+      fullPath: '/print/ministry'
+      preLoaderRoute: typeof PrintMinistryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/login'
@@ -465,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/questionnaire-templates': {
+      id: '/app/questionnaire-templates'
+      path: '/questionnaire-templates'
+      fullPath: '/app/questionnaire-templates'
+      preLoaderRoute: typeof AppQuestionnaireTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/profile': {
       id: '/app/profile'
       path: '/profile'
@@ -491,13 +618,6 @@ declare module '@tanstack/react-router' {
       path: '/invitations'
       fullPath: '/app/invitations'
       preLoaderRoute: typeof AppInvitationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/indicators': {
-      id: '/app/indicators'
-      path: '/indicators'
-      fullPath: '/app/indicators'
-      preLoaderRoute: typeof AppIndicatorsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/financial-statement': {
@@ -528,6 +648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/custom-kpis': {
+      id: '/app/custom-kpis'
+      path: '/custom-kpis'
+      fullPath: '/app/custom-kpis'
+      preLoaderRoute: typeof AppCustomKpisRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/cooperatives': {
       id: '/app/cooperatives'
       path: '/cooperatives'
@@ -540,6 +667,13 @@ declare module '@tanstack/react-router' {
       path: '/benchmarking'
       fullPath: '/app/benchmarking'
       preLoaderRoute: typeof AppBenchmarkingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/basic-analytics': {
+      id: '/app/basic-analytics'
+      path: '/basic-analytics'
+      fullPath: '/app/basic-analytics'
+      preLoaderRoute: typeof AppBasicAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/audit': {
@@ -569,6 +703,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/users/'
       preLoaderRoute: typeof AppUsersIndexRouteImport
       parentRoute: typeof AppUsersRoute
+    }
+    '/print/federation/$id': {
+      id: '/print/federation/$id'
+      path: '/print/federation/$id'
+      fullPath: '/print/federation/$id'
+      preLoaderRoute: typeof PrintFederationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print/cooperative/$id': {
+      id: '/print/cooperative/$id'
+      path: '/print/cooperative/$id'
+      fullPath: '/print/cooperative/$id'
+      preLoaderRoute: typeof PrintCooperativeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print/apex/$id': {
+      id: '/print/apex/$id'
+      path: '/print/apex/$id'
+      fullPath: '/print/apex/$id'
+      preLoaderRoute: typeof PrintApexIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/users/$apexId': {
       id: '/app/users/$apexId'
@@ -605,6 +760,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCooperativeMembersCooperativeIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/submissions_/$id/': {
+      id: '/app/submissions_/$id/'
+      path: '/'
+      fullPath: '/app/submissions/$id/'
+      preLoaderRoute: typeof AppSubmissionsIdIndexRouteImport
+      parentRoute: typeof AppSubmissionsIdRoute
+    }
+    '/app/submissions_/$id/questionnaire': {
+      id: '/app/submissions_/$id/questionnaire'
+      path: '/questionnaire'
+      fullPath: '/app/submissions/$id/questionnaire'
+      preLoaderRoute: typeof AppSubmissionsIdQuestionnaireRouteImport
+      parentRoute: typeof AppSubmissionsIdRoute
+    }
+    '/app/submissions_/$id/manual-entry': {
+      id: '/app/submissions_/$id/manual-entry'
+      path: '/manual-entry'
+      fullPath: '/app/submissions/$id/manual-entry'
+      preLoaderRoute: typeof AppSubmissionsIdManualEntryRouteImport
+      parentRoute: typeof AppSubmissionsIdRoute
+    }
   }
 }
 
@@ -622,21 +798,38 @@ const AppUsersRouteWithChildren = AppUsersRoute._addFileChildren(
   AppUsersRouteChildren,
 )
 
+interface AppSubmissionsIdRouteChildren {
+  AppSubmissionsIdManualEntryRoute: typeof AppSubmissionsIdManualEntryRoute
+  AppSubmissionsIdQuestionnaireRoute: typeof AppSubmissionsIdQuestionnaireRoute
+  AppSubmissionsIdIndexRoute: typeof AppSubmissionsIdIndexRoute
+}
+
+const AppSubmissionsIdRouteChildren: AppSubmissionsIdRouteChildren = {
+  AppSubmissionsIdManualEntryRoute: AppSubmissionsIdManualEntryRoute,
+  AppSubmissionsIdQuestionnaireRoute: AppSubmissionsIdQuestionnaireRoute,
+  AppSubmissionsIdIndexRoute: AppSubmissionsIdIndexRoute,
+}
+
+const AppSubmissionsIdRouteWithChildren =
+  AppSubmissionsIdRoute._addFileChildren(AppSubmissionsIdRouteChildren)
+
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppBasicAnalyticsRoute: typeof AppBasicAnalyticsRoute
   AppBenchmarkingRoute: typeof AppBenchmarkingRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
+  AppCustomKpisRoute: typeof AppCustomKpisRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
-  AppIndicatorsRoute: typeof AppIndicatorsRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppQuestionnaireTemplatesRoute: typeof AppQuestionnaireTemplatesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubmissionsRoute: typeof AppSubmissionsRoute
@@ -645,24 +838,26 @@ interface AppRouteChildren {
   AppCooperativeMembersCooperativeIdRoute: typeof AppCooperativeMembersCooperativeIdRoute
   AppCooperativeProfileCooperativeIdRoute: typeof AppCooperativeProfileCooperativeIdRoute
   AppCooperativeCooperativeIdRoute: typeof AppCooperativeCooperativeIdRoute
-  AppSubmissionsIdRoute: typeof AppSubmissionsIdRoute
+  AppSubmissionsIdRoute: typeof AppSubmissionsIdRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
+  AppBasicAnalyticsRoute: AppBasicAnalyticsRoute,
   AppBenchmarkingRoute: AppBenchmarkingRoute,
   AppCooperativesRoute: AppCooperativesRoute,
+  AppCustomKpisRoute: AppCustomKpisRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
-  AppIndicatorsRoute: AppIndicatorsRoute,
   AppInvitationsRoute: AppInvitationsRoute,
   AppMembersRoute: AppMembersRoute,
   AppNonFinancialDataRoute: AppNonFinancialDataRoute,
   AppProfileRoute: AppProfileRoute,
+  AppQuestionnaireTemplatesRoute: AppQuestionnaireTemplatesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubmissionsRoute: AppSubmissionsRoute,
@@ -673,7 +868,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCooperativeProfileCooperativeIdRoute:
     AppCooperativeProfileCooperativeIdRoute,
   AppCooperativeCooperativeIdRoute: AppCooperativeCooperativeIdRoute,
-  AppSubmissionsIdRoute: AppSubmissionsIdRoute,
+  AppSubmissionsIdRoute: AppSubmissionsIdRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -693,6 +888,10 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   UnauthorizedRoute: UnauthorizedRoute,
+  PrintMinistryRoute: PrintMinistryRoute,
+  PrintApexIdRoute: PrintApexIdRoute,
+  PrintCooperativeIdRoute: PrintCooperativeIdRoute,
+  PrintFederationIdRoute: PrintFederationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
