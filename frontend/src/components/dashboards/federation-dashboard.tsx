@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useFederationSubmissions, useApexSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useApexes } from "@/hooks/apexes/useApexes";
 import { useFederationStats } from "@/hooks/analytics/useFederationStats";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // FEDERATION DASHBOARD — real data only
@@ -24,11 +25,14 @@ import { useFederationStats } from "@/hooks/analytics/useFederationStats";
 // ─────────────────────────────────────────────────────────────────────
 
 export function FederationDashboard() {
+  const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved" | "rejected">(
     "all",
   );
 
-  const { data: submissions = [], isLoading: subsLoading } = useFederationSubmissions();
+  const { data: submissions = [], isLoading: subsLoading } = useFederationSubmissions({
+    all: true,
+  });
   const { data: apexes = [], isLoading: apexesLoading } = useApexes();
   const { data: fedStats, isLoading: statsLoading } = useFederationStats();
 
@@ -60,25 +64,25 @@ export function FederationDashboard() {
   };
 
   const statusLabel: Record<string, string> = {
-    draft: "Draft",
-    submitted: "Submitted",
-    in_review: "In Review",
-    approved: "Approved",
-    rejected: "Rejected",
-    returned: "Changes Requested",
+    draft: t("dashboard.status.draft"),
+    submitted: t("dashboard.status.submitted"),
+    in_review: t("dashboard.status.inReview"),
+    approved: t("dashboard.status.approved"),
+    rejected: t("dashboard.status.rejected"),
+    returned: t("dashboard.status.changesRequested"),
   };
 
   return (
     <AppShell
-      title="Federation Workspace"
-      subtitle="Review apex submissions, monitor cooperatives and guide compliance"
+      title={t("dashboard.federation.title")}
+      subtitle={t("dashboard.federation.subtitle")}
       actions={
         <Link
           to="/app/analytics"
           className="press-feedback hidden items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors sm:inline-flex"
         >
           <BarChart3 className="size-4 text-accent" />
-          View all statistics
+          {t("dashboard.federation.viewAllStats")}
         </Link>
       }
     >
@@ -99,30 +103,30 @@ export function FederationDashboard() {
             <>
               <StatCard
                 icon={Building2}
-                label="Apexes Under Federation"
+                label={t("dashboard.federation.apexesUnderFed")}
                 value={totalApexes.toString()}
-                subtitle="Registered apex organisations"
+                subtitle={t("dashboard.federation.registeredApexes")}
                 tone="accent"
               />
               <StatCard
                 icon={Clock}
-                label="Pending Review"
+                label={t("dashboard.federation.pendingReview")}
                 value={pendingCount.toString()}
-                subtitle="Awaiting federation action"
+                subtitle={t("dashboard.federation.awaitingAction")}
                 tone="warning"
               />
               <StatCard
                 icon={CheckCircle2}
-                label="Approved & Forwarded"
+                label={t("dashboard.federation.approvedForwarded")}
                 value={approvedCount.toString()}
-                subtitle="Sent to Ministry"
+                subtitle={t("dashboard.federation.sentToMinistry")}
                 tone="success"
               />
               <StatCard
                 icon={ShieldCheck}
-                label="Rejected / Changes"
+                label={t("dashboard.federation.rejectedChanges")}
                 value={rejectedCount.toString()}
-                subtitle="Requires intervention"
+                subtitle={t("dashboard.federation.requiresIntervention")}
                 tone="danger"
               />
             </>
@@ -131,8 +135,8 @@ export function FederationDashboard() {
 
         {/* ── Submission Review Queue ── */}
         <Card
-          title="Submission Review Queue"
-          subtitle="Review apex submissions — approve to forward to Ministry, or request changes"
+          title={t("dashboard.federation.reviewQueue")}
+          subtitle={t("dashboard.federation.reviewQueueSub")}
           action={
             <div className="flex items-center gap-2">
               <Filter className="size-3.5 text-muted-foreground" />
@@ -141,10 +145,10 @@ export function FederationDashboard() {
                 onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
                 className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-ring"
               >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected / Changes</option>
+                <option value="all">{t("dashboard.federation.allStatus")}</option>
+                <option value="pending">{t("dashboard.federation.pending")}</option>
+                <option value="approved">{t("dashboard.federation.approved")}</option>
+                <option value="rejected">{t("dashboard.federation.rejectedChangesOption")}</option>
               </select>
             </div>
           }
@@ -172,8 +176,8 @@ export function FederationDashboard() {
           ) : filteredSubmissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
               <CheckCircle2 className="size-10 mb-3 text-success" />
-              <p className="text-sm font-semibold">No submissions match this filter</p>
-              <p className="text-xs mt-1">Try changing the filter or check back later.</p>
+              <p className="text-sm font-semibold">{t("dashboard.federation.noMatchFilter")}</p>
+              <p className="text-xs mt-1">{t("dashboard.federation.noMatchFilterSub")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -210,7 +214,7 @@ export function FederationDashboard() {
                     <p className="text-xs text-muted-foreground">
                       {sub.submitted_at
                         ? new Date(sub.submitted_at).toLocaleDateString()
-                        : "Not submitted"}
+                        : t("dashboard.federation.notSubmitted")}
                     </p>
                   </div>
 
@@ -221,21 +225,24 @@ export function FederationDashboard() {
                         params={{ id: sub.id }}
                         className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1"
                       >
-                        <CheckCircle2 className="size-3.5" /> Review
+                        <CheckCircle2 className="size-3.5" /> {t("dashboard.federation.reviewBtn")}
                       </Link>
                     </div>
                   )}
 
                   {sub.status === "approved" && (
                     <div className="flex items-center gap-1.5 text-xs text-success font-semibold shrink-0">
-                      <TrendingUp className="size-3.5" /> Forwarded to Ministry
+                      <TrendingUp className="size-3.5" />{" "}
+                      {t("dashboard.federation.forwardedToMinistry")}
                     </div>
                   )}
 
                   {["rejected", "returned"].includes(sub.status) && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold shrink-0">
                       <AlertTriangle className="size-3.5" />{" "}
-                      {sub.status === "returned" ? "Changes Requested" : "Rejected"}
+                      {sub.status === "returned"
+                        ? t("dashboard.federation.changesRequestedLabel")
+                        : t("dashboard.federation.rejectedLabel")}
                     </div>
                   )}
                 </div>
@@ -246,14 +253,14 @@ export function FederationDashboard() {
 
         {/* ── Apexes Under Management ── */}
         <Card
-          title="Apexes Under Management"
-          subtitle="All apex organisations registered under this federation"
+          title={t("dashboard.federation.apexesUnderMgt")}
+          subtitle={t("dashboard.federation.apexesUnderMgtSub")}
           action={
             <Link
               to="/app/apexes"
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              + Add Apex
+              {t("dashboard.federation.addApex")}
             </Link>
           }
         >
@@ -261,10 +268,10 @@ export function FederationDashboard() {
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-y border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3">Apex</th>
-                  <th className="px-5 py-3">Path</th>
-                  <th className="px-5 py-3">Cooperatives</th>
-                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">{t("dashboard.federation.colApex")}</th>
+                  <th className="px-5 py-3">{t("dashboard.federation.colPath")}</th>
+                  <th className="px-5 py-3">{t("dashboard.federation.colCooperatives")}</th>
+                  <th className="px-5 py-3">{t("dashboard.federation.colStatus")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -288,8 +295,8 @@ export function FederationDashboard() {
                 ) : apexes.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      <p className="text-sm font-semibold">No apexes yet</p>
-                      <p className="text-xs mt-1">Create an apex to get started.</p>
+                      <p className="text-sm font-semibold">{t("dashboard.federation.noApexes")}</p>
+                      <p className="text-xs mt-1">{t("dashboard.federation.noApexesSub")}</p>
                     </td>
                   </tr>
                 ) : (
@@ -303,7 +310,9 @@ export function FederationDashboard() {
                         {apex.sub_groups?.length ?? 0}
                       </td>
                       <td className="px-5 py-3">
-                        <span className="text-xs font-semibold text-success">Active</span>
+                        <span className="text-xs font-semibold text-success">
+                          {t("dashboard.federation.statusActive")}
+                        </span>
                       </td>
                     </tr>
                   ))
@@ -315,37 +324,49 @@ export function FederationDashboard() {
 
         {/* ── Summary Stats ── */}
         <div className="grid md:grid-cols-3 gap-4">
-          <Card title="Submission Overview" subtitle="All submissions under this federation">
+          <Card
+            title={t("dashboard.federation.submissionOverview")}
+            subtitle={t("dashboard.federation.submissionOverviewSub")}
+          >
             <div className="flex items-center gap-4 pt-2">
               <div className="text-4xl font-bold text-accent num">{submissions.length}</div>
               <div className="text-xs text-muted-foreground">
-                <p>Total submissions processed</p>
-                <p className="mt-1">{pendingCount} pending review</p>
-                <p className="mt-1">{approvedCount} approved</p>
+                <p>{t("dashboard.federation.totalSubmissionsProcessed")}</p>
+                <p className="mt-1">
+                  {pendingCount} {t("dashboard.federation.pendingReviewCountSub")}
+                </p>
+                <p className="mt-1">
+                  {approvedCount} {t("dashboard.federation.approvedCountSub")}
+                </p>
               </div>
             </div>
           </Card>
-          <Card title="Apex Coverage" subtitle="Registered apex organisations">
+          <Card
+            title={t("dashboard.federation.apexCoverage")}
+            subtitle={t("dashboard.federation.registeredApexes")}
+          >
             <div className="flex items-center gap-4 pt-2">
               <div className="text-4xl font-bold num">{totalApexes}</div>
               <div className="text-xs text-muted-foreground">
-                <p>Apexes in federation</p>
-                <p className="mt-1">{totalCoops} cooperatives total</p>
+                <p>{t("dashboard.federation.apexesInFed")}</p>
+                <p className="mt-1">
+                  {totalCoops} {t("dashboard.federation.coopsTotal")}
+                </p>
               </div>
             </div>
           </Card>
-          <Card title="Analytics" subtitle="Detailed charts available in Analytics tab">
+          <Card
+            title={t("dashboard.federation.analyticsCardTitle")}
+            subtitle={t("dashboard.federation.analyticsCardSub")}
+          >
             <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground gap-3">
               <BarChart3 className="size-8 opacity-40" />
-              <p className="text-xs">
-                Time-series trend charts require aggregated data across all cooperatives. Available
-                in the Analytics section.
-              </p>
+              <p className="text-xs">{t("dashboard.federation.analyticsCardDesc")}</p>
               <Link
                 to="/app/analytics"
                 className="text-xs font-semibold text-accent hover:underline"
               >
-                Go to Analytics →
+                {t("dashboard.federation.goToAnalytics")}
               </Link>
             </div>
           </Card>

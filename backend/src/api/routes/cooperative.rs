@@ -17,7 +17,7 @@ use crate::api::handlers::nf_indicator_stats::get_nf_statistics;
 use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
-    list_submission_reviews, list_submission_sections, submit_submission,
+    list_submission_reviews, list_submission_sections, submit_submission, update_submission_method,
     update_submission_section, validate_extraction,
 };
 use crate::api::handlers::upload::{
@@ -126,6 +126,11 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/submissions/{id}/export",
             get(crate::api::handlers::export::export_single_submission),
         )
+        .route(
+            "/submissions/{id}/narratives",
+            get(crate::api::handlers::export::get_submission_narratives)
+                .post(crate::api::handlers::export::generate_submission_narratives),
+        )
         .route("/submissions/{id}/kpis", get(get_submission_kpis))
         .route(
             "/submissions/{id}/financial-statement/line-items",
@@ -148,6 +153,10 @@ pub fn cooperative_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/sections/{section}",
             axum::routing::patch(update_submission_section),
+        )
+        .route(
+            "/submissions/{id}/method",
+            axum::routing::patch(update_submission_method),
         )
         .route(
             "/submissions/{id}/validate-extraction",

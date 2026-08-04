@@ -32,12 +32,14 @@ import {
   Calculator,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode, useState, useEffect } from "react";
+import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
 import { UnauthorizedPage } from "@/components/UnauthorizedPage";
 import { Sun, Moon } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "./shared/LanguageSwitcher";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string };
 
@@ -71,7 +73,6 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     label: "System",
     items: [
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
-      { to: "/app/indicators", label: "Indicators", icon: ClipboardList },
       { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/settings", label: "Settings", icon: Settings },
@@ -91,8 +92,39 @@ function Sidebar({
   onClose?: () => void;
   onToggleCollapse?: () => void;
 }) {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, role } = useAuth();
+
+  const getGroupLabel = (group: { id: NavGroupId; label: string }) => {
+    if (group.id === "oversight") return t("nav.oversight");
+    if (group.id === "intelligence") return t("nav.intelligence");
+    if (group.id === "system") return t("nav.system");
+    return group.label;
+  };
+
+  const getItemLabel = (item: { to: string; label: string }) => {
+    if (item.to === "/app/dashboard") return t("nav.dashboard");
+    if (item.to === "/app/federations") return t("nav.federations");
+    if (item.to === "/app/invitations") return t("nav.invitations");
+    if (item.to === "/app/members") return t("nav.members");
+    if (item.to === "/app/apexes") return t("nav.apexes");
+    if (item.to === "/app/cooperatives") return t("nav.cooperatives");
+    if (item.to === "/app/submissions") return t("nav.submissions");
+
+    if (item.to === "/app/reports") return t("nav.reports");
+    if (item.to === "/app/analytics") return t("nav.analytics");
+    if (item.to === "/app/basic-analytics") return t("nav.basicAnalytics");
+    if (item.to === "/app/benchmarking") return t("nav.benchmarking");
+    if (item.to === "/app/custom-kpis") return t("nav.customKpis");
+
+    if (item.to === "/app/audit") return t("nav.auditLog");
+    if (item.to === "/app/questionnaire-templates") return t("nav.questionnaireForms");
+    if (item.to === "/app/users") return t("nav.usersAndRoles");
+    if (item.to === "/app/settings") return t("nav.settings");
+    if (item.to === "/app/profile") return t("nav.profile");
+    return item.label;
+  };
 
   const effectiveRole = role ?? "ministry";
   const currentRole = ROLES.find((r) => r.id === effectiveRole)!;
@@ -115,6 +147,21 @@ function Sidebar({
 
   const isCollapsed = collapsed && !mobile;
 
+  const userContextLabel = useMemo(() => {
+    if (isCollapsed) return null;
+    const ctx =
+      effectiveRole === "ministry"
+        ? t("common.national")
+        : effectiveRole === "federation"
+          ? (user?.organizationName ?? user?.region ?? null)
+          : effectiveRole === "apex" || effectiveRole === "cooperative"
+            ? (user?.cooperationName ?? user?.region ?? null)
+            : null;
+    return ctx ? (
+      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">{ctx}</p>
+    ) : null;
+  }, [isCollapsed, effectiveRole, user, t]);
+
   return (
     <aside
       className={`flex shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-300 ${
@@ -128,7 +175,7 @@ function Sidebar({
         <Link to="/" className="flex items-center gap-3">
           <img
             src="/coopdatalogo.png"
-            alt="CoopData logo"
+            alt={t("common.logoAlt")}
             className={`shrink-0 rounded-lg object-contain ${isCollapsed ? "size-11" : "size-20 py-1"}`}
           />
         </Link>
@@ -137,8 +184,8 @@ function Sidebar({
           <button
             onClick={onToggleCollapse}
             className={`flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors shrink-0 ${isCollapsed ? "" : "ml-auto"}`}
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? t("common.expandSidebar") : t("common.collapseSidebar")}
+            title={isCollapsed ? t("common.expandSidebar") : t("common.collapseSidebar")}
           >
             {isCollapsed ? (
               <PanelLeftOpen className="size-4" />
@@ -151,7 +198,7 @@ function Sidebar({
           <button
             onClick={onClose}
             className="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            aria-label="Close menu"
+            aria-label={t("common.closeMenu")}
           >
             <X className="size-4" />
           </button>
@@ -164,22 +211,22 @@ function Sidebar({
           <div key={group.id}>
             {!isCollapsed && (
               <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/60">
-                {group.label}
+                {getGroupLabel(group)}
               </p>
             )}
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.to || pathname.startsWith(item.to + "/");
+                const translatedLabel = getItemLabel(item);
                 return (
                   <li key={item.to}>
                     <Link
                       to={item.to}
-                      onClick={(e) => {
-                        console.log("[Sidebar] Clicking link:", item.to);
+                      onClick={() => {
                         onClose?.();
                       }}
-                      title={isCollapsed ? item.label : undefined}
+                      title={isCollapsed ? translatedLabel : undefined}
                       className={[
                         "group flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",
                         isCollapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5",
@@ -198,7 +245,7 @@ function Sidebar({
                       />
                       {!isCollapsed && (
                         <>
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate">{translatedLabel}</span>
                           {item.badge && (
                             <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
                               {item.badge}
@@ -228,7 +275,7 @@ function Sidebar({
           <Link
             to="/app/profile"
             onClick={onClose}
-            title={isCollapsed ? "Profile" : undefined}
+            title={isCollapsed ? t("nav.profile") : undefined}
             className={`flex items-center min-w-0 flex-1 hover:opacity-80 transition-opacity ${isCollapsed ? "justify-center" : "gap-3"}`}
           >
             <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white ring-2 ring-accent/30">
@@ -237,27 +284,12 @@ function Sidebar({
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold truncate text-sidebar-foreground">
-                  {user?.name ?? "Unknown"}
+                  {user?.name ?? t("common.unknown")}
                 </p>
                 <p className="text-[11px] text-sidebar-foreground/75 truncate">
-                  {currentRole.label}
+                  {t(`roles.${currentRole.id}`)}
                 </p>
-                {!isCollapsed &&
-                  (() => {
-                    const ctx =
-                      effectiveRole === "ministry"
-                        ? "National"
-                        : effectiveRole === "federation"
-                          ? (user?.organizationName ?? user?.region ?? null)
-                          : effectiveRole === "apex" || effectiveRole === "cooperative"
-                            ? (user?.cooperationName ?? user?.region ?? null)
-                            : null;
-                    return ctx ? (
-                      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
-                        {ctx}
-                      </p>
-                    ) : null;
-                  })()}
+                {userContextLabel}
               </div>
             )}
           </Link>
@@ -266,7 +298,7 @@ function Sidebar({
               onClick={handleLogout}
               disabled={isLoggingOut}
               className="rounded-md p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Sign out"
+              title={t("common.logout")}
             >
               {isLoggingOut ? (
                 <span className="size-3.5 block rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -280,7 +312,7 @@ function Sidebar({
           <div className="flex items-center gap-2 px-3 py-1.5">
             <span className="size-1.5 rounded-full bg-success animate-pulse shrink-0" />
             <span className="text-[11px] text-sidebar-foreground/70 font-medium">
-              All systems operational
+              {t("common.allSystemsOperational")}
             </span>
           </div>
         )}
@@ -298,6 +330,7 @@ function Topbar({
   subtitle?: string;
   actions?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user, logout } = useAuth();
@@ -333,14 +366,14 @@ function Topbar({
           <button
             onClick={() => setMobileOpen(true)}
             className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors lg:hidden"
-            aria-label="Open menu"
+            aria-label={t("common.openMenu")}
           >
             <Menu className="size-4.5" />
           </button>
           <Link to="/" className="hidden size-9 shrink-0 rounded-lg object-contain lg:block">
             <img
               src="/coopdatalogo.png"
-              alt="CoopData logo"
+              alt={t("common.logoAlt")}
               className="size-9 rounded-lg object-contain"
             />
           </Link>
@@ -359,7 +392,7 @@ function Topbar({
             <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search registry, reports…"
+              placeholder={t("common.searchPlaceholder")}
               className="w-full rounded-lg border border-transparent bg-muted py-1.5 pl-8.5 pr-3 text-sm transition-all focus:border-ring focus:bg-surface focus:outline-none focus:ring-2 focus:ring-ring/20"
             />
             <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:flex">
@@ -367,12 +400,17 @@ function Topbar({
             </kbd>
           </div>
 
+          {/* Language Selector */}
+          <LanguageSwitcher className="mr-1" />
+
           {/* Theme toggle */}
           <button
             onClick={cycleTheme}
             className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors"
-            aria-label={`Theme: ${theme}. Click to switch.`}
-            title={`Theme: ${theme === "system" ? `System (${resolvedTheme})` : theme}`}
+            aria-label={t("common.themeLabel", { theme })}
+            title={t("common.themeTitle", {
+              theme: theme === "system" ? `${t("common.system")} (${resolvedTheme})` : theme,
+            })}
           >
             {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
           </button>
@@ -395,6 +433,7 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -411,7 +450,7 @@ export function AppShell({
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -469,6 +508,7 @@ export function Card({
   info,
   children,
   className = "",
+  bodyClassName = "",
   edge = "none",
 }: {
   title?: string;
@@ -477,6 +517,7 @@ export function Card({
   info?: string;
   children: ReactNode;
   className?: string;
+  bodyClassName?: string;
   edge?: "accent" | "success" | "warning" | "danger" | "info" | "primary" | "none";
 }) {
   // Color lines are disabled to align with a clean, solid, professional dashboard design
@@ -518,7 +559,7 @@ export function Card({
           {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
-      <div className="p-5">{children}</div>
+      <div className={`p-5 ${bodyClassName}`}>{children}</div>
     </section>
   );
 }

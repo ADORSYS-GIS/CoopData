@@ -14,6 +14,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
+import { useTranslation } from "react-i18next";
 
 interface QuestionnaireResponseViewerProps {
   submissionId: string;
@@ -37,6 +38,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
   submissionId,
   questionnaireType,
 }) => {
+  const { t } = useTranslation();
   const {
     data: response,
     isLoading: isResponseLoading,
@@ -52,7 +54,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
       <div className="flex flex-col items-center justify-center py-20 gap-2.5">
         <Loader2 className="size-6 animate-spin text-primary opacity-60" />
         <span className="text-xs text-muted-foreground font-medium">
-          Loading questionnaire responses...
+          {t("questionnaireViewer.loading")}
         </span>
       </div>
     );
@@ -62,7 +64,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-destructive text-sm flex items-center gap-2">
         <AlertCircle className="size-5" />
-        <span>No questionnaire response data found for this submission.</span>
+        <span>{t("questionnaireViewer.noData")}</span>
       </div>
     );
   }
@@ -71,8 +73,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
   if (sections.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 text-center text-xs text-muted-foreground">
-        No active form template found for type "{response.questionnaire_type}". Cannot render
-        answers.
+        {t("questionnaireViewer.noTemplate", { type: response.questionnaire_type })}
       </div>
     );
   }
@@ -82,10 +83,14 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
 
   const renderValue = (field: any, val: any) => {
     if (val === undefined || val === null || val === "") {
-      return <span className="text-muted-foreground italic font-normal">Not provided</span>;
+      return (
+        <span className="text-muted-foreground italic font-normal">
+          {t("questionnaireViewer.notProvided")}
+        </span>
+      );
     }
     if (typeof val === "boolean") {
-      return val ? "Yes" : "No";
+      return val ? t("questionnaireViewer.yes") : t("questionnaireViewer.no");
     }
     if (field.type === "number") {
       return <span className="font-mono font-semibold">{Number(val).toLocaleString()}</span>;
@@ -99,7 +104,12 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
       <div className="md:col-span-4 flex flex-col gap-1.5 bg-card/40 border border-border/80 rounded-2xl p-3">
         <div className="border-b border-border/60 pb-2 px-2">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Sections ({response.questionnaire_type === "financial" ? "Financial" : "Non-Financial"})
+            {t("questionnaireViewer.sections", {
+              type:
+                response.questionnaire_type === "financial"
+                  ? t("questionnaireViewer.financial")
+                  : t("questionnaireViewer.nonFinancial"),
+            })}
           </h4>
         </div>
         <div className="flex flex-col gap-1 max-h-[400px] overflow-y-auto pr-1">

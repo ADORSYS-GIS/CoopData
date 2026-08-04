@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 
 interface ConsolidatedCoopDetailSheetProps {
@@ -8,6 +9,7 @@ interface ConsolidatedCoopDetailSheetProps {
 export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetProps> = ({
   data,
 }) => {
+  const { t } = useTranslation();
   const { cooperatives } = data;
 
   const fmtNum = (val: number | undefined) => {
@@ -68,25 +70,49 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
   };
 
   return (
-    <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page">
+    <div className="report-sheet relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white break-after-page font-sans">
       <div>
-        <h2 className="text-xl font-bold text-blue-800 mb-4">"Cooperative Detail"</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">
+          {t("printReports.coopDetail.cooperativeDetail")}
+        </h2>
 
         <table className="w-full text-left text-[9px] mb-8 border-collapse border border-slate-300">
           <thead>
             <tr className="bg-slate-900 text-white leading-tight">
-              <th className="p-2 border border-slate-700">Coop</th>
-              <th className="p-2 border border-slate-700 text-center">Status</th>
-              <th className="p-2 border border-slate-700 text-right">Assets</th>
-              <th className="p-2 border border-slate-700 text-right">GLP</th>
-              <th className="p-2 border border-slate-700 text-right">Deposits</th>
-              <th className="p-2 border border-slate-700 text-right">Equity</th>
-              <th className="p-2 border border-slate-700 text-right">Surplus</th>
-              <th className="p-2 border border-slate-700 text-right">PAR30</th>
-              <th className="p-2 border border-slate-700 text-right">CAR</th>
-              <th className="p-2 border border-slate-700 text-right">ROA</th>
-              <th className="p-2 border border-slate-700 text-right">ROE</th>
-              <th className="p-2 border border-slate-700 text-right">OER</th>
+              <th className="p-2 border border-slate-700">{t("printReports.coopDetail.coop")}</th>
+              <th className="p-2 border border-slate-700 text-center">
+                {t("printReports.coopDetail.status")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.assets")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.glp")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.deposits")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.equity")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.surplus")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.par30")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.car")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.roa")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.roe")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.oer")}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -150,3 +176,4 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
     </div>
   );
 };
+export default ConsolidatedCoopDetailSheet;

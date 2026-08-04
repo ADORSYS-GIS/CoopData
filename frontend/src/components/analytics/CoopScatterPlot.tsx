@@ -11,31 +11,32 @@ import {
   Cell,
 } from "recharts";
 import { type CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { useTranslation } from "react-i18next";
 
 interface CoopScatterPlotProps {
   data: CoopKpiRow[];
 }
 
 export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
+  const { t } = useTranslation();
   const withData = data.filter((c) => c.has_data && c.kpis["roa"] && c.kpis["npl_ratio"]);
 
   if (withData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[300px] text-center text-muted-foreground">
-        <p className="text-sm font-semibold">No performance data available</p>
+        <p className="text-sm font-semibold">{t("analytics.noPerformanceData")}</p>
       </div>
     );
   }
 
-  // Transform data: X = NPL Ratio (Risk), Y = ROA (Return), Z = Asset Size (Bubble size)
   const chartData = withData.map((c) => ({
     name: c.name,
-    npl: Math.min(c.kpis["npl_ratio"]?.value || 0, 30), // Cap at 30% for chart scaling
-    roa: Math.max(Math.min(c.kpis["roa"]?.value || 0, 20), -20), // Cap between -20 and 20%
+    npl: Math.min(c.kpis["npl_ratio"]?.value || 0, 30),
+    roa: Math.max(Math.min(c.kpis["roa"]?.value || 0, 20), -20),
     size: c.kpis["total_assets"]?.value || 1000000,
     rawNpl: c.kpis["npl_ratio"]?.formatted || "0%",
     rawRoa: c.kpis["roa"]?.formatted || "0%",
-    status: c.kpis["npl_ratio"]?.value > 5 ? "red" : "green", // Red if NPL > 5%
+    status: c.kpis["npl_ratio"]?.value > 5 ? "red" : "green",
   }));
 
   return (
@@ -46,12 +47,12 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
           <XAxis
             type="number"
             dataKey="npl"
-            name="NPL Ratio"
+            name={t("analytics.nplRatio")}
             unit="%"
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             domain={[0, "dataMax + 2"]}
             label={{
-              value: "Risk (NPL Ratio)",
+              value: t("analytics.riskNplRatio"),
               position: "insideBottom",
               offset: -10,
               fill: "hsl(var(--muted-foreground))",
@@ -61,12 +62,12 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
           <YAxis
             type="number"
             dataKey="roa"
-            name="ROA"
+            name={t("analytics.roa")}
             unit="%"
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             domain={["auto", "auto"]}
             label={{
-              value: "Return (ROA)",
+              value: t("analytics.returnRoa"),
               angle: -90,
               position: "insideLeft",
               offset: 0,
@@ -74,7 +75,7 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
               fontSize: 12,
             }}
           />
-          <ZAxis type="number" dataKey="size" range={[50, 400]} name="Assets" />
+          <ZAxis type="number" dataKey="size" range={[50, 400]} name={t("analytics.assets")} />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
             content={({ active, payload }) => {
@@ -85,11 +86,11 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
                     <p className="text-sm font-semibold mb-2">{data.name}</p>
                     <div className="flex flex-col gap-1 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Return (ROA):</span>
+                        <span className="text-muted-foreground">{t("analytics.returnRoa")}:</span>
                         <span className="font-medium font-heading">{data.rawRoa}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Risk (NPL):</span>
+                        <span className="text-muted-foreground">{t("analytics.riskNpl")}</span>
                         <span
                           className={`font-medium font-heading ${data.status === "red" ? "text-destructive" : "text-success"}`}
                         >
@@ -104,13 +105,12 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
             }}
           />
 
-          {/* Reference Lines representing regulatory thresholds */}
           <ReferenceLine
             x={5}
             stroke="hsl(var(--destructive))"
             strokeDasharray="3 3"
             label={{
-              value: "NPL Target (5%)",
+              value: t("analytics.nplTarget"),
               position: "top",
               fill: "hsl(var(--destructive))",
               fontSize: 10,
@@ -118,7 +118,7 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
           />
           <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
 
-          <Scatter name="Cooperatives" data={chartData}>
+          <Scatter name={t("analytics.cooperatives")} data={chartData}>
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}

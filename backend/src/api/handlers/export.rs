@@ -5,6 +5,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use rust_decimal::prelude::ToPrimitive;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -16,7 +17,15 @@ use crate::AppState;
 pub struct ExportQuery {
     pub federation_id: Option<Uuid>,
     pub apex_id: Option<Uuid>,
+    #[serde(alias = "year")]
     pub reporting_year: Option<i32>,
+}
+
+#[derive(Debug, serde::Deserialize, Default)]
+pub struct SingleExportQuery {
+    /// Pass `regenerate=true` to bypass the cached PDF and force a fresh generation.
+    #[serde(default)]
+    pub regenerate: bool,
 }
 
 /// GET /api/v1/cooperative/submissions/{id}/export
@@ -25,7 +34,8 @@ pub struct ExportQuery {
     get,
     path = "/api/v1/cooperative/submissions/{id}/export",
     params(
-        ("id" = Uuid, Path, description = "Submission ID")
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("regenerate" = Option<bool>, Query, description = "Force PDF re-generation")
     ),
     responses(
         (status = 200, description = "Export file stream"),
@@ -38,6 +48,7 @@ pub async fn export_single_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
+    Query(query): Query<SingleExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -57,20 +68,38 @@ pub async fn export_single_submission(
     let filename = format!("submission_{}.pdf", id);
     let storage_key = format!("exports/individual/{}/{}", id, filename);
 
-    let bytes = match state.storage.get_object(&storage_key).await {
-        Ok(b) => b,
-        Err(_) => {
-            let generated_bytes =
-                crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
-                    &state, id,
-                )
-                .await?;
-            state
-                .storage
-                .store(&storage_key, &generated_bytes, "application/pdf")
-                .await?;
-            generated_bytes
+    let bytes = if !query.regenerate {
+        match state.storage.get_object(&storage_key).await {
+            Ok(b) => {
+                tracing::info!(submission_id = %id, "Serving cached PDF from storage");
+                b
+            }
+            Err(_) => {
+                tracing::info!(submission_id = %id, "Cache miss — generating PDF");
+                let generated_bytes =
+                    crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+                        &state, id,
+                    )
+                    .await?;
+                state
+                    .storage
+                    .store(&storage_key, &generated_bytes, "application/pdf")
+                    .await?;
+                generated_bytes
+            }
         }
+    } else {
+        tracing::info!(submission_id = %id, "Force-regenerating PDF (regenerate=true)");
+        let generated_bytes =
+            crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+                &state, id,
+            )
+            .await?;
+        state
+            .storage
+            .store(&storage_key, &generated_bytes, "application/pdf")
+            .await?;
+        generated_bytes
     };
 
     let res = Response::builder()
@@ -102,6 +131,9 @@ pub async fn export_bulk_consolidated(
     Extension(claims): Extension<Arc<Claims>>,
     Query(mut query): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
+    if let Some(year) = query.reporting_year {
+        query.reporting_year = Some(year.clamp(1900, 2100));
+    }
     if query.apex_id.is_none() && claims.is_apex() {
         if let Ok(id) =
             crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await
@@ -258,4 +290,363 @@ pub async fn export_bulk_consolidated(
         .body(Body::from(bytes))
         .unwrap();
     Ok(res)
+}
+
+/// GET /api/v1/{tier}/submissions/{id}/narratives
+/// Returns AI-generated narratives for a submission from metadata cache.
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/narratives",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_submission_narratives(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let allowed_coops =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !allowed_coops.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden(
+            "Access denied to this cooperative's submission".into(),
+        ));
+    }
+
+    let narratives = submission.metadata.get("ai_narratives").cloned();
+
+    Ok(axum::Json(narratives))
+}
+
+/// POST /api/v1/{tier}/submissions/{id}/narratives/generate
+/// Triggers manual AI narrative regeneration. Ministry admin role protected.
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/narratives/generate",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID")
+    ),
+    responses(
+        (status = 200, description = "Regenerated AI narratives"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn generate_submission_narratives(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    if !claims.is_ministry() {
+        return Err(AppError::Forbidden(
+            "Only Ministry admin users can trigger manual narrative generation".into(),
+        ));
+    }
+
+    let allowed_coops =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if !allowed_coops.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden(
+            "Access denied to this cooperative's submission".into(),
+        ));
+    }
+
+    let coop = state
+        .cooperative_repo
+        .find_by_id(submission.cooperative_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
+    let kpi_records = state.kpi_record_repo.find_by_submission(id).await?;
+
+    let prior_kpi_records = if submission.reporting_year > 2020 {
+        if let Some(prior_sub) = state
+            .submission_repo
+            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .await?
+        {
+            state
+                .kpi_record_repo
+                .find_by_submission(prior_sub.id)
+                .await?
+        } else {
+            Vec::new()
+        }
+    } else {
+        Vec::new()
+    };
+
+    // Fetch line items from financial statement
+    let line_items = match state
+        .financial_statement_repo
+        .find_by_submission(id)
+        .await?
+    {
+        Some(fs) => {
+            let raw_items = state
+                .line_item_repo
+                .find_by_financial_statement(fs.id)
+                .await?;
+            if raw_items.is_empty() {
+                None
+            } else {
+                let prior_line_items = if submission.reporting_year > 2020 {
+                    if let Some(prior_sub) = state
+                        .submission_repo
+                        .find_by_cooperative_and_year(
+                            submission.cooperative_id,
+                            submission.reporting_year - 1,
+                        )
+                        .await?
+                    {
+                        if let Some(pfs) = state
+                            .financial_statement_repo
+                            .find_by_submission(prior_sub.id)
+                            .await?
+                        {
+                            state
+                                .line_item_repo
+                                .find_by_financial_statement(pfs.id)
+                                .await
+                                .unwrap_or_default()
+                        } else {
+                            Vec::new()
+                        }
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                };
+
+                let mut items: Vec<crate::services::report_narrative::BalanceSheetLineItemData> =
+                    Vec::new();
+                let mut by_code: std::collections::HashMap<
+                    i32,
+                    &crate::entities::balance_sheet_line_item::Model,
+                > = std::collections::HashMap::new();
+                for item in &raw_items {
+                    if let Some(code) = item.account_code {
+                        by_code.insert(code, item);
+                    }
+                }
+                let mut prior_map: std::collections::HashMap<i32, f64> =
+                    std::collections::HashMap::new();
+                for item in &prior_line_items {
+                    if let (Some(code), Some(val)) = (item.account_code, item.value) {
+                        prior_map.insert(code, val.to_f64().unwrap_or(0.0));
+                    }
+                }
+                for (code, item) in &by_code {
+                    let current = item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
+                    let prior = prior_map.get(code).copied();
+                    items.push(
+                        crate::services::report_narrative::BalanceSheetLineItemData {
+                            account_code: Some(*code),
+                            account_name: item.account_name.clone(),
+                            current_value: current,
+                            prior_value: prior,
+                        },
+                    );
+                }
+                items.sort_by_key(|i| i.account_code.unwrap_or(0));
+                Some(items)
+            }
+        }
+        None => None,
+    };
+
+    // Compute NF stats
+    let nf_response =
+        crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
+            &state.db,
+            submission.cooperative_id,
+            Some(id),
+        )
+        .await
+        .ok();
+
+    let membership_stats =
+        nf_response
+            .as_ref()
+            .map(|nf| crate::services::report_narrative::MembershipStats {
+                total_members: nf.membership.total,
+                active_members: nf.membership.active,
+                dormant_members: nf.membership.dormant,
+                women_members: nf.membership.female,
+                youth_members: nf.membership.age_18_35 + nf.membership.under_18,
+                rural_members: nf.membership.rural,
+                agm_participation_pct: nf.membership.agm_participation_pct,
+                leadership_count: nf.membership.leadership_count,
+                voting_participation_pct: if nf.membership.total > 0 {
+                    nf.membership.voting_count as f64 / nf.membership.total as f64 * 100.0
+                } else {
+                    0.0
+                },
+            });
+
+    let savings_stats =
+        nf_response
+            .as_ref()
+            .map(|nf| crate::services::report_narrative::SavingsStats {
+                total_savings_accounts: nf.savings.total_accounts,
+                active_savers: nf.savings.active_accounts,
+                savings_penetration_pct: nf.savings.savings_penetration_pct,
+                avg_savings_balance: nf.savings.average_balance,
+            });
+
+    let loan_stats = nf_response
+        .as_ref()
+        .map(|nf| crate::services::report_narrative::LoanStats {
+            active_borrowers: nf.loans.members_with_loans,
+            women_borrowers: nf.loans.women_borrowers,
+            youth_borrowers: nf.loans.youth_borrowers,
+            rural_borrowers: nf.loans.rural_borrowers,
+            on_time_repayment_pct: nf.loans.on_time_repayment_pct,
+        });
+
+    let ctx = crate::services::report_narrative::build_cooperative_context(
+        &coop,
+        &submission,
+        &kpi_records,
+        &prior_kpi_records,
+        line_items,
+        membership_stats,
+        savings_stats,
+        loan_stats,
+        None,
+        None,
+        None,
+    );
+
+    let _permit = state
+        .ai_semaphore
+        .acquire()
+        .await
+        .map_err(|_| AppError::InternalServerError("AI semaphore closed".into()))?;
+
+    let narratives = state
+        .narrative_generator
+        .generate_cooperative_narratives(&ctx)
+        .await?;
+
+    state
+        .submission_repo
+        .update_metadata(id, serde_json::json!({ "ai_narratives": narratives }))
+        .await?;
+
+    Ok(axum::Json(serde_json::json!(narratives)))
+}
+
+/// GET /api/v1/apex/{id}/narratives?year=2025
+/// Returns cached AI narratives for an apex report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/{id}/narratives",
+    params(
+        ("id" = String, Path, description = "Apex Keycloak ID"),
+        ("year" = i32, Query, description = "Reporting year")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_apex_narratives(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(params): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
+    let apex = state
+        .apex_repo
+        .find_by_keycloak_id(&id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
+
+    let year_key = format!("ai_narratives_{}", year);
+    let narratives = apex.metadata.and_then(|m| m.get(&year_key).cloned());
+
+    Ok(axum::Json(narratives))
+}
+
+/// GET /api/v1/federation/{id}/narratives?year=2025
+/// Returns cached AI narratives for a federation report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/federation/{id}/narratives",
+    params(
+        ("id" = String, Path, description = "Federation Keycloak ID"),
+        ("year" = i32, Query, description = "Reporting year")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_federation_narratives(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(params): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
+    let federation = state
+        .federation_repo
+        .find_by_keycloak_id(&id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
+
+    let year_key = format!("ai_narratives_{}", year);
+    let narratives = federation.metadata.and_then(|m| m.get(&year_key).cloned());
+
+    Ok(axum::Json(narratives))
+}
+
+/// GET /api/v1/ministry/submissions/narratives?year=2025
+/// Returns cached AI narratives for the ministry national report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/ministry/submissions/narratives",
+    params(
+        ("year" = i32, Query, description = "Reporting year")
+    ),
+    responses(
+        (status = 200, description = "AI narratives or null"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_ministry_narratives(
+    State(state): State<AppState>,
+    Query(params): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
+    let cached = state.ministry_narratives_repo.find_by_year(year).await?;
+
+    let narratives = cached.map(|c| c.narratives_json);
+    Ok(axum::Json(narratives))
 }

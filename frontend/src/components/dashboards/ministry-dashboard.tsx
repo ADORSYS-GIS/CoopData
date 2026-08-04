@@ -5,12 +5,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
 import { useMinistrySubmissions } from "@/hooks/submissions/useSubmissions";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // MINISTRY DASHBOARD — real data only
 // Full national oversight: all federations, apexes, cooperatives
 // ─────────────────────────────────────────────────────────────────────
 export function MinistryDashboard() {
+  const { t } = useTranslation();
   const { data: stats, isLoading: statsLoading } = useMinistryStats();
   const { data: submissions = [], isLoading: subsLoading } = useMinistrySubmissions();
 
@@ -21,18 +23,18 @@ export function MinistryDashboard() {
   const rejectedCount = stats?.rejected_count ?? 0;
 
   const statusLabel: Record<string, string> = {
-    draft: "Draft",
-    submitted: "Submitted",
-    in_review: "In Review",
-    approved: "Approved",
-    rejected: "Rejected",
-    returned: "Changes Requested",
+    draft: t("dashboard.status.draft"),
+    submitted: t("dashboard.status.submitted"),
+    in_review: t("dashboard.status.inReview"),
+    approved: t("dashboard.status.approved"),
+    rejected: t("dashboard.status.rejected"),
+    returned: t("dashboard.status.changesRequested"),
   };
 
   return (
     <AppShell
-      title="National Cooperative Intelligence"
-      subtitle="Real-time oversight · Ministry of Commerce & Cooperative Development"
+      title={t("dashboard.ministry.title")}
+      subtitle={t("dashboard.ministry.subtitle")}
       actions={
         <div className="flex items-center gap-2">
           <Link
@@ -40,14 +42,14 @@ export function MinistryDashboard() {
             className="press-feedback hidden items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors sm:inline-flex"
           >
             <BarChart3 className="size-4 text-accent" />
-            View all statistics
+            {t("dashboard.ministry.viewAllStats")}
           </Link>
           <button
-            onClick={() => toast.info("Report export coming in next release.")}
+            onClick={() => toast.info(t("dashboard.ministry.reportExportComing"))}
             className="hidden items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:inline-flex"
           >
             <Download className="size-4" />
-            Generate national report
+            {t("dashboard.ministry.generateReport")}
           </button>
         </div>
       }
@@ -69,30 +71,30 @@ export function MinistryDashboard() {
             <>
               <StatCard
                 icon={Building2}
-                label="Total Cooperatives"
+                label={t("dashboard.ministry.totalCooperatives")}
                 value={totalCoops.toLocaleString()}
-                subtitle="Registered across all federations"
+                subtitle={t("dashboard.ministry.registeredAcrossAll")}
                 tone="accent"
               />
               <StatCard
                 icon={Users}
-                label="Total Submissions"
+                label={t("dashboard.ministry.totalSubmissions")}
                 value={totalSubmissions.toLocaleString()}
-                subtitle="All time submissions on record"
+                subtitle={t("dashboard.ministry.allTimeSubmissions")}
                 tone="success"
               />
               <StatCard
                 icon={ShieldCheck}
-                label="Pending Review"
+                label={t("dashboard.ministry.pendingReview")}
                 value={pendingCount.toLocaleString()}
-                subtitle="Awaiting ministry approval"
+                subtitle={t("dashboard.ministry.awaitingApproval")}
                 tone="warning"
               />
               <StatCard
                 icon={BarChart3}
-                label="Approved"
+                label={t("dashboard.ministry.approved")}
                 value={approvedCount.toLocaleString()}
-                subtitle={`${rejectedCount} rejected`}
+                subtitle={`${rejectedCount} ${t("dashboard.ministry.rejected")}`}
                 tone="info"
               />
             </>
@@ -101,14 +103,14 @@ export function MinistryDashboard() {
 
         {/* ── Recent Submissions ── */}
         <Card
-          title="Recent Submissions"
-          subtitle="Latest submissions across all cooperatives — full list in Submissions tab"
+          title={t("dashboard.ministry.recentSubmissions")}
+          subtitle={t("dashboard.ministry.recentSubmissionsSub")}
           action={
             <Link
               to="/app/submissions"
               className="text-xs font-semibold text-accent hover:underline"
             >
-              View all →
+              {t("dashboard.ministry.viewAll")}
             </Link>
           }
         >
@@ -117,11 +119,11 @@ export function MinistryDashboard() {
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    <th className="px-5 py-3">Reference</th>
-                    <th className="px-5 py-3">Cooperative</th>
-                    <th className="px-5 py-3">Year</th>
-                    <th className="px-5 py-3">Filed On</th>
-                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colReference")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colCooperative")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colYear")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colFiledOn")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colStatus")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -150,19 +152,19 @@ export function MinistryDashboard() {
           ) : submissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               <BarChart3 className="size-8 mb-3 opacity-30" />
-              <p className="text-sm font-semibold">No submissions yet</p>
-              <p className="text-xs mt-1">Submissions will appear here once cooperatives file.</p>
+              <p className="text-sm font-semibold">{t("dashboard.ministry.noSubmissions")}</p>
+              <p className="text-xs mt-1">{t("dashboard.ministry.noSubmissionsSub")}</p>
             </div>
           ) : (
             <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border">
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    <th className="px-5 py-3">Reference</th>
-                    <th className="px-5 py-3">Cooperative</th>
-                    <th className="px-5 py-3">Year</th>
-                    <th className="px-5 py-3">Filed On</th>
-                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colReference")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colCooperative")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colYear")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colFiledOn")}</th>
+                    <th className="px-5 py-3">{t("dashboard.ministry.colStatus")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -201,7 +203,10 @@ export function MinistryDashboard() {
 
         {/* ── Summary Stats ── */}
         <div className="grid md:grid-cols-3 gap-4">
-          <Card title="Submission Overview" subtitle="Status breakdown across all cooperatives">
+          <Card
+            title={t("dashboard.ministry.submissionOverview")}
+            subtitle={t("dashboard.ministry.submissionOverviewSub")}
+          >
             {statsLoading ? (
               <div className="space-y-3 pt-2">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -214,15 +219,23 @@ export function MinistryDashboard() {
             ) : (
               <div className="space-y-3 pt-2">
                 {[
-                  { label: "Approved", value: approvedCount, color: "text-success" },
                   {
-                    label: "Pending Review",
+                    label: t("dashboard.status.approved"),
+                    value: approvedCount,
+                    color: "text-success",
+                  },
+                  {
+                    label: t("dashboard.status.inReview"),
                     value: pendingCount,
                     color: "text-warning-foreground",
                   },
-                  { label: "Rejected", value: rejectedCount, color: "text-destructive" },
                   {
-                    label: "Draft",
+                    label: t("dashboard.status.rejected"),
+                    value: rejectedCount,
+                    color: "text-destructive",
+                  },
+                  {
+                    label: t("dashboard.status.draft"),
                     value: totalSubmissions - approvedCount - pendingCount - rejectedCount,
                     color: "text-muted-foreground",
                   },
@@ -238,7 +251,10 @@ export function MinistryDashboard() {
             )}
           </Card>
 
-          <Card title="Cooperative Coverage" subtitle="Total registered cooperatives">
+          <Card
+            title={t("dashboard.ministry.cooperativeCoverage")}
+            subtitle={t("dashboard.ministry.cooperativeCoverageSub")}
+          >
             {statsLoading ? (
               <div className="flex items-center gap-4 pt-2">
                 <Skeleton className="h-12 w-20" />
@@ -253,28 +269,28 @@ export function MinistryDashboard() {
                   {totalCoops.toLocaleString()}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  <p>Registered cooperatives</p>
+                  <p>{t("dashboard.ministry.registeredCooperatives")}</p>
                   <p className="mt-1">
-                    {((approvedCount / Math.max(totalSubmissions, 1)) * 100).toFixed(0)}% submission
-                    approval rate
+                    {((approvedCount / Math.max(totalSubmissions, 1)) * 100).toFixed(0)}%{" "}
+                    {t("dashboard.ministry.submissionApprovalRate")}
                   </p>
                 </div>
               </div>
             )}
           </Card>
 
-          <Card title="Analytics" subtitle="Detailed national charts in Analytics tab">
+          <Card
+            title={t("dashboard.ministry.analyticsCardTitle")}
+            subtitle={t("dashboard.ministry.analyticsCardSub")}
+          >
             <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground gap-3">
               <BarChart3 className="size-8 opacity-40" />
-              <p className="text-xs">
-                National trend charts, sector breakdowns and regional maps are available in the
-                Analytics section.
-              </p>
+              <p className="text-xs">{t("dashboard.ministry.analyticsCardDesc")}</p>
               <Link
                 to="/app/analytics"
                 className="text-xs font-semibold text-accent hover:underline"
               >
-                Go to Analytics →
+                {t("dashboard.ministry.goToAnalytics")}
               </Link>
             </div>
           </Card>

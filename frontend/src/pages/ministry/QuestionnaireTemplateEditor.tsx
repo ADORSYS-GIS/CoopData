@@ -20,6 +20,7 @@ import {
   Edit,
   X,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   useQuestionnaireTemplate,
   useUpdateQuestionnaireTemplate,
@@ -63,6 +64,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   templateId,
   onBack,
 }) => {
+  const { t } = useTranslation();
   const { data: template, isLoading, error } = useQuestionnaireTemplate(templateId);
   const updateMutation = useUpdateQuestionnaireTemplate(templateId);
 
@@ -104,10 +106,10 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       for (const section of listToSave) {
         for (const field of section.fields || []) {
           if (!field.key || field.key.trim() === "") {
-            throw new Error(`Field key cannot be blank in section "${section.title}"`);
+            throw new Error(t("templateEditor.toastBlankKey", { title: section.title }));
           }
           if (keys.has(field.key)) {
-            throw new Error(`Duplicate field key "${field.key}" found. All keys must be unique.`);
+            throw new Error(t("templateEditor.toastDuplicateKey", { key: field.key }));
           }
           keys.add(field.key);
         }
@@ -118,9 +120,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         sections: listToSave,
       });
 
-      toast.success("Questionnaire template changes saved successfully to backend!");
+      toast.success(t("templateEditor.toastSaved"));
     } catch (err: any) {
-      toast.error(err.message || "Failed to save changes");
+      toast.error(err.message || t("templateEditor.toastSaveFailed"));
     }
   };
 
@@ -128,9 +130,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   const addSection = () => {
     const newSection = {
       id: `section_${Date.now()}`,
-      title: "New Section",
+      title: t("templateEditor.newSectionDefaultTitle"),
       icon: "📋",
-      description: "Enter section description",
+      description: t("templateEditor.newSectionDefaultDesc"),
       fields: [],
     };
     const updated = [...sections, newSection];
@@ -140,8 +142,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   };
 
   const deleteSection = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this section and all of its fields?"))
-      return;
+    if (!window.confirm(t("templateEditor.confirmDeleteSection"))) return;
     const updated = sections.filter((_, i) => i !== index);
     setSections(updated);
     if (selectedSectionIndex === index) {
@@ -213,7 +214,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
   const handleSaveModalField = () => {
     if (!modalLabel.trim()) {
-      alert("Please enter a question label.");
+      alert(t("templateEditor.alertLabelRequired"));
       return;
     }
     if (selectedSectionIndex === null) return;
@@ -261,7 +262,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
   const deleteField = (fieldIndex: number) => {
     if (selectedSectionIndex === null) return;
-    if (!window.confirm("Are you sure you want to delete this question?")) return;
+    if (!window.confirm(t("templateEditor.confirmDeleteField"))) return;
     const updated = [...sections];
     const section = updated[selectedSectionIndex];
     section.fields = section.fields.filter((_: any, i: number) => i !== fieldIndex);
@@ -288,7 +289,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <AlertCircle className="size-5 animate-spin mr-2" /> Loading template details...
+        <AlertCircle className="size-5 animate-spin mr-2" /> {t("templateEditor.loading")}
       </div>
     );
   }
@@ -297,13 +298,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     return (
       <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/5 text-destructive">
         <AlertCircle className="size-6 mb-2" />
-        <h4 className="font-bold">Failed to load template</h4>
+        <h4 className="font-bold">{t("templateEditor.failedLoad")}</h4>
         <p className="text-sm mt-1">{String(error || "Template not found")}</p>
         <button
           onClick={onBack}
           className="mt-4 px-4 py-2 bg-background border rounded-lg text-foreground hover:bg-muted text-xs"
         >
-          Back
+          {t("templateEditor.backBtn")}
         </button>
       </div>
     );
@@ -319,17 +320,21 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
           <button
             onClick={onBack}
             className="rounded-xl border border-border p-2 hover:bg-muted/50 transition-colors"
-            title="Back to list"
+            title={t("templateEditor.backTooltip")}
           >
             <ArrowLeft className="size-4" />
           </button>
           <div>
-            <h1 className="text-xl font-heading font-bold text-foreground">Form Builder</h1>
+            <h1 className="text-xl font-heading font-bold text-foreground">
+              {t("templateEditor.titleFormBuilder")}
+            </h1>
             <p className="text-xs text-muted-foreground">
-              Configure dynamic questionnaire forms for{" "}
-              {template.questionnaire_type === "financial"
-                ? "Financial SACCOs"
-                : "Non-Financial Cooperatives"}
+              {t("templateEditor.subtitleFormBuilder", {
+                type:
+                  template.questionnaire_type === "financial"
+                    ? t("templateEditor.typeFinancial")
+                    : t("templateEditor.typeNonFinancial"),
+              })}
             </p>
           </div>
         </div>
@@ -341,7 +346,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm"
           >
             <Save className="size-4" />
-            Save Changes
+            {t("templateEditor.saveChanges")}
           </button>
         </div>
       </div>
@@ -366,13 +371,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       {/* Template Metadata */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-          Template Title / Label
+          {t("templateEditor.metaLabel")}
         </label>
         <input
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g. Financial Primary Cooperatives Questionnaire v1"
+          placeholder={t("templateEditor.metaPlaceholder")}
           className="w-full max-w-lg rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
         />
       </div>
@@ -413,7 +418,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
           ) : (
             <div className="rounded-2xl border border-border bg-card p-12 shadow-sm text-center text-muted-foreground text-sm flex flex-col items-center justify-center gap-2">
               <FolderPlus className="size-8 opacity-45" />
-              <span>Select a section on the left to start configuring its fields.</span>
+              <span>{t("templateEditor.selectSectionPrompt")}</span>
             </div>
           )}
         </div>

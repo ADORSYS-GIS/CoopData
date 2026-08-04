@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { WizardSavings } from "./types";
 
 interface SavingsRowProps {
@@ -10,6 +11,8 @@ interface SavingsRowProps {
 }
 
 export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: SavingsRowProps) {
+  const { t } = useTranslation();
+
   return (
     <tr className="border-t border-border/50 hover:bg-muted/20 transition-colors">
       <td className="px-3 py-2 text-xs text-muted-foreground font-mono">{idx + 1}</td>
@@ -19,7 +22,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           onChange={(e) => onUpdate(record._rowKey, "memberBusinessId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground font-mono"
         >
-          <option value="">-- Select Member ID --</option>
+          <option value="">{t("savingsRow.selectMember")}</option>
           {memberIds.map((id) => (
             <option key={id} value={id}>
               {id}
@@ -32,7 +35,7 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           value={record.savingsAccountId}
           onChange={(e) => onUpdate(record._rowKey, "savingsAccountId", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
-          placeholder="SAV-001"
+          placeholder={t("manualEntry.placeholderSavingsId")}
         />
       </td>
       <td className="px-2 py-2">
@@ -41,9 +44,9 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           onChange={(e) => onUpdate(record._rowKey, "accountType", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
-          <option value="Voluntary">Voluntary</option>
-          <option value="Mandatory">Mandatory</option>
-          <option value="Fixed">Fixed</option>
+          <option value="Voluntary">{t("savingsRow.types.voluntary")}</option>
+          <option value="Mandatory">{t("savingsRow.types.mandatory")}</option>
+          <option value="Fixed">{t("savingsRow.types.fixed")}</option>
         </select>
       </td>
       <td className="px-2 py-2">
@@ -60,9 +63,9 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           onChange={(e) => onUpdate(record._rowKey, "accountStatus", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Closed">Closed</option>
+          <option value="Active">{t("savingsRow.statuses.active")}</option>
+          <option value="Inactive">{t("savingsRow.statuses.inactive")}</option>
+          <option value="Closed">{t("savingsRow.statuses.closed")}</option>
         </select>
       </td>
       <td className="px-2 py-2">
@@ -71,10 +74,10 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           onChange={(e) => onUpdate(record._rowKey, "contributionFrequency", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
-          <option value="Monthly">Monthly</option>
-          <option value="Weekly">Weekly</option>
-          <option value="Daily">Daily</option>
-          <option value="Irregular">Irregular</option>
+          <option value="Monthly">{t("savingsRow.frequencies.monthly")}</option>
+          <option value="Weekly">{t("savingsRow.frequencies.weekly")}</option>
+          <option value="Daily">{t("savingsRow.frequencies.daily")}</option>
+          <option value="Irregular">{t("savingsRow.frequencies.irregular")}</option>
         </select>
       </td>
       <td className="px-2 py-2">
@@ -101,9 +104,9 @@ export function SavingsRow({ record, idx, memberIds, onUpdate, onRemove }: Savin
           onChange={(e) => onUpdate(record._rowKey, "balanceTrend", e.target.value)}
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
         >
-          <option value="Stable">Stable</option>
-          <option value="Increasing">Increasing</option>
-          <option value="Decreasing">Decreasing</option>
+          <option value="Stable">{t("savingsRow.trends.stable")}</option>
+          <option value="Increasing">{t("savingsRow.trends.increasing")}</option>
+          <option value="Decreasing">{t("savingsRow.trends.decreasing")}</option>
         </select>
       </td>
       <td className="px-2 py-2">

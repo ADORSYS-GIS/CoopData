@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  Loader2,
-  Trash2,
-  CheckCircle2,
-  ClipboardList,
-  Users,
-  Database,
-  PenLine,
-} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Loader2, Trash2, CheckCircle2, Users, Database, PenLine } from "lucide-react";
 import { Card, StatusPill } from "@/components/app-shell";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -33,35 +26,28 @@ interface NfDatabasesTabProps {
   sections: SubmissionSectionResponse[] | undefined;
   onUploadComplete: (result: NfUploadResponse) => void;
   nfResult: NfUploadResponse | null;
+  submissionMethod: "upload" | "manual" | "questionnaire" | null;
+  methodChosen: boolean;
+  onOpenMethodModal: () => void;
 }
 
 function sectionStatusTone(status: string): "neutral" | "warning" | "success" {
   return status === "ready" ? "success" : status === "in_progress" ? "warning" : "neutral";
 }
 
-function sectionStatusLabel(status: string) {
-  return (
-    ({ pending: "Pending", in_progress: "In Progress", ready: "Ready" } as Record<string, string>)[
-      status
-    ] ?? status
-  );
-}
-
 const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
+  const { t } = useTranslation();
   const deleteNf = useDeleteManualNonFinancialData(submissionId);
 
   const handleClick = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to clear all non-financial databases (membership, savings, loans, deposits, and farm profile)? This cannot be undone.",
-      )
-    )
-      return;
+    if (!window.confirm(t("submissions.detail.nfDatabases.confirmClear"))) return;
     try {
       await deleteNf.mutateAsync();
-      toast.success("Non-financial databases cleared successfully");
+      toast.success(t("submissions.detail.nfDatabases.toastClearSuccess"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to clear databases");
+      toast.error(
+        e instanceof Error ? e.message : t("submissions.detail.nfDatabases.toastClearFailed"),
+      );
     }
   };
 
@@ -76,7 +62,7 @@ const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissio
       ) : (
         <Trash2 className="size-3.5" />
       )}
-      Clear Non-Financial Databases
+      {t("submissions.detail.nfDatabases.btnClearDbs")}
     </button>
   );
 };
@@ -89,6 +75,7 @@ function NfTable({
   canMarkReady,
   onMarkReady,
   isUpdating,
+  onEdit,
 }: {
   title: string;
   section?: SubmissionSectionResponse;
@@ -97,17 +84,29 @@ function NfTable({
   canMarkReady?: boolean;
   onMarkReady?: () => void;
   isUpdating?: boolean;
+  onEdit?: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const fmtCol = (col: string) => col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const cell = (val: unknown) => {
     if (val === null || val === undefined || val === "")
       return <span className="text-muted-foreground/40">—</span>;
-    if (typeof val === "boolean") return val ? "Yes" : "No";
+    if (typeof val === "boolean")
+      return val ? t("submissions.detail.nfDatabases.yes") : t("submissions.detail.nfDatabases.no");
     return String(val);
   };
   const isReady = section?.status === "ready";
   const isInProgress = section?.status === "in_progress";
+
+  const sectionStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      pending: t("submissions.detail.pendingStatus"),
+      in_progress: t("submissions.detail.inProgressStatus"),
+      ready: t("submissions.detail.readyStatus"),
+    };
+    return map[status] ?? status;
+  };
 
   return (
     <Card
@@ -130,14 +129,25 @@ function NfTable({
               ) : (
                 <CheckCircle2 className="size-3" />
               )}
-              Mark Ready
+              {t("submissions.detail.nfDatabases.btnMarkReady")}
+            </button>
+          )}
+          {canMarkReady && onEdit && (
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/25 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors cursor-pointer"
+            >
+              <PenLine className="size-3" />
+              {t("edit")}
             </button>
           )}
           <button
             onClick={() => setOpen((o) => !o)}
             className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted/50 cursor-pointer"
           >
-            {open ? "Collapse" : "Expand"}
+            {open
+              ? t("submissions.detail.nfDatabases.btnCollapse")
+              : t("submissions.detail.nfDatabases.btnExpand")}
           </button>
         </div>
       }
@@ -180,7 +190,11 @@ export function NfDatabasesTab({
   sections,
   onUploadComplete,
   nfResult,
+  submissionMethod,
+  methodChosen,
+  onOpenMethodModal,
 }: NfDatabasesTabProps) {
+  const { t } = useTranslation();
   const params = { submission_id: submissionId, page: 1, page_size: 200 };
   const { data: membersData, isLoading: lm } = useMembers(params);
   const { data: savingsData, isLoading: ls } = useSavings(params);
@@ -206,9 +220,13 @@ export function NfDatabasesTab({
   const handleMarkReady = async (sectionKey: string, label: string) => {
     try {
       await updateSection.mutateAsync({ section: sectionKey, status: "ready" });
-      toast.success(`${label} marked as ready`);
+      toast.success(t("submissions.detail.nfDatabases.toastMarkedReady", { name: label }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : `Failed to update ${label}`);
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : t("submissions.detail.nfDatabases.toastMarkReadyFailed", { name: label }),
+      );
     }
   };
 
@@ -222,22 +240,54 @@ export function NfDatabasesTab({
           <ClearNonFinancialButton submissionId={submissionId} />
         </div>
       )}
-      {isCooperative && isDraft && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Option 1: Upload Excel */}
-          <Card
-            title="Upload Non-Financial Databases"
-            subtitle="Upload your Excel file containing member, savings, loan, and farm data"
-            edge="primary"
+      {isCooperative && isDraft && !hasData && !methodChosen && (
+        <div className="rounded-xl border border-warning/25 bg-warning/5 p-6 text-center">
+          <div className="mx-auto size-12 rounded-xl bg-warning/10 grid place-items-center mb-3">
+            <Database className="size-6 text-warning-foreground" />
+          </div>
+          <h4 className="text-sm font-bold text-foreground">
+            {t("submissions.methodModal.title")}
+          </h4>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+            {t("submissions.methodModal.choosePrompt")}
+          </p>
+          <button
+            onClick={onOpenMethodModal}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
           >
-            <div className="space-y-4">
+            {t("submissions.detail.contentTabs.btnChooseMethod")}
+          </button>
+        </div>
+      )}
+      {isCooperative && isDraft && !hasData && methodChosen && submissionMethod === "upload" && (
+        <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-stretch">
+          <Card
+            title={t("submissions.detail.nfDatabases.uploadTitle")}
+            subtitle={t("submissions.detail.nfDatabases.uploadSubtitle")}
+            edge="primary"
+            className="flex flex-col h-full"
+            bodyClassName="flex-1 flex flex-col justify-between"
+          >
+            <div className="space-y-4 flex-1 flex flex-col justify-between">
               <div className="flex flex-wrap gap-2">
                 {[
-                  { sheet: "NF MSHIP", label: "Members" },
-                  { sheet: "NF S", label: "Savings" },
-                  { sheet: "NF LOANS", label: "Loans" },
-                  { sheet: "NF FS", label: "Fixed Deposits" },
-                  { sheet: "NF FARM", label: "Farm Coop" },
+                  {
+                    sheet: "NF MSHIP",
+                    label: t("submissions.detail.nfDatabases.categories.members"),
+                  },
+                  { sheet: "NF S", label: t("submissions.detail.nfDatabases.categories.savings") },
+                  {
+                    sheet: "NF LOANS",
+                    label: t("submissions.detail.nfDatabases.categories.loans"),
+                  },
+                  {
+                    sheet: "NF FS",
+                    label: t("submissions.detail.nfDatabases.categories.fixed_deposits"),
+                  },
+                  {
+                    sheet: "NF FARM",
+                    label: t("submissions.detail.nfDatabases.categories.farm_coop"),
+                  },
                 ].map(({ sheet, label }) => (
                   <div
                     key={sheet}
@@ -249,37 +299,47 @@ export function NfDatabasesTab({
                   </div>
                 ))}
               </div>
-              <NfUploadZone submissionId={submissionId} onUploadComplete={onUploadComplete} />
-              {nfResult && <NfParseResults result={nfResult} />}
+              <div className="mt-4">
+                <NfUploadZone submissionId={submissionId} onUploadComplete={onUploadComplete} />
+                {nfResult && <NfParseResults result={nfResult} />}
+              </div>
             </div>
           </Card>
-
-          {/* Option 2: Manual Entry */}
+        </div>
+      )}
+      {isCooperative && isDraft && !hasData && methodChosen && submissionMethod === "manual" && (
+        <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-stretch">
           <Card
-            title="Manual Entry"
-            subtitle="Enter your member and database records directly using structured forms"
+            title={t("submissions.detail.nfDatabases.manualTitle")}
+            subtitle={t("submissions.detail.nfDatabases.manualSubtitle")}
+            className="flex flex-col h-full"
+            bodyClassName="flex-1 flex flex-col justify-between"
           >
-            <div className="flex flex-col gap-4 h-full">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { icon: "👥", label: "Members" },
-                  { icon: "💰", label: "Savings" },
-                  { icon: "📋", label: "Loans" },
-                  { icon: "🏦", label: "Fixed Deposits" },
-                ].map(({ icon, label }) => (
-                  <div
-                    key={label}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
-                  >
-                    <span>{icon}</span>
-                    <span>{label}</span>
-                  </div>
-                ))}
+            <div className="flex flex-col gap-4 flex-1 justify-between">
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { icon: "👥", label: t("submissions.detail.nfDatabases.categories.members") },
+                    { icon: "💰", label: t("submissions.detail.nfDatabases.categories.savings") },
+                    { icon: "📋", label: t("submissions.detail.nfDatabases.categories.loans") },
+                    {
+                      icon: "🏦",
+                      label: t("submissions.detail.nfDatabases.categories.fixed_deposits"),
+                    },
+                  ].map(({ icon, label }) => (
+                    <div
+                      key={label}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                    >
+                      <span>{icon}</span>
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("submissions.detail.nfDatabases.manualDesc")}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Don't have the Excel file? Use our guided forms to enter your member, savings, loan,
-                and deposit data row by row.
-              </p>
               <button
                 onClick={() =>
                   navigate({
@@ -288,69 +348,47 @@ export function NfDatabasesTab({
                     search: { step: "members" },
                   })
                 }
-                className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm w-full cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors shadow-sm w-full cursor-pointer mt-4"
               >
                 <Users className="size-4" />
-                Enter Member Data Manually
+                {t("submissions.detail.nfDatabases.btnEnterManual")}
               </button>
             </div>
           </Card>
-
-          {/* Option 3: Questionnaire (Basic / Non-Financial Options) */}
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col gap-3 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all group">
-            <div className="size-10 rounded-xl bg-emerald-500/10 grid place-items-center">
-              <ClipboardList className="size-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-bold text-foreground">Questionnaire</h4>
-                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5">
-                  Basic
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                For non-financial cooperatives (Agriculture, Handicraft, etc.). Answer guided
-                questions to complete your submission.
-              </p>
-            </div>
-            <button
-              onClick={() =>
-                navigate({
-                  to: "/app/submissions/$id/questionnaire",
-                  params: { id: submissionId },
-                  search: { type: "non_financial" },
-                })
-              }
-              className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
-            >
-              <ClipboardList className="size-4" />
-              Start Non-Financial Questionnaire
-            </button>
-          </div>
         </div>
       )}
 
       {isLoading && (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin mr-2" /> Loading records…
+          <Loader2 className="size-5 animate-spin mr-2" />{" "}
+          {t("submissions.detail.nfDatabases.loadingRecords")}
         </div>
       )}
 
       {!isLoading && !hasData && (
         <div className="text-center py-10 text-muted-foreground text-sm border rounded-xl bg-muted/10">
           {isReadOnly
-            ? "No non-financial data has been uploaded for this submission."
-            : "No records yet. Upload the Excel file above to import data."}
+            ? t("submissions.detail.nfDatabases.noDataReadOnly")
+            : t("submissions.detail.nfDatabases.noDataDraft")}
         </div>
       )}
 
       {members.length > 0 && (
         <NfTable
-          title={`Membership (${members.length})`}
+          title={t("submissions.detail.nfDatabases.titleMembership", { count: members.length })}
           section={sec("members")}
           canMarkReady={canMarkReady}
-          onMarkReady={() => handleMarkReady("members", "Membership")}
+          onMarkReady={() =>
+            handleMarkReady("members", t("submissions.detail.nfDatabases.categories.members"))
+          }
           isUpdating={updateSection.isPending}
+          onEdit={() =>
+            navigate({
+              to: "/app/submissions/$id/manual-entry",
+              params: { id: submissionId },
+              search: { step: "members" },
+            })
+          }
           columns={[
             "member_id",
             "status",
@@ -368,11 +406,20 @@ export function NfDatabasesTab({
 
       {savings.length > 0 && (
         <NfTable
-          title={`Savings Accounts (${savings.length})`}
+          title={t("submissions.detail.nfDatabases.titleSavings", { count: savings.length })}
           section={sec("savings")}
           canMarkReady={canMarkReady}
-          onMarkReady={() => handleMarkReady("savings", "Savings")}
+          onMarkReady={() =>
+            handleMarkReady("savings", t("submissions.detail.nfDatabases.categories.savings"))
+          }
           isUpdating={updateSection.isPending}
+          onEdit={() =>
+            navigate({
+              to: "/app/submissions/$id/manual-entry",
+              params: { id: submissionId },
+              search: { step: "savings" },
+            })
+          }
           columns={[
             "savings_account_id",
             "member_business_id",
@@ -395,11 +442,20 @@ export function NfDatabasesTab({
 
       {loans.length > 0 && (
         <NfTable
-          title={`Loans Book (${loans.length})`}
+          title={t("submissions.detail.nfDatabases.titleLoans", { count: loans.length })}
           section={sec("loans")}
           canMarkReady={canMarkReady}
-          onMarkReady={() => handleMarkReady("loans", "Loans")}
+          onMarkReady={() =>
+            handleMarkReady("loans", t("submissions.detail.nfDatabases.categories.loans"))
+          }
           isUpdating={updateSection.isPending}
+          onEdit={() =>
+            navigate({
+              to: "/app/submissions/$id/manual-entry",
+              params: { id: submissionId },
+              search: { step: "loans" },
+            })
+          }
           columns={[
             "loan_id",
             "member_business_id",
@@ -429,11 +485,23 @@ export function NfDatabasesTab({
 
       {fds.length > 0 && (
         <NfTable
-          title={`Fixed Deposits (${fds.length})`}
+          title={t("submissions.detail.nfDatabases.titleFixedDeposits", { count: fds.length })}
           section={sec("fixed_deposits")}
           canMarkReady={canMarkReady}
-          onMarkReady={() => handleMarkReady("fixed_deposits", "Fixed Deposits")}
+          onMarkReady={() =>
+            handleMarkReady(
+              "fixed_deposits",
+              t("submissions.detail.nfDatabases.categories.fixed_deposits"),
+            )
+          }
           isUpdating={updateSection.isPending}
+          onEdit={() =>
+            navigate({
+              to: "/app/submissions/$id/manual-entry",
+              params: { id: submissionId },
+              search: { step: "deposits" },
+            })
+          }
           columns={[
             "fixed_deposit_id",
             "member_business_id",
@@ -457,11 +525,20 @@ export function NfDatabasesTab({
 
       {farmCoops.length > 0 && (
         <NfTable
-          title={`Farm Cooperatives (${farmCoops.length})`}
+          title={t("submissions.detail.nfDatabases.titleFarmCoops", { count: farmCoops.length })}
           section={sec("farm_coop")}
           canMarkReady={canMarkReady}
-          onMarkReady={() => handleMarkReady("farm_coop", "Farm Cooperative Info")}
+          onMarkReady={() =>
+            handleMarkReady("farm_coop", t("submissions.detail.nfDatabases.categories.farm_coop"))
+          }
           isUpdating={updateSection.isPending}
+          onEdit={() =>
+            navigate({
+              to: "/app/submissions/$id/manual-entry",
+              params: { id: submissionId },
+              search: { step: "farm" },
+            })
+          }
           columns={[
             "cooperative_type",
             "primary_activities",
@@ -491,4 +568,3 @@ export function NfDatabasesTab({
     </div>
   );
 }
-export default NfDatabasesTab;

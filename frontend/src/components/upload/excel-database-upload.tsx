@@ -20,6 +20,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // TYPES
@@ -334,20 +336,22 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
 // SIMULATED EXTRACTION
 // ─────────────────────────────────────────────────────────────────────
 
-function generateSimulatedExtraction(config: DatabaseConfig, fileName: string): ExtractionResult {
+function generateSimulatedExtraction(
+  config: DatabaseConfig,
+  fileName: string,
+  t: TFunction,
+): ExtractionResult {
   const totalRows = Math.floor(Math.random() * 500) + 200;
   const invalidRows = Math.floor(Math.random() * 8) + 1;
   const validRows = totalRows - invalidRows;
 
   const warnings: string[] = [];
   if (invalidRows > 0) {
-    warnings.push(`${invalidRows} row(s) have validation issues and will need manual review.`);
+    warnings.push(t("excelDatabaseUpload.warnings.validationIssues", { count: invalidRows }));
   }
-  warnings.push("Column headers have been auto-mapped to standard field names.");
+  warnings.push(t("excelDatabaseUpload.warnings.autoMapped"));
   if (fileName.toLowerCase().includes("old") || fileName.toLowerCase().includes("2024")) {
-    warnings.push(
-      "File appears to be from a previous reporting period. Please verify data currency.",
-    );
+    warnings.push(t("excelDatabaseUpload.warnings.oldFile"));
   }
 
   return {
@@ -371,6 +375,7 @@ function DatabaseUploader({
   config: DatabaseConfig;
   onUploadComplete: (dbType: DatabaseType, result: ExtractionResult) => void;
 }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<UploadStep>("upload");
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
   const [extractionProgress, setExtractionProgress] = useState(0);
@@ -378,26 +383,29 @@ function DatabaseUploader({
   const [expanded, setExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = useCallback((file: File) => {
-    const validTypes = [
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-excel",
-      "text/csv",
-    ];
-    const validExtensions = [".xlsx", ".xls", ".csv"];
-    const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      const validTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/csv",
+      ];
+      const validExtensions = [".xlsx", ".xls", ".csv"];
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
 
-    if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
-      toast.error("Unsupported file type. Please upload an Excel (.xlsx, .xls) or CSV file.");
-      return;
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 50 MB.");
-      return;
-    }
-    setSelectedFile(file);
-    toast.success(`File selected: ${file.name}`);
-  }, []);
+      if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
+        toast.error(t("excelDatabaseUpload.toastUnsupported"));
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(t("excelDatabaseUpload.toastTooLarge"));
+        return;
+      }
+      setSelectedFile(file);
+      toast.success(t("excelDatabaseUpload.toastSelected", { name: file.name }));
+    },
+    [t],
+  );
 
   const startExtraction = useCallback(() => {
     if (!selectedFile) return;
@@ -419,21 +427,29 @@ function DatabaseUploader({
     });
 
     setTimeout(() => {
-      const result = generateSimulatedExtraction(config, selectedFile.name);
+      const result = generateSimulatedExtraction(config, selectedFile.name, t);
       setExtractionResult(result);
       setStep("review");
-      toast.success(`Extracted ${result.totalRows} rows from ${config.name}`);
+      toast.success(
+        t("excelDatabaseUpload.toastExtracted", {
+          count: result.totalRows,
+          name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+        }),
+      );
     }, totalDelay + 400);
-  }, [selectedFile, config]);
+  }, [selectedFile, config, t]);
 
   const handleConfirm = useCallback(() => {
     if (!extractionResult) return;
     setStep("complete");
     onUploadComplete(config.id, extractionResult);
     toast.success(
-      `${config.name}: ${extractionResult.validRows} valid records ready for submission`,
+      t("excelDatabaseUpload.toastConfirmed", {
+        name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+        count: extractionResult.validRows,
+      }),
     );
-  }, [extractionResult, config, onUploadComplete]);
+  }, [extractionResult, config, onUploadComplete, t]);
 
   const handleReset = useCallback(() => {
     setStep("upload");
@@ -455,13 +471,17 @@ function DatabaseUploader({
           <Icon className="size-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">{config.name}</p>
-          <p className="text-xs text-muted-foreground">{config.description}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {t(`excelDatabaseUpload.configs.${config.id}.name`)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t(`excelDatabaseUpload.configs.${config.id}.description`)}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {step === "complete" && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-success/10 text-success">
-              <CheckCircle2 className="size-3" /> Ready
+              <CheckCircle2 className="size-3" /> {t("excelDatabaseUpload.statusReady")}
             </span>
           )}
           {expanded ? (
@@ -491,10 +511,12 @@ function DatabaseUploader({
                 />
                 <FileSpreadsheet className="size-6 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm font-semibold text-foreground">
-                  Drop your {config.name} Excel file here
+                  {t("excelDatabaseUpload.dropExcel", {
+                    name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+                  })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  .xlsx, .xls, or .csv — up to 50 MB
+                  {t("excelDatabaseUpload.fileSpec")}
                 </p>
               </div>
 
@@ -524,19 +546,23 @@ function DatabaseUploader({
                 className="w-full inline-flex justify-center items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Eye className="size-4" />
-                Extract & Validate Data
+                {t("excelDatabaseUpload.extractValidate")}
               </button>
 
               {/* Validation Rules */}
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  Validation Rules
+                  {t("excelDatabaseUpload.validationRulesTitle")}
                 </p>
                 <ul className="space-y-1">
                   {config.validationRules.map((rule, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                       <CheckCircle2 className="size-3 text-success shrink-0 mt-0.5" />
-                      <span>{rule}</span>
+                      <span>
+                        {t(`excelDatabaseUpload.validationRules.${config.id}.${i}`, {
+                          defaultValue: rule,
+                        })}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -549,9 +575,13 @@ function DatabaseUploader({
             <div className="py-6 flex flex-col items-center gap-4">
               <Loader2 className="size-8 text-primary animate-spin" />
               <div className="text-center">
-                <p className="text-sm font-bold text-foreground">Extracting {config.name}</p>
+                <p className="text-sm font-bold text-foreground">
+                  {t("excelDatabaseUpload.extractingName", {
+                    name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+                  })}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Parsing rows and validating data...
+                  {t("excelDatabaseUpload.parsingRows")}
                 </p>
               </div>
               <div className="w-full max-w-xs space-y-2">
@@ -568,17 +598,23 @@ function DatabaseUploader({
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 rounded-lg bg-success/5 border border-success/20 text-center">
                   <p className="text-lg font-bold text-foreground">{extractionResult.validRows}</p>
-                  <p className="text-[10px] text-muted-foreground">Valid Rows</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("excelDatabaseUpload.validRows")}
+                  </p>
                 </div>
                 <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-center">
                   <p className="text-lg font-bold text-foreground">
                     {extractionResult.invalidRows}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Need Review</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("excelDatabaseUpload.needReview")}
+                  </p>
                 </div>
                 <div className="p-3 rounded-lg bg-info/5 border border-info/20 text-center">
                   <p className="text-lg font-bold text-foreground">{extractionResult.totalRows}</p>
-                  <p className="text-[10px] text-muted-foreground">Total Rows</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("excelDatabaseUpload.totalRows")}
+                  </p>
                 </div>
               </div>
 
@@ -598,7 +634,9 @@ function DatabaseUploader({
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="px-3 py-2 bg-muted/60 border-b border-border">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Data Preview (first {extractionResult.previewData.length} rows)
+                    {t("excelDatabaseUpload.dataPreview", {
+                      count: extractionResult.previewData.length,
+                    })}
                   </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -610,7 +648,10 @@ function DatabaseUploader({
                             key={col}
                             className="px-2 py-1.5 text-left font-semibold text-muted-foreground whitespace-nowrap"
                           >
-                            {col}
+                            {t(
+                              `excelDatabaseUpload.columns.${col.replace(/[^a-zA-Z0-9]/g, "").replace(/^[A-Z]/, (c) => c.toLowerCase())}`,
+                              { defaultValue: col },
+                            )}
                           </th>
                         ))}
                         {config.columns.length > 6 && (
@@ -645,14 +686,14 @@ function DatabaseUploader({
                   className="flex-1 inline-flex justify-center items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                 >
                   <Trash2 className="size-3.5" />
-                  Discard
+                  {t("excelDatabaseUpload.discard")}
                 </button>
                 <button
                   onClick={handleConfirm}
                   className="flex-1 inline-flex justify-center items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   <Edit3 className="size-3.5" />
-                  Confirm & Submit
+                  {t("excelDatabaseUpload.confirmSubmit")}
                 </button>
               </div>
             </div>
@@ -663,16 +704,20 @@ function DatabaseUploader({
             <div className="flex flex-col items-center gap-3 py-4">
               <CheckCircle2 className="size-10 text-success" />
               <div className="text-center">
-                <p className="text-sm font-bold text-foreground">{config.name} Uploaded</p>
+                <p className="text-sm font-bold text-foreground">
+                  {t("excelDatabaseUpload.uploadedTitle", {
+                    name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+                  })}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {extractionResult.validRows} valid records ready for submission
+                  {t("excelDatabaseUpload.readyRecords", { count: extractionResult.validRows })}
                 </p>
               </div>
               <button
                 onClick={handleReset}
                 className="text-xs text-muted-foreground hover:text-foreground underline"
               >
-                Upload a different file
+                {t("excelDatabaseUpload.uploadDifferent")}
               </button>
             </div>
           )}
@@ -695,6 +740,7 @@ export function ExcelDatabaseUpload({
   onUploadComplete,
   onSubmitToApex,
 }: ExcelDatabaseUploadProps) {
+  const { t } = useTranslation();
   const [completedDbs, setCompletedDbs] = useState<Set<DatabaseType>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -717,8 +763,8 @@ export function ExcelDatabaseUpload({
       setIsSubmitted(true);
       const dbList = Array.from(completedDbs);
       onSubmitToApex?.(dbList);
-      toast.success("Submission sent to Apex for review", {
-        description: `${completedDbs.size} databases submitted successfully. You will be notified once the review is complete.`,
+      toast.success(t("excelDatabaseUpload.toastSentSuccess"), {
+        description: t("excelDatabaseUpload.toastSentDesc", { count: completedDbs.size }),
       });
     }, 1500);
   };
@@ -732,9 +778,14 @@ export function ExcelDatabaseUpload({
             <Database className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Database Upload Progress</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("excelDatabaseUpload.title")}
+            </p>
             <p className="text-xs text-muted-foreground">
-              {completedDbs.size} of {DATABASE_CONFIGS.length} databases uploaded
+              {t("excelDatabaseUpload.progress", {
+                count: completedDbs.size,
+                total: DATABASE_CONFIGS.length,
+              })}
             </p>
           </div>
         </div>
@@ -767,24 +818,25 @@ export function ExcelDatabaseUpload({
             <CheckCircle2 className="size-6 text-success shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-bold text-foreground">
-                All Databases Ready for Submission
+                {t("excelDatabaseUpload.allReady")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                All 5 databases have been uploaded and validated. You can now submit to your Apex
-                for review.
+                {t("excelDatabaseUpload.allReadyDesc")}
               </p>
             </div>
             <button
               onClick={handleSubmitToApex}
               disabled={isSubmitting}
-              className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <ArrowRight className="size-4" />
               )}
-              {isSubmitting ? "Submitting..." : "Submit to Apex"}
+              {isSubmitting
+                ? t("excelDatabaseUpload.submitting")
+                : t("excelDatabaseUpload.submitToApex")}
             </button>
           </div>
         </div>
@@ -796,10 +848,11 @@ export function ExcelDatabaseUpload({
           <div className="flex items-center gap-3">
             <CheckCircle2 className="size-6 text-success shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-bold text-foreground">Submission Sent to Apex</p>
+              <p className="text-sm font-bold text-foreground">
+                {t("excelDatabaseUpload.sentToApex")}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Your 5 databases have been submitted for review. You will be notified once the Apex
-                officer approves or requests changes.
+                {t("excelDatabaseUpload.sentToApexDesc")}
               </p>
             </div>
           </div>

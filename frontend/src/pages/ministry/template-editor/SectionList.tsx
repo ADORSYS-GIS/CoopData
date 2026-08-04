@@ -1,5 +1,6 @@
 import React from "react";
 import { Plus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { TemplateSection } from "@/pages/cooperative/QuestionnaireWizard";
 
 interface SectionListProps {
@@ -21,21 +22,24 @@ export const SectionList: React.FC<SectionListProps> = ({
   deleteSection,
   getEmoji,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-3 font-sans">
       <div className="flex items-center justify-between border-b border-border pb-2">
-        <h3 className="text-sm font-bold text-foreground">Form Sections</h3>
+        <h3 className="text-sm font-bold text-foreground">
+          {t("templateEditor.sectionList.title")}
+        </h3>
         <button
           onClick={addSection}
           className="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors cursor-pointer"
         >
-          <Plus className="size-3.5" /> Add Section
+          <Plus className="size-3.5" /> {t("templateEditor.sectionList.addSection")}
         </button>
       </div>
 
       {sections.length === 0 ? (
         <div className="py-6 text-center text-xs text-muted-foreground">
-          No sections defined. Click "Add Section" to begin.
+          {t("templateEditor.sectionList.noSections")}
         </div>
       ) : (
         <div className="flex flex-col gap-1.5 max-h-[400px] overflow-y-auto">
@@ -55,7 +59,9 @@ export const SectionList: React.FC<SectionListProps> = ({
                   <div className={`p-1.5 rounded-lg bg-muted text-base leading-none`}>
                     {getEmoji(sec.icon)}
                   </div>
-                  <span className="text-xs truncate">{sec.title || "(Untitled Section)"}</span>
+                  <span className="text-xs truncate">
+                    {sec.title || t("templateEditor.sectionList.untitledSection")}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -13,10 +13,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_USERS, type Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
+import { useTranslation } from "react-i18next";
 
 export const LoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<Role>("ministry");
   const [mounted, setMounted] = useState(false);
 
@@ -71,7 +73,7 @@ export const LoginPage: React.FC = () => {
         <Link to="/" className="flex items-center gap-3 relative z-10">
           <img
             src="/coopdatalogo.png"
-            alt="CoopData logo"
+            alt={t("common.logoAlt")}
             className="size-16 shrink-0 rounded-lg object-contain"
           />
         </Link>
@@ -83,18 +85,17 @@ export const LoginPage: React.FC = () => {
           </div>
           <div>
             <h2 className="font-heading text-3xl font-bold tracking-tight text-balance leading-snug">
-              Trusted access for every cooperative stakeholder.
+              {t("login.brandTitle")}
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-primary-foreground/70">
-              CoopData enforces role-based access and device verification for every ministry
-              official, federation officer, cooperative manager, and regional officer.
+              {t("login.brandBody")}
             </p>
           </div>
           <ul className="space-y-3">
             {[
-              "Role-specific dashboards and permissions",
-              "Secure data submission and validation",
-              "Full audit trail on every action",
+              t("login.featureRoleDashboards"),
+              t("login.featureSecureSubmission"),
+              t("login.featureAuditTrail"),
             ].map((item) => (
               <li
                 key={item}
@@ -108,7 +109,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <p className="text-[11px] text-primary-foreground/40 relative z-10">
-          © {new Date().getFullYear()} Ministry of Commerce & Cooperative Development
+          © {new Date().getFullYear()} {t("login.ministryName")}
         </p>
       </aside>
 
@@ -125,12 +126,12 @@ export const LoginPage: React.FC = () => {
             to="/"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1.5"
           >
-            ← Back to home
+            ← {t("login.backToHome")}
           </Link>
           <p className="text-xs text-muted-foreground">
-            Need access?{" "}
+            {t("login.needAccess")}{" "}
             <a href="#" className="font-semibold text-accent hover:underline">
-              Request invitation
+              {t("login.requestInvitation")}
             </a>
           </p>
         </div>
@@ -139,14 +140,12 @@ export const LoginPage: React.FC = () => {
         <div className="flex-1 flex flex-col justify-center px-6 py-10 lg:px-14 xl:px-20 max-w-3xl mx-auto w-full">
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent ring-1 ring-accent/20 mb-5">
-              <ShieldCheck className="size-3.5" /> Secure Platform
+              <ShieldCheck className="size-3.5" /> {t("login.securePlatform")}
             </div>
             <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-              Sign in to CoopData
+              {t("login.signInTitle")}
             </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Authenticate via your organization's identity provider.
-            </p>
+            <p className="mt-1.5 text-sm text-muted-foreground">{t("login.authenticateViaIdp")}</p>
           </div>
 
           {/* Keycloak Login Button */}
@@ -158,12 +157,12 @@ export const LoginPage: React.FC = () => {
             {isLoading ? (
               <>
                 <div className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                Connecting…
+                {t("login.connecting")}
               </>
             ) : (
               <>
                 <Lock className="size-4" />
-                Sign in with Keycloak
+                {t("login.signInKeycloak")}
                 <ArrowRight className="size-4" />
               </>
             )}
@@ -175,14 +174,14 @@ export const LoginPage: React.FC = () => {
               <div className="flex items-center gap-3 my-6">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Dev Mode
+                  {t("login.devMode")}
                 </span>
                 <div className="flex-1 h-px bg-border" />
               </div>
 
               <div className="space-y-2.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Quick Role Switch (Dev Only)
+                  {t("login.quickRoleSwitch")}
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   {ROLES.map((role) => {
@@ -210,10 +209,10 @@ export const LoginPage: React.FC = () => {
                         <p
                           className={`text-xs font-bold ${isSelected ? "text-accent" : "text-foreground"}`}
                         >
-                          {role.shortLabel}
+                          {t(`rolesShort.${role.id}`)}
                         </p>
                         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
-                          {role.description.split("—")[1]?.trim() || role.description}
+                          {t(`roles.${role.id}`)}
                         </p>
                       </button>
                     );
@@ -225,17 +224,19 @@ export const LoginPage: React.FC = () => {
                 <div className="p-5 flex flex-col justify-between gap-4">
                   <div className="bg-muted/60 rounded-lg p-3.5 text-xs leading-relaxed space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">Persona:</span>
+                      <span className="font-semibold text-foreground">{t("login.persona")}:</span>
                       <span className="text-muted-foreground">{activeUser.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">Access level:</span>
+                      <span className="font-semibold text-foreground">
+                        {t("login.accessLevel")}:
+                      </span>
                       <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
-                        {selectedRole.replace("_", " ")}
+                        {t(`roles.${selectedRole}`)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">Region:</span>
+                      <span className="font-semibold text-foreground">{t("login.region")}:</span>
                       <span className="text-muted-foreground">{activeUser.region}</span>
                     </div>
                   </div>
@@ -245,8 +246,7 @@ export const LoginPage: React.FC = () => {
           )}
 
           <p className="text-[11px] leading-relaxed text-muted-foreground text-center mt-6">
-            By signing in you acknowledge this is the official CoopData platform for the Ministry of
-            Commerce & Cooperative Development of Eswatini.
+            {t("login.acknowledgement")}
           </p>
         </div>
       </main>

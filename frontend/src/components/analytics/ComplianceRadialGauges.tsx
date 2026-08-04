@@ -1,4 +1,5 @@
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis, Tooltip } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface ComplianceRadialGaugesProps {
   carValue: number; // Capital Adequacy Ratio (%)
@@ -11,6 +12,7 @@ export function ComplianceRadialGauges({
   liquidityValue,
   nplValue,
 }: ComplianceRadialGaugesProps) {
+  const { t } = useTranslation();
   // Gauges:
   // CAR Target > 15%, Max 30% for dial
   // Liquidity Target > 20%, Max 100% for dial
@@ -18,7 +20,7 @@ export function ComplianceRadialGauges({
 
   const gauges = [
     {
-      name: "Capital Adequacy",
+      name: t("analytics.gaugeCapitalAdequacy"),
       value: Math.min(carValue, 30),
       fill:
         carValue >= 15
@@ -31,7 +33,7 @@ export function ComplianceRadialGauges({
       rawValue: carValue.toFixed(1) + "%",
     },
     {
-      name: "Liquidity",
+      name: t("analytics.gaugeLiquidity"),
       value: Math.min(liquidityValue, 100),
       fill: liquidityValue >= 20 ? "var(--success)" : "var(--destructive)",
       target: 20,
@@ -39,7 +41,7 @@ export function ComplianceRadialGauges({
       rawValue: liquidityValue.toFixed(1) + "%",
     },
     {
-      name: "Non-Performing Loans",
+      name: t("analytics.gaugeNonPerformingLoans"),
       value: Math.min(nplValue, 20),
       fill:
         nplValue <= 5 ? "var(--success)" : nplValue <= 10 ? "var(--warning)" : "var(--destructive)",
@@ -92,7 +94,8 @@ export function ComplianceRadialGauges({
                 {gauge.name}
               </span>
               <span className="text-[10px] text-muted-foreground">
-                Target: {gauge.name === "Non-Performing Loans" ? "<" : ">"}
+                {t("analytics.targetPrefix")}
+                {gauge.name === t("analytics.gaugeNonPerformingLoans") ? "<" : ">"}
                 {gauge.target}%
               </span>
             </div>

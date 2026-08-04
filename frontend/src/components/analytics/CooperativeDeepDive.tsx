@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { ComplianceRadialGauges } from "@/components/analytics/ComplianceRadialGauges";
 import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
@@ -32,6 +33,7 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
   reportingYear,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const { data: deepDiveKpis } = useCooperativeKpis(submissionId ?? undefined);
   const { data: deepDiveTrend } = useMonthlyTrend(
     { reportingYear, cooperativeId },
@@ -72,11 +74,12 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
       <div className="rounded-xl border border-primary/30 bg-primary/4 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
-            Cooperative Deep Dive
+            {t("analytics.deepDiveLabel")}
           </p>
           <h2 className="font-heading text-xl font-bold text-foreground">{cooperativeName}</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            {cooperativeType ?? "Unknown Type"} · {cooperativeRegion ?? "Unknown Region"}
+            {cooperativeType ?? t("analytics.unknownType")} ·{" "}
+            {cooperativeRegion ?? t("analytics.unknownRegion")}
           </p>
         </div>
         <button
@@ -84,15 +87,15 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
           className="press-feedback inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all"
         >
           <X className="size-3.5" />
-          Close Deep Dive
+          {t("analytics.closeDeepDive")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
-          title="Regulatory Compliance"
-          subtitle="CAR · Liquidity · NPL"
-          info="Monitors the cooperative's compliance with critical financial regulations. Capital Adequacy ensures sufficient equity against risk, Liquidity measures cash available for short-term obligations, and NPL tracks loan defaults."
+          title={t("analytics.deepDiveRegulatoryCompliance")}
+          subtitle={t("analytics.deepDiveComplianceSubtitle")}
+          info={t("analytics.deepDiveComplianceInfo")}
         >
           <ComplianceRadialGauges
             carValue={kpiMap["capital_adequacy_ratio"] ?? 0}
@@ -102,13 +105,13 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
         </Card>
         {trendPoints.length > 0 && (
           <Card
-            title="Financial Trend"
-            subtitle="12-month assets, loans & savings"
-            info="Visualizes the month-over-month trajectory of the cooperative's core financial balances."
+            title={t("analytics.deepDiveFinancialTrend")}
+            subtitle={t("analytics.deepDiveTrendSubtitle")}
+            info={t("analytics.deepDiveTrendInfo")}
           >
             {isDeepDiveTrendEmpty ? (
               <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">
-                No historical trend data available yet
+                {t("analytics.noHistoricalTrendData")}
               </div>
             ) : (
               <CoopTrendAreaChart data={trendPoints} />
@@ -120,9 +123,9 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {deepDiveKpis && (
           <Card
-            title="Loan Provisioning Gap"
-            subtitle="Unprotected at-risk capital visualization"
-            info="A waterfall breakdown of the gross loan portfolio, highlighting 'At-Risk Capital' by subtracting loan loss provisions from non-performing loans, showing potential unprotected losses."
+            title={t("analytics.deepDiveLoanProvisioningGap")}
+            subtitle={t("analytics.deepDiveProvisioningSubtitle")}
+            info={t("analytics.deepDiveProvisioningInfo")}
           >
             <LoanProvisioningWaterfall
               glp={kpiMap["gross_loan_portfolio"] ?? 0}
@@ -133,8 +136,8 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
         )}
         {deepDiveNf && (
           <Card
-            title="Membership Demographics"
-            info="Visualizes the demographic makeup of the member base, including gender ratios and the proportion of active versus dormant accounts."
+            title={t("analytics.deepDiveMembershipDemographics")}
+            info={t("analytics.deepDiveMembershipInfo")}
           >
             <GenderStatusDoughnuts data={deepDiveNf.membership} />
           </Card>
@@ -144,27 +147,27 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {deepDiveNf && (
           <Card
-            title="Liquidity Risk"
-            subtitle="Term deposit concentration"
-            info="Assesses liquidity risk by examining the concentration of fixed (term) deposits. High concentration in a few accounts or short-term maturities can pose withdrawal risks."
+            title={t("analytics.deepDiveLiquidityRisk")}
+            subtitle={t("analytics.deepDiveLiquiditySubtitle")}
+            info={t("analytics.deepDiveLiquidityInfo")}
           >
             <DepositConcentrationGauge stats={deepDiveNf.fixed_deposits} />
           </Card>
         )}
         {deepDiveNf && (
           <Card
-            title="Democratic Engagement"
-            subtitle="Member governance participation"
-            info="Measures the democratic health of the cooperative by tracking member participation in governance activities, such as voting in the Annual General Meeting (AGM)."
+            title={t("analytics.deepDiveDemocraticEngagement")}
+            subtitle={t("analytics.deepDiveEngagementSubtitle")}
+            info={t("analytics.deepDiveEngagementInfo")}
           >
             <GovernanceFunnel stats={deepDiveNf.membership} />
           </Card>
         )}
         {deepDiveNf && (
           <Card
-            title="Financial Inclusion"
-            subtitle="Credit access for target demographics"
-            info="Tracks the distribution of credit access across key demographics (e.g., Women, Youth) to ensure the cooperative is fulfilling its inclusive mandate."
+            title={t("analytics.deepDiveFinancialInclusion")}
+            subtitle={t("analytics.deepDiveInclusionSubtitle")}
+            info={t("analytics.deepDiveInclusionInfo")}
           >
             <FinancialInclusionBar stats={deepDiveNf.loans} />
           </Card>
@@ -173,9 +176,9 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
 
       {deepDiveNf && deepDiveNf.farm_coop.total_coops > 0 && (
         <Card
-          title="Agricultural Resilience"
-          subtitle="Physical and operational infrastructure scores"
-          info="A radar analysis evaluating the cooperative's agricultural infrastructure, including storage capacity, processing facilities, and mechanization levels."
+          title={t("analytics.deepDiveAgriculturalResilience")}
+          subtitle={t("analytics.deepDiveAgriSubtitle")}
+          info={t("analytics.deepDiveAgriInfo")}
         >
           <AgriResilienceRadar stats={deepDiveNf.farm_coop} />
         </Card>

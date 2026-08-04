@@ -12,24 +12,29 @@ import {
 } from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+import { useTranslation } from "react-i18next";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface FederationSectorSheetProps {
   federationName: string;
   year: number;
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
   federationName,
   year,
   data,
+  narratives,
 }) => {
+  const { t } = useTranslation();
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
   // Group by Sector
   const sectorGroups: Record<string, CoopKpiRow[]> = {};
   cooperatives.forEach((c) => {
-    const s = c.sector || "Uncategorized";
+    const s = c.sector || t("printReports.uncategorized");
     if (!sectorGroups[s]) sectorGroups[s] = [];
     sectorGroups[s].push(c);
   });
@@ -81,11 +86,13 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
       {/* Header */}
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Sector Breakdown</h1>
+          <h1 className="text-3xl font-bold text-slate-900">{t("printReports.sectorBreakdown")}</h1>
           <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
+          <p className="text-lg font-semibold text-slate-700">
+            {t("printReports.period", { year })}
+          </p>
           <p className="text-sm text-slate-500"></p>
         </div>
       </div>
@@ -94,7 +101,7 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
         {/* Chart */}
         <div className="border border-slate-300 p-6 rounded-lg bg-white shrink-0">
           <h3 className="text-xl font-bold text-slate-800 text-center mb-6">
-            Filing Rate by Sector (%)
+            {t("printReports.filingRateBySector")}
           </h3>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -104,7 +111,7 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
                 <YAxis
                   domain={[0, 100]}
                   label={{
-                    value: "Filing Rate (%)",
+                    value: t("printReports.filingRatePct"),
                     angle: -90,
                     position: "insideLeft",
                     offset: 15,
@@ -137,12 +144,24 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900 w-1/4">Type</th>
-                <th className="p-3 text-right border border-slate-900">Coops</th>
-                <th className="p-3 text-right border border-slate-900">Filing%</th>
-                <th className="p-3 text-right border border-slate-900">Avg PAR30</th>
-                <th className="p-3 text-right border border-slate-900">Avg CAR</th>
-                <th className="p-3 text-right border border-slate-900">Avg ROA</th>
+                <th className="p-3 text-left border border-slate-900 w-1/4">
+                  {t("printReports.headers.type")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.coops")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.filingPct")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.avgPar30")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.avgCar")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.avgRoa")}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -199,17 +218,20 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
         </div>
 
         {/* Narrative */}
-        <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-900 text-sm leading-relaxed">
-          The federation's total assets for the reported period are{" "}
-          <strong>E {totalAssets.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>.
-          Filing rates stand at <strong>{totalFilingPct.toFixed(1)}%</strong> across{" "}
-          {cooperatives.length} member cooperatives.
-          <br />
-          <em>
-            Note: This automated summary is generated based on current period data only. Detailed
-            prior-year comparisons are provided in the Executive Dashboard.
-          </em>
-        </div>
+        <AiInsightBox
+          title="Sector Composition — AI Insight"
+          content={narratives}
+          fallbackContent={
+            <>
+              The federation's total assets for the reported period are{" "}
+              <strong>
+                E {totalAssets.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </strong>
+              . Filing rates stand at <strong>{totalFilingPct.toFixed(1)}%</strong> across{" "}
+              {cooperatives.length} member cooperatives.
+            </>
+          }
+        />
       </div>
     </div>
   );

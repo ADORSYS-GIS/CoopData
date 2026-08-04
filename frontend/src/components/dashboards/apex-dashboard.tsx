@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useApexStats, useApexSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // APEX DASHBOARD
@@ -25,6 +26,7 @@ import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 // Has dashboard, analytics, consolidated/individual reports
 // ─────────────────────────────────────────────────────────────────────
 export function ApexDashboard() {
+  const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "verified" | "rejected">(
     "all",
   );
@@ -55,20 +57,20 @@ export function ApexDashboard() {
 
   const statusLabel = (status: string): string => {
     const labels: Record<string, string> = {
-      draft: "Draft",
-      submitted: "Submitted",
-      in_review: "In Review",
-      approved: "Approved",
-      rejected: "Rejected",
-      returned: "Returned",
+      draft: t("dashboard.status.draft"),
+      submitted: t("dashboard.status.submitted"),
+      in_review: t("dashboard.status.inReview"),
+      approved: t("dashboard.status.approved"),
+      rejected: t("dashboard.status.rejected"),
+      returned: t("dashboard.status.changesRequested"),
     };
     return labels[status] ?? status;
   };
 
   return (
     <AppShell
-      title="Apex Supervision Workspace"
-      subtitle="Review cooperative submissions, manage cooperatives & validate data"
+      title={t("dashboard.apex.title")}
+      subtitle={t("dashboard.apex.subtitle")}
       actions={
         <div className="hidden sm:flex items-center gap-2">
           <Link
@@ -76,14 +78,14 @@ export function ApexDashboard() {
             className="press-feedback inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
           >
             <BarChart3 className="size-4 text-accent" />
-            View all statistics
+            {t("dashboard.apex.viewAllStats")}
           </Link>
           <button
-            onClick={() => toast.success("Exporting consolidated report...")}
+            onClick={() => toast.success(t("dashboard.apex.exportingReport"))}
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted"
           >
             <Download className="size-4" />
-            Export Report
+            {t("dashboard.apex.exportReport")}
           </button>
         </div>
       }
@@ -104,30 +106,30 @@ export function ApexDashboard() {
           ) : (
             <>
               <StatCard
-                label="Cooperatives Under Apex"
+                label={t("dashboard.apex.coopsUnderApex")}
                 value={totalCoops.toString()}
-                subtitle="Active in your zones"
+                subtitle={t("dashboard.apex.activeInZones")}
                 icon={Building2}
                 tone="accent"
               />
               <StatCard
-                label="Pending Review"
+                label={t("dashboard.apex.pendingReview")}
                 value={pendingCount.toString()}
-                subtitle="Awaiting your action"
+                subtitle={t("dashboard.apex.awaitingAction")}
                 icon={Clock}
                 tone="warning"
               />
               <StatCard
-                label="Approved & Forwarded"
+                label={t("dashboard.apex.approvedForwarded")}
                 value={verifiedCount.toString()}
-                subtitle="Sent to Federation"
+                subtitle={t("dashboard.apex.sentToFederation")}
                 icon={CheckCircle2}
                 tone="success"
               />
               <StatCard
-                label="Rejected / Needs Changes"
+                label={t("dashboard.apex.rejectedChanges")}
                 value={rejectedCount.toString()}
-                subtitle="Requires intervention"
+                subtitle={t("dashboard.apex.requiresIntervention")}
                 icon={XCircle}
                 tone="danger"
               />
@@ -137,8 +139,8 @@ export function ApexDashboard() {
 
         {/* Submission Review Queue */}
         <Card
-          title="Submission Review Queue"
-          subtitle="Review cooperative submissions — approve to forward to Federation, or request changes"
+          title={t("dashboard.apex.reviewQueue")}
+          subtitle={t("dashboard.apex.reviewQueueSub")}
           action={
             <div className="flex items-center gap-2">
               <Filter className="size-3.5 text-muted-foreground" />
@@ -147,10 +149,10 @@ export function ApexDashboard() {
                 onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
                 className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-ring"
               >
-                <option value="all">All Status</option>
-                <option value="pending">Pending Review</option>
-                <option value="verified">Approved</option>
-                <option value="rejected">Rejected/Changes</option>
+                <option value="all">{t("dashboard.apex.allStatus")}</option>
+                <option value="pending">{t("dashboard.apex.pendingReviewOption")}</option>
+                <option value="verified">{t("dashboard.apex.approvedOption")}</option>
+                <option value="rejected">{t("dashboard.apex.rejectedChangesOption")}</option>
               </select>
             </div>
           }
@@ -178,8 +180,8 @@ export function ApexDashboard() {
           ) : filteredSubmissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
               <CheckCircle2 className="size-10 mb-3 text-success" />
-              <p className="text-sm font-semibold">No submissions match this filter</p>
-              <p className="text-xs mt-1">Try changing the filter or check back later.</p>
+              <p className="text-sm font-semibold">{t("dashboard.apex.noMatchFilter")}</p>
+              <p className="text-xs mt-1">{t("dashboard.apex.noMatchFilterSub")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -208,39 +210,41 @@ export function ApexDashboard() {
                     <p className="text-xs text-muted-foreground">
                       {sub.submitted_at
                         ? new Date(sub.submitted_at).toLocaleDateString()
-                        : "Not submitted"}
+                        : t("dashboard.apex.notSubmitted")}
                     </p>
                   </div>
 
                   {sub.status === "submitted" && (
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1">
-                        <CheckCircle2 className="size-3.5" /> Review
+                        <CheckCircle2 className="size-3.5" /> {t("dashboard.apex.reviewBtn")}
                       </div>
                     </div>
                   )}
 
                   {sub.status === "in_review" && (
                     <div className="flex items-center gap-1.5 text-xs text-success font-semibold">
-                      <TrendingUp className="size-3.5" /> Forwarded to Federation
+                      <TrendingUp className="size-3.5" />{" "}
+                      {t("dashboard.apex.forwardedToFederation")}
                     </div>
                   )}
 
                   {sub.status === "approved" && (
                     <div className="flex items-center gap-1.5 text-xs text-success font-semibold">
-                      <CheckCircle2 className="size-3.5" /> Approved
+                      <CheckCircle2 className="size-3.5" /> {t("dashboard.apex.approvedLabel")}
                     </div>
                   )}
 
                   {sub.status === "rejected" && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold">
-                      <AlertTriangle className="size-3.5" /> Rejected
+                      <AlertTriangle className="size-3.5" /> {t("dashboard.apex.rejectedLabel")}
                     </div>
                   )}
 
                   {sub.status === "returned" && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold">
-                      <AlertTriangle className="size-3.5" /> Changes Requested
+                      <AlertTriangle className="size-3.5" />{" "}
+                      {t("dashboard.apex.changesRequestedLabel")}
                     </div>
                   )}
                 </Link>
@@ -251,14 +255,14 @@ export function ApexDashboard() {
 
         {/* Cooperatives Under Management */}
         <Card
-          title="Cooperatives Under Management"
-          subtitle="All cooperatives registered under this Apex organization"
+          title={t("dashboard.apex.coopsUnderMgt")}
+          subtitle={t("dashboard.apex.coopsUnderMgtSub")}
           action={
             <Link
               to="/app/cooperatives"
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              + Add Cooperative
+              {t("dashboard.apex.addCoop")}
             </Link>
           }
         >
@@ -266,10 +270,10 @@ export function ApexDashboard() {
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-y border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  <th className="px-5 py-3">Cooperative</th>
-                  <th className="px-5 py-3">Institution Type</th>
-                  <th className="px-5 py-3">Region</th>
-                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">{t("dashboard.apex.colCooperative")}</th>
+                  <th className="px-5 py-3">{t("dashboard.apex.colInstitutionType")}</th>
+                  <th className="px-5 py-3">{t("dashboard.apex.colRegion")}</th>
+                  <th className="px-5 py-3">{t("dashboard.apex.colStatus")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -282,15 +286,17 @@ export function ApexDashboard() {
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">{coop.region ?? "—"}</td>
                       <td className="px-5 py-3">
-                        <span className="text-xs font-semibold text-success">Active</span>
+                        <span className="text-xs font-semibold text-success">
+                          {t("dashboard.apex.statusActive")}
+                        </span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      <p className="text-sm font-semibold">No cooperatives yet</p>
-                      <p className="text-xs mt-1">Add a cooperative to get started.</p>
+                      <p className="text-sm font-semibold">{t("dashboard.apex.noCooperatives")}</p>
+                      <p className="text-xs mt-1">{t("dashboard.apex.noCooperativesSub")}</p>
                     </td>
                   </tr>
                 )}
@@ -301,7 +307,10 @@ export function ApexDashboard() {
 
         {/* ── Summary Stats (real data) ── */}
         <div className="grid md:grid-cols-3 gap-4">
-          <Card title="Approval Rate" subtitle="Approved vs total submissions">
+          <Card
+            title={t("dashboard.apex.approvalRate")}
+            subtitle={t("dashboard.apex.approvalRateSub")}
+          >
             <div className="flex items-center gap-4 pt-2">
               <div className="text-4xl font-bold text-success num">
                 {realSubmissions.length > 0
@@ -310,27 +319,37 @@ export function ApexDashboard() {
               </div>
               <div className="text-xs text-muted-foreground">
                 <p>
-                  {verifiedCount} of {realSubmissions.length} submissions approved
+                  {verifiedCount} {t("dashboard.apex.submissionsApprovedSub")}
                 </p>
-                <p className="mt-1">{pendingCount} still pending review</p>
+                <p className="mt-1">
+                  {pendingCount} {t("dashboard.apex.stillPendingReviewSub")}
+                </p>
               </div>
             </div>
           </Card>
-          <Card title="Submissions" subtitle="All data returns received">
+          <Card
+            title={t("dashboard.apex.submissionsCardTitle")}
+            subtitle={t("dashboard.apex.submissionsCardSub")}
+          >
             <div className="flex items-center gap-4 pt-2">
               <div className="text-4xl font-bold text-accent num">{realSubmissions.length}</div>
               <div className="text-xs text-muted-foreground">
-                <p>Total submissions processed</p>
-                <p className="mt-1">{rejectedCount} rejected or returned</p>
+                <p>{t("dashboard.apex.totalSubmissionsProcessed")}</p>
+                <p className="mt-1">
+                  {rejectedCount} {t("dashboard.apex.rejectedOrReturnedSub")}
+                </p>
               </div>
             </div>
           </Card>
-          <Card title="Cooperatives" subtitle="Under this apex">
+          <Card
+            title={t("dashboard.apex.cooperativesCardTitle")}
+            subtitle={t("dashboard.apex.cooperativesCardSub")}
+          >
             <div className="flex items-center gap-4 pt-2">
               <div className="text-4xl font-bold num">{totalCoops}</div>
               <div className="text-xs text-muted-foreground">
-                <p>Registered cooperatives</p>
-                <p className="mt-1">Analytics available in Analytics tab</p>
+                <p>{t("dashboard.apex.registeredCooperatives")}</p>
+                <p className="mt-1">{t("dashboard.apex.analyticsAvailable")}</p>
               </div>
             </div>
           </Card>

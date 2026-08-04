@@ -1,4 +1,5 @@
 import { TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { LoanRow } from "./LoanRow";
 import type { WizardLoan } from "./types";
@@ -12,28 +13,28 @@ interface LoansStepProps {
 }
 
 export function LoansStep({ loans, addLoan, memberIds, updateLoan, removeLoan }: LoansStepProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className="overflow-hidden font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Loan Book</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Record active loans and classification categories.
-          </p>
+          <h3 className="text-sm font-bold text-foreground">{t("loansStep.title")}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("loansStep.desc")}</p>
         </div>
         <button
           onClick={addLoan}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          + Add Loan Record
+          {t("loansStep.addBtn")}
         </button>
       </div>
 
       {loans.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <TrendingUp className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">No loans recorded yet</p>
-          <p className="text-xs mt-1">Click "+ Add Loan Record" to begin entering loans</p>
+          <p className="text-sm font-medium">{t("loansStep.emptyTitle")}</p>
+          <p className="text-xs mt-1">{t("loansStep.emptyDesc")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -44,67 +45,37 @@ export function LoansStep({ loans, addLoan, memberIds, updateLoan, removeLoan }:
                   #
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Member ID
+                  {t("loansStep.tableHeaders.memberId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Loan ID
+                  {t("loansStep.tableHeaders.loanId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
-                  Product Type
+                  {t("loansStep.tableHeaders.productType")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Start Date
+                  {t("loansStep.tableHeaders.startDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Maturity Date
+                  {t("loansStep.tableHeaders.maturityDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Status
+                  {t("loansStep.tableHeaders.status")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Borrower Type
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Youth
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Women
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Rural
+                  {t("loansStep.tableHeaders.borrowerType")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Repayment
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  DPD Category
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                  Missed Insts
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Restructured
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                  Restruct Count
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Early Settle
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Multi Loans
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
-                  Large Borrow
+                  {t("loansStep.tableHeaders.dpdCategory")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                  Interest Rate
+                  {t("loansStep.tableHeaders.interestRate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Loan Amount
+                  {t("loansStep.tableHeaders.loanAmount")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Balance
+                  {t("loansStep.tableHeaders.balance")}
                 </th>
                 <th className="px-2 py-2 w-8" />
               </tr>
@@ -126,11 +97,9 @@ export function LoansStep({ loans, addLoan, memberIds, updateLoan, removeLoan }:
       )}
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-        <span>
-          {loans.length} loan{loans.length !== 1 ? "s" : ""}
-        </span>
+        <span>{t("loansStep.rowCount", { count: loans.length })}</span>
         <button onClick={addLoan} className="text-primary hover:underline font-medium">
-          + Add another loan record
+          {t("loansStep.addAnother")}
         </button>
       </div>
     </Card>

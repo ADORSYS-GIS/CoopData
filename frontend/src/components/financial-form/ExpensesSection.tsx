@@ -1,5 +1,6 @@
 import type { FinancialExpenses, OperatingExpenses } from "@/lib/financial-data";
 import { DollarSign, Calculator } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ExpensesSectionProps {
   financialExpenses: FinancialExpenses;
@@ -24,6 +25,7 @@ export function ExpensesSection({
   onChange,
   totals,
 }: ExpensesSectionProps) {
+  const { t } = useTranslation();
   const formatNumber = (n: number) => n.toLocaleString();
 
   const handleNumberInput = (
@@ -43,12 +45,12 @@ export function ExpensesSection({
           <span className="size-6 rounded-lg bg-destructive/10 text-destructive grid place-items-center text-xs font-bold">
             5100
           </span>
-          Financial Expenses
+          {t("financial.financialExpenses")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Interest Expense on Deposits (5101)
+              {t("financial.interestExpenseDeposits")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -65,7 +67,7 @@ export function ExpensesSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Interest Expense on Borrowings (5102)
+              {t("financial.interestExpenseBorrowings")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -87,7 +89,7 @@ export function ExpensesSection({
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <Calculator className="size-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Total Financial Expenses:</span>
+          <span className="text-muted-foreground">{t("financial.totalFinancialExpenses")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalFinancialExpenses)}
           </span>
@@ -100,12 +102,12 @@ export function ExpensesSection({
           <span className="size-6 rounded-lg bg-warning/15 text-warning-foreground grid place-items-center text-xs font-bold">
             5200
           </span>
-          Operating Expenses
+          {t("financial.operatingExpenses")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Personnel Costs (5201)
+              {t("financial.personnelCosts")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -122,7 +124,7 @@ export function ExpensesSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Administrative Expenses (5202)
+              {t("financial.administrativeExpenses")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -139,7 +141,7 @@ export function ExpensesSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Governance Expenses (5203)
+              {t("financial.governanceExpenses")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -156,7 +158,7 @@ export function ExpensesSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Depreciation & Amortization (5204)
+              {t("financial.depreciationAmortization")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -173,7 +175,7 @@ export function ExpensesSection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Operating Expenses:</span>
+          <span className="text-muted-foreground">{t("financial.totalOperatingExpenses")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalOperatingExpenses)}
           </span>
@@ -186,12 +188,12 @@ export function ExpensesSection({
           <span className="size-6 rounded-lg bg-accent/10 text-accent grid place-items-center text-xs font-bold">
             5300
           </span>
-          Credit Loss Expense
+          {t("financial.creditLossExpense")}
         </h4>
         <div className="grid grid-cols-1 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Loan Loss Provision Expense (5301)
+              {t("financial.loanLossProvisionExpense")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -216,7 +218,7 @@ export function ExpensesSection({
           <span className="size-8 rounded-lg bg-destructive text-destructive-foreground grid place-items-center text-sm font-bold">
             5999
           </span>
-          <span className="font-semibold text-foreground">TOTAL EXPENSES</span>
+          <span className="font-semibold text-foreground">{t("financial.totalExpenses")}</span>
         </div>
         <span className="text-xl font-bold text-destructive">
           ${formatNumber(totals.totalExpenses)}

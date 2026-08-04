@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { UnauthorizedPage } from "@/components/UnauthorizedPage";
+import { useTranslation } from "react-i18next";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,13 +13,14 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
-          <p className="text-sm text-muted-foreground">Verifying credentials…</p>
+          <p className="text-sm text-muted-foreground">{t("common.verifyingCredentials")}</p>
         </div>
       </div>
     );

@@ -3,7 +3,9 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::enums::{AccountingYear, CoopStatus, CooperativeType, EswatiniRegion, UrbanRural};
+use super::enums::{
+    AccountingYear, CoopStatus, CooperativeSector, CooperativeType, EswatiniRegion, UrbanRural,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "cooperatives")]
@@ -40,7 +42,7 @@ pub struct Model {
     #[sea_orm(nullable)]
     pub phone: Option<String>,
     #[sea_orm(nullable)]
-    pub sector: Option<String>,
+    pub sector: Option<CooperativeSector>,
     #[sea_orm(nullable)]
     pub responsible_financial: Option<Uuid>,
     #[sea_orm(nullable)]

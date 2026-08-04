@@ -6,6 +6,7 @@ import {
   ConsolidatedRiskWatchSheet,
 } from "./components";
 import type { NationalOverviewResponse } from "./components";
+import type { ApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 interface ConsolidatedReportPrintProps {
   tier: "Apex" | "Federation" | "Ministry";
@@ -13,6 +14,7 @@ interface ConsolidatedReportPrintProps {
   year: number;
   data: NationalOverviewResponse;
   priorData?: NationalOverviewResponse;
+  narratives?: ApexNarratives | null;
 }
 
 export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = ({
@@ -21,6 +23,7 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
   year,
   data,
   priorData,
+  narratives,
 }) => {
   const { total_cooperatives, cooperatives_with_data } = data;
 
@@ -32,7 +35,7 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
   }, []);
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:w-[210mm]">
+    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
       <ConsolidatedCoverPage
         tier={tier}
         entityName={entityName}
@@ -47,12 +50,14 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
         year={year}
         data={data}
         priorData={priorData}
+        narratives={narratives?.executive_dashboard}
+        riskNarratives={narratives?.risk_distribution}
       />
 
       {tier === "Apex" && (
         <>
           <ConsolidatedCoopDetailSheet data={data} />
-          <ConsolidatedRiskWatchSheet data={data} />
+          <ConsolidatedRiskWatchSheet data={data} narratives={narratives?.risk_watch} />
         </>
       )}
     </div>

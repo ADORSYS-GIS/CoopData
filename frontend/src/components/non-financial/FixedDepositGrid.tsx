@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
-import { createFixedDepositColumns } from "./FixedDepositColumns";
+import { useFixedDepositColumns } from "./FixedDepositColumns";
 import type { FixedDepositResponse } from "@/types/non-financial";
+import { useTranslation } from "react-i18next";
 
 interface FixedDepositGridProps {
   fixedDeposits: FixedDepositResponse[];
@@ -21,7 +22,8 @@ export function FixedDepositGrid({
   onEdit,
   onDelete,
 }: FixedDepositGridProps) {
-  const columns = createFixedDepositColumns(
+  const { t } = useTranslation();
+  const columns = useFixedDepositColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
   );
 
@@ -31,7 +33,7 @@ export function FixedDepositGrid({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
-          Fixed Deposits
+          {t("nf.fixedDeposits")}
           <Badge variant="secondary">{fixedDeposits.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -40,7 +42,7 @@ export function FixedDepositGrid({
           columns={columns}
           data={fixedDeposits}
           isLoading={isLoading}
-          emptyMessage="No fixed deposits found. Upload an Excel file or add one manually."
+          emptyMessage={t("nf.emptyFixedDeposits")}
           pageSize={10}
           getRowClassName={(row) =>
             errorSet.has((row as FixedDepositResponse).id) ? "bg-destructive/5" : undefined

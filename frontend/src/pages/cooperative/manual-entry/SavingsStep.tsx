@@ -1,4 +1,5 @@
 import { DollarSign } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { SavingsRow } from "./SavingsRow";
 import type { WizardSavings } from "./types";
@@ -18,30 +19,28 @@ export function SavingsStep({
   updateSavings,
   removeSavings,
 }: SavingsStepProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className="overflow-hidden font-sans">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Savings Ledger</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Record savings accounts for entered members. All fields are optional except Member ID.
-          </p>
+          <h3 className="text-sm font-bold text-foreground">{t("savingsStep.title")}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("savingsStep.desc")}</p>
         </div>
         <button
           onClick={addSavings}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          + Add Savings Record
+          {t("savingsStep.addBtn")}
         </button>
       </div>
 
       {savings.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <DollarSign className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">No savings accounts yet</p>
-          <p className="text-xs mt-1">
-            Click "+ Add Savings Record" to begin entering savings accounts
-          </p>
+          <p className="text-sm font-medium">{t("savingsStep.emptyTitle")}</p>
+          <p className="text-xs mt-1">{t("savingsStep.emptyDesc")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -52,37 +51,37 @@ export function SavingsStep({
                   #
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Member ID
+                  {t("savingsStep.tableHeaders.memberId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Account ID
+                  {t("savingsStep.tableHeaders.accountId")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Type
+                  {t("savingsStep.tableHeaders.type")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Open Date
+                  {t("savingsStep.tableHeaders.openDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                  Status
+                  {t("savingsStep.tableHeaders.status")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Frequency
+                  {t("savingsStep.tableHeaders.frequency")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-36">
-                  Last Contrib Date
+                  {t("savingsStep.tableHeaders.lastContribDate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-20">
-                  Contribs Count
+                  {t("savingsStep.tableHeaders.contribsCount")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                  Trend
+                  {t("savingsStep.tableHeaders.trend")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-24">
-                  Interest Rate
+                  {t("savingsStep.tableHeaders.interestRate")}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-28">
-                  Balance
+                  {t("savingsStep.tableHeaders.balance")}
                 </th>
                 <th className="px-2 py-2 w-8" />
               </tr>
@@ -104,11 +103,9 @@ export function SavingsStep({
       )}
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-        <span>
-          {savings.length} savings account{savings.length !== 1 ? "s" : ""}
-        </span>
+        <span>{t("savingsStep.rowCount", { count: savings.length })}</span>
         <button onClick={addSavings} className="text-primary hover:underline font-medium">
-          + Add another savings record
+          {t("savingsStep.addAnother")}
         </button>
       </div>
     </Card>

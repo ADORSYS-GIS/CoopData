@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { TemplateSection } from "@/pages/cooperative/QuestionnaireWizard";
 
 interface SectionMetadataFormProps {
@@ -14,10 +15,13 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
   updateSectionMeta,
   availableEmojis,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-border pb-4 font-sans">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold text-muted-foreground uppercase">Section Title</label>
+        <label className="text-xs font-bold text-muted-foreground uppercase">
+          {t("templateEditor.sectionMeta.title")}
+        </label>
         <input
           type="text"
           value={activeSection.title}
@@ -28,7 +32,9 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-muted-foreground uppercase">Icon</label>
+          <label className="text-xs font-bold text-muted-foreground uppercase">
+            {t("templateEditor.sectionMeta.icon")}
+          </label>
           <select
             value={activeSection.icon}
             onChange={(e) => updateSectionMeta(selectedSectionIndex, "icon", e.target.value)}
@@ -42,7 +48,9 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
           </select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-muted-foreground uppercase">Section ID</label>
+          <label className="text-xs font-bold text-muted-foreground uppercase">
+            {t("templateEditor.sectionMeta.sectionId")}
+          </label>
           <span className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs font-mono text-muted-foreground flex items-center min-h-[38px]">
             {activeSection.id}
           </span>
@@ -51,13 +59,13 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
 
       <div className="sm:col-span-2 flex flex-col gap-1.5">
         <label className="text-xs font-bold text-muted-foreground uppercase">
-          Description / Instruction
+          {t("templateEditor.sectionMeta.descInstruction")}
         </label>
         <input
           type="text"
           value={activeSection.description || ""}
           onChange={(e) => updateSectionMeta(selectedSectionIndex, "description", e.target.value)}
-          placeholder="Brief guide for the cooperative filling this section..."
+          placeholder={t("templateEditor.sectionMeta.placeholderDesc")}
           className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>

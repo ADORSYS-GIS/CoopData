@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { WizardMember } from "./types";
 import type { MemberRecord } from "@/lib/financial-data";
 
@@ -10,17 +11,23 @@ interface MemberRowProps {
 }
 
 export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
+  const { t } = useTranslation();
+
   const sel = (field: keyof MemberRecord, options: string[]) => (
     <select
       className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-foreground"
       value={member[field] as string}
       onChange={(e) => onUpdate(member._rowKey, field, e.target.value)}
     >
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
+      {options.map((o) => {
+        const groupName =
+          field === "ageGroup" ? "ageGroups" : field === "urbanRural" ? "urbanRural" : field + "s";
+        return (
+          <option key={o} value={o}>
+            {t(`memberRow.${groupName}.${o}`)}
+          </option>
+        );
+      })}
     </select>
   );
 
@@ -30,7 +37,7 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
       <td className="px-2 py-2">
         <input
           className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono"
-          placeholder="MEM-001"
+          placeholder={t("manualEntry.placeholderMemberId")}
           value={member.memberId}
           onChange={(e) => onUpdate(member._rowKey, "memberId", e.target.value)}
         />
@@ -68,7 +75,7 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
         <button
           onClick={() => onRemove(member._rowKey)}
           className="size-7 rounded-lg grid place-items-center text-danger hover:bg-danger/10 transition-colors text-sm"
-          aria-label="Remove member"
+          aria-label={t("memberRow.removeMember")}
         >
           <Trash2 className="size-3.5" />
         </button>

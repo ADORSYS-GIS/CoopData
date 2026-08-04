@@ -10,6 +10,7 @@ import {
   Clock,
   XCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useApexStats } from "@/hooks/submissions/useSubmissions";
@@ -17,6 +18,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 
 export const ApexDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: cooperativesData, isLoading: coopLoading, error } = useCooperatives();
   const { data: stats, isLoading: statsLoading } = useApexStats();
@@ -28,7 +30,7 @@ export const ApexDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <AppShell title="Apex Dashboard" subtitle="Your apex overview">
+      <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.subtitle")}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -38,10 +40,10 @@ export const ApexDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <AppShell title="Apex Dashboard" subtitle="Your apex overview">
+      <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.subtitle")}>
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <AlertCircle className="size-8 mb-2 text-destructive" />
-          <p className="font-semibold text-sm">Failed to load dashboard</p>
+          <p className="font-semibold text-sm">{t("apexDashboard.failedLoad")}</p>
           <p className="text-xs mt-1">{String(error)}</p>
         </div>
       </AppShell>
@@ -49,53 +51,52 @@ export const ApexDashboard: React.FC = () => {
   }
 
   return (
-    <AppShell
-      title="Apex Dashboard"
-      subtitle="Overview of cooperatives and members under your apex"
-    >
+    <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.overview")}>
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             icon={Building2}
-            label="Cooperatives"
+            label={t("apexDashboard.cooperatives")}
             value={String(stats?.total_cooperatives ?? cooperatives.length)}
-            subtitle="Under your apex"
+            subtitle={t("apexDashboard.underYourApex")}
             tone="primary"
           />
           <StatCard
             icon={Inbox}
-            label="Pending"
+            label={t("apexDashboard.pending")}
             value={String(stats?.pending_submissions ?? 0)}
-            subtitle="Awaiting review"
+            subtitle={t("apexDashboard.awaitingReview")}
             tone="warning"
           />
           <StatCard
             icon={CheckCircle2}
-            label="Approved"
+            label={t("apexDashboard.approved")}
             value={String(stats?.approved_submissions ?? 0)}
-            subtitle="Finalized"
+            subtitle={t("apexDashboard.finalized")}
             tone="success"
           />
           <StatCard
             icon={XCircle}
-            label="Rejected"
+            label={t("apexDashboard.rejected")}
             value={String(stats?.rejected_submissions ?? 0)}
-            subtitle="Needs correction"
+            subtitle={t("apexDashboard.needsCorrection")}
             tone="danger"
           />
         </div>
 
-        <Card title="Cooperatives" subtitle="Manage cooperatives under your apex">
+        <Card title={t("apexDashboard.cooperatives")} subtitle={t("apexDashboard.manageSubtitle")}>
           {cooperatives.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Building2 className="size-8 mb-2 text-muted-foreground/50" />
-              <p className="font-semibold text-sm text-foreground">No cooperatives yet</p>
-              <p className="text-xs mt-1">Go to Cooperatives to register your first one.</p>
+              <p className="font-semibold text-sm text-foreground">
+                {t("apexDashboard.noCooperatives")}
+              </p>
+              <p className="text-xs mt-1">{t("apexDashboard.registerFirst")}</p>
               <Link
                 to="/app/cooperatives"
                 className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                <Building2 className="size-3.5" /> Manage Cooperatives
+                <Building2 className="size-3.5" /> {t("apexDashboard.manageBtn")}
               </Link>
             </div>
           ) : (
@@ -116,7 +117,7 @@ export const ApexDashboard: React.FC = () => {
                     to="/app/cooperatives"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                   >
-                    Manage <ChevronRight className="size-3" />
+                    {t("apexDashboard.manage")} <ChevronRight className="size-3" />
                   </Link>
                 </div>
               ))}
@@ -126,7 +127,7 @@ export const ApexDashboard: React.FC = () => {
                     to="/app/cooperatives"
                     className="text-xs font-semibold text-accent hover:underline"
                   >
-                    View all {cooperatives.length} cooperatives →
+                    {t("apexDashboard.viewAll", { count: cooperatives.length })}
                   </Link>
                 </div>
               )}

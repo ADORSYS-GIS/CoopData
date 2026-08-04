@@ -1,6 +1,6 @@
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -59,35 +59,40 @@ impl QuestionnaireRepository {
         answers: serde_json::Value,
     ) -> AppResult<questionnaire_response::Model> {
         use crate::entities::questionnaire_response::ActiveModel;
-        use sea_orm::Set;
+        use sea_orm::{sea_query::OnConflict, Set};
 
-        if let Some(existing) = self
-            .find_by_submission_and_type(submission_id, &questionnaire_type)
-            .await?
-        {
-            let mut active: ActiveModel = existing.into();
-            active.answers = Set(answers);
-            active.updated_at = Set(chrono::Utc::now());
-            active
-                .update(&self.db)
-                .await
-                .map_err(AppError::DatabaseError)
-        } else {
-            let active = ActiveModel {
-                id: Set(Uuid::new_v4()),
-                submission_id: Set(submission_id),
-                cooperative_id: Set(cooperative_id),
-                questionnaire_type: Set(questionnaire_type),
-                reporting_year: Set(reporting_year),
-                answers: Set(answers),
-                created_at: Set(chrono::Utc::now()),
-                updated_at: Set(chrono::Utc::now()),
-            };
-            active
-                .insert(&self.db)
-                .await
-                .map_err(AppError::DatabaseError)
-        }
+        let now = chrono::Utc::now();
+
+        // Use INSERT ... ON CONFLICT DO UPDATE to handle both first-save and re-save
+        // atomically, avoiding race conditions from the find-then-insert pattern.
+        // The conflict target matches the unique constraint added in migration 28:
+        //   UNIQUE (submission_id, questionnaire_type)
+        let active = ActiveModel {
+            id: Set(Uuid::new_v4()),
+            submission_id: Set(submission_id),
+            cooperative_id: Set(cooperative_id),
+            questionnaire_type: Set(questionnaire_type.clone()),
+            reporting_year: Set(reporting_year),
+            answers: Set(answers),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+
+        questionnaire_response::Entity::insert(active)
+            .on_conflict(
+                OnConflict::columns([
+                    questionnaire_response::Column::SubmissionId,
+                    questionnaire_response::Column::QuestionnaireType,
+                ])
+                .update_columns([
+                    questionnaire_response::Column::Answers,
+                    questionnaire_response::Column::UpdatedAt,
+                ])
+                .to_owned(),
+            )
+            .exec_with_returning(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn delete_by_submission(&self, submission_id: Uuid) -> AppResult<u64> {

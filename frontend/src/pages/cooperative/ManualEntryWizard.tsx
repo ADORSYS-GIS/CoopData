@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -65,6 +66,7 @@ import { LoansStep } from "./manual-entry/LoansStep";
 import { DepositsStep } from "./manual-entry/DepositsStep";
 
 export function ManualEntryWizard() {
+  const { t } = useTranslation();
   const { id: submissionId } = useParams({ from: Route.id });
   const navigate = useNavigate();
 
@@ -78,17 +80,17 @@ export function ManualEntryWizard() {
   const steps = useMemo(() => {
     if (isFinancialWizard) {
       return [
-        { id: "financial" as const, label: "Financial Statement", icon: BarChart3 },
-        { id: "review" as const, label: "Review & Submit", icon: FileText },
+        { id: "financial" as const, label: t("manualEntry.steps.financial"), icon: BarChart3 },
+        { id: "review" as const, label: t("manualEntry.steps.review"), icon: FileText },
       ];
     } else {
       return [
-        { id: "members" as const, label: "Membership Register", icon: Users },
-        { id: "savings" as const, label: "Savings Ledger", icon: DollarSign },
-        { id: "loans" as const, label: "Loan Book", icon: TrendingUp },
-        { id: "deposits" as const, label: "Fixed Deposits", icon: Clock },
-        { id: "farm" as const, label: "Farm Profile", icon: Sprout },
-        { id: "review" as const, label: "Review & Submit", icon: FileText },
+        { id: "members" as const, label: t("manualEntry.steps.members"), icon: Users },
+        { id: "savings" as const, label: t("manualEntry.steps.savings"), icon: DollarSign },
+        { id: "loans" as const, label: t("manualEntry.steps.loans"), icon: TrendingUp },
+        { id: "deposits" as const, label: t("manualEntry.steps.deposits"), icon: Clock },
+        { id: "farm" as const, label: t("manualEntry.steps.farm"), icon: Sprout },
+        { id: "review" as const, label: t("manualEntry.steps.review"), icon: FileText },
       ];
     }
   }, [isFinancialWizard]);
@@ -621,28 +623,18 @@ export function ManualEntryWizard() {
 
   // ── Delete actions ──
   const handleDeleteFinancial = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete the financial statement? This cannot be undone.",
-      )
-    )
-      return;
+    if (!window.confirm(t("manualEntry.confirmDeleteFinancial"))) return;
     try {
       await deleteFinancialStatement.mutateAsync();
       setFinancialData(createEmptyFinancialGrid());
-      toast.success("Financial statement deleted successfully");
+      toast.success(t("manualEntry.toastFinancialDeleted"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete financial statement");
+      toast.error(e instanceof Error ? e.message : t("manualEntry.toastDeleteFinancialFailed"));
     }
   };
 
   const handleDeleteNonFinancial = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete all non-financial databases? This will clear members, savings, loans, deposits, and farm profiles.",
-      )
-    )
-      return;
+    if (!window.confirm(t("manualEntry.confirmDeleteNonFinancial"))) return;
     try {
       await deleteNonFinancialData.mutateAsync();
       setMembers([]);
@@ -650,9 +642,9 @@ export function ManualEntryWizard() {
       setLoans([]);
       setFixedDeposits([]);
       setFarmCoop(createEmptyFarmCoop());
-      toast.success("Non-financial databases cleared successfully");
+      toast.success(t("manualEntry.toastNonFinancialCleared"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete non-financial databases");
+      toast.error(e instanceof Error ? e.message : t("manualEntry.toastDeleteNonFinancialFailed"));
     }
   };
 
@@ -1013,20 +1005,20 @@ export function ManualEntryWizard() {
   const handleSubmitFinancialOnly = async () => {
     try {
       await doSubmitFinancial();
-      toast.success("Financial statement submitted successfully");
+      toast.success(t("manualEntry.toastSubmitFinancialSuccess"));
       navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to submit financial data");
+      toast.error(e instanceof Error ? e.message : t("manualEntry.toastSubmitFinancialFailed"));
     }
   };
 
   const handleSubmitNonFinancialOnly = async () => {
     try {
       await doSubmitNonFinancial();
-      toast.success("Non-Financial databases submitted successfully");
+      toast.success(t("manualEntry.toastSubmitNonFinancialSuccess"));
       navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to submit non-financial databases");
+      toast.error(e instanceof Error ? e.message : t("manualEntry.toastSubmitNonFinancialFailed"));
     }
   };
 
@@ -1037,11 +1029,15 @@ export function ManualEntryWizard() {
   if (isDataLoading) {
     return (
       <AppShell
-        title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
+        title={
+          isFinancialWizard ? t("manualEntry.headerFinancial") : t("manualEntry.headerNonFinancial")
+        }
       >
         <div className="max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center space-y-4 font-sans">
           <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-medium">Loading manual entry data...</p>
+          <p className="text-sm text-muted-foreground font-medium">
+            {t("manualEntry.loadingData")}
+          </p>
         </div>
       </AppShell>
     );
@@ -1049,7 +1045,9 @@ export function ManualEntryWizard() {
 
   return (
     <AppShell
-      title={isFinancialWizard ? "Manual Entry - Financial" : "Manual Entry - Non-Financial"}
+      title={
+        isFinancialWizard ? t("manualEntry.headerFinancial") : t("manualEntry.headerNonFinancial")
+      }
     >
       <div className="max-w-[96%] mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -1063,14 +1061,16 @@ export function ManualEntryWizard() {
           <div>
             <h1 className="text-xl font-bold text-foreground">
               {isFinancialWizard
-                ? "Financial Statement Manual Entry"
-                : "Non-Financial Databases Manual Entry"}
+                ? t("manualEntry.headerFinancial")
+                : t("manualEntry.headerNonFinancial")}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {submission?.reporting_year ? `Submission ${submission.reporting_year} ·` : ""}{" "}
+              {submission?.reporting_year
+                ? t("manualEntry.yearAndDot", { year: submission.reporting_year })
+                : ""}{" "}
               {isFinancialWizard
-                ? "Enter monthly balance sheet and income/expense data directly"
-                : "Enter membership register, savings, loans, deposits and farm activities"}
+                ? t("manualEntry.descFinancial")
+                : t("manualEntry.descNonFinancial")}
             </p>
           </div>
         </div>
@@ -1122,7 +1122,7 @@ export function ManualEntryWizard() {
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as "SZL" | "USD")}
                 >
-                  <option value="SZL">SZL (Emalangeni)</option>
+                  <option value="SZL">{t("manualEntry.currencySzl")}</option>
                   <option value="USD">USD</option>
                 </select>
               </div>
@@ -1133,19 +1133,19 @@ export function ManualEntryWizard() {
                   value={accountingYear}
                   onChange={(e) => setAccountingYear(e.target.value as "calendar" | "fiscal")}
                 >
-                  <option value="calendar">Calendar Year (Jan–Dec)</option>
-                  <option value="fiscal">Fiscal Year (Jul–Jun)</option>
+                  <option value="calendar">{t("manualEntry.calendarYear")}</option>
+                  <option value="fiscal">{t("manualEntry.fiscalYear")}</option>
                 </select>
               </div>
               {import.meta.env.DEV && (
                 <button
                   onClick={() => {
                     setFinancialData(generateMockFinancialGrid());
-                    toast.success("Test financial statement grid populated!");
+                    toast.success(t("manualEntry.toastPopulateFinancial"));
                   }}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
                 >
-                  🧪 Populate Test Data
+                  {t("manualEntry.populateFinancialBtn")}
                 </button>
               )}
               {submission?.financial_statement_id && (
@@ -1159,7 +1159,7 @@ export function ManualEntryWizard() {
                   ) : (
                     <Trash2 className="size-3.5" />
                   )}
-                  Clear Financial Statement
+                  {t("manualEntry.clearFinancialBtn")}
                 </button>
               )}
               {/* Balance checker pill */}
@@ -1179,10 +1179,12 @@ export function ManualEntryWizard() {
                 )}
                 {currency} {fmt(totalAssets)} ·{" "}
                 {totalAssets === 0
-                  ? "Enter amounts below"
+                  ? t("manualEntry.enterAmounts")
                   : isBalanced
-                    ? "Period Ends Balanced ✓"
-                    : `Period Ends Gap: ${fmt(Math.abs(totalAssets - totalLiabilities - totalEquity))}`}
+                    ? t("manualEntry.periodBalanced")
+                    : t("manualEntry.periodGap", {
+                        gap: fmt(Math.abs(totalAssets - totalLiabilities - totalEquity)),
+                      })}
               </div>
             </>
           )}
@@ -1198,13 +1200,11 @@ export function ManualEntryWizard() {
                     setLoans(mock.loans);
                     setFixedDeposits(mock.fixedDeposits);
                     setFarmCoop(mock.farmCoop);
-                    toast.success(
-                      "Test databases (membership, savings, loans, deposits, and farm profile) populated!",
-                    );
+                    toast.success(t("manualEntry.toastPopulateNonFinancial"));
                   }}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
                 >
-                  🧪 Populate Test Databases
+                  {t("manualEntry.populateNonFinancialBtn")}
                 </button>
               )}
               <button
@@ -1217,7 +1217,7 @@ export function ManualEntryWizard() {
                 ) : (
                   <Trash2 className="size-3.5" />
                 )}
-                Clear Non-Financial Databases
+                {t("manualEntry.clearNonFinancialBtn")}
               </button>
             </div>
           )}
@@ -1225,7 +1225,7 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Financial Statement ──────────────────────────────────── */}
         {step === "financial" && (
-          <ErrorBoundary stepName="Financial Statement Step">
+          <ErrorBoundary stepName={t("manualEntry.steps.financial")}>
             <Card className="p-6">
               <FinancialExcelGrid
                 accountingYear={accountingYear}
@@ -1239,7 +1239,7 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Members ─────────────────────────────────────────────── */}
         {step === "members" && (
-          <ErrorBoundary stepName="Members Register Step">
+          <ErrorBoundary stepName={t("manualEntry.steps.members")}>
             <MembersStep
               members={members}
               addMember={addMember}
@@ -1251,7 +1251,7 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Savings ─────────────────────────────────────────────── */}
         {step === "savings" && (
-          <ErrorBoundary stepName="Savings Ledger Step">
+          <ErrorBoundary stepName={t("manualEntry.steps.savings")}>
             <SavingsStep
               savings={savings}
               addSavings={addSavings}
@@ -1264,7 +1264,7 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Loans ───────────────────────────────────────────────── */}
         {step === "loans" && (
-          <ErrorBoundary stepName="Loans Register Step">
+          <ErrorBoundary stepName={t("manualEntry.steps.loans")}>
             <LoansStep
               loans={loans}
               addLoan={addLoan}
@@ -1277,7 +1277,7 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Fixed Deposits ──────────────────────────────────────── */}
         {step === "deposits" && (
-          <ErrorBoundary stepName="Fixed Deposits Step">
+          <ErrorBoundary stepName={t("manualEntry.steps.deposits")}>
             <DepositsStep
               fixedDeposits={fixedDeposits}
               addFixedDeposit={addFixedDeposit}
@@ -1290,13 +1290,14 @@ export function ManualEntryWizard() {
 
         {/* ── STEP: Farm Profile ────────────────────────────────────────── */}
         {step === "farm" && (
-          <ErrorBoundary stepName="Farm Profile Step">
+          <ErrorBoundary stepName={t("manualEntry.steps.farm")}>
             <Card className="p-6">
               <div className="border-b border-border pb-4 mb-6 font-sans">
-                <h3 className="text-sm font-bold text-foreground">Farm Cooperative Profile</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  {t("manualEntry.farmProfileTitle")}
+                </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Complete this profile if this cooperative operates in agricultural production or
-                  multipurpose activities.
+                  {t("manualEntry.farmProfileDesc")}
                 </p>
               </div>
 
@@ -1325,20 +1326,26 @@ export function ManualEntryWizard() {
                       <div className="size-8 rounded-lg bg-primary/10 grid place-items-center">
                         <Users className="size-4 text-primary" />
                       </div>
-                      <h3 className="text-sm font-bold text-foreground">Membership Register</h3>
+                      <h3 className="text-sm font-bold text-foreground">
+                        {t("manualEntry.reviewMembersTitle")}
+                      </h3>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Total Members</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewTotalMembers")}
+                      </span>
                       <span className="font-mono font-semibold">{members.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Active</span>
+                      <span className="text-muted-foreground">{t("manualEntry.reviewActive")}</span>
                       <span className="font-mono font-semibold">
                         {members.filter((m) => m.status === "Active").length}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Female Members</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewFemaleMembers")}
+                      </span>
                       <span className="font-mono font-semibold">
                         {members.filter((m) => m.gender === "Female").length}
                       </span>
@@ -1351,18 +1358,24 @@ export function ManualEntryWizard() {
                       <div className="size-8 rounded-lg bg-accent/10 grid place-items-center">
                         <DollarSign className="size-4 text-accent" />
                       </div>
-                      <h3 className="text-sm font-bold text-foreground">Financial Ledgers</h3>
+                      <h3 className="text-sm font-bold text-foreground">
+                        {t("manualEntry.reviewLedgersTitle")}
+                      </h3>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Savings Accounts</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewSavings")}
+                      </span>
                       <span className="font-mono font-semibold">{savings.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Active Loans</span>
+                      <span className="text-muted-foreground">{t("manualEntry.reviewLoans")}</span>
                       <span className="font-mono font-semibold">{loans.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Fixed Deposits</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewDeposits")}
+                      </span>
                       <span className="font-mono font-semibold">{fixedDeposits.length}</span>
                     </div>
                   </Card>
@@ -1382,7 +1395,7 @@ export function ManualEntryWizard() {
                   ) : (
                     <Send className="size-4" />
                   )}
-                  Submit Non-Financial Databases &amp; Finish
+                  {t("manualEntry.submitNonFinancialBtn")}
                 </button>
               </div>
             )}
@@ -1400,7 +1413,7 @@ export function ManualEntryWizard() {
             className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none"
           >
             <ChevronLeft className="size-4" />
-            Previous
+            {t("manualEntry.previous")}
           </button>
 
           {step !== "review" && (
@@ -1411,7 +1424,7 @@ export function ManualEntryWizard() {
               }}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm focus:outline-none"
             >
-              Next
+              {t("manualEntry.next")}
               <ChevronRight className="size-4" />
             </button>
           )}

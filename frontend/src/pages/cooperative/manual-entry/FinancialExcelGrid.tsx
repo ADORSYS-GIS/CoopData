@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
 import { Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { fmt } from "./helpers";
 
 interface MonthCol {
   name: string;
+  nameKey: string;
   num: number;
 }
 
 interface GridRowConfig {
   code?: number;
-  name: string;
+  nameKey: string;
   isHeader?: boolean;
   isTotal?: boolean;
   indent?: boolean;
@@ -23,59 +25,15 @@ interface FinancialExcelGridProps {
   onChange: (code: number, monthNum: number, value: number) => void;
 }
 
-const ACCOUNT_EXPLANATIONS: Record<number, string> = {
-  1101: "Physical cash held in vaults, safes, and cash drawers.",
-  1102: "Checking account balances held at commercial banks, immediately withdrawable.",
-  1103: "Interest-bearing deposit account balances held at commercial banks.",
-  1104: "Liquid financial assets maturing within one year, such as treasury bills or money market funds.",
-  1201: "Outstanding principal balance of loans with regular repayments (0 days in arrears).",
-  1202: "Loans where repayment is overdue between 1 and 30 days.",
-  1203: "Loans where repayment is overdue between 31 and 60 days.",
-  1204: "Loans where repayment is overdue between 61 and 90 days.",
-  1205: "Impaired loans where repayment is overdue by more than 90 days.",
-  1251: "Estimated allowance for potential loan losses across the general performing portfolio.",
-  1252: "Allowance set aside for identified high-risk or non-performing loans.",
-  1301: "Amounts owed to the cooperative by members or clients for goods/services delivered.",
-  1302: "Advance payments made for expenses that will be incurred in future periods.",
-  1303: "Capitalized cost of physical infrastructure, machinery, and equipment.",
-  1304: "Total wear and tear written off against fixed assets over their lifetime.",
-  1305: "Non-physical valuable assets like proprietary software licenses, trademarks, or patents.",
-  2101: "Savings deposited by members that can be withdrawn at any time.",
-  2102: "Compulsory member contributions required for cooperative membership or loan access.",
-  2103: "Deposits held for a fixed duration at a locked interest rate with withdrawal restrictions.",
-  2201: "Loans or credit lines payable by the cooperative within one year.",
-  2202: "Debt obligations maturing in more than one year.",
-  2301: "Outstanding payments owed to suppliers or vendors for goods and services.",
-  2302: "Accumulated liabilities for expenses incurred but not yet invoiced (e.g. unpaid taxes, utilities).",
-  2303: "Unearned revenue received in advance of providing services or goods.",
-  3101: "Non-withdrawable equity capital contributed by members as ownership stake.",
-  3102: "Member shares that can be redeemed or withdrawn upon membership termination.",
-  3201: "Mandatory legal reserve funded from annual surplus as required by regulations.",
-  3202: "Discretionary reserve set aside from surplus for general cooperative growth and security.",
-  3203: "Reserves dedicated to meeting regulatory capital adequacy and risk coverage ratios.",
-  3301: "Retained earnings from prior fiscal years.",
-  3302: "Net earnings or surplus generated during the current reporting period.",
-  4101: "Revenue generated from interest charged on member loans.",
-  4102: "Revenue from application fees, service fees, or commissions.",
-  4201: "Non-core revenue like dividends, rental income, or asset sales.",
-  5101: "Interest payouts paid to members on voluntary, mandatory, or term deposits.",
-  5102: "Interest payments paid to external financial institutions on borrowings.",
-  5201: "Staff wages, salaries, allowances, and social security contributions.",
-  5202: "Office rent, utilities, insurance, stationery, and other daily running costs.",
-  5203: "Costs associated with board meetings, AGM, committee member fees, and audits.",
-  5204: "Annual depreciation expense written off against fixed and intangible assets.",
-  5301: "Annual P&L expense charge to fund the loan loss provision allowance.",
-};
-
 const BALANCE_SHEET_ROWS: GridRowConfig[] = [
-  { name: "ASSETS", isHeader: true },
-  { code: 1101, name: "Cash on Hand", indent: true },
-  { code: 1102, name: "Cash at Bank – Current Account", indent: true },
-  { code: 1103, name: "Cash at Bank – Savings Account", indent: true },
-  { code: 1104, name: "Short-Term Investments", indent: true },
+  { nameKey: "assets", isHeader: true },
+  { code: 1101, nameKey: "cashOnHand", indent: true },
+  { code: 1102, nameKey: "cashAtBankCurrent", indent: true },
+  { code: 1103, nameKey: "cashAtBankSavings", indent: true },
+  { code: 1104, nameKey: "shortTermInvestments", indent: true },
   {
     code: 1100,
-    name: "Total Liquid Assets",
+    nameKey: "totalLiquidAssets",
     isTotal: true,
     formula: (data, m) =>
       (data[1101]?.[m] || 0) +
@@ -83,14 +41,14 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
       (data[1103]?.[m] || 0) +
       (data[1104]?.[m] || 0),
   },
-  { code: 1201, name: "Performing Loan Portfolio", indent: true },
-  { code: 1202, name: "Loans in Arrears (1-30 days)", indent: true },
-  { code: 1203, name: "Loans in Arrears (31-60 days)", indent: true },
-  { code: 1204, name: "Loans in Arrears (61-90 days)", indent: true },
-  { code: 1205, name: "Non-Performing Loans (>90 days)", indent: true },
+  { code: 1201, nameKey: "performingLoanPortfolio", indent: true },
+  { code: 1202, nameKey: "loansInArrears1_30", indent: true },
+  { code: 1203, nameKey: "loansInArrears31_60", indent: true },
+  { code: 1204, nameKey: "loansInArrears61_90", indent: true },
+  { code: 1205, nameKey: "nonPerformingLoans90", indent: true },
   {
     code: 1200,
-    name: "Gross Loan Portfolio",
+    nameKey: "grossLoanPortfolio",
     isTotal: true,
     formula: (data, m) =>
       (data[1201]?.[m] || 0) +
@@ -99,16 +57,16 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
       (data[1204]?.[m] || 0) +
       (data[1205]?.[m] || 0),
   },
-  { code: 1251, name: "General Loan Loss Provision", indent: true },
-  { code: 1252, name: "Specific Loan Loss Provision", indent: true },
+  { code: 1251, nameKey: "generalLoanLossProvision", indent: true },
+  { code: 1252, nameKey: "specificLoanLossProvision", indent: true },
   {
     code: 1250,
-    name: "Allowance for Loan Losses",
+    nameKey: "allowanceLoanLosses",
     isTotal: true,
     formula: (data, m) => (data[1251]?.[m] || 0) + (data[1252]?.[m] || 0),
   },
   {
-    name: "Net Loan Portfolio",
+    nameKey: "netLoanPortfolio",
     isTotal: true,
     formula: (data, m) => {
       const gross =
@@ -121,14 +79,14 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
       return gross - allowance;
     },
   },
-  { code: 1301, name: "Accounts Receivable", indent: true },
-  { code: 1302, name: "Prepaid Expenses", indent: true },
-  { code: 1303, name: "Fixed Assets (at Cost)", indent: true },
-  { code: 1304, name: "Accumulated Depreciation", indent: true },
-  { code: 1305, name: "Intangible Assets", indent: true },
+  { code: 1301, nameKey: "accountsReceivable", indent: true },
+  { code: 1302, nameKey: "prepaidExpenses", indent: true },
+  { code: 1303, nameKey: "fixedAssetsCost", indent: true },
+  { code: 1304, nameKey: "accumulatedDepreciation", indent: true },
+  { code: 1305, nameKey: "intangibleAssets", indent: true },
   {
     code: 1300,
-    name: "Total Other Assets",
+    nameKey: "totalOtherAssets",
     isTotal: true,
     formula: (data, m) =>
       (data[1301]?.[m] || 0) +
@@ -139,7 +97,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
   },
   {
     code: 1999,
-    name: "TOTAL ASSETS",
+    nameKey: "totalAssets",
     isTotal: true,
     formula: (data, m) => {
       const liquid =
@@ -163,36 +121,36 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
       return liquid + gross - allowance + other;
     },
   },
-  { name: "LIABILITIES", isHeader: true },
-  { code: 2101, name: "Voluntary Savings Deposits", indent: true },
-  { code: 2102, name: "Mandatory Savings Deposits", indent: true },
-  { code: 2103, name: "Fixed Term Deposits", indent: true },
+  { nameKey: "liabilities", isHeader: true },
+  { code: 2101, nameKey: "voluntarySavingsDeposits", indent: true },
+  { code: 2102, nameKey: "mandatorySavingsDeposits", indent: true },
+  { code: 2103, nameKey: "fixedTermDeposits", indent: true },
   {
     code: 2100,
-    name: "Total Member Deposits",
+    nameKey: "totalMemberDeposits",
     isTotal: true,
     formula: (data, m) => (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0),
   },
-  { code: 2201, name: "Short-Term Borrowings", indent: true },
-  { code: 2202, name: "Long-Term Borrowings", indent: true },
+  { code: 2201, nameKey: "shortTermBorrowings", indent: true },
+  { code: 2202, nameKey: "longTermBorrowings", indent: true },
   {
     code: 2200,
-    name: "Total Borrowings",
+    nameKey: "totalBorrowings",
     isTotal: true,
     formula: (data, m) => (data[2201]?.[m] || 0) + (data[2202]?.[m] || 0),
   },
-  { code: 2301, name: "Accounts Payable", indent: true },
-  { code: 2302, name: "Accrued Expenses", indent: true },
-  { code: 2303, name: "Deferred Income", indent: true },
+  { code: 2301, nameKey: "accountsPayable", indent: true },
+  { code: 2302, nameKey: "accruedExpenses", indent: true },
+  { code: 2303, nameKey: "deferredIncome", indent: true },
   {
     code: 2300,
-    name: "Total Other Liabilities",
+    nameKey: "totalOtherLiabilities",
     isTotal: true,
     formula: (data, m) => (data[2301]?.[m] || 0) + (data[2302]?.[m] || 0) + (data[2303]?.[m] || 0),
   },
   {
     code: 2999,
-    name: "TOTAL LIABILITIES",
+    nameKey: "totalLiabilities",
     isTotal: true,
     formula: (data, m) => {
       const deposits = (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
@@ -201,35 +159,35 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
       return deposits + borrowings + other;
     },
   },
-  { name: "MEMBERS' EQUITY", isHeader: true },
-  { code: 3101, name: "Permanent Share Capital", indent: true },
-  { code: 3102, name: "Withdrawable Shares", indent: true },
+  { nameKey: "membersEquity", isHeader: true },
+  { code: 3101, nameKey: "permanentShareCapital", indent: true },
+  { code: 3102, nameKey: "withdrawableShares", indent: true },
   {
     code: 3100,
-    name: "Total Member Shares",
+    nameKey: "totalMemberShares",
     isTotal: true,
     formula: (data, m) => (data[3101]?.[m] || 0) + (data[3102]?.[m] || 0),
   },
-  { code: 3201, name: "Statutory Reserve", indent: true },
-  { code: 3202, name: "General Reserve", indent: true },
-  { code: 3203, name: "Risk / Capital Adequacy Reserve", indent: true },
+  { code: 3201, nameKey: "statutoryReserve", indent: true },
+  { code: 3202, nameKey: "generalReserve", indent: true },
+  { code: 3203, nameKey: "riskCapitalAdequacyReserve", indent: true },
   {
     code: 3200,
-    name: "Total Reserves",
+    nameKey: "totalReserves",
     isTotal: true,
     formula: (data, m) => (data[3201]?.[m] || 0) + (data[3202]?.[m] || 0) + (data[3203]?.[m] || 0),
   },
-  { code: 3301, name: "Accumulated Surplus", indent: true },
-  { code: 3302, name: "Current Year Surplus", indent: true },
+  { code: 3301, nameKey: "accumulatedSurplus", indent: true },
+  { code: 3302, nameKey: "currentYearSurplus", indent: true },
   {
     code: 3300,
-    name: "Total Retained Earnings",
+    nameKey: "totalRetainedEarnings",
     isTotal: true,
     formula: (data, m) => (data[3301]?.[m] || 0) + (data[3302]?.[m] || 0),
   },
   {
     code: 3999,
-    name: "TOTAL MEMBERS' EQUITY",
+    nameKey: "totalMembersEquity",
     isTotal: true,
     formula: (data, m) => {
       const shares = (data[3101]?.[m] || 0) + (data[3102]?.[m] || 0);
@@ -239,7 +197,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     },
   },
   {
-    name: "TOTAL LIABILITIES & EQUITY",
+    nameKey: "totalLiabilitiesEquity",
     isTotal: true,
     formula: (data, m) => {
       const deposits = (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
@@ -252,7 +210,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     },
   },
   {
-    name: "Balance Check (Assets - Liabilities - Equity)",
+    nameKey: "balanceCheck",
     isTotal: true,
     formula: (data, m) => {
       const liquid =
@@ -289,38 +247,38 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
 ];
 
 const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
-  { name: "INCOME", isHeader: true },
-  { code: 4101, name: "Interest Income on Loans", indent: true },
-  { code: 4102, name: "Fees and Commissions Income", indent: true },
+  { nameKey: "income", isHeader: true },
+  { code: 4101, nameKey: "interestIncomeLoans", indent: true },
+  { code: 4102, nameKey: "feesCommissionsIncome", indent: true },
   {
     code: 4100,
-    name: "Total Financial Income",
+    nameKey: "totalFinancialIncome",
     isTotal: true,
     formula: (data, m) => (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0),
   },
-  { code: 4201, name: "Other Operating Income", indent: true },
+  { code: 4201, nameKey: "otherOperatingIncome", indent: true },
   {
     code: 4999,
-    name: "TOTAL INCOME",
+    nameKey: "totalIncome",
     isTotal: true,
     formula: (data, m) => (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0) + (data[4201]?.[m] || 0),
   },
-  { name: "EXPENSES", isHeader: true },
-  { code: 5101, name: "Interest Expense on Member Deposits", indent: true },
-  { code: 5102, name: "Interest Expense on Borrowings", indent: true },
+  { nameKey: "expenses", isHeader: true },
+  { code: 5101, nameKey: "interestExpenseMemberDeposits", indent: true },
+  { code: 5102, nameKey: "interestExpenseBorrowings", indent: true },
   {
     code: 5100,
-    name: "Total Financial Expenses",
+    nameKey: "totalFinancialExpenses",
     isTotal: true,
     formula: (data, m) => (data[5101]?.[m] || 0) + (data[5102]?.[m] || 0),
   },
-  { code: 5201, name: "Personnel Costs", indent: true },
-  { code: 5202, name: "Administrative Expenses", indent: true },
-  { code: 5203, name: "Governance Expenses", indent: true },
-  { code: 5204, name: "Depreciation and Amortization", indent: true },
+  { code: 5201, nameKey: "personnelCosts", indent: true },
+  { code: 5202, nameKey: "administrativeExpenses", indent: true },
+  { code: 5203, nameKey: "governanceExpenses", indent: true },
+  { code: 5204, nameKey: "depreciationAmortization", indent: true },
   {
     code: 5200,
-    name: "Total Operating Expenses",
+    nameKey: "totalOperatingExpenses",
     isTotal: true,
     formula: (data, m) =>
       (data[5201]?.[m] || 0) +
@@ -328,10 +286,10 @@ const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
       (data[5203]?.[m] || 0) +
       (data[5204]?.[m] || 0),
   },
-  { code: 5301, name: "Loan Loss Provision Expense", indent: true },
+  { code: 5301, nameKey: "loanLossProvisionExpense", indent: true },
   {
     code: 5999,
-    name: "TOTAL EXPENSES",
+    nameKey: "totalExpenses",
     isTotal: true,
     formula: (data, m) => {
       const fin = (data[5101]?.[m] || 0) + (data[5102]?.[m] || 0);
@@ -346,7 +304,7 @@ const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
   },
   {
     code: 6999,
-    name: "NET SURPLUS/(DEFICIT)",
+    nameKey: "netSurplusDeficit",
     isTotal: true,
     formula: (data, m) => {
       const inc = (data[4101]?.[m] || 0) + (data[4102]?.[m] || 0) + (data[4201]?.[m] || 0);
@@ -369,38 +327,39 @@ export function FinancialExcelGrid({
   financialData,
   onChange,
 }: FinancialExcelGridProps) {
+  const { t } = useTranslation();
   const [helpField, setHelpField] = useState<{ title: string; desc: string } | null>(null);
 
   const monthSequence: MonthCol[] = useMemo(() => {
     if (accountingYear === "calendar") {
       return [
-        { name: "Jan", num: 1 },
-        { name: "Feb", num: 2 },
-        { name: "Mar", num: 3 },
-        { name: "Apr", num: 4 },
-        { name: "May", num: 5 },
-        { name: "Jun", num: 6 },
-        { name: "Jul", num: 7 },
-        { name: "Aug", num: 8 },
-        { name: "Sep", num: 9 },
-        { name: "Oct", num: 10 },
-        { name: "Nov", num: 11 },
-        { name: "Dec", num: 12 },
+        { name: "Jan", nameKey: "jan", num: 1 },
+        { name: "Feb", nameKey: "feb", num: 2 },
+        { name: "Mar", nameKey: "mar", num: 3 },
+        { name: "Apr", nameKey: "apr", num: 4 },
+        { name: "May", nameKey: "may", num: 5 },
+        { name: "Jun", nameKey: "jun", num: 6 },
+        { name: "Jul", nameKey: "jul", num: 7 },
+        { name: "Aug", nameKey: "aug", num: 8 },
+        { name: "Sep", nameKey: "sep", num: 9 },
+        { name: "Oct", nameKey: "oct", num: 10 },
+        { name: "Nov", nameKey: "nov", num: 11 },
+        { name: "Dec", nameKey: "dec", num: 12 },
       ];
     } else {
       return [
-        { name: "Jul", num: 7 },
-        { name: "Aug", num: 8 },
-        { name: "Sep", num: 9 },
-        { name: "Oct", num: 10 },
-        { name: "Nov", num: 11 },
-        { name: "Dec", num: 12 },
-        { name: "Jan", num: 1 },
-        { name: "Feb", num: 2 },
-        { name: "Mar", num: 3 },
-        { name: "Apr", num: 4 },
-        { name: "May", num: 5 },
-        { name: "Jun", num: 6 },
+        { name: "Jul", nameKey: "jul", num: 7 },
+        { name: "Aug", nameKey: "aug", num: 8 },
+        { name: "Sep", nameKey: "sep", num: 9 },
+        { name: "Oct", nameKey: "oct", num: 10 },
+        { name: "Nov", nameKey: "nov", num: 11 },
+        { name: "Dec", nameKey: "dec", num: 12 },
+        { name: "Jan", nameKey: "jan", num: 1 },
+        { name: "Feb", nameKey: "feb", num: 2 },
+        { name: "Mar", nameKey: "mar", num: 3 },
+        { name: "Apr", nameKey: "apr", num: 4 },
+        { name: "May", nameKey: "may", num: 5 },
+        { name: "Jun", nameKey: "jun", num: 6 },
       ];
     }
   }, [accountingYear]);
@@ -413,20 +372,26 @@ export function FinancialExcelGrid({
         <table className="w-full border-collapse text-sm min-w-[1300px]">
           <thead>
             <tr className="bg-muted border-b border-border text-xs font-semibold text-muted-foreground">
-              <th className="px-4 py-3 text-left w-24 border-r border-border/80">Code</th>
-              <th className="px-4 py-3 text-left w-80 border-r border-border/80">Account Name</th>
+              <th className="px-4 py-3 text-left w-24 border-r border-border/80">
+                {t("financialExcelGrid.headers.code")}
+              </th>
+              <th className="px-4 py-3 text-left w-80 border-r border-border/80">
+                {t("financialExcelGrid.headers.accountName")}
+              </th>
               {monthSequence.map((m) => (
                 <th
                   key={m.num}
                   className="px-3 py-3 text-right w-28 border-r border-border/80 last:border-r-0"
                 >
-                  {m.name}
+                  {t(`financialExcelGrid.months.${m.nameKey}`)}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => {
+              const rowName = t(`financialExcelGrid.rowNames.${row.nameKey}`);
+
               if (row.isHeader) {
                 return (
                   <tr key={index} className="bg-primary/10 font-bold border-b border-border/80">
@@ -434,7 +399,7 @@ export function FinancialExcelGrid({
                       className="px-4 py-3 text-sm text-primary tracking-wider font-semibold"
                       colSpan={14}
                     >
-                      {row.name}
+                      {rowName}
                     </td>
                   </tr>
                 );
@@ -442,8 +407,10 @@ export function FinancialExcelGrid({
 
               const isFormula = !!row.formula;
               const isTotal = row.isTotal;
-              const isCheckRow = row.name.includes("Check");
-              const explanation = row.code ? ACCOUNT_EXPLANATIONS[row.code] : null;
+              const isCheckRow = row.nameKey === "balanceCheck";
+              const explanation = row.code
+                ? t(`financialExcelGrid.explanations.${row.code}`)
+                : null;
 
               return (
                 <tr
@@ -461,12 +428,12 @@ export function FinancialExcelGrid({
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>{row.name}</span>
+                      <span>{rowName}</span>
                       {explanation && (
                         <button
-                          onClick={() => setHelpField({ title: row.name, desc: explanation })}
+                          onClick={() => setHelpField({ title: rowName, desc: explanation })}
                           className="text-muted-foreground/50 hover:text-primary transition-colors cursor-pointer focus:outline-none"
-                          title="Click to explain this field"
+                          title={t("financialExcelGrid.explainFieldTooltip")}
                         >
                           <Info className="size-3.5" />
                         </button>
@@ -538,7 +505,7 @@ export function FinancialExcelGrid({
               onClick={() => setHelpField(null)}
               className="w-full inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm focus:outline-none"
             >
-              Close
+              {t("financialExcelGrid.close")}
             </button>
           </div>
         </div>

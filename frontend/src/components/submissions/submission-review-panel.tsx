@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
   XCircle,
@@ -114,21 +115,6 @@ const actionIcon = (action: ReviewEntry["action"]) => {
   }
 };
 
-const actionLabel = (action: ReviewEntry["action"]) => {
-  switch (action) {
-    case "approved":
-      return "Approved";
-    case "rejected":
-      return "Rejected";
-    case "changes_requested":
-      return "Changes Requested";
-    case "forwarded":
-      return "Forwarded";
-    case "commented":
-      return "Commented";
-  }
-};
-
 // ─────────────────────────────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────────────────────────────
@@ -142,6 +128,7 @@ export function SubmissionReviewPanel({
   onForward,
   onClose,
 }: SubmissionReviewPanelProps) {
+  const { t } = useTranslation();
   const [comment, setComment] = useState("");
   const [showTrail, setShowTrail] = useState(true);
   const [showFinancials, setShowFinancials] = useState(true);
@@ -159,8 +146,46 @@ export function SubmissionReviewPanel({
 
   const isCooperative = userRole === "cooperative";
 
+  const getStatusLabel = (status: SubmissionStatus) => {
+    switch (status) {
+      case "Pending Review":
+        return t("submissions.reviewPanel.statuses.pending");
+      case "Under Review":
+        return t("submissions.reviewPanel.statuses.reviewing");
+      case "Approved":
+        return t("submissions.reviewPanel.statuses.approved");
+      case "Rejected":
+        return t("submissions.reviewPanel.statuses.rejected");
+      case "Changes Requested":
+        return t("submissions.reviewPanel.statuses.changes");
+      case "Forwarded to Federation":
+        return t("submissions.reviewPanel.statuses.fed");
+      case "Forwarded to Ministry":
+        return t("submissions.reviewPanel.statuses.min");
+      default:
+        return status;
+    }
+  };
+
+  const getActionLabel = (action: ReviewEntry["action"]) => {
+    switch (action) {
+      case "approved":
+        return t("submissions.reviewPanel.actions.approved");
+      case "rejected":
+        return t("submissions.reviewPanel.actions.rejected");
+      case "changes_requested":
+        return t("submissions.reviewPanel.actions.changes_requested");
+      case "forwarded":
+        return t("submissions.reviewPanel.actions.forwarded");
+      case "commented":
+        return t("submissions.reviewPanel.actions.commented");
+      default:
+        return action;
+    }
+  };
+
   return (
-    <div className="rounded-xl border border-primary/30 bg-primary/5 shadow-[var(--shadow-elev-2)]">
+    <div className="rounded-xl border border-primary/30 bg-primary/5 shadow-[var(--shadow-elev-2)] font-sans">
       {/* Header */}
       <div className="flex items-start justify-between p-5 border-b border-border">
         <div>
@@ -169,12 +194,13 @@ export function SubmissionReviewPanel({
           </p>
           <h3 className="text-lg font-bold text-foreground">{submission.coopName}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {submission.type} · Filed {submission.submittedOn}
+            {submission.type} ·{" "}
+            {t("submissions.reviewPanel.filedOn", { date: submission.submittedOn })}
           </p>
         </div>
         <button
           onClick={onClose}
-          className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
         >
           <X className="size-4" />
         </button>
@@ -201,9 +227,15 @@ export function SubmissionReviewPanel({
             {submission.status === "Rejected" && <XCircle className="size-3" />}
             {submission.status === "Changes Requested" && <RefreshCw className="size-3" />}
             {submission.status === "Forwarded to Federation" && <ArrowUpRight className="size-3" />}
-            {submission.status}
+            {getStatusLabel(submission.status)}
           </span>
-          <span className="text-xs text-muted-foreground">{submission.priority} priority</span>
+          <span className="text-xs text-muted-foreground">
+            {t("submissions.reviewPanel.priority", {
+              priority: t(`submissions.detail.timelineTier`, {
+                tier: submission.priority,
+              }).toLowerCase(),
+            })}
+          </span>
         </div>
       </div>
 
@@ -214,7 +246,7 @@ export function SubmissionReviewPanel({
             <Building2 className="size-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                Cooperative
+                {t("submissions.reviewPanel.cooperative")}
               </p>
               <p className="text-sm font-semibold text-foreground">{submission.coopName}</p>
             </div>
@@ -223,7 +255,7 @@ export function SubmissionReviewPanel({
             <User className="size-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                Filed By
+                {t("submissions.reviewPanel.filedBy")}
               </p>
               <p className="text-sm font-semibold text-foreground">{submission.submittedBy}</p>
             </div>
@@ -232,7 +264,7 @@ export function SubmissionReviewPanel({
             <Calendar className="size-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                Date
+                {t("submissions.reviewPanel.date")}
               </p>
               <p className="text-sm font-semibold text-foreground">{submission.submittedOn}</p>
             </div>
@@ -241,7 +273,7 @@ export function SubmissionReviewPanel({
             <Hash className="size-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                Reference
+                {t("submissions.reviewPanel.reference")}
               </p>
               <p className="text-sm font-mono font-semibold text-foreground">
                 {submission.reference}
@@ -255,7 +287,7 @@ export function SubmissionReviewPanel({
       {submission.databasesIncluded.length > 0 && (
         <div className="px-5 py-3 border-b border-border">
           <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">
-            Databases Included
+            {t("submissions.reviewPanel.databasesIncluded")}
           </p>
           <div className="flex flex-wrap gap-2">
             {submission.databasesIncluded.map((db) => (
@@ -264,7 +296,7 @@ export function SubmissionReviewPanel({
                 className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-foreground"
               >
                 <FileText className="size-3" />
-                {db}
+                {t(`submissions.detail.sections.${db.toLowerCase().replace(/ /g, "_")}.label`, db)}
               </span>
             ))}
           </div>
@@ -276,10 +308,10 @@ export function SubmissionReviewPanel({
         <div className="px-5 py-3 border-b border-border">
           <button
             onClick={() => setShowFinancials(!showFinancials)}
-            className="w-full flex items-center justify-between text-left"
+            className="w-full flex items-center justify-between text-left cursor-pointer"
           >
             <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-              Financial Summary
+              {t("submissions.reviewPanel.financialSummary")}
             </p>
             {showFinancials ? (
               <ChevronUp className="size-4 text-muted-foreground" />
@@ -290,25 +322,33 @@ export function SubmissionReviewPanel({
           {showFinancials && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3">
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">Total Assets</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.totalAssets")}
+                </p>
                 <p className="text-sm font-bold text-foreground">
                   {formatCurrency(submission.totalAssets!)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">Liabilities</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.liabilities")}
+                </p>
                 <p className="text-sm font-bold text-foreground">
                   {formatCurrency(submission.totalLiabilities!)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">Equity</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.equity")}
+                </p>
                 <p className="text-sm font-bold text-foreground">
                   {formatCurrency(submission.totalEquity!)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">Net Surplus</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.netSurplus")}
+                </p>
                 <p
                   className={`text-sm font-bold ${(submission.netSurplus ?? 0) >= 0 ? "text-success" : "text-destructive"}`}
                 >
@@ -317,11 +357,15 @@ export function SubmissionReviewPanel({
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">Balance Check</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.balanceCheck")}
+                </p>
                 <p
                   className={`text-sm font-bold ${submission.balanceCheck ? "text-success" : "text-destructive"}`}
                 >
-                  {submission.balanceCheck ? "✓ Balanced" : "✗ Not Balanced"}
+                  {submission.balanceCheck
+                    ? t("submissions.reviewPanel.balanced")
+                    : t("submissions.reviewPanel.notBalanced")}
                 </p>
               </div>
             </div>
@@ -334,10 +378,12 @@ export function SubmissionReviewPanel({
         <div className="px-5 py-3 border-b border-border">
           <button
             onClick={() => setShowTrail(!showTrail)}
-            className="w-full flex items-center justify-between text-left"
+            className="w-full flex items-center justify-between text-left cursor-pointer"
           >
             <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-              Review Trail ({submission.reviewTrail.length})
+              {t("submissions.reviewPanel.reviewTrailTitle", {
+                count: submission.reviewTrail.length,
+              })}
             </p>
             {showTrail ? (
               <ChevronUp className="size-4 text-muted-foreground" />
@@ -354,10 +400,10 @@ export function SubmissionReviewPanel({
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">{entry.reviewerName}</p>
                       <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                        {entry.reviewerRole}
+                        {t(`common.roles.${entry.reviewerRole.toLowerCase()}`, entry.reviewerRole)}
                       </span>
                       <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                        {actionLabel(entry.action)}
+                        {getActionLabel(entry.action)}
                       </span>
                     </div>
                     {entry.comment && (
@@ -378,17 +424,17 @@ export function SubmissionReviewPanel({
           {/* Comment Input */}
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">
-              Review Comment
+              {t("submissions.reviewPanel.reviewComment")}
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder={
                 userRole === "apex"
-                  ? "Add review notes for the cooperative or federation..."
+                  ? t("submissions.reviewPanel.placeholderApex")
                   : userRole === "federation"
-                    ? "Add review notes for the apex or ministry..."
-                    : "Add review notes..."
+                    ? t("submissions.reviewPanel.placeholderFederation")
+                    : t("submissions.reviewPanel.placeholderDefault")
               }
               rows={3}
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 resize-none transition-shadow"
@@ -406,10 +452,10 @@ export function SubmissionReviewPanel({
                   );
                   setComment("");
                 }}
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors cursor-pointer"
               >
                 <ArrowUpRight className="size-4" />
-                Approve & Forward to Federation
+                {t("submissions.reviewPanel.btnApproveForward")}
               </button>
             )}
             {(userRole === "federation" || userRole === "ministry") && (
@@ -418,65 +464,48 @@ export function SubmissionReviewPanel({
                   onApprove(submission.id, comment || "Submission approved.");
                   setComment("");
                 }}
-                className="inline-flex items-center gap-2 rounded-lg bg-success px-4 py-2.5 text-sm font-semibold text-white hover:bg-success/90 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-success px-4 py-2.5 text-sm font-semibold text-white hover:bg-success/90 transition-colors cursor-pointer"
               >
                 <CheckCircle2 className="size-4" />
-                Approve
+                {t("submissions.reviewPanel.btnApprove")}
               </button>
             )}
             <button
               onClick={() => {
                 if (!comment.trim()) {
-                  toast.error("Please provide a reason for requesting changes.");
+                  toast.error(t("submissions.reviewPanel.toastRequestReason"));
                   return;
                 }
                 onRequestChanges(submission.id, comment);
                 setComment("");
               }}
-              className="inline-flex items-center gap-2 rounded-lg border border-info bg-info/10 px-4 py-2.5 text-sm font-semibold text-info hover:bg-info/20 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-info bg-info/10 px-4 py-2.5 text-sm font-semibold text-info hover:bg-info/20 transition-colors cursor-pointer"
             >
               <RefreshCw className="size-4" />
-              Request Changes
+              {t("submissions.reviewPanel.btnRequestChanges")}
             </button>
             <button
               onClick={() => {
                 if (!comment.trim()) {
-                  toast.error("Please provide a reason for rejection.");
+                  toast.error(t("submissions.reviewPanel.toastRejectReason"));
                   return;
                 }
                 onReject(submission.id, comment);
                 setComment("");
               }}
-              className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-white hover:bg-destructive/90 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-white hover:bg-destructive/90 transition-colors cursor-pointer"
             >
               <XCircle className="size-4" />
-              Reject
+              {t("submissions.reviewPanel.btnReject")}
             </button>
           </div>
 
           {/* Role-specific guidance */}
           <div className="p-3 rounded-lg bg-muted/30 border border-border">
             <p className="text-xs text-muted-foreground">
-              {userRole === "apex" && (
-                <>
-                  <strong className="text-foreground">Apex Review:</strong> Approve to forward this
-                  submission to the federation level. Request changes to send it back to the
-                  cooperative for corrections. Reject to deny the submission entirely.
-                </>
-              )}
-              {userRole === "federation" && (
-                <>
-                  <strong className="text-foreground">Federation Review:</strong> This submission
-                  has been reviewed by the apex. You can approve, request further changes, or reject
-                  it.
-                </>
-              )}
-              {userRole === "ministry" && (
-                <>
-                  <strong className="text-foreground">Ministry Oversight:</strong> You have full
-                  authority to approve, request changes, or reject any submission in the system.
-                </>
-              )}
+              {userRole === "apex" && <>{t("submissions.reviewPanel.guidanceApex")}</>}
+              {userRole === "federation" && <>{t("submissions.reviewPanel.guidanceFederation")}</>}
+              {userRole === "ministry" && <>{t("submissions.reviewPanel.guidanceMinistry")}</>}
             </p>
           </div>
         </div>
@@ -488,11 +517,13 @@ export function SubmissionReviewPanel({
           <div className="p-3 rounded-lg bg-info/5 border border-info/20 flex items-start gap-3">
             <AlertTriangle className="size-4 text-info shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-foreground">Submission Status</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t("submissions.reviewPanel.coopViewTitle")}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Your submission is currently{" "}
-                <strong className="text-foreground">{submission.status}</strong>. You will be
-                notified when the review is complete or if changes are requested.
+                {t("submissions.reviewPanel.coopViewDesc", {
+                  status: getStatusLabel(submission.status),
+                })}
               </p>
             </div>
           </div>
@@ -501,3 +532,4 @@ export function SubmissionReviewPanel({
     </div>
   );
 }
+export default SubmissionReviewPanel;

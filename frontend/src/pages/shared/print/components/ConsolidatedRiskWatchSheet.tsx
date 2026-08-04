@@ -1,24 +1,32 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type {
   NationalOverviewResponse,
   CoopKpiRow,
   KpiValue,
 } from "@/hooks/analytics/useNationalOverview";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface ConsolidatedRiskWatchSheetProps {
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProps> = ({ data }) => {
+  const { t } = useTranslation();
   const { cooperatives } = data;
 
   const getAction = (kpiName: string) => {
-    if (kpiName === "par30" || kpiName === "par90") return "Remedial plan needed";
-    if (kpiName === "capital_adequacy_ratio") return "Capital injection / review";
-    if (kpiName === "operating_expense_ratio") return "Cost reduction strategy";
-    if (kpiName === "roa" || kpiName === "roe") return "Profitability review";
-    if (kpiName === "liquid_funds_ratio") return "Liquidity management plan";
-    return "Follow-up required";
+    if (kpiName === "par30" || kpiName === "par90")
+      return t("printReports.riskWatch.actions.remedialPlan");
+    if (kpiName === "capital_adequacy_ratio")
+      return t("printReports.riskWatch.actions.capitalInjection");
+    if (kpiName === "operating_expense_ratio")
+      return t("printReports.riskWatch.actions.costReduction");
+    if (kpiName === "roa" || kpiName === "roe")
+      return t("printReports.riskWatch.actions.profitabilityReview");
+    if (kpiName === "liquid_funds_ratio") return t("printReports.riskWatch.actions.liquidityPlan");
+    return t("printReports.riskWatch.actions.followUp");
   };
 
   const getThresholdStr = (kpiName: string, benchmark: number | null | undefined) => {
@@ -31,8 +39,8 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
 
   const getSeverity = (kpiName: string) => {
     if (["par30", "capital_adequacy_ratio", "liquid_funds_ratio"].includes(kpiName))
-      return "Critical";
-    return "High";
+      return t("printReports.riskWatch.severities.critical");
+    return t("printReports.riskWatch.severities.high");
   };
 
   // Find all red KPIs
@@ -59,28 +67,39 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
   });
 
   return (
-    <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page">
+    <div className="report-sheet relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white break-after-page font-sans">
       <div>
-        <h2 className="text-xl font-bold text-blue-800 mb-4">"Under Intervention / Risk Watch"</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">
+          {t("printReports.riskWatch.title")}
+        </h2>
         <p className="text-sm text-slate-600 mb-6 italic">
-          This sheet highlights all cooperatives with critical indicators falling into the "Red"
-          (High Risk) category.
+          {t("printReports.riskWatch.description")}
         </p>
 
         {riskRows.length === 0 ? (
           <div className="p-8 text-center text-slate-500 border border-slate-200 rounded-lg bg-slate-50">
-            No cooperatives currently in the high-risk category.
+            {t("printReports.riskWatch.noHighRisk")}
           </div>
         ) : (
           <table className="w-full text-left text-xs mb-8 border-collapse border border-slate-300">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-2 border border-slate-700">Cooperative</th>
-                <th className="p-2 border border-slate-700">Risk Indicator</th>
-                <th className="p-2 border border-slate-700">Value</th>
-                <th className="p-2 border border-slate-700">Threshold</th>
-                <th className="p-2 border border-slate-700">Severity</th>
-                <th className="p-2 border border-slate-700">Action Required</th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.cooperative")}
+                </th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.riskIndicator")}
+                </th>
+                <th className="p-2 border border-slate-700">{t("printReports.riskWatch.value")}</th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.threshold")}
+                </th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.severity")}
+                </th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.actionRequired")}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -119,3 +138,4 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
     </div>
   );
 };
+export default ConsolidatedRiskWatchSheet;

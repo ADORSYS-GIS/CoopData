@@ -2,6 +2,7 @@ import React from "react";
 import { BarChart3, ChevronUp, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "react-i18next";
 
 interface CustomKpiItem {
   id: string;
@@ -36,6 +37,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
   sortDirection,
   onSort,
 }) => {
+  const { t } = useTranslation();
   return (
     <Card className="border border-blue-100 bg-white shadow-md overflow-hidden rounded-2xl">
       <CardHeader className="pb-4 border-b border-blue-50 bg-gradient-to-br from-blue-50/20 to-transparent">
@@ -43,16 +45,13 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
           <div>
             <CardTitle className="text-lg font-bold text-blue-950 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-blue-600" />
-              Cooperative Ranking Breakdown
+              {t("analytics.coopRankingBreakdown")}
             </CardTitle>
-            <CardDescription className="text-xs">
-              Evaluate and sort individual cooperative performance figures using your formula
-              indicators.
-            </CardDescription>
+            <CardDescription className="text-xs">{t("analytics.coopRankingDesc")}</CardDescription>
           </div>
           <div className="w-full md:w-72">
             <Input
-              placeholder="Search cooperative or region..."
+              placeholder={t("analytics.searchCoopOrRegion")}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className="border-blue-200 focus-visible:ring-blue-500 shadow-sm rounded-xl"
@@ -70,7 +69,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                   className="p-4 cursor-pointer hover:bg-blue-50/80 hover:text-blue-950 transition-colors select-none whitespace-nowrap min-w-[240px]"
                 >
                   <div className="flex items-center gap-1.5">
-                    Cooperative Name
+                    {t("analytics.coopName")}
                     {sortField === "name" &&
                       (sortDirection === "asc" ? (
                         <ChevronUp className="h-4 w-4" />
@@ -84,7 +83,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                   className="p-4 cursor-pointer hover:bg-blue-50/80 hover:text-blue-950 transition-colors select-none whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1.5">
-                    Region
+                    {t("analytics.region")}
                     {sortField === "region" &&
                       (sortDirection === "asc" ? (
                         <ChevronUp className="h-4 w-4" />
@@ -119,7 +118,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                     colSpan={kpis.length + 2}
                     className="p-8 text-center text-muted-foreground italic"
                   >
-                    No matching cooperatives found.
+                    {t("analytics.noMatchingCoops")}
                   </td>
                 </tr>
               ) : (
@@ -143,7 +142,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                             )
                           ) : (
                             <span className="text-muted-foreground/30 font-normal italic text-xs">
-                              No Data
+                              {t("analytics.noData")}
                             </span>
                           )}
                         </td>

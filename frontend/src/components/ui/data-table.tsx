@@ -18,6 +18,7 @@ import {
   ChevronsRight,
   ArrowUpDown,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -41,12 +42,13 @@ export function DataTable<TData, TValue>({
   data,
   isLoading,
   error,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
   searchColumnId,
-  emptyMessage = "No results found.",
+  emptyMessage,
   pageSize = 10,
   getRowClassName,
 }: DataTableProps<TData, TValue>) {
+  const { t } = useTranslation();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -86,7 +88,7 @@ export function DataTable<TData, TValue>({
   if (error) {
     return (
       <div className="py-8 text-center text-destructive">
-        <p>Failed to load data</p>
+        <p>{t("dataTable.failedLoad")}</p>
         <p className="text-sm text-muted-foreground">{String(error)}</p>
       </div>
     );
@@ -100,7 +102,7 @@ export function DataTable<TData, TValue>({
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? t("dataTable.searchPlaceholder")}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="pl-9"
@@ -148,7 +150,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <tr className="border-b">
                 <td colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  {emptyMessage}
+                  {emptyMessage ?? t("dataTable.noResults")}
                 </td>
               </tr>
             )}
@@ -159,7 +161,7 @@ export function DataTable<TData, TValue>({
       {/* Pagination */}
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} row(s) total
+          {t("dataTable.rowCount", { count: table.getFilteredRowModel().rows.length })}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -167,6 +169,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
+            aria-label={t("common.firstPage")}
           >
             <ChevronsLeft className="size-4" />
           </Button>
@@ -175,17 +178,22 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            aria-label={t("common.previousPage")}
           >
             <ChevronLeft className="size-4" />
           </Button>
           <div className="text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            {t("dataTable.pageOf", {
+              page: table.getState().pagination.pageIndex + 1,
+              total: table.getPageCount(),
+            })}
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            aria-label={t("common.nextPage")}
           >
             <ChevronRight className="size-4" />
           </Button>
@@ -194,6 +202,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
+            aria-label={t("common.lastPage")}
           >
             <ChevronsRight className="size-4" />
           </Button>

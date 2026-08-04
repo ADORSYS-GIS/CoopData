@@ -17,6 +17,7 @@ pub mod fixed_deposit;
 pub mod kpi_record;
 pub mod loan;
 pub mod member;
+pub mod ministry_report_narratives;
 pub mod non_financial_indicator_catalog;
 pub mod non_financial_indicator_entry;
 pub mod organization;

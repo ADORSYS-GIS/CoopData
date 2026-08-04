@@ -1,21 +1,28 @@
 import React, { useEffect } from "react";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+import { useTranslation } from "react-i18next";
+import { AiInsightBox } from "./AiInsightBox";
 
 interface FederationPearlsSheetProps {
   federationName: string;
   year: number;
   data: NationalOverviewResponse;
+  narratives?: string;
 }
 
 export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
   federationName,
   year,
   data,
+  narratives,
 }) => {
+  const { t } = useTranslation();
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
-  const apexNames = Array.from(new Set(cooperatives.map((c) => c.apex_name || "Unaffiliated")));
+  const apexNames = Array.from(
+    new Set(cooperatives.map((c) => c.apex_name || t("printReports.unaffiliated"))),
+  );
 
   const getAvg = (coops: CoopKpiRow[], kpi: string) => {
     const valid = coops.filter((c) => c.kpis?.[kpi]);
@@ -30,25 +37,61 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
   };
 
   const pearlsDimensions = [
-    { dimension: "Protection", label: "Loan Loss Coverage (%)", key: "loan_loss_coverage" },
-    { dimension: "Protection", label: "Provisions / NPL (%)", key: "provisions_npl" }, // Fallback to LLC if not available
     {
-      dimension: "Effective Structure",
-      label: "Net Loans / Total Assets (%)",
+      dimension: t("printReports.pearls.protection"),
+      label: t("printReports.pearls.loanLossCoverage"),
+      key: "loan_loss_coverage",
+    },
+    {
+      dimension: t("printReports.pearls.protection"),
+      label: t("printReports.pearls.provisionsNpl"),
+      key: "provisions_npl",
+    },
+    {
+      dimension: t("printReports.pearls.effectiveStructure"),
+      label: t("printReports.pearls.netLoansAssets"),
       key: "net_loan_portfolio",
     },
     {
-      dimension: "Effective Structure",
-      label: "Deposits / Total Assets (%)",
+      dimension: t("printReports.pearls.effectiveStructure"),
+      label: t("printReports.pearls.depositsAssets"),
       key: "deposits_to_loans",
-    }, // Approximation
-    { dimension: "Asset Quality", label: "PAR30 (%)", key: "par30" },
-    { dimension: "Asset Quality", label: "NPL Write-off Ratio (%)", key: "npl_ratio" },
-    { dimension: "Rates of Return", label: "ROA (%)", key: "roa" },
-    { dimension: "Rates of Return", label: "ROE (%)", key: "roe" },
-    { dimension: "Liquidity", label: "Liquid Funds Ratio (%)", key: "liquid_funds_ratio" },
-    { dimension: "Signs of Growth", label: "Asset Growth (YoY)", key: "asset_growth" }, // Using placeholder or custom_kpi
-    { dimension: "Signs of Growth", label: "Member Growth (YoY)", key: "member_growth" },
+    },
+    {
+      dimension: t("printReports.pearls.assetQuality"),
+      label: t("printReports.pearls.par30"),
+      key: "par30",
+    },
+    {
+      dimension: t("printReports.pearls.assetQuality"),
+      label: t("printReports.pearls.nplWriteOff"),
+      key: "npl_ratio",
+    },
+    {
+      dimension: t("printReports.pearls.ratesOfReturn"),
+      label: t("printReports.pearls.roa"),
+      key: "roa",
+    },
+    {
+      dimension: t("printReports.pearls.ratesOfReturn"),
+      label: t("printReports.pearls.roe"),
+      key: "roe",
+    },
+    {
+      dimension: t("printReports.pearls.liquidity"),
+      label: t("printReports.pearls.liquidFunds"),
+      key: "liquid_funds_ratio",
+    },
+    {
+      dimension: t("printReports.pearls.signsOfGrowth"),
+      label: t("printReports.pearls.assetGrowth"),
+      key: "asset_growth",
+    },
+    {
+      dimension: t("printReports.pearls.signsOfGrowth"),
+      label: t("printReports.pearls.memberGrowth"),
+      key: "member_growth",
+    },
   ];
 
   useEffect(() => {
@@ -64,38 +107,48 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
     >
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">PEARLS Comparative Analysis</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            {t("printReports.pearlsBenchmarkComparisonTitle")}
+          </h1>
           <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
+          <p className="text-lg font-semibold text-slate-700">
+            {t("printReports.period", { year })}
+          </p>
           <p className="text-sm text-slate-500"></p>
         </div>
       </div>
 
       <div className="flex-1 min-h-0">
-        <p className="mb-4 text-slate-700">
-          PEARLS framework mapped to available KPIs across apex networks:
-        </p>
+        <AiInsightBox
+          title="PEARLS Compliance — AI Analysis"
+          content={narratives}
+          fallbackContent={<>{t("printReports.pearls.mappedKpis")}</>}
+        />
 
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-3 text-left border border-slate-900 w-1/4">Dimension</th>
-              <th className="p-3 text-left border border-slate-900 w-1/4">KPI</th>
+              <th className="p-3 text-left border border-slate-900 w-1/4">
+                {t("printReports.pearls.dimension")}
+              </th>
+              <th className="p-3 text-left border border-slate-900 w-1/4">
+                {t("printReports.pearls.kpi")}
+              </th>
               {apexNames.map((name) => (
                 <th key={name} className="p-3 text-right border border-slate-900">
                   {name}
                 </th>
               ))}
-              <th className="p-3 text-right border border-slate-900 bg-slate-800">Sector Avg</th>
+              <th className="p-3 text-right border border-slate-900 bg-slate-800">
+                {t("printReports.pearls.sectorAvg")}
+              </th>
             </tr>
           </thead>
           <tbody>
             {pearlsDimensions.map((row, i) => {
               const sectorAvg = getAvg(cooperatives, row.key);
-              // For growth metrics which aren't in standard KPIs directly, we might return 0 or custom logic
-              // Since this is a mockup implementation, we use what's available.
               return (
                 <tr key={i} className="even:bg-slate-50 border-b border-slate-300">
                   <td className="p-3 border-x border-slate-300 font-bold text-slate-700">
@@ -105,7 +158,9 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
 
                   {apexNames.map((name) => {
                     const apexCoops = cooperatives.filter(
-                      (c) => c.apex_name === name || (!c.apex_name && name === "Unaffiliated"),
+                      (c) =>
+                        c.apex_name === name ||
+                        (!c.apex_name && name === t("printReports.unaffiliated")),
                     );
                     const apexAvg = getAvg(apexCoops, row.key);
                     return (

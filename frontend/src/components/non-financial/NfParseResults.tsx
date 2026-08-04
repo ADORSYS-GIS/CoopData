@@ -10,12 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { NfUploadResponse } from "@/types/non-financial";
+import { useTranslation } from "react-i18next";
 
 interface NfParseResultsProps {
   result: NfUploadResponse;
 }
 
 export function NfParseResults({ result }: NfParseResultsProps) {
+  const { t } = useTranslation();
   const hasErrors = result.errors.length > 0;
   const hasWarnings = result.warnings.length > 0;
 
@@ -30,7 +32,7 @@ export function NfParseResults({ result }: NfParseResultsProps) {
           ) : (
             <CheckCircle2 className="size-4 text-success" />
           )}
-          Upload Results
+          {t("nf.uploadResults")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -44,27 +46,27 @@ export function NfParseResults({ result }: NfParseResultsProps) {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatBox
-            label="Members"
+            label={t("nf.members")}
             parsed={result.rows_parsed.members}
             imported={result.rows_imported.members}
           />
           <StatBox
-            label="Savings"
+            label={t("nf.savings")}
             parsed={result.rows_parsed.savings_accounts}
             imported={result.rows_imported.savings_accounts}
           />
           <StatBox
-            label="Loans"
+            label={t("nf.loans")}
             parsed={result.rows_parsed.loans}
             imported={result.rows_imported.loans}
           />
           <StatBox
-            label="Fixed Deposits"
+            label={t("nf.fixedDeposits")}
             parsed={result.rows_parsed.fixed_deposits}
             imported={result.rows_imported.fixed_deposits}
           />
           <StatBox
-            label="Farm Coops"
+            label={t("nf.farmCoops")}
             parsed={result.rows_parsed.farm_coop}
             imported={result.rows_imported.farm_coop}
           />
@@ -73,17 +75,17 @@ export function NfParseResults({ result }: NfParseResultsProps) {
         {hasErrors && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-destructive">
-              Errors ({result.errors.length})
+              {t("nf.errorsWithCount", { count: result.errors.length })}
             </p>
             <div className="max-h-48 overflow-y-auto rounded-lg border border-destructive/20">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Sheet</TableHead>
-                    <TableHead className="text-xs">Row</TableHead>
-                    <TableHead className="text-xs">Column</TableHead>
-                    <TableHead className="text-xs">Rule</TableHead>
-                    <TableHead className="text-xs">Message</TableHead>
+                    <TableHead className="text-xs">{t("nf.sheet")}</TableHead>
+                    <TableHead className="text-xs">{t("nf.row")}</TableHead>
+                    <TableHead className="text-xs">{t("nf.column")}</TableHead>
+                    <TableHead className="text-xs">{t("nf.rule")}</TableHead>
+                    <TableHead className="text-xs">{t("nf.message")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -105,7 +107,7 @@ export function NfParseResults({ result }: NfParseResultsProps) {
         {hasWarnings && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-warning">
-              Warnings ({result.warnings.length})
+              {t("nf.warningsWithCount", { count: result.warnings.length })}
             </p>
             <div className="max-h-32 overflow-y-auto space-y-1">
               {result.warnings.map((warn, i) => (
@@ -126,7 +128,7 @@ export function NfParseResults({ result }: NfParseResultsProps) {
         {!hasErrors && !hasWarnings && (
           <div className="flex items-center gap-2 text-sm text-success">
             <CheckCircle2 className="size-4" />
-            All records imported successfully with no errors or warnings.
+            {t("nf.allImported")}
           </div>
         )}
       </CardContent>

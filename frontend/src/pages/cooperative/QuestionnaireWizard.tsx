@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -65,6 +66,7 @@ const FieldInput: React.FC<{
   value: unknown;
   onChange: (key: string, value: unknown) => void;
 }> = ({ field, value, onChange }) => {
+  const { t } = useTranslation();
   const baseClass =
     "w-full rounded-xl border border-border bg-card/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/45 focus:border-primary transition-all";
 
@@ -76,7 +78,7 @@ const FieldInput: React.FC<{
         onChange={(e) => onChange(field.key, e.target.value)}
         required={field.required}
       >
-        <option value="">— Select —</option>
+        <option value="">{t("questionnaire.select")}</option>
         {field.options.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
@@ -93,7 +95,7 @@ const FieldInput: React.FC<{
         className={`${baseClass} resize-none`}
         value={(value as string) ?? ""}
         onChange={(e) => onChange(field.key, e.target.value)}
-        placeholder={`Enter ${field.label.toLowerCase()}...`}
+        placeholder={t("questionnaire.enterField", { field: field.label.toLowerCase() })}
         required={field.required}
       />
     );
@@ -114,7 +116,11 @@ const FieldInput: React.FC<{
             : e.target.value,
         )
       }
-      placeholder={field.type === "number" ? "0" : `Enter ${field.label.toLowerCase()}...`}
+      placeholder={
+        field.type === "number"
+          ? "0"
+          : t("questionnaire.enterField", { field: field.label.toLowerCase() })
+      }
       required={field.required}
     />
   );
@@ -127,6 +133,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   onComplete,
   onBack,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [currentSection, setCurrentSection] = React.useState(0);
   const [answers, setAnswers] = React.useState<Record<string, unknown>>({});
@@ -192,7 +199,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
       });
     });
     setAnswers(mockAnswers);
-    toast.success("Test questionnaire answers populated!");
+    toast.success(t("questionnaire.testDataPopulated"));
   };
 
   const handleSave = async () => {
@@ -219,9 +226,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     }
 
     if (missing.length > 0) {
-      toast.error(
-        `Please fill in all required fields in this section before continuing: ${missing.join(", ")}`,
-      );
+      toast.error(t("questionnaire.requiredFieldsSection", { fields: missing.join(", ") }));
       return;
     }
 
@@ -252,7 +257,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
     if (missing.length > 0) {
       toast.error(
-        `Cannot complete questionnaire. Please fill in the following required fields: ${missing.map((m) => `"${m.fieldLabel}" (${m.sectionTitle})`).join(", ")}`,
+        t("questionnaire.cannotCompleteFields", {
+          fields: missing.map((m) => `"${m.fieldLabel}" (${m.sectionTitle})`).join(", "),
+        }),
       );
       // Focus/go to the first section with missing fields
       setCurrentSection(missing[0].sectionIndex);
@@ -272,7 +279,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <Loader2 className="size-8 animate-spin text-primary opacity-60" />
         <span className="text-xs text-muted-foreground font-medium">
-          Loading form configuration...
+          {t("questionnaire.loadingConfig")}
         </span>
       </div>
     );
@@ -284,11 +291,16 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
         <div className="size-12 rounded-full bg-destructive/10 grid place-items-center mx-auto mb-4 text-destructive">
           <AlertCircle className="size-6" />
         </div>
-        <h2 className="text-lg font-bold text-foreground">No active questionnaire found</h2>
+        <h2 className="text-lg font-bold text-foreground">
+          {t("questionnaire.noQuestionnaireFound")}
+        </h2>
         <p className="text-sm text-muted-foreground mt-2">
-          An admin has not activated a{" "}
-          {questionnaireType === "financial" ? "financial" : "non-financial"} questionnaire template
-          yet.
+          {t("questionnaire.adminNotActivated", {
+            type:
+              questionnaireType === "financial"
+                ? t("questionnaire.financial")
+                : t("questionnaire.nonFinancial"),
+          })}
         </p>
         <button
           onClick={
@@ -296,7 +308,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
           }
           className="mt-6 inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-muted/50"
         >
-          <ChevronLeft className="size-4" /> Go Back
+          <ChevronLeft className="size-4" /> {t("questionnaire.goBack")}
         </button>
       </div>
     );
@@ -324,28 +336,32 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                 <h1 className="text-base font-bold text-foreground">
                   {template?.label ||
                     (questionnaireType === "financial"
-                      ? "Financial Questionnaire"
-                      : "Non-Financial Questionnaire")}
+                      ? t("questionnaire.financial")
+                      : t("questionnaire.nonFinancial"))}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Section {currentSection + 1} of {sections.length}: {section.title}
+                  {t("questionnaire.sectionIndicator", {
+                    section: currentSection + 1,
+                    total: sections.length,
+                    title: section.title,
+                  })}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               {saveSuccess && (
                 <span className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium animate-in fade-in duration-300">
-                  <CheckCircle2 className="size-4" /> Saved
+                  <CheckCircle2 className="size-4" /> {t("questionnaire.saved")}
                 </span>
               )}
               {saveMutation.isPending && (
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> Saving…
+                  <Loader2 className="size-4 animate-spin" /> {t("questionnaire.saving")}
                 </span>
               )}
               {saveMutation.isError && (
                 <span className="flex items-center gap-1.5 text-xs text-destructive">
-                  <AlertCircle className="size-4" /> Failed to save
+                  <AlertCircle className="size-4" /> {t("questionnaire.failedSave")}
                 </span>
               )}
               {import.meta.env.DEV && (
@@ -353,7 +369,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   onClick={handlePopulateTestData}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/45 bg-primary/5 hover:bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
                 >
-                  🧪 Populate Test Data
+                  {t("questionnaire.populateTestData")}
                 </button>
               )}
               <button
@@ -362,7 +378,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                 className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-muted/50 transition-colors disabled:opacity-50"
               >
                 <Save className="size-4 text-muted-foreground" />
-                Save Draft
+                {t("questionnaire.saveDraft")}
               </button>
             </div>
           </div>
@@ -461,7 +477,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="size-4" />
-            Previous
+            {t("questionnaire.previous")}
           </button>
 
           {currentSection < sections.length - 1 ? (
@@ -470,7 +486,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
               disabled={saveMutation.isPending}
               className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-colors disabled:opacity-50 shadow-sm"
             >
-              Save & Next
+              {t("questionnaire.saveNext")}
               <ChevronRight className="size-4" />
             </button>
           ) : (
@@ -480,7 +496,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
               className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
             >
               <CheckCircle2 className="size-4" />
-              Complete Questionnaire
+              {t("questionnaire.complete")}
             </button>
           )}
         </div>

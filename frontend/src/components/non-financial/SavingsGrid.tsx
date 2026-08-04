@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
-import { createSavingsColumns } from "./SavingsColumns";
+import { useSavingsColumns } from "./SavingsColumns";
 import type { SavingsAccountResponse } from "@/types/non-financial";
+import { useTranslation } from "react-i18next";
 
 interface SavingsGridProps {
   savings: SavingsAccountResponse[];
@@ -21,7 +22,8 @@ export function SavingsGrid({
   onEdit,
   onDelete,
 }: SavingsGridProps) {
-  const columns = createSavingsColumns(
+  const { t } = useTranslation();
+  const columns = useSavingsColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
   );
 
@@ -31,7 +33,7 @@ export function SavingsGrid({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
-          Savings Accounts
+          {t("nf.savingsAccounts")}
           <Badge variant="secondary">{savings.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -40,7 +42,7 @@ export function SavingsGrid({
           columns={columns}
           data={savings}
           isLoading={isLoading}
-          emptyMessage="No savings accounts found. Upload an Excel file or add one manually."
+          emptyMessage={t("nf.emptySavings")}
           pageSize={10}
           getRowClassName={(row) =>
             errorSet.has((row as SavingsAccountResponse).id) ? "bg-destructive/5" : undefined

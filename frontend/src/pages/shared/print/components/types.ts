@@ -8,6 +8,7 @@ import {
 import type { components } from "@/openapi-client/api";
 import { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import { CooperativeNarratives } from "@/hooks/submissions/useSubmissionNarratives";
 
 type CooperativeResponse = components["schemas"]["CooperativeResponse"];
 
@@ -24,4 +25,5 @@ export interface ReportDataProps {
   cooperative?: CooperativeResponse;
   coopName: string;
   kpiMap: Map<string, KpiItemResponse>;
+  narratives?: CooperativeNarratives | null;
 }

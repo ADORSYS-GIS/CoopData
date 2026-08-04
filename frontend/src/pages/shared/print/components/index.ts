@@ -12,5 +12,6 @@ export * from "./ConsolidatedRiskWatchSheet";
 export * from "./FederationApexDistributionSheet";
 export * from "./FederationPearlsSheet";
 export * from "./FederationSectorSheet";
+export * from "./AiInsightBox";
 export * from "./FederationApexComparisonSheet";
 export * from "./FederationSocialImpactSheet";

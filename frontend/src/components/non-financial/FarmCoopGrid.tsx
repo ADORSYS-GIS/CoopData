@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
-import { createFarmCoopColumns } from "./FarmCoopColumns";
+import { useFarmCoopColumns } from "./FarmCoopColumns";
 import type { FarmCoopResponse } from "@/types/non-financial";
+import { useTranslation } from "react-i18next";
 
 interface FarmCoopGridProps {
   farmCoops: FarmCoopResponse[];
@@ -21,7 +22,8 @@ export function FarmCoopGrid({
   onEdit,
   onDelete,
 }: FarmCoopGridProps) {
-  const columns = createFarmCoopColumns(
+  const { t } = useTranslation();
+  const columns = useFarmCoopColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
   );
 
@@ -31,7 +33,7 @@ export function FarmCoopGrid({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
-          Farm Cooperatives
+          {t("nf.farmCooperatives")}
           <Badge variant="secondary">{farmCoops.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -40,7 +42,7 @@ export function FarmCoopGrid({
           columns={columns}
           data={farmCoops}
           isLoading={isLoading}
-          emptyMessage="No farm cooperatives found. Upload an Excel file or add one manually."
+          emptyMessage={t("nf.emptyFarmCoops")}
           pageSize={10}
           getRowClassName={(row) =>
             errorSet.has((row as FarmCoopResponse).id) ? "bg-destructive/5" : undefined

@@ -25,7 +25,6 @@ import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
 import { Route as AppMembersRouteImport } from './routes/app.members'
 import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
-import { Route as AppIndicatorsRouteImport } from './routes/app.indicators'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
@@ -129,11 +128,6 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
   id: '/invitations',
   path: '/invitations',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppIndicatorsRoute = AppIndicatorsRouteImport.update({
-  id: '/indicators',
-  path: '/indicators',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFinancialStatementRoute = AppFinancialStatementRouteImport.update({
@@ -273,7 +267,6 @@ export interface FileRoutesByFullPath {
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
@@ -314,7 +307,6 @@ export interface FileRoutesByTo {
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
@@ -355,7 +347,6 @@ export interface FileRoutesById {
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
-  '/app/indicators': typeof AppIndicatorsRoute
   '/app/invitations': typeof AppInvitationsRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
@@ -399,7 +390,6 @@ export interface FileRouteTypes {
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
-    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
     | '/app/non-financial-data'
@@ -440,7 +430,6 @@ export interface FileRouteTypes {
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
-    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
     | '/app/non-financial-data'
@@ -480,7 +469,6 @@ export interface FileRouteTypes {
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
-    | '/app/indicators'
     | '/app/invitations'
     | '/app/members'
     | '/app/non-financial-data'
@@ -630,13 +618,6 @@ declare module '@tanstack/react-router' {
       path: '/invitations'
       fullPath: '/app/invitations'
       preLoaderRoute: typeof AppInvitationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/indicators': {
-      id: '/app/indicators'
-      path: '/indicators'
-      fullPath: '/app/indicators'
-      preLoaderRoute: typeof AppIndicatorsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/financial-statement': {
@@ -844,7 +825,6 @@ interface AppRouteChildren {
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
-  AppIndicatorsRoute: typeof AppIndicatorsRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
@@ -873,7 +853,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
-  AppIndicatorsRoute: AppIndicatorsRoute,
   AppInvitationsRoute: AppInvitationsRoute,
   AppMembersRoute: AppMembersRoute,
   AppNonFinancialDataRoute: AppNonFinancialDataRoute,

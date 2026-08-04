@@ -51,6 +51,12 @@ pub struct UpdateSectionStatusRequest {
     pub status: String,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateSubmissionMethodRequest {
+    /// One of "upload", "manual", "questionnaire"
+    pub submission_method: String,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SubmissionResponse {
     pub id: Uuid,

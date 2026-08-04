@@ -4,6 +4,7 @@ import { calculateFinancialKPIs } from "@/lib/kpi-calculations";
 import type { BalanceSheet } from "@/lib/financial-data";
 import { SAMPLE_BALANCE_SHEETS } from "@/lib/mock-data";
 import { TrendingUp, BarChart3, PieChart as PieChartIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer,
   LineChart,
@@ -33,6 +34,7 @@ interface FinancialDashboardWidgetProps {
 }
 
 export function FinancialDashboardWidget({ cooperativeId }: FinancialDashboardWidgetProps) {
+  const { t } = useTranslation();
   const balanceSheet = cooperativeId
     ? SAMPLE_BALANCE_SHEETS[cooperativeId]
     : SAMPLE_BALANCE_SHEETS["sunrise-savings"];
@@ -41,10 +43,8 @@ export function FinancialDashboardWidget({ cooperativeId }: FinancialDashboardWi
 
   if (!kpis) {
     return (
-      <Card title="Financial KPIs" subtitle="No financial data available">
-        <div className="p-8 text-center text-muted-foreground">
-          Submit a financial statement to view KPIs
-        </div>
+      <Card title={t("financialKpis.noData")} subtitle={t("financialKpis.noDataHint")}>
+        <div className="p-8 text-center text-muted-foreground">{t("financialKpis.noDataHint")}</div>
       </Card>
     );
   }
@@ -52,18 +52,27 @@ export function FinancialDashboardWidget({ cooperativeId }: FinancialDashboardWi
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Size & Market Structure" subtitle="Key financial indicators">
+        <Card title={t("financialKpis.sizeTitle")} subtitle={t("financialKpis.sizeSubtitle")}>
           <FinancialKPIGrid kpis={kpis} type="size" />
         </Card>
-        <Card title="Portfolio Quality" subtitle="Loan performance metrics">
+        <Card
+          title={t("financialKpis.portfolioTitle")}
+          subtitle={t("financialKpis.portfolioSubtitle")}
+        >
           <FinancialKPIGrid kpis={kpis} type="portfolio" />
         </Card>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Profitability" subtitle="Return and margin metrics">
+        <Card
+          title={t("financialKpis.profitabilityTitle")}
+          subtitle={t("financialKpis.profitabilitySubtitle")}
+        >
           <FinancialKPIGrid kpis={kpis} type="profitability" />
         </Card>
-        <Card title="Liquidity & Solvency" subtitle="Financial health indicators">
+        <Card
+          title={t("financialKpis.liquidityTitle")}
+          subtitle={t("financialKpis.liquiditySubtitle")}
+        >
           <FinancialKPIGrid kpis={kpis} type="liquidity" />
         </Card>
       </div>
@@ -76,6 +85,7 @@ interface QuickKPIStatsProps {
 }
 
 export function QuickKPIStats({ cooperativeId }: QuickKPIStatsProps) {
+  const { t } = useTranslation();
   const balanceSheet = cooperativeId
     ? SAMPLE_BALANCE_SHEETS[cooperativeId]
     : SAMPLE_BALANCE_SHEETS["sunrise-savings"];
@@ -89,50 +99,58 @@ export function QuickKPIStats({ cooperativeId }: QuickKPIStatsProps) {
       <div className="p-4 rounded-xl border border-border bg-surface">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
           <TrendingUp className="size-3" />
-          <span>ROA</span>
+          <span>{t("financialKpis.roa")}</span>
         </div>
         <div
           className={`text-2xl font-bold ${kpis.roa.status === "green" ? "text-success" : kpis.roa.status === "amber" ? "text-warning-foreground" : "text-destructive"}`}
         >
           {kpis.roa.formatted}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">Target: &gt;3%</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {t("financialKpis.target", { value: ">3%" })}
+        </div>
       </div>
       <div className="p-4 rounded-xl border border-border bg-surface">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
           <PieChartIcon className="size-3" />
-          <span>PAR 30</span>
+          <span>{t("financialKpis.par30")}</span>
         </div>
         <div
           className={`text-2xl font-bold ${kpis.par30.status === "green" ? "text-success" : kpis.par30.status === "amber" ? "text-warning-foreground" : "text-destructive"}`}
         >
           {kpis.par30.formatted}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">Target: &lt;5%</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {t("financialKpis.target", { value: "<5%" })}
+        </div>
       </div>
       <div className="p-4 rounded-xl border border-border bg-surface">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
           <BarChart3 className="size-3" />
-          <span>Capital Adequacy</span>
+          <span>{t("financialKpis.capitalAdequacy")}</span>
         </div>
         <div
           className={`text-2xl font-bold ${kpis.capitalAdequacyRatio.status === "green" ? "text-success" : kpis.capitalAdequacyRatio.status === "amber" ? "text-warning-foreground" : "text-destructive"}`}
         >
           {kpis.capitalAdequacyRatio.formatted}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">Target: &gt;10%</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {t("financialKpis.target", { value: ">10%" })}
+        </div>
       </div>
       <div className="p-4 rounded-xl border border-border bg-surface">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
           <TrendingUp className="size-3" />
-          <span>ROE</span>
+          <span>{t("financialKpis.roe")}</span>
         </div>
         <div
           className={`text-2xl font-bold ${kpis.roe.status === "green" ? "text-success" : kpis.roe.status === "amber" ? "text-warning-foreground" : "text-destructive"}`}
         >
           {kpis.roe.formatted}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">Target: &gt;8%</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {t("financialKpis.target", { value: ">8%" })}
+        </div>
       </div>
     </div>
   );
@@ -143,6 +161,7 @@ interface KPIComparisonChartProps {
 }
 
 export function KPIComparisonChart({ cooperativeId }: KPIComparisonChartProps) {
+  const { t } = useTranslation();
   const balanceSheet = cooperativeId
     ? SAMPLE_BALANCE_SHEETS[cooperativeId]
     : SAMPLE_BALANCE_SHEETS["sunrise-savings"];
@@ -152,18 +171,25 @@ export function KPIComparisonChart({ cooperativeId }: KPIComparisonChartProps) {
   if (!kpis) return null;
 
   const comparisonData = [
-    { name: "ROA", value: kpis.roa.value, regional: 2.8, national: 3.0 },
-    { name: "ROE", value: kpis.roe.value, regional: 7.5, national: 8.0 },
-    { name: "PAR 30", value: kpis.par30.value, regional: 6.2, national: 5.0 },
-    { name: "CAR", value: kpis.capitalAdequacyRatio.value, regional: 10.5, national: 10.0 },
-    { name: "OpEx Ratio", value: kpis.operatingExpenseRatio.value, regional: 5.5, national: 5.0 },
+    { name: t("financialKpis.roa"), value: kpis.roa.value, regional: 2.8, national: 3.0 },
+    { name: t("financialKpis.roe"), value: kpis.roe.value, regional: 7.5, national: 8.0 },
+    { name: t("financialKpis.par30"), value: kpis.par30.value, regional: 6.2, national: 5.0 },
+    {
+      name: t("financialKpis.car"),
+      value: kpis.capitalAdequacyRatio.value,
+      regional: 10.5,
+      national: 10.0,
+    },
+    {
+      name: t("financialKpis.opexRatio"),
+      value: kpis.operatingExpenseRatio.value,
+      regional: 5.5,
+      national: 5.0,
+    },
   ];
 
   return (
-    <Card
-      title="KPI Benchmark Comparison"
-      subtitle="Your cooperative vs regional and national averages"
-    >
+    <Card title={t("financialKpis.benchmarkTitle")} subtitle={t("financialKpis.benchmarkSubtitle")}>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={comparisonData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
@@ -190,17 +216,22 @@ export function KPIComparisonChart({ cooperativeId }: KPIComparisonChartProps) {
               }}
             />
             <Legend />
-            <Bar dataKey="value" fill="var(--primary)" name="Your Coop" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="value"
+              fill="var(--primary)"
+              name={t("financialKpis.yourCoop")}
+              radius={[4, 4, 0, 0]}
+            />
             <Bar
               dataKey="regional"
               fill="var(--chart-2)"
-              name="Regional Avg"
+              name={t("financialKpis.regionalAvg")}
               radius={[4, 4, 0, 0]}
             />
             <Bar
               dataKey="national"
               fill="var(--chart-3)"
-              name="National Avg"
+              name={t("financialKpis.nationalAvg")}
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

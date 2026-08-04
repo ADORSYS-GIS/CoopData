@@ -1,5 +1,6 @@
 import type { MemberShares, Reserves, RetainedEarnings } from "@/lib/financial-data";
 import { DollarSign, Calculator } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface EquitySectionProps {
   memberShares: MemberShares;
@@ -25,6 +26,7 @@ export function EquitySection({
   onChange,
   totals,
 }: EquitySectionProps) {
+  const { t } = useTranslation();
   const formatNumber = (n: number) => n.toLocaleString();
 
   const handleNumberInput = (
@@ -44,12 +46,12 @@ export function EquitySection({
           <span className="size-6 rounded-lg bg-accent/10 text-accent grid place-items-center text-xs font-bold">
             3100
           </span>
-          Member Shares
+          {t("financial.memberShares")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Permanent Share Capital (3101)
+              {t("financial.permanentShareCapital")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -66,7 +68,7 @@ export function EquitySection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Withdrawable Shares (3102)
+              {t("financial.withdrawableShares")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -84,7 +86,7 @@ export function EquitySection({
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <Calculator className="size-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Total Member Shares:</span>
+          <span className="text-muted-foreground">{t("financial.totalMemberShares")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalMemberShares)}
           </span>
@@ -97,12 +99,12 @@ export function EquitySection({
           <span className="size-6 rounded-lg bg-info/10 text-info grid place-items-center text-xs font-bold">
             3200
           </span>
-          Reserves
+          {t("financial.reserves")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Statutory Reserve (3201)
+              {t("financial.statutoryReserve")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -117,7 +119,7 @@ export function EquitySection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              General Reserve (3202)
+              {t("financial.generalReserve")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -132,7 +134,7 @@ export function EquitySection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Risk Capital Adequacy Reserve (3203)
+              {t("financial.riskCapitalAdequacyReserve")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -149,7 +151,7 @@ export function EquitySection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Reserves:</span>
+          <span className="text-muted-foreground">{t("financial.totalReserves")}:</span>
           <span className="font-bold text-foreground">${formatNumber(totals.totalReserves)}</span>
         </div>
       </div>
@@ -160,12 +162,12 @@ export function EquitySection({
           <span className="size-6 rounded-lg bg-success/10 text-success grid place-items-center text-xs font-bold">
             3300
           </span>
-          Retained Earnings
+          {t("financial.retainedEarnings")}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Accumulated Surplus (3301)
+              {t("financial.accumulatedSurplus")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -182,7 +184,7 @@ export function EquitySection({
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Current Year Surplus (3302)
+              {t("financial.currentYearSurplus")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -199,7 +201,7 @@ export function EquitySection({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
-          <span className="text-muted-foreground">Total Retained Earnings:</span>
+          <span className="text-muted-foreground">{t("financial.totalRetainedEarnings")}:</span>
           <span className="font-bold text-foreground">
             ${formatNumber(totals.totalRetainedEarnings)}
           </span>
@@ -212,7 +214,7 @@ export function EquitySection({
           <span className="size-8 rounded-lg bg-success text-success-foreground grid place-items-center text-sm font-bold">
             3999
           </span>
-          <span className="font-semibold text-foreground">TOTAL EQUITY</span>
+          <span className="font-semibold text-foreground">{t("financial.totalEquity")}</span>
         </div>
         <span className="text-xl font-bold text-foreground">
           ${formatNumber(totals.totalEquity)}

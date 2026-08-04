@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Building2, Loader2, Save } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import {
   useCreateCooperative,
@@ -53,25 +54,25 @@ const ESWATINI_REGIONS = ["Hhohho", "Lubombo", "Manzini", "Shiselweni"] as const
 const georeferenceRegex = /^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/;
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "coopProfile.errors.nameMin"),
   institution_type: z.enum(COOP_TYPES),
   reg_no: z
     .string()
-    .min(1, "Registration number is required")
-    .max(30, "Must be 30 characters or fewer"),
-  tin: z.string().max(20, "Must be 20 characters or fewer").optional().or(z.literal("")),
+    .min(1, "coopProfile.errors.regNoRequired")
+    .max(30, "coopProfile.errors.regNoMax"),
+  tin: z.string().max(20, "coopProfile.errors.tinMax").optional().or(z.literal("")),
   address: z.string().max(255).optional().or(z.literal("")),
   georeference: z
     .string()
-    .regex(georeferenceRegex, "Format: lat,long (e.g. -26.3,31.1)")
+    .regex(georeferenceRegex, "coopProfile.errors.georeferenceFormat")
     .optional()
     .or(z.literal("")),
   region: z.enum(ESWATINI_REGIONS),
   geographic_classif: z.enum(GEO_CLASSIF),
   phone: z.string().max(30).optional().or(z.literal("")),
-  sector: z.string().min(1, "Sector is required"),
+  sector: z.string().min(1, "coopProfile.errors.sectorRequired"),
   status: z.enum(COOP_STATUS),
-  registered_on: z.string().min(1, "Registration date is required"),
+  registered_on: z.string().min(1, "coopProfile.errors.registeredOnRequired"),
   accounting_year: z.enum(ACCOUNTING_YEAR),
 });
 
@@ -86,6 +87,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
   existing,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const createMut = useCreateCooperative();
   const updateMut = useUpdateCooperativeProfile();
   const isEditing = !!existing;
@@ -127,15 +129,15 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
         { id: existing.id, ...payload },
         {
           onSuccess: () => {
-            toast.success("Cooperative profile updated.");
+            toast.success(t("coopProfile.toast.profileUpdated"));
             onSuccess?.();
           },
           onError: (err) => {
             const msg = String(err);
             if (msg.includes("reg_no")) {
-              setRegNoError("This registration number is already in use.");
+              setRegNoError(t("coopProfile.errors.regNoInUse"));
             }
-            toast.error("Failed to update cooperative", { description: msg });
+            toast.error(t("coopProfile.toast.updateFailed"), { description: msg });
           },
         },
       );
@@ -157,16 +159,16 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
       };
       createMut.mutate(createPayload, {
         onSuccess: () => {
-          toast.success("Cooperative created successfully.");
+          toast.success(t("coopProfile.toast.createdSuccessfully"));
           form.reset();
           onSuccess?.();
         },
         onError: (err) => {
           const msg = String(err);
           if (msg.includes("reg_no") || msg.includes("Registration number")) {
-            setRegNoError("This registration number is already in use.");
+            setRegNoError(t("coopProfile.errors.regNoInUse"));
           }
-          toast.error("Failed to create cooperative", { description: msg });
+          toast.error(t("coopProfile.toast.createFailed"), { description: msg });
         },
       });
     }
@@ -179,7 +181,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
       <div className="flex items-center gap-2 mb-6">
         <Building2 className="h-5 w-5 text-primary" />
         <h2 className="text-lg font-semibold">
-          {isEditing ? "Edit Cooperative Profile" : "Register New Cooperative"}
+          {isEditing ? t("coopProfile.editProfileHeader") : t("coopProfile.registerNewHeader")}
         </h2>
       </div>
 
@@ -190,9 +192,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cooperative Name</FormLabel>
+                <FormLabel>{t("coopProfile.name")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. Mbabane SACCO" {...field} />
+                  <Input placeholder={t("coopProfile.placeholderName")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -205,17 +207,17 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="institution_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Institution Type</FormLabel>
+                  <FormLabel>{t("coopProfile.institutionType")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
+                        <SelectValue placeholder={t("coopProfile.placeholderType")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {COOP_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t.charAt(0).toUpperCase() + t.slice(1)}
+                      {COOP_TYPES.map((tName) => (
+                        <SelectItem key={tName} value={tName}>
+                          {t(`coopProfile.types.${tName}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -230,9 +232,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="reg_no"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Registration Number</FormLabel>
+                  <FormLabel>{t("coopProfile.regNo")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. COOP2024-001" {...field} />
+                    <Input placeholder={t("coopProfile.placeholderRegNo")} {...field} />
                   </FormControl>
                   {regNoError && (
                     <p className="text-sm font-medium text-destructive">{regNoError}</p>
@@ -249,9 +251,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="tin"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>TIN (optional)</FormLabel>
+                  <FormLabel>{t("coopProfile.tinOptional")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Tax ID number" {...field} />
+                    <Input placeholder={t("coopProfile.placeholderTin")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -263,9 +265,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone (optional)</FormLabel>
+                  <FormLabel>{t("coopProfile.phoneOptional")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="+268 ..." {...field} />
+                    <Input placeholder={t("coopProfile.placeholderPhone")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -278,9 +280,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
             name="address"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Address (optional)</FormLabel>
+                <FormLabel>{t("coopProfile.addressOptional")}</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Street, city, postal code" {...field} />
+                  <Textarea placeholder={t("coopProfile.placeholderAddress")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -293,17 +295,17 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="region"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Region</FormLabel>
+                  <FormLabel>{t("coopProfile.region")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder={t("coopProfile.placeholderSelect")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {ESWATINI_REGIONS.map((r) => (
                         <SelectItem key={r} value={r}>
-                          {r}
+                          {t("memberRow.regions." + r)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -318,9 +320,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="sector"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sector</FormLabel>
+                  <FormLabel>{t("coopProfile.sector")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Finance" {...field} />
+                    <Input placeholder={t("coopProfile.placeholderSector")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -334,17 +336,17 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="geographic_classif"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Geographic Classification</FormLabel>
+                  <FormLabel>{t("coopProfile.geographicClassif")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder={t("coopProfile.placeholderSelect")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {GEO_CLASSIF.map((g) => (
                         <SelectItem key={g} value={g}>
-                          {g}
+                          {t("memberRow.urbanRural." + g)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -359,17 +361,17 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="accounting_year"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Accounting Year</FormLabel>
+                  <FormLabel>{t("coopProfile.accountingYear")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder={t("coopProfile.placeholderSelect")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {ACCOUNTING_YEAR.map((a) => (
-                        <SelectItem key={a} value={a}>
-                          {a.charAt(0).toUpperCase() + a.slice(1)}
+                      {ACCOUNTING_YEAR.map((accYear) => (
+                        <SelectItem key={accYear} value={accYear}>
+                          {t("coopProfile.accountingYears." + accYear)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -385,11 +387,11 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
             name="georeference"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Georeference (optional)</FormLabel>
+                <FormLabel>{t("coopProfile.georeferenceOptional")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="lat,long (e.g. -26.3,31.1)" {...field} />
+                  <Input placeholder={t("coopProfile.placeholderGeoreference")} {...field} />
                 </FormControl>
-                <FormDescription>GPS coordinates as latitude,longitude</FormDescription>
+                <FormDescription>{t("coopProfile.georeferenceDesc")}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -401,7 +403,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="registered_on"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Registered On</FormLabel>
+                  <FormLabel>{t("coopProfile.registeredOn")}</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -415,17 +417,17 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>{t("coopProfile.status")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder={t("coopProfile.placeholderSelect")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {COOP_STATUS.map((s) => (
                         <SelectItem key={s} value={s}>
-                          {s}
+                          {t("coopProfile.statuses." + s)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -443,7 +445,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              {isEditing ? "Update Profile" : "Create Cooperative"}
+              {isEditing
+                ? t("coopProfile.updateProfileBtn")
+                : t("coopProfile.createCooperativeBtn")}
             </Button>
           </div>
         </form>

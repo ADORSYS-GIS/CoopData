@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useUploadFinancialStatement } from "@/hooks/submissions/useUpload";
@@ -15,6 +16,7 @@ export const UploadFinancialStatementWidget: React.FC<{
   submissionId?: string;
   onExtractionComplete?: () => void;
 }> = ({ onClose, submissionId, onExtractionComplete }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +39,7 @@ export const UploadFinancialStatementWidget: React.FC<{
 
   const handleFile = (f: File) => {
     if (!ACCEPTED_MIMES.includes(f.type) && !f.name.match(/\.(xlsx?|pdf|png|jpe?g|tiff?)$/i)) {
-      toast.error("Unsupported file type. Accepted: PDF, PNG, JPEG, TIFF, XLSX, XLS");
+      toast.error(t("uploadFinancial.toastUnsupportedType"));
       return;
     }
     setFile(f);
@@ -63,9 +65,9 @@ export const UploadFinancialStatementWidget: React.FC<{
         submissionId,
       });
       setJobId(result.extraction_job_id);
-      toast.success("Upload accepted — AI extraction started");
+      toast.success(t("uploadFinancial.toastUploadAccepted"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      toast.error(e instanceof Error ? e.message : t("uploadFinancial.toastUploadFailed"));
     }
   };
 
@@ -104,19 +106,18 @@ export const UploadFinancialStatementWidget: React.FC<{
           <Loader2 className="size-4 animate-spin text-accent shrink-0" />
           <div>
             <p className="text-sm font-semibold">
-              Extraction running
+              {t("uploadFinancial.extractionRunning")}
               <span className="ml-2 text-xs text-muted-foreground font-normal capitalize">
                 {job.status}
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
               {job.confidence
-                ? `Confidence: ${(job.confidence * 100).toFixed(0)}%`
-                : "Parsing document…"}
+                ? t("uploadFinancial.confidence", { confidence: (job.confidence * 100).toFixed(0) })
+                : t("uploadFinancial.parsingDocument")}
             </p>
             <p className="text-xs text-muted-foreground/80 mt-1 font-medium">
-              This process takes about 1 minute to 1 minute 30 seconds. Please do not close or
-              refresh this page.
+              {t("uploadFinancial.processTimeWarning")}
             </p>
           </div>
         </div>
@@ -126,7 +127,7 @@ export const UploadFinancialStatementWidget: React.FC<{
         <div className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
           <AlertCircle className="size-4 text-destructive shrink-0" />
           <p className="text-sm text-destructive">
-            Extraction failed: {job.error_message ?? "unknown error"}
+            {t("uploadFinancial.extractionFailed", { error: job.error_message ?? "unknown error" })}
           </p>
         </div>
       )}
@@ -191,9 +192,9 @@ export const UploadFinancialStatementWidget: React.FC<{
             ) : (
               <>
                 <Upload className="size-10 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-sm font-semibold">Drop file or click to browse</p>
+                <p className="text-sm font-semibold">{t("uploadFinancial.dropOrBrowse")}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  PDF, PNG, JPEG, TIFF, XLSX — max 20 MB
+                  {t("uploadFinancial.fileSizeHint")}
                 </p>
               </>
             )}
@@ -211,14 +212,16 @@ export const UploadFinancialStatementWidget: React.FC<{
               ) : (
                 <Upload className="size-4" />
               )}
-              {upload.isPending ? "Uploading…" : "Upload & Extract"}
+              {upload.isPending
+                ? t("uploadFinancial.uploading")
+                : t("uploadFinancial.uploadAndExtract")}
             </button>
             {onClose && (
               <button
                 onClick={onClose}
                 className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted/50 transition-colors"
               >
-                Cancel
+                {t("uploadFinancial.cancel")}
               </button>
             )}
           </div>
@@ -229,7 +232,7 @@ export const UploadFinancialStatementWidget: React.FC<{
       {jobId && !job && (
         <div className="flex items-center gap-3 rounded-xl border border-success/20 bg-success/5 px-4 py-3">
           <CheckCircle2 className="size-4 text-success shrink-0" />
-          <p className="text-sm font-semibold">Upload accepted — starting extraction…</p>
+          <p className="text-sm font-semibold">{t("uploadFinancial.acceptedStarting")}</p>
         </div>
       )}
     </div>

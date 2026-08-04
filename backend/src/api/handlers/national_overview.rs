@@ -497,7 +497,7 @@ pub async fn get_national_overview(
             apex_id: Some(coop.apex_id),
             apex_name: apex_map.get(&coop.apex_id).cloned(),
             region: coop.region.as_ref().map(|r| r.as_str().to_string()),
-            sector: coop.sector.clone(),
+            sector: coop.sector.as_ref().map(|s| s.as_str().to_string()),
             institution_type: coop
                 .institution_type
                 .as_ref()

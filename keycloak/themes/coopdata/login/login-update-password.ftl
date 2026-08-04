@@ -21,38 +21,38 @@
                         </svg>
                     </div>
                     <div>
-                        <h2>Secure your account with a new password.</h2>
-                        <p>CoopData enforces strong password policies and device verification to keep your data safe.</p>
+                        <h2>${msg("secureAccountTitle")}</h2>
+                        <p>${msg("secureAccountBody")}</p>
                     </div>
                     <ul class="brand-features">
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Encrypted at rest and in transit
+                            ${msg("featureEncrypted")}
                         </li>
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Reset sessions across all devices
+                            ${msg("featureResetSessions")}
                         </li>
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Full audit trail on every action
+                            ${msg("featureAuditTrail")}
                         </li>
                     </ul>
                 </div>
 
-                <p class="brand-footer">&copy; ${.now?string('yyyy')} Ministry of Commerce &amp; Cooperative Development</p>
+                <p class="brand-footer">&copy; ${.now?string('yyyy')} ${msg("ministryName")}</p>
             </aside>
 
             <#-- Right Form Panel -->
             <main class="form-panel">
                 <div class="top-bar">
-                    <a href="/" class="back-link">
+                    <a href="${(client.baseUrl)!'/'}" class="back-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
                         </svg>

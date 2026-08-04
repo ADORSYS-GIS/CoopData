@@ -1,4 +1,5 @@
 import { CheckCircle2, AlertCircle, BarChart3, Send, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { fmt } from "./helpers";
 
@@ -17,6 +18,7 @@ export function ReviewSummary({
   onSubmitFinancial,
   isSubmitting,
 }: ReviewSummaryProps) {
+  const { t } = useTranslation();
   // Balance sheet is a snapshot at the final month of the reporting year
   const finalMonth = accountingYear === "fiscal" ? 6 : 12;
 
@@ -66,6 +68,23 @@ export function ReviewSummary({
 
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;
 
+  const cardItems = [
+    { label: t("reviewSummary.labels.totalAssets"), value: totalAssets, key: "totalAssets" },
+    {
+      label: t("reviewSummary.labels.totalLiabilities"),
+      value: totalLiabilities,
+      key: "totalLiabilities",
+    },
+    { label: t("reviewSummary.labels.totalEquity"), value: totalEquity, key: "totalEquity" },
+    { label: t("reviewSummary.labels.annualIncome"), value: totalIncome, key: "annualIncome" },
+    {
+      label: t("reviewSummary.labels.annualExpenses"),
+      value: totalExpenses,
+      key: "annualExpenses",
+    },
+    { label: t("reviewSummary.labels.netSurplus"), value: netSurplus, key: "netSurplus" },
+  ];
+
   return (
     <div className="space-y-6 font-sans">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -75,22 +94,13 @@ export function ReviewSummary({
             <div className="size-8 rounded-lg bg-primary/10 grid place-items-center">
               <BarChart3 className="size-4 text-primary" />
             </div>
-            <h3 className="text-sm font-bold text-foreground">
-              Financial Statement (Final Month View)
-            </h3>
+            <h3 className="text-sm font-bold text-foreground">{t("reviewSummary.title")}</h3>
           </div>
-          {[
-            { label: "Total Assets", value: totalAssets },
-            { label: "Total Liabilities", value: totalLiabilities },
-            { label: "Total Equity", value: totalEquity },
-            { label: "Annual Income (12-Mo Sum)", value: totalIncome },
-            { label: "Annual Expenses (12-Mo Sum)", value: totalExpenses },
-            { label: "Net Surplus", value: netSurplus },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex justify-between items-center text-sm">
+          {cardItems.map(({ label, value, key }) => (
+            <div key={key} className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">{label}</span>
               <span
-                className={`font-mono font-semibold ${label === "Net Surplus" && value < 0 ? "text-danger" : ""}`}
+                className={`font-mono font-semibold ${key === "netSurplus" && value < 0 ? "text-danger" : ""}`}
               >
                 {currency} {fmt(value)}
               </span>
@@ -107,18 +117,19 @@ export function ReviewSummary({
               <AlertCircle className="size-3.5" />
             )}
             {isBalanced
-              ? "Balance sheet balances at period end ✓"
-              : `Balance sheet does not balance — Gap: ${fmt(Math.abs(totalAssets - totalLiabilities - totalEquity))}`}
+              ? t("reviewSummary.balancedSuccess")
+              : t("reviewSummary.balancedGap", {
+                  gap: fmt(Math.abs(totalAssets - totalLiabilities - totalEquity)),
+                })}
           </div>
         </Card>
 
         {/* Info card */}
         <Card className="p-5 space-y-3 flex flex-col justify-center text-center">
           <CheckCircle2 className="size-10 mx-auto text-success/80 mb-1" />
-          <h4 className="text-sm font-bold text-foreground">Ready for Submission</h4>
+          <h4 className="text-sm font-bold text-foreground">{t("reviewSummary.readyTitle")}</h4>
           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-            Please verify all details are correct. Submitting this manual entry will record the
-            12-month financial statement in draft status.
+            {t("reviewSummary.readyDesc")}
           </p>
         </Card>
       </div>
@@ -129,7 +140,7 @@ export function ReviewSummary({
         className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm animate-pulse-subtle"
       >
         {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-        Submit Financial Statement &amp; Finish
+        {t("reviewSummary.submitBtn")}
       </button>
     </div>
   );

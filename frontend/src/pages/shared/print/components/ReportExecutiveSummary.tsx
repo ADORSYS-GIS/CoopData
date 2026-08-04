@@ -1,7 +1,10 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ReportDataProps } from "./types";
 import { findKpi, formatCurrency, calculateYoY } from "./utils";
 import { ShieldAlert, ShieldCheck, Shield } from "lucide-react";
+import { AiInsightBox } from "./AiInsightBox";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   submission,
@@ -10,7 +13,9 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   coopName,
   kpiMap,
   kpisData,
+  narratives,
 }) => {
+  const { t } = useTranslation();
   const complianceKpis = [
     findKpi(kpiMap, "par30"),
     findKpi(kpiMap, "capital_adequacy_ratio"),
@@ -26,18 +31,18 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
     if (status === "green")
       return (
         <span className="text-green-500">
-          <ShieldCheck className="size-4 inline mr-1" /> Green
+          <ShieldCheck className="size-4 inline mr-1" /> {t("printReports.green")}
         </span>
       );
     if (status === "red")
       return (
         <span className="text-red-500">
-          <ShieldAlert className="size-4 inline mr-1" /> Red
+          <ShieldAlert className="size-4 inline mr-1" /> {t("printReports.red")}
         </span>
       );
     return (
       <span className="text-amber-500">
-        <Shield className="size-4 inline mr-1" /> Amber
+        <Shield className="size-4 inline mr-1" /> {t("printReports.amber")}
       </span>
     );
   };
@@ -45,67 +50,88 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   const totalAssetsFormatted =
     findKpi(kpiMap, "total_assets")?.formatted ?? "a significant portion";
 
+  const ratioChartData = complianceKpis
+    .filter((k) => k.unit === "percent" && k.benchmark !== undefined && k.benchmark !== null)
+    .map((k) => ({
+      name: k.name.replace(/_/g, " ").toUpperCase(),
+      value: k.value ?? 0,
+      benchmark: k.benchmark ?? 0,
+    }));
+
   return (
-    <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
+    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white font-sans">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        Coop Performance Report
+        {t("printReports.performanceReport")}
       </h2>
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">"Executive Summary"</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-4">
+        {t("printReports.executiveSummary")}
+      </h3>
 
       {/* Header Block */}
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6 grid grid-cols-2 gap-y-2 gap-x-8 text-xs">
         <div className="flex justify-between">
-          <span className="font-bold text-slate-600">Cooperative Name</span>{" "}
+          <span className="font-bold text-slate-600">{t("printReports.cooperativeName")}</span>{" "}
           <span className="text-slate-800">{coopName}</span>
         </div>
         <div className="flex justify-between">
-          <span className="font-bold text-slate-600">Registration No</span>{" "}
+          <span className="font-bold text-slate-600">{t("printReports.registrationNo")}</span>{" "}
           <span className="text-slate-800">
-            {cooperative?.id?.slice(0, 8).toUpperCase() ?? "N/A"}
+            {cooperative?.id?.slice(0, 8).toUpperCase() ?? t("printReports.n/a")}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="font-bold text-slate-600">Reporting Period</span>{" "}
+          <span className="font-bold text-slate-600">{t("printReports.reportingPeriod")}</span>{" "}
           <span className="text-slate-800">{submission.reporting_year}</span>
         </div>
         <div className="flex justify-between">
-          <span className="font-bold text-slate-600">Institution Type</span>{" "}
+          <span className="font-bold text-slate-600">{t("printReports.institutionType")}</span>{" "}
           <span className="text-slate-800 capitalize">
-            {cooperative?.institution_type ?? "N/A"}
+            {cooperative?.institution_type ?? t("printReports.n/a")}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="font-bold text-slate-600">Region</span>{" "}
-          <span className="text-slate-800 capitalize">{cooperative?.region ?? "N/A"}</span>
+          <span className="font-bold text-slate-600">{t("printReports.region")}</span>{" "}
+          <span className="text-slate-800 capitalize">
+            {cooperative?.region ?? t("printReports.n/a")}
+          </span>
         </div>
         <div className="flex justify-between">
-          <span className="font-bold text-slate-600">Status</span>{" "}
+          <span className="font-bold text-slate-600">{t("printReports.status")}</span>{" "}
           <span
             className={`font-bold capitalize ${submission.status === "approved" ? "text-green-600" : "text-slate-800"}`}
           >
-            {submission.status ?? "Draft"}
+            {submission.status
+              ? t(`submissions.status.${submission.status}`, submission.status)
+              : t("printReports.draft")}
           </span>
         </div>
       </div>
 
-      {/* Sector Context */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-xs text-blue-900 leading-relaxed">
-        <p className="font-semibold mb-1">Sector Context</p>
-        This cooperative's total assets represent {totalAssetsFormatted} of the national cooperative
-        sector total. The sector's average PAR30 is roughly 8.2%, and this cooperative's asset
-        quality continues to be monitored closely against regulatory limits.
-      </div>
+      {/* AI Insight */}
+      <AiInsightBox
+        title="Executive Summary & Key Strengths"
+        content={narratives?.executive_summary}
+        fallbackContent={
+          <>
+            This cooperative's total assets represent {totalAssetsFormatted} of the national
+            cooperative sector total. The sector's average PAR30 is roughly 8.2%, and this
+            cooperative's asset quality continues to be monitored closely against regulatory limits.
+          </>
+        }
+      />
 
       {/* Financial Highlights */}
-      <h4 className="text-sm font-bold text-slate-800 mb-2">Financial Highlights</h4>
+      <h4 className="text-sm font-bold text-slate-800 mb-2">
+        {t("printReports.financialHighlights")}
+      </h4>
       <table className="w-full text-left text-xs border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-3 py-2 font-semibold">Metric</th>
-            <th className="px-3 py-2 font-semibold">Current</th>
-            <th className="px-3 py-2 font-semibold">Prior Year</th>
-            <th className="px-3 py-2 font-semibold">YoY Change (SZL)</th>
-            <th className="px-3 py-2 font-semibold text-center">Trend</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.metric")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.current")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.priorYear")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.yoyChange")}</th>
+            <th className="px-3 py-2 font-semibold text-center">{t("printReports.trend")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -140,15 +166,15 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
       </table>
 
       {/* Key Ratios */}
-      <h4 className="text-sm font-bold text-slate-800 mb-2">Key Ratios</h4>
+      <h4 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.keyRatios")}</h4>
       <table className="w-full text-left text-xs border-collapse page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-3 py-2 font-semibold">Ratio</th>
-            <th className="px-3 py-2 font-semibold">Value</th>
-            <th className="px-3 py-2 font-semibold">Benchmark</th>
-            <th className="px-3 py-2 font-semibold">Status</th>
-            <th className="px-3 py-2 font-semibold">YoY</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.ratio")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.value")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.benchmark")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.status")}</th>
+            <th className="px-3 py-2 font-semibold">{t("printReports.yoy")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -174,6 +200,46 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
         </tbody>
       </table>
 
+      {ratioChartData.length > 0 && (
+        <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-6">
+          <h4 className="text-sm font-bold text-slate-800 mb-2">
+            {t("printReports.ratioBenchmarkChart")}
+          </h4>
+          <BarChart
+            width={680}
+            height={240}
+            data={ratioChartData}
+            margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: "bold" }}
+              interval={0}
+            />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+            <Tooltip cursor={{ fill: "rgba(0,0,0,0.05)" }} />
+            <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+            <Bar
+              dataKey="value"
+              name={t("printReports.current")}
+              fill="#2563eb"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="benchmark"
+              name={t("printReports.benchmark")}
+              fill="#f59e0b"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+          </BarChart>
+        </div>
+      )}
+
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
         <span></span>
         <span>
@@ -183,3 +249,4 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
     </div>
   );
 };
+export default ReportExecutiveSummary;

@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   FileType,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { type Role, useUserRole } from "@/lib/auth";
@@ -35,20 +36,7 @@ import {
 } from "@/hooks/submissions/useSubmissions";
 import { getAccessToken } from "@/services/shared/authService";
 import { useState, useRef, useEffect } from "react";
-
-const titleByRole: Record<Role, string> = {
-  ministry: "Reporting Center",
-  federation: "Federation Reports",
-  apex: "Apex Reports",
-  cooperative: "My Reports",
-};
-
-const subtitleByRole: Record<Role, string> = {
-  ministry: "Generate and download intelligence reports across the cooperative ecosystem",
-  federation: "Generate and download reports for your federation and its apex organizations",
-  apex: "Generate and download reports for cooperatives under your apex organization",
-  cooperative: "View and export reports from your submitted data and analytics",
-};
+import { useTranslation } from "react-i18next";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -75,7 +63,7 @@ const STATUS_CONFIG: Record<
   rejected: {
     label: "Rejected",
     icon: XCircle,
-    className: "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20",
+    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
   },
   draft: {
     label: "Draft",
@@ -85,14 +73,23 @@ const STATUS_CONFIG: Record<
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status.toLowerCase()] ?? STATUS_CONFIG["draft"];
+  const { t } = useTranslation();
+  const lower = status.toLowerCase();
+  const config = STATUS_CONFIG[lower] || {
+    label: status,
+    icon: AlertCircle,
+    className: "bg-slate-500/10 text-slate-650 dark:text-slate-400 border border-slate-500/20",
+  };
+
+  const label = t(`reports.status.${lower}`, { defaultValue: config.label });
+
   const Icon = config.icon;
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${config.className}`}
     >
       <Icon className="size-3" />
-      {config.label}
+      {label}
     </span>
   );
 }
@@ -109,24 +106,59 @@ function ExportButton({
 }: {
   submissionId: string;
   filename: string;
-  onExport: (id: string, format: ExportFormat, name: string) => void;
+  onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
   isExporting: string | null;
 }) {
+  const { t } = useTranslation();
   const isThis = isExporting === submissionId;
 
   return (
     <button
-      onClick={() => onExport(submissionId, "pdf", filename)}
-      disabled={isThis}
+      onClick={() => onExport(submissionId, "pdf", filename, false)}
+      disabled={isExporting !== null}
       className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-border bg-background px-3 py-1.5 hover:bg-accent hover:text-white hover:border-accent transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
     >
       {isThis ? (
         <>
-          <Loader2 className="size-3.5 animate-spin" /> Exporting…
+          <Loader2 className="size-3.5 animate-spin" /> {t("reports.exporting")}
         </>
       ) : (
         <>
-          <Download className="size-3.5" /> Export PDF
+          <Download className="size-3.5" /> {t("reports.exportPdf")}
+        </>
+      )}
+    </button>
+  );
+}
+
+function RegenerateButton({
+  submissionId,
+  filename,
+  onExport,
+  isExporting,
+}: {
+  submissionId: string;
+  filename: string;
+  onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
+  isExporting: string | null;
+}) {
+  const { t } = useTranslation();
+  const isThis = isExporting === submissionId + "-regen";
+
+  return (
+    <button
+      onClick={() => onExport(submissionId, "pdf", filename, true)}
+      disabled={isExporting !== null}
+      title={t("reportExport.regenerateTooltip")}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
+    >
+      {isThis ? (
+        <>
+          <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.regenerating")}
+        </>
+      ) : (
+        <>
+          <RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}
         </>
       )}
     </button>
@@ -136,6 +168,7 @@ function ExportButton({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const ReportsPage: React.FC = () => {
+  const { t } = useTranslation();
   const role = useUserRole();
   const { user } = useAuth();
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -146,6 +179,20 @@ export const ReportsPage: React.FC = () => {
   const ministryQuery = useMinistrySubmissions({ all: true, enabled: role === "ministry" });
 
   if (!role) return null;
+
+  const titleByRole: Record<Role, string> = {
+    ministry: t("reports.title.ministry"),
+    federation: t("reports.title.federation"),
+    apex: t("reports.title.apex"),
+    cooperative: t("reports.title.cooperative"),
+  };
+
+  const subtitleByRole: Record<Role, string> = {
+    ministry: t("reports.subtitle.ministry"),
+    federation: t("reports.subtitle.federation"),
+    apex: t("reports.subtitle.apex"),
+    cooperative: t("reports.subtitle.cooperative"),
+  };
 
   const submissions = (() => {
     if (role === "cooperative") return cooperativeQuery.data ?? [];
@@ -164,7 +211,7 @@ export const ReportsPage: React.FC = () => {
   })();
 
   const recentSubmissions = [...submissions]
-    .filter((s) => ["submitted", "approved"].includes(s.status.toLowerCase()))
+    .filter((s) => s.status.toLowerCase() === "approved")
     .sort(
       (a, b) =>
         new Date(b.submitted_at || b.created_at).getTime() -
@@ -174,14 +221,21 @@ export const ReportsPage: React.FC = () => {
 
   // Resolve cooperative name: use field from submission, fall back to Keycloak org name
   const resolveCoopName = (s: (typeof submissions)[number]) =>
-    s.cooperative_name ?? user?.organizationName ?? "My Cooperative";
+    s.cooperative_name ?? user?.organizationName ?? t("reports.myCooperative");
 
-  const handleExport = async (submissionId: string, format: string, filename: string) => {
-    setIsExporting(submissionId);
+  const handleExport = async (
+    submissionId: string,
+    format: string,
+    filename: string,
+    regenerate = false,
+  ) => {
+    setIsExporting(submissionId + (regenerate ? "-regen" : ""));
     try {
       const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}`;
+      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}${
+        regenerate ? "&regenerate=true" : ""
+      }`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error(`Export failed: ${res.status}`);
       const blob = await res.blob();
@@ -192,10 +246,14 @@ export const ReportsPage: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(link.href);
-      toast.success(`Report exported as ${format.toUpperCase()}!`);
+      if (regenerate) {
+        toast.success(t("reportExport.regeneratedAndDownloaded"));
+      } else {
+        toast.success(t("reports.exportSuccess", { format: format.toUpperCase() }));
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to export report.");
+      toast.error(t("reports.exportFailed"));
     } finally {
       setIsExporting(null);
     }
@@ -216,15 +274,17 @@ export const ReportsPage: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div>
                 <h2 className="font-heading font-bold text-foreground text-[15px]">
-                  Recent Data Submissions
+                  {t("reports.recentDataSubmissions")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Most recently submitted financial statements — click Export to download
+                  {t("reports.recentDataSubmissionsDesc")}
                 </p>
               </div>
               {recentSubmissions.length > 0 && (
                 <span className="text-xs font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                  {recentSubmissions.length} entries
+                  {recentSubmissions.length === 1
+                    ? t("reports.entriesCount", { count: 1 })
+                    : t("reports.entriesCount_plural", { count: recentSubmissions.length })}
                 </span>
               )}
             </div>
@@ -232,33 +292,35 @@ export const ReportsPage: React.FC = () => {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                 <Loader2 className="size-7 animate-spin text-accent" />
-                <span className="text-sm">Loading submissions…</span>
+                <span className="text-sm">{t("reports.loadingSubmissions")}</span>
               </div>
             ) : recentSubmissions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                 <div className="size-14 rounded-2xl bg-muted grid place-items-center">
                   <FileBarChart2 className="size-7 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm font-medium">No submissions yet</p>
-                <p className="text-xs text-muted-foreground/60">Submitted data will appear here</p>
+                <p className="text-sm font-semibold">{t("reports.noSubmissions")}</p>
+                <p className="text-xs text-muted-foreground/60">{t("reports.submittedDataWill")}</p>
               </div>
             ) : (
               <>
                 <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-2.5 bg-muted/40 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span>Cooperative / Year</span>
-                  <span className="text-center">Status</span>
-                  <span className="text-right">Date</span>
-                  <span className="text-right">Export</span>
+                  <span>{t("reports.cooperativeYear")}</span>
+                  <span className="text-center">{t("reports.statusHeader")}</span>
+                  <span className="text-right">{t("reports.dateHeader")}</span>
+                  <span className="text-right">{t("reports.exportHeader")}</span>
                 </div>
 
                 <ul className="divide-y divide-border">
                   {recentSubmissions.map((s) => {
                     const coopName = resolveCoopName(s);
                     const dateStr = s.submitted_at
-                      ? new Date(s.submitted_at).toLocaleDateString("en-GB", {
+                      ? new Date(s.submitted_at).toLocaleString("en-GB", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })
                       : new Date(s.created_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
@@ -282,7 +344,7 @@ export const ReportsPage: React.FC = () => {
                               {coopName}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {s.reporting_year} Financial Report
+                              {t("reports.financialReportLabel", { year: s.reporting_year })}
                             </p>
                           </div>
                         </div>
@@ -298,8 +360,14 @@ export const ReportsPage: React.FC = () => {
                           {dateStr}
                         </div>
 
-                        {/* Export dropdown */}
-                        <div className="flex justify-end">
+                        {/* Export actions */}
+                        <div className="flex justify-end gap-2">
+                          <RegenerateButton
+                            submissionId={s.id}
+                            filename={`${baseName}.pdf`}
+                            onExport={handleExport}
+                            isExporting={isExporting}
+                          />
                           <ExportButton
                             submissionId={s.id}
                             filename={`${baseName}.pdf`}
@@ -314,8 +382,7 @@ export const ReportsPage: React.FC = () => {
 
                 <div className="px-6 py-3 border-t border-border bg-muted/20 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <ChevronRight className="size-3 shrink-0" />
-                  Showing the {recentSubmissions.length} most recent submissions. Use the Export
-                  Panel above for consolidated reports.
+                  {t("reports.showingMostRecent", { count: recentSubmissions.length })}
                 </div>
               </>
             )}

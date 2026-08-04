@@ -8,28 +8,39 @@ import {
   Tooltip,
 } from "recharts";
 import type { FarmCoopStats } from "@/hooks/analytics/useNfStatistics";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   stats: FarmCoopStats;
 }
 
 export function AgriResilienceRadar({ stats }: Props) {
+  const { t } = useTranslation();
+
   if (stats.total_coops === 0 && stats.active_producers === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-        No agricultural data available
+        {t("analytics.agriNoData")}
       </div>
     );
   }
 
   const data = [
-    { subject: "Planning", A: stats.planning_adoption_pct ?? 0, fullMark: 100 },
-    { subject: "Shared Inputs", A: stats.shared_services_pct ?? 0, fullMark: 100 },
-    { subject: "Formal Off-take", A: stats.formal_offtake_pct ?? 0, fullMark: 100 },
-    { subject: "Storage", A: stats.storage_coverage_pct ?? 0, fullMark: 100 },
-    { subject: "Processing", A: stats.processing_access_pct ?? 0, fullMark: 100 },
-    { subject: "Irrigation", A: stats.irrigation_coverage_pct ?? 0, fullMark: 100 },
-    { subject: "Climate Mitig.", A: stats.climate_mitigation_pct ?? 0, fullMark: 100 },
+    { subject: t("analytics.agriPlanning"), A: stats.planning_adoption_pct ?? 0, fullMark: 100 },
+    { subject: t("analytics.agriSharedInputs"), A: stats.shared_services_pct ?? 0, fullMark: 100 },
+    { subject: t("analytics.agriFormalOfftake"), A: stats.formal_offtake_pct ?? 0, fullMark: 100 },
+    { subject: t("analytics.agriStorage"), A: stats.storage_coverage_pct ?? 0, fullMark: 100 },
+    { subject: t("analytics.agriProcessing"), A: stats.processing_access_pct ?? 0, fullMark: 100 },
+    {
+      subject: t("analytics.agriIrrigation"),
+      A: stats.irrigation_coverage_pct ?? 0,
+      fullMark: 100,
+    },
+    {
+      subject: t("analytics.agriClimateMitig"),
+      A: stats.climate_mitigation_pct ?? 0,
+      fullMark: 100,
+    },
   ];
 
   return (
@@ -48,7 +59,7 @@ export function AgriResilienceRadar({ stats }: Props) {
             tickCount={5}
           />
           <Radar
-            name="Agri-Resilience"
+            name={t("analytics.agriResilienceName")}
             dataKey="A"
             stroke="var(--chart-3)"
             fill="var(--chart-3)"
@@ -60,7 +71,7 @@ export function AgriResilienceRadar({ stats }: Props) {
               border: "1px solid var(--border)",
               fontSize: "12px",
             }}
-            formatter={(val: number) => [`${val.toFixed(1)}%`, "Coverage"]}
+            formatter={(val: number) => [`${val.toFixed(1)}%`, t("analytics.agriCoverage")]}
           />
         </RadarChart>
       </ResponsiveContainer>

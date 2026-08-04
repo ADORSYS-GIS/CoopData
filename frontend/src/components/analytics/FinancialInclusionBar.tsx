@@ -10,33 +10,36 @@ import {
   LabelList,
 } from "recharts";
 import type { LoanStats } from "@/hooks/analytics/useNfStatistics";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   stats: LoanStats;
 }
 
 export function FinancialInclusionBar({ stats }: Props) {
+  const { t } = useTranslation();
+
   if (stats.total_loans === 0) {
     return (
       <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
-        No loan data available
+        {t("analytics.inclusionNoData")}
       </div>
     );
   }
 
   const data = [
     {
-      group: "Women",
+      group: t("analytics.genderWomen"),
       value: stats.women_borrower_pct ?? 0,
       color: "var(--chart-4)",
     },
     {
-      group: "Youth (<35)",
+      group: t("analytics.inclusionYouth"),
       value: stats.youth_borrower_pct ?? 0,
       color: "var(--chart-5)",
     },
     {
-      group: "Rural",
+      group: t("analytics.inclusionRural"),
       value: stats.rural_borrower_pct ?? 0,
       color: "var(--chart-3)",
     },
@@ -73,7 +76,7 @@ export function FinancialInclusionBar({ stats }: Props) {
               border: "1px solid var(--border)",
               fontSize: "12px",
             }}
-            formatter={(val: number) => [`${val.toFixed(1)}%`, "Inclusion Share"]}
+            formatter={(val: number) => [`${val.toFixed(1)}%`, t("analytics.inclusionShare")]}
           />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32}>
             {data.map((entry, index) => (

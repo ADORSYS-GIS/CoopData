@@ -19,6 +19,7 @@ import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
+  const { t } = useTranslation();
   const year = Number(filterValues.year);
 
   const params = useMemo(
@@ -52,7 +54,7 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   if (overviewLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground p-8">
-        <Loader2 className="size-5 animate-spin" /> Loading apex analytics…
+        <Loader2 className="size-5 animate-spin" /> {t("apexAnalytics.loading")}
       </div>
     );
   }
@@ -84,16 +86,16 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <Card
-          title="Risk vs Return Profile"
-          subtitle="NPL ratio vs ROA per cooperative"
-          info="A scatter plot mapping the risk (Non-Performing Loans ratio) against the return (Return on Assets) for each cooperative in the network."
+          title={t("apexAnalytics.riskVsReturnTitle")}
+          subtitle={t("apexAnalytics.riskVsReturnSubtitle")}
+          info={t("apexAnalytics.riskVsReturnInfo")}
         >
           <CoopScatterPlot data={coops} />
         </Card>
         <Card
-          title="Network Comparative Performance"
-          subtitle="Radar across key KPI dimensions"
-          info="A radar chart visualizing average performance across multiple dimensions including Management Efficiency, Asset Quality, and Capital Adequacy."
+          title={t("apexAnalytics.networkCompTitle")}
+          subtitle={t("apexAnalytics.networkCompSubtitle")}
+          info={t("apexAnalytics.networkCompInfo")}
         >
           <ApexRadarChart data={coops} />
         </Card>
@@ -101,17 +103,17 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <Card
-          title="NPL Leaderboard"
-          subtitle="Best and worst performing cooperatives by NPL ratio"
-          info="Highlights the cooperatives with the best and worst Non-Performing Loan ratios to identify excellence and areas requiring intervention."
+          title={t("apexAnalytics.nplLeaderboardTitle")}
+          subtitle={t("apexAnalytics.nplLeaderboardSubtitle")}
+          info={t("apexAnalytics.nplLeaderboardInfo")}
         >
           <TopBottomLeaderboard cooperatives={coops} sortByKpi="npl_ratio" />
         </Card>
         {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
           <Card
-            title="Traffic Light Distribution"
-            subtitle="KPI health across all cooperatives"
-            info="Shows the distribution of cooperatives falling into Healthy (Green), Watch (Amber), and Risk (Red) categories for various key performance indicators."
+            title={t("apexAnalytics.trafficLightTitle")}
+            subtitle={t("apexAnalytics.trafficLightSubtitle")}
+            info={t("apexAnalytics.trafficLightInfo")}
           >
             <ComplianceDoughnutCharts distributions={overview.distributions} />
           </Card>

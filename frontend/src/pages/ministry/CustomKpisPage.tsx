@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Plus, Calculator, Sparkles, Layers, Hash, Loader2, Calendar, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { useCustomKpis } from "@/hooks/analytics/useCustomKpis";
@@ -48,6 +49,7 @@ interface CustomKpiItem {
 }
 
 export function CustomKpisPage() {
+  const { t } = useTranslation();
   const {
     kpis,
     isLoading: isKpiLoading,
@@ -93,171 +95,201 @@ export function CustomKpisPage() {
       // Assets
       {
         name: "ac_1100",
-        label: "Total Liquid Assets (1100)",
+        label: t("customKpis.variables.ac_1100"),
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1101", label: "Cash on Hand (1101)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1101",
+        label: t("customKpis.variables.ac_1101"),
+        category: "assets",
+        unit: "currency",
+      },
       {
         name: "ac_1102",
-        label: "Cash at Bank - Current (1102)",
+        label: t("customKpis.variables.ac_1102"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1103",
-        label: "Cash at Bank - Savings (1103)",
+        label: t("customKpis.variables.ac_1103"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1104",
-        label: "Short-Term Investments (1104)",
+        label: t("customKpis.variables.ac_1104"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1200",
-        label: "Gross Loan Portfolio (1200)",
+        label: t("customKpis.variables.ac_1200"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1201",
-        label: "Performing Loan Portfolio (1201)",
+        label: t("customKpis.variables.ac_1201"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1202",
-        label: "Loans in Arrears 1-30d (1202)",
+        label: t("customKpis.variables.ac_1202"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1203",
-        label: "Loans in Arrears 31-60d (1203)",
+        label: t("customKpis.variables.ac_1203"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1204",
-        label: "Loans in Arrears 61-90d (1204)",
+        label: t("customKpis.variables.ac_1204"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1205",
-        label: "Non-Performing Loans (1205)",
+        label: t("customKpis.variables.ac_1205"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1250",
-        label: "Loan Loss Provisions (1250)",
+        label: t("customKpis.variables.ac_1250"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1251",
-        label: "General Loan Loss Prov (1251)",
+        label: t("customKpis.variables.ac_1251"),
         category: "assets",
         unit: "currency",
       },
       {
         name: "ac_1252",
-        label: "Specific Loan Loss Prov (1252)",
+        label: t("customKpis.variables.ac_1252"),
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1300", label: "Total Other Assets (1300)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1300",
+        label: t("customKpis.variables.ac_1300"),
+        category: "assets",
+        unit: "currency",
+      },
       {
         name: "ac_1301",
-        label: "Accounts Receivable (1301)",
+        label: t("customKpis.variables.ac_1301"),
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1302", label: "Prepaid Expenses (1302)", category: "assets", unit: "currency" },
-      { name: "ac_1303", label: "Fixed Assets Cost (1303)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1302",
+        label: t("customKpis.variables.ac_1302"),
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1303",
+        label: t("customKpis.variables.ac_1303"),
+        category: "assets",
+        unit: "currency",
+      },
       {
         name: "ac_1304",
-        label: "Accumulated Depreciation (1304)",
+        label: t("customKpis.variables.ac_1304"),
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1305", label: "Intangible Assets (1305)", category: "assets", unit: "currency" },
-      { name: "ac_1999", label: "TOTAL ASSETS (1999)", category: "assets", unit: "currency" },
+      {
+        name: "ac_1305",
+        label: t("customKpis.variables.ac_1305"),
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1999",
+        label: t("customKpis.variables.ac_1999"),
+        category: "assets",
+        unit: "currency",
+      },
 
       // Liabilities
       {
         name: "ac_2100",
-        label: "Member Deposits & Savings (2100)",
+        label: t("customKpis.variables.ac_2100"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2101",
-        label: "Voluntary Savings Deposits (2101)",
+        label: t("customKpis.variables.ac_2101"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2102",
-        label: "Mandatory Savings Deposits (2102)",
+        label: t("customKpis.variables.ac_2102"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2103",
-        label: "Fixed Term Deposits (2103)",
+        label: t("customKpis.variables.ac_2103"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2200",
-        label: "Total Borrowings (2200)",
+        label: t("customKpis.variables.ac_2200"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2201",
-        label: "Short-Term Borrowings (2201)",
+        label: t("customKpis.variables.ac_2201"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2202",
-        label: "Long-Term Borrowings (2202)",
+        label: t("customKpis.variables.ac_2202"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2300",
-        label: "Total Other Liabilities (2300)",
+        label: t("customKpis.variables.ac_2300"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2301",
-        label: "Accounts Payable (2301)",
+        label: t("customKpis.variables.ac_2301"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2302",
-        label: "Accrued Expenses (2302)",
+        label: t("customKpis.variables.ac_2302"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2303",
-        label: "Deferred Income (2303)",
+        label: t("customKpis.variables.ac_2303"),
         category: "liabilities",
         unit: "currency",
       },
       {
         name: "ac_2999",
-        label: "TOTAL LIABILITIES (2999)",
+        label: t("customKpis.variables.ac_2999"),
         category: "liabilities",
         unit: "currency",
       },
@@ -265,102 +297,152 @@ export function CustomKpisPage() {
       // Equity
       {
         name: "ac_3100",
-        label: "Total Member Shares (3100)",
+        label: t("customKpis.variables.ac_3100"),
         category: "equity",
         unit: "currency",
       },
       {
         name: "ac_3101",
-        label: "Permanent Share Capital (3101)",
+        label: t("customKpis.variables.ac_3101"),
         category: "equity",
         unit: "currency",
       },
       {
         name: "ac_3102",
-        label: "Withdrawable Shares (3102)",
+        label: t("customKpis.variables.ac_3102"),
         category: "equity",
         unit: "currency",
       },
-      { name: "ac_3200", label: "Total Reserves (3200)", category: "equity", unit: "currency" },
-      { name: "ac_3201", label: "Statutory Reserve (3201)", category: "equity", unit: "currency" },
-      { name: "ac_3202", label: "General Reserve (3202)", category: "equity", unit: "currency" },
-      { name: "ac_3203", label: "Risk Reserve (3203)", category: "equity", unit: "currency" },
-      { name: "ac_3300", label: "Retained Earnings (3300)", category: "equity", unit: "currency" },
+      {
+        name: "ac_3200",
+        label: t("customKpis.variables.ac_3200"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3201",
+        label: t("customKpis.variables.ac_3201"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3202",
+        label: t("customKpis.variables.ac_3202"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3203",
+        label: t("customKpis.variables.ac_3203"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3300",
+        label: t("customKpis.variables.ac_3300"),
+        category: "equity",
+        unit: "currency",
+      },
       {
         name: "ac_3301",
-        label: "Accumulated Surplus (3301)",
+        label: t("customKpis.variables.ac_3301"),
         category: "equity",
         unit: "currency",
       },
       {
         name: "ac_3302",
-        label: "Current Year Surplus (3302)",
+        label: t("customKpis.variables.ac_3302"),
         category: "equity",
         unit: "currency",
       },
-      { name: "ac_3999", label: "TOTAL EQUITY (3999)", category: "equity", unit: "currency" },
+      {
+        name: "ac_3999",
+        label: t("customKpis.variables.ac_3999"),
+        category: "equity",
+        unit: "currency",
+      },
 
       // Income
       {
         name: "ac_4101",
-        label: "Interest Income on Loans (4101)",
+        label: t("customKpis.variables.ac_4101"),
         category: "income",
         unit: "currency",
       },
       {
         name: "ac_4102",
-        label: "Fees & Commissions Income (4102)",
+        label: t("customKpis.variables.ac_4102"),
         category: "income",
         unit: "currency",
       },
       {
         name: "ac_4201",
-        label: "Other Operating Income (4201)",
+        label: t("customKpis.variables.ac_4201"),
         category: "income",
         unit: "currency",
       },
-      { name: "ac_4999", label: "TOTAL INCOME (4999)", category: "income", unit: "currency" },
+      {
+        name: "ac_4999",
+        label: t("customKpis.variables.ac_4999"),
+        category: "income",
+        unit: "currency",
+      },
 
       // Expenses
       {
         name: "ac_5101",
-        label: "Interest Exp on Deposits (5101)",
+        label: t("customKpis.variables.ac_5101"),
         category: "expenses",
         unit: "currency",
       },
       {
         name: "ac_5102",
-        label: "Interest Exp on Borrowings (5102)",
+        label: t("customKpis.variables.ac_5102"),
         category: "expenses",
         unit: "currency",
       },
-      { name: "ac_5201", label: "Personnel Costs (5201)", category: "expenses", unit: "currency" },
+      {
+        name: "ac_5201",
+        label: t("customKpis.variables.ac_5201"),
+        category: "expenses",
+        unit: "currency",
+      },
       {
         name: "ac_5202",
-        label: "Administrative Expenses (5202)",
+        label: t("customKpis.variables.ac_5202"),
         category: "expenses",
         unit: "currency",
       },
       {
         name: "ac_5203",
-        label: "Governance Expenses (5203)",
+        label: t("customKpis.variables.ac_5203"),
         category: "expenses",
         unit: "currency",
       },
       {
         name: "ac_5204",
-        label: "Depreciation & Amort (5204)",
+        label: t("customKpis.variables.ac_5204"),
         category: "expenses",
         unit: "currency",
       },
       {
         name: "ac_5301",
-        label: "Loan Loss Prov Expense (5301)",
+        label: t("customKpis.variables.ac_5301"),
         category: "expenses",
         unit: "currency",
       },
-      { name: "ac_5999", label: "TOTAL EXPENSES (5999)", category: "expenses", unit: "currency" },
-      { name: "ac_6999", label: "NET SURPLUS (6999)", category: "expenses", unit: "currency" },
+      {
+        name: "ac_5999",
+        label: t("customKpis.variables.ac_5999"),
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_6999",
+        label: t("customKpis.variables.ac_6999"),
+        category: "expenses",
+        unit: "currency",
+      },
     ];
 
     if (!catalog) return base;
@@ -400,7 +482,7 @@ export function CustomKpisPage() {
       });
 
     return [...base, ...catalogVars];
-  }, [catalog]);
+  }, [catalog, t]);
 
   const handleSave = async (payload: { name: string; description: string; formula: string }) => {
     try {
@@ -409,19 +491,19 @@ export function CustomKpisPage() {
           id: editingKpi.id,
           payload,
         });
-        toast.success("Custom KPI updated successfully");
+        toast.success(t("customKpis.toastUpdated"));
         // Update selected KPI state to reflect changes if it was open in the details panel
         if (selectedKpi?.id === editingKpi.id) {
           setSelectedKpi({ ...editingKpi, ...payload });
         }
       } else {
         await createKpi(payload);
-        toast.success("Custom KPI created successfully");
+        toast.success(t("customKpis.toastCreated"));
       }
       setIsFormOpen(false);
       setEditingKpi(null);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to save Custom KPI");
+      toast.error(e instanceof Error ? e.message : t("customKpis.toastSaveFailed"));
     }
   };
 
@@ -438,10 +520,10 @@ export function CustomKpisPage() {
     if (!kpiToDelete) return;
     try {
       await deleteKpi(kpiToDelete.id);
-      toast.success("Custom KPI deleted successfully");
+      toast.success(t("customKpis.toastDeleted"));
       setSelectedKpi(null);
     } catch {
-      toast.error("Failed to delete Custom KPI");
+      toast.error(t("customKpis.toastDeleteFailed"));
     } finally {
       setKpiToDelete(null);
     }
@@ -490,10 +572,7 @@ export function CustomKpisPage() {
   }, [cooperatives, searchTerm, sortField, sortDirection]);
 
   return (
-    <AppShell
-      title="Custom KPI Builder"
-      subtitle="Ministry of Commerce & Cooperative Development Dashboard"
-    >
+    <AppShell title={t("customKpis.title")} subtitle={t("customKpis.subtitle")}>
       <div className="space-y-8 max-w-7xl mx-auto">
         {/* Header Block */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 rounded-xl p-4 md:p-5 text-white shadow-lg relative overflow-hidden border border-blue-800">
@@ -501,12 +580,10 @@ export function CustomKpisPage() {
           <div className="space-y-1.5">
             <h2 className="text-xl md:text-2xl font-extrabold flex items-center gap-2">
               <Calculator className="h-6 w-6 text-blue-200" />
-              Custom Indicators & KPIs
+              {t("customKpis.headerTitle")}
             </h2>
             <p className="text-blue-100 text-xs md:text-sm max-w-xl font-light leading-relaxed">
-              Formulate bespoke operational metrics combining raw financial accounts with
-              qualitative compliance variables. Track them in real-time across Eswatini's
-              cooperatives.
+              {t("customKpis.headerSubtitle")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -520,7 +597,7 @@ export function CustomKpisPage() {
               >
                 {["2026", "2025", "2024", "2023"].map((y) => (
                   <option key={y} value={y} className="text-foreground">
-                    Reporting Year: {y}
+                    {t("customKpis.reportingYear", { year: y })}
                   </option>
                 ))}
               </select>
@@ -532,7 +609,7 @@ export function CustomKpisPage() {
               }}
               className="bg-white hover:bg-blue-50 text-blue-950 font-semibold shadow-sm rounded-lg cursor-pointer text-xs md:text-sm py-1.5 h-auto"
             >
-              <Plus className="mr-1.5 h-4 w-4 text-blue-600" /> New Custom KPI
+              <Plus className="mr-1.5 h-4 w-4 text-blue-600" /> {t("customKpis.newKpiBtn")}
             </Button>
           </div>
         </div>
@@ -546,10 +623,10 @@ export function CustomKpisPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Defined Formulas
+                  {t("customKpis.statsDefined")}
                 </p>
                 <h4 className="text-2xl font-bold text-blue-900 mt-1">
-                  {isKpiLoading ? "..." : kpis.length} KPIs
+                  {isKpiLoading ? "..." : t("customKpis.statsKpis", { count: kpis.length })}
                 </h4>
               </div>
             </CardContent>
@@ -562,10 +639,12 @@ export function CustomKpisPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Formula Evaluated Cooperatives
+                  {t("customKpis.statsEvaluated")}
                 </p>
                 <h4 className="text-2xl font-bold text-blue-900 mt-1">
-                  {isOverviewLoading ? "..." : cooperatives.length} Cooperatives
+                  {isOverviewLoading
+                    ? "..."
+                    : t("customKpis.statsCoops", { count: cooperatives.length })}
                 </h4>
               </div>
             </CardContent>
@@ -578,10 +657,10 @@ export function CustomKpisPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Available Variables
+                  {t("customKpis.statsVariables")}
                 </p>
                 <h4 className="text-2xl font-bold text-blue-900 mt-1">
-                  {allVariables.length} Indicators
+                  {t("customKpis.statsIndicators", { count: allVariables.length })}
                 </h4>
               </div>
             </CardContent>
@@ -592,7 +671,7 @@ export function CustomKpisPage() {
         <div>
           <h3 className="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-blue-500 animate-pulse" />
-            Active Custom Metrics
+            {t("customKpis.activeMetrics")}
           </h3>
           {isKpiLoading ? (
             <div className="flex justify-center p-12 bg-white rounded-2xl border border-blue-50">
@@ -603,10 +682,9 @@ export function CustomKpisPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 mb-4">
                 <Calculator className="h-8 w-8 text-blue-500" />
               </div>
-              <p className="text-lg font-bold text-blue-950">No custom KPIs found</p>
+              <p className="text-lg font-bold text-blue-950">{t("customKpis.noKpisFound")}</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                Combine financial line items and indicator catalog fields to write customized
-                metrics for national audits.
+                {t("customKpis.noKpisDesc")}
               </p>
               <Button
                 onClick={() => {
@@ -615,7 +693,7 @@ export function CustomKpisPage() {
                 }}
                 className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl cursor-pointer"
               >
-                <Plus className="mr-2 h-4 w-4" /> Create First KPI
+                <Plus className="mr-2 h-4 w-4" /> {t("customKpis.createFirstBtn")}
               </Button>
             </div>
           ) : (
@@ -684,29 +762,25 @@ export function CustomKpisPage() {
                   <Trash2 className="h-5 w-5 text-red-600" />
                 </div>
                 <AlertDialogTitle className="text-lg font-bold text-slate-900">
-                  Delete Custom KPI
+                  {t("customKpis.deleteTitle")}
                 </AlertDialogTitle>
               </div>
               <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
-                Are you sure you want to delete{" "}
-                <span className="font-semibold text-slate-800">
-                  &ldquo;{kpiToDelete?.name}&rdquo;
-                </span>
-                ? This will permanently remove the formula and all associated data.
+                {t("customKpis.deleteConfirmDesc", { name: kpiToDelete?.name })}
                 <span className="mt-2 block font-medium text-red-600">
-                  This action cannot be undone.
+                  {t("customKpis.deleteConfirmWarning")}
                 </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-2 mt-2">
               <AlertDialogCancel className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">
-                Cancel
+                {t("customKpis.cancel")}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={performDelete}
                 className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm"
               >
-                Yes, delete KPI
+                {t("customKpis.deleteBtn")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

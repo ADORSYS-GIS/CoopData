@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { CoopKpiRow } from "./types";
+import { useTranslation } from "react-i18next";
 
 interface FederationSocialImpactSheetProps {
   federationName: string;
@@ -15,6 +16,7 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
   data,
   priorData,
 }) => {
+  const { t } = useTranslation();
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
   const priorCoops: CoopKpiRow[] = priorData?.cooperatives || [];
 
@@ -98,11 +100,15 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
     >
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Federation Social Impact Summary</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            {t("printReports.socialImpactSummaryTitle")}
+          </h1>
           <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-700">Period: {year}</p>
+          <p className="text-lg font-semibold text-slate-700">
+            {t("printReports.period", { year })}
+          </p>
           <p className="text-sm text-slate-500"></p>
         </div>
       </div>
@@ -112,15 +118,25 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900 w-1/2">Metric</th>
-                <th className="p-3 text-right border border-slate-900">Current</th>
-                <th className="p-3 text-right border border-slate-900">Prior Year</th>
-                <th className="p-3 text-right border border-slate-900">YoY</th>
+                <th className="p-3 text-left border border-slate-900 w-1/2">
+                  {t("printReports.headers.metric")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.current")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.priorYear")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.yoy")}
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr className="even:bg-slate-50">
-                <td className="p-3 border border-slate-300 font-medium">Aggregate Active Savers</td>
+                <td className="p-3 border border-slate-300 font-medium">
+                  {t("printReports.socialImpact.savers")}
+                </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.savers.toLocaleString()}
                 </td>
@@ -131,7 +147,7 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
               </tr>
               <tr className="even:bg-slate-50">
                 <td className="p-3 border border-slate-300 font-medium">
-                  Aggregate Active Borrowers
+                  {t("printReports.socialImpact.borrowers")}
                 </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.borrowers.toLocaleString()}
@@ -143,7 +159,7 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
               </tr>
               <tr className="even:bg-slate-50">
                 <td className="p-3 border border-slate-300 font-medium">
-                  Savings Penetration Rate (% of members)
+                  {t("printReports.socialImpact.savingsPenetration")}
                 </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.savPenetration.toFixed(1)}%
@@ -155,7 +171,7 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
               </tr>
               <tr className="even:bg-slate-50">
                 <td className="p-3 border border-slate-300 font-medium">
-                  Credit Penetration Rate (% of members)
+                  {t("printReports.socialImpact.creditPenetration")}
                 </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.credPenetration.toFixed(1)}%
@@ -171,21 +187,33 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
 
         <div>
           <h3 className="text-xl font-bold text-slate-800 mb-4">
-            Credit Flow to Priority Segments
+            {t("printReports.creditFlowPriority")}
           </h3>
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900">Segment</th>
-                <th className="p-3 text-right border border-slate-900">Current (Borrowers)</th>
-                <th className="p-3 text-right border border-slate-900">% of Total Borrowers</th>
-                <th className="p-3 text-right border border-slate-900">Prior Year</th>
-                <th className="p-3 text-right border border-slate-900">YoY</th>
+                <th className="p-3 text-left border border-slate-900">
+                  {t("printReports.headers.segment")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.currentBorrowers")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.percentOfTotalBorrowers")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.priorYear")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.yoy")}
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr className="even:bg-slate-50">
-                <td className="p-3 border border-slate-300 font-medium">Women Borrowers</td>
+                <td className="p-3 border border-slate-300 font-medium">
+                  {t("printReports.socialImpact.womenBorrowers")}
+                </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.womenBorrowers.toLocaleString()}
                 </td>
@@ -201,7 +229,9 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
                 {renderYoY(currentImpact.womenBorrowers, priorImpact.womenBorrowers)}
               </tr>
               <tr className="even:bg-slate-50">
-                <td className="p-3 border border-slate-300 font-medium">Youth Borrowers (18-35)</td>
+                <td className="p-3 border border-slate-300 font-medium">
+                  {t("printReports.socialImpact.youthBorrowers")}
+                </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.youthBorrowers.toLocaleString()}
                 </td>
@@ -217,7 +247,9 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
                 {renderYoY(currentImpact.youthBorrowers, priorImpact.youthBorrowers)}
               </tr>
               <tr className="even:bg-slate-50">
-                <td className="p-3 border border-slate-300 font-medium">Rural Borrowers</td>
+                <td className="p-3 border border-slate-300 font-medium">
+                  {t("printReports.socialImpact.ruralBorrowers")}
+                </td>
                 <td className="p-3 border border-slate-300 text-right">
                   {currentImpact.ruralBorrowers.toLocaleString()}
                 </td>

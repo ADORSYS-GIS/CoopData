@@ -137,9 +137,11 @@ async function doInitKeycloak(): Promise<boolean> {
 
 export async function login(): Promise<void> {
   console.log("[auth] login() called — redirecting to Keycloak");
+  const currentLang = localStorage.getItem("i18nextLng") || "en";
   await keycloak.login({
     redirectUri: window.location.origin + "/app/dashboard",
     scope: "openid profile email",
+    locale: currentLang,
   });
 }
 

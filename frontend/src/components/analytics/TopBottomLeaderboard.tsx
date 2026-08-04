@@ -1,9 +1,10 @@
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 import { ShieldCheck, Target } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface TopBottomLeaderboardProps {
   cooperatives: CoopKpiRow[];
-  sortByKpi: string; // usually "par30"
+  sortByKpi: string;
 }
 
 function KpiChip({ status }: { status: string | null }) {
@@ -14,21 +15,20 @@ function KpiChip({ status }: { status: string | null }) {
 }
 
 export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeaderboardProps) {
+  const { t } = useTranslation();
   const withData = cooperatives.filter((c) => c.has_data && c.kpis[sortByKpi] !== undefined);
 
-  // Sort ascending (lower PAR30 is better)
   const sorted = [...withData].sort((a, b) => {
     return a.kpis[sortByKpi].value - b.kpis[sortByKpi].value;
   });
 
   const top5 = sorted.slice(0, 5);
-  // Bottom 5 are the last 5 in the array, reversed so worst is at the top of its list
   const bottom5 = sorted.slice(-5).reverse();
 
   if (withData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-        <p className="text-sm font-semibold">No performance data available</p>
+        <p className="text-sm font-semibold">{t("analytics.noPerformanceData")}</p>
       </div>
     );
   }
@@ -45,7 +45,8 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
             {coop.name}
           </p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-            {coop.region ?? "Unknown"} • {coop.sector ?? coop.institution_type ?? "Unclassified"}
+            {coop.region ?? t("analytics.unknown")} •{" "}
+            {coop.sector ?? coop.institution_type ?? t("analytics.unclassified")}
           </p>
         </div>
       </div>
@@ -56,7 +57,7 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
         </div>
         {coop.kpis["capital_adequacy_ratio"] && (
           <span className="text-[10px] text-muted-foreground">
-            CAR: {coop.kpis["capital_adequacy_ratio"].formatted}
+            {t("analytics.carPrefix")} {coop.kpis["capital_adequacy_ratio"].formatted}
           </span>
         )}
       </div>
@@ -65,20 +66,18 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Top 5 */}
       <div className="rounded-xl border border-success/30 bg-success/5 overflow-hidden flex flex-col">
         <div className="px-4 py-3 bg-success/10 border-b border-success/20 flex items-center gap-2">
           <ShieldCheck className="size-4 text-success" />
-          <h3 className="font-bold text-sm text-success">Top 5 Performers</h3>
+          <h3 className="font-bold text-sm text-success">{t("analytics.top5Performers")}</h3>
         </div>
         <div className="flex-1 p-1">{top5.map((c, i) => renderRow(c, i))}</div>
       </div>
 
-      {/* Bottom 5 */}
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 overflow-hidden flex flex-col">
         <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/20 flex items-center gap-2">
           <Target className="size-4 text-destructive" />
-          <h3 className="font-bold text-sm text-destructive">Watch List (Bottom 5)</h3>
+          <h3 className="font-bold text-sm text-destructive">{t("analytics.watchListBottom5")}</h3>
         </div>
         <div className="flex-1 p-1">{bottom5.map((c, i) => renderRow(c, i))}</div>
       </div>

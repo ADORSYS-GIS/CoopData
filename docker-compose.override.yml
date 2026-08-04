@@ -44,7 +44,7 @@ services:
       VITE_KEYCLOAK_URL: http://localhost:8180
       VITE_KEYCLOAK_REALM: coop-data
       VITE_KEYCLOAK_CLIENT_ID: coopdata-frontend
-      VITE_E2E_MOCK_AUTH: "1"
+      VITE_E2E_MOCK_AUTH: "0"
       # Vite proxy target — the backend container name in Docker network.
       VITE_PROXY_TARGET: http://backend:3000
       CHOKIDAR_USEPOLLING: "true"

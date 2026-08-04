@@ -11,6 +11,8 @@ pub struct Model {
     pub keycloak_id: String,
     pub display_name: String,
     pub is_active: bool,
+    #[sea_orm(column_type = "Json")]
+    pub metadata: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

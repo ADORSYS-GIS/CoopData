@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ConsolidatedReportPrint } from "@/pages/shared/print/ConsolidatedReportPrint";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useApex } from "@/hooks/apexes/useApexes";
+import { useTranslation } from "react-i18next";
+import { useApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/apex/$id")({
   component: PrintComponent,
 });
 
 function PrintComponent() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const { token, year } = Route.useSearch() as { token?: string; year?: string };
 
@@ -32,6 +35,8 @@ function PrintComponent() {
     token,
   );
 
+  const { data: narratives } = useApexNarratives(id, currentYear, token);
+
   const isLoading = isLoadingCurrent || isLoadingPrior;
 
   if (isLoading || !overviewData) {
@@ -39,7 +44,7 @@ function PrintComponent() {
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
           <div className="size-10 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600" />
-          <p className="mt-4 text-sm font-semibold">Generating Apex Report layout…</p>
+          <p className="mt-4 text-sm font-semibold">{t("printReports.generatingApex")}</p>
         </div>
       </div>
     );
@@ -52,6 +57,7 @@ function PrintComponent() {
       year={currentYear}
       data={overviewData}
       priorData={priorData}
+      narratives={narratives}
     />
   );
 }
