@@ -206,7 +206,7 @@ impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
             region: m.region.map(|r| r.as_str().to_string()),
             geographic_classif: m.geographic_classif.map(|g| g.as_str().to_string()),
             phone: m.phone,
-            sector: m.sector,
+            sector: m.sector.map(|s| s.as_str().to_string()),
             responsible_financial: m.responsible_financial,
             responsible_non_financial: m.responsible_non_financial,
             status: m.status.as_str().to_string(),

@@ -17,6 +17,11 @@ export interface FederationNarratives {
 
 export type MinistryNarratives = FederationNarratives;
 
+const BASE_URL =
+  (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg"))
+    ? "http://backend:3000"
+    : (import.meta.env.VITE_API_BASE_URL || "");
+
 async function fetchJson<T>(url: string, token: string): Promise<T | null> {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -36,9 +41,8 @@ export const useApexNarratives = (
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
       return fetchJson<ApexNarratives>(
-        `${baseUrl}/api/v1/apex/${apexId}/narratives?year=${year}`,
+        `${BASE_URL}/api/v1/apex/${apexId}/narratives?year=${year}`,
         token,
       );
     },
@@ -55,9 +59,8 @@ export const useFederationNarratives = (
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
       return fetchJson<FederationNarratives>(
-        `${baseUrl}/api/v1/federation/${federationId}/narratives?year=${year}`,
+        `${BASE_URL}/api/v1/federation/${federationId}/narratives?year=${year}`,
         token,
       );
     },
@@ -69,9 +72,8 @@ export const useMinistryNarratives = (year: number, tokenOverride?: string) =>
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
       return fetchJson<MinistryNarratives>(
-        `${baseUrl}/api/v1/ministry/narratives?year=${year}`,
+        `${BASE_URL}/api/v1/ministry/narratives?year=${year}`,
         token,
       );
     },

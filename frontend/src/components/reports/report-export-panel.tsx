@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Download, FileText, CheckCircle2, X, Loader2, ChevronRight } from "lucide-react";
+import { Download, FileText, CheckCircle2, X, Loader2, ChevronRight, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -47,6 +47,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const [selectedYear, setSelectedYear] = useState<string>("");
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // ── Data sources ────────────────────────────────────────────────────────────
 
@@ -358,6 +359,47 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!selectedOption || !canExport || !isIndividual || !selectedSubmissionId) return;
+
+    setIsRegenerating(true);
+    try {
+      const token = await getAccessToken();
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?regenerate=true`;
+
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `Regeneration failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
+      const nameClean = (sub?.cooperative_name ?? "cooperative")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      const filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success(t("reportExport.regeneratedAndDownloaded"));
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }));
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -615,25 +657,37 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 <button
                   type="button"
                   onClick={closeModal}
-                  disabled={isExporting}
+                  disabled={isExporting || isRegenerating}
                   className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
                 >
                   {t("reportExport.cancel")}
                 </button>
+                {/* Regenerate button — only for individual submission exports */}
+                {isIndividual && selectedSubmissionId && (
+                  <button
+                    type="button"
+                    onClick={handleRegenerate}
+                    disabled={!canExport || isExporting || isRegenerating}
+                    title={t("reportExport.regenerateTooltip")}
+                    className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors disabled:opacity-40"
+                  >
+                    {isRegenerating ? (
+                      <><Loader2 className="size-3.5 animate-spin" /> {t("reportExport.regenerating")}</>
+                    ) : (
+                      <><RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}</>
+                    )}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleExport}
-                  disabled={!canExport}
+                  disabled={!canExport || isRegenerating}
                   className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-40"
                 >
                   {isExporting ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.exporting")}
-                    </>
+                    <><Loader2 className="size-3.5 animate-spin" /> {t("reportExport.exporting")}</>
                   ) : (
-                    <>
-                      <Download className="size-3.5" /> {t("reportExport.exportPdf")}
-                    </>
+                    <><Download className="size-3.5" /> {t("reportExport.exportPdf")}</>
                   )}
                 </button>
               </div>

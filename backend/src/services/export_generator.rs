@@ -318,7 +318,7 @@ impl ExportGenerator {
 
         tracing::info!(
             submission_id = %submission_id,
-            "[export] 📡 Generating narratives (5 concurrent LLM calls)..."
+            "[export] 📡 Generating narratives (5 sequential LLM calls)..."
         );
         let start = std::time::Instant::now();
         let res = state
@@ -348,7 +348,7 @@ impl ExportGenerator {
         })?;
 
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(35))
+            .timeout(std::time::Duration::from_secs(120))
             .build()
             .map_err(|e| {
                 crate::error::AppError::InternalServerError(format!(
@@ -372,7 +372,7 @@ impl ExportGenerator {
 
             let form_clone = reqwest::multipart::Form::new()
                 .text("url", print_url.to_string())
-                .text("waitDelay", "25s")
+                .text("waitDelay", "15s")
                 .text("paperWidth", "8.27")
                 .text("paperHeight", "11.69")
                 .text("marginTop", "0")

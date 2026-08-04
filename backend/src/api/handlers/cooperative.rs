@@ -24,7 +24,7 @@ use crate::auth::claims::Claims;
 use crate::auth::rbac::ScopeEnforcement;
 use crate::entities::cooperative;
 use crate::entities::enums::{
-    AccountingYear, CoopStatus, CooperativeType, EswatiniRegion, UrbanRural,
+    AccountingYear, CoopStatus, CooperativeSector, CooperativeType, EswatiniRegion, UrbanRural,
 };
 use crate::error::{AppError, AppResult};
 use crate::services::VerificationTokenService;
@@ -291,7 +291,7 @@ pub async fn create_cooperative(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(Some(body.sector.clone())),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector)),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
@@ -1278,7 +1278,7 @@ pub async fn create_cooperative_profile(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(Some(body.sector.clone())),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector)),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
@@ -1484,7 +1484,7 @@ pub async fn update_cooperative_profile(
         model.phone = sea_orm::Set(Some(v.clone()));
     }
     if let Some(ref v) = body.sector {
-        model.sector = sea_orm::Set(Some(v.clone()));
+        model.sector = sea_orm::Set(CooperativeSector::parse(v));
     }
     if let Some(ref v) = body.responsible_financial {
         model.responsible_financial = sea_orm::Set(Some(*v));

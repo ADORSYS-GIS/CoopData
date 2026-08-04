@@ -510,6 +510,7 @@ export function Card({
   info,
   children,
   className = "",
+  bodyClassName = "",
   edge = "none",
 }: {
   title?: string;
@@ -518,6 +519,7 @@ export function Card({
   info?: string;
   children: ReactNode;
   className?: string;
+  bodyClassName?: string;
   edge?: "accent" | "success" | "warning" | "danger" | "info" | "primary" | "none";
 }) {
   // Color lines are disabled to align with a clean, solid, professional dashboard design
@@ -559,7 +561,7 @@ export function Card({
           {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
-      <div className="p-5">{children}</div>
+      <div className={`p-5 ${bodyClassName}`}>{children}</div>
     </section>
   );
 }

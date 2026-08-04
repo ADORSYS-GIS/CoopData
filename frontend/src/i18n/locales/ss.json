@@ -3892,7 +3892,11 @@
     "scopeFederationAll": "Lombiko uhlanganisa data kusuka kuwo wonke emapheksi nemakhopharethi angaphansi kwefederesheni yakho.",
     "scopeApexAll": "Lombiko uhlanganisa data kusuka kuwo wonke emakhopharethi angaphansi kwenhlangano yepheksi yakho.",
     "selectedFederation": "ifederesheni ekhethiwe",
-    "selectedApex": "ipheksi ekhethiwe"
+    "selectedApex": "ipheksi ekhethiwe",
+    "regenerateAndExport": "Yenta Kabusha & Khipha",
+    "regenerating": "Kuyenta Kabusha...",
+    "regeneratedAndDownloaded": "Umbiko wentelwe kabusha futsi ulayishwe phansi!",
+    "regenerateTooltip": "Cosha ukukhiqizwa kwe-PDF lokutsha, ukususa inguqulo ebe igciniwe"
   },
   "analyticsFilter": {
     "year": "Unyaka",

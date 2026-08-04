@@ -21,13 +21,21 @@ pub struct ExportQuery {
     pub reporting_year: Option<i32>,
 }
 
+#[derive(Debug, serde::Deserialize, Default)]
+pub struct SingleExportQuery {
+    /// Pass `regenerate=true` to bypass the cached PDF and force a fresh generation.
+    #[serde(default)]
+    pub regenerate: bool,
+}
+
 /// GET /api/v1/cooperative/submissions/{id}/export
 /// Exports a single cooperative submission in PDF.
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/submissions/{id}/export",
     params(
-        ("id" = Uuid, Path, description = "Submission ID")
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("regenerate" = Option<bool>, Query, description = "Force PDF re-generation")
     ),
     responses(
         (status = 200, description = "Export file stream"),
@@ -40,6 +48,7 @@ pub async fn export_single_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
+    Query(query): Query<SingleExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -59,20 +68,38 @@ pub async fn export_single_submission(
     let filename = format!("submission_{}.pdf", id);
     let storage_key = format!("exports/individual/{}/{}", id, filename);
 
-    let bytes = match state.storage.get_object(&storage_key).await {
-        Ok(b) => b,
-        Err(_) => {
-            let generated_bytes =
-                crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
-                    &state, id,
-                )
-                .await?;
-            state
-                .storage
-                .store(&storage_key, &generated_bytes, "application/pdf")
-                .await?;
-            generated_bytes
+    let bytes = if !query.regenerate {
+        match state.storage.get_object(&storage_key).await {
+            Ok(b) => {
+                tracing::info!(submission_id = %id, "Serving cached PDF from storage");
+                b
+            }
+            Err(_) => {
+                tracing::info!(submission_id = %id, "Cache miss — generating PDF");
+                let generated_bytes =
+                    crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+                        &state, id,
+                    )
+                    .await?;
+                state
+                    .storage
+                    .store(&storage_key, &generated_bytes, "application/pdf")
+                    .await?;
+                generated_bytes
+            }
         }
+    } else {
+        tracing::info!(submission_id = %id, "Force-regenerating PDF (regenerate=true)");
+        let generated_bytes =
+            crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+                &state, id,
+            )
+            .await?;
+        state
+            .storage
+            .store(&storage_key, &generated_bytes, "application/pdf")
+            .await?;
+        generated_bytes
     };
 
     let res = Response::builder()

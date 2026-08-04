@@ -7,6 +7,8 @@ import {
   usePortfolioBreakdown,
   useMembershipStats,
   KpiItemResponse,
+  PortfolioBreakdownResponse,
+  MembershipStatsResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
 import { useSubmissionNarratives } from "@/hooks/submissions/useSubmissionNarratives";
 import {
@@ -39,6 +41,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     submissionId,
     tokenOverride,
   );
+  // Portfolio and membership are optional — render without them if unavailable
   const { data: portfolioData, isLoading: portfolioLoading } = usePortfolioBreakdown(
     submissionId,
     tokenOverride,
@@ -47,7 +50,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     submissionId,
     tokenOverride,
   );
-  const { data: narratives, isLoading: narrativesLoading } = useSubmissionNarratives(
+  const { data: narratives } = useSubmissionNarratives(
     submissionId,
     tokenOverride,
   );
@@ -58,7 +61,11 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     return new Map(kpisData.kpis.map((k) => [k.name, k]));
   }, [kpisData]);
 
-  if (subLoading || kpisLoading || lineItemsLoading || portfolioLoading || membershipLoading) {
+  // Wait for critical data — portfolio and membership are allowed to still load
+  const criticalLoading = subLoading || kpisLoading || lineItemsLoading;
+  const allLoading = criticalLoading || portfolioLoading || membershipLoading;
+
+  if (allLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
@@ -69,7 +76,8 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     );
   }
 
-  if (!submission || !kpisData || !lineItemsData || !portfolioData || !membershipData) {
+  // Only critical data is required — portfolio/membership degrade gracefully
+  if (!submission || !kpisData || !lineItemsData) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800 p-8">
         <div className="text-center">
@@ -82,13 +90,28 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     );
   }
 
+  // Provide empty fallbacks for optional data
+  const safePortfolioData: PortfolioBreakdownResponse = portfolioData ?? {
+    submission_id: submissionId,
+    categories: [],
+  };
+  const safeMembershipData: MembershipStatsResponse = membershipData ?? {
+    submission_id: submissionId,
+    male_members: 0,
+    female_members: 0,
+    youth_members: 0,
+    active_members: 0,
+    inactive_members: 0,
+    agm_attendance: 0,
+  };
+
   const reportData: ReportDataProps = {
     submission,
     submissionId,
     kpisData,
     lineItemsData,
-    portfolioData,
-    membershipData,
+    portfolioData: safePortfolioData,
+    membershipData: safeMembershipData,
     coopName,
     kpiMap,
     narratives,

@@ -259,8 +259,9 @@ impl LlmNarrativeGenerator {
             "max_tokens": self.max_tokens
         });
 
-        const MAX_RETRIES: u32 = 6;
-        const BASE_DELAY_MS: u64 = 15_000; // 15 seconds base
+        const MAX_RETRIES: u32 = 4;
+        const BASE_DELAY_MS: u64 = 3_000; // 3 seconds base
+        const MAX_DELAY_MS: u64 = 20_000; // cap backoff at 20s
 
         for attempt in 1..=MAX_RETRIES {
             let res = self
@@ -276,7 +277,7 @@ impl LlmNarrativeGenerator {
                 Err(e) => {
                     // Connection error — retry with backoff
                     if attempt < MAX_RETRIES {
-                        let delay_ms = BASE_DELAY_MS * 2u64.pow(attempt - 1);
+                        let delay_ms = Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
                         tracing::warn!(
                             attempt,
                             max_retries = MAX_RETRIES,
@@ -336,7 +337,7 @@ impl LlmNarrativeGenerator {
                     
                     if let Some(delay_str) = retry_delay {
                         let secs: u64 = delay_str.trim_end_matches('s').parse().unwrap_or(0);
-                        if secs > 0 { secs * 1000 } else { BASE_DELAY_MS * 2u64.pow(attempt - 1) }
+                        if secs > 0 { secs * 1000 } else { Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS) }
                     } else {
                         // No retryDelay field — search message text for "Please retry in Xs"
                         let msg = json["error"]["message"].as_str()
@@ -346,21 +347,21 @@ impl LlmNarrativeGenerator {
                             let num_str = &msg[pos + 16..];
                             if let Some(end) = num_str.find('s') {
                                 let secs: u64 = num_str[..end].parse().unwrap_or(0);
-                                if secs > 0 { secs * 1000 } else { BASE_DELAY_MS * 2u64.pow(attempt - 1) }
+                                if secs > 0 { secs * 1000 } else { Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS) }
                             } else {
-                                BASE_DELAY_MS * 2u64.pow(attempt - 1)
+                                Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS)
                             }
                         } else {
                             // JSON parsed but no retry hint found — fall back to raw text search
                             // (handles malformed JSON or unexpected formats)
                             Self::extract_retry_delay_from_text(&text)
-                                .unwrap_or_else(|| BASE_DELAY_MS * 2u64.pow(attempt - 1))
+                                .unwrap_or_else(|| Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS))
                         }
                     }
                 } else {
                     // Not JSON at all — search raw text for "Please retry in Xs"
                     Self::extract_retry_delay_from_text(&text)
-                        .unwrap_or_else(|| BASE_DELAY_MS * 2u64.pow(attempt - 1))
+                        .unwrap_or_else(|| Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS))
                 };
 
                 // We have a retry delay — use it. Gemini tells us exactly when the quota resets.
@@ -392,7 +393,7 @@ impl LlmNarrativeGenerator {
             if res.status().as_u16() == 503 {
                 // 503 Service Unavailable — transient, retry with backoff
                 if attempt < MAX_RETRIES {
-                    let delay_ms = BASE_DELAY_MS * 2u64.pow(attempt - 1);
+                    let delay_ms = Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
                     tracing::warn!(
                         attempt,
                         max_retries = MAX_RETRIES,
@@ -448,6 +449,28 @@ impl LlmNarrativeGenerator {
             tracing::error!(error = %e, raw = %cleaned, "Failed to parse narrative JSON");
             AppError::ExternalServiceError(format!("Failed to parse narrative JSON: {e}"))
         })
+    }
+
+    /// Exponential backoff with a hard cap, so retries never stall the export for minutes.
+    fn backoff_delay(attempt: u32, base_ms: u64, max_ms: u64) -> u64 {
+        (base_ms * 2u64.pow(attempt.saturating_sub(1))).min(max_ms)
+    }
+
+    /// Runs a set of prompts sequentially with a small stagger between calls.
+    ///
+    /// Firing all narrative prompts concurrently trips the provider's per-minute
+    /// rate limit (503/429), which then forces long retry backoffs and makes the
+    /// whole export take a minute+. Running them one at a time keeps us under the
+    /// limit and is faster in practice than hammering the API and waiting on retries.
+    async fn run_prompts(&self, prompts: Vec<&str>) -> AppResult<Vec<String>> {
+        let mut results = Vec::with_capacity(prompts.len());
+        for (i, prompt) in prompts.iter().enumerate() {
+            if i > 0 {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+            results.push(self.chat(prompt).await?);
+        }
+        Ok(results)
     }
 
     /// Extract retry delay from raw response text by searching for "Please retry in Xs".
@@ -529,7 +552,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let nf_prompt = build_coop_non_financial_prompt(ctx);
         let bench_prompt = build_coop_benchmark_comparison_prompt(ctx);
 
-        tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for cooperative narratives");
+        tracing::info!("[narrative] 🚀 Starting 5 sequential LLM calls for cooperative narratives");
         tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_summary | chars={}", exec_prompt.len());
         tracing::info!(chars = fin_prompt.len(), "[narrative] 📡 Prompt 2/5: financial_position | chars={}", fin_prompt.len());
         tracing::info!(chars = portfolio_prompt.len(), "[narrative] 📡 Prompt 3/5: portfolio_quality | chars={}", portfolio_prompt.len());
@@ -544,7 +567,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             self.chat(&nf_prompt),
             self.chat(&bench_prompt),
         )?;
-        
+
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
             "[narrative] ✅ All 5 LLM responses received in {}ms",
@@ -577,18 +600,18 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let risk_dist_prompt = build_apex_risk_distribution_prompt(ctx);
         let risk_watch_prompt = build_apex_risk_watch_prompt(ctx);
         
-        tracing::info!("[narrative] 🚀 Starting 3 concurrent LLM calls for apex narratives");
+        tracing::info!("[narrative] 🚀 Starting 3 sequential LLM calls for apex narratives");
         tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/3: executive_dashboard | chars={}", exec_prompt.len());
         tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/3: risk_distribution | chars={}", risk_dist_prompt.len());
         tracing::info!(chars = risk_watch_prompt.len(), "[narrative] 📡 Prompt 3/3: risk_watch | chars={}", risk_watch_prompt.len());
         
         let start = std::time::Instant::now();
-        let (exec_result, risk_dist_result, risk_watch_result) = tokio::try_join!(
-            self.chat(&exec_prompt),
-            self.chat(&risk_dist_prompt),
-            self.chat(&risk_watch_prompt),
-        )?;
-        
+        let results = self
+            .run_prompts(vec![&exec_prompt, &risk_dist_prompt, &risk_watch_prompt])
+            .await?;
+        let (exec_result, risk_dist_result, risk_watch_result) =
+            (&results[0], &results[1], &results[2]);
+
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
             "[narrative] ✅ All 3 LLM responses received in {}ms",
@@ -597,11 +620,11 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(ApexNarratives {
-            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
+            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(exec_result)?
                 .executive_dashboard,
-            risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
+            risk_distribution: Self::parse_json::<RiskDistributionOutput>(risk_dist_result)?
                 .risk_distribution,
-            risk_watch: Self::parse_json::<RiskWatchOutput>(&risk_watch_result)?
+            risk_watch: Self::parse_json::<RiskWatchOutput>(risk_watch_result)?
                 .risk_watch,
         });
         
@@ -619,7 +642,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let apex_cmp_prompt = build_fed_apex_comparison_prompt(ctx);
         let pearls_prompt = build_fed_pearls_analysis_prompt(ctx);
         
-        tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for federation narratives");
+        tracing::info!("[narrative] 🚀 Starting 5 sequential LLM calls for federation narratives");
         tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}", exec_prompt.len());
         tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}", risk_dist_prompt.len());
         tracing::info!(chars = sector_prompt.len(), "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}", sector_prompt.len());
@@ -627,14 +650,18 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}", pearls_prompt.len());
         
         let start = std::time::Instant::now();
-        let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) = tokio::try_join!(
-            self.chat(&exec_prompt),
-            self.chat(&risk_dist_prompt),
-            self.chat(&sector_prompt),
-            self.chat(&apex_cmp_prompt),
-            self.chat(&pearls_prompt),
-        )?;
-        
+        let results = self
+            .run_prompts(vec![
+                &exec_prompt,
+                &risk_dist_prompt,
+                &sector_prompt,
+                &apex_cmp_prompt,
+                &pearls_prompt,
+            ])
+            .await?;
+        let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) =
+            (&results[0], &results[1], &results[2], &results[3], &results[4]);
+
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
             "[narrative] ✅ All 5 LLM responses received in {}ms",
@@ -643,15 +670,15 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(FederationNarratives {
-            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
+            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(exec_result)?
                 .executive_dashboard,
-            risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
+            risk_distribution: Self::parse_json::<RiskDistributionOutput>(risk_dist_result)?
                 .risk_distribution,
-            sector_breakdown: Self::parse_json::<SectorBreakdownOutput>(&sector_result)?
+            sector_breakdown: Self::parse_json::<SectorBreakdownOutput>(sector_result)?
                 .sector_breakdown,
-            apex_comparison: Self::parse_json::<ApexComparisonOutput>(&apex_cmp_result)?
+            apex_comparison: Self::parse_json::<ApexComparisonOutput>(apex_cmp_result)?
                 .apex_comparison,
-            pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(&pearls_result)?
+            pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(pearls_result)?
                 .pearls_analysis,
         });
         
@@ -669,7 +696,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let apex_cmp_prompt = build_ministry_apex_comparison_prompt(ctx);
         let pearls_prompt = build_ministry_pearls_analysis_prompt(ctx);
         
-        tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for ministry narratives");
+        tracing::info!("[narrative] 🚀 Starting 5 sequential LLM calls for ministry narratives");
         tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}", exec_prompt.len());
         tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}", risk_dist_prompt.len());
         tracing::info!(chars = sector_prompt.len(), "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}", sector_prompt.len());
@@ -677,13 +704,17 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}", pearls_prompt.len());
         
         let start = std::time::Instant::now();
-        let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) = tokio::try_join!(
-            self.chat(&exec_prompt),
-            self.chat(&risk_dist_prompt),
-            self.chat(&sector_prompt),
-            self.chat(&apex_cmp_prompt),
-            self.chat(&pearls_prompt),
-        )?;
+        let results = self
+            .run_prompts(vec![
+                &exec_prompt,
+                &risk_dist_prompt,
+                &sector_prompt,
+                &apex_cmp_prompt,
+                &pearls_prompt,
+            ])
+            .await?;
+        let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) =
+            (&results[0], &results[1], &results[2], &results[3], &results[4]);
 
         tracing::info!(
             elapsed_ms = start.elapsed().as_millis(),
@@ -693,15 +724,15 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(MinistryNarratives {
-            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
+            executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(exec_result)?
                 .executive_dashboard,
-            risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
+            risk_distribution: Self::parse_json::<RiskDistributionOutput>(risk_dist_result)?
                 .risk_distribution,
-            sector_breakdown: Self::parse_json::<SectorBreakdownOutput>(&sector_result)?
+            sector_breakdown: Self::parse_json::<SectorBreakdownOutput>(sector_result)?
                 .sector_breakdown,
-            apex_comparison: Self::parse_json::<ApexComparisonOutput>(&apex_cmp_result)?
+            apex_comparison: Self::parse_json::<ApexComparisonOutput>(apex_cmp_result)?
                 .apex_comparison,
-            pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(&pearls_result)?
+            pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(pearls_result)?
                 .pearls_analysis,
         });
         
@@ -2167,7 +2198,7 @@ pub fn build_cooperative_context(
     CooperativeNarrativeContext {
         coop_name: coop.name.clone(),
         region: coop.region.as_ref().map(|r| format!("{r:?}")).unwrap_or_default(),
-        sector: coop.sector.clone().unwrap_or_default(),
+        sector: coop.sector.as_ref().map(|s| s.as_str().to_string()).unwrap_or_default(),
         institution_type: coop.institution_type.as_ref().map(|t| format!("{t:?}")).unwrap_or_default(),
         reg_no: coop.reg_no.clone().unwrap_or_default(),
         reporting_year: submission.reporting_year,
@@ -2210,7 +2241,7 @@ pub fn build_apex_context(
             let kpi_map: HashMap<String, f64> = kpis.iter().map(|r| (r.kpi_name.clone(), r.value)).collect();
             Some(CoopKpiRowData {
                 name: coop.name.clone(),
-                sector: coop.sector.clone(),
+                sector: coop.sector.as_ref().map(|s| s.as_str().to_string()),
                 region: coop.region.as_ref().map(|r| format!("{r:?}")),
                 kpis: kpi_map,
                 nf: NfCoopData::default(),
@@ -2286,7 +2317,7 @@ pub fn build_ministry_context(
             let kpi_map: HashMap<String, f64> = kpis.iter().map(|r| (r.kpi_name.clone(), r.value)).collect();
             Some(CoopKpiRowData {
                 name: coop.name.clone(),
-                sector: coop.sector.clone(),
+                sector: coop.sector.as_ref().map(|s| s.as_str().to_string()),
                 region: coop.region.as_ref().map(|r| format!("{r:?}")),
                 kpis: kpi_map,
                 nf: NfCoopData::default(),

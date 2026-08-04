@@ -3892,7 +3892,11 @@
     "scopeFederationAll": "Ce rapport inclut les données de tous les apex et coopératives sous votre fédération.",
     "scopeApexAll": "Ce rapport inclut les données de toutes les coopératives sous votre organisation apex.",
     "selectedFederation": "fédération sélectionnée",
-    "selectedApex": "apex sélectionné"
+    "selectedApex": "apex sélectionné",
+    "regenerateAndExport": "Régénérer & Exporter",
+    "regenerating": "Régénération…",
+    "regeneratedAndDownloaded": "Rapport régénéré et téléchargé !",
+    "regenerateTooltip": "Forcer une nouvelle génération de PDF, en remplaçant la version mise en cache"
   },
   "analyticsFilter": {
     "year": "Année",

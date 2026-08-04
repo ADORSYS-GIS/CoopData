@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   FileType,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { type Role, useUserRole } from "@/lib/auth";
@@ -62,7 +63,7 @@ const STATUS_CONFIG: Record<
   rejected: {
     label: "Rejected",
     icon: XCircle,
-    className: "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20",
+    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
   },
   draft: {
     label: "Draft",
@@ -73,10 +74,16 @@ const STATUS_CONFIG: Record<
 
 function StatusBadge({ status }: { status: string }) {
   const { t } = useTranslation();
-  const config = STATUS_CONFIG[status.toLowerCase()] ?? STATUS_CONFIG["draft"];
-  const Icon = config.icon;
-  const label = t(`reports.status.${status.toLowerCase()}`, { defaultValue: config.label });
+  const lower = status.toLowerCase();
+  const config = STATUS_CONFIG[lower] || {
+    label: status,
+    icon: AlertCircle,
+    className: "bg-slate-500/10 text-slate-650 dark:text-slate-400 border border-slate-500/20",
+  };
 
+  const label = t(`reports.status.${lower}`, { defaultValue: config.label });
+
+  const Icon = config.icon;
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${config.className}`}
@@ -99,7 +106,7 @@ function ExportButton({
 }: {
   submissionId: string;
   filename: string;
-  onExport: (id: string, format: ExportFormat, name: string) => void;
+  onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
   isExporting: string | null;
 }) {
   const { t } = useTranslation();
@@ -107,8 +114,8 @@ function ExportButton({
 
   return (
     <button
-      onClick={() => onExport(submissionId, "pdf", filename)}
-      disabled={isThis}
+      onClick={() => onExport(submissionId, "pdf", filename, false)}
+      disabled={isExporting !== null}
       className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-border bg-background px-3 py-1.5 hover:bg-accent hover:text-white hover:border-accent transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
     >
       {isThis ? (
@@ -118,6 +125,40 @@ function ExportButton({
       ) : (
         <>
           <Download className="size-3.5" /> {t("reports.exportPdf")}
+        </>
+      )}
+    </button>
+  );
+}
+
+function RegenerateButton({
+  submissionId,
+  filename,
+  onExport,
+  isExporting,
+}: {
+  submissionId: string;
+  filename: string;
+  onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
+  isExporting: string | null;
+}) {
+  const { t } = useTranslation();
+  const isThis = isExporting === submissionId + "-regen";
+
+  return (
+    <button
+      onClick={() => onExport(submissionId, "pdf", filename, true)}
+      disabled={isExporting !== null}
+      title={t("reportExport.regenerateTooltip")}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
+    >
+      {isThis ? (
+        <>
+          <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.regenerating")}
+        </>
+      ) : (
+        <>
+          <RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}
         </>
       )}
     </button>
@@ -170,7 +211,7 @@ export const ReportsPage: React.FC = () => {
   })();
 
   const recentSubmissions = [...submissions]
-    .filter((s) => ["submitted", "approved"].includes(s.status.toLowerCase()))
+    .filter((s) => s.status.toLowerCase() === "approved")
     .sort(
       (a, b) =>
         new Date(b.submitted_at || b.created_at).getTime() -
@@ -182,12 +223,14 @@ export const ReportsPage: React.FC = () => {
   const resolveCoopName = (s: (typeof submissions)[number]) =>
     s.cooperative_name ?? user?.organizationName ?? t("reports.myCooperative");
 
-  const handleExport = async (submissionId: string, format: string, filename: string) => {
-    setIsExporting(submissionId);
+  const handleExport = async (submissionId: string, format: string, filename: string, regenerate = false) => {
+    setIsExporting(submissionId + (regenerate ? "-regen" : ""));
     try {
       const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}`;
+      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}${
+        regenerate ? "&regenerate=true" : ""
+      }`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error(`Export failed: ${res.status}`);
       const blob = await res.blob();
@@ -198,7 +241,11 @@ export const ReportsPage: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(link.href);
-      toast.success(t("reports.exportSuccess", { format: format.toUpperCase() }));
+      if (regenerate) {
+        toast.success(t("reportExport.regeneratedAndDownloaded"));
+      } else {
+        toast.success(t("reports.exportSuccess", { format: format.toUpperCase() }));
+      }
     } catch (err) {
       console.error(err);
       toast.error(t("reports.exportFailed"));
@@ -267,7 +314,9 @@ export const ReportsPage: React.FC = () => {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
-                        })
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        } as any)
                       : new Date(s.created_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",
@@ -306,8 +355,14 @@ export const ReportsPage: React.FC = () => {
                           {dateStr}
                         </div>
 
-                        {/* Export dropdown */}
-                        <div className="flex justify-end">
+                        {/* Export actions */}
+                        <div className="flex justify-end gap-2">
+                          <RegenerateButton
+                            submissionId={s.id}
+                            filename={`${baseName}.pdf`}
+                            onExport={handleExport}
+                            isExporting={isExporting}
+                          />
                           <ExportButton
                             submissionId={s.id}
                             filename={`${baseName}.pdf`}

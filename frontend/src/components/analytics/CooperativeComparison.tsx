@@ -14,6 +14,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useNationalOverview, CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 import { Card } from "@/components/app-shell";
 import {
+  SearchableCombobox,
+  type ComboboxOption,
+  type ComboboxGroup,
+} from "@/components/ui/searchable-combobox";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,6 +38,8 @@ import {
   Percent,
   Coins,
   ShieldAlert,
+  Globe,
+  MapPin,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -535,72 +542,122 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         info={t("analytics.benchmarkingInfo")}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          {/* ── Cooperative cible ─────────────────────────────────── */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
               <Users className="size-3.5 text-blue-500" /> {t("analytics.targetCooperative")}
             </label>
-            <Select value={activeCoopId} onValueChange={setSelectedCoopId} disabled={isCoopUser}>
-              <SelectTrigger className="w-full bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-850 hover:bg-slate-100/50 dark:hover:bg-slate-950/40 transition-colors">
-                <SelectValue placeholder={t("analytics.chooseCooperativePlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {cooperativesWithData.map((c) => (
-                  <SelectItem key={c.cooperative_id} value={c.cooperative_id}>
-                    {c.name} ({c.region ?? t("analytics.unknownRegion")})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              value={activeCoopId}
+              onChange={(val) => val && setSelectedCoopId(val)}
+              options={cooperativesWithData.map((c) => ({
+                value: c.cooperative_id,
+                label: c.name,
+                description: c.region ?? t("analytics.unknownRegion"),
+                icon: <MapPin className="size-3 text-blue-400" />,
+              }))}
+              placeholder={t("analytics.chooseCooperativePlaceholder")}
+              searchPlaceholder={t("analytics.searchCooperative")}
+              emptyMessage={t("analytics.noCooperativeFound")}
+              disabled={isCoopUser}
+            />
           </div>
 
+          {/* ── Pair de comparaison ───────────────────────────────── */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
               <ArrowRightLeft className="size-3.5 text-emerald-500" />{" "}
               {t("analytics.comparisonPeer")}
             </label>
-            <Select value={compareTargetId} onValueChange={setCompareTargetId}>
-              <SelectTrigger className="w-full bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-850 hover:bg-slate-100/50 dark:hover:bg-slate-950/40 transition-colors">
-                <SelectValue placeholder={t("analytics.selectTargetPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {/* System-wide averages */}
-                <SelectItem value="national_average">
-                  {t("analytics.nationalAverageAll")}
-                </SelectItem>
-                {/* Per-region averages */}
-                {availableRegions.map((region) => (
-                  <SelectItem key={`region_avg_${region}`} value={`region_avg_${region}`}>
-                    {t("analytics.regionAverage", { region })}
-                  </SelectItem>
-                ))}
-                {/* Individual cooperative peers */}
-                {cooperativesWithData
+            <SearchableCombobox
+              value={compareTargetId}
+              onChange={(val) => val && setCompareTargetId(val)}
+              options={[
+                {
+                  value: "national_average",
+                  label: t("analytics.nationalAverageAll"),
+                  description: t("analytics.nationalAverageDesc"),
+                  group: "averages",
+                  icon: <Globe className="size-3 text-emerald-500" />,
+                },
+                ...availableRegions.map((region) => ({
+                  value: `region_avg_${region}`,
+                  label: t("analytics.regionAverage", { region }),
+                  description: t("analytics.regionAverageDesc"),
+                  group: "averages",
+                  icon: <MapPin className="size-3 text-emerald-400" />,
+                })),
+                ...cooperativesWithData
                   .filter((c) => c.cooperative_id !== activeCoopId)
-                  .map((c) => (
-                    <SelectItem key={c.cooperative_id} value={c.cooperative_id}>
-                      {c.name} ({c.region ?? t("analytics.unknownRegion")})
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+                  .map((c) => ({
+                    value: c.cooperative_id,
+                    label: c.name,
+                    description: c.region ?? t("analytics.unknownRegion"),
+                    group: "cooperatives",
+                    icon: <Users className="size-3 text-blue-400" />,
+                  })),
+              ]}
+              groups={[
+                {
+                  key: "averages",
+                  label: t("analytics.averagesGroup"),
+                  icon: <Globe className="size-3" />,
+                },
+                {
+                  key: "cooperatives",
+                  label: t("analytics.cooperativesGroup"),
+                  icon: <Users className="size-3" />,
+                },
+              ]}
+              placeholder={t("analytics.selectTargetPlaceholder")}
+              searchPlaceholder={t("analytics.searchComparison")}
+              emptyMessage={t("analytics.noComparisonFound")}
+            />
           </div>
 
+          {/* ── Ratio / Métrique de focus ─────────────────────────── */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
               <Percent className="size-3.5 text-indigo-500" /> {t("analytics.focusRatioMetric")}
             </label>
-            <Select value={selectedKpi} onValueChange={setSelectedKpi}>
-              <SelectTrigger className="w-full bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-850 hover:bg-slate-100/50 dark:hover:bg-slate-950/40 transition-colors">
-                <SelectValue placeholder={t("analytics.chooseKpiPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {comparableKpis.map((kpi) => (
-                  <SelectItem key={kpi.key} value={kpi.key}>
-                    {kpi.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              value={selectedKpi}
+              onChange={(val) => val && setSelectedKpi(val)}
+              options={comparableKpis.map((kpi) => ({
+                value: kpi.key,
+                label: kpi.label,
+                description: kpi.description,
+                group: kpi.group,
+                icon:
+                  kpi.group === "balances" ? (
+                    <Coins className="size-3 text-blue-400" />
+                  ) : kpi.group === "ratios" ? (
+                    <Percent className="size-3 text-indigo-400" />
+                  ) : (
+                    <Users className="size-3 text-emerald-400" />
+                  ),
+              }))}
+              groups={[
+                {
+                  key: "balances",
+                  label: t("analytics.comparisonGroupBalances"),
+                  icon: <Coins className="size-3" />,
+                },
+                {
+                  key: "ratios",
+                  label: t("analytics.comparisonGroupRatios"),
+                  icon: <Percent className="size-3" />,
+                },
+                {
+                  key: "non_financial",
+                  label: t("analytics.comparisonGroupNonFinancial"),
+                  icon: <Users className="size-3" />,
+                },
+              ]}
+              placeholder={t("analytics.chooseKpiPlaceholder")}
+              searchPlaceholder={t("analytics.searchKpiMetric")}
+              emptyMessage={t("analytics.noKpiFound")}
+            />
           </div>
         </div>
 
