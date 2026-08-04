@@ -15,6 +15,7 @@ pub struct Model {
     pub display_name: String,
     #[sea_orm(nullable)]
     pub description: Option<String>,
+    pub translations: serde_json::Value,
     pub data_type: IndicatorDataType,
     #[sea_orm(nullable)]
     pub coop_type: Option<String>,

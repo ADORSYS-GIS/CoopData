@@ -20,7 +20,8 @@ use crate::AppState;
     get,
     path = "/api/v1/non-financial-indicators/catalog",
     params(
-        ("coop_type" = Option<String>, Query, description = "Filter by cooperative type")
+        ("coop_type" = Option<String>, Query, description = "Filter by cooperative type"),
+        ("lang" = Option<String>, Query, description = "Locale to resolve labels/descriptions into (e.g. ss, pt, fr)")
     ),
     responses(
         (status = 200, description = "Indicator catalog list", body = Vec<IndicatorCatalogResponse>),
@@ -33,6 +34,7 @@ pub async fn list_catalog(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<impl IntoResponse> {
+    let lang = crate::services::localization::normalize_lang(params.get("lang").map(|s| s.as_str()));
     let items = if let Some(coop_type) = params.get("coop_type") {
         state
             .non_financial_indicator_catalog_repo
@@ -44,7 +46,10 @@ pub async fn list_catalog(
             .find_all()
             .await?
     };
-    let res: Vec<IndicatorCatalogResponse> = items.into_iter().map(Into::into).collect();
+    let res: Vec<IndicatorCatalogResponse> = items
+        .into_iter()
+        .map(|m| IndicatorCatalogResponse::from_model_resolved(m, lang.clone()))
+        .collect();
     Ok((StatusCode::OK, Json(res)))
 }
 
@@ -84,6 +89,7 @@ pub async fn create_catalog_item(
         data_type: sea_orm::Set(body.data_type),
         coop_type: sea_orm::Set(body.coop_type.map(|c| c.trim().to_string())),
         is_required: sea_orm::Set(body.is_required),
+        translations: sea_orm::Set(body.translations.unwrap_or_else(|| serde_json::json!({}))),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
@@ -152,6 +158,7 @@ pub async fn update_catalog_item(
     active.data_type = sea_orm::Set(body.data_type);
     active.coop_type = sea_orm::Set(body.coop_type.map(|c| c.trim().to_string()));
     active.is_required = sea_orm::Set(body.is_required);
+    active.translations = sea_orm::Set(body.translations.unwrap_or_else(|| serde_json::json!({})));
     active.updated_at = sea_orm::Set(chrono::Utc::now());
 
     let updated = state

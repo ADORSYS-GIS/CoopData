@@ -116,28 +116,82 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
   return (
     <div className="font-sans">
       {submission.submission_method === "questionnaire" ? (
-        <Card
-          title={t("submissions.detail.contentTabs.questionnaireResponsesTitle")}
-          subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
-          action={
-            isDraft && (isCooperative || role === "ministry") ? (
-              <button
-                onClick={() =>
-                  navigate({
-                    to: "/app/submissions/$id/questionnaire",
-                    params: { id: submission.id },
-                  })
-                }
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
-              >
-                <ClipboardList className="size-3.5" />
-                {t("submissions.detail.contentTabs.btnEditAnswers")}
-              </button>
-            ) : undefined
-          }
-        >
-          <QuestionnaireResponseViewer submissionId={submission.id} />
-        </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList id="detail-tabs-list" className="w-full grid grid-cols-2 mb-5 h-auto p-1">
+            <TabsTrigger
+              value="financial"
+              className="flex items-center gap-2 py-2.5 cursor-pointer"
+            >
+              <FileText className="size-4" />
+              <span>{t("submissions.detail.contentTabs.tabFinancial")}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="databases"
+              className="flex items-center gap-2 py-2.5 cursor-pointer"
+            >
+              <Database className="size-4" />
+              <span>{t("submissions.detail.contentTabs.tabNonFinancial")}</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="financial" className="space-y-4">
+            <Card
+              title={t("submissions.detail.contentTabs.financialQResponsesTitle")}
+              subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
+              action={
+                isDraft && (isCooperative || role === "ministry") ? (
+                  <button
+                    onClick={() =>
+                      navigate({
+                        to: "/app/submissions/$id/questionnaire",
+                        params: { id: submission.id },
+                        search: { type: "financial" },
+                      })
+                    }
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <ClipboardList className="size-3.5" />
+                    {t("submissions.detail.contentTabs.btnEditAnswers")}
+                  </button>
+                ) : undefined
+              }
+            >
+              <QuestionnaireResponseViewer
+                submissionId={submission.id}
+                questionnaireType="financial"
+              />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="databases" className="space-y-4">
+            <Card
+              title={t("submissions.detail.contentTabs.nonFinancialQResponsesTitle")}
+              subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
+              action={
+                isDraft && (isCooperative || role === "ministry") ? (
+                  <button
+                    onClick={() =>
+                      navigate({
+                        to: "/app/submissions/$id/questionnaire",
+                        params: { id: submission.id },
+                        search: { type: "non_financial" },
+                      })
+                    }
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <ClipboardList className="size-3.5" />
+                    {t("submissions.detail.contentTabs.btnEditAnswers")}
+                  </button>
+                ) : undefined
+              }
+            >
+              <QuestionnaireResponseViewer
+                submissionId={submission.id}
+                questionnaireType="non_financial"
+              />
+            </Card>
+          </TabsContent>
+        </Tabs>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {methodChosen && isCooperative && isDraft && (

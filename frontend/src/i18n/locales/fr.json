@@ -3477,7 +3477,8 @@
     "newSectionDefaultDesc": "Entrez la description de la section",
     "metaLabel": "Titre / Libellé du modèle",
     "metaPlaceholder": "ex. Questionnaire des coopératives primaires financières v1",
-    "selectSectionPrompt": "Sélectionnez une section à gauche pour commencer à configurer ses champs."
+    "selectSectionPrompt": "Sélectionnez une section à gauche pour commencer à configurer ses champs.",
+    "translatingAs": "Édition de la traduction {{lang}}"
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4535,5 +4536,9 @@
     "toastSelected": "Fichier sélectionné : {{name}}",
     "toastExtracted": "{{count}} lignes extraites de {{name}}",
     "toastConfirmed": "{{name}} : {{count}} enregistrements valides prêts pour la soumission"
+  },
+  "localizedField": {
+    "toggle": "Traduire",
+    "otherLanguages": "Traductions (PT / SS / FR)"
   }
 }

@@ -330,12 +330,16 @@ pub async fn get_questionnaire_analytics(
     Extension(claims): Extension<Arc<Claims>>,
     Query(params): Query<QuestionnaireAnalyticsParams>,
 ) -> AppResult<impl IntoResponse> {
-    // Scope filtering: ministry sees all; everyone else is scoped to their own cooperative
-    let scoped_cooperative_id = if claims.has_role("ministry") {
-        params.cooperative_id
+    // Scope filtering: ministry sees all; apex/federation are scoped to the
+    // cooperatives under them; cooperative users are scoped to their own coop.
+    let scoped_cooperative_ids = if claims.has_role("ministry") {
+        params.cooperative_id.map(|id| vec![id])
     } else {
-        let coop_id = state.cooperative_id_from_claims(&claims).await?;
-        Some(coop_id)
+        let coop_ids = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(
+            &state, &claims,
+        )
+        .await?;
+        Some(coop_ids)
     };
 
     let responses = state
@@ -345,7 +349,7 @@ pub async fn get_questionnaire_analytics(
             None,
             params.region,
             params.sector,
-            scoped_cooperative_id,
+            scoped_cooperative_ids,
         )
         .await?;
 

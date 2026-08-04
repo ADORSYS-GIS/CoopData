@@ -17,6 +17,8 @@ pub struct CreateIndicatorRequest {
     pub coop_type: Option<String>,
     #[serde(default)]
     pub is_required: bool,
+    #[serde(default)]
+    pub translations: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -26,6 +28,8 @@ pub struct UpdateIndicatorRequest {
     pub data_type: IndicatorDataType,
     pub coop_type: Option<String>,
     pub is_required: bool,
+    #[serde(default)]
+    pub translations: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -37,23 +41,60 @@ pub struct IndicatorCatalogResponse {
     pub data_type: IndicatorDataType,
     pub coop_type: Option<String>,
     pub is_required: bool,
+    pub translations: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<CatalogModel> for IndicatorCatalogResponse {
-    fn from(m: CatalogModel) -> Self {
+impl IndicatorCatalogResponse {
+    fn make(m: CatalogModel, lang: Option<String>) -> Self {
+        let translations = if m.translations.is_null() {
+            serde_json::json!({})
+        } else {
+            m.translations.clone()
+        };
+        let display_name =
+            crate::services::localization::resolve_label(&m.display_name, &translations, "display_name", &lang);
+        let description = m
+            .description
+            .as_deref()
+            .map(|d| {
+                crate::services::localization::resolve_opt_str(
+                    Some(d),
+                    &translations,
+                    "description",
+                    &lang,
+                )
+                .unwrap_or_else(|| d.to_string())
+            });
+        let coop_type = m.coop_type.as_deref().map(|c| {
+            crate::services::localization::resolve_str(c, &translations, "coop_type", &lang)
+        });
         Self {
             id: m.id,
             indicator_name: m.indicator_name,
-            display_name: m.display_name,
-            description: m.description,
+            display_name,
+            description,
             data_type: m.data_type,
-            coop_type: m.coop_type,
+            coop_type,
             is_required: m.is_required,
+            translations,
             created_at: m.created_at,
             updated_at: m.updated_at,
         }
+    }
+}
+
+impl From<CatalogModel> for IndicatorCatalogResponse {
+    fn from(m: CatalogModel) -> Self {
+        Self::make(m, None)
+    }
+}
+
+impl IndicatorCatalogResponse {
+    /// Build a response resolved into a requested language.
+    pub fn from_model_resolved(m: CatalogModel, lang: Option<String>) -> Self {
+        Self::make(m, lang)
     }
 }
 

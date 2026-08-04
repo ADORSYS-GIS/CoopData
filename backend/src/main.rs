@@ -400,6 +400,7 @@ async fn seed_indicator_catalog(repo: &NonFinancialIndicatorCatalogRepository) {
             data_type: Set(dtype),
             coop_type: Set(None),
             is_required: Set(required),
+            translations: Set(serde_json::json!({})),
             created_at: Set(now),
             updated_at: Set(now),
         };

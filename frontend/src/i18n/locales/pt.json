@@ -4170,7 +4170,8 @@
     "newSectionDefaultDesc": "Enter section description",
     "metaLabel": "Template Title / Label",
     "metaPlaceholder": "e.g. Financial Primary Cooperatives Questionnaire v1",
-    "selectSectionPrompt": "Select a section on the left to start configuring its fields."
+    "selectSectionPrompt": "Select a section on the left to start configuring its fields.",
+    "translatingAs": "Editando tradução para {{lang}}"
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4535,5 +4536,9 @@
     "filingComplianceByApex": "Filing Compliance by Apex",
     "noPortfolioData": "Nenhum dado de carteira disponível para este período.",
     "noMembershipData": "Nenhum dado de associação disponível para este período."
+  },
+  "localizedField": {
+    "toggle": "Traduzir",
+    "otherLanguages": "Traduções (PT / SS / FR)"
   }
 }

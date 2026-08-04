@@ -1,25 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  Save,
-  CheckCircle2,
-  AlertCircle,
-  FolderPlus,
-  Users,
-  BookOpen,
-  DollarSign,
-  TrendingUp,
-  BarChart3,
-  ClipboardList,
-  Building2,
-  Edit,
-  X,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ArrowLeft, Save, AlertCircle, FolderPlus, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   useQuestionnaireTemplate,
@@ -30,10 +11,30 @@ import { SectionList } from "./template-editor/SectionList";
 import { SectionMetadataForm } from "./template-editor/SectionMetadataForm";
 import { FieldEditor } from "./template-editor/FieldEditor";
 import { FieldModal } from "./template-editor/FieldModal";
+import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
+import {
+  CANONICAL_LANG,
+  NON_EN_LANGS,
+  type ContentLanguage,
+  type QuestionnaireTranslations,
+  fieldTranslation,
+  setFieldTranslation,
+  setLabelTranslation,
+  setSectionTranslation,
+} from "@/lib/contentLocalization";
 
 interface QuestionnaireTemplateEditorProps {
   templateId: string;
   onBack: () => void;
+}
+
+interface FieldConfig {
+  key: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  options?: string[];
+  description?: string;
 }
 
 const AVAILABLE_EMOJIS = ["🏢", "👥", "📖", "💵", "📈", "📊", "📋", "❓"];
@@ -51,25 +52,45 @@ const getEmoji = (iconName: string): string => {
   return map[iconName] || iconName || "📋";
 };
 
-interface FieldConfig {
-  key: string;
-  label: string;
-  type: string;
-  required?: boolean;
-  options?: string[];
-  description?: string;
+// Merge canonical sections with translations for a given language (read-only display).
+function mergeSectionsForLang(
+  canonical: any[],
+  translations: QuestionnaireTranslations,
+  lang: string,
+): any[] {
+  if (!lang || lang === CANONICAL_LANG) return canonical;
+  return canonical.map((sec: any) => {
+    const secTr = translations[lang]?.sections?.[sec.id];
+    const fields = (sec.fields || []).map((f: any) => {
+      const fTr = translations[lang]?.sections?.[sec.id]?.fields?.[f.key];
+      return {
+        ...f,
+        label: fTr?.label ? fTr.label : f.label,
+        description: fTr?.description ? fTr.description : f.description,
+        options: fTr?.options ? fTr.options : f.options,
+      };
+    });
+    return {
+      ...sec,
+      title: secTr?.title ? secTr.title : sec.title,
+      description: secTr?.description ? secTr.description : sec.description,
+      fields,
+    };
+  });
 }
 
 export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorProps> = ({
   templateId,
   onBack,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: template, isLoading, error } = useQuestionnaireTemplate(templateId);
   const updateMutation = useUpdateQuestionnaireTemplate(templateId);
 
   const [label, setLabel] = useState("");
+  const [labelTr, setLabelTr] = useState<FieldTranslations>({});
   const [sections, setSections] = useState<any[]>([]);
+  const [translations, setTranslations] = useState<QuestionnaireTranslations>({});
   const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(null);
   const [saveMessage, setSaveMessage] = useState<{
     type: "success" | "error";
@@ -78,18 +99,42 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
   // Field Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalFieldIndex, setModalFieldIndex] = useState<number | null>(null); // null means adding a new field
+  const [modalFieldIndex, setModalFieldIndex] = useState<number | null>(null);
   const [modalLabel, setModalLabel] = useState("");
+  const [modalLabelTr, setModalLabelTr] = useState<FieldTranslations>({});
   const [modalType, setModalType] = useState("text");
   const [modalRequired, setModalRequired] = useState(false);
   const [modalDescription, setModalDescription] = useState("");
+  const [modalDescTr, setModalDescTr] = useState<FieldTranslations>({});
   const [modalOptions, setModalOptions] = useState<string[]>([]);
+  const [modalOptionsTr, setModalOptionsTr] = useState<FieldTranslations[]>([]);
   const [newOptionText, setNewOptionText] = useState("");
+
+  // Display language: the editor renders read-only surfaces (section list titles,
+  // field labels/options) in the app's current language when a translation exists,
+  // while the editable inputs (metadata + per-field Translate toggles) stay canonical.
+  const displayLang = i18n.language?.split("-")[0] || "en";
+  const displaySections = useMemo(
+    () => mergeSectionsForLang(sections, translations, displayLang),
+    [sections, translations, displayLang],
+  );
 
   // Load template details when query succeeds
   useEffect(() => {
     if (template) {
       setLabel(template.label);
+      const tr = (template.translations as QuestionnaireTranslations) ?? {};
+      setTranslations(tr);
+      if (tr.en) {
+        // label is canonical; labelTr only holds non-en
+        const acc: FieldTranslations = {};
+        for (const lang of NON_EN_LANGS) {
+          acc[lang] = tr[lang]?.label;
+        }
+        setLabelTr(acc);
+      } else {
+        setLabelTr({});
+      }
       setSections(template.sections || []);
       if ((template.sections || []).length > 0) {
         setSelectedSectionIndex(0);
@@ -97,8 +142,63 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     }
   }, [template]);
 
+  // Aggregate a field's per-language label translations for the modal.
+  const readFieldTr = (
+    sectionId: string,
+    fieldKey: string,
+    field: "label" | "description",
+  ): FieldTranslations => {
+    const acc: FieldTranslations = {};
+    for (const lang of NON_EN_LANGS) {
+      if (lang === CANONICAL_LANG) continue;
+      const f = fieldTranslation(translations, lang, sectionId, fieldKey);
+      acc[lang] = f?.[field];
+    }
+    return acc;
+  };
+
+  const readFieldOptionsTr = (
+    sectionId: string,
+    fieldKey: string,
+    count: number,
+  ): FieldTranslations[] => {
+    const arr: FieldTranslations[] = [];
+    for (let i = 0; i < count; i++) {
+      const acc: FieldTranslations = {};
+      for (const lang of NON_EN_LANGS) {
+        if (lang === CANONICAL_LANG) continue;
+        acc[lang] = fieldTranslation(translations, lang, sectionId, fieldKey)?.options?.[i];
+      }
+      arr.push(acc);
+    }
+    return arr;
+  };
+
+  // Persist a field's modal translations (all languages at once) under its key.
+  const persistFieldTranslations = (
+    nextTranslations: QuestionnaireTranslations,
+    sectionId: string,
+    fieldKey: string,
+    labelTr: FieldTranslations,
+    descTr: FieldTranslations,
+    optionsTr: FieldTranslations[],
+  ) => {
+    let next = nextTranslations;
+    for (const lang of NON_EN_LANGS) {
+      if (lang === CANONICAL_LANG) continue;
+      const patch: { label?: string; description?: string; options?: (string | undefined)[] } = {};
+      if (labelTr[lang] !== undefined) patch.label = labelTr[lang];
+      if (descTr[lang] !== undefined) patch.description = descTr[lang];
+      if (modalType === "select" && optionsTr.length) {
+        patch.options = optionsTr.map((o) => o[lang]);
+      }
+      next = setFieldTranslation(next, lang, sectionId, fieldKey, patch as any);
+    }
+    return next;
+  };
+
   const handleSave = async (sectionsToSave?: any[]) => {
-    const listToSave = sectionsToSave || sections;
+    const listToSave = sectionsToSave ?? sections;
     try {
       setSaveMessage(null);
       // Validate unique keys
@@ -115,10 +215,19 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         }
       }
 
+      // Persist label translation
+      let nextTr = translations;
+      for (const lang of NON_EN_LANGS) {
+        if (lang === CANONICAL_LANG) continue;
+        if (labelTr[lang]) nextTr = setLabelTranslation(nextTr, lang, labelTr[lang]!);
+      }
+
       await updateMutation.mutateAsync({
         label,
         sections: listToSave,
+        translations: nextTr,
       });
+      setTranslations(nextTr);
 
       toast.success(t("templateEditor.toastSaved"));
     } catch (err: any) {
@@ -178,25 +287,73 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     setSections(updated);
   };
 
+  // ---- section-level translation helpers ----
+  const secTrTitle = (index: number): FieldTranslations => {
+    const sec = sections[index];
+    const acc: FieldTranslations = {};
+    if (!sec) return acc;
+    for (const lang of NON_EN_LANGS) {
+      if (lang === CANONICAL_LANG) continue;
+      acc[lang] = translations[lang]?.sections?.[sec.id]?.title;
+    }
+    return acc;
+  };
+  const secTrDesc = (index: number): FieldTranslations => {
+    const sec = sections[index];
+    const acc: FieldTranslations = {};
+    if (!sec) return acc;
+    for (const lang of NON_EN_LANGS) {
+      if (lang === CANONICAL_LANG) continue;
+      acc[lang] = translations[lang]?.sections?.[sec.id]?.description;
+    }
+    return acc;
+  };
+  const setSecTr = (
+    index: number,
+    patch: { title?: FieldTranslations; description?: FieldTranslations },
+  ) => {
+    const sec = sections[index];
+    if (!sec) return;
+    let next = translations;
+    for (const lang of NON_EN_LANGS) {
+      if (lang === CANONICAL_LANG) continue;
+      if (patch.title?.[lang])
+        next = setSectionTranslation(next, lang, sec.id, { title: patch.title![lang]! });
+      if (patch.description?.[lang])
+        next = setSectionTranslation(next, lang, sec.id, {
+          description: patch.description![lang]!,
+        });
+    }
+    setTranslations(next);
+  };
+
   // Field Modal handlers
   const openAddFieldModal = () => {
     setModalFieldIndex(null);
     setModalLabel("");
+    setModalLabelTr({});
     setModalDescription("");
+    setModalDescTr({});
     setModalType("text");
     setModalRequired(false);
     setModalOptions([]);
+    setModalOptionsTr([]);
     setNewOptionText("");
     setIsModalOpen(true);
   };
 
   const openEditFieldModal = (index: number, field: FieldConfig) => {
     setModalFieldIndex(index);
+    const sec = sections[selectedSectionIndex!];
     setModalLabel(field.label);
+    setModalLabelTr(readFieldTr(sec.id, field.key, "label"));
     setModalDescription(field.description || "");
+    setModalDescTr(readFieldTr(sec.id, field.key, "description"));
     setModalType(field.type);
     setModalRequired(!!field.required);
-    setModalOptions(field.options || []);
+    const options = field.options || [];
+    setModalOptions(options);
+    setModalOptionsTr(readFieldOptionsTr(sec.id, field.key, options.length));
     setNewOptionText("");
     setIsModalOpen(true);
   };
@@ -205,11 +362,21 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     if (!newOptionText.trim()) return;
     if (modalOptions.includes(newOptionText.trim())) return;
     setModalOptions([...modalOptions, newOptionText.trim()]);
+    setModalOptionsTr([...modalOptionsTr, {}]);
     setNewOptionText("");
   };
 
   const deleteOption = (optIndex: number) => {
     setModalOptions(modalOptions.filter((_, i) => i !== optIndex));
+    setModalOptionsTr(modalOptionsTr.filter((_, i) => i !== optIndex));
+  };
+
+  const setOptionTranslation = (optIndex: number, lang: ContentLanguage, val: string) => {
+    setModalOptionsTr((prev) => {
+      const next = [...prev];
+      next[optIndex] = { ...(next[optIndex] ?? {}), [lang]: val };
+      return next;
+    });
   };
 
   const handleSaveModalField = () => {
@@ -219,19 +386,19 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     }
     if (selectedSectionIndex === null) return;
 
+    const section = sections[selectedSectionIndex];
     const updated = [...sections];
-    const section = updated[selectedSectionIndex];
+    const sec = updated[selectedSectionIndex];
 
+    let fieldKey: string;
     if (modalFieldIndex === null) {
-      // Create new field
-      // Generate key internally from label slug
       const generatedKey =
         modalLabel
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "_")
           .replace(/^_+|_+$/g, "") || `field_${Date.now()}`;
-
+      fieldKey = generatedKey;
       const newField: FieldConfig = {
         key: generatedKey,
         label: modalLabel.trim(),
@@ -240,24 +407,44 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         required: modalRequired,
         options: modalType === "select" ? modalOptions : [],
       };
-      section.fields = [...(section.fields || []), newField];
+      sec.fields = [...(sec.fields || []), newField];
     } else {
-      // Edit existing field
-      const existingField = section.fields[modalFieldIndex];
-      const updatedField: FieldConfig = {
-        key: existingField.key, // keep the unique key unchanged
+      const existingField = sec.fields[modalFieldIndex];
+      fieldKey = existingField.key;
+      sec.fields[modalFieldIndex] = {
+        key: existingField.key,
         label: modalLabel.trim(),
         description: modalDescription.trim() || undefined,
         type: modalType,
         required: modalRequired,
         options: modalType === "select" ? modalOptions : [],
       };
-      section.fields[modalFieldIndex] = updatedField;
     }
 
     setSections(updated);
     setIsModalOpen(false);
-    handleSave(updated);
+
+    const nextTr = persistFieldTranslations(
+      translations,
+      section.id,
+      fieldKey,
+      modalLabelTr,
+      modalDescTr,
+      modalOptionsTr,
+    );
+    setTranslations(nextTr);
+
+    // Persist both canonical sections and translations together.
+    void (async () => {
+      try {
+        const keys = new Set<string>();
+        for (const s of updated) for (const f of s.fields || []) keys.add(f.key);
+        await updateMutation.mutateAsync({ label, sections: updated, translations: nextTr });
+        toast.success(t("templateEditor.toastSaved"));
+      } catch (err: any) {
+        toast.error(err.message || t("templateEditor.toastSaveFailed"));
+      }
+    })();
   };
 
   const deleteField = (fieldIndex: number) => {
@@ -311,6 +498,12 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   }
 
   const activeSection = selectedSectionIndex !== null ? sections[selectedSectionIndex] : null;
+
+  // Display language: the editor renders read-only surfaces (section titles, field
+  // labels/options) in the app's current language when a translation exists, while
+  // the editable inputs (metadata + per-field Translate toggles) stay canonical.
+  const displayActiveSection =
+    selectedSectionIndex !== null ? displaySections[selectedSectionIndex] : null;
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto py-4 relative">
@@ -370,15 +563,14 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
       {/* Template Metadata */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-          {t("templateEditor.metaLabel")}
-        </label>
-        <input
-          type="text"
+        <LocalizedField
+          id="template-label"
+          label={t("templateEditor.metaLabel")}
           value={label}
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={setLabel}
+          translations={labelTr}
+          onTranslationsChange={setLabelTr}
           placeholder={t("templateEditor.metaPlaceholder")}
-          className="w-full max-w-lg rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
         />
       </div>
 
@@ -387,7 +579,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         {/* Left column: Sections list */}
         <div className="md:col-span-4 flex flex-col gap-4">
           <SectionList
-            sections={sections}
+            sections={displaySections}
             selectedSectionIndex={selectedSectionIndex}
             setSelectedSectionIndex={setSelectedSectionIndex}
             addSection={addSection}
@@ -399,16 +591,20 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
         {/* Right column: Fields configuration in the selected section */}
         <div className="md:col-span-8">
-          {activeSection ? (
+          {activeSection && selectedSectionIndex !== null ? (
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-6">
               <SectionMetadataForm
                 activeSection={activeSection}
-                selectedSectionIndex={selectedSectionIndex!}
+                selectedSectionIndex={selectedSectionIndex}
                 updateSectionMeta={updateSectionMeta}
                 availableEmojis={AVAILABLE_EMOJIS}
+                titleTr={secTrTitle(selectedSectionIndex)}
+                onTitleTrChange={(v) => setSecTr(selectedSectionIndex, { title: v })}
+                descTr={secTrDesc(selectedSectionIndex)}
+                onDescTrChange={(v) => setSecTr(selectedSectionIndex, { description: v })}
               />
               <FieldEditor
-                activeSection={activeSection}
+                activeSection={displayActiveSection}
                 openAddFieldModal={openAddFieldModal}
                 openEditFieldModal={openEditFieldModal}
                 deleteField={deleteField}
@@ -431,17 +627,25 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         modalFieldIndex={modalFieldIndex}
         modalLabel={modalLabel}
         setModalLabel={setModalLabel}
+        modalLabelTr={modalLabelTr}
+        setModalLabelTr={setModalLabelTr}
         modalDescription={modalDescription}
         setModalDescription={setModalDescription}
+        modalDescTr={modalDescTr}
+        setModalDescTr={setModalDescTr}
         modalType={modalType}
         setModalType={setModalType}
         modalRequired={modalRequired}
         setModalRequired={setModalRequired}
         modalOptions={modalOptions}
+        setModalOptions={setModalOptions}
+        modalOptionsTr={modalOptionsTr}
+        setModalOptionsTr={setModalOptionsTr}
         newOptionText={newOptionText}
         setNewOptionText={setNewOptionText}
         addOption={addOption}
         deleteOption={deleteOption}
+        setOptionTranslation={setOptionTranslation}
         handleSaveModalField={handleSaveModalField}
       />
     </div>

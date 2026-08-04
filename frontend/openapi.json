@@ -2934,6 +2934,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Locale to resolve content into (e.g. ss, pt, fr). Falls back to en.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
           }
         ],
         "responses": {
@@ -5044,6 +5054,17 @@
           "Analytics"
         ],
         "operationId": "list_custom_kpis",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of custom KPIs",
@@ -6305,6 +6326,16 @@
             "name": "coop_type",
             "in": "query",
             "description": "Filter by cooperative type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Locale to resolve labels/descriptions into (e.g. ss, pt, fr)",
             "required": false,
             "schema": {
               "type": "string",
@@ -8021,6 +8052,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "translations": {
+            "nullable": true
           }
         }
       },
@@ -8232,6 +8266,9 @@
           },
           "is_required": {
             "type": "boolean"
+          },
+          "translations": {
+            "nullable": true
           }
         }
       },
@@ -8485,7 +8522,10 @@
           "questionnaire_type": {
             "type": "string"
           },
-          "sections": {}
+          "sections": {},
+          "translations": {
+            "nullable": true
+          }
         }
       },
       "CreateUserRequest": {
@@ -8525,7 +8565,9 @@
         "required": [
           "id",
           "name",
+          "display_name",
           "formula",
+          "translations",
           "created_at"
         ],
         "properties": {
@@ -8537,6 +8579,10 @@
             "type": "string",
             "nullable": true
           },
+          "display_name": {
+            "type": "string",
+            "description": "Human-facing label resolved into the requested language (falls back to name)."
+          },
           "formula": {
             "type": "string"
           },
@@ -8545,8 +8591,10 @@
             "format": "uuid"
           },
           "name": {
-            "type": "string"
-          }
+            "type": "string",
+            "description": "Canonical, stable identifier used as the key for computed KPI values and in formulas."
+          },
+          "translations": {}
         }
       },
       "DeletePreviewResponse": {
@@ -9310,6 +9358,7 @@
           "display_name",
           "data_type",
           "is_required",
+          "translations",
           "created_at",
           "updated_at"
         ],
@@ -9342,6 +9391,7 @@
           "is_required": {
             "type": "boolean"
           },
+          "translations": {},
           "updated_at": {
             "type": "string",
             "format": "date-time"
@@ -11916,6 +11966,7 @@
           "version",
           "label",
           "sections",
+          "translations",
           "is_active",
           "created_at",
           "updated_at"
@@ -11944,6 +11995,7 @@
             "type": "string"
           },
           "sections": {},
+          "translations": {},
           "updated_at": {
             "type": "string",
             "format": "date-time"
@@ -13054,6 +13106,9 @@
           },
           "is_required": {
             "type": "boolean"
+          },
+          "translations": {
+            "nullable": true
           }
         }
       },
@@ -13305,6 +13360,9 @@
             "nullable": true
           },
           "sections": {
+            "nullable": true
+          },
+          "translations": {
             "nullable": true
           }
         }

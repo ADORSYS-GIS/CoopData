@@ -12,6 +12,7 @@ pub struct Model {
     pub version: i32,
     pub label: String,
     pub sections: serde_json::Value,
+    pub translations: serde_json::Value,
     pub is_active: bool,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,

@@ -11,6 +11,7 @@ pub struct Model {
     pub name: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub description: Option<String>,
+    pub translations: serde_json::Value,
     pub formula: String,
     pub created_by: Option<Uuid>,
     pub created_at: DateTimeWithTimeZone,

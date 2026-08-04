@@ -1,6 +1,14 @@
-import React from "react";
-import { X, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { X, Trash2, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
+import {
+  CONTENT_LANGUAGES,
+  CANONICAL_LANG,
+  type ContentLanguage,
+  normalizeAppLang,
+  resolvePrimaryLang,
+} from "@/lib/contentLocalization";
 
 interface FieldModalProps {
   isModalOpen: boolean;
@@ -8,19 +16,35 @@ interface FieldModalProps {
   modalFieldIndex: number | null;
   modalLabel: string;
   setModalLabel: (val: string) => void;
+  modalLabelTr: FieldTranslations;
+  setModalLabelTr: (val: FieldTranslations) => void;
   modalDescription: string;
   setModalDescription: (val: string) => void;
+  modalDescTr: FieldTranslations;
+  setModalDescTr: (val: FieldTranslations) => void;
   modalType: string;
   setModalType: (val: string) => void;
   modalRequired: boolean;
   setModalRequired: (val: boolean) => void;
   modalOptions: string[];
+  setModalOptions: (val: string[]) => void;
+  /** Per-option translations, aligned by index with `modalOptions`. */
+  modalOptionsTr: FieldTranslations[];
+  setModalOptionsTr: (val: FieldTranslations[]) => void;
   newOptionText: string;
   setNewOptionText: (val: string) => void;
   addOption: () => void;
   deleteOption: (idx: number) => void;
+  setOptionTranslation: (idx: number, lang: ContentLanguage, val: string) => void;
   handleSaveModalField: () => void;
 }
+
+const LANG_LABELS: Record<ContentLanguage, string> = {
+  en: "English",
+  pt: "Português",
+  ss: "siSwati",
+  fr: "Français",
+};
 
 export const FieldModal: React.FC<FieldModalProps> = ({
   isModalOpen,
@@ -28,17 +52,25 @@ export const FieldModal: React.FC<FieldModalProps> = ({
   modalFieldIndex,
   modalLabel,
   setModalLabel,
+  modalLabelTr,
+  setModalLabelTr,
   modalDescription,
   setModalDescription,
+  modalDescTr,
+  setModalDescTr,
   modalType,
   setModalType,
   modalRequired,
   setModalRequired,
   modalOptions,
+  setModalOptions,
+  modalOptionsTr,
+  setModalOptionsTr,
   newOptionText,
   setNewOptionText,
   addOption,
   deleteOption,
+  setOptionTranslation,
   handleSaveModalField,
 }) => {
   const { t } = useTranslation();
@@ -65,31 +97,27 @@ export const FieldModal: React.FC<FieldModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              {t("templateEditor.fieldModal.labelPrompt")}
-            </label>
-            <input
-              type="text"
-              value={modalLabel}
-              onChange={(e) => setModalLabel(e.target.value)}
-              placeholder={t("templateEditor.fieldModal.placeholderLabel")}
-              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
-            />
-          </div>
+          <LocalizedField
+            id="field-label"
+            label={t("templateEditor.fieldModal.labelPrompt")}
+            value={modalLabel}
+            onChange={setModalLabel}
+            translations={modalLabelTr}
+            onTranslationsChange={setModalLabelTr}
+            placeholder={t("templateEditor.fieldModal.placeholderLabel")}
+            required
+          />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              {t("templateEditor.fieldModal.descHelp")}
-            </label>
-            <input
-              type="text"
-              value={modalDescription}
-              onChange={(e) => setModalDescription(e.target.value)}
-              placeholder={t("templateEditor.fieldModal.placeholderDesc")}
-              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/45"
-            />
-          </div>
+          <LocalizedField
+            id="field-desc"
+            label={t("templateEditor.fieldModal.descHelp")}
+            value={modalDescription}
+            onChange={setModalDescription}
+            translations={modalDescTr}
+            onTranslationsChange={setModalDescTr}
+            placeholder={t("templateEditor.fieldModal.placeholderDesc")}
+            multiline
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
@@ -136,21 +164,21 @@ export const FieldModal: React.FC<FieldModalProps> = ({
                   {t("templateEditor.fieldModal.noChoices")}
                 </p>
               ) : (
-                <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
+                <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
                   {modalOptions.map((opt, oIdx) => (
-                    <div
+                    <OptionRow
                       key={oIdx}
-                      className="flex items-center justify-between gap-3 bg-surface border p-2 rounded-xl"
-                    >
-                      <span className="text-xs font-medium text-foreground">{opt}</span>
-                      <button
-                        type="button"
-                        onClick={() => deleteOption(oIdx)}
-                        className="p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
+                      opt={opt}
+                      oIdx={oIdx}
+                      translations={modalOptionsTr[oIdx] ?? {}}
+                      onChangeCanonical={(val) => {
+                        const next = [...modalOptions];
+                        next[oIdx] = val;
+                        setModalOptions(next);
+                      }}
+                      onSetOptionTranslation={(lang, val) => setOptionTranslation(oIdx, lang, val)}
+                      deleteOption={deleteOption}
+                    />
                   ))}
                 </div>
               )}
@@ -203,4 +231,87 @@ export const FieldModal: React.FC<FieldModalProps> = ({
     </div>
   );
 };
+
+const OptionRow: React.FC<{
+  opt: string;
+  oIdx: number;
+  translations: FieldTranslations;
+  onChangeCanonical: (val: string) => void;
+  onSetOptionTranslation: (lang: ContentLanguage, val: string) => void;
+  deleteOption: (idx: number) => void;
+}> = ({ opt, oIdx, translations, onChangeCanonical, onSetOptionTranslation, deleteOption }) => {
+  const { i18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  const displayLang = normalizeAppLang(i18n.language);
+  const primaryLang = resolvePrimaryLang(translations, displayLang);
+
+  const getValue = (lang: ContentLanguage): string =>
+    lang === CANONICAL_LANG ? opt : (translations[lang as keyof FieldTranslations] ?? "");
+
+  const setValue = (lang: ContentLanguage, val: string) => {
+    if (lang === CANONICAL_LANG) {
+      onChangeCanonical(val);
+      return;
+    }
+    onSetOptionTranslation(lang, val);
+  };
+
+  const otherLangs = CONTENT_LANGUAGES.filter((l) => l !== primaryLang);
+  const primaryValue = getValue(primaryLang);
+
+  return (
+    <div className="flex flex-col gap-1 bg-surface border p-2 rounded-xl">
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={primaryValue}
+          onChange={(e) => setValue(primaryLang, e.target.value)}
+          className="flex-1 rounded-lg border border-border bg-background px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+        {primaryLang !== CANONICAL_LANG && (
+          <span className="text-[9px] font-bold uppercase text-primary/80 shrink-0">
+            {primaryLang}
+          </span>
+        )}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="p-1 hover:bg-primary/10 text-primary rounded transition-colors cursor-pointer"
+            title="Translate"
+          >
+            <Languages className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => deleteOption(oIdx)}
+            className="p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-colors cursor-pointer"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div className="flex flex-col gap-1.5 mt-1 pl-1">
+          {otherLangs.map((lang) => (
+            <div key={lang} className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase w-6 text-muted-foreground shrink-0">
+                {lang}
+              </span>
+              <input
+                type="text"
+                value={getValue(lang)}
+                onChange={(e) => setValue(lang, e.target.value)}
+                placeholder={LANG_LABELS[lang]}
+                className="flex-1 rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default FieldModal;
