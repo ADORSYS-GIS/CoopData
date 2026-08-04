@@ -69,11 +69,15 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
       {/* Header */}
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{t("printReports.apexDistribution")}</h1>
+          <h1 className="text-3xl font-bold text-slate-900">
+            {t("printReports.apexDistribution")}
+          </h1>
           <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-700">{t("printReports.period", { year })}</p>
+          <p className="text-lg font-semibold text-slate-700">
+            {t("printReports.period", { year })}
+          </p>
           <p className="text-sm text-slate-500">{t("printReports.distributionOverview")}</p>
         </div>
       </div>
@@ -143,9 +147,15 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 border border-slate-700">{t("printReports.headers.apexOrganization")}</th>
-                <th className="p-3 border border-slate-700 text-right">{t("printReports.headers.cooperatives")}</th>
-                <th className="p-3 border border-slate-700 text-right">{t("printReports.headers.totalActiveMembers")}</th>
+                <th className="p-3 border border-slate-700">
+                  {t("printReports.headers.apexOrganization")}
+                </th>
+                <th className="p-3 border border-slate-700 text-right">
+                  {t("printReports.headers.cooperatives")}
+                </th>
+                <th className="p-3 border border-slate-700 text-right">
+                  {t("printReports.headers.totalActiveMembers")}
+                </th>
               </tr>
             </thead>
             <tbody>

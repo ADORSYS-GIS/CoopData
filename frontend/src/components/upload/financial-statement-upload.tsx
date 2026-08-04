@@ -336,19 +336,22 @@ export function FinancialStatementUpload({
     return `$${n.toFixed(0)}`;
   };
 
-  const handleFileSelect = useCallback((file: File) => {
-    const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      toast.error(t("financialStatementUpload.toastUnsupported"));
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error(t("financialStatementUpload.toastTooLarge"));
-      return;
-    }
-    setSelectedFile(file);
-    toast.success(t("financialStatementUpload.toastSelected", { name: file.name }));
-  }, [t]);
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        toast.error(t("financialStatementUpload.toastUnsupported"));
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error(t("financialStatementUpload.toastTooLarge"));
+        return;
+      }
+      setSelectedFile(file);
+      toast.success(t("financialStatementUpload.toastSelected", { name: file.name }));
+    },
+    [t],
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -477,7 +480,9 @@ export function FinancialStatementUpload({
                 </span>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.maxSize")}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t("financialStatementUpload.maxSize")}
+            </p>
           </div>
         </div>
 
@@ -522,7 +527,8 @@ export function FinancialStatementUpload({
 
         <div className="p-3 rounded-lg bg-info/5 border border-info/20">
           <p className="text-xs text-muted-foreground">
-            <strong className="text-foreground">{t("financialStatementUpload.howItWorks")}</strong> {t("financialStatementUpload.howItWorksDesc")}
+            <strong className="text-foreground">{t("financialStatementUpload.howItWorks")}</strong>{" "}
+            {t("financialStatementUpload.howItWorksDesc")}
           </p>
         </div>
       </div>
@@ -538,7 +544,9 @@ export function FinancialStatementUpload({
             <Loader2 className="size-8 animate-spin" />
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-foreground">{t("financialStatementUpload.extractingTitle")}</p>
+            <p className="text-lg font-bold text-foreground">
+              {t("financialStatementUpload.extractingTitle")}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">
               {t("financialStatementUpload.extractingDesc")}
             </p>
@@ -547,7 +555,9 @@ export function FinancialStatementUpload({
         <div className="max-w-md mx-auto space-y-3">
           <Progress value={extractionProgress} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{t("financialStatementUpload.percentComplete", { progress: extractionProgress })}</span>
+            <span>
+              {t("financialStatementUpload.percentComplete", { progress: extractionProgress })}
+            </span>
             <span>
               {extractionProgress < 30
                 ? "Uploading..."
@@ -561,9 +571,19 @@ export function FinancialStatementUpload({
         </div>
         <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
           {[
-            { label: t("financialStatementUpload.stats.pages"), value: extractionProgress > 30 ? t("financialStatementUpload.stats.scanning") : "—" },
-            { label: t("financialStatementUpload.stats.codesFound"), value: extractionProgress > 50 ? "26+" : "—" },
-            { label: t("financialStatementUpload.stats.confidence"), value: extractionProgress > 70 ? t("financialStatementUpload.confidenceLevel.high") : "—" },
+            {
+              label: t("financialStatementUpload.stats.pages"),
+              value: extractionProgress > 30 ? t("financialStatementUpload.stats.scanning") : "—",
+            },
+            {
+              label: t("financialStatementUpload.stats.codesFound"),
+              value: extractionProgress > 50 ? "26+" : "—",
+            },
+            {
+              label: t("financialStatementUpload.stats.confidence"),
+              value:
+                extractionProgress > 70 ? t("financialStatementUpload.confidenceLevel.high") : "—",
+            },
           ].map((stat) => (
             <div key={stat.label} className="text-center p-3 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -586,26 +606,40 @@ export function FinancialStatementUpload({
         {/* Extraction Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-success/5 border border-success/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-success">{t("financialStatementUpload.confidenceLevel.high")}</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-success">
+              {t("financialStatementUpload.confidenceLevel.high")}
+            </p>
             <p className="text-xl font-bold text-foreground">{highConfidence}</p>
-            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.confident")}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t("financialStatementUpload.fields.confident")}
+            </p>
           </div>
           <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
             <p className="text-[10px] uppercase tracking-wider font-bold text-warning-foreground">
               {t("financialStatementUpload.confidenceLevel.medium")}
             </p>
             <p className="text-xl font-bold text-foreground">{medConfidence}</p>
-            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.verify")}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t("financialStatementUpload.fields.verify")}
+            </p>
           </div>
           <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-destructive">{t("financialStatementUpload.confidenceLevel.low")}</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-destructive">
+              {t("financialStatementUpload.confidenceLevel.low")}
+            </p>
             <p className="text-xl font-bold text-foreground">{lowConfidence}</p>
-            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.manual")}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t("financialStatementUpload.fields.manual")}
+            </p>
           </div>
           <div className="p-3 rounded-lg bg-info/5 border border-info/20">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-info">{t("financialStatementUpload.confidenceLevel.overall")}</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-info">
+              {t("financialStatementUpload.confidenceLevel.overall")}
+            </p>
             <p className="text-xl font-bold text-foreground">{extractionResult.confidence}%</p>
-            <p className="text-[10px] text-muted-foreground">{t("financialStatementUpload.fields.score")}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t("financialStatementUpload.fields.score")}
+            </p>
           </div>
         </div>
 
@@ -660,11 +694,21 @@ export function FinancialStatementUpload({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-semibold">{t("financialStatementUpload.table.code")}</th>
-                  <th className="px-3 py-2 text-left font-semibold">{t("financialStatementUpload.table.account")}</th>
-                  <th className="px-3 py-2 text-right font-semibold">{t("financialStatementUpload.table.value")}</th>
-                  <th className="px-3 py-2 text-left font-semibold">{t("financialStatementUpload.table.source")}</th>
-                  <th className="px-3 py-2 text-center font-semibold">{t("financialStatementUpload.table.confidence")}</th>
+                  <th className="px-3 py-2 text-left font-semibold">
+                    {t("financialStatementUpload.table.code")}
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold">
+                    {t("financialStatementUpload.table.account")}
+                  </th>
+                  <th className="px-3 py-2 text-right font-semibold">
+                    {t("financialStatementUpload.table.value")}
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold">
+                    {t("financialStatementUpload.table.source")}
+                  </th>
+                  <th className="px-3 py-2 text-center font-semibold">
+                    {t("financialStatementUpload.table.confidence")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -731,7 +775,9 @@ export function FinancialStatementUpload({
           <CheckCircle2 className="size-8" />
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-foreground">{t("financialStatementUpload.success.title")}</p>
+          <p className="text-lg font-bold text-foreground">
+            {t("financialStatementUpload.success.title")}
+          </p>
           <p className="text-sm text-muted-foreground mt-1">
             {t("financialStatementUpload.success.desc")}
           </p>

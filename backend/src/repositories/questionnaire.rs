@@ -1,6 +1,6 @@
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -94,7 +94,6 @@ impl QuestionnaireRepository {
             .await
             .map_err(AppError::DatabaseError)
     }
-
 
     pub async fn delete_by_submission(&self, submission_id: Uuid) -> AppResult<u64> {
         let result = questionnaire_response::Entity::delete_many()

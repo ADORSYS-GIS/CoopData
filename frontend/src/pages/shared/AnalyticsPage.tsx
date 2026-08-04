@@ -120,20 +120,44 @@ export const AnalyticsPage: React.FC = () => {
 
   const FILTERS_BY_ROLE_T: Record<string, FilterConfig[]> = {
     ministry: [
-      { id: "federation", label: t("analytics.filter.federation"), options: [{ value: "all", label: t("analytics.allFederations") }] },
-      { id: "apex", label: t("analytics.filter.apex"), options: [{ value: "all", label: t("analytics.allApexes") }] },
-      { id: "cooperative", label: t("analytics.filter.cooperative"), options: [{ value: "all", label: t("analytics.allCooperatives") }] },
+      {
+        id: "federation",
+        label: t("analytics.filter.federation"),
+        options: [{ value: "all", label: t("analytics.allFederations") }],
+      },
+      {
+        id: "apex",
+        label: t("analytics.filter.apex"),
+        options: [{ value: "all", label: t("analytics.allApexes") }],
+      },
+      {
+        id: "cooperative",
+        label: t("analytics.filter.cooperative"),
+        options: [{ value: "all", label: t("analytics.allCooperatives") }],
+      },
       { id: "region", label: t("analytics.filter.region"), options: REGION_OPTIONS_T },
       { id: "sector", label: t("analytics.filter.sector"), options: SECTOR_OPTIONS_T },
     ],
     federation: [
-      { id: "apex", label: t("analytics.filter.apex"), options: [{ value: "all", label: t("analytics.allApexes") }] },
-      { id: "cooperative", label: t("analytics.filter.cooperative"), options: [{ value: "all", label: t("analytics.allCooperatives") }] },
+      {
+        id: "apex",
+        label: t("analytics.filter.apex"),
+        options: [{ value: "all", label: t("analytics.allApexes") }],
+      },
+      {
+        id: "cooperative",
+        label: t("analytics.filter.cooperative"),
+        options: [{ value: "all", label: t("analytics.allCooperatives") }],
+      },
       { id: "region", label: t("analytics.filter.region"), options: REGION_OPTIONS_T },
       { id: "sector", label: t("analytics.filter.sector"), options: SECTOR_OPTIONS_T },
     ],
     apex: [
-      { id: "cooperative", label: t("analytics.filter.cooperative"), options: [{ value: "all", label: t("analytics.allCooperatives") }] },
+      {
+        id: "cooperative",
+        label: t("analytics.filter.cooperative"),
+        options: [{ value: "all", label: t("analytics.allCooperatives") }],
+      },
       { id: "region", label: t("analytics.filter.region"), options: REGION_OPTIONS_T },
       { id: "sector", label: t("analytics.filter.sector"), options: SECTOR_OPTIONS_T },
     ],

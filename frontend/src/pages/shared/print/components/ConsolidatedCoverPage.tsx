@@ -35,7 +35,9 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
       <div className="flex items-center justify-between border-b border-slate-700/60 pb-8 relative z-10">
         <div className="flex items-center">
           <h2 className="text-3xl font-black tracking-widest text-slate-200 uppercase">
-            {t("printReports.consolidated.officialReport", { tier: t(`common.roles.${tier.toLowerCase()}`, tier) })}
+            {t("printReports.consolidated.officialReport", {
+              tier: t(`common.roles.${tier.toLowerCase()}`, tier),
+            })}
           </h2>
         </div>
       </div>
@@ -45,7 +47,9 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
           {t("printReports.consolidated.sectorPerformance")}
         </p>
         <h1 className="text-4xl font-extrabold tracking-tight leading-tight text-white border-l-4 border-blue-500 pl-6">
-          {tier === "Ministry" ? t("printReports.consolidated.nationalOverview") : entityName.toUpperCase()}
+          {tier === "Ministry"
+            ? t("printReports.consolidated.nationalOverview")
+            : entityName.toUpperCase()}
         </h1>
         <p className="text-lg text-slate-300 max-w-lg leading-relaxed font-light font-sans">
           {t("printReports.consolidated.aggregatedDesc")}

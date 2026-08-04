@@ -70,10 +70,18 @@ export function ReviewSummary({
 
   const cardItems = [
     { label: t("reviewSummary.labels.totalAssets"), value: totalAssets, key: "totalAssets" },
-    { label: t("reviewSummary.labels.totalLiabilities"), value: totalLiabilities, key: "totalLiabilities" },
+    {
+      label: t("reviewSummary.labels.totalLiabilities"),
+      value: totalLiabilities,
+      key: "totalLiabilities",
+    },
     { label: t("reviewSummary.labels.totalEquity"), value: totalEquity, key: "totalEquity" },
     { label: t("reviewSummary.labels.annualIncome"), value: totalIncome, key: "annualIncome" },
-    { label: t("reviewSummary.labels.annualExpenses"), value: totalExpenses, key: "annualExpenses" },
+    {
+      label: t("reviewSummary.labels.annualExpenses"),
+      value: totalExpenses,
+      key: "annualExpenses",
+    },
     { label: t("reviewSummary.labels.netSurplus"), value: netSurplus, key: "netSurplus" },
   ];
 
@@ -86,9 +94,7 @@ export function ReviewSummary({
             <div className="size-8 rounded-lg bg-primary/10 grid place-items-center">
               <BarChart3 className="size-4 text-primary" />
             </div>
-            <h3 className="text-sm font-bold text-foreground">
-              {t("reviewSummary.title")}
-            </h3>
+            <h3 className="text-sm font-bold text-foreground">{t("reviewSummary.title")}</h3>
           </div>
           {cardItems.map(({ label, value, key }) => (
             <div key={key} className="flex justify-between items-center text-sm">
@@ -112,7 +118,9 @@ export function ReviewSummary({
             )}
             {isBalanced
               ? t("reviewSummary.balancedSuccess")
-              : t("reviewSummary.balancedGap", { gap: fmt(Math.abs(totalAssets - totalLiabilities - totalEquity)) })}
+              : t("reviewSummary.balancedGap", {
+                  gap: fmt(Math.abs(totalAssets - totalLiabilities - totalEquity)),
+                })}
           </div>
         </Card>
 

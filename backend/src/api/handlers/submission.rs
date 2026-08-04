@@ -1140,14 +1140,21 @@ pub async fn ministry_approve_submission(
         );
 
         // Fetch parent Coop
-        let coop = match state_clone.cooperative_repo.find_by_id(cooperative_id).await {
+        let coop = match state_clone
+            .cooperative_repo
+            .find_by_id(cooperative_id)
+            .await
+        {
             Ok(Some(c)) => c,
             Ok(None) => {
                 tracing::error!("Cooperative not found in background export thread");
                 return;
             }
             Err(e) => {
-                tracing::error!("Failed to fetch cooperative in background export thread: {:?}", e);
+                tracing::error!(
+                    "Failed to fetch cooperative in background export thread: {:?}",
+                    e
+                );
                 return;
             }
         };
@@ -1186,7 +1193,11 @@ pub async fn ministry_approve_submission(
         );
 
         // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
-        match state_clone.submission_repo.find_by_cooperative(cooperative_id).await {
+        match state_clone
+            .submission_repo
+            .find_by_cooperative(cooperative_id)
+            .await
+        {
             Ok(subs) => {
                 let future_subs: Vec<_> = subs
                     .into_iter()
@@ -1207,7 +1218,8 @@ pub async fn ministry_approve_submission(
 
                     for sub in future_subs {
                         // Delete stale cached PDF from object storage (best-effort)
-                        let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                        let pdf_key =
+                            format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
                         let _ = state_clone.storage.delete_object(&pdf_key).await;
 
                         // Trigger background regeneration so the next download gets fresh data
@@ -1242,7 +1254,10 @@ pub async fn ministry_approve_submission(
                 }
             }
             Err(e) => {
-                tracing::error!("Failed to fetch future submissions in background export thread: {:?}", e);
+                tracing::error!(
+                    "Failed to fetch future submissions in background export thread: {:?}",
+                    e
+                );
             }
         }
     });

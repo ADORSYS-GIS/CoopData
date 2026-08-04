@@ -19,7 +19,9 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-border pb-4 font-sans">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold text-muted-foreground uppercase">{t("templateEditor.sectionMeta.title")}</label>
+        <label className="text-xs font-bold text-muted-foreground uppercase">
+          {t("templateEditor.sectionMeta.title")}
+        </label>
         <input
           type="text"
           value={activeSection.title}
@@ -30,7 +32,9 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-muted-foreground uppercase">{t("templateEditor.sectionMeta.icon")}</label>
+          <label className="text-xs font-bold text-muted-foreground uppercase">
+            {t("templateEditor.sectionMeta.icon")}
+          </label>
           <select
             value={activeSection.icon}
             onChange={(e) => updateSectionMeta(selectedSectionIndex, "icon", e.target.value)}
@@ -44,7 +48,9 @@ export const SectionMetadataForm: React.FC<SectionMetadataFormProps> = ({
           </select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-muted-foreground uppercase">{t("templateEditor.sectionMeta.sectionId")}</label>
+          <label className="text-xs font-bold text-muted-foreground uppercase">
+            {t("templateEditor.sectionMeta.sectionId")}
+          </label>
           <span className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs font-mono text-muted-foreground flex items-center min-h-[38px]">
             {activeSection.id}
           </span>

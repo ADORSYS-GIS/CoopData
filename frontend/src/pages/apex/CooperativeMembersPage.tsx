@@ -108,7 +108,12 @@ export const CooperativeMembersPage: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success(t("coopMembers.toast.invitationSent", { firstName: firstName.trim(), lastName: lastName.trim() }));
+          toast.success(
+            t("coopMembers.toast.invitationSent", {
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+            }),
+          );
           setShowInvite(false);
           setFirstName("");
           setLastName("");
@@ -165,7 +170,8 @@ export const CooperativeMembersPage: React.FC = () => {
     resend.mutate(
       { cooperativeId, userId: m.id },
       {
-        onSuccess: () => toast.success(t("coopMembers.toast.emailResent", { name: displayName(m) })),
+        onSuccess: () =>
+          toast.success(t("coopMembers.toast.emailResent", { name: displayName(m) })),
         onError: (err) => {
           const msg = err instanceof Error ? err.message : String(err);
           toast.error(t("coopMembers.toast.resendFailed"), { description: msg });
@@ -223,7 +229,10 @@ export const CooperativeMembersPage: React.FC = () => {
               {t("coopMembers.cooperativeRole")}
             </span>
             <span className="text-[11px] text-muted-foreground">
-              {members.length} {members.length !== 1 ? t("coopMembers.membersCountPlural") : t("coopMembers.membersCountSingular")}
+              {members.length}{" "}
+              {members.length !== 1
+                ? t("coopMembers.membersCountPlural")
+                : t("coopMembers.membersCountSingular")}
             </span>
           </div>
         </div>
@@ -236,7 +245,9 @@ export const CooperativeMembersPage: React.FC = () => {
               <div className="flex size-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
                 <Plus className="size-4" />
               </div>
-              <h3 className="font-heading text-sm font-bold text-foreground">{t("coopMembers.inviteNewMember")}</h3>
+              <h3 className="font-heading text-sm font-bold text-foreground">
+                {t("coopMembers.inviteNewMember")}
+              </h3>
             </div>
             <button
               onClick={() => setShowInvite(false)}
@@ -312,7 +323,9 @@ export const CooperativeMembersPage: React.FC = () => {
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/20">
           <div className="flex items-center gap-2">
             <Users className="size-4 text-accent" />
-            <span className="text-sm font-semibold text-foreground">{t("coopMembers.members")}</span>
+            <span className="text-sm font-semibold text-foreground">
+              {t("coopMembers.members")}
+            </span>
             {members.length > 0 && (
               <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
                 {members.length}
@@ -357,7 +370,7 @@ export const CooperativeMembersPage: React.FC = () => {
                   </div>
                   {m.status === "PENDING" && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                       <Clock className="size-3" />
+                      <Clock className="size-3" />
                       {t("coopMembers.status.pending")}
                     </span>
                   )}
@@ -422,7 +435,9 @@ export const CooperativeMembersPage: React.FC = () => {
                 <Pencil className="size-4" />
               </div>
               <div>
-                <h3 className="font-heading text-base font-bold text-foreground">{t("coopMembers.editMember")}</h3>
+                <h3 className="font-heading text-base font-bold text-foreground">
+                  {t("coopMembers.editMember")}
+                </h3>
                 <p className="text-xs text-muted-foreground">
                   {editingMember.email ?? editingMember.id}
                 </p>
@@ -490,7 +505,9 @@ export const CooperativeMembersPage: React.FC = () => {
               <div className="flex size-9 items-center justify-center rounded-xl bg-red-100 text-red-600">
                 <AlertCircle className="size-4" />
               </div>
-              <h3 className="font-heading text-base font-bold text-foreground">{t("coopMembers.removeMemberTitle")}</h3>
+              <h3 className="font-heading text-base font-bold text-foreground">
+                {t("coopMembers.removeMemberTitle")}
+              </h3>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               {t("coopMembers.removeMemberConfirm", { name: displayName(confirmRemove) })}

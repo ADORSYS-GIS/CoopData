@@ -197,7 +197,11 @@ function InvitationForm({
             <FormItem>
               <FormLabel>{t("invitationList.formLabelEmail")}</FormLabel>
               <FormControl>
-                <Input type="email" placeholder={t("invitationList.formPlaceholderEmail")} {...field} />
+                <Input
+                  type="email"
+                  placeholder={t("invitationList.formPlaceholderEmail")}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -237,7 +241,9 @@ function InvitationForm({
         <div className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 bg-muted/40">
           <UserCog className="size-4 text-muted-foreground shrink-0" />
           <div>
-            <p className="text-xs font-medium text-foreground">{t("invitationList.roleFedOfficer")}</p>
+            <p className="text-xs font-medium text-foreground">
+              {t("invitationList.roleFedOfficer")}
+            </p>
             <p className="text-xs text-muted-foreground">
               {t("invitationList.roleDesc", { federationName })}
             </p>
@@ -387,7 +393,10 @@ export const InvitationList: React.FC = () => {
     <AppShell title={t("invitationList.title")} subtitle={t("invitationList.subtitle")}>
       <div className="space-y-6">
         {/* Federation Selector */}
-        <Card title={t("invitationList.selectFederationTitle")} subtitle={t("invitationList.selectFederationSubtitle")}>
+        <Card
+          title={t("invitationList.selectFederationTitle")}
+          subtitle={t("invitationList.selectFederationSubtitle")}
+        >
           <div className="flex items-center gap-4">
             {federationsLoading ? (
               <Skeleton className="h-10 w-full max-w-md" />
@@ -514,9 +523,7 @@ export const InvitationList: React.FC = () => {
                 <div className="py-12 text-center text-muted-foreground">
                   <Mail className="mx-auto mb-3 h-12 w-12 opacity-30" />
                   <p className="font-medium">{t("invitationList.noInvitationsYet")}</p>
-                  <p className="text-sm">
-                    {t("invitationList.inviteInstruction")}
-                  </p>
+                  <p className="text-sm">{t("invitationList.inviteInstruction")}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -617,9 +624,7 @@ export const InvitationList: React.FC = () => {
               <Mail className="size-5 text-accent" />
               {t("invitationList.dialogInviteTitle", { name: selectedFederation?.name })}
             </DialogTitle>
-            <DialogDescription>
-              {t("invitationList.dialogInviteDesc")}
-            </DialogDescription>
+            <DialogDescription>{t("invitationList.dialogInviteDesc")}</DialogDescription>
           </DialogHeader>
           <InvitationForm
             federationName={selectedFederation?.name ?? ""}

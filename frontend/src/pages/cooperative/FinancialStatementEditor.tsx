@@ -72,7 +72,8 @@ function getFlagExplanationKey(rule: string, message: string) {
   if (text.includes("TOTAL_MISMATCH") || text.includes("SUM OF")) return "TOTAL_MISMATCH";
   if (text.includes("BALANCE") || text.includes("EQUATION")) return "BALANCE_UNBALANCED";
   if (text.includes("MISSING_ACCOUNT") || text.includes("MISSING")) return "MISSING_DATA";
-  if (text.includes("LIQUIDITY_CRISIS") || text.includes("LIQUIDITY CRISIS")) return "LIQUIDITY_CRISIS";
+  if (text.includes("LIQUIDITY_CRISIS") || text.includes("LIQUIDITY CRISIS"))
+    return "LIQUIDITY_CRISIS";
   if (text.includes("LOW_LIQUIDITY") || text.includes("10% MINIMUM")) return "LOW_LIQUIDITY";
   if (text.includes("CASH_TOO_LOW") || text.includes("DANGEROUSLY LOW")) return "CASH_TOO_LOW";
   if (text.includes("STATUTORY") || text.includes("STATUTORY")) return "STATUTORY_RESERVE_MISSING";
@@ -298,7 +299,9 @@ export const FinancialStatementEditor: React.FC<{
       await deleteFs.mutateAsync(submissionId);
       toast.success(t("financialStatementEditor.toasts.fsDeleted"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.fsDeleteFailed"));
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.fsDeleteFailed"),
+      );
     } finally {
       setIsDeleteDialogOpen(false);
     }
@@ -349,7 +352,9 @@ export const FinancialStatementEditor: React.FC<{
       await updateSection.mutateAsync({ section: "financial", status: "ready" });
       toast.success(t("financialStatementEditor.toasts.sectionReadySuccess"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.sectionUpdateFailed"));
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.sectionUpdateFailed"),
+      );
     }
   };
 
@@ -363,7 +368,9 @@ export const FinancialStatementEditor: React.FC<{
       await updateItems.mutateAsync({ updates: [{ id: item.id, value: parsed }] });
       setEditingValueId(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.updateFailed"));
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.updateFailed"),
+      );
     }
   };
 
@@ -375,7 +382,9 @@ export const FinancialStatementEditor: React.FC<{
       setEditingCodeId(null);
       setCodeSearch("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.assignCodeFailed"));
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.assignCodeFailed"),
+      );
     }
   };
 
@@ -394,7 +403,9 @@ export const FinancialStatementEditor: React.FC<{
       toast.success(t("financialStatementEditor.toasts.submitSuccess"));
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.submitFailed"));
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.submitFailed"),
+      );
     }
   };
 
@@ -405,7 +416,9 @@ export const FinancialStatementEditor: React.FC<{
       toast.success(t("financialStatementEditor.toasts.draftDeleted"));
       navigate({ to: "/app/submissions" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.deleteFailed"));
+      toast.error(
+        e instanceof Error ? e.message : t("financialStatementEditor.toasts.deleteFailed"),
+      );
     }
   };
 
@@ -474,7 +487,9 @@ export const FinancialStatementEditor: React.FC<{
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
           <Loader2 className="size-4 animate-spin text-accent shrink-0" />
           <div>
-            <p className="text-sm font-semibold">{t("financialStatementEditor.aiProgress.title")}</p>
+            <p className="text-sm font-semibold">
+              {t("financialStatementEditor.aiProgress.title")}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {t("financialStatementEditor.aiProgress.desc")}
             </p>
@@ -591,7 +606,9 @@ export const FinancialStatementEditor: React.FC<{
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
-                  <th className="px-3 py-3 w-16 sticky left-0 bg-surface z-10 shadow-sm">{t("financialStatementEditor.matrix.code")}</th>
+                  <th className="px-3 py-3 w-16 sticky left-0 bg-surface z-10 shadow-sm">
+                    {t("financialStatementEditor.matrix.code")}
+                  </th>
                   <th className="px-4 py-3 min-w-[200px] sticky left-16 bg-surface z-10 shadow-sm border-r border-border">
                     {t("financialStatementEditor.matrix.accountName")}
                   </th>
@@ -662,7 +679,11 @@ export const FinancialStatementEditor: React.FC<{
                                 ? "text-warning-foreground font-bold hover:underline cursor-pointer"
                                 : "text-muted-foreground cursor-default"
                             }`}
-                            title={isUnmapped && isDraft ? t("financialStatementEditor.matrix.assignTooltip") : ""}
+                            title={
+                              isUnmapped && isDraft
+                                ? t("financialStatementEditor.matrix.assignTooltip")
+                                : ""
+                            }
                           >
                             {row.account_code ?? "NULL"}
                           </button>
@@ -752,7 +773,9 @@ export const FinancialStatementEditor: React.FC<{
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("financialStatementEditor.deleteDialog.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel>
+              {t("financialStatementEditor.deleteDialog.cancel")}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteFS}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

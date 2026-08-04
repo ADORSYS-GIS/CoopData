@@ -22,7 +22,9 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
   return (
     <div className="flex flex-col gap-4 font-sans">
       <div className="flex items-center justify-between border-b border-border/80 pb-2">
-        <h4 className="text-sm font-bold text-foreground">{t("templateEditor.fieldEditor.title")}</h4>
+        <h4 className="text-sm font-bold text-foreground">
+          {t("templateEditor.fieldEditor.title")}
+        </h4>
         <button
           onClick={openAddFieldModal}
           className="flex items-center gap-1 rounded-lg bg-accent/15 border border-accent/25 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/20 transition-colors cursor-pointer"
@@ -71,7 +73,9 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
 
                   {field.type === "select" && field.options && (
                     <div className="flex items-center gap-1 flex-wrap">
-                      <span className="font-semibold">{t("templateEditor.fieldEditor.optionsLabel")}</span>
+                      <span className="font-semibold">
+                        {t("templateEditor.fieldEditor.optionsLabel")}
+                      </span>
                       {field.options.map((opt: string) => (
                         <span
                           key={opt}
@@ -82,7 +86,6 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                       ))}
                     </div>
                   )}
-
                 </div>
               </div>
 

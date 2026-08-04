@@ -101,7 +101,9 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
       <div className="flex flex-col items-center justify-center h-[420px] text-muted-foreground rounded-xl border border-border bg-muted/10 font-sans">
         <AlertCircle className="size-10 mb-3 opacity-40" />
         <p className="text-sm font-medium">{t("submissions.detail.documentViewer.failedLoad")}</p>
-        <p className="text-xs text-muted-foreground mt-1">{t("submissions.detail.documentViewer.fileUnavailable")}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {t("submissions.detail.documentViewer.fileUnavailable")}
+        </p>
       </div>
     );
   }

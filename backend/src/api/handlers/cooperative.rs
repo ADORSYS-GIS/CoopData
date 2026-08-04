@@ -1016,12 +1016,19 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
             tracing::warn!(apex_keycloak_id = %apex.id, "Apex group not found in database, auto-backfilling tracking record");
 
             // Try to find parent federation
-            let org_id = apex.attributes.as_ref()
+            let org_id = apex
+                .attributes
+                .as_ref()
                 .and_then(|attrs| attrs.get("organization_id"))
                 .and_then(|vals| vals.first().cloned());
 
             let federation = if let Some(ref o_id) = org_id {
-                state.federation_repo.find_by_keycloak_id(o_id).await.ok().flatten()
+                state
+                    .federation_repo
+                    .find_by_keycloak_id(o_id)
+                    .await
+                    .ok()
+                    .flatten()
             } else {
                 None
             };
@@ -1035,7 +1042,9 @@ async fn resolve_caller_apex_db_id(state: &AppState, claims: &Claims) -> AppResu
                         .await
                         .map_err(AppError::DatabaseError)?;
                     all_feds.first().cloned().ok_or_else(|| {
-                        AppError::Forbidden("No federations exist in database to link the apex".into())
+                        AppError::Forbidden(
+                            "No federations exist in database to link the apex".into(),
+                        )
                     })?
                 }
             };

@@ -17,8 +17,8 @@ use crate::api::handlers::nf_indicator_stats::get_nf_statistics;
 use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
-    list_submission_reviews, list_submission_sections, submit_submission,
-    update_submission_method, update_submission_section, validate_extraction,
+    list_submission_reviews, list_submission_sections, submit_submission, update_submission_method,
+    update_submission_section, validate_extraction,
 };
 use crate::api::handlers::upload::{
     delete_financial_statement, serve_uploaded_file, upload_financial_statement,

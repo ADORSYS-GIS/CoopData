@@ -7,8 +7,8 @@ use coop_data_backend::{
     config::AppConfig,
     database,
     services::{
-        ai_extraction::create_extractor, cache::CacheService, keycloak::KeycloakService,
-        create_narrative_generator,
+        ai_extraction::create_extractor, cache::CacheService, create_narrative_generator,
+        keycloak::KeycloakService,
     },
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, CalamineNfParser,
@@ -16,9 +16,9 @@ use coop_data_backend::{
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
     NonFinancialIndicatorEntryRepository, ObjectStorageService, OrganizationRepository,
-    QuestionnaireRepository,
-    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 
 #[tokio::main]

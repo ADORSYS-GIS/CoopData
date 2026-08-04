@@ -319,7 +319,7 @@ describe("authService", () => {
         expect.objectContaining({
           redirectUri: expect.stringContaining("/app/dashboard"),
           scope: "openid profile email",
-        })
+        }),
       );
     });
   });

@@ -12,7 +12,9 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">CoopData</p>
         <h1 className="mt-3 text-7xl font-heading font-bold tracking-tight text-foreground">404</h1>
-        <h2 className="mt-3 text-xl font-heading font-semibold text-foreground">{t("root.notFound.title")}</h2>
+        <h2 className="mt-3 text-xl font-heading font-semibold text-foreground">
+          {t("root.notFound.title")}
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
           {t("root.notFound.desc")}
         </p>
@@ -33,16 +35,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const { t } = useTranslation();
   console.error(error);
   const router = useRouter();
- 
+
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-heading font-semibold tracking-tight text-foreground">
           {t("root.error.title")}
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          {t("root.error.desc")}
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{t("root.error.desc")}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

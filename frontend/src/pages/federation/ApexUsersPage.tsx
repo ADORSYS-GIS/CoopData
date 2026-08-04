@@ -245,7 +245,9 @@ export const ApexUsersPage: React.FC = () => {
               <div className="flex size-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
                 <Plus className="size-4" />
               </div>
-              <h3 className="font-heading text-sm font-bold text-foreground">{t("apexUsersPage.inviteNewTitle")}</h3>
+              <h3 className="font-heading text-sm font-bold text-foreground">
+                {t("apexUsersPage.inviteNewTitle")}
+              </h3>
             </div>
             <button
               onClick={() => setShowInvite(false)}
@@ -331,7 +333,9 @@ export const ApexUsersPage: React.FC = () => {
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/20">
           <div className="flex items-center gap-2">
             <Users className="size-4 text-accent" />
-            <span className="text-sm font-semibold text-foreground">{t("apexUsersPage.membersTableTitle")}</span>
+            <span className="text-sm font-semibold text-foreground">
+              {t("apexUsersPage.membersTableTitle")}
+            </span>
             {members.length > 0 && (
               <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
                 {members.length}
@@ -349,7 +353,9 @@ export const ApexUsersPage: React.FC = () => {
             <div className="flex size-14 items-center justify-center rounded-2xl bg-muted mb-4">
               <Users className="size-7 text-muted-foreground/50" />
             </div>
-            <p className="font-semibold text-sm text-foreground">{t("apexUsersPage.noMembersYet")}</p>
+            <p className="font-semibold text-sm text-foreground">
+              {t("apexUsersPage.noMembersYet")}
+            </p>
             <p className="text-xs mt-1">{t("apexUsersPage.inviteToGetStarted")}</p>
             <button
               onClick={() => setShowInvite(true)}
@@ -442,7 +448,9 @@ export const ApexUsersPage: React.FC = () => {
                 <Pencil className="size-4" />
               </div>
               <div>
-                <h3 className="font-heading text-base font-bold text-foreground">{t("apexUsersPage.editMemberTitle")}</h3>
+                <h3 className="font-heading text-base font-bold text-foreground">
+                  {t("apexUsersPage.editMemberTitle")}
+                </h3>
                 <p className="text-xs text-muted-foreground">
                   {editingMember.email ?? editingMember.id}
                 </p>
@@ -511,7 +519,9 @@ export const ApexUsersPage: React.FC = () => {
               <div className="flex size-9 items-center justify-center rounded-xl bg-red-100 text-red-600">
                 <AlertCircle className="size-4" />
               </div>
-              <h3 className="font-heading text-base font-bold text-foreground">{t("apexUsersPage.removeTitle")}</h3>
+              <h3 className="font-heading text-base font-bold text-foreground">
+                {t("apexUsersPage.removeTitle")}
+              </h3>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               {t("apexUsersPage.removeConfirmDesc", { name: displayName(confirmRemove) })}

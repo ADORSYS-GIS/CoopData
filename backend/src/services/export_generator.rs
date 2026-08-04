@@ -38,25 +38,25 @@ impl ExportGenerator {
     /// Generates PDF format and stores it in the bucket
     async fn generate_all_formats(state: &AppState, submission_id: Uuid) -> AppResult<()> {
         let pdf_bytes = Self::generate_cooperative_pdf(state, submission_id).await?;
-        
+
         tracing::info!(
             submission_id = %submission_id,
             size_bytes = pdf_bytes.len(),
             "[export] ✅ PDF received | size={} bytes",
             pdf_bytes.len()
         );
-        
+
         let pdf_key = format!(
             "exports/individual/{}/submission_{}.pdf",
             submission_id, submission_id
         );
-        
+
         tracing::info!(
             submission_id = %submission_id,
             pdf_key = %pdf_key,
             "[export] 📦 Storing PDF to storage..."
         );
-        
+
         state
             .storage
             .store(&pdf_key, &pdf_bytes, "application/pdf")
@@ -71,42 +71,43 @@ impl ExportGenerator {
     ) -> AppResult<Vec<u8>> {
         let token = state.keycloak.get_admin_token().await?;
 
-        let narrative_params = match Self::generate_cooperative_narratives(state, submission_id).await {
-            Ok(result) => {
-                tracing::info!(
-                    submission_id = %submission_id,
-                    "[export] 💾 Persisting narratives to metadata..."
-                );
-                if let Err(e) = state
-                    .submission_repo
-                    .update_metadata(
-                        submission_id,
-                        serde_json::json!({ "ai_narratives": result }),
-                    )
-                    .await
-                {
+        let narrative_params =
+            match Self::generate_cooperative_narratives(state, submission_id).await {
+                Ok(result) => {
+                    tracing::info!(
+                        submission_id = %submission_id,
+                        "[export] 💾 Persisting narratives to metadata..."
+                    );
+                    if let Err(e) = state
+                        .submission_repo
+                        .update_metadata(
+                            submission_id,
+                            serde_json::json!({ "ai_narratives": result }),
+                        )
+                        .await
+                    {
+                        tracing::warn!(
+                            submission_id = %submission_id,
+                            error = %e,
+                            "[export] ⚠️ Failed to persist cooperative narratives to metadata"
+                        );
+                    } else {
+                        tracing::info!(
+                            submission_id = %submission_id,
+                            "[export] ✅ Narratives persisted"
+                        );
+                    }
+                    report_narrative::encode_cooperative_narrative_params(&result)
+                }
+                Err(e) => {
                     tracing::warn!(
                         submission_id = %submission_id,
                         error = %e,
-                        "[export] ⚠️ Failed to persist cooperative narratives to metadata"
+                        "[export] ⚠️ Failed to generate cooperative narratives, using fallback"
                     );
-                } else {
-                    tracing::info!(
-                        submission_id = %submission_id,
-                        "[export] ✅ Narratives persisted"
-                    );
+                    String::new()
                 }
-                report_narrative::encode_cooperative_narrative_params(&result)
-            }
-            Err(e) => {
-                tracing::warn!(
-                    submission_id = %submission_id,
-                    error = %e,
-                    "[export] ⚠️ Failed to generate cooperative narratives, using fallback"
-                );
-                String::new()
-            }
-        };
+            };
 
         tracing::info!(
             submission_id = %submission_id,
@@ -116,7 +117,7 @@ impl ExportGenerator {
             "{}/print/cooperative/{}?token={}{}",
             state.config.gotenberg_frontend_url, submission_id, token, narrative_params
         );
-        
+
         tracing::info!(
             submission_id = %submission_id,
             "[export] 📤 Sending to Gotenberg..."
@@ -140,15 +141,24 @@ impl ExportGenerator {
             .await?
             .ok_or_else(|| crate::error::AppError::NotFound("Cooperative not found".into()))?;
 
-        let kpi_records = state.kpi_record_repo.find_by_submission(submission_id).await?;
+        let kpi_records = state
+            .kpi_record_repo
+            .find_by_submission(submission_id)
+            .await?;
 
         let prior_kpi_records = if submission.reporting_year > 2020 {
             if let Some(prior_sub) = state
                 .submission_repo
-                .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+                .find_by_cooperative_and_year(
+                    submission.cooperative_id,
+                    submission.reporting_year - 1,
+                )
                 .await?
             {
-                state.kpi_record_repo.find_by_submission(prior_sub.id).await?
+                state
+                    .kpi_record_repo
+                    .find_by_submission(prior_sub.id)
+                    .await?
             } else {
                 Vec::new()
             }
@@ -157,20 +167,38 @@ impl ExportGenerator {
         };
 
         // Fetch line items from financial statement
-        let line_items = match state.financial_statement_repo.find_by_submission(submission_id).await? {
+        let line_items = match state
+            .financial_statement_repo
+            .find_by_submission(submission_id)
+            .await?
+        {
             Some(fs) => {
-                let raw_items = state.line_item_repo.find_by_financial_statement(fs.id).await?;
+                let raw_items = state
+                    .line_item_repo
+                    .find_by_financial_statement(fs.id)
+                    .await?;
                 if raw_items.is_empty() {
                     None
                 } else {
                     let prior_line_items = if submission.reporting_year > 2020 {
                         if let Some(prior_sub) = state
                             .submission_repo
-                            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+                            .find_by_cooperative_and_year(
+                                submission.cooperative_id,
+                                submission.reporting_year - 1,
+                            )
                             .await?
                         {
-                            if let Some(pfs) = state.financial_statement_repo.find_by_submission(prior_sub.id).await? {
-                                state.line_item_repo.find_by_financial_statement(pfs.id).await.unwrap_or_default()
+                            if let Some(pfs) = state
+                                .financial_statement_repo
+                                .find_by_submission(prior_sub.id)
+                                .await?
+                            {
+                                state
+                                    .line_item_repo
+                                    .find_by_financial_statement(pfs.id)
+                                    .await
+                                    .unwrap_or_default()
                             } else {
                                 Vec::new()
                             }
@@ -183,13 +211,17 @@ impl ExportGenerator {
 
                     let mut items: Vec<report_narrative::BalanceSheetLineItemData> = Vec::new();
                     // Deduplicate by account_code, take latest month
-                    let mut by_code: std::collections::HashMap<i32, &crate::entities::balance_sheet_line_item::Model> = std::collections::HashMap::new();
+                    let mut by_code: std::collections::HashMap<
+                        i32,
+                        &crate::entities::balance_sheet_line_item::Model,
+                    > = std::collections::HashMap::new();
                     for item in &raw_items {
                         if let Some(code) = item.account_code {
                             by_code.insert(code, item);
                         }
                     }
-                    let mut prior_map: std::collections::HashMap<i32, f64> = std::collections::HashMap::new();
+                    let mut prior_map: std::collections::HashMap<i32, f64> =
+                        std::collections::HashMap::new();
                     for item in &prior_line_items {
                         if let (Some(code), Some(val)) = (item.account_code, item.value) {
                             prior_map.insert(code, val.to_f64().unwrap_or(0.0));
@@ -216,25 +248,29 @@ impl ExportGenerator {
         // Pass None for submission_id — NF data is cooperative-level, not submission-specific.
         // The bulk_upsert deduplicates by (cooperative_id, member_id) and overwrites submission_id
         // on conflict, so filtering by submission_id would miss records from other submissions.
-        let nf_response = match crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
-            &state.db,
-            submission.cooperative_id,
-            None,
-        ).await {
-            Ok(resp) => Some(resp),
-            Err(e) => {
-                tracing::warn!(
-                    submission_id = %submission_id,
-                    coop_id = %submission.cooperative_id,
-                    error = %e,
-                    "[export] ⚠️ Failed to compute NF stats, narratives will use empty NF data"
-                );
-                None
-            }
-        };
+        let nf_response =
+            match crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
+                &state.db,
+                submission.cooperative_id,
+                None,
+            )
+            .await
+            {
+                Ok(resp) => Some(resp),
+                Err(e) => {
+                    tracing::warn!(
+                        submission_id = %submission_id,
+                        coop_id = %submission.cooperative_id,
+                        error = %e,
+                        "[export] ⚠️ Failed to compute NF stats, narratives will use empty NF data"
+                    );
+                    None
+                }
+            };
 
-        let membership_stats = nf_response.as_ref().map(|nf| {
-            report_narrative::MembershipStats {
+        let membership_stats = nf_response
+            .as_ref()
+            .map(|nf| report_narrative::MembershipStats {
                 total_members: nf.membership.total,
                 active_members: nf.membership.active,
                 dormant_members: nf.membership.dormant,
@@ -248,26 +284,23 @@ impl ExportGenerator {
                 } else {
                     0.0
                 },
-            }
-        });
+            });
 
-        let savings_stats = nf_response.as_ref().map(|nf| {
-            report_narrative::SavingsStats {
+        let savings_stats = nf_response
+            .as_ref()
+            .map(|nf| report_narrative::SavingsStats {
                 total_savings_accounts: nf.savings.total_accounts,
                 active_savers: nf.savings.active_accounts,
                 savings_penetration_pct: nf.savings.savings_penetration_pct,
                 avg_savings_balance: nf.savings.average_balance,
-            }
-        });
+            });
 
-        let loan_stats = nf_response.as_ref().map(|nf| {
-            report_narrative::LoanStats {
-                active_borrowers: nf.loans.members_with_loans,
-                women_borrowers: nf.loans.women_borrowers,
-                youth_borrowers: nf.loans.youth_borrowers,
-                rural_borrowers: nf.loans.rural_borrowers,
-                on_time_repayment_pct: nf.loans.on_time_repayment_pct,
-            }
+        let loan_stats = nf_response.as_ref().map(|nf| report_narrative::LoanStats {
+            active_borrowers: nf.loans.members_with_loans,
+            women_borrowers: nf.loans.women_borrowers,
+            youth_borrowers: nf.loans.youth_borrowers,
+            rural_borrowers: nf.loans.rural_borrowers,
+            on_time_repayment_pct: nf.loans.on_time_repayment_pct,
         });
 
         tracing::info!(
@@ -326,7 +359,7 @@ impl ExportGenerator {
             .narrative_generator
             .generate_cooperative_narratives(&ctx)
             .await;
-        
+
         if res.is_ok() {
             tracing::info!(
                 submission_id = %submission_id,
@@ -430,10 +463,7 @@ impl ExportGenerator {
                     })?;
 
                     if bytes.len() < 20_000 {
-                        last_error = Some(format!(
-                            "PDF too small ({} bytes)",
-                            bytes.len()
-                        ));
+                        last_error = Some(format!("PDF too small ({} bytes)", bytes.len()));
                         tracing::warn!(
                             attempt = attempt + 1,
                             size_bytes = bytes.len(),
@@ -556,7 +586,7 @@ impl ExportGenerator {
 
         let narrative_params = {
             let ctx = report_narrative::build_apex_context(&apex, &coops_data, reporting_year);
-            
+
             tracing::info!(
                 apex_id = %apex_id,
                 "[export] 🤖 Acquiring AI semaphore..."
@@ -576,7 +606,11 @@ impl ExportGenerator {
                 "[export] 📡 Generating apex narratives..."
             );
             let start = std::time::Instant::now();
-            match state.narrative_generator.generate_apex_narratives(&ctx).await {
+            match state
+                .narrative_generator
+                .generate_apex_narratives(&ctx)
+                .await
+            {
                 Ok(result) => {
                     tracing::info!(
                         apex_id = %apex_id,
@@ -610,30 +644,34 @@ impl ExportGenerator {
         tracing::info!(apex_id = %apex_id, "[export] 🔗 Building Gotenberg URL...");
         let print_url = format!(
             "{}/print/apex/{}?token={}&year={}{}",
-            state.config.gotenberg_frontend_url, apex.keycloak_id, token, reporting_year, narrative_params
+            state.config.gotenberg_frontend_url,
+            apex.keycloak_id,
+            token,
+            reporting_year,
+            narrative_params
         );
-        
+
         tracing::info!(apex_id = %apex_id, "[export] 📤 Sending to Gotenberg...");
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-        
+
         tracing::info!(
             apex_id = %apex_id,
             size_bytes = pdf_bytes.len(),
             "[export] ✅ PDF received | size={} bytes",
             pdf_bytes.len()
         );
-        
+
         let pdf_key = format!(
             "exports/apex/{}/apex_{}_{}.pdf",
             apex_id, apex_id, reporting_year
         );
-        
+
         tracing::info!(
             apex_id = %apex_id,
             pdf_key = %pdf_key,
             "[export] 📦 Storing PDF to storage..."
         );
-        
+
         state
             .storage
             .store(&pdf_key, &pdf_bytes, "application/pdf")
@@ -728,8 +766,12 @@ impl ExportGenerator {
         );
 
         let narrative_params = {
-            let ctx = report_narrative::build_federation_context(&federation, &apexes_data, reporting_year);
-            
+            let ctx = report_narrative::build_federation_context(
+                &federation,
+                &apexes_data,
+                reporting_year,
+            );
+
             tracing::info!(
                 federation_id = %federation_id,
                 "[export] 🤖 Acquiring AI semaphore..."
@@ -749,7 +791,11 @@ impl ExportGenerator {
                 "[export] 📡 Generating federation narratives..."
             );
             let start = std::time::Instant::now();
-            match state.narrative_generator.generate_federation_narratives(&ctx).await {
+            match state
+                .narrative_generator
+                .generate_federation_narratives(&ctx)
+                .await
+            {
                 Ok(result) => {
                     tracing::info!(
                         federation_id = %federation_id,
@@ -783,30 +829,34 @@ impl ExportGenerator {
         tracing::info!(federation_id = %federation_id, "[export] 🔗 Building Gotenberg URL...");
         let print_url = format!(
             "{}/print/federation/{}?token={}&year={}{}",
-            state.config.gotenberg_frontend_url, federation.keycloak_id, token, reporting_year, narrative_params
+            state.config.gotenberg_frontend_url,
+            federation.keycloak_id,
+            token,
+            reporting_year,
+            narrative_params
         );
-        
+
         tracing::info!(federation_id = %federation_id, "[export] 📤 Sending to Gotenberg...");
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-        
+
         tracing::info!(
             federation_id = %federation_id,
             size_bytes = pdf_bytes.len(),
             "[export] ✅ PDF received | size={} bytes",
             pdf_bytes.len()
         );
-        
+
         let pdf_key = format!(
             "exports/federation/{}/federation_{}_{}.pdf",
             federation_id, federation_id, reporting_year
         );
-        
+
         tracing::info!(
             federation_id = %federation_id,
             pdf_key = %pdf_key,
             "[export] 📦 Storing PDF to storage..."
         );
-        
+
         state
             .storage
             .store(&pdf_key, &pdf_bytes, "application/pdf")
@@ -899,7 +949,7 @@ impl ExportGenerator {
 
         let narrative_params = {
             let ctx = report_narrative::build_ministry_context(&national_data, reporting_year);
-            
+
             tracing::info!("[export] 🤖 Acquiring AI semaphore...");
             let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
                 crate::error::AppError::InternalServerError("AI semaphore closed".into())
@@ -912,7 +962,11 @@ impl ExportGenerator {
 
             tracing::info!("[export] 📡 Generating ministry narratives...");
             let start = std::time::Instant::now();
-            match state.narrative_generator.generate_ministry_narratives(&ctx).await {
+            match state
+                .narrative_generator
+                .generate_ministry_narratives(&ctx)
+                .await
+            {
                 Ok(result) => {
                     tracing::info!(
                         reporting_year = reporting_year,
@@ -947,23 +1001,23 @@ impl ExportGenerator {
             "{}/print/ministry?token={}&year={}{}",
             state.config.gotenberg_frontend_url, token, reporting_year, narrative_params
         );
-        
+
         tracing::info!("[export] 📤 Sending to Gotenberg...");
         let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-        
+
         tracing::info!(
             size_bytes = pdf_bytes.len(),
             "[export] ✅ PDF received | size={} bytes",
             pdf_bytes.len()
         );
-        
+
         let pdf_key = format!("exports/ministry/ministry_{}.pdf", reporting_year);
-        
+
         tracing::info!(
             pdf_key = %pdf_key,
             "[export] 📦 Storing PDF to storage..."
         );
-        
+
         state
             .storage
             .store(&pdf_key, &pdf_bytes, "application/pdf")

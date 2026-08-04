@@ -181,16 +181,36 @@ export const FinancialStatementPage: React.FC = () => {
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "assets", label: t("financialStatement.assets"), icon: <span className="text-xs font-bold">1000</span> },
+    {
+      id: "assets",
+      label: t("financialStatement.assets"),
+      icon: <span className="text-xs font-bold">1000</span>,
+    },
     {
       id: "liabilities",
       label: t("financialStatement.liabilities"),
       icon: <span className="text-xs font-bold">2000</span>,
     },
-    { id: "equity", label: t("financialStatement.equity"), icon: <span className="text-xs font-bold">3000</span> },
-    { id: "income", label: t("financialStatement.income"), icon: <span className="text-xs font-bold">4000</span> },
-    { id: "expenses", label: t("financialStatement.expenses"), icon: <span className="text-xs font-bold">5000</span> },
-    { id: "summary", label: t("financialStatement.summary"), icon: <FileSpreadsheet className="size-4" /> },
+    {
+      id: "equity",
+      label: t("financialStatement.equity"),
+      icon: <span className="text-xs font-bold">3000</span>,
+    },
+    {
+      id: "income",
+      label: t("financialStatement.income"),
+      icon: <span className="text-xs font-bold">4000</span>,
+    },
+    {
+      id: "expenses",
+      label: t("financialStatement.expenses"),
+      icon: <span className="text-xs font-bold">5000</span>,
+    },
+    {
+      id: "summary",
+      label: t("financialStatement.summary"),
+      icon: <FileSpreadsheet className="size-4" />,
+    },
   ];
 
   return (
@@ -213,7 +233,9 @@ export const FinancialStatementPage: React.FC = () => {
             className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="size-4" />
-            {isSubmitting ? t("financialStatement.submitting") : t("financialStatement.submitFiling")}
+            {isSubmitting
+              ? t("financialStatement.submitting")
+              : t("financialStatement.submitFiling")}
           </button>
         </div>
       }
@@ -256,7 +278,9 @@ export const FinancialStatementPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Upload className="size-3.5" />
-                {dataPopulated ? t("financialStatement.uploadDifferent") : t("financialStatement.uploadDocument")}
+                {dataPopulated
+                  ? t("financialStatement.uploadDifferent")
+                  : t("financialStatement.uploadDocument")}
               </button>
             </div>
           </div>
@@ -298,17 +322,23 @@ export const FinancialStatementPage: React.FC = () => {
               )}
               <div>
                 <p className="font-semibold text-foreground">
-                  {isBalanced ? t("financialStatement.balanced") : t("financialStatement.notBalanced")}
+                  {isBalanced
+                    ? t("financialStatement.balanced")
+                    : t("financialStatement.notBalanced")}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {isBalanced
                     ? t("financialStatement.assetsLiabilitiesEquity")
-                    : t("financialStatement.difference", { diff: formatCurrency(Math.abs(balanceDifference)) })}
+                    : t("financialStatement.difference", {
+                        diff: formatCurrency(Math.abs(balanceDifference)),
+                      })}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">{t("financialStatement.netSurplusDeficit")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("financialStatement.netSurplusDeficit")}
+              </p>
               <p
                 className={`text-lg font-bold ${netSurplus >= 0 ? "text-success" : "text-destructive"}`}
               >
@@ -325,7 +355,9 @@ export const FinancialStatementPage: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-semibold text-foreground">{t("financialStatement.validationErrors")}</p>
+                <p className="font-semibold text-foreground">
+                  {t("financialStatement.validationErrors")}
+                </p>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   {validation.errors.map((err, i) => (
                     <li key={i}>• {err.message}</li>
@@ -411,43 +443,61 @@ export const FinancialStatementPage: React.FC = () => {
 
           {activeTab === "summary" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-bold text-foreground">{t("financialStatement.summaryTitle")}</h3>
+              <h3 className="text-lg font-bold text-foreground">
+                {t("financialStatement.summaryTitle")}
+              </h3>
 
               {/* Balance Sheet Summary */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl border border-border bg-surface">
-                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalAssets")}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t("financialStatement.totalAssets")}
+                  </p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(assetTotals.totalAssets)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">{t("financialStatement.codesAssets")}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t("financialStatement.codesAssets")}
+                  </p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-surface">
-                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalLiabilities")}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t("financialStatement.totalLiabilities")}
+                  </p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(liabilityTotals.totalLiabilities)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">{t("financialStatement.codesLiabilities")}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t("financialStatement.codesLiabilities")}
+                  </p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-surface">
-                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalEquity")}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t("financialStatement.totalEquity")}
+                  </p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(equityTotals.totalEquity)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">{t("financialStatement.codesEquity")}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t("financialStatement.codesEquity")}
+                  </p>
                 </div>
               </div>
 
               {/* Income Statement Summary */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl border border-success/20 bg-success/5">
-                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalIncome")}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t("financialStatement.totalIncome")}
+                  </p>
                   <p className="text-2xl font-bold text-success">
                     {formatCurrency(incomeTotals.totalIncome)}
                   </p>
                 </div>
                 <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5">
-                  <p className="text-sm text-muted-foreground mb-1">{t("financialStatement.totalExpenses")}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t("financialStatement.totalExpenses")}
+                  </p>
                   <p className="text-2xl font-bold text-destructive">
                     {formatCurrency(expenseTotals.totalExpenses)}
                   </p>
@@ -460,7 +510,9 @@ export const FinancialStatementPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{t("financialStatement.netSurplusDeficit")}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("financialStatement.netSurplusDeficit")}
+                    </p>
                     <p
                       className={`text-3xl font-bold ${netSurplus >= 0 ? "text-success" : "text-destructive"}`}
                     >
@@ -469,7 +521,9 @@ export const FinancialStatementPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">{t("financialStatement.balanceCheck")}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("financialStatement.balanceCheck")}
+                    </p>
                     <div
                       className={`flex items-center gap-2 ${isBalanced ? "text-success" : "text-warning-foreground"}`}
                     >
@@ -481,7 +535,9 @@ export const FinancialStatementPage: React.FC = () => {
                       <span className="font-semibold">
                         {isBalanced
                           ? t("financialStatement.balancedLabel")
-                          : t("financialStatement.offBy", { diff: formatCurrency(Math.abs(balanceDifference)) })}
+                          : t("financialStatement.offBy", {
+                              diff: formatCurrency(Math.abs(balanceDifference)),
+                            })}
                       </span>
                     </div>
                   </div>
@@ -504,7 +560,9 @@ export const FinancialStatementPage: React.FC = () => {
                   className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="size-4" />
-                  {isSubmitting ? t("financialStatement.submitting") : t("financialStatement.submitFinancialStatement")}
+                  {isSubmitting
+                    ? t("financialStatement.submitting")
+                    : t("financialStatement.submitFinancialStatement")}
                 </button>
               </div>
             </div>

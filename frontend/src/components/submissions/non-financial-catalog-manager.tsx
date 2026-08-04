@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Plus,
-  Trash2,
-  Edit2,
-  HelpCircle,
-  X,
-} from "lucide-react";
+import { Loader2, Plus, Trash2, Edit2, HelpCircle, X } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,16 +117,14 @@ export const NonFinancialCatalogManager: React.FC = () => {
       }
       resetForm();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("submissions.catalogManager.toastErrorOccurred"));
+      toast.error(
+        err instanceof Error ? err.message : t("submissions.catalogManager.toastErrorOccurred"),
+      );
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (
-      !confirm(
-        t("submissions.catalogManager.confirmDelete", { name }),
-      )
-    ) {
+    if (!confirm(t("submissions.catalogManager.confirmDelete", { name }))) {
       return;
     }
 
@@ -141,7 +132,9 @@ export const NonFinancialCatalogManager: React.FC = () => {
       await deleteMutation.mutateAsync(id);
       toast.success(t("submissions.catalogManager.toastDeleted"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("submissions.catalogManager.toastDeleteFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("submissions.catalogManager.toastDeleteFailed"),
+      );
     }
   };
 
@@ -158,7 +151,9 @@ export const NonFinancialCatalogManager: React.FC = () => {
     <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold tracking-tight">{t("submissions.catalogManager.title")}</h2>
+          <h2 className="text-lg font-bold tracking-tight">
+            {t("submissions.catalogManager.title")}
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {t("submissions.catalogManager.subtitle")}
           </p>
@@ -175,7 +170,11 @@ export const NonFinancialCatalogManager: React.FC = () => {
 
       {isFormOpen && (
         <Card
-          title={editingItem ? t("submissions.catalogManager.titleEdit") : t("submissions.catalogManager.titleAdd")}
+          title={
+            editingItem
+              ? t("submissions.catalogManager.titleEdit")
+              : t("submissions.catalogManager.titleAdd")
+          }
           subtitle={t("submissions.catalogManager.cardSubtitle")}
           action={
             <Button variant="ghost" size="icon" onClick={resetForm} className="cursor-pointer">
@@ -206,7 +205,9 @@ export const NonFinancialCatalogManager: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="display-name">{t("submissions.catalogManager.labelDisplayName")}</Label>
+                <Label htmlFor="display-name">
+                  {t("submissions.catalogManager.labelDisplayName")}
+                </Label>
                 <Input
                   id="display-name"
                   placeholder={t("submissions.catalogManager.placeholderDisplayName")}
@@ -226,9 +227,15 @@ export const NonFinancialCatalogManager: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Number" className="cursor-pointer">{t("submissions.catalogManager.dataTypes.Number")}</SelectItem>
-                    <SelectItem value="Text" className="cursor-pointer">{t("submissions.catalogManager.dataTypes.Text")}</SelectItem>
-                    <SelectItem value="Boolean" className="cursor-pointer">{t("submissions.catalogManager.dataTypes.Boolean")}</SelectItem>
+                    <SelectItem value="Number" className="cursor-pointer">
+                      {t("submissions.catalogManager.dataTypes.Number")}
+                    </SelectItem>
+                    <SelectItem value="Text" className="cursor-pointer">
+                      {t("submissions.catalogManager.dataTypes.Text")}
+                    </SelectItem>
+                    <SelectItem value="Boolean" className="cursor-pointer">
+                      {t("submissions.catalogManager.dataTypes.Boolean")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -240,21 +247,39 @@ export const NonFinancialCatalogManager: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.all")}</SelectItem>
-                    <SelectItem value="sacco" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.sacco")}</SelectItem>
-                    <SelectItem value="multipurpose" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.multipurpose")}</SelectItem>
-                    <SelectItem value="farm" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.farm")}</SelectItem>
-                    <SelectItem value="housing" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.housing")}</SelectItem>
-                    <SelectItem value="transport" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.transport")}</SelectItem>
-                    <SelectItem value="finance" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.finance")}</SelectItem>
-                    <SelectItem value="other" className="cursor-pointer">{t("submissions.catalogManager.coopTypes.other")}</SelectItem>
+                    <SelectItem value="all" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.all")}
+                    </SelectItem>
+                    <SelectItem value="sacco" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.sacco")}
+                    </SelectItem>
+                    <SelectItem value="multipurpose" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.multipurpose")}
+                    </SelectItem>
+                    <SelectItem value="farm" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.farm")}
+                    </SelectItem>
+                    <SelectItem value="housing" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.housing")}
+                    </SelectItem>
+                    <SelectItem value="transport" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.transport")}
+                    </SelectItem>
+                    <SelectItem value="finance" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.finance")}
+                    </SelectItem>
+                    <SelectItem value="other" className="cursor-pointer">
+                      {t("submissions.catalogManager.coopTypes.other")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">{t("submissions.catalogManager.labelDescription")}</Label>
+              <Label htmlFor="description">
+                {t("submissions.catalogManager.labelDescription")}
+              </Label>
               <Textarea
                 id="description"
                 placeholder={t("submissions.catalogManager.placeholderDescription")}
@@ -277,10 +302,19 @@ export const NonFinancialCatalogManager: React.FC = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={resetForm} className="cursor-pointer">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetForm}
+                className="cursor-pointer"
+              >
                 {t("submissions.catalogManager.btnCancel")}
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="cursor-pointer">
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="cursor-pointer"
+              >
                 {createMutation.isPending || updateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

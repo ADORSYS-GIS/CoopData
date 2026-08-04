@@ -3,7 +3,9 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::enums::{AccountingYear, CoopStatus, CooperativeSector, CooperativeType, EswatiniRegion, UrbanRural};
+use super::enums::{
+    AccountingYear, CoopStatus, CooperativeSector, CooperativeType, EswatiniRegion, UrbanRural,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "cooperatives")]

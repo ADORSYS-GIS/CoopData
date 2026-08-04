@@ -118,16 +118,20 @@ export const CooperativeDetailPage: React.FC = () => {
             </Link>
           )}
           <Link to="/app/cooperative-profile/$cooperativeId" params={{ cooperativeId: coop.id }}>
-              <Button size="sm" className="gap-2">
-                <Pencil className="size-4" />
-                {t("coopDetail.editProfile")}
-              </Button>
+            <Button size="sm" className="gap-2">
+              <Pencil className="size-4" />
+              {t("coopDetail.editProfile")}
+            </Button>
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card title={t("coopDetail.overview")} subtitle={t("coopDetail.overviewSub")} className="lg:col-span-2">
+        <Card
+          title={t("coopDetail.overview")}
+          subtitle={t("coopDetail.overviewSub")}
+          className="lg:col-span-2"
+        >
           <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
             <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700">
               <Building2 className="size-8" />
@@ -161,8 +165,16 @@ export const CooperativeDetailPage: React.FC = () => {
             />
             <InfoRow icon={Phone} label={t("coopDetail.phone")} value={coop.phone} />
             <InfoRow icon={Landmark} label={t("coopDetail.sector")} value={coop.sector} />
-            <InfoRow icon={Calendar} label={t("coopDetail.registeredOn")} value={coop.registered_on} />
-            <InfoRow icon={FileText} label={t("coopDetail.accountingYear")} value={coop.accounting_year} />
+            <InfoRow
+              icon={Calendar}
+              label={t("coopDetail.registeredOn")}
+              value={coop.registered_on}
+            />
+            <InfoRow
+              icon={FileText}
+              label={t("coopDetail.accountingYear")}
+              value={coop.accounting_year}
+            />
           </div>
         </Card>
 
@@ -190,7 +202,11 @@ export const CooperativeDetailPage: React.FC = () => {
             <InfoRow icon={Calendar} label={t("coopDetail.updatedAt")} value={coop.updated_at} />
             <InfoRow icon={Hash} label={t("coopDetail.cooperativeId")} value={coop.id} />
             {coop.keycloak_id && (
-              <InfoRow icon={Building2} label={t("coopDetail.keycloakId")} value={coop.keycloak_id} />
+              <InfoRow
+                icon={Building2}
+                label={t("coopDetail.keycloakId")}
+                value={coop.keycloak_id}
+              />
             )}
           </Card>
 

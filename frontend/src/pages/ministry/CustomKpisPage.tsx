@@ -99,7 +99,12 @@ export function CustomKpisPage() {
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1101", label: t("customKpis.variables.ac_1101"), category: "assets", unit: "currency" },
+      {
+        name: "ac_1101",
+        label: t("customKpis.variables.ac_1101"),
+        category: "assets",
+        unit: "currency",
+      },
       {
         name: "ac_1102",
         label: t("customKpis.variables.ac_1102"),
@@ -172,23 +177,48 @@ export function CustomKpisPage() {
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1300", label: t("customKpis.variables.ac_1300"), category: "assets", unit: "currency" },
+      {
+        name: "ac_1300",
+        label: t("customKpis.variables.ac_1300"),
+        category: "assets",
+        unit: "currency",
+      },
       {
         name: "ac_1301",
         label: t("customKpis.variables.ac_1301"),
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1302", label: t("customKpis.variables.ac_1302"), category: "assets", unit: "currency" },
-      { name: "ac_1303", label: t("customKpis.variables.ac_1303"), category: "assets", unit: "currency" },
+      {
+        name: "ac_1302",
+        label: t("customKpis.variables.ac_1302"),
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1303",
+        label: t("customKpis.variables.ac_1303"),
+        category: "assets",
+        unit: "currency",
+      },
       {
         name: "ac_1304",
         label: t("customKpis.variables.ac_1304"),
         category: "assets",
         unit: "currency",
       },
-      { name: "ac_1305", label: t("customKpis.variables.ac_1305"), category: "assets", unit: "currency" },
-      { name: "ac_1999", label: t("customKpis.variables.ac_1999"), category: "assets", unit: "currency" },
+      {
+        name: "ac_1305",
+        label: t("customKpis.variables.ac_1305"),
+        category: "assets",
+        unit: "currency",
+      },
+      {
+        name: "ac_1999",
+        label: t("customKpis.variables.ac_1999"),
+        category: "assets",
+        unit: "currency",
+      },
 
       // Liabilities
       {
@@ -283,11 +313,36 @@ export function CustomKpisPage() {
         category: "equity",
         unit: "currency",
       },
-      { name: "ac_3200", label: t("customKpis.variables.ac_3200"), category: "equity", unit: "currency" },
-      { name: "ac_3201", label: t("customKpis.variables.ac_3201"), category: "equity", unit: "currency" },
-      { name: "ac_3202", label: t("customKpis.variables.ac_3202"), category: "equity", unit: "currency" },
-      { name: "ac_3203", label: t("customKpis.variables.ac_3203"), category: "equity", unit: "currency" },
-      { name: "ac_3300", label: t("customKpis.variables.ac_3300"), category: "equity", unit: "currency" },
+      {
+        name: "ac_3200",
+        label: t("customKpis.variables.ac_3200"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3201",
+        label: t("customKpis.variables.ac_3201"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3202",
+        label: t("customKpis.variables.ac_3202"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3203",
+        label: t("customKpis.variables.ac_3203"),
+        category: "equity",
+        unit: "currency",
+      },
+      {
+        name: "ac_3300",
+        label: t("customKpis.variables.ac_3300"),
+        category: "equity",
+        unit: "currency",
+      },
       {
         name: "ac_3301",
         label: t("customKpis.variables.ac_3301"),
@@ -300,7 +355,12 @@ export function CustomKpisPage() {
         category: "equity",
         unit: "currency",
       },
-      { name: "ac_3999", label: t("customKpis.variables.ac_3999"), category: "equity", unit: "currency" },
+      {
+        name: "ac_3999",
+        label: t("customKpis.variables.ac_3999"),
+        category: "equity",
+        unit: "currency",
+      },
 
       // Income
       {
@@ -321,7 +381,12 @@ export function CustomKpisPage() {
         category: "income",
         unit: "currency",
       },
-      { name: "ac_4999", label: t("customKpis.variables.ac_4999"), category: "income", unit: "currency" },
+      {
+        name: "ac_4999",
+        label: t("customKpis.variables.ac_4999"),
+        category: "income",
+        unit: "currency",
+      },
 
       // Expenses
       {
@@ -336,7 +401,12 @@ export function CustomKpisPage() {
         category: "expenses",
         unit: "currency",
       },
-      { name: "ac_5201", label: t("customKpis.variables.ac_5201"), category: "expenses", unit: "currency" },
+      {
+        name: "ac_5201",
+        label: t("customKpis.variables.ac_5201"),
+        category: "expenses",
+        unit: "currency",
+      },
       {
         name: "ac_5202",
         label: t("customKpis.variables.ac_5202"),
@@ -361,8 +431,18 @@ export function CustomKpisPage() {
         category: "expenses",
         unit: "currency",
       },
-      { name: "ac_5999", label: t("customKpis.variables.ac_5999"), category: "expenses", unit: "currency" },
-      { name: "ac_6999", label: t("customKpis.variables.ac_6999"), category: "expenses", unit: "currency" },
+      {
+        name: "ac_5999",
+        label: t("customKpis.variables.ac_5999"),
+        category: "expenses",
+        unit: "currency",
+      },
+      {
+        name: "ac_6999",
+        label: t("customKpis.variables.ac_6999"),
+        category: "expenses",
+        unit: "currency",
+      },
     ];
 
     if (!catalog) return base;
@@ -492,10 +572,7 @@ export function CustomKpisPage() {
   }, [cooperatives, searchTerm, sortField, sortDirection]);
 
   return (
-    <AppShell
-      title={t("customKpis.title")}
-      subtitle={t("customKpis.subtitle")}
-    >
+    <AppShell title={t("customKpis.title")} subtitle={t("customKpis.subtitle")}>
       <div className="space-y-8 max-w-7xl mx-auto">
         {/* Header Block */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 rounded-xl p-4 md:p-5 text-white shadow-lg relative overflow-hidden border border-blue-800">
@@ -565,7 +642,9 @@ export function CustomKpisPage() {
                   {t("customKpis.statsEvaluated")}
                 </p>
                 <h4 className="text-2xl font-bold text-blue-900 mt-1">
-                  {isOverviewLoading ? "..." : t("customKpis.statsCoops", { count: cooperatives.length })}
+                  {isOverviewLoading
+                    ? "..."
+                    : t("customKpis.statsCoops", { count: cooperatives.length })}
                 </h4>
               </div>
             </CardContent>

@@ -100,11 +100,15 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       >
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t("printReports.apexComparison")}</h1>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {t("printReports.apexComparison")}
+            </h1>
             <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
           </div>
           <div className="text-right">
-            <p className="text-lg font-semibold text-slate-700">{t("printReports.period", { year })}</p>
+            <p className="text-lg font-semibold text-slate-700">
+              {t("printReports.period", { year })}
+            </p>
             <p className="text-sm text-slate-500"></p>
           </div>
         </div>
@@ -190,17 +194,39 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="p-3 text-left border border-slate-900">{t("printReports.headers.apex")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.coops")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.submitted")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.approved")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.filingPct")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.assets")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgPar30")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgCar")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgRoa")}</th>
-                  <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgOer")}</th>
-                  <th className="p-3 text-center border border-slate-900">{t("printReports.headers.risk")}</th>
+                  <th className="p-3 text-left border border-slate-900">
+                    {t("printReports.headers.apex")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.coops")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.submitted")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.approved")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.filingPct")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.assets")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.avgPar30")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.avgCar")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.avgRoa")}
+                  </th>
+                  <th className="p-3 text-right border border-slate-900">
+                    {t("printReports.headers.avgOer")}
+                  </th>
+                  <th className="p-3 text-center border border-slate-900">
+                    {t("printReports.headers.risk")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -288,11 +314,15 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       >
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t("printReports.filingComplianceByApex")}</h1>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {t("printReports.filingComplianceByApex")}
+            </h1>
             <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
           </div>
           <div className="text-right">
-            <p className="text-lg font-semibold text-slate-700">{t("printReports.period", { year })}</p>
+            <p className="text-lg font-semibold text-slate-700">
+              {t("printReports.period", { year })}
+            </p>
             <p className="text-sm text-slate-500"></p>
           </div>
         </div>
@@ -301,16 +331,36 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900">{t("printReports.headers.apex")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.total")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.submitted")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.approved")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.returned")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.pending")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.onTime")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.late")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.notFiled")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.compliancePct")}</th>
+                <th className="p-3 text-left border border-slate-900">
+                  {t("printReports.headers.apex")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.total")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.submitted")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.approved")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.returned")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.pending")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.onTime")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.late")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.notFiled")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.compliancePct")}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -361,10 +411,10 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                 <td className="p-3 border border-slate-300 text-right">
                   {apexData.length > 0
                     ? (
-                      (apexData.reduce((acc, row) => acc + row.submitted, 0) /
-                        apexData.reduce((acc, row) => acc + row.coops, 0)) *
-                      100
-                    ).toFixed(0) + "%"
+                        (apexData.reduce((acc, row) => acc + row.submitted, 0) /
+                          apexData.reduce((acc, row) => acc + row.coops, 0)) *
+                        100
+                      ).toFixed(0) + "%"
                     : "0%"}
                 </td>
               </tr>

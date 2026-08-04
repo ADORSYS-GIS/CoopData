@@ -21,7 +21,6 @@ interface ComparativeIncomeStatementProps {
   filterParams?: NationalOverviewParams;
 }
 
-
 interface IncomeStatementRow {
   label: string;
   subLabel?: string;
@@ -136,20 +135,23 @@ export function ComparativeIncomeStatement({
   const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
 
-  const monthOptions = useMemo(() => [
-    { value: "1", label: t("common.months.jan", "31. Jan ") },
-    { value: "2", label: t("common.months.feb", "28. Feb ") },
-    { value: "3", label: t("common.months.mar", "31. Mar ") },
-    { value: "4", label: t("common.months.apr", "30. Apr ") },
-    { value: "5", label: t("common.months.may", "31. May ") },
-    { value: "6", label: t("common.months.jun", "30. Jun ") },
-    { value: "7", label: t("common.months.jul", "31. Jul ") },
-    { value: "8", label: t("common.months.aug", "31. Aug ") },
-    { value: "9", label: t("common.months.sep", "30. Sep ") },
-    { value: "10", label: t("common.months.oct", "31. Oct ") },
-    { value: "11", label: t("common.months.nov", "30. Nov ") },
-    { value: "12", label: t("common.months.dec", "31. Dec ") },
-  ], [t]);
+  const monthOptions = useMemo(
+    () => [
+      { value: "1", label: t("common.months.jan", "31. Jan ") },
+      { value: "2", label: t("common.months.feb", "28. Feb ") },
+      { value: "3", label: t("common.months.mar", "31. Mar ") },
+      { value: "4", label: t("common.months.apr", "30. Apr ") },
+      { value: "5", label: t("common.months.may", "31. May ") },
+      { value: "6", label: t("common.months.jun", "30. Jun ") },
+      { value: "7", label: t("common.months.jul", "31. Jul ") },
+      { value: "8", label: t("common.months.aug", "31. Aug ") },
+      { value: "9", label: t("common.months.sep", "30. Sep ") },
+      { value: "10", label: t("common.months.oct", "31. Oct ") },
+      { value: "11", label: t("common.months.nov", "30. Nov ") },
+      { value: "12", label: t("common.months.dec", "31. Dec ") },
+    ],
+    [t],
+  );
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 
   const { data: overview, isLoading: isOverviewLoading } = useNationalOverview({

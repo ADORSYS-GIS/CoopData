@@ -26,9 +26,7 @@ export function SavingsStep({
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
           <h3 className="text-sm font-bold text-foreground">{t("savingsStep.title")}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("savingsStep.desc")}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("savingsStep.desc")}</p>
         </div>
         <button
           onClick={addSavings}
@@ -42,9 +40,7 @@ export function SavingsStep({
         <div className="py-16 text-center text-muted-foreground">
           <DollarSign className="size-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm font-medium">{t("savingsStep.emptyTitle")}</p>
-          <p className="text-xs mt-1">
-            {t("savingsStep.emptyDesc")}
-          </p>
+          <p className="text-xs mt-1">{t("savingsStep.emptyDesc")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -107,9 +103,7 @@ export function SavingsStep({
       )}
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-        <span>
-          {t("savingsStep.rowCount", { count: savings.length })}
-        </span>
+        <span>{t("savingsStep.rowCount", { count: savings.length })}</span>
         <button onClick={addSavings} className="text-primary hover:underline font-medium">
           {t("savingsStep.addAnother")}
         </button>

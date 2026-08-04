@@ -14,6 +14,8 @@ regexes = [
     '''<app-password>''',
     '''changeme-''',
     '''<random-secret>''',
+    # i18n translation keys / chart-of-accounts codes flagged as false positives
+    '''loansInArrears\d+_\d+''',
 ]
 paths = [
     '''docs/''',

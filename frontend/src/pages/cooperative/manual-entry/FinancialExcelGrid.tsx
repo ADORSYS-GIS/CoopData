@@ -372,8 +372,12 @@ export function FinancialExcelGrid({
         <table className="w-full border-collapse text-sm min-w-[1300px]">
           <thead>
             <tr className="bg-muted border-b border-border text-xs font-semibold text-muted-foreground">
-              <th className="px-4 py-3 text-left w-24 border-r border-border/80">{t("financialExcelGrid.headers.code")}</th>
-              <th className="px-4 py-3 text-left w-80 border-r border-border/80">{t("financialExcelGrid.headers.accountName")}</th>
+              <th className="px-4 py-3 text-left w-24 border-r border-border/80">
+                {t("financialExcelGrid.headers.code")}
+              </th>
+              <th className="px-4 py-3 text-left w-80 border-r border-border/80">
+                {t("financialExcelGrid.headers.accountName")}
+              </th>
               {monthSequence.map((m) => (
                 <th
                   key={m.num}
@@ -404,7 +408,9 @@ export function FinancialExcelGrid({
               const isFormula = !!row.formula;
               const isTotal = row.isTotal;
               const isCheckRow = row.nameKey === "balanceCheck";
-              const explanation = row.code ? t(`financialExcelGrid.explanations.${row.code}`) : null;
+              const explanation = row.code
+                ? t(`financialExcelGrid.explanations.${row.code}`)
+                : null;
 
               return (
                 <tr

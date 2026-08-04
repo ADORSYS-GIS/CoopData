@@ -188,7 +188,10 @@ export const MemberList: React.FC = () => {
     <AppShell title={t("memberList.title")} subtitle={t("memberList.subtitle")}>
       <div className="space-y-6">
         {/* Federation Selector */}
-        <Card title={t("memberList.selectFederationTitle")} subtitle={t("memberList.selectFederationSubtitle")}>
+        <Card
+          title={t("memberList.selectFederationTitle")}
+          subtitle={t("memberList.selectFederationSubtitle")}
+        >
           <div className="flex items-center gap-4">
             <div className="flex-1">
               {federationsLoading ? (
@@ -249,7 +252,9 @@ export const MemberList: React.FC = () => {
         {selectedFederationId && (
           <Card
             title={t("memberList.federationMembersTitle")}
-            subtitle={t("memberList.membersFound", { count: table.getFilteredRowModel().rows.length })}
+            subtitle={t("memberList.membersFound", {
+              count: table.getFilteredRowModel().rows.length,
+            })}
             action={
               <div className="relative w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -280,9 +285,7 @@ export const MemberList: React.FC = () => {
                 <Users className="mx-auto mb-3 size-12 opacity-30" />
                 <p className="text-lg font-medium">{t("memberList.noMembersFound")}</p>
                 <p className="text-sm">
-                  {globalFilter
-                    ? t("memberList.adjustSearchQuery")
-                    : t("memberList.noMembersYet")}
+                  {globalFilter ? t("memberList.adjustSearchQuery") : t("memberList.noMembersYet")}
                 </p>
               </div>
             ) : (
@@ -381,9 +384,7 @@ export const MemberList: React.FC = () => {
             <div className="py-12 text-center text-muted-foreground">
               <Users className="mx-auto mb-3 size-12 opacity-30" />
               <p className="text-lg font-medium">{t("memberList.noFedSelectedDesc")}</p>
-              <p className="text-sm">
-                {t("memberList.noFedSelectedHint")}
-              </p>
+              <p className="text-sm">{t("memberList.noFedSelectedHint")}</p>
             </div>
           </Card>
         )}

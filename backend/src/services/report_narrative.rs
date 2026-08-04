@@ -297,17 +297,17 @@ impl LlmNarrativeGenerator {
 
             if res.status().as_u16() == 429 {
                 let text = res.text().await.unwrap_or_default();
-                
+
                 // ── Step 1: Determine if this is a DAILY quota or a PER-MINUTE rate limit ──
                 // Daily quota = permanent for today, no point retrying
                 // Per-minute rate limit = temporary, wait and retry
-                
+
                 // Extract the quota ID to classify the error
                 let is_daily_quota = text.contains("PerDay")
                     || text.contains("Daily")
                     || text.contains("RPD")
                     || text.contains("per_day");
-                
+
                 if is_daily_quota {
                     tracing::error!(
                         attempt,
@@ -318,51 +318,64 @@ impl LlmNarrativeGenerator {
                         "Narrative LLM daily quota exhausted: {text}"
                     )));
                 }
-                
+
                 // ── Step 2: It's a per-minute rate limit — extract retry delay ──
                 // Try to parse JSON and extract "retryDelay" or "Please retry in Xs"
                 // Also handle Gemini's array response format: [{ "code": 429, ... }]
-                let delay_ms = if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&text) {
-                    // Handle array root: unwrap [{...}] → {...}
-                    if let Some(arr) = json.as_array() {
-                        if let Some(first) = arr.first() {
-                            json = first.clone();
+                let delay_ms =
+                    if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&text) {
+                        // Handle array root: unwrap [{...}] → {...}
+                        if let Some(arr) = json.as_array() {
+                            if let Some(first) = arr.first() {
+                                json = first.clone();
+                            }
                         }
-                    }
-                    
-                    // Try "retryDelay" field (multiple paths)
-                    let retry_delay = json["error"]["retryDelay"].as_str()
-                        .or_else(|| json["retryDelay"].as_str())
-                        .or_else(|| json[0]["retryDelay"].as_str());
-                    
-                    if let Some(delay_str) = retry_delay {
-                        let secs: u64 = delay_str.trim_end_matches('s').parse().unwrap_or(0);
-                        if secs > 0 { secs * 1000 } else { Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS) }
-                    } else {
-                        // No retryDelay field — search message text for "Please retry in Xs"
-                        let msg = json["error"]["message"].as_str()
-                            .or_else(|| json["message"].as_str())
-                            .unwrap_or("");
-                        if let Some(pos) = msg.find("Please retry in ") {
-                            let num_str = &msg[pos + 16..];
-                            if let Some(end) = num_str.find('s') {
-                                let secs: u64 = num_str[..end].parse().unwrap_or(0);
-                                if secs > 0 { secs * 1000 } else { Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS) }
+
+                        // Try "retryDelay" field (multiple paths)
+                        let retry_delay = json["error"]["retryDelay"]
+                            .as_str()
+                            .or_else(|| json["retryDelay"].as_str())
+                            .or_else(|| json[0]["retryDelay"].as_str());
+
+                        if let Some(delay_str) = retry_delay {
+                            let secs: u64 = delay_str.trim_end_matches('s').parse().unwrap_or(0);
+                            if secs > 0 {
+                                secs * 1000
                             } else {
                                 Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS)
                             }
                         } else {
-                            // JSON parsed but no retry hint found — fall back to raw text search
-                            // (handles malformed JSON or unexpected formats)
-                            Self::extract_retry_delay_from_text(&text)
-                                .unwrap_or_else(|| Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS))
+                            // No retryDelay field — search message text for "Please retry in Xs"
+                            let msg = json["error"]["message"]
+                                .as_str()
+                                .or_else(|| json["message"].as_str())
+                                .unwrap_or("");
+                            if let Some(pos) = msg.find("Please retry in ") {
+                                let num_str = &msg[pos + 16..];
+                                if let Some(end) = num_str.find('s') {
+                                    let secs: u64 = num_str[..end].parse().unwrap_or(0);
+                                    if secs > 0 {
+                                        secs * 1000
+                                    } else {
+                                        Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS)
+                                    }
+                                } else {
+                                    Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS)
+                                }
+                            } else {
+                                // JSON parsed but no retry hint found — fall back to raw text search
+                                // (handles malformed JSON or unexpected formats)
+                                Self::extract_retry_delay_from_text(&text).unwrap_or_else(|| {
+                                    Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS)
+                                })
+                            }
                         }
-                    }
-                } else {
-                    // Not JSON at all — search raw text for "Please retry in Xs"
-                    Self::extract_retry_delay_from_text(&text)
-                        .unwrap_or_else(|| Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS))
-                };
+                    } else {
+                        // Not JSON at all — search raw text for "Please retry in Xs"
+                        Self::extract_retry_delay_from_text(&text).unwrap_or_else(|| {
+                            Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS)
+                        })
+                    };
 
                 // We have a retry delay — use it. Gemini tells us exactly when the quota resets.
                 if attempt < MAX_RETRIES {
@@ -422,19 +435,22 @@ impl LlmNarrativeGenerator {
                 )));
             }
 
-            let json: serde_json::Value = res
-                .json()
-                .await
-                .map_err(|e| AppError::ExternalServiceError(format!("Narrative LLM parse error: {e}")))?;
+            let json: serde_json::Value = res.json().await.map_err(|e| {
+                AppError::ExternalServiceError(format!("Narrative LLM parse error: {e}"))
+            })?;
 
             let content = json["choices"][0]["message"]["content"]
                 .as_str()
-                .ok_or_else(|| AppError::ExternalServiceError("Empty narrative LLM response".into()))?;
+                .ok_or_else(|| {
+                    AppError::ExternalServiceError("Empty narrative LLM response".into())
+                })?;
 
             return Ok(content.to_string());
         }
 
-        Err(AppError::ExternalServiceError("Narrative LLM: max retries exhausted".into()))
+        Err(AppError::ExternalServiceError(
+            "Narrative LLM: max retries exhausted".into(),
+        ))
     }
 
     fn parse_json<T: serde::de::DeserializeOwned>(raw: &str) -> AppResult<T> {
@@ -463,7 +479,11 @@ impl LlmNarrativeGenerator {
             let num_str = &text[pos + 16..];
             if let Some(end) = num_str.find('s') {
                 let secs: u64 = num_str[..end].parse().ok()?;
-                if secs > 0 { Some(secs * 1000) } else { None }
+                if secs > 0 {
+                    Some(secs * 1000)
+                } else {
+                    None
+                }
             } else {
                 None
             }
@@ -476,7 +496,8 @@ impl LlmNarrativeGenerator {
     fn fallback_cooperative(ctx: &CooperativeNarrativeContext) -> CooperativeNarratives {
         CooperativeNarratives {
             executive_summary: format!(
-                "{} reported its financial performance for {}.", ctx.coop_name, ctx.reporting_year
+                "{} reported its financial performance for {}.",
+                ctx.coop_name, ctx.reporting_year
             ),
             financial_position: String::new(),
             portfolio_quality: String::new(),
@@ -536,11 +557,31 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let bench_prompt = build_coop_benchmark_comparison_prompt(ctx);
 
         tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for cooperative narratives");
-        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_summary | chars={}", exec_prompt.len());
-        tracing::info!(chars = fin_prompt.len(), "[narrative] 📡 Prompt 2/5: financial_position | chars={}", fin_prompt.len());
-        tracing::info!(chars = portfolio_prompt.len(), "[narrative] 📡 Prompt 3/5: portfolio_quality | chars={}", portfolio_prompt.len());
-        tracing::info!(chars = nf_prompt.len(), "[narrative] 📡 Prompt 4/5: non_financial | chars={}", nf_prompt.len());
-        tracing::info!(chars = bench_prompt.len(), "[narrative] 📡 Prompt 5/5: benchmark_comparison | chars={}", bench_prompt.len());
+        tracing::info!(
+            chars = exec_prompt.len(),
+            "[narrative] 📡 Prompt 1/5: executive_summary | chars={}",
+            exec_prompt.len()
+        );
+        tracing::info!(
+            chars = fin_prompt.len(),
+            "[narrative] 📡 Prompt 2/5: financial_position | chars={}",
+            fin_prompt.len()
+        );
+        tracing::info!(
+            chars = portfolio_prompt.len(),
+            "[narrative] 📡 Prompt 3/5: portfolio_quality | chars={}",
+            portfolio_prompt.len()
+        );
+        tracing::info!(
+            chars = nf_prompt.len(),
+            "[narrative] 📡 Prompt 4/5: non_financial | chars={}",
+            nf_prompt.len()
+        );
+        tracing::info!(
+            chars = bench_prompt.len(),
+            "[narrative] 📡 Prompt 5/5: benchmark_comparison | chars={}",
+            bench_prompt.len()
+        );
 
         let start = std::time::Instant::now();
         let (exec_result, fin_result, portfolio_result, nf_result, bench_result) = tokio::try_join!(
@@ -556,7 +597,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             "[narrative] ✅ All 5 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
-        
+
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(CooperativeNarratives {
             executive_summary: Self::parse_json::<ExecutiveSummaryOutput>(&exec_result)?
@@ -565,12 +606,11 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
                 .financial_position,
             portfolio_quality: Self::parse_json::<PortfolioQualityOutput>(&portfolio_result)?
                 .portfolio_quality,
-            non_financial: Self::parse_json::<NonFinancialOutput>(&nf_result)?
-                .non_financial,
+            non_financial: Self::parse_json::<NonFinancialOutput>(&nf_result)?.non_financial,
             benchmark_comparison: Self::parse_json::<BenchmarkOutput>(&bench_result)?
                 .benchmark_comparison,
         });
-        
+
         tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
         result
     }
@@ -582,12 +622,24 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let exec_prompt = build_apex_executive_dashboard_prompt(ctx);
         let risk_dist_prompt = build_apex_risk_distribution_prompt(ctx);
         let risk_watch_prompt = build_apex_risk_watch_prompt(ctx);
-        
+
         tracing::info!("[narrative] 🚀 Starting 3 concurrent LLM calls for apex narratives");
-        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/3: executive_dashboard | chars={}", exec_prompt.len());
-        tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/3: risk_distribution | chars={}", risk_dist_prompt.len());
-        tracing::info!(chars = risk_watch_prompt.len(), "[narrative] 📡 Prompt 3/3: risk_watch | chars={}", risk_watch_prompt.len());
-        
+        tracing::info!(
+            chars = exec_prompt.len(),
+            "[narrative] 📡 Prompt 1/3: executive_dashboard | chars={}",
+            exec_prompt.len()
+        );
+        tracing::info!(
+            chars = risk_dist_prompt.len(),
+            "[narrative] 📡 Prompt 2/3: risk_distribution | chars={}",
+            risk_dist_prompt.len()
+        );
+        tracing::info!(
+            chars = risk_watch_prompt.len(),
+            "[narrative] 📡 Prompt 3/3: risk_watch | chars={}",
+            risk_watch_prompt.len()
+        );
+
         let start = std::time::Instant::now();
         let (exec_result, risk_dist_result, risk_watch_result) = tokio::try_join!(
             self.chat(&exec_prompt),
@@ -600,17 +652,16 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             "[narrative] ✅ All 3 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
-        
+
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(ApexNarratives {
             executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
                 .executive_dashboard,
             risk_distribution: Self::parse_json::<RiskDistributionOutput>(&risk_dist_result)?
                 .risk_distribution,
-            risk_watch: Self::parse_json::<RiskWatchOutput>(&risk_watch_result)?
-                .risk_watch,
+            risk_watch: Self::parse_json::<RiskWatchOutput>(&risk_watch_result)?.risk_watch,
         });
-        
+
         tracing::info!("[narrative] ✅ All 3 narratives parsed successfully");
         result
     }
@@ -624,14 +675,34 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let sector_prompt = build_fed_sector_breakdown_prompt(ctx);
         let apex_cmp_prompt = build_fed_apex_comparison_prompt(ctx);
         let pearls_prompt = build_fed_pearls_analysis_prompt(ctx);
-        
+
         tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for federation narratives");
-        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}", exec_prompt.len());
-        tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}", risk_dist_prompt.len());
-        tracing::info!(chars = sector_prompt.len(), "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}", sector_prompt.len());
-        tracing::info!(chars = apex_cmp_prompt.len(), "[narrative] 📡 Prompt 4/5: apex_comparison | chars={}", apex_cmp_prompt.len());
-        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}", pearls_prompt.len());
-        
+        tracing::info!(
+            chars = exec_prompt.len(),
+            "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}",
+            exec_prompt.len()
+        );
+        tracing::info!(
+            chars = risk_dist_prompt.len(),
+            "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}",
+            risk_dist_prompt.len()
+        );
+        tracing::info!(
+            chars = sector_prompt.len(),
+            "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}",
+            sector_prompt.len()
+        );
+        tracing::info!(
+            chars = apex_cmp_prompt.len(),
+            "[narrative] 📡 Prompt 4/5: apex_comparison | chars={}",
+            apex_cmp_prompt.len()
+        );
+        tracing::info!(
+            chars = pearls_prompt.len(),
+            "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}",
+            pearls_prompt.len()
+        );
+
         let start = std::time::Instant::now();
         let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) = tokio::try_join!(
             self.chat(&exec_prompt),
@@ -646,7 +717,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             "[narrative] ✅ All 5 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
-        
+
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(FederationNarratives {
             executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
@@ -660,7 +731,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(&pearls_result)?
                 .pearls_analysis,
         });
-        
+
         tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
         result
     }
@@ -674,14 +745,34 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         let sector_prompt = build_ministry_sector_breakdown_prompt(ctx);
         let apex_cmp_prompt = build_ministry_apex_comparison_prompt(ctx);
         let pearls_prompt = build_ministry_pearls_analysis_prompt(ctx);
-        
+
         tracing::info!("[narrative] 🚀 Starting 5 concurrent LLM calls for ministry narratives");
-        tracing::info!(chars = exec_prompt.len(), "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}", exec_prompt.len());
-        tracing::info!(chars = risk_dist_prompt.len(), "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}", risk_dist_prompt.len());
-        tracing::info!(chars = sector_prompt.len(), "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}", sector_prompt.len());
-        tracing::info!(chars = apex_cmp_prompt.len(), "[narrative] 📡 Prompt 4/5: apex_comparison | chars={}", apex_cmp_prompt.len());
-        tracing::info!(chars = pearls_prompt.len(), "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}", pearls_prompt.len());
-        
+        tracing::info!(
+            chars = exec_prompt.len(),
+            "[narrative] 📡 Prompt 1/5: executive_dashboard | chars={}",
+            exec_prompt.len()
+        );
+        tracing::info!(
+            chars = risk_dist_prompt.len(),
+            "[narrative] 📡 Prompt 2/5: risk_distribution | chars={}",
+            risk_dist_prompt.len()
+        );
+        tracing::info!(
+            chars = sector_prompt.len(),
+            "[narrative] 📡 Prompt 3/5: sector_breakdown | chars={}",
+            sector_prompt.len()
+        );
+        tracing::info!(
+            chars = apex_cmp_prompt.len(),
+            "[narrative] 📡 Prompt 4/5: apex_comparison | chars={}",
+            apex_cmp_prompt.len()
+        );
+        tracing::info!(
+            chars = pearls_prompt.len(),
+            "[narrative] 📡 Prompt 5/5: pearls_analysis | chars={}",
+            pearls_prompt.len()
+        );
+
         let start = std::time::Instant::now();
         let (exec_result, risk_dist_result, sector_result, apex_cmp_result, pearls_result) = tokio::try_join!(
             self.chat(&exec_prompt),
@@ -696,7 +787,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             "[narrative] ✅ All 5 LLM responses received in {}ms",
             start.elapsed().as_millis()
         );
-        
+
         tracing::info!("[narrative] 🔍 Parsing JSON responses...");
         let result = Ok(MinistryNarratives {
             executive_dashboard: Self::parse_json::<ExecutiveDashboardOutput>(&exec_result)?
@@ -710,7 +801,7 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
             pearls_analysis: Self::parse_json::<PearlsAnalysisOutput>(&pearls_result)?
                 .pearls_analysis,
         });
-        
+
         tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
         result
     }
@@ -876,7 +967,9 @@ fn fmt_kpi_table(kpis: &[KpiSnapshot]) -> String {
 }
 
 fn fmt_prior_kpi_table(kpis: &[KpiSnapshot]) -> String {
-    let mut table = String::from("| KPI | Value | Formatted | Status |\n|-----|-------|-----------|--------|\n");
+    let mut table = String::from(
+        "| KPI | Value | Formatted | Status |\n|-----|-------|-----------|--------|\n",
+    );
     for kpi in kpis {
         let status = kpi.status.as_deref().unwrap_or("-");
         table.push_str(&format!(
@@ -897,10 +990,14 @@ fn fmt_distributions(dists: &HashMap<String, TrafficLightData>) -> String {
         table.push_str(&format!(
             "| {} | {:.0}% (n={}) | {:.0}% (n={}) | {:.0}% (n={}) | {:.0}% (n={}) | {} |\n",
             name,
-            d.green_pct, d.green_count,
-            d.amber_pct, d.amber_count,
-            d.red_pct, d.red_count,
-            d.no_data_pct, 0u64,
+            d.green_pct,
+            d.green_count,
+            d.amber_pct,
+            d.amber_count,
+            d.red_pct,
+            d.red_count,
+            d.no_data_pct,
+            0u64,
             avg
         ));
     }
@@ -933,25 +1030,57 @@ fn fmt_sector_distribution(coops: &[CoopKpiRowData]) -> String {
     let mut table = String::from("| Sector | Count | Avg PAR30 | Avg ROA | Avg CAR |\n|--------|-------|-----------|---------|--------|\n");
     for (sector, list) in &by_sector {
         let n = list.len() as f64;
-        let avg_par30 = list.iter().map(|c| c.kpis.get("par30").copied().unwrap_or(0.0)).sum::<f64>() / n;
-        let avg_roa = list.iter().map(|c| c.kpis.get("roa").copied().unwrap_or(0.0)).sum::<f64>() / n;
-        let avg_car = list.iter().map(|c| c.kpis.get("capital_adequacy_ratio").copied().unwrap_or(0.0)).sum::<f64>() / n;
+        let avg_par30 = list
+            .iter()
+            .map(|c| c.kpis.get("par30").copied().unwrap_or(0.0))
+            .sum::<f64>()
+            / n;
+        let avg_roa = list
+            .iter()
+            .map(|c| c.kpis.get("roa").copied().unwrap_or(0.0))
+            .sum::<f64>()
+            / n;
+        let avg_car = list
+            .iter()
+            .map(|c| c.kpis.get("capital_adequacy_ratio").copied().unwrap_or(0.0))
+            .sum::<f64>()
+            / n;
         table.push_str(&format!(
             "| {} | {} | {:.1}% | {:.1}% | {:.1}% |\n",
-            sector, list.len(), avg_par30, avg_roa, avg_car
+            sector,
+            list.len(),
+            avg_par30,
+            avg_roa,
+            avg_car
         ));
     }
     table
 }
 
 fn fmt_pearls_compliance(coops: &[CoopKpiRowData]) -> String {
-    let pearls_kpis = ["par30", "par90", "roa", "roe", "capital_adequacy_ratio", "liquid_funds_ratio", "operational_self_sufficiency", "operating_expense_ratio", "loan_loss_coverage"];
+    let pearls_kpis = [
+        "par30",
+        "par90",
+        "roa",
+        "roe",
+        "capital_adequacy_ratio",
+        "liquid_funds_ratio",
+        "operational_self_sufficiency",
+        "operating_expense_ratio",
+        "loan_loss_coverage",
+    ];
     let benchmarks: std::collections::HashMap<&str, f64> = [
-        ("par30", 5.0), ("par90", 2.0), ("roa", 3.0), ("roe", 8.0),
-        ("capital_adequacy_ratio", 10.0), ("liquid_funds_ratio", 15.0),
-        ("operational_self_sufficiency", 110.0), ("operating_expense_ratio", 5.0),
+        ("par30", 5.0),
+        ("par90", 2.0),
+        ("roa", 3.0),
+        ("roe", 8.0),
+        ("capital_adequacy_ratio", 10.0),
+        ("liquid_funds_ratio", 15.0),
+        ("operational_self_sufficiency", 110.0),
+        ("operating_expense_ratio", 5.0),
         ("loan_loss_coverage", 100.0),
-    ].into();
+    ]
+    .into();
 
     let mut table = String::from("| KPI | Benchmark | Meeting | Exceeding | Below | Compliance % |\n|-----|-----------|---------|-----------|-------|-------------|\n");
     for kpi_name in &pearls_kpis {
@@ -964,15 +1093,27 @@ fn fmt_pearls_compliance(coops: &[CoopKpiRowData]) -> String {
             if let Some(val) = c.kpis.get(*kpi_name) {
                 match *kpi_name {
                     "par30" | "par90" | "operating_expense_ratio" => {
-                        if *val <= bench { meeting += 1; } else { exceeding += 1; }
+                        if *val <= bench {
+                            meeting += 1;
+                        } else {
+                            exceeding += 1;
+                        }
                     }
                     _ => {
-                        if *val >= bench { meeting += 1; } else { below += 1; }
+                        if *val >= bench {
+                            meeting += 1;
+                        } else {
+                            below += 1;
+                        }
                     }
                 }
             }
         }
-        let compliance = if total > 0.0 { meeting as f64 / total * 100.0 } else { 0.0 };
+        let compliance = if total > 0.0 {
+            meeting as f64 / total * 100.0
+        } else {
+            0.0
+        };
         table.push_str(&format!(
             "| {} | {:.1}% | {} | {} | {} | {:.0}% |\n",
             kpi_name, bench, meeting, exceeding, below, compliance
@@ -985,17 +1126,29 @@ fn fmt_high_risk_table(coops: &[CoopKpiRowData]) -> String {
     let high_risk: Vec<_> = coops
         .iter()
         .filter(|c| {
-            let red_count = ["par30", "par90", "roa", "roe", "capital_adequacy_ratio", "liquid_funds_ratio", "operational_self_sufficiency"]
-                .iter()
-                .filter(|kpi| {
-                    let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
-                    match **kpi {
-                        "par30" | "par90" => val > 10.0,
-                        "roa" | "roe" | "capital_adequacy_ratio" | "liquid_funds_ratio" | "operational_self_sufficiency" => val < 1.0,
-                        _ => false,
-                    }
-                })
-                .count();
+            let red_count = [
+                "par30",
+                "par90",
+                "roa",
+                "roe",
+                "capital_adequacy_ratio",
+                "liquid_funds_ratio",
+                "operational_self_sufficiency",
+            ]
+            .iter()
+            .filter(|kpi| {
+                let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
+                match **kpi {
+                    "par30" | "par90" => val > 10.0,
+                    "roa"
+                    | "roe"
+                    | "capital_adequacy_ratio"
+                    | "liquid_funds_ratio"
+                    | "operational_self_sufficiency" => val < 1.0,
+                    _ => false,
+                }
+            })
+            .count();
             red_count >= 3
         })
         .collect();
@@ -1006,21 +1159,48 @@ fn fmt_high_risk_table(coops: &[CoopKpiRowData]) -> String {
 
     let mut table = String::from("| Cooperative | Red KPIs | PAR30 | ROA | CAR |\n|------------|---------|-------|-----|-----|\n");
     for c in &high_risk {
-        let red_count = ["par30", "par90", "roa", "roe", "capital_adequacy_ratio", "liquid_funds_ratio", "operational_self_sufficiency"]
-            .iter()
-            .filter(|kpi| {
-                let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
-                match **kpi {
-                    "par30" | "par90" => val > 10.0,
-                    "roa" | "roe" | "capital_adequacy_ratio" | "liquid_funds_ratio" | "operational_self_sufficiency" => val < 1.0,
-                    _ => false,
-                }
-            })
-            .count();
-        let par30 = c.kpis.get("par30").map(|v| format!("{v:.1}%")).unwrap_or_default();
-        let roa = c.kpis.get("roa").map(|v| format!("{v:.1}%")).unwrap_or_default();
-        let car = c.kpis.get("capital_adequacy_ratio").map(|v| format!("{v:.1}%")).unwrap_or_default();
-        table.push_str(&format!("| {} | {} | {} | {} | {} |\n", c.name, red_count, par30, roa, car));
+        let red_count = [
+            "par30",
+            "par90",
+            "roa",
+            "roe",
+            "capital_adequacy_ratio",
+            "liquid_funds_ratio",
+            "operational_self_sufficiency",
+        ]
+        .iter()
+        .filter(|kpi| {
+            let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
+            match **kpi {
+                "par30" | "par90" => val > 10.0,
+                "roa"
+                | "roe"
+                | "capital_adequacy_ratio"
+                | "liquid_funds_ratio"
+                | "operational_self_sufficiency" => val < 1.0,
+                _ => false,
+            }
+        })
+        .count();
+        let par30 = c
+            .kpis
+            .get("par30")
+            .map(|v| format!("{v:.1}%"))
+            .unwrap_or_default();
+        let roa = c
+            .kpis
+            .get("roa")
+            .map(|v| format!("{v:.1}%"))
+            .unwrap_or_default();
+        let car = c
+            .kpis
+            .get("capital_adequacy_ratio")
+            .map(|v| format!("{v:.1}%"))
+            .unwrap_or_default();
+        table.push_str(&format!(
+            "| {} | {} | {} | {} | {} |\n",
+            c.name, red_count, par30, roa, car
+        ));
     }
     table
 }
@@ -1054,9 +1234,18 @@ fn build_coop_executive_summary_prompt(ctx: &CooperativeNarrativeContext) -> Str
     } else {
         fmt_prior_kpi_table(&ctx.prior_kpis)
     };
-    let sector_avg_par30 = ctx.sector_avg_par30.map(|v| format!("{v:.1}%")).unwrap_or_else(|| "N/A".into());
-    let national_avg_par30 = ctx.national_avg_par30.map(|v| format!("{v:.1}%")).unwrap_or_else(|| "N/A".into());
-    let sector_avg_car = ctx.sector_avg_car.map(|v| format!("{v:.1}%")).unwrap_or_else(|| "N/A".into());
+    let sector_avg_par30 = ctx
+        .sector_avg_par30
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "N/A".into());
+    let national_avg_par30 = ctx
+        .national_avg_par30
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "N/A".into());
+    let sector_avg_car = ctx
+        .sector_avg_car
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "N/A".into());
 
     format!(
         r#"You are a senior financial analyst specializing in SACCO (Savings and Credit Cooperative) oversight in Eswatini. Your task is to generate a professional executive summary narrative for a cooperative's performance report.
@@ -1116,7 +1305,11 @@ No markdown fences, no explanation, no extra keys."#,
 }
 
 fn build_coop_financial_position_prompt(ctx: &CooperativeNarrativeContext) -> String {
-    let line_items_table = ctx.line_items.as_ref().map(|items| fmt_line_items_table(items)).unwrap_or_else(|| "(no balance sheet data available)".into());
+    let line_items_table = ctx
+        .line_items
+        .as_ref()
+        .map(|items| fmt_line_items_table(items))
+        .unwrap_or_else(|| "(no balance sheet data available)".into());
 
     format!(
         r#"You are a senior financial analyst specializing in SACCO oversight in Eswatini. Your task is to generate a narrative analysis of a cooperative's financial position based on its balance sheet and income statement data.
@@ -1173,9 +1366,22 @@ No markdown fences, no explanation."#,
 }
 
 fn build_coop_portfolio_quality_prompt(ctx: &CooperativeNarrativeContext) -> String {
-    let portfolio_kpis: Vec<_> = ctx.kpis.iter().filter(|k| {
-        matches!(k.name.as_str(), "par30" | "par90" | "npl_ratio" | "loan_loss_coverage" | "gross_loan_portfolio" | "net_loan_portfolio")
-    }).cloned().collect();
+    let portfolio_kpis: Vec<_> = ctx
+        .kpis
+        .iter()
+        .filter(|k| {
+            matches!(
+                k.name.as_str(),
+                "par30"
+                    | "par90"
+                    | "npl_ratio"
+                    | "loan_loss_coverage"
+                    | "gross_loan_portfolio"
+                    | "net_loan_portfolio"
+            )
+        })
+        .cloned()
+        .collect();
     let kpi_table = if portfolio_kpis.is_empty() {
         "(no portfolio quality KPIs available)".into()
     } else {
@@ -1225,9 +1431,10 @@ fn build_coop_non_financial_prompt(ctx: &CooperativeNarrativeContext) -> String 
     let savings = ctx.savings_stats.as_ref();
     let loans = ctx.loan_stats.as_ref();
 
-    let membership_section = nf.map(|m| {
-        format!(
-            "MEMBERSHIP STATISTICS:
+    let membership_section = nf
+        .map(|m| {
+            format!(
+                "MEMBERSHIP STATISTICS:
 - Total Members: {total_members}
 - Active Members: {active_members} ({active_pct}%)
 - Dormant Members: {dormant} ({dormant_pct}%)
@@ -1237,56 +1444,97 @@ fn build_coop_non_financial_prompt(ctx: &CooperativeNarrativeContext) -> String 
 - AGM Attendance: {agm_pct}%
 - Leadership Count: {leadership_count}
 - Voting Participation: {voting_pct}%",
-            total_members = m.total_members,
-            active_members = m.active_members,
-            active_pct = if m.total_members > 0 { m.active_members as f64 / m.total_members as f64 * 100.0 } else { 0.0 },
-            dormant = m.dormant_members,
-            dormant_pct = if m.total_members > 0 { m.dormant_members as f64 / m.total_members as f64 * 100.0 } else { 0.0 },
-            women = m.women_members,
-            women_pct = if m.total_members > 0 { m.women_members as f64 / m.total_members as f64 * 100.0 } else { 0.0 },
-            youth = m.youth_members,
-            youth_pct = if m.total_members > 0 { m.youth_members as f64 / m.total_members as f64 * 100.0 } else { 0.0 },
-            rural = m.rural_members,
-            rural_pct = if m.total_members > 0 { m.rural_members as f64 / m.total_members as f64 * 100.0 } else { 0.0 },
-            agm_pct = m.agm_participation_pct,
-            leadership_count = m.leadership_count,
-            voting_pct = m.voting_participation_pct,
-        )
-    }).unwrap_or_else(|| "(no membership data available)".into());
+                total_members = m.total_members,
+                active_members = m.active_members,
+                active_pct = if m.total_members > 0 {
+                    m.active_members as f64 / m.total_members as f64 * 100.0
+                } else {
+                    0.0
+                },
+                dormant = m.dormant_members,
+                dormant_pct = if m.total_members > 0 {
+                    m.dormant_members as f64 / m.total_members as f64 * 100.0
+                } else {
+                    0.0
+                },
+                women = m.women_members,
+                women_pct = if m.total_members > 0 {
+                    m.women_members as f64 / m.total_members as f64 * 100.0
+                } else {
+                    0.0
+                },
+                youth = m.youth_members,
+                youth_pct = if m.total_members > 0 {
+                    m.youth_members as f64 / m.total_members as f64 * 100.0
+                } else {
+                    0.0
+                },
+                rural = m.rural_members,
+                rural_pct = if m.total_members > 0 {
+                    m.rural_members as f64 / m.total_members as f64 * 100.0
+                } else {
+                    0.0
+                },
+                agm_pct = m.agm_participation_pct,
+                leadership_count = m.leadership_count,
+                voting_pct = m.voting_participation_pct,
+            )
+        })
+        .unwrap_or_else(|| "(no membership data available)".into());
 
-    let savings_section = savings.map(|s| {
-        format!(
-            "SAVINGS PERFORMANCE:
+    let savings_section = savings
+        .map(|s| {
+            format!(
+                "SAVINGS PERFORMANCE:
 - Total Savings Accounts: {total_savings_accounts}
 - Active Savers: {active_savers} ({active_savers_pct}%)
 - Savings Penetration: {savings_penetration}%
 - Average Savings Balance: E {avg_balance}",
-            total_savings_accounts = s.total_savings_accounts,
-            active_savers = s.active_savers,
-            active_savers_pct = if s.total_savings_accounts > 0 { s.active_savers as f64 / s.total_savings_accounts as f64 * 100.0 } else { 0.0 },
-            savings_penetration = s.savings_penetration_pct,
-            avg_balance = s.avg_savings_balance,
-        )
-    }).unwrap_or_else(|| "(no savings data available)".into());
+                total_savings_accounts = s.total_savings_accounts,
+                active_savers = s.active_savers,
+                active_savers_pct = if s.total_savings_accounts > 0 {
+                    s.active_savers as f64 / s.total_savings_accounts as f64 * 100.0
+                } else {
+                    0.0
+                },
+                savings_penetration = s.savings_penetration_pct,
+                avg_balance = s.avg_savings_balance,
+            )
+        })
+        .unwrap_or_else(|| "(no savings data available)".into());
 
-    let loan_section = loans.map(|l| {
-        format!(
-            "LOAN DEMOGRAPHICS:
+    let loan_section = loans
+        .map(|l| {
+            format!(
+                "LOAN DEMOGRAPHICS:
 - Active Borrowers: {active_borrowers}
 - Women Borrowers: {women_borrowers} ({women_pct}%)
 - Youth Borrowers: {youth_borrowers} ({youth_pct}%)
 - Rural Borrowers: {rural_borrowers} ({rural_pct}%)
 - On-Time Repayment Rate: {on_time_repayment}%",
-            active_borrowers = l.active_borrowers,
-            women_borrowers = l.women_borrowers,
-            women_pct = if l.active_borrowers > 0 { l.women_borrowers as f64 / l.active_borrowers as f64 * 100.0 } else { 0.0 },
-            youth_borrowers = l.youth_borrowers,
-            youth_pct = if l.active_borrowers > 0 { l.youth_borrowers as f64 / l.active_borrowers as f64 * 100.0 } else { 0.0 },
-            rural_borrowers = l.rural_borrowers,
-            rural_pct = if l.active_borrowers > 0 { l.rural_borrowers as f64 / l.active_borrowers as f64 * 100.0 } else { 0.0 },
-            on_time_repayment = l.on_time_repayment_pct,
-        )
-    }).unwrap_or_else(|| "(no loan demographic data available)".into());
+                active_borrowers = l.active_borrowers,
+                women_borrowers = l.women_borrowers,
+                women_pct = if l.active_borrowers > 0 {
+                    l.women_borrowers as f64 / l.active_borrowers as f64 * 100.0
+                } else {
+                    0.0
+                },
+                youth_borrowers = l.youth_borrowers,
+                youth_pct = if l.active_borrowers > 0 {
+                    l.youth_borrowers as f64 / l.active_borrowers as f64 * 100.0
+                } else {
+                    0.0
+                },
+                rural_borrowers = l.rural_borrowers,
+                rural_pct = if l.active_borrowers > 0 {
+                    l.rural_borrowers as f64 / l.active_borrowers as f64 * 100.0
+                } else {
+                    0.0
+                },
+                on_time_repayment = l.on_time_repayment_pct,
+            )
+        })
+        .unwrap_or_else(|| "(no loan demographic data available)".into());
 
     format!(
         r#"You are a social impact analyst specializing in SACCO cooperatives in Eswatini. Your task is to generate a narrative analysis of a cooperative's non-financial performance indicators.
@@ -1332,12 +1580,33 @@ No markdown fences, no explanation."#,
 
 fn build_coop_benchmark_comparison_prompt(ctx: &CooperativeNarrativeContext) -> String {
     let kpi_table = fmt_kpi_table(&ctx.kpis);
-    let green_count = ctx.kpis.iter().filter(|k| k.status.as_deref() == Some("green")).count();
-    let amber_count = ctx.kpis.iter().filter(|k| k.status.as_deref() == Some("amber")).count();
-    let red_count = ctx.kpis.iter().filter(|k| k.status.as_deref() == Some("red")).count();
-    let sector_avg_par30 = ctx.sector_avg_par30.map(|v| format!("{v:.1}%")).unwrap_or_else(|| "N/A".into());
-    let national_avg_par30 = ctx.national_avg_par30.map(|v| format!("{v:.1}%")).unwrap_or_else(|| "N/A".into());
-    let sector_avg_car = ctx.sector_avg_car.map(|v| format!("{v:.1}%")).unwrap_or_else(|| "N/A".into());
+    let green_count = ctx
+        .kpis
+        .iter()
+        .filter(|k| k.status.as_deref() == Some("green"))
+        .count();
+    let amber_count = ctx
+        .kpis
+        .iter()
+        .filter(|k| k.status.as_deref() == Some("amber"))
+        .count();
+    let red_count = ctx
+        .kpis
+        .iter()
+        .filter(|k| k.status.as_deref() == Some("red"))
+        .count();
+    let sector_avg_par30 = ctx
+        .sector_avg_par30
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "N/A".into());
+    let national_avg_par30 = ctx
+        .national_avg_par30
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "N/A".into());
+    let sector_avg_car = ctx
+        .sector_avg_car
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "N/A".into());
 
     format!(
         r#"You are a PEARLS framework analyst for SACCO cooperatives in Eswatini. Your task is to generate a narrative comparing a cooperative's KPIs against PEARLS benchmarks and sector averages.
@@ -1395,21 +1664,49 @@ No markdown fences, no explanation."#,
 
 fn build_apex_executive_dashboard_prompt(ctx: &ApexNarrativeContext) -> String {
     let dist_table = fmt_distributions(&ctx.distributions);
-    let top: String = ctx.cooperatives.iter().take(5).map(|c| c.name.clone()).collect::<Vec<_>>().join(", ");
-    let high_risk: Vec<_> = ctx.cooperatives.iter().filter(|c| {
-        ["par30", "par90", "roa", "roe", "capital_adequacy_ratio", "liquid_funds_ratio", "operational_self_sufficiency"]
+    let top: String = ctx
+        .cooperatives
+        .iter()
+        .take(5)
+        .map(|c| c.name.clone())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let high_risk: Vec<_> = ctx
+        .cooperatives
+        .iter()
+        .filter(|c| {
+            [
+                "par30",
+                "par90",
+                "roa",
+                "roe",
+                "capital_adequacy_ratio",
+                "liquid_funds_ratio",
+                "operational_self_sufficiency",
+            ]
             .iter()
             .filter(|kpi| {
                 let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
                 match **kpi {
                     "par30" | "par90" => val > 10.0,
-                    "roa" | "roe" | "capital_adequacy_ratio" | "liquid_funds_ratio" | "operational_self_sufficiency" => val < 1.0,
+                    "roa"
+                    | "roe"
+                    | "capital_adequacy_ratio"
+                    | "liquid_funds_ratio"
+                    | "operational_self_sufficiency" => val < 1.0,
                     _ => false,
                 }
             })
-            .count() >= 3
-    }).map(|c| c.name.clone()).collect::<Vec<_>>();
-    let attention = if high_risk.is_empty() { "None".into() } else { high_risk.join(", ") };
+            .count()
+                >= 3
+        })
+        .map(|c| c.name.clone())
+        .collect::<Vec<_>>();
+    let attention = if high_risk.is_empty() {
+        "None".into()
+    } else {
+        high_risk.join(", ")
+    };
 
     format!(
         r#"You are a senior regulatory analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative overview of cooperative sector performance at the Apex level.
@@ -1459,7 +1756,11 @@ No markdown fences, no explanation."#,
         reporting_year = ctx.reporting_year,
         total_coops = ctx.total_coops,
         coops_with_data = ctx.coops_with_data,
-        filing_rate = if ctx.total_coops > 0 { ctx.coops_with_data as f64 / ctx.total_coops as f64 * 100.0 } else { 0.0 },
+        filing_rate = if ctx.total_coops > 0 {
+            ctx.coops_with_data as f64 / ctx.total_coops as f64 * 100.0
+        } else {
+            0.0
+        },
         dist_table = dist_table,
         top = top,
         attention = attention,
@@ -1517,19 +1818,36 @@ No markdown fences, no explanation."#,
 
 fn build_apex_risk_watch_prompt(ctx: &ApexNarrativeContext) -> String {
     let high_risk_table = fmt_high_risk_table(&ctx.cooperatives);
-    let high_risk_count = ctx.cooperatives.iter().filter(|c| {
-        ["par30", "par90", "roa", "roe", "capital_adequacy_ratio", "liquid_funds_ratio", "operational_self_sufficiency"]
+    let high_risk_count = ctx
+        .cooperatives
+        .iter()
+        .filter(|c| {
+            [
+                "par30",
+                "par90",
+                "roa",
+                "roe",
+                "capital_adequacy_ratio",
+                "liquid_funds_ratio",
+                "operational_self_sufficiency",
+            ]
             .iter()
             .filter(|kpi| {
                 let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
                 match **kpi {
                     "par30" | "par90" => val > 10.0,
-                    "roa" | "roe" | "capital_adequacy_ratio" | "liquid_funds_ratio" | "operational_self_sufficiency" => val < 1.0,
+                    "roa"
+                    | "roe"
+                    | "capital_adequacy_ratio"
+                    | "liquid_funds_ratio"
+                    | "operational_self_sufficiency" => val < 1.0,
                     _ => false,
                 }
             })
-            .count() >= 3
-    }).count();
+            .count()
+                >= 3
+        })
+        .count();
 
     format!(
         r#"You are a regulatory risk analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative risk assessment for cooperatives flagged as high-risk.
@@ -1574,8 +1892,19 @@ No markdown fences, no explanation."#,
 
 fn build_fed_executive_dashboard_prompt(ctx: &FederationNarrativeContext) -> String {
     let dist_table = fmt_distributions(&ctx.distributions);
-    let top: String = ctx.apexes.iter().flat_map(|a| a.cooperatives.iter()).take(5).map(|c| c.name.clone()).collect::<Vec<_>>().join(", ");
-    let filing_rate = if ctx.total_coops > 0 { ctx.coops_with_data as f64 / ctx.total_coops as f64 * 100.0 } else { 0.0 };
+    let top: String = ctx
+        .apexes
+        .iter()
+        .flat_map(|a| a.cooperatives.iter())
+        .take(5)
+        .map(|c| c.name.clone())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let filing_rate = if ctx.total_coops > 0 {
+        ctx.coops_with_data as f64 / ctx.total_coops as f64 * 100.0
+    } else {
+        0.0
+    };
 
     format!(
         r#"You are a senior regulatory analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a narrative overview of cooperative sector performance at the Federation level.
@@ -1682,7 +2011,11 @@ No markdown fences, no explanation."#,
 }
 
 fn build_fed_sector_breakdown_prompt(ctx: &FederationNarrativeContext) -> String {
-    let all_coops: Vec<CoopKpiRowData> = ctx.apexes.iter().flat_map(|a| a.cooperatives.iter().cloned()).collect();
+    let all_coops: Vec<CoopKpiRowData> = ctx
+        .apexes
+        .iter()
+        .flat_map(|a| a.cooperatives.iter().cloned())
+        .collect();
     let sector_table = fmt_sector_distribution(&all_coops);
 
     format!(
@@ -1733,19 +2066,27 @@ fn build_fed_apex_comparison_prompt(ctx: &FederationNarrativeContext) -> String 
             0.0
         };
         let avg_par30 = if !apex.cooperatives.is_empty() {
-            apex.cooperatives.iter().map(|c| c.kpis.get("par30").copied().unwrap_or(0.0)).sum::<f64>()
+            apex.cooperatives
+                .iter()
+                .map(|c| c.kpis.get("par30").copied().unwrap_or(0.0))
+                .sum::<f64>()
                 / apex.cooperatives.len() as f64
         } else {
             0.0
         };
         let avg_roa = if !apex.cooperatives.is_empty() {
-            apex.cooperatives.iter().map(|c| c.kpis.get("roa").copied().unwrap_or(0.0)).sum::<f64>()
+            apex.cooperatives
+                .iter()
+                .map(|c| c.kpis.get("roa").copied().unwrap_or(0.0))
+                .sum::<f64>()
                 / apex.cooperatives.len() as f64
         } else {
             0.0
         };
-        apex_rows.push(format!("| {} | {} | {} | {:.1}% | {:.1}% | {:.1}% |",
-            apex.apex_name, apex.total_coops, apex.coops_with_data, filing_rate, avg_par30, avg_roa));
+        apex_rows.push(format!(
+            "| {} | {} | {} | {:.1}% | {:.1}% | {:.1}% |",
+            apex.apex_name, apex.total_coops, apex.coops_with_data, filing_rate, avg_par30, avg_roa
+        ));
     }
     let apex_table = if apex_rows.is_empty() {
         "(no apex data available)".into()
@@ -1798,7 +2139,11 @@ No markdown fences, no explanation."#,
 }
 
 fn build_fed_pearls_analysis_prompt(ctx: &FederationNarrativeContext) -> String {
-    let all_coops: Vec<CoopKpiRowData> = ctx.apexes.iter().flat_map(|a| a.cooperatives.iter().cloned()).collect();
+    let all_coops: Vec<CoopKpiRowData> = ctx
+        .apexes
+        .iter()
+        .flat_map(|a| a.cooperatives.iter().cloned())
+        .collect();
     let pearls_table = fmt_pearls_compliance(&all_coops);
 
     format!(
@@ -1842,22 +2187,54 @@ No markdown fences, no explanation."#,
 
 fn build_ministry_executive_dashboard_prompt(ctx: &MinistryNarrativeContext) -> String {
     let dist_table = fmt_distributions(&ctx.distributions);
-    let top: String = ctx.cooperatives.iter().take(5).map(|c| c.name.clone()).collect::<Vec<_>>().join(", ");
-    let high_risk: Vec<_> = ctx.cooperatives.iter().filter(|c| {
-        ["par30", "par90", "roa", "roe", "capital_adequacy_ratio", "liquid_funds_ratio", "operational_self_sufficiency"]
+    let top: String = ctx
+        .cooperatives
+        .iter()
+        .take(5)
+        .map(|c| c.name.clone())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let high_risk: Vec<_> = ctx
+        .cooperatives
+        .iter()
+        .filter(|c| {
+            [
+                "par30",
+                "par90",
+                "roa",
+                "roe",
+                "capital_adequacy_ratio",
+                "liquid_funds_ratio",
+                "operational_self_sufficiency",
+            ]
             .iter()
             .filter(|kpi| {
                 let val = c.kpis.get(**kpi).copied().unwrap_or(0.0);
                 match **kpi {
                     "par30" | "par90" => val > 10.0,
-                    "roa" | "roe" | "capital_adequacy_ratio" | "liquid_funds_ratio" | "operational_self_sufficiency" => val < 1.0,
+                    "roa"
+                    | "roe"
+                    | "capital_adequacy_ratio"
+                    | "liquid_funds_ratio"
+                    | "operational_self_sufficiency" => val < 1.0,
                     _ => false,
                 }
             })
-            .count() >= 3
-    }).map(|c| c.name.clone()).collect::<Vec<_>>();
-    let attention = if high_risk.is_empty() { "None".into() } else { high_risk.join(", ") };
-    let filing_rate = if ctx.total_coops > 0 { ctx.coops_with_data as f64 / ctx.total_coops as f64 * 100.0 } else { 0.0 };
+            .count()
+                >= 3
+        })
+        .map(|c| c.name.clone())
+        .collect::<Vec<_>>();
+    let attention = if high_risk.is_empty() {
+        "None".into()
+    } else {
+        high_risk.join(", ")
+    };
+    let filing_rate = if ctx.total_coops > 0 {
+        ctx.coops_with_data as f64 / ctx.total_coops as f64 * 100.0
+    } else {
+        0.0
+    };
 
     format!(
         r#"You are a senior regulatory analyst for the Ministry of Commerce, Industry and Energy in Eswatini. Your task is to generate a national overview narrative of the cooperative sector.
@@ -2010,13 +2387,25 @@ fn build_ministry_apex_comparison_prompt(ctx: &MinistryNarrativeContext) -> Stri
     for (sector, list) in &by_sector {
         let total = list.len();
         let filed = list.iter().filter(|c| c.kpis.contains_key("par30")).count();
-        let filing_rate = if total > 0 { filed as f64 / total as f64 * 100.0 } else { 0.0 };
-        let avg_par30 = list.iter().map(|c| c.kpis.get("par30").copied().unwrap_or(0.0)).sum::<f64>()
+        let filing_rate = if total > 0 {
+            filed as f64 / total as f64 * 100.0
+        } else {
+            0.0
+        };
+        let avg_par30 = list
+            .iter()
+            .map(|c| c.kpis.get("par30").copied().unwrap_or(0.0))
+            .sum::<f64>()
             / if total > 0 { total as f64 } else { 1.0 };
-        let avg_roa = list.iter().map(|c| c.kpis.get("roa").copied().unwrap_or(0.0)).sum::<f64>()
+        let avg_roa = list
+            .iter()
+            .map(|c| c.kpis.get("roa").copied().unwrap_or(0.0))
+            .sum::<f64>()
             / if total > 0 { total as f64 } else { 1.0 };
-        sector_rows.push(format!("| {} | {} | {} | {:.1}% | {:.1}% | {:.1}% |",
-            sector, total, filed, filing_rate, avg_par30, avg_roa));
+        sector_rows.push(format!(
+            "| {} | {} | {} | {:.1}% | {:.1}% | {:.1}% |",
+            sector, total, filed, filing_rate, avg_par30, avg_roa
+        ));
     }
     let sector_table = if sector_rows.is_empty() {
         "(no sector data available)".into()
@@ -2147,7 +2536,11 @@ pub fn build_cooperative_context(
         .collect();
 
     let find_kpi = |records: &[crate::entities::kpi_record::Model], name: &str| -> f64 {
-        records.iter().find(|r| r.kpi_name == name).map(|r| r.value).unwrap_or(0.0)
+        records
+            .iter()
+            .find(|r| r.kpi_name == name)
+            .map(|r| r.value)
+            .unwrap_or(0.0)
     };
 
     let total_assets = find_kpi(kpi_records, "total_assets");
@@ -2172,9 +2565,21 @@ pub fn build_cooperative_context(
 
     CooperativeNarrativeContext {
         coop_name: coop.name.clone(),
-        region: coop.region.as_ref().map(|r| format!("{r:?}")).unwrap_or_default(),
-        sector: coop.sector.as_ref().map(|s| s.as_str().to_string()).unwrap_or_default(),
-        institution_type: coop.institution_type.as_ref().map(|t| format!("{t:?}")).unwrap_or_default(),
+        region: coop
+            .region
+            .as_ref()
+            .map(|r| format!("{r:?}"))
+            .unwrap_or_default(),
+        sector: coop
+            .sector
+            .as_ref()
+            .map(|s| s.as_str().to_string())
+            .unwrap_or_default(),
+        institution_type: coop
+            .institution_type
+            .as_ref()
+            .map(|t| format!("{t:?}"))
+            .unwrap_or_default(),
         reg_no: coop.reg_no.clone().unwrap_or_default(),
         reporting_year: submission.reporting_year,
         kpis,
@@ -2213,7 +2618,8 @@ pub fn build_apex_context(
             if sub.is_none() {
                 return None;
             }
-            let kpi_map: HashMap<String, f64> = kpis.iter().map(|r| (r.kpi_name.clone(), r.value)).collect();
+            let kpi_map: HashMap<String, f64> =
+                kpis.iter().map(|r| (r.kpi_name.clone(), r.value)).collect();
             Some(CoopKpiRowData {
                 name: coop.name.clone(),
                 sector: coop.sector.as_ref().map(|s| s.as_str().to_string()),
@@ -2258,7 +2664,10 @@ pub fn build_federation_context(
         .map(|(apex, coops)| build_apex_context(apex, coops, reporting_year))
         .collect();
 
-    let all_coops: Vec<_> = apexes_data.iter().flat_map(|(_, coops)| coops.iter().cloned()).collect();
+    let all_coops: Vec<_> = apexes_data
+        .iter()
+        .flat_map(|(_, coops)| coops.iter().cloned())
+        .collect();
     let total_coops = all_coops.len() as u64;
     let coops_with_data = all_coops.iter().filter(|(_, s, _)| s.is_some()).count() as u64;
 
@@ -2289,7 +2698,8 @@ pub fn build_ministry_context(
             if sub.is_none() {
                 return None;
             }
-            let kpi_map: HashMap<String, f64> = kpis.iter().map(|r| (r.kpi_name.clone(), r.value)).collect();
+            let kpi_map: HashMap<String, f64> =
+                kpis.iter().map(|r| (r.kpi_name.clone(), r.value)).collect();
             Some(CoopKpiRowData {
                 name: coop.name.clone(),
                 sector: coop.sector.as_ref().map(|s| s.as_str().to_string()),
@@ -2315,7 +2725,11 @@ pub fn build_ministry_context(
 }
 
 fn compute_traffic_light_distributions(
-    coops_data: &[(crate::entities::cooperative::Model, Option<crate::entities::submission::Model>, Vec<crate::entities::kpi_record::Model>)],
+    coops_data: &[(
+        crate::entities::cooperative::Model,
+        Option<crate::entities::submission::Model>,
+        Vec<crate::entities::kpi_record::Model>,
+    )],
 ) -> HashMap<String, TrafficLightData> {
     let mut by_kpi: HashMap<String, Vec<&crate::entities::kpi_record::Model>> = HashMap::new();
     for (_, _, kpis) in coops_data {
@@ -2328,9 +2742,18 @@ fn compute_traffic_light_distributions(
         .into_iter()
         .map(|(name, records)| {
             let total = records.len() as f64;
-            let green = records.iter().filter(|r| r.status.as_deref() == Some("green")).count() as f64;
-            let amber = records.iter().filter(|r| r.status.as_deref() == Some("amber")).count() as f64;
-            let red = records.iter().filter(|r| r.status.as_deref() == Some("red")).count() as f64;
+            let green = records
+                .iter()
+                .filter(|r| r.status.as_deref() == Some("green"))
+                .count() as f64;
+            let amber = records
+                .iter()
+                .filter(|r| r.status.as_deref() == Some("amber"))
+                .count() as f64;
+            let red = records
+                .iter()
+                .filter(|r| r.status.as_deref() == Some("red"))
+                .count() as f64;
             let no_data = total - green - amber - red;
             let avg = if total > 0.0 {
                 Some(records.iter().map(|r| r.value).sum::<f64>() / total)
@@ -2338,16 +2761,35 @@ fn compute_traffic_light_distributions(
                 None
             };
 
-            (name, TrafficLightData {
-                green_pct: if total > 0.0 { green / total * 100.0 } else { 0.0 },
-                amber_pct: if total > 0.0 { amber / total * 100.0 } else { 0.0 },
-                red_pct: if total > 0.0 { red / total * 100.0 } else { 0.0 },
-                no_data_pct: if total > 0.0 { no_data / total * 100.0 } else { 0.0 },
-                green_count: green as u64,
-                amber_count: amber as u64,
-                red_count: red as u64,
-                national_avg: avg,
-            })
+            (
+                name,
+                TrafficLightData {
+                    green_pct: if total > 0.0 {
+                        green / total * 100.0
+                    } else {
+                        0.0
+                    },
+                    amber_pct: if total > 0.0 {
+                        amber / total * 100.0
+                    } else {
+                        0.0
+                    },
+                    red_pct: if total > 0.0 {
+                        red / total * 100.0
+                    } else {
+                        0.0
+                    },
+                    no_data_pct: if total > 0.0 {
+                        no_data / total * 100.0
+                    } else {
+                        0.0
+                    },
+                    green_count: green as u64,
+                    amber_count: amber as u64,
+                    red_count: red as u64,
+                    national_avg: avg,
+                },
+            )
         })
         .collect()
 }

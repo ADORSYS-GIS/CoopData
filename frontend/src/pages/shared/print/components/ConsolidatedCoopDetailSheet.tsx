@@ -72,23 +72,47 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
   return (
     <div className="report-sheet relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white break-after-page font-sans">
       <div>
-        <h2 className="text-xl font-bold text-blue-800 mb-4">{t("printReports.coopDetail.cooperativeDetail")}</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">
+          {t("printReports.coopDetail.cooperativeDetail")}
+        </h2>
 
         <table className="w-full text-left text-[9px] mb-8 border-collapse border border-slate-300">
           <thead>
             <tr className="bg-slate-900 text-white leading-tight">
               <th className="p-2 border border-slate-700">{t("printReports.coopDetail.coop")}</th>
-              <th className="p-2 border border-slate-700 text-center">{t("printReports.coopDetail.status")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.assets")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.glp")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.deposits")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.equity")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.surplus")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.par30")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.car")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.roa")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.roe")}</th>
-              <th className="p-2 border border-slate-700 text-right">{t("printReports.coopDetail.oer")}</th>
+              <th className="p-2 border border-slate-700 text-center">
+                {t("printReports.coopDetail.status")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.assets")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.glp")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.deposits")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.equity")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.surplus")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.par30")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.car")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.roa")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.roe")}
+              </th>
+              <th className="p-2 border border-slate-700 text-right">
+                {t("printReports.coopDetail.oer")}
+              </th>
             </tr>
           </thead>
           <tbody>

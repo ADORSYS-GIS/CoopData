@@ -246,10 +246,10 @@ export function ManualEntryWizard() {
         ? existingLineItemsLoading
         : false
       : existingMembersLoading ||
-      existingSavingsLoading ||
-      existingLoansLoading ||
-      existingDepositsLoading ||
-      existingFarmLoading);
+        existingSavingsLoading ||
+        existingLoansLoading ||
+        existingDepositsLoading ||
+        existingFarmLoading);
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
@@ -623,12 +623,7 @@ export function ManualEntryWizard() {
 
   // ── Delete actions ──
   const handleDeleteFinancial = async () => {
-    if (
-      !window.confirm(
-        t("manualEntry.confirmDeleteFinancial"),
-      )
-    )
-      return;
+    if (!window.confirm(t("manualEntry.confirmDeleteFinancial"))) return;
     try {
       await deleteFinancialStatement.mutateAsync();
       setFinancialData(createEmptyFinancialGrid());
@@ -639,12 +634,7 @@ export function ManualEntryWizard() {
   };
 
   const handleDeleteNonFinancial = async () => {
-    if (
-      !window.confirm(
-        t("manualEntry.confirmDeleteNonFinancial"),
-      )
-    )
-      return;
+    if (!window.confirm(t("manualEntry.confirmDeleteNonFinancial"))) return;
     try {
       await deleteNonFinancialData.mutateAsync();
       setMembers([]);
@@ -919,95 +909,95 @@ export function ManualEntryWizard() {
       savings_accounts:
         savings.length > 0
           ? savings.map((s) => ({
-            member_business_id: s.memberBusinessId,
-            savings_account_id: s.savingsAccountId,
-            account_type: s.accountType,
-            account_opening_date: s.accountOpeningDate,
-            account_status: s.accountStatus,
-            contribution_frequency: s.contributionFrequency,
-            last_contribution_date: s.lastContributionDate || null,
-            number_of_contributions: Number(s.numberOfContributions) || 0,
-            balance_trend: s.balanceTrend,
-            zero_balance_flag: s.zeroBalanceFlag,
-            withdrawal_frequency_category: s.withdrawalFrequencyCategory,
-            emergency_withdrawals_flag: s.emergencyWithdrawalsFlag,
-            interest_rate: Number(s.interestRate) || 0,
-            balance: Number(s.balance) || 0,
-          }))
+              member_business_id: s.memberBusinessId,
+              savings_account_id: s.savingsAccountId,
+              account_type: s.accountType,
+              account_opening_date: s.accountOpeningDate,
+              account_status: s.accountStatus,
+              contribution_frequency: s.contributionFrequency,
+              last_contribution_date: s.lastContributionDate || null,
+              number_of_contributions: Number(s.numberOfContributions) || 0,
+              balance_trend: s.balanceTrend,
+              zero_balance_flag: s.zeroBalanceFlag,
+              withdrawal_frequency_category: s.withdrawalFrequencyCategory,
+              emergency_withdrawals_flag: s.emergencyWithdrawalsFlag,
+              interest_rate: Number(s.interestRate) || 0,
+              balance: Number(s.balance) || 0,
+            }))
           : null,
       loans:
         loans.length > 0
           ? loans.map((l) => ({
-            member_business_id: l.memberBusinessId,
-            loan_id: l.loanId,
-            loan_product_type: l.loanProductType,
-            loan_start_date: l.loanStartDate,
-            loan_maturity_date: l.loanMaturityDate,
-            loan_status: l.loanStatus,
-            borrower_type: l.borrowerType,
-            youth_borrower_flag: l.youthBorrowerFlag,
-            women_borrower_flag: l.womenBorrowerFlag,
-            rural_borrower_flag: l.ruralBorrowerFlag,
-            repayment_regularity: l.repaymentRegularity,
-            days_past_due_category: mapDpdCategory(l.daysPastDueCategory),
-            missed_installments_count: Number(l.missedInstallmentsCount) || 0,
-            restructured_loan_flag: l.restructuredLoanFlag,
-            number_of_restructurings: Number(l.numberOfRestructurings) || 0,
-            early_settlement_flag: l.earlySettlementFlag,
-            multiple_loans_flag: l.multipleLoansFlag,
-            large_borrower_flag: l.largeBorrowerFlag,
-            interest_rate: Number(l.interestRate) || 0,
-            balance: Number(l.balance) || 0,
-            loan_amount: Number(l.loanAmount) || 0,
-          }))
+              member_business_id: l.memberBusinessId,
+              loan_id: l.loanId,
+              loan_product_type: l.loanProductType,
+              loan_start_date: l.loanStartDate,
+              loan_maturity_date: l.loanMaturityDate,
+              loan_status: l.loanStatus,
+              borrower_type: l.borrowerType,
+              youth_borrower_flag: l.youthBorrowerFlag,
+              women_borrower_flag: l.womenBorrowerFlag,
+              rural_borrower_flag: l.ruralBorrowerFlag,
+              repayment_regularity: l.repaymentRegularity,
+              days_past_due_category: mapDpdCategory(l.daysPastDueCategory),
+              missed_installments_count: Number(l.missedInstallmentsCount) || 0,
+              restructured_loan_flag: l.restructuredLoanFlag,
+              number_of_restructurings: Number(l.numberOfRestructurings) || 0,
+              early_settlement_flag: l.earlySettlementFlag,
+              multiple_loans_flag: l.multipleLoansFlag,
+              large_borrower_flag: l.largeBorrowerFlag,
+              interest_rate: Number(l.interestRate) || 0,
+              balance: Number(l.balance) || 0,
+              loan_amount: Number(l.loanAmount) || 0,
+            }))
           : null,
       fixed_deposits:
         fixedDeposits.length > 0
           ? fixedDeposits.map((f) => ({
-            member_business_id: f.memberBusinessId,
-            fixed_deposit_id: f.fixedDepositId,
-            deposit_type: f.depositType,
-            start_date: f.startDate,
-            maturity_date: f.maturityDate,
-            status: f.status,
-            tenure_category: f.tenureCategory,
-            original_tenure_selected: f.originalTenureSelected,
-            early_withdrawal_flag: f.earlyWithdrawalFlag,
-            rollover_at_maturity_flag: f.rolloverAtMaturityFlag,
-            number_of_renewals: Number(f.numberOfRenewals) || 0,
-            change_in_tenure_at_renewal: f.changeInTenureAtRenewal,
-            single_depositor_dependency_flag: f.singleDepositorDependencyFlag,
-            interest_rate: Number(f.interestRate) || 0,
-            balance: Number(f.balance) || 0,
-          }))
+              member_business_id: f.memberBusinessId,
+              fixed_deposit_id: f.fixedDepositId,
+              deposit_type: f.depositType,
+              start_date: f.startDate,
+              maturity_date: f.maturityDate,
+              status: f.status,
+              tenure_category: f.tenureCategory,
+              original_tenure_selected: f.originalTenureSelected,
+              early_withdrawal_flag: f.earlyWithdrawalFlag,
+              rollover_at_maturity_flag: f.rolloverAtMaturityFlag,
+              number_of_renewals: Number(f.numberOfRenewals) || 0,
+              change_in_tenure_at_renewal: f.changeInTenureAtRenewal,
+              single_depositor_dependency_flag: f.singleDepositorDependencyFlag,
+              interest_rate: Number(f.interestRate) || 0,
+              balance: Number(f.balance) || 0,
+            }))
           : null,
       farm_coop: farmCoop.cooperativeType
         ? [
-          {
-            cooperative_type: farmCoop.cooperativeType,
-            primary_activities: farmCoop.primaryActivities,
-            year_of_establishment: Number(farmCoop.yearOfEstablishment) || null,
-            operational_status: farmCoop.operationalStatus,
-            active_producer_flag: farmCoop.activeProducerFlag,
-            production_type: farmCoop.productionType,
-            participation_frequency: farmCoop.participationFrequency,
-            delivery_compliance: farmCoop.deliveryCompliance,
-            production_cycle_type: farmCoop.productionCycleType,
-            use_of_production_planning: farmCoop.useOfProductionPlanning,
-            use_of_shared_inputs: farmCoop.useOfSharedInputs,
-            quality_compliance_flag: farmCoop.qualityComplianceFlag,
-            market_channel_type: farmCoop.marketChannelType,
-            formal_offtake_agreement: farmCoop.formalOfftakeAgreement,
-            buyer_concentration_flag: farmCoop.buyerConcentrationFlag,
-            price_predictability_category: farmCoop.pricePredictabilityCategory,
-            access_to_storage: farmCoop.accessToStorage,
-            access_to_processing_facilities: farmCoop.accessToProcessingFacilities,
-            transport_coordination: farmCoop.transportCoordination,
-            climate_exposure_type: farmCoop.climateExposureType,
-            irrigation_access: farmCoop.irrigationAccess,
-            climate_mitigation_practices: farmCoop.climateMitigationPractices,
-          },
-        ]
+            {
+              cooperative_type: farmCoop.cooperativeType,
+              primary_activities: farmCoop.primaryActivities,
+              year_of_establishment: Number(farmCoop.yearOfEstablishment) || null,
+              operational_status: farmCoop.operationalStatus,
+              active_producer_flag: farmCoop.activeProducerFlag,
+              production_type: farmCoop.productionType,
+              participation_frequency: farmCoop.participationFrequency,
+              delivery_compliance: farmCoop.deliveryCompliance,
+              production_cycle_type: farmCoop.productionCycleType,
+              use_of_production_planning: farmCoop.useOfProductionPlanning,
+              use_of_shared_inputs: farmCoop.useOfSharedInputs,
+              quality_compliance_flag: farmCoop.qualityComplianceFlag,
+              market_channel_type: farmCoop.marketChannelType,
+              formal_offtake_agreement: farmCoop.formalOfftakeAgreement,
+              buyer_concentration_flag: farmCoop.buyerConcentrationFlag,
+              price_predictability_category: farmCoop.pricePredictabilityCategory,
+              access_to_storage: farmCoop.accessToStorage,
+              access_to_processing_facilities: farmCoop.accessToProcessingFacilities,
+              transport_coordination: farmCoop.transportCoordination,
+              climate_exposure_type: farmCoop.climateExposureType,
+              irrigation_access: farmCoop.irrigationAccess,
+              climate_mitigation_practices: farmCoop.climateMitigationPractices,
+            },
+          ]
         : null,
     });
   };
@@ -1039,11 +1029,15 @@ export function ManualEntryWizard() {
   if (isDataLoading) {
     return (
       <AppShell
-        title={isFinancialWizard ? t("manualEntry.headerFinancial") : t("manualEntry.headerNonFinancial")}
+        title={
+          isFinancialWizard ? t("manualEntry.headerFinancial") : t("manualEntry.headerNonFinancial")
+        }
       >
         <div className="max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center space-y-4 font-sans">
           <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-medium">{t("manualEntry.loadingData")}</p>
+          <p className="text-sm text-muted-foreground font-medium">
+            {t("manualEntry.loadingData")}
+          </p>
         </div>
       </AppShell>
     );
@@ -1051,7 +1045,9 @@ export function ManualEntryWizard() {
 
   return (
     <AppShell
-      title={isFinancialWizard ? t("manualEntry.headerFinancial") : t("manualEntry.headerNonFinancial")}
+      title={
+        isFinancialWizard ? t("manualEntry.headerFinancial") : t("manualEntry.headerNonFinancial")
+      }
     >
       <div className="max-w-[96%] mx-auto px-4 py-6 space-y-6">
         {/* Header */}
@@ -1090,12 +1086,13 @@ export function ManualEntryWizard() {
                 <div key={sItem.id} className="flex items-center flex-shrink-0">
                   <div
                     onClick={() => setStep(sItem.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ${active
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ${
+                      active
                         ? "bg-primary text-primary-foreground shadow-sm cursor-default"
                         : filled
                           ? "text-success hover:bg-success/5"
                           : "text-muted-foreground/75 hover:bg-muted/30"
-                      }`}
+                    }`}
                   >
                     {filled ? (
                       <CheckCircle2 className="size-4 text-success" />
@@ -1167,12 +1164,13 @@ export function ManualEntryWizard() {
               )}
               {/* Balance checker pill */}
               <div
-                className={`ml-auto flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl ${isBalanced && totalAssets > 0
+                className={`ml-auto flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl ${
+                  isBalanced && totalAssets > 0
                     ? "bg-success/10 text-success"
                     : totalAssets === 0
                       ? "bg-muted text-muted-foreground"
                       : "bg-warning/10 text-warning-foreground"
-                  }`}
+                }`}
               >
                 {isBalanced && totalAssets > 0 ? (
                   <CheckCircle2 className="size-3.5" />
@@ -1184,7 +1182,9 @@ export function ManualEntryWizard() {
                   ? t("manualEntry.enterAmounts")
                   : isBalanced
                     ? t("manualEntry.periodBalanced")
-                    : t("manualEntry.periodGap", { gap: fmt(Math.abs(totalAssets - totalLiabilities - totalEquity)) })}
+                    : t("manualEntry.periodGap", {
+                        gap: fmt(Math.abs(totalAssets - totalLiabilities - totalEquity)),
+                      })}
               </div>
             </>
           )}
@@ -1200,9 +1200,7 @@ export function ManualEntryWizard() {
                     setLoans(mock.loans);
                     setFixedDeposits(mock.fixedDeposits);
                     setFarmCoop(mock.farmCoop);
-                    toast.success(
-                      t("manualEntry.toastPopulateNonFinancial"),
-                    );
+                    toast.success(t("manualEntry.toastPopulateNonFinancial"));
                   }}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-colors cursor-pointer focus:outline-none"
                 >
@@ -1295,7 +1293,9 @@ export function ManualEntryWizard() {
           <ErrorBoundary stepName={t("manualEntry.steps.farm")}>
             <Card className="p-6">
               <div className="border-b border-border pb-4 mb-6 font-sans">
-                <h3 className="text-sm font-bold text-foreground">{t("manualEntry.farmProfileTitle")}</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  {t("manualEntry.farmProfileTitle")}
+                </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t("manualEntry.farmProfileDesc")}
                 </p>
@@ -1326,10 +1326,14 @@ export function ManualEntryWizard() {
                       <div className="size-8 rounded-lg bg-primary/10 grid place-items-center">
                         <Users className="size-4 text-primary" />
                       </div>
-                      <h3 className="text-sm font-bold text-foreground">{t("manualEntry.reviewMembersTitle")}</h3>
+                      <h3 className="text-sm font-bold text-foreground">
+                        {t("manualEntry.reviewMembersTitle")}
+                      </h3>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t("manualEntry.reviewTotalMembers")}</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewTotalMembers")}
+                      </span>
                       <span className="font-mono font-semibold">{members.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
@@ -1339,7 +1343,9 @@ export function ManualEntryWizard() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t("manualEntry.reviewFemaleMembers")}</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewFemaleMembers")}
+                      </span>
                       <span className="font-mono font-semibold">
                         {members.filter((m) => m.gender === "Female").length}
                       </span>
@@ -1352,10 +1358,14 @@ export function ManualEntryWizard() {
                       <div className="size-8 rounded-lg bg-accent/10 grid place-items-center">
                         <DollarSign className="size-4 text-accent" />
                       </div>
-                      <h3 className="text-sm font-bold text-foreground">{t("manualEntry.reviewLedgersTitle")}</h3>
+                      <h3 className="text-sm font-bold text-foreground">
+                        {t("manualEntry.reviewLedgersTitle")}
+                      </h3>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t("manualEntry.reviewSavings")}</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewSavings")}
+                      </span>
                       <span className="font-mono font-semibold">{savings.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
@@ -1363,7 +1373,9 @@ export function ManualEntryWizard() {
                       <span className="font-mono font-semibold">{loans.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t("manualEntry.reviewDeposits")}</span>
+                      <span className="text-muted-foreground">
+                        {t("manualEntry.reviewDeposits")}
+                      </span>
                       <span className="font-mono font-semibold">{fixedDeposits.length}</span>
                     </div>
                   </Card>

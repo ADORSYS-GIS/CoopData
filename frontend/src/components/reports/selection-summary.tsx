@@ -75,8 +75,7 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <Layers className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              {t("selectionSummary.apex")}:{" "}
-              {apexList.find((a) => a.id === selectedApexId)?.name}
+              {t("selectionSummary.apex")}: {apexList.find((a) => a.id === selectedApexId)?.name}
             </span>
           </div>
           <button
@@ -133,7 +132,8 @@ export function SelectionSummary({
           <div className="flex items-center gap-2">
             <FileText className="size-3.5 text-muted-foreground" />
             <span className="font-semibold text-foreground truncate max-w-[200px]">
-              {t("selectionSummary.year")}: {selectedYear} {t("selectionSummary.consolidatedReport")}
+              {t("selectionSummary.year")}: {selectedYear}{" "}
+              {t("selectionSummary.consolidatedReport")}
             </span>
           </div>
           <button

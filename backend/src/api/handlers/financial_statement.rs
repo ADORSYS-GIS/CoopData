@@ -2301,7 +2301,11 @@ pub async fn get_sector_breakdown(
     let mut sector_map: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
 
     for coop in &cooperatives {
-        let sector = coop.sector.as_ref().map(|s| s.as_str().to_string()).unwrap_or_else(|| "other".to_string());
+        let sector = coop
+            .sector
+            .as_ref()
+            .map(|s| s.as_str().to_string())
+            .unwrap_or_else(|| "other".to_string());
         *sector_map.entry(sector).or_insert(0) += 1;
     }
 

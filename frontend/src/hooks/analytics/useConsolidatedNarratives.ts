@@ -18,9 +18,9 @@ export interface FederationNarratives {
 export type MinistryNarratives = FederationNarratives;
 
 const BASE_URL =
-  (window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg"))
+  window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")
     ? "http://backend:3000"
-    : (import.meta.env.VITE_API_BASE_URL || "");
+    : import.meta.env.VITE_API_BASE_URL || "";
 
 async function fetchJson<T>(url: string, token: string): Promise<T | null> {
   const res = await fetch(url, {

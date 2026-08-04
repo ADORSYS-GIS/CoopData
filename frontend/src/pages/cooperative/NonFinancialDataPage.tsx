@@ -56,7 +56,9 @@ export const NonFinancialDataPage: React.FC = () => {
       await deleteMember.mutateAsync(id);
       toast.success(t("nonFinancialData.toastMemberDeleted"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("nonFinancialData.toastMemberDeleteFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("nonFinancialData.toastMemberDeleteFailed"),
+      );
     }
   };
 
@@ -65,7 +67,9 @@ export const NonFinancialDataPage: React.FC = () => {
       await deleteSavings.mutateAsync(id);
       toast.success(t("nonFinancialData.toastSavingsDeleted"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("nonFinancialData.toastSavingsDeleteFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("nonFinancialData.toastSavingsDeleteFailed"),
+      );
     }
   };
 
@@ -99,10 +103,7 @@ export const NonFinancialDataPage: React.FC = () => {
   const notifyAddEdit = () => toast.info(t("nonFinancialData.toastBulkHint"));
 
   return (
-    <AppShell
-      title={t("nonFinancialData.title")}
-      subtitle={t("nonFinancialData.subtitle")}
-    >
+    <AppShell title={t("nonFinancialData.title")} subtitle={t("nonFinancialData.subtitle")}>
       <div className="space-y-6">
         {!isReadOnly && (
           <div className="grid lg:grid-cols-2 gap-6">
@@ -157,23 +158,31 @@ export const NonFinancialDataPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalMembers")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalMembers")}
+                    </span>
                     <span className="font-bold text-foreground">{members.length}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.active")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.active")}
+                    </span>
                     <span className="font-bold text-success">
                       {members.filter((m) => m.status === "Active").length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.women")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.women")}
+                    </span>
                     <span className="font-bold text-foreground">
                       {members.filter((m) => m.gender === "Female").length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.youth")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.youth")}
+                    </span>
                     <span className="font-bold text-foreground">
                       {members.filter((m) => m.age_group === "18-35").length}
                     </span>
@@ -200,17 +209,23 @@ export const NonFinancialDataPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalAccounts")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalAccounts")}
+                    </span>
                     <span className="font-bold text-foreground">{savings.length}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.active")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.active")}
+                    </span>
                     <span className="font-bold text-success">
                       {savings.filter((s) => s.account_status === "Active").length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalBalance")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalBalance")}
+                    </span>
                     <span className="font-bold text-foreground">
                       {formatCurrency(savings.reduce((sum, s) => sum + s.balance, 0))}
                     </span>
@@ -237,17 +252,23 @@ export const NonFinancialDataPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalLoans")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalLoans")}
+                    </span>
                     <span className="font-bold text-foreground">{loans.length}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.performing")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.performing")}
+                    </span>
                     <span className="font-bold text-success">
                       {loans.filter((l) => l.loan_status === "Performing").length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalBalance")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalBalance")}
+                    </span>
                     <span className="font-bold text-foreground">
                       {formatCurrency(loans.reduce((sum, l) => sum + l.balance, 0))}
                     </span>
@@ -274,17 +295,23 @@ export const NonFinancialDataPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalFds")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalFds")}
+                    </span>
                     <span className="font-bold text-foreground">{fds.length}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.active")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.active")}
+                    </span>
                     <span className="font-bold text-success">
                       {fds.filter((f) => f.status === "Active").length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalBalance")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalBalance")}
+                    </span>
                     <span className="font-bold text-foreground">
                       {formatCurrency(fds.reduce((sum, f) => sum + f.balance, 0))}
                     </span>
@@ -311,11 +338,15 @@ export const NonFinancialDataPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.totalCoops")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.totalCoops")}
+                    </span>
                     <span className="font-bold text-foreground">{farmCoops.length}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                    <span className="text-sm text-muted-foreground">{t("nonFinancialData.active")}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("nonFinancialData.active")}
+                    </span>
                     <span className="font-bold text-success">
                       {farmCoops.filter((f) => f.operational_status === "Active").length}
                     </span>

@@ -90,7 +90,9 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
           <h2 className="text-xl text-slate-600 mt-1">{federationName}</h2>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-700">{t("printReports.period", { year })}</p>
+          <p className="text-lg font-semibold text-slate-700">
+            {t("printReports.period", { year })}
+          </p>
           <p className="text-sm text-slate-500"></p>
         </div>
       </div>
@@ -142,12 +144,24 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900 w-1/4">{t("printReports.headers.type")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.coops")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.filingPct")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgPar30")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgCar")}</th>
-                <th className="p-3 text-right border border-slate-900">{t("printReports.headers.avgRoa")}</th>
+                <th className="p-3 text-left border border-slate-900 w-1/4">
+                  {t("printReports.headers.type")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.coops")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.filingPct")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.avgPar30")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.avgCar")}
+                </th>
+                <th className="p-3 text-right border border-slate-900">
+                  {t("printReports.headers.avgRoa")}
+                </th>
               </tr>
             </thead>
             <tbody>

@@ -31,11 +31,21 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold w-[25%]">{t("printReports.headers.indicator")}</th>
-            <th className="px-2 py-1 font-semibold w-[35%]">{t("printReports.headers.description")}</th>
-            <th className="px-2 py-1 font-semibold text-right w-[15%]">{t("printReports.headers.value")}</th>
-            <th className="px-2 py-1 font-semibold text-center w-[12%]">{t("printReports.headers.benchmark")}</th>
-            <th className="px-2 py-1 font-semibold text-center w-[13%]">{t("printReports.headers.status")}</th>
+            <th className="px-2 py-1 font-semibold w-[25%]">
+              {t("printReports.headers.indicator")}
+            </th>
+            <th className="px-2 py-1 font-semibold w-[35%]">
+              {t("printReports.headers.description")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right w-[15%]">
+              {t("printReports.headers.value")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-center w-[12%]">
+              {t("printReports.headers.benchmark")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-center w-[13%]">
+              {t("printReports.headers.status")}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -53,14 +63,15 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
               </td>
               <td className="px-2 py-1 text-center">
                 <span
-                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${kpi.status === "green"
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                    kpi.status === "green"
                       ? "bg-green-100 text-green-800"
                       : kpi.status === "amber"
                         ? "bg-amber-100 text-amber-800"
                         : kpi.status === "red"
                           ? "bg-red-100 text-red-800"
                           : "bg-slate-100 text-slate-800"
-                    }`}
+                  }`}
                 >
                   {kpi.status || "N/A"}
                 </span>

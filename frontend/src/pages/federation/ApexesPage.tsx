@@ -70,7 +70,8 @@ export const ApexesPage: React.FC = () => {
           setCreateName("");
           setCreateDescription("");
         },
-        onError: (err) => toast.error(t("apexesPage.toastCreateFailed"), { description: String(err) }),
+        onError: (err) =>
+          toast.error(t("apexesPage.toastCreateFailed"), { description: String(err) }),
       },
     );
   };
@@ -100,7 +101,8 @@ export const ApexesPage: React.FC = () => {
           toast.success(t("apexesPage.toastUpdated", { name }));
           setEditingApex(null);
         },
-        onError: (err) => toast.error(t("apexesPage.toastUpdateFailed"), { description: String(err) }),
+        onError: (err) =>
+          toast.error(t("apexesPage.toastUpdateFailed"), { description: String(err) }),
       },
     );
   };
@@ -224,8 +226,12 @@ export const ApexesPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
                   <th className="px-5 py-3.5">{t("apexesPage.tableHeaders.apexOrg")}</th>
-                  <th className="px-5 py-3.5 hidden md:table-cell">{t("apexesPage.tableHeaders.description")}</th>
-                  <th className="px-5 py-3.5 text-right">{t("apexesPage.tableHeaders.cooperatives")}</th>
+                  <th className="px-5 py-3.5 hidden md:table-cell">
+                    {t("apexesPage.tableHeaders.description")}
+                  </th>
+                  <th className="px-5 py-3.5 text-right">
+                    {t("apexesPage.tableHeaders.cooperatives")}
+                  </th>
                   <th className="px-5 py-3.5 text-right">{t("apexesPage.tableHeaders.actions")}</th>
                 </tr>
               </thead>

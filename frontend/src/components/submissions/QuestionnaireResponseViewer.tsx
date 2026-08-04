@@ -83,7 +83,11 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
 
   const renderValue = (field: any, val: any) => {
     if (val === undefined || val === null || val === "") {
-      return <span className="text-muted-foreground italic font-normal">{t("questionnaireViewer.notProvided")}</span>;
+      return (
+        <span className="text-muted-foreground italic font-normal">
+          {t("questionnaireViewer.notProvided")}
+        </span>
+      );
     }
     if (typeof val === "boolean") {
       return val ? t("questionnaireViewer.yes") : t("questionnaireViewer.no");
@@ -101,9 +105,10 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
         <div className="border-b border-border/60 pb-2 px-2">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             {t("questionnaireViewer.sections", {
-              type: response.questionnaire_type === "financial"
-                ? t("questionnaireViewer.financial")
-                : t("questionnaireViewer.nonFinancial"),
+              type:
+                response.questionnaire_type === "financial"
+                  ? t("questionnaireViewer.financial")
+                  : t("questionnaireViewer.nonFinancial"),
             })}
           </h4>
         </div>

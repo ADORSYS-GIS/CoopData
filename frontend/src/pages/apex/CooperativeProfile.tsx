@@ -445,7 +445,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              {isEditing ? t("coopProfile.updateProfileBtn") : t("coopProfile.createCooperativeBtn")}
+              {isEditing
+                ? t("coopProfile.updateProfileBtn")
+                : t("coopProfile.createCooperativeBtn")}
             </Button>
           </div>
         </form>

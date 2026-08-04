@@ -59,7 +59,9 @@ function QuestionnaireSelectorPage({ submissionId }: { submissionId: string }) {
           <div className="size-16 rounded-3xl bg-primary/10 grid place-items-center mx-auto mb-4">
             <FileSpreadsheet className="size-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">{t("questionnaireSelector.selectType")}</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("questionnaireSelector.selectType")}
+          </h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
             {t("questionnaireSelector.description")}
           </p>

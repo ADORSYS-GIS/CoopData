@@ -158,9 +158,7 @@ function Sidebar({
             ? (user?.cooperationName ?? user?.region ?? null)
             : null;
     return ctx ? (
-      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
-        {ctx}
-      </p>
+      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">{ctx}</p>
     ) : null;
   }, [isCollapsed, effectiveRole, user, t]);
 

@@ -1,5 +1,13 @@
 import { useState, useMemo } from "react";
-import { Download, FileText, CheckCircle2, X, Loader2, ChevronRight, RefreshCw } from "lucide-react";
+import {
+  Download,
+  FileText,
+  CheckCircle2,
+  X,
+  Loader2,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -353,7 +361,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
-      toast.error(t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }));
+      toast.error(
+        t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }),
+      );
     } finally {
       setIsExporting(false);
     }
@@ -394,7 +404,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
-      toast.error(t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }));
+      toast.error(
+        t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }),
+      );
     } finally {
       setIsRegenerating(false);
     }
@@ -574,13 +586,25 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                     <span>
                       {role === "ministry"
                         ? selectedOption.id === "federation-consolidated"
-                          ? t("reportExport.scopeFederation", { name: federationList.find((f) => f.id === selectedFedId)?.name || t("reportExport.selectedFederation") })
+                          ? t("reportExport.scopeFederation", {
+                              name:
+                                federationList.find((f) => f.id === selectedFedId)?.name ||
+                                t("reportExport.selectedFederation"),
+                            })
                           : selectedOption.id === "apex-consolidated"
-                            ? t("reportExport.scopeApex", { name: apexList.find((a) => a.id === selectedApexId)?.name || t("reportExport.selectedApex") })
+                            ? t("reportExport.scopeApex", {
+                                name:
+                                  apexList.find((a) => a.id === selectedApexId)?.name ||
+                                  t("reportExport.selectedApex"),
+                              })
                             : t("reportExport.scopeNational")
                         : role === "federation"
                           ? selectedOption.id === "apex-consolidated"
-                            ? t("reportExport.scopeApex", { name: apexList.find((a) => a.id === selectedApexId)?.name || t("reportExport.selectedApex") })
+                            ? t("reportExport.scopeApex", {
+                                name:
+                                  apexList.find((a) => a.id === selectedApexId)?.name ||
+                                  t("reportExport.selectedApex"),
+                              })
                             : t("reportExport.scopeFederationAll")
                           : t("reportExport.scopeApexAll")}
                     </span>
@@ -672,9 +696,14 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                     className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors disabled:opacity-40"
                   >
                     {isRegenerating ? (
-                      <><Loader2 className="size-3.5 animate-spin" /> {t("reportExport.regenerating")}</>
+                      <>
+                        <Loader2 className="size-3.5 animate-spin" />{" "}
+                        {t("reportExport.regenerating")}
+                      </>
                     ) : (
-                      <><RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}</>
+                      <>
+                        <RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}
+                      </>
                     )}
                   </button>
                 )}
@@ -685,9 +714,13 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-40"
                 >
                   {isExporting ? (
-                    <><Loader2 className="size-3.5 animate-spin" /> {t("reportExport.exporting")}</>
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.exporting")}
+                    </>
                   ) : (
-                    <><Download className="size-3.5" /> {t("reportExport.exportPdf")}</>
+                    <>
+                      <Download className="size-3.5" /> {t("reportExport.exportPdf")}
+                    </>
                   )}
                 </button>
               </div>

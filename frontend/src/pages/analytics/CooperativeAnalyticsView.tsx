@@ -73,12 +73,12 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       "ROE",
       "NET_SURPLUS",
       "PAR30",
-      "OPERATING_EXPENSE_RATIO"
+      "OPERATING_EXPENSE_RATIO",
     ]);
 
     return kpisData.kpis
       .filter((k: components["schemas"]["KpiItemResponse"]) =>
-        CORE_KPI_NAMES.has(k.name.toUpperCase())
+        CORE_KPI_NAMES.has(k.name.toUpperCase()),
       )
       .map((k: components["schemas"]["KpiItemResponse"]) => ({
         label: k.name.replace(/_/g, " "),
@@ -94,7 +94,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           k.status === "green"
             ? t("analytics.healthy")
             : k.status === "amber"
-              ? t("analytics.watch" )
+              ? t("analytics.watch")
               : k.status === "red"
                 ? t("analytics.risk")
                 : t("analytics.unknown"),
@@ -148,7 +148,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         value: m.dormant.toLocaleString(),
         tooltip: t("cooperativeAnalytics.dormantMembersTooltip"),
         trend: m.dormancy_pct > 20 ? ("down" as const) : ("neutral" as const),
-        trendValue: t("cooperativeAnalytics.dormantMembersTrend", { pct: m.dormancy_pct.toFixed(1) }),
+        trendValue: t("cooperativeAnalytics.dormantMembersTrend", {
+          pct: m.dormancy_pct.toFixed(1),
+        }),
       },
       {
         label: t("cooperativeAnalytics.youthMembers"),
@@ -176,14 +178,18 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         value: `$${(s.total_balance / 1000).toFixed(1)}K`,
         tooltip: t("cooperativeAnalytics.totalSavingsTooltip"),
         trend: "up" as const,
-        trendValue: t("cooperativeAnalytics.totalSavingsTrend", { value: s.average_balance.toFixed(0) }),
+        trendValue: t("cooperativeAnalytics.totalSavingsTrend", {
+          value: s.average_balance.toFixed(0),
+        }),
       },
       {
         label: t("cooperativeAnalytics.activeSavers"),
         value: s.active_accounts.toLocaleString(),
         tooltip: t("cooperativeAnalytics.activeSaversTooltip"),
         trend: "up" as const,
-        trendValue: t("cooperativeAnalytics.activeSaversTrend", { pct: s.active_savers_pct.toFixed(1) }),
+        trendValue: t("cooperativeAnalytics.activeSaversTrend", {
+          pct: s.active_savers_pct.toFixed(1),
+        }),
       },
       {
         label: t("cooperativeAnalytics.regularSavers"),
@@ -211,14 +217,18 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         value: `$${(l.total_loan_amount / 1000).toFixed(1)}K`,
         tooltip: t("cooperativeAnalytics.totalLoansTooltip"),
         trend: "up" as const,
-        trendValue: t("cooperativeAnalytics.totalLoansTrend", { value: l.average_loan_size.toFixed(0) }),
+        trendValue: t("cooperativeAnalytics.totalLoansTrend", {
+          value: l.average_loan_size.toFixed(0),
+        }),
       },
       {
         label: t("cooperativeAnalytics.loansInArrears"),
         value: l.arrears.toLocaleString(),
         tooltip: t("cooperativeAnalytics.loansInArrearsTooltip"),
         trend: l.arrears_rate_pct > 5 ? ("down" as const) : ("up" as const),
-        trendValue: t("cooperativeAnalytics.loansInArrearsTrend", { pct: l.arrears_rate_pct.toFixed(1) }),
+        trendValue: t("cooperativeAnalytics.loansInArrearsTrend", {
+          pct: l.arrears_rate_pct.toFixed(1),
+        }),
       },
       {
         label: t("cooperativeAnalytics.onTimeRepayment"),
@@ -246,7 +256,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         value: `$${(fd.total_balance / 1000).toFixed(1)}K`,
         tooltip: t("cooperativeAnalytics.totalFdBalanceTooltip"),
         trend: "up" as const,
-        trendValue: t("cooperativeAnalytics.totalFdBalanceTrend", { value: fd.average_balance.toFixed(0) }),
+        trendValue: t("cooperativeAnalytics.totalFdBalanceTrend", {
+          value: fd.average_balance.toFixed(0),
+        }),
       },
       {
         label: t("cooperativeAnalytics.fdPenetration"),
@@ -432,21 +444,27 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
       {nfStats?.membership && membershipMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.membershipOverview")}</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("cooperativeAnalytics.membershipOverview")}
+          </h3>
           <MetricsGridCards metrics={membershipMetrics} columns={4} />
         </div>
       )}
 
       {nfStats?.savings && savingsMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.savingsMetrics")}</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("cooperativeAnalytics.savingsMetrics")}
+          </h3>
           <MetricsGridCards metrics={savingsMetrics} columns={4} />
         </div>
       )}
 
       {nfStats?.loans && loanMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.loanMetrics")}</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("cooperativeAnalytics.loanMetrics")}
+          </h3>
           <MetricsGridCards metrics={loanMetrics} columns={4} />
         </div>
       )}
@@ -463,7 +481,9 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
 
       {nfStats?.fixed_deposits && fdMetrics.length > 0 && (
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">{t("cooperativeAnalytics.fdMetrics")}</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">
+            {t("cooperativeAnalytics.fdMetrics")}
+          </h3>
           <MetricsGridCards metrics={fdMetrics} columns={4} />
         </div>
       )}

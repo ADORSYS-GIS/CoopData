@@ -50,22 +50,28 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
   const { data: cooperatives = [] } = useCooperatives();
 
-  const regionOptions = useMemo(() => [
-    { value: "all", label: t("questionnaireAnalytics.regions.all") },
-    { value: "Manzini", label: t("questionnaireAnalytics.regions.manzini") },
-    { value: "Hhohho", label: t("questionnaireAnalytics.regions.hhohho") },
-    { value: "Shiselweni", label: t("questionnaireAnalytics.regions.shiselweni") },
-    { value: "Lubombo", label: t("questionnaireAnalytics.regions.lubombo") },
-  ], [t]);
+  const regionOptions = useMemo(
+    () => [
+      { value: "all", label: t("questionnaireAnalytics.regions.all") },
+      { value: "Manzini", label: t("questionnaireAnalytics.regions.manzini") },
+      { value: "Hhohho", label: t("questionnaireAnalytics.regions.hhohho") },
+      { value: "Shiselweni", label: t("questionnaireAnalytics.regions.shiselweni") },
+      { value: "Lubombo", label: t("questionnaireAnalytics.regions.lubombo") },
+    ],
+    [t],
+  );
 
-  const sectorOptions = useMemo(() => [
-    { value: "all", label: t("questionnaireAnalytics.sectors.all") },
-    { value: "Agriculture", label: t("questionnaireAnalytics.sectors.agriculture") },
-    { value: "Finance", label: t("questionnaireAnalytics.sectors.finance") },
-    { value: "Housing", label: t("questionnaireAnalytics.sectors.housing") },
-    { value: "Transport", label: t("questionnaireAnalytics.sectors.transport") },
-    { value: "Manufacturing", label: t("questionnaireAnalytics.sectors.manufacturing") },
-  ], [t]);
+  const sectorOptions = useMemo(
+    () => [
+      { value: "all", label: t("questionnaireAnalytics.sectors.all") },
+      { value: "Agriculture", label: t("questionnaireAnalytics.sectors.agriculture") },
+      { value: "Finance", label: t("questionnaireAnalytics.sectors.finance") },
+      { value: "Housing", label: t("questionnaireAnalytics.sectors.housing") },
+      { value: "Transport", label: t("questionnaireAnalytics.sectors.transport") },
+      { value: "Manufacturing", label: t("questionnaireAnalytics.sectors.manufacturing") },
+    ],
+    [t],
+  );
 
   const {
     data: stats,
@@ -249,7 +255,9 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
                   {cooperatives.length > 0
                     ? t("questionnaireAnalytics.submissionRate", {
-                        rate: Math.round((stats.total_reporting_cooperatives / cooperatives.length) * 100),
+                        rate: Math.round(
+                          (stats.total_reporting_cooperatives / cooperatives.length) * 100,
+                        ),
                       })
                     : t("questionnaireAnalytics.submissionRate", { rate: 0 })}
                 </span>
@@ -346,17 +354,24 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
               {/* Demographics Card */}
               <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Users className="size-4 text-primary" /> {t("questionnaireAnalytics.memberDemographics")}
+                  <Users className="size-4 text-primary" />{" "}
+                  {t("questionnaireAnalytics.memberDemographics")}
                 </h3>
 
                 {/* Gender split visual */}
                 <div className="flex flex-col gap-2 border-b border-border/60 pb-4">
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-blue-600 dark:text-blue-400">
-                      {t("questionnaireAnalytics.male", { count: formatNumber(stats.total_members_male), pct: malePercentage })}
+                      {t("questionnaireAnalytics.male", {
+                        count: formatNumber(stats.total_members_male),
+                        pct: malePercentage,
+                      })}
                     </span>
                     <span className="text-pink-600 dark:text-pink-400">
-                      {t("questionnaireAnalytics.female", { count: formatNumber(stats.total_members_female), pct: femalePercentage })}
+                      {t("questionnaireAnalytics.female", {
+                        count: formatNumber(stats.total_members_female),
+                        pct: femalePercentage,
+                      })}
                     </span>
                   </div>
                   <div className="w-full h-3 rounded-full bg-pink-100 dark:bg-pink-900/30 overflow-hidden flex">
@@ -419,7 +434,8 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
               {/* Financial Balances Card */}
               <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <DollarSign className="size-4 text-primary" /> {t("questionnaireAnalytics.financialBalances")}
+                  <DollarSign className="size-4 text-primary" />{" "}
+                  {t("questionnaireAnalytics.financialBalances")}
                 </h3>
 
                 <div className="grid grid-cols-2 gap-4 flex-1">
@@ -461,7 +477,9 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-xs border-t border-border pt-3">
-                  <span className="text-muted-foreground">{t("questionnaireAnalytics.operatingExpenses")}</span>
+                  <span className="text-muted-foreground">
+                    {t("questionnaireAnalytics.operatingExpenses")}
+                  </span>
                   <span className="font-semibold text-foreground">
                     {formatCurrency(stats.total_expenditure)}
                   </span>
@@ -474,7 +492,8 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
               {/* Region Pie Chart */}
               <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <MapPin className="size-4 text-primary" /> {t("questionnaireAnalytics.geographicDistribution")}
+                  <MapPin className="size-4 text-primary" />{" "}
+                  {t("questionnaireAnalytics.geographicDistribution")}
                 </h3>
                 {regionChartData.length > 0 ? (
                   <div className="h-64 w-full">
@@ -515,7 +534,8 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
               {/* Sector Bar Chart */}
               <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Briefcase className="size-4 text-primary" /> {t("questionnaireAnalytics.sectoralDistribution")}
+                  <Briefcase className="size-4 text-primary" />{" "}
+                  {t("questionnaireAnalytics.sectoralDistribution")}
                 </h3>
                 {sectorChartData.length > 0 ? (
                   <div className="h-64 w-full">
@@ -573,18 +593,30 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
             {/* Reporting Cooperatives Detail List */}
             <div className="rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col gap-4">
-              <h3 className="text-sm font-bold text-foreground">{t("questionnaireAnalytics.detailsTitle")}</h3>
+              <h3 className="text-sm font-bold text-foreground">
+                {t("questionnaireAnalytics.detailsTitle")}
+              </h3>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-muted/40 border-b border-border/85 text-muted-foreground uppercase font-bold tracking-wider">
-                      <th className="px-5 py-3">{t("questionnaireAnalytics.tableHeaders.cooperative")}</th>
+                      <th className="px-5 py-3">
+                        {t("questionnaireAnalytics.tableHeaders.cooperative")}
+                      </th>
                       <th className="px-5 py-3">{t("questionnaireAnalytics.tableHeaders.type")}</th>
-                      <th className="px-5 py-3">{t("questionnaireAnalytics.tableHeaders.region")}</th>
-                      <th className="px-5 py-3 text-right">{t("questionnaireAnalytics.tableHeaders.totalMembers")}</th>
-                      <th className="px-5 py-3 text-right">{t("questionnaireAnalytics.tableHeaders.shareCapital")}</th>
-                      <th className="px-5 py-3 text-right">{t("questionnaireAnalytics.tableHeaders.netSurplus")}</th>
+                      <th className="px-5 py-3">
+                        {t("questionnaireAnalytics.tableHeaders.region")}
+                      </th>
+                      <th className="px-5 py-3 text-right">
+                        {t("questionnaireAnalytics.tableHeaders.totalMembers")}
+                      </th>
+                      <th className="px-5 py-3 text-right">
+                        {t("questionnaireAnalytics.tableHeaders.shareCapital")}
+                      </th>
+                      <th className="px-5 py-3 text-right">
+                        {t("questionnaireAnalytics.tableHeaders.netSurplus")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">

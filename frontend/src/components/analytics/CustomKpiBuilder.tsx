@@ -553,9 +553,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
             <Sparkles className="h-5 w-5 text-violet-600" />
             {t("customKpiBuilder.title")}
           </CardTitle>
-          <CardDescription>
-            {t("customKpiBuilder.description")}
-          </CardDescription>
+          <CardDescription>{t("customKpiBuilder.description")}</CardDescription>
         </div>
         <div className="flex items-center gap-2">
           {hasValues && (
@@ -581,9 +579,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                   <Calculator className="h-5 w-5 text-violet-600" />
                   {t("customKpiBuilder.createKpiTitle")}
                 </DialogTitle>
-                <DialogDescription>
-                  {t("customKpiBuilder.createKpiDesc")}
-                </DialogDescription>
+                <DialogDescription>{t("customKpiBuilder.createKpiDesc")}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-5 py-4">
                 <div className="grid gap-2">
@@ -601,7 +597,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 <div className="grid gap-2">
                   <Label htmlFor="description" className="text-sm font-semibold">
                     {t("customKpiBuilder.descriptionLabel")}{" "}
-                    <span className="text-muted-foreground font-normal">({t("customKpiBuilder.optional")})</span>
+                    <span className="text-muted-foreground font-normal">
+                      ({t("customKpiBuilder.optional")})
+                    </span>
                   </Label>
                   <Textarea
                     id="description"
@@ -613,7 +611,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label className="text-sm font-semibold">{t("customKpiBuilder.availableVariables")}</Label>
+                  <Label className="text-sm font-semibold">
+                    {t("customKpiBuilder.availableVariables")}
+                  </Label>
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="w-full flex-wrap justify-start gap-1 bg-muted/50 p-1 rounded-lg h-auto">
                       {(
@@ -629,9 +629,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         ] as const
                       ).map((cat) => (
                         <TabsTrigger
-                           key={cat}
-                           value={cat}
-                           className="text-xs px-3 py-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                          key={cat}
+                          value={cat}
+                          className="text-xs px-3 py-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
                         >
                           {t(`customKpiBuilder.categories.${cat}`)}
                         </TabsTrigger>
@@ -687,7 +687,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label className="text-sm font-semibold">{t("customKpiBuilder.quickOperators")}</Label>
+                  <Label className="text-sm font-semibold">
+                    {t("customKpiBuilder.quickOperators")}
+                  </Label>
                   <div className="flex flex-wrap gap-1.5">
                     {OPERATORS.map((op) => (
                       <Button
@@ -818,7 +820,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-100 mb-4">
               <Calculator className="h-8 w-8 text-violet-600" />
             </div>
-            <p className="text-lg font-semibold text-violet-900">{t("customKpiBuilder.emptyTitle")}</p>
+            <p className="text-lg font-semibold text-violet-900">
+              {t("customKpiBuilder.emptyTitle")}
+            </p>
             <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
               {t("customKpiBuilder.emptyDesc")}
             </p>
@@ -849,7 +853,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                             size="icon"
                             className="h-7 w-7 text-destructive hover:bg-destructive/10"
                             onClick={() => {
-                              if (confirm(t("customKpiBuilder.deleteConfirm", { name: kpi.name }))) {
+                              if (
+                                confirm(t("customKpiBuilder.deleteConfirm", { name: kpi.name }))
+                              ) {
                                 deleteKpi(kpi.id);
                               }
                             }}
@@ -896,9 +902,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         <BarChart3 className="h-5 w-5 text-violet-600 animate-pulse" />
                         {t("customKpiBuilder.breakdownTitle")}
                       </CardTitle>
-                      <CardDescription>
-                        {t("customKpiBuilder.breakdownDesc")}
-                      </CardDescription>
+                      <CardDescription>{t("customKpiBuilder.breakdownDesc")}</CardDescription>
                     </div>
                     <div className="w-full md:w-72">
                       <Input

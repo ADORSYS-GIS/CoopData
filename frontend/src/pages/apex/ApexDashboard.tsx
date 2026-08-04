@@ -51,10 +51,7 @@ export const ApexDashboard: React.FC = () => {
   }
 
   return (
-    <AppShell
-      title={t("apexDashboard.title")}
-      subtitle={t("apexDashboard.overview")}
-    >
+    <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.overview")}>
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
@@ -91,7 +88,9 @@ export const ApexDashboard: React.FC = () => {
           {cooperatives.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Building2 className="size-8 mb-2 text-muted-foreground/50" />
-              <p className="font-semibold text-sm text-foreground">{t("apexDashboard.noCooperatives")}</p>
+              <p className="font-semibold text-sm text-foreground">
+                {t("apexDashboard.noCooperatives")}
+              </p>
               <p className="text-xs mt-1">{t("apexDashboard.registerFirst")}</p>
               <Link
                 to="/app/cooperatives"

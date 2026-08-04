@@ -166,7 +166,9 @@ export function CooperativeDashboard() {
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 mb-3 border-b border-border/50 pb-2">
                 <Building2 className="size-4 text-accent" />
-                <span className="text-xs font-bold uppercase tracking-wider text-foreground">Cooperative Details</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Cooperative Details
+                </span>
               </div>
               <div className="flex items-center justify-between py-1.5 border-b border-border/50">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -255,12 +257,16 @@ export function CooperativeDashboard() {
                             {kpi.benchmark !== undefined && (
                               <p className="text-[10px] text-muted-foreground mt-1">
                                 {t("common.benchmark")}:{" "}
-                                {kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)}
+                                {kpi.unit === "percent"
+                                  ? `${kpi.benchmark}%`
+                                  : String(kpi.benchmark)}
                               </p>
                             )}
                           </>
                         ) : (
-                          <p className="font-heading text-lg font-bold text-muted-foreground num">—</p>
+                          <p className="font-heading text-lg font-bold text-muted-foreground num">
+                            —
+                          </p>
                         )}
                       </div>
                     );

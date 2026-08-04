@@ -66,7 +66,9 @@ export function AnalyticsFilterBar({
         {/* Year selector */}
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold">
           <Calendar className="size-3.5 text-primary" />
-          <span className="text-muted-foreground uppercase whitespace-nowrap">{t("analyticsFilter.year")}:</span>
+          <span className="text-muted-foreground uppercase whitespace-nowrap">
+            {t("analyticsFilter.year")}:
+          </span>
           <Select value={filterValues.year} onValueChange={(v) => onFilterChange("year", v)}>
             <SelectTrigger className="h-auto border-none bg-transparent p-0 font-bold shadow-none focus:ring-0 [&>svg]:opacity-50">
               <SelectValue />
@@ -145,7 +147,9 @@ export function AnalyticsFilterBar({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="size-4 text-primary" />
-              <span className="font-heading font-bold text-sm">{t("analyticsFilter.filterAnalytics")}</span>
+              <span className="font-heading font-bold text-sm">
+                {t("analyticsFilter.filterAnalytics")}
+              </span>
             </div>
             <button
               onClick={() => setShowFilters(false)}

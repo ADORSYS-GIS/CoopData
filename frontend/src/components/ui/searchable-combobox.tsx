@@ -65,8 +65,7 @@ export function SearchableCombobox({
     if (!q) return options;
     return options.filter(
       (o) =>
-        o.label.toLowerCase().includes(q) ||
-        (o.description?.toLowerCase().includes(q) ?? false),
+        o.label.toLowerCase().includes(q) || (o.description?.toLowerCase().includes(q) ?? false),
     );
   }, [options, search]);
 
@@ -142,9 +141,7 @@ export function SearchableCombobox({
           </div>
 
           <CommandList>
-            {filtered.length === 0 && (
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
-            )}
+            {filtered.length === 0 && <CommandEmpty>{emptyMessage}</CommandEmpty>}
 
             {/* Grouped rendering */}
             {grouped ? (
@@ -167,9 +164,7 @@ export function SearchableCombobox({
                   if (items.length === 0) return null;
                   return (
                     <React.Fragment key={group.key}>
-                      {(idx > 0 || grouped.ungrouped.length > 0) && (
-                        <CommandSeparator />
-                      )}
+                      {(idx > 0 || grouped.ungrouped.length > 0) && <CommandSeparator />}
                       <CommandGroup
                         heading={
                           <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
@@ -195,12 +190,7 @@ export function SearchableCombobox({
               /* Flat (ungrouped) rendering */
               <CommandGroup>
                 {filtered.map((opt) => (
-                  <OptionItem
-                    key={opt.value}
-                    opt={opt}
-                    selected={value}
-                    onSelect={handleSelect}
-                  />
+                  <OptionItem key={opt.value} opt={opt} selected={value} onSelect={handleSelect} />
                 ))}
               </CommandGroup>
             )}
@@ -233,7 +223,10 @@ function OptionItem({
       )}
     >
       <Check
-        className={cn("mt-0.5 size-3.5 shrink-0 text-primary", isSelected ? "opacity-100" : "opacity-0")}
+        className={cn(
+          "mt-0.5 size-3.5 shrink-0 text-primary",
+          isSelected ? "opacity-100" : "opacity-0",
+        )}
       />
       <span className="flex flex-col min-w-0">
         <span className="flex items-center gap-1.5 min-w-0">

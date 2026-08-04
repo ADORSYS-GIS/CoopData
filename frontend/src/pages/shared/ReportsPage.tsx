@@ -223,7 +223,12 @@ export const ReportsPage: React.FC = () => {
   const resolveCoopName = (s: (typeof submissions)[number]) =>
     s.cooperative_name ?? user?.organizationName ?? t("reports.myCooperative");
 
-  const handleExport = async (submissionId: string, format: string, filename: string, regenerate = false) => {
+  const handleExport = async (
+    submissionId: string,
+    format: string,
+    filename: string,
+    regenerate = false,
+  ) => {
     setIsExporting(submissionId + (regenerate ? "-regen" : ""));
     try {
       const token = await getAccessToken();
@@ -310,13 +315,13 @@ export const ReportsPage: React.FC = () => {
                   {recentSubmissions.map((s) => {
                     const coopName = resolveCoopName(s);
                     const dateStr = s.submitted_at
-                      ? new Date(s.submitted_at).toLocaleDateString("en-GB", {
+                      ? new Date(s.submitted_at).toLocaleString("en-GB", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
-                        } as any)
+                        })
                       : new Date(s.created_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",

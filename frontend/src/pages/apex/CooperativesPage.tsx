@@ -200,12 +200,22 @@ export const CooperativesPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] uppercase tracking-wider text-slate-700 font-bold">
                   <th className="px-5 py-3.5">{t("cooperativesPage.tableHeaders.cooperative")}</th>
-                  <th className="px-5 py-3.5 hidden lg:table-cell">{t("cooperativesPage.tableHeaders.regNo")}</th>
-                  <th className="px-5 py-3.5 hidden md:table-cell">{t("cooperativesPage.tableHeaders.type")}</th>
-                  <th className="px-5 py-3.5 hidden lg:table-cell">{t("cooperativesPage.tableHeaders.region")}</th>
-                  <th className="px-5 py-3.5 hidden xl:table-cell">{t("cooperativesPage.tableHeaders.sector")}</th>
+                  <th className="px-5 py-3.5 hidden lg:table-cell">
+                    {t("cooperativesPage.tableHeaders.regNo")}
+                  </th>
+                  <th className="px-5 py-3.5 hidden md:table-cell">
+                    {t("cooperativesPage.tableHeaders.type")}
+                  </th>
+                  <th className="px-5 py-3.5 hidden lg:table-cell">
+                    {t("cooperativesPage.tableHeaders.region")}
+                  </th>
+                  <th className="px-5 py-3.5 hidden xl:table-cell">
+                    {t("cooperativesPage.tableHeaders.sector")}
+                  </th>
                   <th className="px-5 py-3.5">{t("cooperativesPage.tableHeaders.status")}</th>
-                  <th className="px-5 py-3.5 text-right">{t("cooperativesPage.tableHeaders.actions")}</th>
+                  <th className="px-5 py-3.5 text-right">
+                    {t("cooperativesPage.tableHeaders.actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -274,9 +284,9 @@ export const CooperativesPage: React.FC = () => {
                           <button
                             onClick={() =>
                               navigate({
-                                  to: "/app/cooperative/$cooperativeId",
-                                  params: { cooperativeId: c.id },
-                                })
+                                to: "/app/cooperative/$cooperativeId",
+                                params: { cooperativeId: c.id },
+                              })
                             }
                             title={t("cooperativesPage.tooltipView")}
                             className="press-feedback inline-flex items-center justify-center size-8 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"

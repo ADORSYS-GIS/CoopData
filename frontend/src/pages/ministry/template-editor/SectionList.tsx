@@ -26,7 +26,9 @@ export const SectionList: React.FC<SectionListProps> = ({
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-3 font-sans">
       <div className="flex items-center justify-between border-b border-border pb-2">
-        <h3 className="text-sm font-bold text-foreground">{t("templateEditor.sectionList.title")}</h3>
+        <h3 className="text-sm font-bold text-foreground">
+          {t("templateEditor.sectionList.title")}
+        </h3>
         <button
           onClick={addSection}
           className="flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors cursor-pointer"
@@ -57,7 +59,9 @@ export const SectionList: React.FC<SectionListProps> = ({
                   <div className={`p-1.5 rounded-lg bg-muted text-base leading-none`}>
                     {getEmoji(sec.icon)}
                   </div>
-                  <span className="text-xs truncate">{sec.title || t("templateEditor.sectionList.untitledSection")}</span>
+                  <span className="text-xs truncate">
+                    {sec.title || t("templateEditor.sectionList.untitledSection")}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

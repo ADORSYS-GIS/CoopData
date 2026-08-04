@@ -32,10 +32,10 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">{t("questionnaireTemplates.title")}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {t("questionnaireTemplates.desc")}
-          </p>
+          <h1 className="text-2xl font-heading font-bold text-foreground">
+            {t("questionnaireTemplates.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{t("questionnaireTemplates.desc")}</p>
         </div>
       </div>
 
@@ -52,9 +52,7 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
         <div className="rounded-2xl border border-border bg-card py-16 text-center text-muted-foreground text-sm flex flex-col items-center justify-center gap-2">
           <ClipboardList className="size-10 opacity-30" />
           <h4 className="font-bold text-foreground">{t("questionnaireTemplates.noActiveFound")}</h4>
-          <p className="max-w-xs text-xs mt-1">
-            {t("questionnaireTemplates.seedDbMsg")}
-          </p>
+          <p className="max-w-xs text-xs mt-1">{t("questionnaireTemplates.seedDbMsg")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
@@ -64,8 +62,12 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
                 <th className="px-6 py-4">{t("questionnaireTemplates.tableHeaders.nameLabel")}</th>
                 <th className="px-6 py-4">{t("questionnaireTemplates.tableHeaders.type")}</th>
                 <th className="px-6 py-4">{t("questionnaireTemplates.tableHeaders.version")}</th>
-                <th className="px-6 py-4">{t("questionnaireTemplates.tableHeaders.lastUpdated")}</th>
-                <th className="px-6 py-4 text-right">{t("questionnaireTemplates.tableHeaders.actions")}</th>
+                <th className="px-6 py-4">
+                  {t("questionnaireTemplates.tableHeaders.lastUpdated")}
+                </th>
+                <th className="px-6 py-4 text-right">
+                  {t("questionnaireTemplates.tableHeaders.actions")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">

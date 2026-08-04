@@ -180,7 +180,9 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
         <HelpCircle className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
         <p className="text-sm font-medium">{t("nfIndicatorsForm.noCatalog")}</p>
         <p className="text-xs text-muted-foreground mt-1">
-          {t("nfIndicatorsForm.noCatalogDesc", { type: profile?.institution_type || t("nfIndicatorsForm.yourCoopType") })}
+          {t("nfIndicatorsForm.noCatalogDesc", {
+            type: profile?.institution_type || t("nfIndicatorsForm.yourCoopType"),
+          })}
         </p>
       </div>
     );
@@ -191,9 +193,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold tracking-tight">{t("nfIndicatorsForm.title")}</h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t("nfIndicatorsForm.subtitle")}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{t("nfIndicatorsForm.subtitle")}</p>
         </div>
       </div>
 

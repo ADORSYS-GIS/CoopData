@@ -76,7 +76,9 @@ export const SettingsPage: React.FC = () => {
     if (group.id === "indicators") {
       setActiveCategory("indicators");
     } else {
-      toast.info(t("settings.openingSettingsToast", { title: t(`settings.groups.${group.id}.title`) }));
+      toast.info(
+        t("settings.openingSettingsToast", { title: t(`settings.groups.${group.id}.title`) }),
+      );
     }
   };
 
@@ -84,9 +86,7 @@ export const SettingsPage: React.FC = () => {
     <AppShell
       title={t("settings.title")}
       subtitle={
-        activeCategory === "indicators"
-          ? t("settings.subtitleIndicators")
-          : t("settings.subtitle")
+        activeCategory === "indicators" ? t("settings.subtitleIndicators") : t("settings.subtitle")
       }
     >
       <div className="space-y-8">
@@ -116,14 +116,21 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-accent transition-colors mt-1" />
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-foreground">{t(`settings.groups.${g.id}.title`)}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t(`settings.groups.${g.id}.desc`)}</p>
+                  <p className="mt-3 text-sm font-semibold text-foreground">
+                    {t(`settings.groups.${g.id}.title`)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {t(`settings.groups.${g.id}.desc`)}
+                  </p>
                 </button>
               ))}
             </div>
 
             {/* Security Policy */}
-            <Card title={t("settings.securityPolicyTitle")} subtitle={t("settings.securityPolicySubtitle")}>
+            <Card
+              title={t("settings.securityPolicyTitle")}
+              subtitle={t("settings.securityPolicySubtitle")}
+            >
               <div className="divide-y divide-border -mx-5">
                 {SECURITY_POLICIES.map((p) => (
                   <div
@@ -132,7 +139,9 @@ export const SettingsPage: React.FC = () => {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <p.icon className="size-4 text-muted-foreground shrink-0" />
-                      <span className="text-sm text-foreground">{t(`settings.securityPolicies.${p.id}.label`)}</span>
+                      <span className="text-sm text-foreground">
+                        {t(`settings.securityPolicies.${p.id}.label`)}
+                      </span>
                     </div>
                     <span className="text-sm font-medium text-foreground shrink-0 tabular-nums">
                       {t(`settings.securityPolicies.${p.id}.value`)}

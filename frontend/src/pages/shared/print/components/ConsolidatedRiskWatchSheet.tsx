@@ -17,10 +17,14 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
   const { cooperatives } = data;
 
   const getAction = (kpiName: string) => {
-    if (kpiName === "par30" || kpiName === "par90") return t("printReports.riskWatch.actions.remedialPlan");
-    if (kpiName === "capital_adequacy_ratio") return t("printReports.riskWatch.actions.capitalInjection");
-    if (kpiName === "operating_expense_ratio") return t("printReports.riskWatch.actions.costReduction");
-    if (kpiName === "roa" || kpiName === "roe") return t("printReports.riskWatch.actions.profitabilityReview");
+    if (kpiName === "par30" || kpiName === "par90")
+      return t("printReports.riskWatch.actions.remedialPlan");
+    if (kpiName === "capital_adequacy_ratio")
+      return t("printReports.riskWatch.actions.capitalInjection");
+    if (kpiName === "operating_expense_ratio")
+      return t("printReports.riskWatch.actions.costReduction");
+    if (kpiName === "roa" || kpiName === "roe")
+      return t("printReports.riskWatch.actions.profitabilityReview");
     if (kpiName === "liquid_funds_ratio") return t("printReports.riskWatch.actions.liquidityPlan");
     return t("printReports.riskWatch.actions.followUp");
   };
@@ -65,7 +69,9 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
   return (
     <div className="report-sheet relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white break-after-page font-sans">
       <div>
-        <h2 className="text-xl font-bold text-blue-800 mb-4">{t("printReports.riskWatch.title")}</h2>
+        <h2 className="text-xl font-bold text-blue-800 mb-4">
+          {t("printReports.riskWatch.title")}
+        </h2>
         <p className="text-sm text-slate-600 mb-6 italic">
           {t("printReports.riskWatch.description")}
         </p>
@@ -78,12 +84,22 @@ export const ConsolidatedRiskWatchSheet: React.FC<ConsolidatedRiskWatchSheetProp
           <table className="w-full text-left text-xs mb-8 border-collapse border border-slate-300">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-2 border border-slate-700">{t("printReports.riskWatch.cooperative")}</th>
-                <th className="p-2 border border-slate-700">{t("printReports.riskWatch.riskIndicator")}</th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.cooperative")}
+                </th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.riskIndicator")}
+                </th>
                 <th className="p-2 border border-slate-700">{t("printReports.riskWatch.value")}</th>
-                <th className="p-2 border border-slate-700">{t("printReports.riskWatch.threshold")}</th>
-                <th className="p-2 border border-slate-700">{t("printReports.riskWatch.severity")}</th>
-                <th className="p-2 border border-slate-700">{t("printReports.riskWatch.actionRequired")}</th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.threshold")}
+                </th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.severity")}
+                </th>
+                <th className="p-2 border border-slate-700">
+                  {t("printReports.riskWatch.actionRequired")}
+                </th>
               </tr>
             </thead>
             <tbody>

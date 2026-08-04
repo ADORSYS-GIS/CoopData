@@ -51,7 +51,9 @@ export const FieldModal: React.FC<FieldModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border/80 px-6 py-4">
           <h3 className="text-base font-bold text-foreground">
-            {modalFieldIndex === null ? t("templateEditor.fieldModal.addTitle") : t("templateEditor.fieldModal.editTitle")}
+            {modalFieldIndex === null
+              ? t("templateEditor.fieldModal.addTitle")
+              : t("templateEditor.fieldModal.editTitle")}
           </h3>
           <button
             onClick={() => setIsModalOpen(false)}
@@ -115,7 +117,9 @@ export const FieldModal: React.FC<FieldModalProps> = ({
                   onChange={(e) => setModalRequired(e.target.checked)}
                   className="size-4 rounded border-border text-primary focus:ring-primary"
                 />
-                <span className="text-xs text-foreground font-semibold">{t("templateEditor.fieldModal.requiredQuestion")}</span>
+                <span className="text-xs text-foreground font-semibold">
+                  {t("templateEditor.fieldModal.requiredQuestion")}
+                </span>
               </label>
             </div>
           </div>

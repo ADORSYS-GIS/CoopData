@@ -149,9 +149,7 @@ export const CooperativeDashboard: React.FC = () => {
                 <p className="text-sm font-semibold text-foreground">
                   {t("cooperativeDashboard.noDimensions")}
                 </p>
-                <p className="text-xs mt-1">
-                  {t("cooperativeDashboard.contactAdminDimensions")}
-                </p>
+                <p className="text-xs mt-1">{t("cooperativeDashboard.contactAdminDimensions")}</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">

@@ -20,9 +20,7 @@ export function MembersStep({ members, addMember, updateMember, removeMember }: 
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
           <h3 className="text-sm font-bold text-foreground">{t("membersStep.title")}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("membersStep.desc")}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("membersStep.desc")}</p>
         </div>
         <button
           onClick={addMember}
@@ -92,9 +90,7 @@ export function MembersStep({ members, addMember, updateMember, removeMember }: 
       )}
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-        <span>
-          {t("membersStep.rowCount", { count: members.length })}
-        </span>
+        <span>{t("membersStep.rowCount", { count: members.length })}</span>
         <button onClick={addMember} className="text-primary hover:underline font-medium">
           {t("membersStep.addAnother")}
         </button>

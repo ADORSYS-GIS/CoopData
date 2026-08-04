@@ -95,10 +95,7 @@ export const AuditPage: React.FC = () => {
   const resetPage = () => setPage(1);
 
   return (
-    <AppShell
-      title={t("auditLog.title")}
-      subtitle={t("auditLog.subtitle")}
-    >
+    <AppShell title={t("auditLog.title")} subtitle={t("auditLog.subtitle")}>
       <div className="-m-2 space-y-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 shadow-inner">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
@@ -200,9 +197,15 @@ export const AuditPage: React.FC = () => {
                       <th className="px-5 py-3.5">{t("auditLog.tableHeaders.when")}</th>
                       <th className="px-5 py-3.5">{t("auditLog.tableHeaders.action")}</th>
                       <th className="px-5 py-3.5">{t("auditLog.tableHeaders.resource")}</th>
-                      <th className="px-5 py-3.5 hidden md:table-cell">{t("auditLog.tableHeaders.actor")}</th>
-                      <th className="px-5 py-3.5 hidden lg:table-cell">{t("auditLog.tableHeaders.ip")}</th>
-                      <th className="px-5 py-3.5 text-right">{t("auditLog.tableHeaders.details")}</th>
+                      <th className="px-5 py-3.5 hidden md:table-cell">
+                        {t("auditLog.tableHeaders.actor")}
+                      </th>
+                      <th className="px-5 py-3.5 hidden lg:table-cell">
+                        {t("auditLog.tableHeaders.ip")}
+                      </th>
+                      <th className="px-5 py-3.5 text-right">
+                        {t("auditLog.tableHeaders.details")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -315,12 +318,34 @@ export const AuditPage: React.FC = () => {
           {selected && (
             <div className="space-y-3 text-sm">
               <DetailRow label={t("auditLog.detailRowLabels.action")} value={selected.action} />
-              <DetailRow label={t("auditLog.detailRowLabels.resourceType")} value={selected.resource_type} />
-              <DetailRow label={t("auditLog.detailRowLabels.resourceId")} value={selected.resource_keycloak_id ?? "—"} />
-              <DetailRow label={t("auditLog.detailRowLabels.actorKeycloakId")} value={selected.actor_keycloak_id} />
-              {selected.actor_id && <DetailRow label={t("auditLog.detailRowLabels.actorUserId")} value={selected.actor_id} />}
-              <DetailRow label={t("auditLog.detailRowLabels.ipAddress")} value={selected.ip_address ?? "—"} />
-              {selected.user_agent && <DetailRow label={t("auditLog.detailRowLabels.userAgent")} value={selected.user_agent} />}
+              <DetailRow
+                label={t("auditLog.detailRowLabels.resourceType")}
+                value={selected.resource_type}
+              />
+              <DetailRow
+                label={t("auditLog.detailRowLabels.resourceId")}
+                value={selected.resource_keycloak_id ?? "—"}
+              />
+              <DetailRow
+                label={t("auditLog.detailRowLabels.actorKeycloakId")}
+                value={selected.actor_keycloak_id}
+              />
+              {selected.actor_id && (
+                <DetailRow
+                  label={t("auditLog.detailRowLabels.actorUserId")}
+                  value={selected.actor_id}
+                />
+              )}
+              <DetailRow
+                label={t("auditLog.detailRowLabels.ipAddress")}
+                value={selected.ip_address ?? "—"}
+              />
+              {selected.user_agent && (
+                <DetailRow
+                  label={t("auditLog.detailRowLabels.userAgent")}
+                  value={selected.user_agent}
+                />
+              )}
               <div>
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {t("auditLog.detailsJson")}

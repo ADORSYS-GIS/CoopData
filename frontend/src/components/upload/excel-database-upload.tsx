@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 // ─────────────────────────────────────────────────────────────────────
 // TYPES
@@ -335,7 +336,11 @@ const DATABASE_CONFIGS: DatabaseConfig[] = [
 // SIMULATED EXTRACTION
 // ─────────────────────────────────────────────────────────────────────
 
-function generateSimulatedExtraction(config: DatabaseConfig, fileName: string, t: any): ExtractionResult {
+function generateSimulatedExtraction(
+  config: DatabaseConfig,
+  fileName: string,
+  t: TFunction,
+): ExtractionResult {
   const totalRows = Math.floor(Math.random() * 500) + 200;
   const invalidRows = Math.floor(Math.random() * 8) + 1;
   const validRows = totalRows - invalidRows;
@@ -378,26 +383,29 @@ function DatabaseUploader({
   const [expanded, setExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = useCallback((file: File) => {
-    const validTypes = [
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-excel",
-      "text/csv",
-    ];
-    const validExtensions = [".xlsx", ".xls", ".csv"];
-    const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      const validTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/csv",
+      ];
+      const validExtensions = [".xlsx", ".xls", ".csv"];
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
 
-    if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
-      toast.error(t("excelDatabaseUpload.toastUnsupported"));
-      return;
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error(t("excelDatabaseUpload.toastTooLarge"));
-      return;
-    }
-    setSelectedFile(file);
-    toast.success(t("excelDatabaseUpload.toastSelected", { name: file.name }));
-  }, [t]);
+      if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
+        toast.error(t("excelDatabaseUpload.toastUnsupported"));
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(t("excelDatabaseUpload.toastTooLarge"));
+        return;
+      }
+      setSelectedFile(file);
+      toast.success(t("excelDatabaseUpload.toastSelected", { name: file.name }));
+    },
+    [t],
+  );
 
   const startExtraction = useCallback(() => {
     if (!selectedFile) return;
@@ -503,7 +511,9 @@ function DatabaseUploader({
                 />
                 <FileSpreadsheet className="size-6 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm font-semibold text-foreground">
-                  {t("excelDatabaseUpload.dropExcel", { name: t(`excelDatabaseUpload.configs.${config.id}.name`) })}
+                  {t("excelDatabaseUpload.dropExcel", {
+                    name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+                  })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {t("excelDatabaseUpload.fileSpec")}
@@ -548,7 +558,11 @@ function DatabaseUploader({
                   {config.validationRules.map((rule, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                       <CheckCircle2 className="size-3 text-success shrink-0 mt-0.5" />
-                      <span>{t(`excelDatabaseUpload.validationRules.${config.id}.${i}`, { defaultValue: rule })}</span>
+                      <span>
+                        {t(`excelDatabaseUpload.validationRules.${config.id}.${i}`, {
+                          defaultValue: rule,
+                        })}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -562,7 +576,9 @@ function DatabaseUploader({
               <Loader2 className="size-8 text-primary animate-spin" />
               <div className="text-center">
                 <p className="text-sm font-bold text-foreground">
-                  {t("excelDatabaseUpload.extractingName", { name: t(`excelDatabaseUpload.configs.${config.id}.name`) })}
+                  {t("excelDatabaseUpload.extractingName", {
+                    name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+                  })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {t("excelDatabaseUpload.parsingRows")}
@@ -582,17 +598,23 @@ function DatabaseUploader({
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 rounded-lg bg-success/5 border border-success/20 text-center">
                   <p className="text-lg font-bold text-foreground">{extractionResult.validRows}</p>
-                  <p className="text-[10px] text-muted-foreground">{t("excelDatabaseUpload.validRows")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("excelDatabaseUpload.validRows")}
+                  </p>
                 </div>
                 <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-center">
                   <p className="text-lg font-bold text-foreground">
                     {extractionResult.invalidRows}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{t("excelDatabaseUpload.needReview")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("excelDatabaseUpload.needReview")}
+                  </p>
                 </div>
                 <div className="p-3 rounded-lg bg-info/5 border border-info/20 text-center">
                   <p className="text-lg font-bold text-foreground">{extractionResult.totalRows}</p>
-                  <p className="text-[10px] text-muted-foreground">{t("excelDatabaseUpload.totalRows")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("excelDatabaseUpload.totalRows")}
+                  </p>
                 </div>
               </div>
 
@@ -612,7 +634,9 @@ function DatabaseUploader({
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="px-3 py-2 bg-muted/60 border-b border-border">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {t("excelDatabaseUpload.dataPreview", { count: extractionResult.previewData.length })}
+                    {t("excelDatabaseUpload.dataPreview", {
+                      count: extractionResult.previewData.length,
+                    })}
                   </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -624,7 +648,10 @@ function DatabaseUploader({
                             key={col}
                             className="px-2 py-1.5 text-left font-semibold text-muted-foreground whitespace-nowrap"
                           >
-                            {t(`excelDatabaseUpload.columns.${col.replace(/[^a-zA-Z0-9]/g, "").replace(/^[A-Z]/, (c) => c.toLowerCase())}`, { defaultValue: col })}
+                            {t(
+                              `excelDatabaseUpload.columns.${col.replace(/[^a-zA-Z0-9]/g, "").replace(/^[A-Z]/, (c) => c.toLowerCase())}`,
+                              { defaultValue: col },
+                            )}
                           </th>
                         ))}
                         {config.columns.length > 6 && (
@@ -678,7 +705,9 @@ function DatabaseUploader({
               <CheckCircle2 className="size-10 text-success" />
               <div className="text-center">
                 <p className="text-sm font-bold text-foreground">
-                  {t("excelDatabaseUpload.uploadedTitle", { name: t(`excelDatabaseUpload.configs.${config.id}.name`) })}
+                  {t("excelDatabaseUpload.uploadedTitle", {
+                    name: t(`excelDatabaseUpload.configs.${config.id}.name`),
+                  })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {t("excelDatabaseUpload.readyRecords", { count: extractionResult.validRows })}
@@ -749,9 +778,14 @@ export function ExcelDatabaseUpload({
             <Database className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">{t("excelDatabaseUpload.title")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("excelDatabaseUpload.title")}
+            </p>
             <p className="text-xs text-muted-foreground">
-              {t("excelDatabaseUpload.progress", { count: completedDbs.size, total: DATABASE_CONFIGS.length })}
+              {t("excelDatabaseUpload.progress", {
+                count: completedDbs.size,
+                total: DATABASE_CONFIGS.length,
+              })}
             </p>
           </div>
         </div>
@@ -800,7 +834,9 @@ export function ExcelDatabaseUpload({
               ) : (
                 <ArrowRight className="size-4" />
               )}
-              {isSubmitting ? t("excelDatabaseUpload.submitting") : t("excelDatabaseUpload.submitToApex")}
+              {isSubmitting
+                ? t("excelDatabaseUpload.submitting")
+                : t("excelDatabaseUpload.submitToApex")}
             </button>
           </div>
         </div>
@@ -812,7 +848,9 @@ export function ExcelDatabaseUpload({
           <div className="flex items-center gap-3">
             <CheckCircle2 className="size-6 text-success shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-bold text-foreground">{t("excelDatabaseUpload.sentToApex")}</p>
+              <p className="text-sm font-bold text-foreground">
+                {t("excelDatabaseUpload.sentToApex")}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {t("excelDatabaseUpload.sentToApexDesc")}
               </p>

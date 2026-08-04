@@ -20,9 +20,7 @@ export function LoansStep({ loans, addLoan, memberIds, updateLoan, removeLoan }:
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
           <h3 className="text-sm font-bold text-foreground">{t("loansStep.title")}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("loansStep.desc")}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("loansStep.desc")}</p>
         </div>
         <button
           onClick={addLoan}
@@ -99,9 +97,7 @@ export function LoansStep({ loans, addLoan, memberIds, updateLoan, removeLoan }:
       )}
 
       <div className="px-6 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-        <span>
-          {t("loansStep.rowCount", { count: loans.length })}
-        </span>
+        <span>{t("loansStep.rowCount", { count: loans.length })}</span>
         <button onClick={addLoan} className="text-primary hover:underline font-medium">
           {t("loansStep.addAnother")}
         </button>

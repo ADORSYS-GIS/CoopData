@@ -5,7 +5,6 @@
 /// `.pageNumber` and `.totalPages` spans respectively. The header and footer are
 /// rendered inside the top/bottom page margins configured in the convert request
 /// (0.5in each), so the templates must stay compact enough to fit.
-
 pub const PDF_HEADER_HTML: &str = r#"<!DOCTYPE html>
 <html>
 <head>

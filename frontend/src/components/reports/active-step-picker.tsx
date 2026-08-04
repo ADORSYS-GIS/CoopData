@@ -204,9 +204,7 @@ export function ActiveStepPicker({
         ) : filteredSubmissions.length === 0 ? (
           <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
             <FileText className="size-4 shrink-0 mt-0.5" />
-            <span>
-              {t("stepPicker.noSubmissions")}
-            </span>
+            <span>{t("stepPicker.noSubmissions")}</span>
           </div>
         ) : (
           <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
@@ -222,7 +220,9 @@ export function ActiveStepPicker({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{sub.reporting_year} {t("stepPicker.financialReport")}</p>
+                  <p className="font-semibold truncate">
+                    {sub.reporting_year} {t("stepPicker.financialReport")}
+                  </p>
                   <p
                     className={`text-[11px] mt-0.5 capitalize ${
                       selectedSubmissionId === sub.id ? "text-primary/70" : "text-muted-foreground"
@@ -282,7 +282,9 @@ export function ActiveStepPicker({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{year} {t("stepPicker.consolidatedReport")}</p>
+                  <p className="font-semibold truncate">
+                    {year} {t("stepPicker.consolidatedReport")}
+                  </p>
                 </div>
                 {selectedYear === year && <CheckCircle2 className="size-4 shrink-0 text-primary" />}
               </button>

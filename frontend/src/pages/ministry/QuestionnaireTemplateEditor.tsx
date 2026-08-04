@@ -142,8 +142,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   };
 
   const deleteSection = (index: number) => {
-    if (!window.confirm(t("templateEditor.confirmDeleteSection")))
-      return;
+    if (!window.confirm(t("templateEditor.confirmDeleteSection"))) return;
     const updated = sections.filter((_, i) => i !== index);
     setSections(updated);
     if (selectedSectionIndex === index) {
@@ -326,12 +325,15 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
             <ArrowLeft className="size-4" />
           </button>
           <div>
-            <h1 className="text-xl font-heading font-bold text-foreground">{t("templateEditor.titleFormBuilder")}</h1>
+            <h1 className="text-xl font-heading font-bold text-foreground">
+              {t("templateEditor.titleFormBuilder")}
+            </h1>
             <p className="text-xs text-muted-foreground">
               {t("templateEditor.subtitleFormBuilder", {
-                type: template.questionnaire_type === "financial"
-                  ? t("templateEditor.typeFinancial")
-                  : t("templateEditor.typeNonFinancial")
+                type:
+                  template.questionnaire_type === "financial"
+                    ? t("templateEditor.typeFinancial")
+                    : t("templateEditor.typeNonFinancial"),
               })}
             </p>
           </div>

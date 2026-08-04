@@ -212,7 +212,9 @@ export const UploadFinancialStatementWidget: React.FC<{
               ) : (
                 <Upload className="size-4" />
               )}
-              {upload.isPending ? t("uploadFinancial.uploading") : t("uploadFinancial.uploadAndExtract")}
+              {upload.isPending
+                ? t("uploadFinancial.uploading")
+                : t("uploadFinancial.uploadAndExtract")}
             </button>
             {onClose && (
               <button

@@ -173,7 +173,12 @@ function createColumns(
       header: t("federationsPage.tableHeaders.actions"),
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)} title={t("federationsPage.tooltipEdit")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEdit(row.original)}
+            title={t("federationsPage.tooltipEdit")}
+          >
             <Pencil className="size-3.5" />
           </Button>
           <Button
@@ -213,7 +218,11 @@ function FederationForm({
         .string()
         .min(1, t("federationsPage.zod.domainRequired"))
         .regex(domainRegex, t("federationsPage.zod.domainInvalid")),
-      contact_email: z.string().email(t("federationsPage.zod.emailInvalid")).optional().or(z.literal("")),
+      contact_email: z
+        .string()
+        .email(t("federationsPage.zod.emailInvalid"))
+        .optional()
+        .or(z.literal("")),
     });
   }, [t]);
 
@@ -509,9 +518,7 @@ export const FederationsPage: React.FC = () => {
             <div className="py-12 text-center text-muted-foreground">
               <Landmark className="size-8 text-muted-foreground/60 mb-2 mx-auto" />
               <p className="font-semibold text-sm">{t("federationsPage.noMatchQuery")}</p>
-              <p className="text-xs">
-                {t("federationsPage.adjustSearch")}
-              </p>
+              <p className="text-xs">{t("federationsPage.adjustSearch")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

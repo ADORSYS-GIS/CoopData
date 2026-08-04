@@ -260,7 +260,10 @@ pub async fn upload_non_financial(
     let members_imported = if member_active_models.is_empty() {
         0
     } else {
-        state.member_repo.bulk_upsert(member_active_models.clone()).await?
+        state
+            .member_repo
+            .bulk_upsert(member_active_models.clone())
+            .await?
     };
 
     // Build member_business_id → DB-uuid mapping directly from the just-inserted
@@ -276,7 +279,6 @@ pub async fn upload_non_financial(
             member_map.insert(member_id_str.clone(), *db_uuid);
         }
     }
-
 
     let mut savings_active_models: Vec<savings_account::ActiveModel> = Vec::new();
     for record in &parse_result.savings_accounts {
@@ -2087,7 +2089,9 @@ pub async fn create_manual_members(
                     number_of_contributions: Set(record.number_of_contributions),
                     balance_trend: Set(record.balance_trend.clone()),
                     zero_balance_flag: Set(record.zero_balance_flag),
-                    withdrawal_frequency_category: Set(record.withdrawal_frequency_category.clone()),
+                    withdrawal_frequency_category: Set(record
+                        .withdrawal_frequency_category
+                        .clone()),
                     emergency_withdrawals_flag: Set(record.emergency_withdrawals_flag),
                     interest_rate: Set(record.interest_rate),
                     balance: Set(record.balance),
@@ -2196,7 +2200,9 @@ pub async fn create_manual_members(
                     market_channel_type: Set(record.market_channel_type.clone()),
                     formal_offtake_agreement: Set(record.formal_offtake_agreement),
                     buyer_concentration_flag: Set(record.buyer_concentration_flag),
-                    price_predictability_category: Set(record.price_predictability_category.clone()),
+                    price_predictability_category: Set(record
+                        .price_predictability_category
+                        .clone()),
                     access_to_storage: Set(record.access_to_storage),
                     access_to_processing_facilities: Set(record.access_to_processing_facilities),
                     transport_coordination: Set(record.transport_coordination.clone()),

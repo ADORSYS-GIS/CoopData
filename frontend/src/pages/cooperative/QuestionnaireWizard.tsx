@@ -402,12 +402,13 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                 <button
                   key={s.id}
                   onClick={() => setCurrentSection(idx)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${isCurrent
+                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    isCurrent
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : isComplete
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                  }`}
                 >
                   {isComplete ? (
                     <CheckCircle2 className="size-3" />

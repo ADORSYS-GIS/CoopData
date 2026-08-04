@@ -194,7 +194,8 @@ export function SubmissionReviewPanel({
           </p>
           <h3 className="text-lg font-bold text-foreground">{submission.coopName}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {submission.type} · {t("submissions.reviewPanel.filedOn", { date: submission.submittedOn })}
+            {submission.type} ·{" "}
+            {t("submissions.reviewPanel.filedOn", { date: submission.submittedOn })}
           </p>
         </div>
         <button
@@ -228,7 +229,13 @@ export function SubmissionReviewPanel({
             {submission.status === "Forwarded to Federation" && <ArrowUpRight className="size-3" />}
             {getStatusLabel(submission.status)}
           </span>
-          <span className="text-xs text-muted-foreground">{t("submissions.reviewPanel.priority", { priority: t(`submissions.detail.timelineTier`, { tier: submission.priority }).toLowerCase() })}</span>
+          <span className="text-xs text-muted-foreground">
+            {t("submissions.reviewPanel.priority", {
+              priority: t(`submissions.detail.timelineTier`, {
+                tier: submission.priority,
+              }).toLowerCase(),
+            })}
+          </span>
         </div>
       </div>
 
@@ -315,25 +322,33 @@ export function SubmissionReviewPanel({
           {showFinancials && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3">
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">{t("submissions.reviewPanel.totalAssets")}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.totalAssets")}
+                </p>
                 <p className="text-sm font-bold text-foreground">
                   {formatCurrency(submission.totalAssets!)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">{t("submissions.reviewPanel.liabilities")}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.liabilities")}
+                </p>
                 <p className="text-sm font-bold text-foreground">
                   {formatCurrency(submission.totalLiabilities!)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">{t("submissions.reviewPanel.equity")}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.equity")}
+                </p>
                 <p className="text-sm font-bold text-foreground">
                   {formatCurrency(submission.totalEquity!)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">{t("submissions.reviewPanel.netSurplus")}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.netSurplus")}
+                </p>
                 <p
                   className={`text-sm font-bold ${(submission.netSurplus ?? 0) >= 0 ? "text-success" : "text-destructive"}`}
                 >
@@ -342,11 +357,15 @@ export function SubmissionReviewPanel({
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface border border-border">
-                <p className="text-[10px] text-muted-foreground">{t("submissions.reviewPanel.balanceCheck")}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("submissions.reviewPanel.balanceCheck")}
+                </p>
                 <p
                   className={`text-sm font-bold ${submission.balanceCheck ? "text-success" : "text-destructive"}`}
                 >
-                  {submission.balanceCheck ? t("submissions.reviewPanel.balanced") : t("submissions.reviewPanel.notBalanced")}
+                  {submission.balanceCheck
+                    ? t("submissions.reviewPanel.balanced")
+                    : t("submissions.reviewPanel.notBalanced")}
                 </p>
               </div>
             </div>
@@ -362,7 +381,9 @@ export function SubmissionReviewPanel({
             className="w-full flex items-center justify-between text-left cursor-pointer"
           >
             <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-              {t("submissions.reviewPanel.reviewTrailTitle", { count: submission.reviewTrail.length })}
+              {t("submissions.reviewPanel.reviewTrailTitle", {
+                count: submission.reviewTrail.length,
+              })}
             </p>
             {showTrail ? (
               <ChevronUp className="size-4 text-muted-foreground" />
@@ -482,15 +503,9 @@ export function SubmissionReviewPanel({
           {/* Role-specific guidance */}
           <div className="p-3 rounded-lg bg-muted/30 border border-border">
             <p className="text-xs text-muted-foreground">
-              {userRole === "apex" && (
-                <>{t("submissions.reviewPanel.guidanceApex")}</>
-              )}
-              {userRole === "federation" && (
-                <>{t("submissions.reviewPanel.guidanceFederation")}</>
-              )}
-              {userRole === "ministry" && (
-                <>{t("submissions.reviewPanel.guidanceMinistry")}</>
-              )}
+              {userRole === "apex" && <>{t("submissions.reviewPanel.guidanceApex")}</>}
+              {userRole === "federation" && <>{t("submissions.reviewPanel.guidanceFederation")}</>}
+              {userRole === "ministry" && <>{t("submissions.reviewPanel.guidanceMinistry")}</>}
             </p>
           </div>
         </div>
@@ -502,9 +517,13 @@ export function SubmissionReviewPanel({
           <div className="p-3 rounded-lg bg-info/5 border border-info/20 flex items-start gap-3">
             <AlertTriangle className="size-4 text-info shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-foreground">{t("submissions.reviewPanel.coopViewTitle")}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t("submissions.reviewPanel.coopViewTitle")}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {t("submissions.reviewPanel.coopViewDesc", { status: getStatusLabel(submission.status) })}
+                {t("submissions.reviewPanel.coopViewDesc", {
+                  status: getStatusLabel(submission.status),
+                })}
               </p>
             </div>
           </div>
