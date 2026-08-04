@@ -491,7 +491,7 @@ export const SubmissionsPage: React.FC = () => {
 
   const cooperativeQ = useCooperativeSubmissions(role === "cooperative");
   const apexQ = useApexSubmissions(role === "apex");
-  const federationQ = useFederationSubmissions(role === "federation");
+  const federationQ = useFederationSubmissions({ all: true, enabled: role === "federation" });
   const ministryQ = useMinistrySubmissions(role === "ministry");
 
   const {

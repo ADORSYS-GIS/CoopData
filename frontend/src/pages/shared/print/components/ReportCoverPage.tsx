@@ -9,7 +9,7 @@ export const ReportCoverPage: React.FC<ReportDataProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="relative flex flex-col justify-between w-[210mm] h-[296mm] p-16 bg-gradient-to-br from-slate-900 to-slate-800 text-white break-after-page">
+    <div className="relative flex flex-col justify-between w-[210mm] h-[268mm] p-16 bg-gradient-to-br from-slate-900 to-slate-800 text-white break-after-page">
       <div className="absolute right-[-2rem] top-[-2rem] w-80 h-80 bg-blue-900/30 rounded-full flex items-center justify-center pointer-events-none border-[8px] border-slate-800">
         <img
           src="/coopdatalogo.png"

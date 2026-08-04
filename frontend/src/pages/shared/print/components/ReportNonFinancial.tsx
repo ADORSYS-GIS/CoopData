@@ -19,7 +19,7 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
     (membershipData.active_members || 0) + (membershipData.inactive_members || 0);
 
   return (
-    <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
+    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         {t("printReports.nonFinancialHighlights")}
       </h2>
@@ -39,35 +39,41 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
         <h3 className="text-sm font-bold text-slate-800 mb-2">
           {t("printReports.membershipComposition", { total: totalMembers })}
         </h3>
-        <PieChart width={400} height={300}>
-          <Pie
-            isAnimationActive={false}
-            data={[
-              {
-                name: `Female (${membershipData.female_members})`,
-                value: membershipData.female_members,
-                fill: "#ec4899",
-              },
-              {
-                name: `Male (${membershipData.male_members})`,
-                value: membershipData.male_members,
-                fill: "#0284c7",
-              },
-            ]}
-            dataKey="value"
-            cx="50%"
-            cy="50%"
-            innerRadius={0}
-            outerRadius={100}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-          />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            iconType="circle"
-            wrapperStyle={{ fontSize: "12px" }}
-          />
-        </PieChart>
+        {totalMembers > 0 ? (
+          <PieChart width={400} height={300}>
+            <Pie
+              isAnimationActive={false}
+              data={[
+                {
+                  name: `Female (${membershipData.female_members})`,
+                  value: membershipData.female_members,
+                  fill: "#ec4899",
+                },
+                {
+                  name: `Male (${membershipData.male_members})`,
+                  value: membershipData.male_members,
+                  fill: "#0284c7",
+                },
+              ]}
+              dataKey="value"
+              cx="50%"
+              cy="50%"
+              innerRadius={0}
+              outerRadius={100}
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+            />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              iconType="circle"
+              wrapperStyle={{ fontSize: "12px" }}
+            />
+          </PieChart>
+        ) : (
+          <div className="flex items-center justify-center h-[300px] w-full text-slate-400 text-sm italic">
+            {t("printReports.noMembershipData")}
+          </div>
+        )}
       </div>
 
       <table className="w-full text-left text-xs border-collapse mb-8 page-break-inside-avoid">
@@ -98,7 +104,8 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
           <tr className="hover:bg-slate-50">
             <td className="px-3 py-2">{t("printReports.activeLoans")}</td>
             <td className="px-3 py-2">
-              {portfolioData.categories.reduce((acc, c) => acc + c.count, 0)} ({t("printReports.loanBalance")}:{" "}
+              {portfolioData.categories.reduce((acc, c) => acc + c.count, 0)} (
+              {t("printReports.loanBalance")}:{" "}
               {findKpi(kpiMap, "gross_loan_portfolio")?.formatted ?? "—"})
             </td>
             <td className="px-3 py-2">—</td>
@@ -117,7 +124,9 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
         </tbody>
       </table>
 
-      <h4 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.dataColumnsReference")}</h4>
+      <h4 className="text-sm font-bold text-slate-800 mb-2">
+        {t("printReports.dataColumnsReference")}
+      </h4>
       <table className="w-full text-left text-[10px] border-collapse page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">

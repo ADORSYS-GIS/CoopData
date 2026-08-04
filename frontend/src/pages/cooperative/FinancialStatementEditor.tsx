@@ -520,6 +520,22 @@ export const FinancialStatementEditor: React.FC<{
 
                 {isCooperative && (
                   <button
+                    onClick={() =>
+                      navigate({
+                        to: "/app/submissions/$id/manual-entry",
+                        params: { id: submissionId },
+                        search: { step: "financial" },
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="size-3.5" />
+                    {t("edit")}
+                  </button>
+                )}
+
+                {isCooperative && (
+                  <button
                     onClick={() => setIsDeleteDialogOpen(true)}
                     disabled={deleteFs.isPending}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 transition-colors cursor-pointer"

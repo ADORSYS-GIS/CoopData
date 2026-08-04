@@ -913,7 +913,8 @@
         "btnStartQuestionnaire": "Commencer le questionnaire",
         "noDocUploadedSubtitle": "Aucun document téléversé pour le moment",
         "noDocUploadedDesc": "Aucun état financier téléversé pour cette soumission.",
-        "nonFinancialQResponsesTitle": "Réponses au questionnaire non financier"
+        "nonFinancialQResponsesTitle": "Réponses au questionnaire non financier",
+        "btnChooseMethod": "Choisir la méthode de soumission"
       },
       "nfDatabases": {
         "confirmClear": "Êtes-vous sûr de vouloir effacer toutes les bases de données non financières (adhésion, épargne, prêts, dépôts et profil agricole) ? Cela ne peut pas être annulé.",
@@ -1081,6 +1082,24 @@
         "finance": "finance",
         "other": "autre"
       }
+    },
+    "methodModal": {
+      "title": "Choisissez comment soumettre vos données",
+      "subtitle": "Vous pouvez soumettre votre déclaration annuelle de trois manières. Choisissez une méthode : elle sera utilisée de manière cohérente pour les sections financières et non financières de cette soumission.",
+      "uploadTitle": "Téléverser des documents / fichiers",
+      "uploadDesc": "Téléversez votre état financier (PDF ou Excel) et vos fichiers Excel non financiers. Notre IA extrait et mappe automatiquement les données pour vous.",
+      "uploadNote": "Idéal si vous disposez des fichiers d'origine (par ex. bilan audité ou exports Excel).",
+      "manualTitle": "Saisie manuelle",
+      "manualDesc": "Saisissez vos données directement via des formulaires guidés, ligne par ligne, champ par champ. Les enregistrements financiers et non financiers sont saisis à la main.",
+      "manualNote": "Idéal si vous n'avez pas de fichiers électroniques et préférez saisir les données vous-même.",
+      "questionnaireTitle": "Questionnaire",
+      "questionnaireDesc": "Répondez à une série de questions guidées au lieu de fournir des états financiers ou des bases de données complètes. Notre système transforme vos réponses en soumission.",
+      "questionnaireNote": "Idéal pour les coopératives de base qui ne peuvent pas fournir d'états complets.",
+      "confirmUpload": "Utiliser le téléversement",
+      "confirmManual": "Utiliser la saisie manuelle",
+      "confirmQuestionnaire": "Utiliser le questionnaire",
+      "choosePrompt": "Veuillez choisir l'une des trois méthodes pour continuer.",
+      "currentBadge": "Méthode de soumission : {{method}}"
     }
   },
   "reports": {
@@ -3703,6 +3722,12 @@
     "positiveTrend": "tendance positive",
     "decline": "baisse",
     "balanceSheet": "Bilan",
+    "assets": "Actifs",
+    "liabilities": "Passifs",
+    "equity": "Capitaux propres",
+    "financialPositionChart": "Situation financière (année en cours vs année précédente)",
+    "currentYear": "Année en cours",
+    "ratioBenchmarkChart": "Ratios clés vs Référence",
     "noBalanceSheetData": "Aucune donnée de bilan disponible",
     "incomeStatement": "État des résultats",
     "noIncomeStatementData": "Aucune donnée d'état des résultats disponible",
@@ -3814,7 +3839,9 @@
     "apexComparison": "Comparaison Apex",
     "filingRateAvgParByApex": "Taux de dépôt et PAR30 moyen par Apex",
     "avgParPct": "PAR30 moy. (%)",
-    "filingComplianceByApex": "Conformité de dépôt par Apex"
+    "filingComplianceByApex": "Conformité de dépôt par Apex",
+    "noPortfolioData": "Aucune donnée de portefeuille disponible pour cette période.",
+    "noMembershipData": "Aucune donnée d'adhésion disponible pour cette période."
   },
   "nfIndicatorsForm": {
     "loading": "Chargement des indicateurs…",

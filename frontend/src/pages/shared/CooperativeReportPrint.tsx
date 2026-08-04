@@ -50,10 +50,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     submissionId,
     tokenOverride,
   );
-  const { data: narratives } = useSubmissionNarratives(
-    submissionId,
-    tokenOverride,
-  );
+  const { data: narratives } = useSubmissionNarratives(submissionId, tokenOverride);
   const coopName = submission?.cooperative_name ?? "COOPERATIVE";
 
   const kpiMap = useMemo(() => {
@@ -82,9 +79,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800 p-8">
         <div className="text-center">
           <p className="text-lg font-bold text-red-600">{t("printReports.failedLoad")}</p>
-          <p className="text-sm text-slate-500 mt-1">
-            {t("printReports.failedLoadDesc")}
-          </p>
+          <p className="text-sm text-slate-500 mt-1">{t("printReports.failedLoadDesc")}</p>
         </div>
       </div>
     );
@@ -118,7 +113,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   };
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:w-[210mm]">
+    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
       <ReportCoverPage {...reportData} />
       <ReportExecutiveSummary {...reportData} />
       <ReportNonFinancial {...reportData} />

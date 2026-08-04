@@ -100,7 +100,7 @@ impl MemberRepository {
         let count = models.len() as u64;
         member::Entity::insert_many(models)
             .on_conflict(
-                OnConflict::columns([MemberColumn::CooperativeId, MemberColumn::MemberId])
+                OnConflict::columns([MemberColumn::SubmissionId, MemberColumn::MemberId])
                     .update_columns([
                         MemberColumn::JoinDate,
                         MemberColumn::Status,

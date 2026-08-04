@@ -1,4 +1,5 @@
 use crate::error::AppResult;
+use crate::services::pdf_templates;
 use crate::services::report_narrative;
 use crate::AppState;
 use rust_decimal::prelude::ToPrimitive;
@@ -318,7 +319,7 @@ impl ExportGenerator {
 
         tracing::info!(
             submission_id = %submission_id,
-            "[export] 📡 Generating narratives (5 sequential LLM calls)..."
+            "[export] 📡 Generating narratives (5 concurrent LLM calls)..."
         );
         let start = std::time::Instant::now();
         let res = state
@@ -375,12 +376,40 @@ impl ExportGenerator {
                 .text("waitDelay", "15s")
                 .text("paperWidth", "8.27")
                 .text("paperHeight", "11.69")
-                .text("marginTop", "0")
-                .text("marginBottom", "0")
+                .text("marginTop", "0.5")
+                .text("marginBottom", "0.5")
                 .text("marginLeft", "0")
                 .text("marginRight", "0")
                 .text("printBackground", "true")
-                .text("emulateMediaType", "screen");
+                .text("emulateMediaType", "screen")
+                .part(
+                    "headerHtml",
+                    reqwest::multipart::Part::bytes(
+                        pdf_templates::PDF_HEADER_HTML.as_bytes().to_vec(),
+                    )
+                    .file_name("header.html")
+                    .mime_str("text/html")
+                    .map_err(|e| {
+                        crate::error::AppError::InternalServerError(format!(
+                            "Invalid header mime: {}",
+                            e
+                        ))
+                    })?,
+                )
+                .part(
+                    "footerHtml",
+                    reqwest::multipart::Part::bytes(
+                        pdf_templates::PDF_FOOTER_HTML.as_bytes().to_vec(),
+                    )
+                    .file_name("footer.html")
+                    .mime_str("text/html")
+                    .map_err(|e| {
+                        crate::error::AppError::InternalServerError(format!(
+                            "Invalid footer mime: {}",
+                            e
+                        ))
+                    })?,
+                );
 
             let response = client
                 .post(format!(

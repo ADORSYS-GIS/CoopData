@@ -4,6 +4,7 @@ import { getLineItem, calculateYoY, formatCurrency } from "./utils";
 import { LineItemResponse } from "@/hooks/submissions/useCooperativeKpis";
 import { useTranslation } from "react-i18next";
 import { AiInsightBox } from "./AiInsightBox";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
   lineItemsData,
@@ -17,8 +18,9 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
     getLineItem(lineItemsData, 1999, true),
   );
 
-  const { balanceSheetItems, incomeStatementItems } = useMemo(() => {
+  const { balanceSheetItems, incomeStatementItems, positionChartData } = useMemo(() => {
     const items = lineItemsData?.current_year || [];
+    const priorItems = lineItemsData?.prior_year || [];
 
     // Deduplicate by account_code (take the latest month or first seen)
     const uniqueItemsMap = new Map<number, LineItemResponse>();
@@ -41,6 +43,29 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
     const bsCategories = ["assets", "liabilities", "equity"];
     const isCategories = ["income", "expenses", "surplus"];
 
+    const sumByCategory = (list: LineItemResponse[], categories: string[]) =>
+      list
+        .filter((i) => categories.includes(i.account_category.toLowerCase()))
+        .reduce((acc, i) => acc + (i.value ?? 0), 0);
+
+    const positionChartData = [
+      {
+        name: t("printReports.assets"),
+        current: sumByCategory(items, ["assets"]),
+        prior: sumByCategory(priorItems, ["assets"]),
+      },
+      {
+        name: t("printReports.liabilities"),
+        current: sumByCategory(items, ["liabilities"]),
+        prior: sumByCategory(priorItems, ["liabilities"]),
+      },
+      {
+        name: t("printReports.equity"),
+        current: sumByCategory(items, ["equity"]),
+        prior: sumByCategory(priorItems, ["equity"]),
+      },
+    ];
+
     return {
       balanceSheetItems: sorted.filter((i) =>
         bsCategories.includes(i.account_category.toLowerCase()),
@@ -48,8 +73,9 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
       incomeStatementItems: sorted.filter((i) =>
         isCategories.includes(i.account_category.toLowerCase()),
       ),
+      positionChartData,
     };
-  }, [lineItemsData]);
+  }, [lineItemsData, t]);
 
   const totalAssets = getLineItem(lineItemsData, 1999);
   const totalIncome = getLineItem(lineItemsData, 5999);
@@ -96,7 +122,7 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
   };
 
   return (
-    <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white">
+    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         {t("printReports.financialPositionTitle")}
       </h2>
@@ -114,16 +140,64 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
         }
       />
 
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">{t("printReports.balanceSheet")}</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-4">
+        {t("printReports.balanceSheet")}
+      </h3>
+
+      <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-6">
+        <h4 className="text-sm font-bold text-slate-800 mb-2">
+          {t("printReports.financialPositionChart")}
+        </h4>
+        <BarChart
+          width={680}
+          height={240}
+          data={positionChartData}
+          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+          <XAxis
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 12, fontWeight: "bold" }}
+          />
+          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+          <Tooltip cursor={{ fill: "rgba(0,0,0,0.05)" }} />
+          <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+          <Bar
+            dataKey="current"
+            name={t("printReports.currentYear")}
+            fill="#2563eb"
+            radius={[3, 3, 0, 0]}
+            isAnimationActive={false}
+          />
+          <Bar
+            dataKey="prior"
+            name={t("printReports.priorYear")}
+            fill="#94a3b8"
+            radius={[3, 3, 0, 0]}
+            isAnimationActive={false}
+          />
+        </BarChart>
+      </div>
+
       <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
             <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountCode")}</th>
             <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountName")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.currentYearSzl")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.priorYearSzl")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.yoyChange")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.percentOfAssets")}</th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.currentYearSzl")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.priorYearSzl")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.yoyChange")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.percentOfAssets")}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
@@ -145,10 +219,18 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
           <tr className="bg-slate-800 text-white">
             <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountCode")}</th>
             <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountName")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.currentYearSzl")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.priorYearSzl")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.yoyChange")}</th>
-            <th className="px-2 py-1 font-semibold text-right">{t("printReports.headers.percentOfIncome")}</th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.currentYearSzl")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.priorYearSzl")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.yoyChange")}
+            </th>
+            <th className="px-2 py-1 font-semibold text-right">
+              {t("printReports.headers.percentOfIncome")}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">

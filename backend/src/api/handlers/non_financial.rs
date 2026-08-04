@@ -2024,7 +2024,7 @@ pub async fn create_manual_members(
         if !member_active_models.is_empty() {
             member::Entity::insert_many(member_active_models)
                 .on_conflict(
-                    OnConflict::columns([member::Column::CooperativeId, member::Column::MemberId])
+                    OnConflict::columns([member::Column::SubmissionId, member::Column::MemberId])
                         .update_columns([
                             member::Column::JoinDate,
                             member::Column::Status,
@@ -2215,7 +2215,7 @@ pub async fn create_manual_members(
             savings_account::Entity::insert_many(savings_active_models)
                 .on_conflict(
                     OnConflict::columns([
-                        savings_account::Column::CooperativeId,
+                        savings_account::Column::SubmissionId,
                         savings_account::Column::SavingsAccountId,
                     ])
                     .update_columns([
@@ -2250,7 +2250,7 @@ pub async fn create_manual_members(
             let count = loan_active_models.len() as u64;
             loan::Entity::insert_many(loan_active_models)
                 .on_conflict(
-                    OnConflict::columns([loan::Column::CooperativeId, loan::Column::LoanId])
+                    OnConflict::columns([loan::Column::SubmissionId, loan::Column::LoanId])
                         .update_columns([
                             loan::Column::SubmissionId,
                             loan::Column::MemberId,
@@ -2290,7 +2290,7 @@ pub async fn create_manual_members(
             fixed_deposit::Entity::insert_many(fd_active_models)
                 .on_conflict(
                     OnConflict::columns([
-                        fixed_deposit::Column::CooperativeId,
+                        fixed_deposit::Column::SubmissionId,
                         fixed_deposit::Column::FixedDepositId,
                     ])
                     .update_columns([

@@ -35,7 +35,7 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
   }, []);
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:w-[210mm]">
+    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
       <ConsolidatedCoverPage
         tier={tier}
         entityName={entityName}

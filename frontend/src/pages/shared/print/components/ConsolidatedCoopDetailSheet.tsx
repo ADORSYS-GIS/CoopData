@@ -70,7 +70,7 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
   };
 
   return (
-    <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page font-sans">
+    <div className="report-sheet relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white break-after-page font-sans">
       <div>
         <h2 className="text-xl font-bold text-blue-800 mb-4">{t("printReports.coopDetail.cooperativeDetail")}</h2>
 

@@ -913,7 +913,8 @@
         "btnStartQuestionnaire": "Qala Umbuzo",
         "noDocUploadedSubtitle": "Akukho dokhumenti elayishiwe okwamanje",
         "noDocUploadedDesc": "Akukho sitatimende setimali esilayishiwe salombiko.",
-        "nonFinancialQResponsesTitle": "Izimpendulo Zemibuzo Engasebenzi Etimali"
+        "nonFinancialQResponsesTitle": "Izimpendulo Zemibuzo Engasebenzi Etimali",
+        "btnChooseMethod": "Khetsa indlela yekufaka"
       },
       "nfDatabases": {
         "confirmClear": "Ucinisekile yini kutsi ufuna kususa wonke amadatabase angekho etimali (ubulunga, imali yekonga, emaloli, emadiphozithi, nephrofayili yelimu)? Lokhu akukwazi kuhoxiswa.",
@@ -1081,6 +1082,24 @@
         "finance": "etimali",
         "other": "okunye"
       }
+    },
+    "methodModal": {
+      "title": "Khetsa indlela yekufaka tidato takho",
+      "subtitle": "Ungafaka umbiko wakho wanyaka ngetindlela tintatfu. Khetsa indlela yinye — itawusetjentiswa ngendlela lefanako etincenyeni tetimala naletingasiyo tetimala talo mbiko.",
+      "uploadTitle": "Faka emadokhumenti / emafayili",
+      "uploadDesc": "Faka sitatimende sakho setimala (nge-PDF noma Excel) kanye nemafayili e-Excel langasiwo etimala. I-AI yakitsi sicikiza futsi isihlele idato takho ngekuzenzela.",
+      "uploadNote": "Kulungile uma unemafayili ekusekeli (isib. ibhalansi lehlolwe noma emafayili e-Excel).",
+      "manualTitle": "Kufaka ngesandla",
+      "manualDesc": "Faka idato takho ngco nge-emafomo lacondzisiwe, ngemugca ngemugca, ngenkhundla ngenkhundla. Idato tetimala naletingasiyo tetimala tifakwa ngesandla.",
+      "manualNote": "Kulungile uma ungenawo emafayili e-elektroniki futsi utsandza kufaka idato ngesandla.",
+      "questionnaireTitle": "Emibuto",
+      "questionnaireDesc": "Phendula imibuto lecondzisako kunekutsi unikete emasitatimende etimala noma ema-database. Lusistimu lwetsi luphendvula kutsi kungete umbiko wakho.",
+      "questionnaireNote": "Kulungile kubambiswano letingenako kukhipha emasitatimende etimala noma ema-database.",
+      "confirmUpload": "Sebentisa kufaka emafayili",
+      "confirmManual": "Sebentisa kufaka ngesandla",
+      "confirmQuestionnaire": "Sebentisa emibuto",
+      "choosePrompt": "Khetsa lenye yetindlela tintatfu kuze uqhubeke.",
+      "currentBadge": "Indlela yekufaka: {{method}}"
     }
   },
   "reports": {
@@ -3703,6 +3722,12 @@
     "positiveTrend": "itrend enhle",
     "decline": "ukwehla",
     "balanceSheet": "Ibhalansi Sheet",
+    "assets": "Amafa",
+    "liabilities": "Izikweletu",
+    "equity": "Ubunikazi",
+    "financialPositionChart": "Simo Sezimali (Unyaka Wamanje vs Unyaka Wedlule)",
+    "currentYear": "Unyaka Wamanje",
+    "ratioBenchmarkChart": "Izilinganiso Eziyinhloko vs Inkomba",
     "noBalanceSheetData": "Akukho data yebhalansi sheet etholakalako",
     "incomeStatement": "Sitatimende Semali Engenayo",
     "noIncomeStatementData": "Akukho data yesitatimende semali engenayo etholakalako",
@@ -3814,7 +3839,9 @@
     "apexComparison": "Ukufananisa Emapheksi",
     "filingRateAvgParByApex": "Izinga Lokufaka & Isilinganiso se-PAR30 Ngepheksi",
     "avgParPct": "Isilinganiso se-PAR30 (%)",
-    "filingComplianceByApex": "Kuhambisana Kokufaka Ngepheksi"
+    "filingComplianceByApex": "Kuhambisana Kokufaka Ngepheksi",
+    "noPortfolioData": "Akukho datha yephothifoliyo etholakalayo kulesi sikhathi.",
+    "noMembershipData": "Akukho datha yobulungu etholakalayo kulesi sikhathi."
   },
   "nfIndicatorsForm": {
     "loading": "Kulayisha tinkhombandlela...",

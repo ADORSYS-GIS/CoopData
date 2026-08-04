@@ -18,7 +18,7 @@ use crate::api::handlers::non_financial;
 use crate::api::handlers::submission::{
     create_submission, delete_submission, get_submission, list_cooperative_submissions,
     list_submission_reviews, list_submission_sections, submit_submission,
-    update_submission_section, validate_extraction,
+    update_submission_method, update_submission_section, validate_extraction,
 };
 use crate::api::handlers::upload::{
     delete_financial_statement, serve_uploaded_file, upload_financial_statement,
@@ -153,6 +153,10 @@ pub fn cooperative_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/sections/{section}",
             axum::routing::patch(update_submission_section),
+        )
+        .route(
+            "/submissions/{id}/method",
+            axum::routing::patch(update_submission_method),
         )
         .route(
             "/submissions/{id}/validate-extraction",

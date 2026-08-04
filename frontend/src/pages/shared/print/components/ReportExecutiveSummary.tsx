@@ -4,6 +4,7 @@ import { ReportDataProps } from "./types";
 import { findKpi, formatCurrency, calculateYoY } from "./utils";
 import { ShieldAlert, ShieldCheck, Shield } from "lucide-react";
 import { AiInsightBox } from "./AiInsightBox";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   submission,
@@ -49,12 +50,22 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   const totalAssetsFormatted =
     findKpi(kpiMap, "total_assets")?.formatted ?? "a significant portion";
 
+  const ratioChartData = complianceKpis
+    .filter((k) => k.unit === "percent" && k.benchmark !== undefined && k.benchmark !== null)
+    .map((k) => ({
+      name: k.name.replace(/_/g, " ").toUpperCase(),
+      value: k.value ?? 0,
+      benchmark: k.benchmark ?? 0,
+    }));
+
   return (
-    <div className="w-[210mm] min-h-[296mm] p-16 block break-after-page bg-white font-sans">
+    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white font-sans">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         {t("printReports.performanceReport")}
       </h2>
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">{t("printReports.executiveSummary")}</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-4">
+        {t("printReports.executiveSummary")}
+      </h3>
 
       {/* Header Block */}
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6 grid grid-cols-2 gap-y-2 gap-x-8 text-xs">
@@ -80,14 +91,18 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
         </div>
         <div className="flex justify-between">
           <span className="font-bold text-slate-600">{t("printReports.region")}</span>{" "}
-          <span className="text-slate-800 capitalize">{cooperative?.region ?? t("printReports.n/a")}</span>
+          <span className="text-slate-800 capitalize">
+            {cooperative?.region ?? t("printReports.n/a")}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="font-bold text-slate-600">{t("printReports.status")}</span>{" "}
           <span
             className={`font-bold capitalize ${submission.status === "approved" ? "text-green-600" : "text-slate-800"}`}
           >
-            {submission.status ? t(`submissions.status.${submission.status}`, submission.status) : t("printReports.draft")}
+            {submission.status
+              ? t(`submissions.status.${submission.status}`, submission.status)
+              : t("printReports.draft")}
           </span>
         </div>
       </div>
@@ -106,7 +121,9 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
       />
 
       {/* Financial Highlights */}
-      <h4 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.financialHighlights")}</h4>
+      <h4 className="text-sm font-bold text-slate-800 mb-2">
+        {t("printReports.financialHighlights")}
+      </h4>
       <table className="w-full text-left text-xs border-collapse mb-8 page-break-inside-avoid">
         <thead>
           <tr className="bg-slate-800 text-white">
@@ -182,6 +199,46 @@ export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
           })}
         </tbody>
       </table>
+
+      {ratioChartData.length > 0 && (
+        <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-6">
+          <h4 className="text-sm font-bold text-slate-800 mb-2">
+            {t("printReports.ratioBenchmarkChart")}
+          </h4>
+          <BarChart
+            width={680}
+            height={240}
+            data={ratioChartData}
+            margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: "bold" }}
+              interval={0}
+            />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+            <Tooltip cursor={{ fill: "rgba(0,0,0,0.05)" }} />
+            <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+            <Bar
+              dataKey="value"
+              name={t("printReports.current")}
+              fill="#2563eb"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="benchmark"
+              name={t("printReports.benchmark")}
+              fill="#f59e0b"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+          </BarChart>
+        </div>
+      )}
 
       <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
         <span></span>

@@ -11,7 +11,7 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="w-[210mm] min-h-[297mm] p-16 block break-after-page bg-white">
+    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white">
       <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
         {t("printReports.pearlsBenchmarkComparisonTitle")}
       </h2>

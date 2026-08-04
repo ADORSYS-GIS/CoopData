@@ -913,7 +913,8 @@
         "btnStartQuestionnaire": "Start Questionnaire",
         "noDocUploadedSubtitle": "No document uploaded yet",
         "noDocUploadedDesc": "No financial statement uploaded for this submission.",
-        "nonFinancialQResponsesTitle": "Non-Financial Questionnaire Responses"
+        "nonFinancialQResponsesTitle": "Non-Financial Questionnaire Responses",
+        "btnChooseMethod": "Choose submission method"
       },
       "nfDatabases": {
         "confirmClear": "Are you sure you want to clear all non-financial databases (membership, savings, loans, deposits, and farm profile)? This cannot be undone.",
@@ -1081,6 +1082,24 @@
         "finance": "finance",
         "other": "other"
       }
+    },
+    "methodModal": {
+      "title": "Choose how to submit your data",
+      "subtitle": "You can submit your annual return in one of three ways. Choose one method — it will be used consistently for both the financial and non-financial sections of this submission.",
+      "uploadTitle": "Upload Documents / Files",
+      "uploadDesc": "Upload your financial statement (PDF or Excel) and non-financial Excel files. Our AI extracts and maps the data automatically for you.",
+      "uploadNote": "Best if you have the original files (e.g. audited balance sheet or Excel exports).",
+      "manualTitle": "Manual Entry",
+      "manualDesc": "Enter your data directly using structured, guided forms — row by row, field by field. Financial and non-financial records are entered by hand.",
+      "manualNote": "Best if you don't have electronic files and prefer to type the data in yourself.",
+      "questionnaireTitle": "Questionnaire",
+      "questionnaireDesc": "Answer a guided set of questions instead of providing full financial ledgers or databases. Our system turns your answers into the submission.",
+      "questionnaireNote": "Best for basic cooperatives that cannot provide full ledgers or databases.",
+      "confirmUpload": "Use Upload",
+      "confirmManual": "Use Manual Entry",
+      "confirmQuestionnaire": "Use Questionnaire",
+      "choosePrompt": "Please choose one of the three methods to continue.",
+      "currentBadge": "Submission method: {{method}}"
     }
   },
   "reports": {
@@ -3713,6 +3732,12 @@
     "positiveTrend": "positive trend",
     "decline": "decline",
     "balanceSheet": "Balance Sheet",
+    "assets": "Assets",
+    "liabilities": "Liabilities",
+    "equity": "Equity",
+    "financialPositionChart": "Financial Position (Current vs Prior Year)",
+    "currentYear": "Current Year",
+    "ratioBenchmarkChart": "Key Ratios vs Benchmark",
     "noBalanceSheetData": "No balance sheet data available",
     "incomeStatement": "Income Statement",
     "noIncomeStatementData": "No income statement data available",
@@ -3824,7 +3849,9 @@
     "apexComparison": "Apex Comparison",
     "filingRateAvgParByApex": "Filing Rate & Avg PAR30 by Apex",
     "avgParPct": "Avg PAR30 (%)",
-    "filingComplianceByApex": "Filing Compliance by Apex"
+    "filingComplianceByApex": "Filing Compliance by Apex",
+    "noPortfolioData": "No portfolio data available for this reporting period.",
+    "noMembershipData": "No membership data available for this reporting period."
   },
   "nfIndicatorsForm": {
     "loading": "Loading indicators...",

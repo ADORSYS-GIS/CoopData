@@ -67,6 +67,10 @@ import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import {
+  SubmissionMethodModal,
+  type SubmissionMethod,
+} from "@/components/submissions/SubmissionMethodModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -150,6 +154,7 @@ export const SubmissionDetailPage: React.FC = () => {
   const [nfResult, setNfResult] = useState<NfUploadResponse | null>(null);
   const [activeTab, setActiveTab] = useState("financial");
   const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
+  const [methodModalOpen, setMethodModalOpen] = useState(false);
   const { data: reviews } = useSubmissionReviews(id);
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
@@ -191,69 +196,86 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const updateSection = useUpdateSubmissionSection(id ?? "");
 
-  const sectionMeta = useMemo(() => [
-    {
-      key: "financial",
-      label: t("submissions.detail.sections.financial.label"),
-      description: t("submissions.detail.sections.financial.description"),
-      tab: "financial",
-      icon: FileText,
-      pendingAction: t("submissions.detail.sections.financial.pendingAction"),
-      progressAction: t("submissions.detail.sections.financial.progressAction"),
-      readyAction: t("submissions.detail.sections.financial.readyAction"),
-    },
-    {
-      key: "members",
-      label: t("submissions.detail.sections.members.label"),
-      description: t("submissions.detail.sections.members.description"),
-      tab: "databases",
-      icon: Database,
-      pendingAction: t("submissions.detail.sections.members.pendingAction"),
-      readyAction: t("submissions.detail.sections.members.readyAction"),
-    },
-    {
-      key: "savings",
-      label: t("submissions.detail.sections.savings.label"),
-      description: t("submissions.detail.sections.savings.description"),
-      tab: "databases",
-      icon: Database,
-      pendingAction: t("submissions.detail.sections.savings.pendingAction"),
-      readyAction: t("submissions.detail.sections.savings.readyAction"),
-    },
-    {
-      key: "loans",
-      label: t("submissions.detail.sections.loans.label"),
-      description: t("submissions.detail.sections.loans.description"),
-      tab: "databases",
-      icon: Database,
-      pendingAction: t("submissions.detail.sections.loans.pendingAction"),
-      readyAction: t("submissions.detail.sections.loans.readyAction"),
-    },
-    {
-      key: "fixed_deposits",
-      label: t("submissions.detail.sections.fixed_deposits.label"),
-      description: t("submissions.detail.sections.fixed_deposits.description"),
-      tab: "databases",
-      icon: Database,
-      pendingAction: t("submissions.detail.sections.fixed_deposits.pendingAction"),
-      readyAction: t("submissions.detail.sections.fixed_deposits.readyAction"),
-    },
-    {
-      key: "farm_coop",
-      label: t("submissions.detail.sections.farm_coop.label"),
-      description: t("submissions.detail.sections.farm_coop.description"),
-      tab: "databases",
-      icon: Database,
-      pendingAction: t("submissions.detail.sections.farm_coop.pendingAction"),
-      readyAction: t("submissions.detail.sections.farm_coop.readyAction"),
-    },
-  ], [t]);
+  const sectionMeta = useMemo(
+    () => [
+      {
+        key: "financial",
+        label: t("submissions.detail.sections.financial.label"),
+        description: t("submissions.detail.sections.financial.description"),
+        tab: "financial",
+        icon: FileText,
+        pendingAction: t("submissions.detail.sections.financial.pendingAction"),
+        progressAction: t("submissions.detail.sections.financial.progressAction"),
+        readyAction: t("submissions.detail.sections.financial.readyAction"),
+      },
+      {
+        key: "members",
+        label: t("submissions.detail.sections.members.label"),
+        description: t("submissions.detail.sections.members.description"),
+        tab: "databases",
+        icon: Database,
+        pendingAction: t("submissions.detail.sections.members.pendingAction"),
+        readyAction: t("submissions.detail.sections.members.readyAction"),
+      },
+      {
+        key: "savings",
+        label: t("submissions.detail.sections.savings.label"),
+        description: t("submissions.detail.sections.savings.description"),
+        tab: "databases",
+        icon: Database,
+        pendingAction: t("submissions.detail.sections.savings.pendingAction"),
+        readyAction: t("submissions.detail.sections.savings.readyAction"),
+      },
+      {
+        key: "loans",
+        label: t("submissions.detail.sections.loans.label"),
+        description: t("submissions.detail.sections.loans.description"),
+        tab: "databases",
+        icon: Database,
+        pendingAction: t("submissions.detail.sections.loans.pendingAction"),
+        readyAction: t("submissions.detail.sections.loans.readyAction"),
+      },
+      {
+        key: "fixed_deposits",
+        label: t("submissions.detail.sections.fixed_deposits.label"),
+        description: t("submissions.detail.sections.fixed_deposits.description"),
+        tab: "databases",
+        icon: Database,
+        pendingAction: t("submissions.detail.sections.fixed_deposits.pendingAction"),
+        readyAction: t("submissions.detail.sections.fixed_deposits.readyAction"),
+      },
+      {
+        key: "farm_coop",
+        label: t("submissions.detail.sections.farm_coop.label"),
+        description: t("submissions.detail.sections.farm_coop.description"),
+        tab: "databases",
+        icon: Database,
+        pendingAction: t("submissions.detail.sections.farm_coop.pendingAction"),
+        readyAction: t("submissions.detail.sections.farm_coop.readyAction"),
+      },
+    ],
+    [t],
+  );
+
+  const isDraft = submission?.status === "draft";
+  const isCooperative = role === "cooperative";
+  const CHOSEN_METHODS: SubmissionMethod[] = ["upload", "manual", "questionnaire"];
+  const submissionMethod: SubmissionMethod | null =
+    submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
+      ? (submission.submission_method as SubmissionMethod)
+      : null;
+  const methodChosen = submissionMethod !== null;
+
+  useEffect(() => {
+    if (isCooperative && isDraft && !methodChosen) {
+      setMethodModalOpen(true);
+    }
+  }, [isCooperative, isDraft, methodChosen]);
 
   if (!role) return null;
 
   const isReadOnly = submission ? submission.status !== "draft" || role !== "cooperative" : true;
-  const isDraft = submission?.status === "draft";
-  const isCooperative = role === "cooperative";
+
   const mappedSections = (sections ?? []).map((s) => {
     // If non-financial questionnaire is filled, database sections are implicitly ready
     if (
@@ -358,25 +380,27 @@ export const SubmissionDetailPage: React.FC = () => {
         <div className="space-y-5">
           {/* ── Hero header ── */}
           <div
-            className={`rounded-2xl border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden ${submission.status === "approved"
+            className={`rounded-2xl border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden ${
+              submission.status === "approved"
                 ? "border-success/25"
                 : submission.status === "rejected"
                   ? "border-destructive/25"
                   : submission.status === "draft"
                     ? "border-border"
                     : "border-warning/25"
-              }`}
+            }`}
           >
             {/* Status top stripe */}
             <div
-              className={`h-1 w-full ${submission.status === "approved"
+              className={`h-1 w-full ${
+                submission.status === "approved"
                   ? "bg-success"
                   : submission.status === "rejected"
                     ? "bg-destructive"
                     : submission.status === "draft"
                       ? "bg-muted-foreground/20"
                       : "bg-warning"
-                }`}
+              }`}
             />
             <div className="px-6 py-5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -504,16 +528,22 @@ export const SubmissionDetailPage: React.FC = () => {
                         {t("submissions.detail.readinessCenter")}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {t("submissions.detail.readinessDesc", { readyLabel: t("submissions.detail.readyLabel") })}
+                        {t("submissions.detail.readinessDesc", {
+                          readyLabel: t("submissions.detail.readyLabel"),
+                        })}
                       </p>
                     </div>
                   </div>
                   {/* Progress pill */}
                   <div
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tabular-nums ${allReady ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-                      }`}
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tabular-nums ${
+                      allReady ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+                    }`}
                   >
-                    {t("submissions.detail.doneCount", { count: readyCount, total: totalSectionsCount })}
+                    {t("submissions.detail.doneCount", {
+                      count: readyCount,
+                      total: totalSectionsCount,
+                    })}
                   </div>
                 </div>
 
@@ -521,8 +551,9 @@ export const SubmissionDetailPage: React.FC = () => {
                 <div className="mt-4">
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${allReady ? "bg-success pulse-glow-success" : "bg-accent"
-                        }`}
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${
+                        allReady ? "bg-success pulse-glow-success" : "bg-accent"
+                      }`}
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -545,22 +576,24 @@ export const SubmissionDetailPage: React.FC = () => {
                     return (
                       <div
                         key={m.key}
-                        className={`group relative rounded-xl border p-4 transition-all duration-200 flex flex-col gap-3 ${isReady
+                        className={`group relative rounded-xl border p-4 transition-all duration-200 flex flex-col gap-3 ${
+                          isReady
                             ? "border-success/25 bg-success/5 hover:border-success/40 hover:shadow-sm"
                             : isInProgress
                               ? "border-accent/25 bg-accent/5 hover:border-accent/40 hover:shadow-sm"
                               : "border-border bg-muted/30 hover:border-border/80 hover:bg-muted/50"
-                          }`}
+                        }`}
                       >
                         {/* Top row: icon + status + step number */}
                         <div className="flex items-start justify-between">
                           <div
-                            className={`size-9 rounded-lg grid place-items-center shrink-0 ${isReady
+                            className={`size-9 rounded-lg grid place-items-center shrink-0 ${
+                              isReady
                                 ? "bg-success/15 text-success"
                                 : isInProgress
                                   ? "bg-accent/15 text-accent"
                                   : "bg-muted text-muted-foreground/70"
-                              }`}
+                            }`}
                           >
                             {isReady ? (
                               <CheckCircle2 className="size-4.5" />
@@ -569,12 +602,13 @@ export const SubmissionDetailPage: React.FC = () => {
                             )}
                           </div>
                           <span
-                            className={`step-bubble ${isReady
+                            className={`step-bubble ${
+                              isReady
                                 ? "bg-success/15 text-success"
                                 : isInProgress
                                   ? "bg-accent/10 text-accent"
                                   : "bg-muted text-muted-foreground/50"
-                              }`}
+                            }`}
                           >
                             {idx + 1}
                           </span>
@@ -583,12 +617,13 @@ export const SubmissionDetailPage: React.FC = () => {
                         {/* Label + description */}
                         <div className="flex-1">
                           <h4
-                            className={`text-[12px] font-bold leading-snug ${isReady
+                            className={`text-[12px] font-bold leading-snug ${
+                              isReady
                                 ? "text-success"
                                 : isInProgress
                                   ? "text-foreground"
                                   : "text-foreground/80"
-                              }`}
+                            }`}
                           >
                             {m.label}
                           </h4>
@@ -600,20 +635,22 @@ export const SubmissionDetailPage: React.FC = () => {
                         {/* Status badge + CTA */}
                         <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-auto">
                           <span
-                            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide ${isReady
+                            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide ${
+                              isReady
                                 ? "text-success"
                                 : isInProgress
                                   ? "text-accent"
                                   : "text-muted-foreground/70"
-                              }`}
+                            }`}
                           >
                             <span
-                              className={`size-1.5 rounded-full ${isReady
+                              className={`size-1.5 rounded-full ${
+                                isReady
                                   ? "bg-success"
                                   : isInProgress
                                     ? "bg-accent animate-pulse"
                                     : "bg-muted-foreground/40"
-                                }`}
+                              }`}
                             />
                             {isReady
                               ? t("submissions.detail.readyStatus")
@@ -631,40 +668,44 @@ export const SubmissionDetailPage: React.FC = () => {
                               }}
                               className="text-[11px] font-semibold text-success hover:underline transition-colors"
                             >
-                              {t("submissions.detail.sections.financial.readyAction").split(" ")[0]} →
+                              {t("submissions.detail.sections.financial.readyAction").split(" ")[0]}{" "}
+                              →
                             </button>
                           ) : (
                             <div className="flex items-center gap-2">
-                              {m.key !== "financial" &&
-                                (hasUploadedData(m.key) || isInProgress) && (
-                                  <button
-                                    onClick={async () => {
-                                      setUpdatingSectionKey(m.key);
-                                      try {
-                                        await updateSection.mutateAsync({
-                                          section: m.key,
-                                          status: "ready",
-                                        });
-                                        toast.success(t("submissions.detail.toastMarkedReady", { name: m.label }));
-                                      } catch (e) {
-                                        toast.error(
-                                          e instanceof Error ? e.message : t("submissions.detail.toastUpdateFailed"),
-                                        );
-                                      } finally {
-                                        setUpdatingSectionKey(null);
-                                      }
-                                    }}
-                                    disabled={updateSection.isPending}
-                                    className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
-                                  >
-                                    {isUpdatingThis ? (
-                                      <Loader2 className="size-2.5 animate-spin" />
-                                    ) : (
-                                      <CheckCircle2 className="size-2.5" />
-                                    )}
-                                    {t("submissions.detail.readyLabel")}
-                                  </button>
-                                )}
+                              {(hasUploadedData(m.key) || isInProgress) && (
+                                <button
+                                  onClick={async () => {
+                                    setUpdatingSectionKey(m.key);
+                                    try {
+                                      await updateSection.mutateAsync({
+                                        section: m.key,
+                                        status: "ready",
+                                      });
+                                      toast.success(
+                                        t("submissions.detail.toastMarkedReady", { name: m.label }),
+                                      );
+                                    } catch (e) {
+                                      toast.error(
+                                        e instanceof Error
+                                          ? e.message
+                                          : t("submissions.detail.toastUpdateFailed"),
+                                      );
+                                    } finally {
+                                      setUpdatingSectionKey(null);
+                                    }
+                                  }}
+                                  disabled={updateSection.isPending}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                  {isUpdatingThis ? (
+                                    <Loader2 className="size-2.5 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="size-2.5" />
+                                  )}
+                                  {t("submissions.detail.readyLabel")}
+                                </button>
+                              )}
                               <button
                                 onClick={() => {
                                   setActiveTab(m.tab);
@@ -706,7 +747,9 @@ export const SubmissionDetailPage: React.FC = () => {
                         </div>
                         {remainingSections.length > 0 && (
                           <p className="text-[10px] text-muted-foreground/70 pl-6 capitalize">
-                            {t("submissions.detail.remaining", { sections: remainingSections.join(" · ") })}
+                            {t("submissions.detail.remaining", {
+                              sections: remainingSections.join(" · "),
+                            })}
                           </p>
                         )}
                       </div>
@@ -731,13 +774,12 @@ export const SubmissionDetailPage: React.FC = () => {
                     <button
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitMutation.isPending}
-                      title={
-                        !allReady ? t("submissions.detail.pleaseMarkAll") : undefined
-                      }
-                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all shadow-sm ${canSubmit
+                      title={!allReady ? t("submissions.detail.pleaseMarkAll") : undefined}
+                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all shadow-sm ${
+                        canSubmit
                           ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md"
                           : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                        }`}
+                      }`}
                     >
                       {submitMutation.isPending ? (
                         <Loader2 className="size-4 animate-spin" />
@@ -761,7 +803,9 @@ export const SubmissionDetailPage: React.FC = () => {
               onApprove={() =>
                 handleReviewAction(apexApprove, t("submissions.detail.apexReviewApprovedMsg"))
               }
-              onReturn={() => handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))}
+              onReturn={() =>
+                handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))
+              }
               approveLabel={t("submissions.detail.btnApproveForward")}
               returnLabel={t("submissions.detail.btnRequestChanges")}
               isPending={apexApprove.isPending || apexReturn.isPending}
@@ -777,9 +821,14 @@ export const SubmissionDetailPage: React.FC = () => {
                 comment={reviewComment}
                 setComment={setReviewComment}
                 onApprove={() =>
-                  handleReviewAction(federationApprove, t("submissions.detail.fedReviewApprovedMsg"))
+                  handleReviewAction(
+                    federationApprove,
+                    t("submissions.detail.fedReviewApprovedMsg"),
+                  )
                 }
-                onReturn={() => handleReviewAction(federationReturn, t("submissions.detail.fedReviewReturnedMsg"))}
+                onReturn={() =>
+                  handleReviewAction(federationReturn, t("submissions.detail.fedReviewReturnedMsg"))
+                }
                 approveLabel={t("submissions.detail.btnApproveForward")}
                 returnLabel={t("submissions.detail.btnReturnToApex")}
                 isPending={federationApprove.isPending || federationReturn.isPending}
@@ -794,8 +843,12 @@ export const SubmissionDetailPage: React.FC = () => {
                 description={t("submissions.detail.minReviewDesc")}
                 comment={reviewComment}
                 setComment={setReviewComment}
-                onApprove={() => handleReviewAction(ministryApprove, t("submissions.detail.minReviewApprovedMsg"))}
-                onReject={() => handleReviewAction(ministryReject, t("submissions.detail.minReviewRejectedMsg"))}
+                onApprove={() =>
+                  handleReviewAction(ministryApprove, t("submissions.detail.minReviewApprovedMsg"))
+                }
+                onReject={() =>
+                  handleReviewAction(ministryReject, t("submissions.detail.minReviewRejectedMsg"))
+                }
                 approveLabel={t("submissions.detail.btnApprove")}
                 rejectLabel={t("submissions.detail.btnReject")}
                 isPending={ministryApprove.isPending || ministryReject.isPending}
@@ -803,7 +856,10 @@ export const SubmissionDetailPage: React.FC = () => {
             )}
 
           {reviews && reviews.length > 0 && (
-            <Card title={t("submissions.detail.reviewHistory")} subtitle={t("submissions.detail.auditTrail")}>
+            <Card
+              title={t("submissions.detail.reviewHistory")}
+              subtitle={t("submissions.detail.auditTrail")}
+            >
               <div className="space-y-0">
                 {reviews.map((r, idx) => (
                   <div
@@ -813,12 +869,13 @@ export const SubmissionDetailPage: React.FC = () => {
                     {/* Timeline rail */}
                     <div className="flex flex-col items-center">
                       <div
-                        className={`size-8 rounded-full grid place-items-center shrink-0 ring-2 ring-background ${r.action === "approve"
+                        className={`size-8 rounded-full grid place-items-center shrink-0 ring-2 ring-background ${
+                          r.action === "approve"
                             ? "bg-success/15 text-success ring-success/10"
                             : r.action === "reject"
                               ? "bg-destructive/15 text-destructive ring-destructive/10"
                               : "bg-warning/15 text-warning-foreground ring-warning/10"
-                          }`}
+                        }`}
                       >
                         {r.action === "approve" ? (
                           <CheckCircle2 className="size-4" />
@@ -881,9 +938,22 @@ export const SubmissionDetailPage: React.FC = () => {
             sections={sections}
             handleNfUploadComplete={handleNfUploadComplete}
             nfResult={nfResult}
+            submissionMethod={submissionMethod}
+            methodChosen={methodChosen}
+            onOpenMethodModal={() => setMethodModalOpen(true)}
           />
         </div>
       )}
+
+      <SubmissionMethodModal
+        open={methodModalOpen}
+        submissionId={id ?? ""}
+        onClose={() => setMethodModalOpen(false)}
+        onMethodSelected={() => {
+          queryClient.invalidateQueries({ queryKey: ["submission", id] });
+          queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+        }}
+      />
     </AppShell>
   );
 };

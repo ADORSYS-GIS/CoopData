@@ -160,7 +160,8 @@ pub fn ministry_routes() -> Router<AppState> {
         )
         .route(
             "/custom-kpis/{id}",
-            delete(crate::api::handlers::custom_kpi::delete_custom_kpi),
+            axum::routing::put(crate::api::handlers::custom_kpi::update_custom_kpi)
+                .delete(crate::api::handlers::custom_kpi::delete_custom_kpi),
         )
         .route(
             "/custom-kpis/evaluate",

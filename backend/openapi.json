@@ -3135,6 +3135,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "regenerate",
+            "in": "query",
+            "description": "Force PDF re-generation",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
           }
         ],
         "responses": {
@@ -3414,6 +3424,62 @@
             "description": "Submission not found"
           }
         }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/method": {
+      "patch": {
+        "tags": [
+          "Cooperative"
+        ],
+        "operationId": "update_submission_method",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubmissionMethodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Submission method updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or submission not in draft"
+          },
+          "403": {
+            "description": "Forbidden — not your cooperative"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v1/cooperative/submissions/{id}/non-financial": {
@@ -5097,6 +5163,58 @@
       }
     },
     "/api/v1/ministry/custom-kpis/{id}": {
+      "put": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "update_custom_kpi",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the custom KPI to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomKpiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Custom KPI updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomKpiDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid formula"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Analytics"
@@ -13164,6 +13282,18 @@
         "properties": {
           "status": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateSubmissionMethodRequest": {
+        "type": "object",
+        "required": [
+          "submission_method"
+        ],
+        "properties": {
+          "submission_method": {
+            "type": "string",
+            "description": "One of \"upload\", \"manual\", \"questionnaire\""
           }
         }
       },

@@ -187,4 +187,21 @@ impl SubmissionRepository {
         active.updated_at = Set(chrono::Utc::now());
         active.update(&self.db).await.map_err(Into::into)
     }
+
+    pub async fn update_submission_method(
+        &self,
+        id: Uuid,
+        method: String,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.submission_method = Set(method);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
 }

@@ -154,7 +154,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
   ];
 
   return (
-    <div className="relative flex flex-col w-[210mm] min-h-[296mm] p-12 bg-white break-after-page font-sans">
+    <div className="report-sheet relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white break-after-page font-sans">
       <div>
         <h1 className="text-3xl font-bold mb-2 text-slate-900 border-b-2 border-slate-900 pb-2">
           {t("printReports.dashboard.consolidatedReport", { tier: t(`common.roles.${tier.toLowerCase()}`, tier) })}

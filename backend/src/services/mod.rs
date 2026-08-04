@@ -9,6 +9,7 @@ pub mod kpi_engine;
 pub mod nf_excel_parser;
 pub mod nf_indicator_engine;
 pub mod object_storage;
+pub mod pdf_templates;
 pub mod report_narrative;
 pub mod submission_workflow;
 pub mod verification_token;

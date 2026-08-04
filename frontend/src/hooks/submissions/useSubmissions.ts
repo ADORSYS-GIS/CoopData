@@ -143,6 +143,32 @@ export const useCreateSubmission = () => {
   });
 };
 
+export const useUpdateSubmissionMethod = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      submissionMethod,
+    }: {
+      id: string;
+      submissionMethod: "upload" | "manual" | "questionnaire";
+    }) => {
+      const { data, error } = await apiClient.PATCH("/api/v1/cooperative/submissions/{id}/method", {
+        params: { path: { id } },
+        body: { submission_method: submissionMethod },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SubmissionResponse;
+    },
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["submission", id] });
+      queryClient.invalidateQueries({ queryKey: ["submission-sections", id] });
+    },
+  });
+};
+
 export const useDeleteSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({

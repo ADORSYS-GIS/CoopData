@@ -57,9 +57,7 @@ export function useCustomKpis() {
       id: string;
       payload: { name: string; description?: string; formula: string };
     }) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const put = apiClient.PUT as (url: string, opts: unknown) => Promise<any>;
-      const { data, error } = await put("/api/v1/ministry/custom-kpis/{id}", {
+      const { data, error } = await apiClient.PUT("/api/v1/ministry/custom-kpis/{id}", {
         params: { path: { id } },
         body: payload,
       });

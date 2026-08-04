@@ -14,7 +14,7 @@ use crate::api::dto::apex::ApexStatsResponse;
 use crate::api::dto::submission::{
     CooperativeStatsResponse, CreateSubmissionRequest, MembershipStatsResponse,
     PortfolioBreakdownResponse, SubmissionResponse, SubmissionReviewResponse,
-    SubmissionSectionResponse, UpdateSectionStatusRequest,
+    SubmissionSectionResponse, UpdateSectionStatusRequest, UpdateSubmissionMethodRequest,
 };
 use crate::auth::claims::Claims;
 
@@ -1128,106 +1128,124 @@ pub async fn ministry_approve_submission(
         );
     }
 
-    // Phase A: Trigger background export generation for the cooperative
-    // Stagger tier launches by 15s to avoid Gemini rate limits (5 req/min)
-    // Cooperative uses 5 prompts → fills the entire 5/min quota → next tier must wait ~60s
-    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-        state.clone(),
-        id,
-    );
-
-    // Phase C: Trigger background export generation for the parent Apex
-    let coop = state
-        .cooperative_repo
-        .find_by_id(updated.cooperative_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
-    tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-    crate::services::export_generator::ExportGenerator::trigger_apex_export(
-        state.clone(),
-        coop.apex_id,
-        updated.reporting_year,
-    );
-
-    // Phase D: Trigger background export generation for the parent Federation
-    let apex = state
-        .apex_repo
-        .find_by_id(coop.apex_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
-    tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-    crate::services::export_generator::ExportGenerator::trigger_federation_export(
-        state.clone(),
-        apex.federation_id,
-        updated.reporting_year,
-    );
-
-    // Phase E: Trigger background export generation for the Ministry (National level)
-    tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-    crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-        state.clone(),
-        updated.reporting_year,
-    );
-
-    // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
-    // When a submission for year Y is approved, any cached PDF/Excel for year Y+1, Y+2, etc.
-    // is now stale because it was generated without year Y data in the "prior year" columns.
-    let future_subs: Vec<_> = state
-        .submission_repo
-        .find_by_cooperative(updated.cooperative_id)
-        .await?
-        .into_iter()
-        .filter(|s| {
-            s.reporting_year > updated.reporting_year
-                && s.id != id
-                && s.status == crate::entities::enums::SubmissionStatus::Approved
-        })
-        .collect();
-
-    if !future_subs.is_empty() {
-        tracing::info!(
-            cooperative_id = %updated.cooperative_id,
-            current_year = updated.reporting_year,
-            stale_count = future_subs.len(),
-            "Invalidating stale exports for future-year submissions"
+    // Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
+    // Stagger tier launches by 65s in the background to avoid Gemini free-tier rate limits (5 req/min)
+    let state_clone = state.clone();
+    let cooperative_id = updated.cooperative_id;
+    let reporting_year = updated.reporting_year;
+    tokio::spawn(async move {
+        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+            state_clone.clone(),
+            id,
         );
 
-        for sub in future_subs {
-            // Delete stale cached PDF from object storage (best-effort)
-            let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
-            let _ = state.storage.delete_object(&pdf_key).await;
+        // Fetch parent Coop
+        let coop = match state_clone.cooperative_repo.find_by_id(cooperative_id).await {
+            Ok(Some(c)) => c,
+            Ok(None) => {
+                tracing::error!("Cooperative not found in background export thread");
+                return;
+            }
+            Err(e) => {
+                tracing::error!("Failed to fetch cooperative in background export thread: {:?}", e);
+                return;
+            }
+        };
 
-            // Trigger background regeneration so the next download gets fresh data
-            // Stagger tier launches by 65s to avoid Gemini free-tier rate limits (5 req/min)
-            crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-                state.clone(),
-                sub.id,
-            );
-            tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-            crate::services::export_generator::ExportGenerator::trigger_apex_export(
-                state.clone(),
-                coop.apex_id,
-                sub.reporting_year,
-            );
-            tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-            crate::services::export_generator::ExportGenerator::trigger_federation_export(
-                state.clone(),
-                apex.federation_id,
-                sub.reporting_year,
-            );
-            tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-            crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-                state.clone(),
-                sub.reporting_year,
-            );
+        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+        crate::services::export_generator::ExportGenerator::trigger_apex_export(
+            state_clone.clone(),
+            coop.apex_id,
+            reporting_year,
+        );
 
-            tracing::info!(
-                stale_submission_id = %sub.id,
-                stale_year = sub.reporting_year,
-                "Queued re-generation of stale export"
-            );
+        // Fetch parent Apex
+        let apex = match state_clone.apex_repo.find_by_id(coop.apex_id).await {
+            Ok(Some(a)) => a,
+            Ok(None) => {
+                tracing::error!("Apex not found in background export thread");
+                return;
+            }
+            Err(e) => {
+                tracing::error!("Failed to fetch apex in background export thread: {:?}", e);
+                return;
+            }
+        };
+
+        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+        crate::services::export_generator::ExportGenerator::trigger_federation_export(
+            state_clone.clone(),
+            apex.federation_id,
+            reporting_year,
+        );
+
+        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+            state_clone.clone(),
+            reporting_year,
+        );
+
+        // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
+        match state_clone.submission_repo.find_by_cooperative(cooperative_id).await {
+            Ok(subs) => {
+                let future_subs: Vec<_> = subs
+                    .into_iter()
+                    .filter(|s| {
+                        s.reporting_year > reporting_year
+                            && s.id != id
+                            && s.status == crate::entities::enums::SubmissionStatus::Approved
+                    })
+                    .collect();
+
+                if !future_subs.is_empty() {
+                    tracing::info!(
+                        cooperative_id = %cooperative_id,
+                        current_year = reporting_year,
+                        stale_count = future_subs.len(),
+                        "Invalidating stale exports for future-year submissions"
+                    );
+
+                    for sub in future_subs {
+                        // Delete stale cached PDF from object storage (best-effort)
+                        let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                        let _ = state_clone.storage.delete_object(&pdf_key).await;
+
+                        // Trigger background regeneration so the next download gets fresh data
+                        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+                            state_clone.clone(),
+                            sub.id,
+                        );
+                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+                        crate::services::export_generator::ExportGenerator::trigger_apex_export(
+                            state_clone.clone(),
+                            coop.apex_id,
+                            sub.reporting_year,
+                        );
+                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+                        crate::services::export_generator::ExportGenerator::trigger_federation_export(
+                            state_clone.clone(),
+                            apex.federation_id,
+                            sub.reporting_year,
+                        );
+                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+                        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+                            state_clone.clone(),
+                            sub.reporting_year,
+                        );
+
+                        tracing::info!(
+                            stale_submission_id = %sub.id,
+                            stale_year = sub.reporting_year,
+                            "Queued re-generation of stale export"
+                        );
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Failed to fetch future submissions in background export thread: {:?}", e);
+            }
         }
-    }
+    });
 
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
@@ -1736,4 +1754,76 @@ pub async fn get_membership_stats(
         .await?;
 
     Ok((StatusCode::OK, Json(stats)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v1/cooperative/submissions/{id}/method",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = UpdateSubmissionMethodRequest,
+    responses(
+        (status = 200, description = "Submission method updated", body = SubmissionResponse),
+        (status = 400, description = "Invalid method or submission not in draft"),
+        (status = 403, description = "Forbidden — not your cooperative"),
+        (status = 404, description = "Submission not found")
+    ),
+    security(("bearer" = [])),
+    tag = "Cooperative"
+)]
+pub async fn update_submission_method(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<UpdateSubmissionMethodRequest>,
+) -> AppResult<impl IntoResponse> {
+    const VALID_METHODS: [&str; 3] = ["upload", "manual", "questionnaire"];
+
+    let method = body.submission_method.trim().to_string();
+    if !VALID_METHODS.contains(&method.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "Invalid submission method '{}'. Valid methods: {}",
+            method,
+            VALID_METHODS.join(", ")
+        )));
+    }
+
+    let coop =
+        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop.id {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot change submission method when submission is in '{}' status",
+            submission.status.as_str()
+        )));
+    }
+
+    if coop.tier == "basic" {
+        return Err(AppError::BadRequest(
+            "Basic cooperatives are restricted to the questionnaire method".into(),
+        ));
+    }
+
+    let updated = state
+        .submission_repo
+        .update_submission_method(id, method)
+        .await?;
+
+    tracing::info!(
+        submission_id = %id,
+        cooperative_id = %coop.id,
+        method = %body.submission_method,
+        "Submission method updated"
+    );
+
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }

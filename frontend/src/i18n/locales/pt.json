@@ -913,7 +913,8 @@
         "btnStartQuestionnaire": "Iniciar Questionário",
         "noDocUploadedSubtitle": "Ainda nenhum documento carregado",
         "noDocUploadedDesc": "Nenhuma demonstração financeira carregada para esta submissão.",
-        "nonFinancialQResponsesTitle": "Respostas ao Questionário Não Financeiro"
+        "nonFinancialQResponsesTitle": "Respostas ao Questionário Não Financeiro",
+        "btnChooseMethod": "Escolher método de submissão"
       },
       "nfDatabases": {
         "confirmClear": "Tem a certeza de que deseja limpar todas as bases de dados não financeiras (membros, poupanças, empréstimos, depósitos e perfil agrícola)? Isto não pode ser desfeito.",
@@ -1081,6 +1082,24 @@
         "finance": "finanças",
         "other": "outro"
       }
+    },
+    "methodModal": {
+      "title": "Escolha como submeter os seus dados",
+      "subtitle": "Pode submeter a sua declaração anual de três formas. Escolha um método — será usado consistentemente nas secções financeiras e não financeiras desta submissão.",
+      "uploadTitle": "Carregar documentos / ficheiros",
+      "uploadDesc": "Carregue a sua demonstração financeira (PDF ou Excel) e os ficheiros Excel não financeiros. A nossa IA extrai e mapeia os dados automaticamente.",
+      "uploadNote": "Ideal se tiver os ficheiros originais (ex.: balanço auditado ou exports em Excel).",
+      "manualTitle": "Introdução manual",
+      "manualDesc": "Introduza os seus dados diretamente através de formulários guiados, linha a linha, campo a campo. Os registos financeiros e não financeiros são inseridos manualmente.",
+      "manualNote": "Ideal se não tiver ficheiros eletrónicos e preferir digitar os dados.",
+      "questionnaireTitle": "Questionário",
+      "questionnaireDesc": "Responda a um conjunto de perguntas guiadas em vez de fornecer demonstrações completas. O nosso sistema converte as suas respostas na submissão.",
+      "questionnaireNote": "Ideal para cooperativas básicas que não conseguem fornecer demonstrações completas.",
+      "confirmUpload": "Usar carregamento",
+      "confirmManual": "Usar introdução manual",
+      "confirmQuestionnaire": "Usar questionário",
+      "choosePrompt": "Escolha um dos três métodos para continuar.",
+      "currentBadge": "Método de submissão: {{method}}"
     }
   },
   "reports": {
@@ -4396,6 +4415,12 @@
     "positiveTrend": "positive trend",
     "decline": "decline",
     "balanceSheet": "Balance Sheet",
+    "assets": "Ativos",
+    "liabilities": "Passivos",
+    "equity": "Patrimônio",
+    "financialPositionChart": "Posição Financeira (Ano Atual vs Ano Anterior)",
+    "currentYear": "Ano Atual",
+    "ratioBenchmarkChart": "Índices-Chave vs Referência",
     "noBalanceSheetData": "No balance sheet data available",
     "incomeStatement": "Income Statement",
     "noIncomeStatementData": "No income statement data available",
@@ -4507,6 +4532,8 @@
     "apexComparison": "Apex Comparison",
     "filingRateAvgParByApex": "Filing Rate & Avg PAR30 by Apex",
     "avgParPct": "Avg PAR30 (%)",
-    "filingComplianceByApex": "Filing Compliance by Apex"
+    "filingComplianceByApex": "Filing Compliance by Apex",
+    "noPortfolioData": "Nenhum dado de carteira disponível para este período.",
+    "noMembershipData": "Nenhum dado de associação disponível para este período."
   }
 }
