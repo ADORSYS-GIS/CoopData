@@ -637,6 +637,14 @@ pub async fn remove_apex_member(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    // Fully delete the user account so the email can be reused under another apex
+    if let Err(e) = state.keycloak.delete_user(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from Keycloak after apex removal");
+    }
+    if let Err(e) = state.user_repo.delete_by_keycloak_id(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from PG after apex removal");
+    }
+
     if let Err(e) = state
         .audit
         .log(

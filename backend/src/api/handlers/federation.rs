@@ -762,6 +762,14 @@ pub async fn remove_federation_member(
         .remove_user_from_organization(&user_id, &id)
         .await?;
 
+    // Fully delete the user account so the email can be reused under another federation
+    if let Err(e) = state.keycloak.delete_user(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from Keycloak after federation removal");
+    }
+    if let Err(e) = state.user_repo.delete_by_keycloak_id(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from PG after federation removal");
+    }
+
     if let Err(e) = state
         .audit
         .log(
