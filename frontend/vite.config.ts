@@ -14,7 +14,17 @@ export default defineConfig({
     e2eMockAuth(),
   ],
   resolve: {
-    dedupe: ["react", "react-dom", "react-i18next", "i18next"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react-i18next",
+      "i18next",
+      "@radix-ui/react-dismissable-layer",
+      "@radix-ui/react-focus-scope",
+      "@radix-ui/react-portal",
+      "@radix-ui/react-use-controllable-state",
+      "@radix-ui/react-primitive",
+    ],
   },
   server: {
     host: "0.0.0.0",
