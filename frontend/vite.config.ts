@@ -5,6 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { e2eMockAuth } from "./e2e-mock-auth";
 
+
 export default defineConfig({
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
