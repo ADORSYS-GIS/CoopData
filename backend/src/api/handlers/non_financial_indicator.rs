@@ -160,7 +160,9 @@ pub async fn update_catalog_item(
     active.coop_type = sea_orm::Set(body.coop_type.map(|c| c.trim().to_string()));
     active.is_required = sea_orm::Set(body.is_required);
     if let Some(tr) = body.translations {
-        active.translations = sea_orm::Set(tr);
+        if !tr.is_null() && !(tr.is_object() && tr.as_object().unwrap().is_empty()) {
+            active.translations = sea_orm::Set(tr);
+        }
     }
     active.updated_at = sea_orm::Set(chrono::Utc::now());
 

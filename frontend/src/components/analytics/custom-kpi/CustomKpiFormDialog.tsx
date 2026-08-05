@@ -145,14 +145,14 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
       setDescription(initialDescription);
       setFormula(initialFormula);
       setTestResult(null);
-      setNameTr(readTranslations(initialTranslations, "name"));
+      setNameTr(readTranslations(initialTranslations, "display_name"));
       setDescTr(readTranslations(initialTranslations, "description"));
     }
   }, [isOpen, initialName, initialDescription, initialTranslations, initialFormula]);
 
   function readTranslations(
     tr: Record<string, unknown> | undefined,
-    field: "name" | "description",
+    field: "display_name" | "description",
   ): FieldTranslations {
     const acc: FieldTranslations = {};
     if (!tr) return acc;
@@ -165,7 +165,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
 
   function buildTranslations(
     fieldTranslations: FieldTranslations,
-    field: "name" | "description",
+    field: "display_name" | "description",
   ): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const lang of ["pt", "ss", "fr"] as const) {
@@ -189,7 +189,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   };
 
   const handleSaveClick = async () => {
-    const nameT = buildTranslations(nameTr, "name");
+    const nameT = buildTranslations(nameTr, "display_name");
     const descT = buildTranslations(descTr, "description");
     const merged: Record<string, unknown> = {};
     for (const lang of ["pt", "ss", "fr"] as const) {
