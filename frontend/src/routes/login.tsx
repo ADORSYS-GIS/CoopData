@@ -36,6 +36,6 @@ function AuthLoginHandler() {
   );
 }
 
-export const Route = createFileRoute("/auth/login")({
+export const Route = createFileRoute("/login")({
   component: AuthLoginHandler,
 });
