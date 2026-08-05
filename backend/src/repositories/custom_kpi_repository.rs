@@ -66,7 +66,10 @@ impl CustomKpiRepository {
         Ok(kpi)
     }
 
-    pub async fn update_model(&self, active: custom_kpi::ActiveModel) -> AppResult<custom_kpi::Model> {
+    pub async fn update_model(
+        &self,
+        active: custom_kpi::ActiveModel,
+    ) -> AppResult<custom_kpi::Model> {
         let updated = active.update(&self.db).await?;
         Ok(updated)
     }
