@@ -117,14 +117,15 @@ function createColumns(
 export const MemberList: React.FC = () => {
   const { t } = useTranslation();
   const { data: federations = [], isLoading: federationsLoading } = useFederations();
+  const federationList = (federations as components["schemas"]["FederationResponse"][]) ?? [];
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
 
   // Auto-select the first federation once the list is loaded
   useEffect(() => {
-    if (!federationsLoading && federations.length > 0 && !selectedFederationId) {
-      setSelectedFederationId(federations[0].id);
+    if (!federationsLoading && federationList.length > 0 && !selectedFederationId) {
+      setSelectedFederationId(federationList[0].id);
     }
-  }, [federationsLoading, federations, selectedFederationId]);
+  }, [federationsLoading, federationList, selectedFederationId]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
@@ -135,6 +136,7 @@ export const MemberList: React.FC = () => {
     error: membersError,
     refetch: refetchMembers,
   } = useFederationMembers(selectedFederationId);
+  const memberList = (members as Member[]) ?? [];
 
   const removeMemberMutation = useRemoveFederationMember();
 
@@ -162,7 +164,7 @@ export const MemberList: React.FC = () => {
   const columns = useMemo(() => createColumns(t, (member) => setDeleteTarget(member)), [t]);
 
   const table = useReactTable({
-    data: (members as Member[]) ?? [],
+    data: memberList,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -181,8 +183,8 @@ export const MemberList: React.FC = () => {
     },
   });
 
-  const activeMembers = (members as Member[]).filter((m) => m.status === "ACTIVE").length;
-  const pendingMembers = (members as Member[]).filter((m) => m.status === "PENDING").length;
+  const activeMembers = memberList.filter((m) => m.status === "ACTIVE").length;
+  const pendingMembers = memberList.filter((m) => m.status === "PENDING").length;
 
   return (
     <AppShell title={t("memberList.title")} subtitle={t("memberList.subtitle")}>
@@ -202,7 +204,7 @@ export const MemberList: React.FC = () => {
                     <SelectValue placeholder={t("memberList.selectFederationPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {federations.map((f: components["schemas"]["FederationResponse"]) => (
+                    {federationList.map((f: components["schemas"]["FederationResponse"]) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.name}
                       </SelectItem>
@@ -220,7 +222,7 @@ export const MemberList: React.FC = () => {
             <StatCard
               icon={Users}
               label={t("memberList.totalMembers")}
-              value={String((members as Member[]).length)}
+              value={String(memberList.length)}
               subtitle={t("memberList.allRegisteredMembers")}
               tone="primary"
             />
@@ -241,7 +243,7 @@ export const MemberList: React.FC = () => {
             <StatCard
               icon={Users}
               label={t("memberList.federations")}
-              value={String(federations.length)}
+              value={String(federationList.length)}
               subtitle={t("memberList.totalFederations")}
               tone="info"
             />
@@ -329,7 +331,7 @@ export const MemberList: React.FC = () => {
                   <div className="text-sm text-muted-foreground">
                     {t("memberList.showingCount", {
                       filtered: table.getFilteredRowModel().rows.length,
-                      total: (members as Member[]).length,
+                      total: memberList.length,
                     })}
                   </div>
                   <div className="flex items-center space-x-2">

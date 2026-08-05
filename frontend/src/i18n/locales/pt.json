@@ -1099,7 +1099,9 @@
       "confirmManual": "Usar introdução manual",
       "confirmQuestionnaire": "Usar questionário",
       "choosePrompt": "Escolha um dos três métodos para continuar.",
-      "currentBadge": "Método de submissão: {{method}}"
+      "currentBadge": "Método de submissão: {{method}}",
+      "changeHint": "Pode alterar o método de submissão enquanto esta submissão ainda for um rascunho.",
+      "changeBtn": "Alterar método"
     }
   },
   "reports": {

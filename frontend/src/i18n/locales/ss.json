@@ -1099,7 +1099,9 @@
       "confirmManual": "Sebentisa kufaka ngesandla",
       "confirmQuestionnaire": "Sebentisa emibuto",
       "choosePrompt": "Khetsa lenye yetindlela tintatfu kuze uqhubeke.",
-      "currentBadge": "Indlela yekufaka: {{method}}"
+      "currentBadge": "Indlela yekufaka: {{method}}",
+      "changeHint": "Ungashintja indlela yekufaka ngenkathi lommbiko usengumtselelo (draft).",
+      "changeBtn": "Shintja indlela"
     }
   },
   "reports": {

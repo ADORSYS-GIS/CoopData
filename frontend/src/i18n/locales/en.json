@@ -1099,7 +1099,9 @@
       "confirmManual": "Use Manual Entry",
       "confirmQuestionnaire": "Use Questionnaire",
       "choosePrompt": "Please choose one of the three methods to continue.",
-      "currentBadge": "Submission method: {{method}}"
+      "currentBadge": "Submission method: {{method}}",
+      "changeHint": "You can change the submission method while this submission is still a draft.",
+      "changeBtn": "Change method"
     }
   },
   "reports": {

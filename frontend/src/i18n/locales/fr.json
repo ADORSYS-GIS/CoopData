@@ -1099,7 +1099,9 @@
       "confirmManual": "Utiliser la saisie manuelle",
       "confirmQuestionnaire": "Utiliser le questionnaire",
       "choosePrompt": "Veuillez choisir l'une des trois méthodes pour continuer.",
-      "currentBadge": "Méthode de soumission : {{method}}"
+      "currentBadge": "Méthode de soumission : {{method}}",
+      "changeHint": "Vous pouvez changer la méthode de soumission tant que cette soumission est encore un brouillon.",
+      "changeBtn": "Changer de méthode"
     }
   },
   "reports": {
