@@ -34,7 +34,8 @@ pub async fn list_catalog(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<impl IntoResponse> {
-    let lang = crate::services::localization::normalize_lang(params.get("lang").map(|s| s.as_str()));
+    let lang =
+        crate::services::localization::normalize_lang(params.get("lang").map(|s| s.as_str()));
     let items = if let Some(coop_type) = params.get("coop_type") {
         state
             .non_financial_indicator_catalog_repo

@@ -53,20 +53,21 @@ impl IndicatorCatalogResponse {
         } else {
             m.translations.clone()
         };
-        let display_name =
-            crate::services::localization::resolve_label(&m.display_name, &translations, "display_name", &lang);
-        let description = m
-            .description
-            .as_deref()
-            .map(|d| {
-                crate::services::localization::resolve_opt_str(
-                    Some(d),
-                    &translations,
-                    "description",
-                    &lang,
-                )
-                .unwrap_or_else(|| d.to_string())
-            });
+        let display_name = crate::services::localization::resolve_label(
+            &m.display_name,
+            &translations,
+            "display_name",
+            &lang,
+        );
+        let description = m.description.as_deref().map(|d| {
+            crate::services::localization::resolve_opt_str(
+                Some(d),
+                &translations,
+                "description",
+                &lang,
+            )
+            .unwrap_or_else(|| d.to_string())
+        });
         let coop_type = m.coop_type.as_deref().map(|c| {
             crate::services::localization::resolve_str(c, &translations, "coop_type", &lang)
         });

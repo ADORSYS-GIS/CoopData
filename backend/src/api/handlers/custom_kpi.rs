@@ -66,7 +66,9 @@ pub async fn create_custom_kpi(
             payload.description,
             payload.formula,
             created_by,
-            payload.translations.unwrap_or_else(|| serde_json::json!({})),
+            payload
+                .translations
+                .unwrap_or_else(|| serde_json::json!({})),
         )
         .await?;
 

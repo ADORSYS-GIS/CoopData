@@ -44,7 +44,10 @@ impl CustomKpiDto {
     }
 
     /// Build a DTO resolved into a requested language.
-    pub fn from_model_resolved(model: crate::entities::custom_kpi::Model, lang: Option<String>) -> Self {
+    pub fn from_model_resolved(
+        model: crate::entities::custom_kpi::Model,
+        lang: Option<String>,
+    ) -> Self {
         Self::make(model, lang)
     }
 }

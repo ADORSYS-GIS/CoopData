@@ -36,7 +36,12 @@ pub fn normalize_lang(lang: Option<&str>) -> Option<String> {
 /// `translations` is the column value shaped `{ "<lang>": { "<field>": "...", ... } }`.
 /// Lookup order: requested lang -> fallback locale entry in `translations` ->
 /// the canonical (source) value.
-pub fn resolve_str(canonical: &str, translations: &Value, field: &str, lang: &Option<String>) -> String {
+pub fn resolve_str(
+    canonical: &str,
+    translations: &Value,
+    field: &str,
+    lang: &Option<String>,
+) -> String {
     resolve_opt_str(Some(canonical), translations, field, lang).unwrap_or_default()
 }
 
@@ -85,7 +90,15 @@ pub fn resolve_options(
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .map(|v| v.as_str().unwrap_or_default().to_string())
+                    .enumerate()
+                    .map(|(i, v)| {
+                        let val = v.as_str().unwrap_or_default().trim().to_string();
+                        if val.is_empty() && i < canonical.len() {
+                            canonical[i].clone()
+                        } else {
+                            val
+                        }
+                    })
                     .collect()
             })
     };
@@ -113,19 +126,14 @@ pub fn resolve_options(
 /// `icon` untouched — only human-facing text is replaced.
 ///
 /// `translations` shape: `{ "<lang>": { "sections": { "<sectionId>": { "title", "description", "fields": { "<fieldKey>": { "label", "description", "options" } } } } } }`
-pub fn resolve_sections(
-    sections: &Value,
-    translations: &Value,
-    lang: &Option<String>,
-) -> Value {
+pub fn resolve_sections(sections: &Value, translations: &Value, lang: &Option<String>) -> Value {
     let Some(arr) = sections.as_array() else {
         return sections.clone();
     };
 
     let lang_map = translations.as_object();
     let sections_translations = lang_map.and_then(|m| {
-        lang
-            .as_ref()
+        lang.as_ref()
             .and_then(|l| m.get(l))
             .or_else(|| m.get(FALLBACK_LOCALE))
             .and_then(|v| v.as_object())
@@ -141,7 +149,10 @@ pub fn resolve_sections(
         };
         let mut sec = sec_obj.clone();
 
-        let sec_id = sec_obj.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+        let sec_id = sec_obj
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         let sec_tr = sections_translations
             .and_then(|m| m.get(sec_id))
             .and_then(|v| v.as_object());
@@ -149,8 +160,7 @@ pub fn resolve_sections(
         if let Some(title) = resolve_field_str(sec_obj.get("title"), sec_tr, "title") {
             sec.insert("title".to_string(), Value::String(title));
         }
-        if let Some(desc) = resolve_field_str(sec_obj.get("description"), sec_tr, "description")
-        {
+        if let Some(desc) = resolve_field_str(sec_obj.get("description"), sec_tr, "description") {
             sec.insert("description".to_string(), Value::String(desc));
         }
 
@@ -162,7 +172,10 @@ pub fn resolve_sections(
                     continue;
                 };
                 let mut f = f_obj.clone();
-                let f_key = f_obj.get("key").and_then(|v| v.as_str()).unwrap_or_default();
+                let f_key = f_obj
+                    .get("key")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
                 let f_tr = sec_tr
                     .and_then(|m| m.get("fields"))
                     .and_then(|v| v.as_object())
@@ -172,7 +185,8 @@ pub fn resolve_sections(
                 if let Some(label) = resolve_field_str(f_obj.get("label"), f_tr, "label") {
                     f.insert("label".to_string(), Value::String(label));
                 }
-                if let Some(desc) = resolve_field_str(f_obj.get("description"), f_tr, "description") {
+                if let Some(desc) = resolve_field_str(f_obj.get("description"), f_tr, "description")
+                {
                     f.insert("description".to_string(), Value::String(desc));
                 }
                 if let Some(opts) = f_obj.get("options").and_then(|v| v.as_array()) {
@@ -200,21 +214,34 @@ fn resolve_field_str(
 ) -> Option<String> {
     let canon = canonical.and_then(|v| v.as_str());
     if let Some(map) = tr {
-        if let Some(v) = map.get(field).and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+        if let Some(v) = map
+            .get(field)
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+        {
             return Some(v.to_string());
         }
     }
     canon.map(|s| s.to_string())
 }
 
-fn resolve_options_at(
-    canonical: &[String],
-    tr: Option<&Map<String, Value>>,
-) -> Vec<Value> {
+fn resolve_options_at(canonical: &[String], tr: Option<&Map<String, Value>>) -> Vec<Value> {
     let translated: Option<Vec<String>> = tr
         .and_then(|m| m.get("options"))
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().map(|v| v.as_str().unwrap_or_default().to_string()).collect());
+        .map(|arr| {
+            arr.iter()
+                .enumerate()
+                .map(|(i, v)| {
+                    let val = v.as_str().unwrap_or_default().trim().to_string();
+                    if val.is_empty() && i < canonical.len() {
+                        canonical[i].clone()
+                    } else {
+                        val
+                    }
+                })
+                .collect()
+        });
     if let Some(mut list) = translated {
         while list.len() < canonical.len() {
             list.push(canonical[list.len()].clone());
@@ -261,13 +288,25 @@ mod tests {
             "fr": { "display_name": "Nom" }
         });
         // requested language present
-        assert_eq!(resolve_str("Name", &tr, "display_name", &lang("ss")), "Igama");
+        assert_eq!(
+            resolve_str("Name", &tr, "display_name", &lang("ss")),
+            "Igama"
+        );
         // requested language missing -> fallback locale (en)
-        assert_eq!(resolve_str("Name", &tr, "display_name", &lang("pt")), "Name");
+        assert_eq!(
+            resolve_str("Name", &tr, "display_name", &lang("pt")),
+            "Name"
+        );
         // no translations -> canonical
-        assert_eq!(resolve_str("Name", &serde_json::json!({}), "display_name", &lang("ss")), "Name");
+        assert_eq!(
+            resolve_str("Name", &serde_json::json!({}), "display_name", &lang("ss")),
+            "Name"
+        );
         // empty map, empty lang
-        assert_eq!(resolve_str("Name", &serde_json::json!({}), "display_name", &None), "Name");
+        assert_eq!(
+            resolve_str("Name", &serde_json::json!({}), "display_name", &None),
+            "Name"
+        );
     }
 
     #[test]
@@ -279,6 +318,27 @@ mod tests {
         // no translation -> canonical
         let resolved = resolve_options(&canonical, &serde_json::json!({}), &lang("ss"));
         assert_eq!(resolved, canonical);
+    }
+
+    #[test]
+    fn resolve_options_empty_fallback() {
+        let canonical = vec!["A".to_string(), "B".to_string(), "C".to_string()];
+        // Translate second option as blank/whitespace, third option is omitted
+        let tr = serde_json::json!({ "ss": { "options": ["X", "  ", null] } });
+        let resolved = resolve_options(&canonical, &tr, &lang("ss"));
+        assert_eq!(resolved, vec!["X", "B", "C"]);
+
+        // Verify resolve_options_at also falls back
+        let field_tr = tr["ss"].as_object();
+        let resolved_at = resolve_options_at(&canonical, field_tr);
+        assert_eq!(
+            resolved_at,
+            vec![
+                serde_json::Value::String("X".to_string()),
+                serde_json::Value::String("B".to_string()),
+                serde_json::Value::String("C".to_string())
+            ]
+        );
     }
 
     #[test]
@@ -313,7 +373,10 @@ mod tests {
         assert_eq!(sec["title"], "Ulwazi");
         assert_eq!(sec["fields"][0]["key"], "n");
         assert_eq!(sec["fields"][0]["label"], "Igama");
-        assert_eq!(sec["fields"][1]["options"], serde_json::json!(["Kusebenta", "Kulele"]));
+        assert_eq!(
+            sec["fields"][1]["options"],
+            serde_json::json!(["Kusebenta", "Kulele"])
+        );
     }
 
     #[test]
@@ -321,7 +384,11 @@ mod tests {
         let sections = serde_json::json!([
             { "id": "g", "title": "General", "fields": [{ "key": "a", "label": "A", "options": [] }] }
         ]);
-        let out = resolve_sections(&sections, &serde_json::json!({"ss": {"sections": {}}}), &lang("ss"));
+        let out = resolve_sections(
+            &sections,
+            &serde_json::json!({"ss": {"sections": {}}}),
+            &lang("ss"),
+        );
         assert_eq!(out[0]["title"], "General");
         assert_eq!(out[0]["fields"][0]["label"], "A");
     }

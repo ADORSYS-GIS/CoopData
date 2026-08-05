@@ -335,10 +335,9 @@ pub async fn get_questionnaire_analytics(
     let scoped_cooperative_ids = if claims.has_role("ministry") {
         params.cooperative_id.map(|id| vec![id])
     } else {
-        let coop_ids = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(
-            &state, &claims,
-        )
-        .await?;
+        let coop_ids =
+            crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims)
+                .await?;
         Some(coop_ids)
     };
 
