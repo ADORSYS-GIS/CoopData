@@ -127,9 +127,10 @@ impl QuestionnaireRepository {
             query = query.filter(QuestionnaireResponseColumn::QuestionnaireType.eq(q_type));
         }
         if let Some(coop_ids) = cooperative_ids {
-            if !coop_ids.is_empty() {
-                query = query.filter(QuestionnaireResponseColumn::CooperativeId.is_in(coop_ids));
+            if coop_ids.is_empty() {
+                return Ok(vec![]);
             }
+            query = query.filter(QuestionnaireResponseColumn::CooperativeId.is_in(coop_ids));
         }
         if let Some(r) = region {
             if let Some(reg) = crate::entities::enums::EswatiniRegion::parse(&r) {

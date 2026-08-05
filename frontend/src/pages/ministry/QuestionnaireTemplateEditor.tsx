@@ -190,7 +190,16 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       if (labelTr[lang] !== undefined) patch.label = labelTr[lang];
       if (descTr[lang] !== undefined) patch.description = descTr[lang];
       if (modalType === "select" && optionsTr.length) {
-        patch.options = optionsTr.map((o) => o[lang]);
+        const hasAnyTranslation = optionsTr.some(
+          (o) => o[lang] !== undefined && o[lang] !== null && o[lang].trim() !== ""
+        );
+        if (hasAnyTranslation) {
+          patch.options = optionsTr.map((o) => o[lang]);
+        } else {
+          patch.options = undefined;
+        }
+      } else {
+        patch.options = undefined;
       }
       next = setFieldTranslation(next, lang, sectionId, fieldKey, patch as any);
     }
