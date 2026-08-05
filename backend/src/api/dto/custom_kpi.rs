@@ -21,8 +21,12 @@ impl CustomKpiDto {
         } else {
             model.translations.clone()
         };
-        let display_name =
-            crate::services::localization::resolve_label(&model.name, &translations, "name", &lang);
+        let display_name = crate::services::localization::resolve_label(
+            &model.name,
+            &translations,
+            "display_name",
+            &lang,
+        );
         let description = model.description.as_deref().map(|d| {
             crate::services::localization::resolve_opt_str(
                 Some(d),
@@ -63,6 +67,15 @@ pub struct CreateCustomKpiRequest {
     pub name: String,
     pub description: Option<String>,
     pub formula: String,
+    #[serde(default)]
+    pub translations: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
+pub struct UpdateCustomKpiRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub formula: Option<String>,
     #[serde(default)]
     pub translations: Option<serde_json::Value>,
 }

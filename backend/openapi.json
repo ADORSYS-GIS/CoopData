@@ -5205,7 +5205,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomKpiRequest"
+                "$ref": "#/components/schemas/UpdateCustomKpiRequest"
               }
             }
           },
@@ -12876,6 +12876,26 @@
           },
           "name": {
             "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateCustomKpiRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "translations": {
             "nullable": true
           }
         }

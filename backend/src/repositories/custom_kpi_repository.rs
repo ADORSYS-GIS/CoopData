@@ -61,6 +61,19 @@ impl CustomKpiRepository {
         Ok(updated)
     }
 
+    pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<custom_kpi::Model>> {
+        let kpi = custom_kpi::Entity::find_by_id(id).one(&self.db).await?;
+        Ok(kpi)
+    }
+
+    pub async fn update_model(
+        &self,
+        active: custom_kpi::ActiveModel,
+    ) -> AppResult<custom_kpi::Model> {
+        let updated = active.update(&self.db).await?;
+        Ok(updated)
+    }
+
     pub async fn delete(&self, id: Uuid) -> AppResult<u64> {
         let res = custom_kpi::Entity::delete_many()
             .filter(custom_kpi::Column::Id.eq(id))
