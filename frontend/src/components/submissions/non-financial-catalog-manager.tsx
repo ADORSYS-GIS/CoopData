@@ -22,6 +22,7 @@ import {
   useDeleteCatalogItem,
   type IndicatorCatalogResponse,
 } from "@/hooks/submissions/useNonFinancialIndicators";
+import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
 
 export const NonFinancialCatalogManager: React.FC = () => {
   const { t } = useTranslation();
@@ -37,7 +38,9 @@ export const NonFinancialCatalogManager: React.FC = () => {
   // Form fields
   const [indicatorName, setIndicatorName] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [displayNameTr, setDisplayNameTr] = useState<FieldTranslations>({});
   const [description, setDescription] = useState("");
+  const [descTr, setDescTr] = useState<FieldTranslations>({});
   const [dataType, setDataType] = useState<"Number" | "Text" | "Boolean">("Number");
   const [coopType, setCoopType] = useState<string>("all");
   const [isRequired, setIsRequired] = useState(false);
@@ -45,13 +48,39 @@ export const NonFinancialCatalogManager: React.FC = () => {
   const resetForm = () => {
     setIndicatorName("");
     setDisplayName("");
+    setDisplayNameTr({});
     setDescription("");
+    setDescTr({});
     setDataType("Number");
     setCoopType("all");
     setIsRequired(false);
     setEditingItem(null);
     setIsFormOpen(false);
   };
+
+  function readTr(
+    item: IndicatorCatalogResponse,
+    field: "display_name" | "description",
+  ): FieldTranslations {
+    const acc: FieldTranslations = {};
+    const tr = item.translations as Record<string, { [k: string]: string }> | undefined;
+    if (!tr) return acc;
+    for (const lang of ["pt", "ss", "fr"] as const) {
+      acc[lang] = tr[lang]?.[field];
+    }
+    return acc;
+  }
+
+  function buildTr(name: FieldTranslations, desc: FieldTranslations): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const lang of ["pt", "ss", "fr"] as const) {
+      const e: Record<string, unknown> = {};
+      if (name[lang]) e.display_name = name[lang];
+      if (desc[lang]) e.description = desc[lang];
+      if (Object.keys(e).length) out[lang] = e;
+    }
+    return out;
+  }
 
   const handleOpenCreate = () => {
     resetForm();
@@ -62,7 +91,9 @@ export const NonFinancialCatalogManager: React.FC = () => {
     setEditingItem(item);
     setIndicatorName(item.indicator_name);
     setDisplayName(item.display_name);
+    setDisplayNameTr(readTr(item, "display_name"));
     setDescription(item.description || "");
+    setDescTr(readTr(item, "description"));
     setDataType(item.data_type);
     setCoopType(item.coop_type || "all");
     setIsRequired(item.is_required);
@@ -78,6 +109,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
     }
 
     const cType = coopType === "all" ? null : coopType;
+    const translations = buildTr(displayNameTr, descTr);
 
     try {
       if (editingItem) {
@@ -90,6 +122,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
             data_type: dataType,
             coop_type: cType,
             is_required: isRequired,
+            translations,
           },
         });
         toast.success(t("submissions.catalogManager.toastItemUpdated"));
@@ -112,6 +145,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
           data_type: dataType,
           coop_type: cType,
           is_required: isRequired,
+          translations,
         });
         toast.success(t("submissions.catalogManager.toastCreated"));
       }
@@ -205,14 +239,14 @@ export const NonFinancialCatalogManager: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="display-name">
-                  {t("submissions.catalogManager.labelDisplayName")}
-                </Label>
-                <Input
+                <LocalizedField
                   id="display-name"
-                  placeholder={t("submissions.catalogManager.placeholderDisplayName")}
+                  label={t("submissions.catalogManager.labelDisplayName")}
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={setDisplayName}
+                  translations={displayNameTr}
+                  onTranslationsChange={setDisplayNameTr}
+                  placeholder={t("submissions.catalogManager.placeholderDisplayName")}
                   required
                 />
               </div>
@@ -277,15 +311,15 @@ export const NonFinancialCatalogManager: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">
-                {t("submissions.catalogManager.labelDescription")}
-              </Label>
-              <Textarea
+              <LocalizedField
                 id="description"
-                placeholder={t("submissions.catalogManager.placeholderDescription")}
+                label={t("submissions.catalogManager.labelDescription")}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
+                onChange={setDescription}
+                translations={descTr}
+                onTranslationsChange={setDescTr}
+                placeholder={t("submissions.catalogManager.placeholderDescription")}
+                multiline
               />
             </div>
 

@@ -13,6 +13,9 @@ export default defineConfig({
     tsConfigPaths(),
     e2eMockAuth(),
   ],
+  resolve: {
+    dedupe: ["react", "react-dom", "react-i18next", "i18next"],
+  },
   server: {
     host: "0.0.0.0",
     allowedHosts: true,

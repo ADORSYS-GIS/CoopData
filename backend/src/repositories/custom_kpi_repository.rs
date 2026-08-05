@@ -24,11 +24,13 @@ impl CustomKpiRepository {
         description: Option<String>,
         formula: String,
         created_by: Option<Uuid>,
+        translations: serde_json::Value,
     ) -> AppResult<custom_kpi::Model> {
         let new_kpi = custom_kpi::ActiveModel {
             name: Set(name),
             description: Set(description),
             formula: Set(formula),
+            translations: Set(translations),
             created_by: Set(created_by),
             ..Default::default()
         };
@@ -42,6 +44,7 @@ impl CustomKpiRepository {
         name: String,
         description: Option<String>,
         formula: String,
+        translations: Option<serde_json::Value>,
     ) -> AppResult<custom_kpi::Model> {
         let kpi = custom_kpi::Entity::find_by_id(id)
             .one(&self.db)
@@ -51,6 +54,22 @@ impl CustomKpiRepository {
         active.name = Set(name);
         active.description = Set(description);
         active.formula = Set(formula);
+        if let Some(tr) = translations {
+            active.translations = Set(tr);
+        }
+        let updated = active.update(&self.db).await?;
+        Ok(updated)
+    }
+
+    pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<custom_kpi::Model>> {
+        let kpi = custom_kpi::Entity::find_by_id(id).one(&self.db).await?;
+        Ok(kpi)
+    }
+
+    pub async fn update_model(
+        &self,
+        active: custom_kpi::ActiveModel,
+    ) -> AppResult<custom_kpi::Model> {
         let updated = active.update(&self.db).await?;
         Ok(updated)
     }

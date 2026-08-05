@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::api::dto::custom_kpi::{
     CreateCustomKpiRequest, CustomKpiDto, EvaluateKpiRequest, EvaluateKpiResponse,
+    UpdateCustomKpiRequest,
 };
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
@@ -66,6 +67,9 @@ pub async fn create_custom_kpi(
             payload.description,
             payload.formula,
             created_by,
+            payload
+                .translations
+                .unwrap_or_else(|| serde_json::json!({})),
         )
         .await?;
 
@@ -73,9 +77,16 @@ pub async fn create_custom_kpi(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct ListCustomKpisParams {
+    #[serde(default)]
+    pub lang: Option<String>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/ministry/custom-kpis",
+    params(ListCustomKpisParams),
     responses(
         (status = 200, description = "List of custom KPIs", body = Vec<CustomKpiDto>),
         (status = 401, description = "Unauthorized"),
@@ -86,6 +97,7 @@ pub async fn create_custom_kpi(
 pub async fn list_custom_kpis(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ListCustomKpisParams>,
 ) -> AppResult<impl IntoResponse> {
     if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
         return Err(AppError::Forbidden(
@@ -93,8 +105,12 @@ pub async fn list_custom_kpis(
         ));
     }
 
+    let lang = crate::services::localization::normalize_lang(params.lang.as_deref());
     let kpis = state.custom_kpi_repo.find_all().await?;
-    let response: Vec<CustomKpiDto> = kpis.into_iter().map(Into::into).collect();
+    let response: Vec<CustomKpiDto> = kpis
+        .into_iter()
+        .map(|k| CustomKpiDto::from_model_resolved(k, lang.clone()))
+        .collect();
 
     Ok((StatusCode::OK, Json(response)))
 }
@@ -134,7 +150,7 @@ pub async fn delete_custom_kpi(
     params(
         ("id" = Uuid, Path, description = "ID of the custom KPI to update")
     ),
-    request_body = CreateCustomKpiRequest,
+    request_body = UpdateCustomKpiRequest,
     responses(
         (status = 200, description = "Custom KPI updated", body = CustomKpiDto),
         (status = 400, description = "Invalid formula"),
@@ -148,7 +164,7 @@ pub async fn update_custom_kpi(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
-    Json(payload): Json<CreateCustomKpiRequest>,
+    Json(payload): Json<UpdateCustomKpiRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
         return Err(AppError::Forbidden(
@@ -156,20 +172,39 @@ pub async fn update_custom_kpi(
         ));
     }
 
-    if let Err(e) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&payload.formula)
-    {
-        return Err(AppError::BadRequest(format!(
-            "Invalid formula syntax: {}",
-            e
-        )));
-    }
-
     let kpi = state
         .custom_kpi_repo
-        .update(id, payload.name, payload.description, payload.formula)
-        .await?;
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Custom KPI not found".into()))?;
 
-    let response: CustomKpiDto = kpi.into();
+    let mut active: crate::entities::custom_kpi::ActiveModel = kpi.into();
+    if let Some(name) = payload.name {
+        active.name = sea_orm::Set(name);
+    }
+    if let Some(desc) = payload.description {
+        active.description = sea_orm::Set(Some(desc));
+    }
+    if let Some(formula) = payload.formula {
+        if let Err(e) = evalexpr::build_operator_tree::<evalexpr::DefaultNumericTypes>(&formula) {
+            return Err(AppError::BadRequest(format!(
+                "Invalid formula syntax: {}",
+                e
+            )));
+        }
+        active.formula = sea_orm::Set(formula);
+    }
+    if let Some(translations) = payload.translations {
+        if !translations.is_null()
+            && !(translations.is_object() && translations.as_object().unwrap().is_empty())
+        {
+            active.translations = sea_orm::Set(translations);
+        }
+    }
+
+    let updated = state.custom_kpi_repo.update_model(active).await?;
+
+    let response: CustomKpiDto = updated.into();
     Ok((StatusCode::OK, Json(response)))
 }
 

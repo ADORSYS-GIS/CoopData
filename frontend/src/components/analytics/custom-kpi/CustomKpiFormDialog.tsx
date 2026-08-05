@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
+import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
 
 interface VariableDef {
   name: string;
@@ -46,9 +47,15 @@ interface CustomKpiFormDialogProps {
   editingKpiId: string | null;
   initialName: string;
   initialDescription: string;
+  initialTranslations?: Record<string, unknown>;
   initialFormula: string;
   allVariables: VariableDef[];
-  onSave: (payload: { name: string; description: string; formula: string }) => Promise<void>;
+  onSave: (payload: {
+    name: string;
+    description: string;
+    formula: string;
+    translations?: Record<string, unknown>;
+  }) => Promise<void>;
   evaluateFormula: (
     formula: string,
   ) => Promise<{ value: number; is_valid: boolean; error?: string | null }>;
@@ -91,6 +98,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   editingKpiId,
   initialName,
   initialDescription,
+  initialTranslations,
   initialFormula,
   allVariables,
   onSave,
@@ -99,7 +107,9 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const [name, setName] = useState("");
+  const [nameTr, setNameTr] = useState<FieldTranslations>({});
   const [description, setDescription] = useState("");
+  const [descTr, setDescTr] = useState<FieldTranslations>({});
   const [formula, setFormula] = useState("");
   const [testResult, setTestResult] = useState<{
     value: number;
@@ -135,8 +145,35 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
       setDescription(initialDescription);
       setFormula(initialFormula);
       setTestResult(null);
+      setNameTr(readTranslations(initialTranslations, "display_name"));
+      setDescTr(readTranslations(initialTranslations, "description"));
     }
-  }, [isOpen, initialName, initialDescription, initialFormula]);
+  }, [isOpen, initialName, initialDescription, initialTranslations, initialFormula]);
+
+  function readTranslations(
+    tr: Record<string, unknown> | undefined,
+    field: "display_name" | "description",
+  ): FieldTranslations {
+    const acc: FieldTranslations = {};
+    if (!tr) return acc;
+    for (const lang of ["pt", "ss", "fr"] as const) {
+      const entry = tr[lang] as { [k: string]: string } | undefined;
+      acc[lang] = entry?.[field];
+    }
+    return acc;
+  }
+
+  function buildTranslations(
+    fieldTranslations: FieldTranslations,
+    field: "display_name" | "description",
+  ): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const lang of ["pt", "ss", "fr"] as const) {
+      const v = fieldTranslations[lang];
+      if (v) out[lang] = { ...((initialTranslations?.[lang] as object) || {}), [field]: v };
+    }
+    return out;
+  }
 
   const handleTest = async () => {
     if (!formula.trim()) return;
@@ -152,7 +189,15 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   };
 
   const handleSaveClick = async () => {
-    await onSave({ name, description, formula });
+    const nameT = buildTranslations(nameTr, "display_name");
+    const descT = buildTranslations(descTr, "description");
+    const merged: Record<string, unknown> = {};
+    for (const lang of ["pt", "ss", "fr"] as const) {
+      const a = (nameT[lang] ?? {}) as Record<string, unknown>;
+      const b = (descT[lang] ?? {}) as Record<string, unknown>;
+      merged[lang] = { ...a, ...b };
+    }
+    await onSave({ name, description, formula, translations: merged });
   };
 
   const insertVariable = (variable: string) => {
@@ -193,29 +238,27 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
 
         <div className="grid gap-5 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="dialog-kpi-name" className="text-sm font-semibold">
-              {t("analytics.indicatorName")}
-            </Label>
-            <Input
+            <LocalizedField
               id="dialog-kpi-name"
-              placeholder={t("analytics.formulaNamePlaceholder")}
+              label={t("analytics.indicatorName")}
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="border-blue-200 focus-visible:ring-blue-500 rounded-xl"
+              onChange={setName}
+              translations={nameTr}
+              onTranslationsChange={setNameTr}
+              placeholder={t("analytics.formulaNamePlaceholder")}
+              required
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="dialog-kpi-description" className="text-sm font-semibold">
-              {t("analytics.description")}{" "}
-              <span className="text-muted-foreground font-normal">{t("analytics.optional")}</span>
-            </Label>
-            <Textarea
+            <LocalizedField
               id="dialog-kpi-description"
-              placeholder={t("analytics.formulaDescPlaceholder")}
+              label={`${t("analytics.description")} (${t("analytics.optional")})`}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="rounded-xl border-blue-200 focus-visible:ring-blue-500"
+              onChange={setDescription}
+              translations={descTr}
+              onTranslationsChange={setDescTr}
+              placeholder={t("analytics.formulaDescPlaceholder")}
+              multiline
             />
           </div>
 

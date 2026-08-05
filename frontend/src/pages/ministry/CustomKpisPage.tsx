@@ -45,6 +45,7 @@ interface CustomKpiItem {
   name: string;
   formula: string;
   description?: string | null;
+  translations?: unknown;
   created_at: string;
 }
 
@@ -484,7 +485,12 @@ export function CustomKpisPage() {
     return [...base, ...catalogVars];
   }, [catalog, t]);
 
-  const handleSave = async (payload: { name: string; description: string; formula: string }) => {
+  const handleSave = async (payload: {
+    name: string;
+    description: string;
+    formula: string;
+    translations?: Record<string, unknown>;
+  }) => {
     try {
       if (editingKpi) {
         await updateKpi({
@@ -746,6 +752,9 @@ export function CustomKpisPage() {
           editingKpiId={editingKpi ? editingKpi.id : null}
           initialName={editingKpi ? editingKpi.name : ""}
           initialDescription={editingKpi ? editingKpi.description || "" : ""}
+          initialTranslations={
+            editingKpi ? (editingKpi.translations as Record<string, unknown> | undefined) || {} : {}
+          }
           initialFormula={editingKpi ? editingKpi.formula : ""}
           allVariables={allVariables}
           onSave={handleSave}

@@ -346,6 +346,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         crate::entities::enums::FdStatus,
         api_module::dto::custom_kpi::CustomKpiDto,
         api_module::dto::custom_kpi::CreateCustomKpiRequest,
+        api_module::dto::custom_kpi::UpdateCustomKpiRequest,
         api_module::dto::custom_kpi::EvaluateKpiRequest,
         api_module::dto::custom_kpi::EvaluateKpiResponse,
     ))

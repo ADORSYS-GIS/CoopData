@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::{
     auth::Claims,
     error::{AppError, AppResult},
+    services::localization::{normalize_lang, resolve_label, resolve_sections},
     AppState,
 };
 
@@ -24,26 +25,11 @@ pub struct QuestionnaireTemplateDto {
     pub version: i32,
     pub label: String,
     pub sections: serde_json::Value,
+    pub translations: serde_json::Value,
     pub is_active: bool,
     pub created_by: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
-}
-
-impl From<crate::entities::questionnaire_template::Model> for QuestionnaireTemplateDto {
-    fn from(m: crate::entities::questionnaire_template::Model) -> Self {
-        Self {
-            id: m.id,
-            questionnaire_type: m.questionnaire_type,
-            version: m.version,
-            label: m.label,
-            sections: m.sections,
-            is_active: m.is_active,
-            created_by: m.created_by,
-            created_at: m.created_at,
-            updated_at: m.updated_at,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -51,17 +37,46 @@ pub struct CreateTemplateRequest {
     pub questionnaire_type: String,
     pub label: String,
     pub sections: serde_json::Value,
+    #[serde(default)]
+    pub translations: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateTemplateRequest {
     pub label: Option<String>,
     pub sections: Option<serde_json::Value>,
+    pub translations: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ActiveTemplateQuery {
     pub questionnaire_type: String,
+    #[serde(default)]
+    pub lang: Option<String>,
+}
+
+impl QuestionnaireTemplateDto {
+    fn from_model(m: crate::entities::questionnaire_template::Model, lang: Option<String>) -> Self {
+        let translations = if m.translations.is_null() {
+            serde_json::json!({})
+        } else {
+            m.translations.clone()
+        };
+        let sections = resolve_sections(&m.sections, &translations, &lang);
+        let label = resolve_label(&m.label, &translations, "label", &lang);
+        Self {
+            id: m.id,
+            questionnaire_type: m.questionnaire_type,
+            version: m.version,
+            label,
+            sections,
+            translations,
+            is_active: m.is_active,
+            created_by: m.created_by,
+            created_at: m.created_at,
+            updated_at: m.updated_at,
+        }
+    }
 }
 
 // ─── Ministry: List all templates ─────────────────────────────────────────────
@@ -79,7 +94,10 @@ pub async fn list_templates(
     Extension(_claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     let templates = state.questionnaire_template_repo.find_all().await?;
-    let dtos: Vec<QuestionnaireTemplateDto> = templates.into_iter().map(Into::into).collect();
+    let dtos: Vec<QuestionnaireTemplateDto> = templates
+        .into_iter()
+        .map(|t| QuestionnaireTemplateDto::from_model(t, None))
+        .collect();
     Ok(Json(dtos))
 }
 
@@ -104,7 +122,7 @@ pub async fn get_template(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Questionnaire template not found".into()))?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    Ok(Json(QuestionnaireTemplateDto::from_model(template, None)))
 }
 
 // ─── Ministry: Create template ────────────────────────────────────────────────
@@ -129,6 +147,7 @@ pub async fn create_template(
         ));
     }
     let created_by = claims.sub.parse::<Uuid>().ok();
+    let translations = body.translations.unwrap_or_else(|| serde_json::json!({}));
     let template = state
         .questionnaire_template_repo
         .create(
@@ -136,11 +155,12 @@ pub async fn create_template(
             body.label,
             body.sections,
             created_by,
+            translations,
         )
         .await?;
     Ok((
         StatusCode::CREATED,
-        Json(QuestionnaireTemplateDto::from(template)),
+        Json(QuestionnaireTemplateDto::from_model(template, None)),
     ))
 }
 
@@ -165,9 +185,9 @@ pub async fn update_template(
 ) -> AppResult<impl IntoResponse> {
     let template = state
         .questionnaire_template_repo
-        .update(id, body.label, body.sections)
+        .update(id, body.label, body.sections, body.translations)
         .await?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    Ok(Json(QuestionnaireTemplateDto::from_model(template, None)))
 }
 
 // ─── Ministry: Activate template ──────────────────────────────────────────────
@@ -187,7 +207,7 @@ pub async fn activate_template(
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let template = state.questionnaire_template_repo.activate(id).await?;
-    Ok(Json(QuestionnaireTemplateDto::from(template)))
+    Ok(Json(QuestionnaireTemplateDto::from_model(template, None)))
 }
 
 // ─── Ministry: Delete template ────────────────────────────────────────────────
@@ -214,13 +234,14 @@ pub async fn delete_template(
 async fn get_active_template_helper(
     state: &AppState,
     q_type: &str,
+    lang: Option<String>,
 ) -> AppResult<QuestionnaireTemplateDto> {
     let template = state
         .questionnaire_template_repo
         .find_active(q_type)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("No active {} template found", q_type)))?;
-    Ok(QuestionnaireTemplateDto::from(template))
+    Ok(QuestionnaireTemplateDto::from_model(template, lang))
 }
 
 // ─── Shared: Get active template (coop fills form, reviewers show labels) ─────
@@ -228,7 +249,10 @@ async fn get_active_template_helper(
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/questionnaire-templates/active",
-    params(("questionnaire_type" = String, Query, description = "financial or non_financial")),
+    params(
+        ("questionnaire_type" = String, Query, description = "financial or non_financial"),
+        ("lang" = Option<String>, Query, description = "Locale to resolve content into (e.g. ss, pt, fr). Falls back to en."),
+    ),
     responses(
         (status = 200, description = "Active questionnaire template", body = QuestionnaireTemplateDto),
         (status = 404, description = "No active template for this type"),
@@ -240,7 +264,8 @@ pub async fn get_active_template_coop(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    let lang = normalize_lang(q.lang.as_deref());
+    let dto = get_active_template_helper(&state, &q.questionnaire_type, lang).await?;
     Ok(Json(dto))
 }
 
@@ -250,7 +275,8 @@ pub async fn get_active_template_apex(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    let lang = normalize_lang(q.lang.as_deref());
+    let dto = get_active_template_helper(&state, &q.questionnaire_type, lang).await?;
     Ok(Json(dto))
 }
 
@@ -260,7 +286,8 @@ pub async fn get_active_template_federation(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    let lang = normalize_lang(q.lang.as_deref());
+    let dto = get_active_template_helper(&state, &q.questionnaire_type, lang).await?;
     Ok(Json(dto))
 }
 
@@ -270,6 +297,7 @@ pub async fn get_active_template_ministry(
     Extension(_claims): Extension<Arc<Claims>>,
     Query(q): Query<ActiveTemplateQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let dto = get_active_template_helper(&state, &q.questionnaire_type).await?;
+    let lang = normalize_lang(q.lang.as_deref());
+    let dto = get_active_template_helper(&state, &q.questionnaire_type, lang).await?;
     Ok(Json(dto))
 }

@@ -3487,7 +3487,8 @@
     "newSectionDefaultDesc": "Enter section description",
     "metaLabel": "Template Title / Label",
     "metaPlaceholder": "e.g. Financial Primary Cooperatives Questionnaire v1",
-    "selectSectionPrompt": "Select a section on the left to start configuring its fields."
+    "selectSectionPrompt": "Select a section on the left to start configuring its fields.",
+    "translatingAs": "Editing {{lang}} translation"
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4545,5 +4546,9 @@
     "toastSelected": "File selected: {{name}}",
     "toastExtracted": "Extracted {{count}} rows from {{name}}",
     "toastConfirmed": "{{name}}: {{count}} valid records ready for submission"
+  },
+  "localizedField": {
+    "toggle": "Translate",
+    "otherLanguages": "Translations (PT / SS / FR)"
   }
 }
