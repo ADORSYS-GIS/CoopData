@@ -21,7 +21,6 @@ import {
   ReportDataProps,
 } from "./print/components";
 
-
 interface Props {
   submissionId: string;
   tokenOverride?: string;
