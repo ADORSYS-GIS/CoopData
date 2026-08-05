@@ -48,6 +48,7 @@ impl QuestionnaireTemplateRepository {
         label: String,
         sections: serde_json::Value,
         created_by: Option<Uuid>,
+        translations: serde_json::Value,
     ) -> AppResult<questionnaire_template::Model> {
         // Compute next version number
         let existing = questionnaire_template::Entity::find()
@@ -63,6 +64,7 @@ impl QuestionnaireTemplateRepository {
             version: Set(next_version),
             label: Set(label),
             sections: Set(sections),
+            translations: Set(translations),
             is_active: Set(false),
             created_by: Set(created_by),
             created_at: Set(chrono::Utc::now()),
@@ -79,6 +81,7 @@ impl QuestionnaireTemplateRepository {
         id: Uuid,
         label: Option<String>,
         sections: Option<serde_json::Value>,
+        translations: Option<serde_json::Value>,
     ) -> AppResult<questionnaire_template::Model> {
         let existing = self
             .find_by_id(id)
@@ -91,6 +94,9 @@ impl QuestionnaireTemplateRepository {
         }
         if let Some(s) = sections {
             active.sections = Set(s);
+        }
+        if let Some(t) = translations {
+            active.translations = Set(t);
         }
         active.updated_at = Set(chrono::Utc::now());
         active

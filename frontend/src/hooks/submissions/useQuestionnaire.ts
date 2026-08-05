@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchWithAuth } from "@/services/shared/authService";
+import i18n from "@/i18n";
 import type { QuestionnaireSection } from "@/hooks/admin/useQuestionnaireTemplates";
 
 const QUESTIONNAIRE_KEY = "questionnaire-response";
@@ -63,12 +64,13 @@ export const useSaveQuestionnaire = (submissionId: string) => {
   });
 };
 
-export const useActiveTemplate = (type: string) =>
-  useQuery({
-    queryKey: ["active-questionnaire-template", type],
+export const useActiveTemplate = (type: string) => {
+  const lang = i18n.language?.split("-")[0] || "en";
+  return useQuery({
+    queryKey: ["active-questionnaire-template", type, lang],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `${BASE}/api/v1/cooperative/questionnaire-templates/active?questionnaire_type=${type}`,
+        `${BASE}/api/v1/cooperative/questionnaire-templates/active?questionnaire_type=${type}&lang=${encodeURIComponent(lang)}`,
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -84,6 +86,7 @@ export const useActiveTemplate = (type: string) =>
     },
     enabled: !!type,
   });
+};
 
 export interface QuestionnaireAnalyticsData {
   total_reporting_cooperatives: number;

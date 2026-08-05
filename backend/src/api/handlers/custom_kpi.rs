@@ -66,6 +66,9 @@ pub async fn create_custom_kpi(
             payload.description,
             payload.formula,
             created_by,
+            payload
+                .translations
+                .unwrap_or_else(|| serde_json::json!({})),
         )
         .await?;
 
@@ -73,9 +76,16 @@ pub async fn create_custom_kpi(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct ListCustomKpisParams {
+    #[serde(default)]
+    pub lang: Option<String>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/ministry/custom-kpis",
+    params(ListCustomKpisParams),
     responses(
         (status = 200, description = "List of custom KPIs", body = Vec<CustomKpiDto>),
         (status = 401, description = "Unauthorized"),
@@ -86,6 +96,7 @@ pub async fn create_custom_kpi(
 pub async fn list_custom_kpis(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<ListCustomKpisParams>,
 ) -> AppResult<impl IntoResponse> {
     if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
         return Err(AppError::Forbidden(
@@ -93,8 +104,12 @@ pub async fn list_custom_kpis(
         ));
     }
 
+    let lang = crate::services::localization::normalize_lang(params.lang.as_deref());
     let kpis = state.custom_kpi_repo.find_all().await?;
-    let response: Vec<CustomKpiDto> = kpis.into_iter().map(Into::into).collect();
+    let response: Vec<CustomKpiDto> = kpis
+        .into_iter()
+        .map(|k| CustomKpiDto::from_model_resolved(k, lang.clone()))
+        .collect();
 
     Ok((StatusCode::OK, Json(response)))
 }
@@ -166,7 +181,13 @@ pub async fn update_custom_kpi(
 
     let kpi = state
         .custom_kpi_repo
-        .update(id, payload.name, payload.description, payload.formula)
+        .update(
+            id,
+            payload.name,
+            payload.description,
+            payload.formula,
+            payload.translations,
+        )
         .await?;
 
     let response: CustomKpiDto = kpi.into();

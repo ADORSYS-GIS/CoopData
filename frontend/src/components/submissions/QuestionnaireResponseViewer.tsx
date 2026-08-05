@@ -71,6 +71,26 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
 
   const sections = template?.sections || [];
   if (sections.length === 0) {
+    // No response saved yet (fresh submission) — the type isn't known, so we
+    // can't resolve a template. Guide the user to start the questionnaire
+    // instead of showing a confusing "no template for type «»" error.
+    if (!qType) {
+      return (
+        <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-6 text-center">
+          <ClipboardList className="size-6 text-primary opacity-70 mx-auto mb-2" />
+          <p className="text-xs font-semibold text-foreground">
+            {t("questionnaireViewer.notStartedTitle", {
+              defaultValue: "Questionnaire not started yet",
+            })}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {t("questionnaireViewer.notStartedHint", {
+              defaultValue: "Click the button above to begin and choose a questionnaire type.",
+            })}
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="rounded-xl border border-border bg-card p-6 text-center text-xs text-muted-foreground">
         {t("questionnaireViewer.noTemplate", { type: response.questionnaire_type })}

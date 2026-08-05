@@ -1,20 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import i18n from "@/i18n";
 
 export function useCustomKpis() {
   const queryClient = useQueryClient();
 
   const kpisQuery = useQuery({
-    queryKey: ["custom-kpis"],
+    queryKey: ["custom-kpis", i18n.language?.split("-")[0] || "en"],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/ministry/custom-kpis");
+      const lang = i18n.language?.split("-")[0] || "en";
+      const { data, error } = await apiClient.GET("/api/v1/ministry/custom-kpis", {
+        params: { query: { lang } },
+      });
       if (error) throw new Error("Failed to fetch Custom KPIs");
       return data;
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: { name: string; description?: string; formula: string }) => {
+    mutationFn: async (payload: {
+      name: string;
+      description?: string;
+      formula: string;
+      translations?: Record<string, unknown>;
+    }) => {
       const { data, error } = await apiClient.POST("/api/v1/ministry/custom-kpis", {
         body: payload,
       });
@@ -55,7 +64,12 @@ export function useCustomKpis() {
       payload,
     }: {
       id: string;
-      payload: { name: string; description?: string; formula: string };
+      payload: {
+        name: string;
+        description?: string;
+        formula: string;
+        translations?: Record<string, unknown>;
+      };
     }) => {
       const { data, error } = await apiClient.PUT("/api/v1/ministry/custom-kpis/{id}", {
         params: { path: { id } },

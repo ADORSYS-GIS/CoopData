@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import i18n from "@/i18n";
 import type { components } from "@/openapi-client/api";
 
 export type IndicatorCatalogResponse = components["schemas"]["IndicatorCatalogResponse"];
@@ -22,19 +23,21 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-export const useIndicatorCatalog = (coopType?: string) =>
-  useQuery({
-    queryKey: [INDICATOR_CATALOG_KEY, coopType],
+export const useIndicatorCatalog = (coopType?: string) => {
+  const lang = i18n.language?.split("-")[0] || "en";
+  return useQuery({
+    queryKey: [INDICATOR_CATALOG_KEY, coopType, lang],
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/non-financial-indicators/catalog", {
         params: {
-          query: coopType ? { coop_type: coopType } : undefined,
+          query: coopType ? { coop_type: coopType, lang } : { lang },
         },
       });
       if (error) throw new Error(extractErrorMessage(error));
       return (data as IndicatorCatalogResponse[]) ?? [];
     },
   });
+};
 
 export const useSubmissionEntries = (submissionId: string) =>
   useQuery({

@@ -3477,7 +3477,8 @@
     "newSectionDefaultDesc": "Faka incazelo yesigaba",
     "metaLabel": "Sihloko / Ilebula Yetemplate",
     "metaPlaceholder": "isib. Umbuzo Wemakhopharethi Etimali Ayisisekelo v1",
-    "selectSectionPrompt": "Khetha isigaba kwesokunxele ukuze uqale ukuhlela tinsimu taso."
+    "selectSectionPrompt": "Khetha isigaba kwesokunxele ukuze uqale ukuhlela tinsimu taso.",
+    "translatingAs": "Kuhlela ukuhumusha kwa-{{lang}}"
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4535,5 +4536,9 @@
     "toastSelected": "Ifayela likhethiwe: {{name}}",
     "toastExtracted": "Kukhishiwe {{count}} imigqa kusuka ku-{{name}}",
     "toastConfirmed": "{{name}}: {{count}} amarekhodi avumelekile alungele ukufaka"
+  },
+  "localizedField": {
+    "toggle": "Húmusha",
+    "otherLanguages": "Tihumusho (PT / SS / FR)"
   }
 }
