@@ -120,12 +120,16 @@ export const MemberList: React.FC = () => {
   const federationList = (federations as components["schemas"]["FederationResponse"][]) ?? [];
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
 
-  // Auto-select the first federation once the list is loaded
+  // Auto-select the first federation once the list is loaded.
+  // NOTE: Use `federations` (the stable React Query data ref) as the dependency,
+  // NOT `federationList` which is a new array object on every render and would
+  // cause an infinite re-render loop.
   useEffect(() => {
     if (!federationsLoading && federationList.length > 0 && !selectedFederationId) {
       setSelectedFederationId(federationList[0].id);
     }
-  }, [federationsLoading, federationList, selectedFederationId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [federationsLoading, federations, selectedFederationId]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
