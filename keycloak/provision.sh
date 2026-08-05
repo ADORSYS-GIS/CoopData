@@ -165,8 +165,7 @@ if [ "${DOMAIN_NAME}" != "localhost" ] && [ -n "${DOMAIN_NAME}" ]; then
   FRONTEND_BASE_URL="https://${DOMAIN_NAME}"
   echo "[provision] Production domain detected: ${FRONTEND_BASE_URL}. Updating client coopdata-frontend..."
   
-  # Find the client's internal ID
-  CLIENT_INTERNAL_ID=$(./kcadm.sh get clients -r "${REALM}" --server "${KEYCLOAK_SERVER}" -q clientId=coopdata-frontend --fields id --format csv --no-header 2>/dev/null || echo "")
+  CLIENT_INTERNAL_ID=$(./kcadm.sh get clients -r "${REALM}" --server "${KEYCLOAK_SERVER}" -q clientId=coopdata-frontend --fields id --format csv 2>/dev/null | tr -d '"' || echo "")
   
   if [ -n "${CLIENT_INTERNAL_ID}" ]; then
     echo "[provision] Found client internal ID: ${CLIENT_INTERNAL_ID}"
