@@ -8,7 +8,7 @@ import type {
   NfListParams,
 } from "@/types/non-financial";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 const NF_MEMBERS_KEY = "non-financial-members";
 
 function extractErrorMessage(err: unknown): string {

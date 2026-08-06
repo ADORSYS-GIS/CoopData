@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
 import type { NfUploadResponse } from "@/types/non-financial";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 const NF_KEY = "non-financial";
 
 function extractErrorMessage(err: unknown): string {
