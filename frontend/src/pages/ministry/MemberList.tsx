@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -116,20 +116,24 @@ function createColumns(
 
 export const MemberList: React.FC = () => {
   const { t } = useTranslation();
-  const { data: federations = [], isLoading: federationsLoading } = useFederations();
-  const federationList = (federations as components["schemas"]["FederationResponse"][]) ?? [];
+  const { data: federations, isLoading: federationsLoading } = useFederations();
+  const federationList = useMemo(
+    () => (federations as components["schemas"]["FederationResponse"][]) ?? [],
+    [federations],
+  );
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
 
-  // Auto-select the first federation once the list is loaded.
-  // NOTE: Use `federations` (the stable React Query data ref) as the dependency,
-  // NOT `federationList` which is a new array object on every render and would
-  // cause an infinite re-render loop.
+  // Auto-select the first federation exactly once when data first arrives.
+  // Using a ref flag ensures this never re-fires when the user changes the
+  // dropdown or when React Query does a background refetch — both of which
+  // previously caused a rapid re-render storm that froze the page.
+  const autoSelectedRef = useRef(false);
   useEffect(() => {
-    if (!federationsLoading && federationList.length > 0 && !selectedFederationId) {
+    if (!autoSelectedRef.current && !federationsLoading && federationList.length > 0) {
+      autoSelectedRef.current = true;
       setSelectedFederationId(federationList[0].id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [federationsLoading, federations, selectedFederationId]);
+  }, [federationsLoading, federationList]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
