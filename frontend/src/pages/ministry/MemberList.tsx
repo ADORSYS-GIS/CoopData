@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useTransition } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -116,6 +116,7 @@ function createColumns(
 
 export const MemberList: React.FC = () => {
   const { t } = useTranslation();
+  const [isPending, startTransition] = useTransition();
   const { data: federations, isLoading: federationsLoading } = useFederations();
   const federationList = useMemo(
     () => (federations as components["schemas"]["FederationResponse"][]) ?? [],
@@ -141,6 +142,7 @@ export const MemberList: React.FC = () => {
   const {
     data: members = [],
     isLoading: membersLoading,
+    isPlaceholderData,
     error: membersError,
     refetch: refetchMembers,
   } = useFederationMembers(selectedFederationId);
@@ -207,7 +209,15 @@ export const MemberList: React.FC = () => {
               {federationsLoading ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
-                <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
+                <Select
+                  value={selectedFederationId}
+                  onValueChange={(id) => {
+                    startTransition(() => {
+                      table.setPageIndex(0);
+                      setSelectedFederationId(id);
+                    });
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t("memberList.selectFederationPlaceholder")} />
                   </SelectTrigger>
@@ -260,6 +270,7 @@ export const MemberList: React.FC = () => {
 
         {/* Members Table */}
         {selectedFederationId && (
+          <div className={`transition-opacity duration-150 ${isPlaceholderData || isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
           <Card
             title={t("memberList.federationMembersTitle")}
             subtitle={t("memberList.membersFound", {
@@ -277,7 +288,7 @@ export const MemberList: React.FC = () => {
               </div>
             }
           >
-            {membersLoading ? (
+            {membersLoading && !isPlaceholderData ? (
               <div className="space-y-3 py-6">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-10 w-full" />
@@ -386,6 +397,7 @@ export const MemberList: React.FC = () => {
               </>
             )}
           </Card>
+          </div>
         )}
 
         {/* Empty state when no federation selected */}
