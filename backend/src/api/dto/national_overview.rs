@@ -88,6 +88,32 @@ pub struct CoopNfSummary {
     pub fd_early_withdrawal_pct: f64,
 }
 
+#[derive(
+    Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::IntoParams, utoipa::ToSchema,
+)]
+pub struct BenchmarkParams {
+    pub reporting_year: Option<i32>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct BenchmarkResponse {
+    pub reporting_year: Option<i32>,
+    /// The calling cooperative's own KPI row. Structurally cannot contain other cooperatives.
+    pub cooperative: CoopKpiRow,
+    /// kpi_key -> national average over cooperatives-with-data
+    pub national_average: HashMap<String, f64>,
+    /// kpi_key -> regional average over cooperatives-with-data in the caller's region.
+    /// None when there are too few contributors (see `insufficient_data`).
+    pub regional_average: Option<HashMap<String, f64>>,
+    pub insufficient_data: BenchmarkInsufficientData,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct BenchmarkInsufficientData {
+    /// True when the regional average is withheld because too few cooperatives contribute.
+    pub regional: bool,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct ComparativeStatementsParams {
     pub reporting_year: Option<i32>,

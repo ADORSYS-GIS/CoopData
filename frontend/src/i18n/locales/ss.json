@@ -1873,6 +1873,7 @@
     "focusRatioMetric": "Izinga/Metric Okugxilwe Kuyo",
     "chooseKpiPlaceholder": "Khetha i-KPI ozoyibonisa...",
     "noSubmittedDataYear": "Ikhopharethi ekhethiwe ayinayo data ecesiwe yonyaka {{year}}.",
+    "insufficientRegionalData": "Awekho amakhopharethi anele esifundeni sakho anedatha ecesiwe kute kubalwe isilinganiso sesifunda esithembekile.",
     "visualBenchmark": "Ukufananisa Okubonakalayo",
     "benchmarkingInsight": "Umbono Wokufananisa",
     "outperformingPeerGroup": "Kudlula Iqembu Labafana",

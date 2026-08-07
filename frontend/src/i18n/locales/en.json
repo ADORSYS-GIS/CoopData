@@ -1883,6 +1883,7 @@
     "focusRatioMetric": "Focus Ratio/Metric",
     "chooseKpiPlaceholder": "Choose KPI to visualize...",
     "noSubmittedDataYear": "The selected cooperative has no submitted data for the year {{year}}.",
+    "insufficientRegionalData": "Not enough cooperatives in your region have submitted data to compute a reliable regional average.",
     "visualBenchmark": "Visual Benchmark",
     "benchmarkingInsight": "Benchmarking Insight",
     "outperformingPeerGroup": "Outperforming Peer Group",

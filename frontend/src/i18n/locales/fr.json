@@ -1873,6 +1873,7 @@
     "focusRatioMetric": "Ratio/Métrique de focus",
     "chooseKpiPlaceholder": "Choisir le KPI à visualiser…",
     "noSubmittedDataYear": "La coopérative sélectionnée n'a aucune donnée soumise pour l'année {{year}}.",
+    "insufficientRegionalData": "Pas assez de coopératives de votre région ont soumis de données pour calculer une moyenne régionale fiable.",
     "visualBenchmark": "Benchmark visuel",
     "benchmarkingInsight": "Perspective de benchmarking",
     "outperformingPeerGroup": "Surperformance du groupe de pairs",
