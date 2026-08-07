@@ -1,6 +1,7 @@
 # Benchmarking Design — Cooperative Access & Privacy-Safe Averages
 
-> **Status**: Draft — for review/approval before implementation
+> **Status**: Implemented — backend endpoint + role-aware frontend widget (see §5)
+> **Scope of this document**: The architectural fix to let **Cooperative** users benchmark against National/Regional/Sector averages **without exposing other cooperatives' raw data**.
 > **Ticket**: [#75](https://github.com/ADORSYS-GIS/CoopData/issues/75) — Enhance Basic Analytics Dashboard & Implement Cooperative Benchmarking
 > **Scope of this document**: The architectural fix to let **Cooperative** users benchmark against National/Regional/Sector averages **without exposing other cooperatives' raw data**.
 > **Out of scope (deferred, not addressed now)**: I1 (Sector average) and I4 (Basic Analytics dashboard enhancement) — see §3.
