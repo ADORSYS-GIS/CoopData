@@ -170,6 +170,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      gotenberg:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
       interval: 10s
