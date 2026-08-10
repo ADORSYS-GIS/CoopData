@@ -1,3 +1,5 @@
+use crate::entities::enums::SubmissionStatus;
+use crate::entities::submission;
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -117,8 +119,27 @@ impl QuestionnaireRepository {
             crate::entities::cooperative::Model,
         )>,
     > {
+        // Only Approved/Submitted submissions count towards analytics — drafts
+        // and rejected questionnaires must not leak into aggregates. Resolve the
+        // eligible submission ids first, then filter responses on them.
+        let approved_sub_ids: Vec<Uuid> = submission::Entity::find()
+            .filter(
+                submission::Column::Status
+                    .is_in([SubmissionStatus::Approved, SubmissionStatus::Submitted]),
+            )
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        if approved_sub_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
         let mut query = questionnaire_response::Entity::find()
-            .find_also_related(crate::entities::cooperative::Entity);
+            .find_also_related(crate::entities::cooperative::Entity)
+            .filter(QuestionnaireResponseColumn::SubmissionId.is_in(approved_sub_ids));
 
         if let Some(year) = reporting_year {
             query = query.filter(QuestionnaireResponseColumn::ReportingYear.eq(year));

@@ -98,8 +98,10 @@ pub struct BenchmarkParams {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct BenchmarkResponse {
     pub reporting_year: Option<i32>,
-    /// The calling cooperative's own KPI row. Structurally cannot contain other cooperatives.
-    pub cooperative: CoopKpiRow,
+    /// The calling cooperative's own KPI row. Structurally cannot contain other
+    /// cooperatives. `None` when the caller has no approved/submitted financial
+    /// data for the year — a legitimate empty state, not an error.
+    pub cooperative: Option<CoopKpiRow>,
     /// Maps each KPI key to the national average over cooperatives-with-data.
     /// None when there are too few contributors (see `insufficient_data`).
     pub national_average: Option<HashMap<String, f64>>,

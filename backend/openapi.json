@@ -13,13 +13,50 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/analytics/basic-benchmark": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Returns a privacy-safe benchmark comparison for questionnaire cooperatives.",
+        "description": "- **Cooperative callers** receive only their own row plus server-computed\nnational / regional / sector / sector+regional averages. The response type\nis structurally incapable of containing other cooperatives' rows. When the\ncaller has no approved/submitted questionnaire data for the year, the\nresponse is still `200 OK` with `cooperative: null` — \"no data\" is a\nlegitimate state, not an error.\n- **Ministry / federation / apex callers** receive the full rows for their\nauthorized scope plus a national average; the frontend computes the\nregional/sector slices client-side over those rows (they are authorized to\nsee the raw data).",
+        "operationId": "get_basic_benchmark",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Benchmark comparison for questionnaire cooperatives",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicBenchmarkResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/benchmark": {
       "get": {
         "tags": [
           "Analytics"
         ],
         "summary": "Returns the benchmark comparison for the calling cooperative: its own KPI",
-        "description": "row plus server-computed national and regional averages. Other cooperatives'\nraw rows are never returned — the response type cannot contain them.",
+        "description": "row plus server-computed national and regional averages. Other cooperatives'\nraw rows are never returned — the response type cannot contain them.\nWhen the caller has no approved/submitted financial data for the year the\nresponse is still `200 OK` with `cooperative: null` — \"no data\" is a\nlegitimate state, not an error.",
         "operationId": "get_benchmark",
         "parameters": [
           {
@@ -46,9 +83,6 @@
           },
           "403": {
             "description": "Forbidden"
-          },
-          "404": {
-            "description": "Cooperative data not found"
           }
         }
       }
@@ -7207,6 +7241,150 @@
           }
         }
       },
+      "BasicBenchmarkInsufficientData": {
+        "type": "object",
+        "required": [
+          "national",
+          "regional",
+          "sector",
+          "sector_regional"
+        ],
+        "properties": {
+          "national": {
+            "type": "boolean",
+            "description": "True when the national average is withheld because too few cooperatives contribute."
+          },
+          "regional": {
+            "type": "boolean",
+            "description": "True when the regional average is withheld because too few cooperatives contribute."
+          },
+          "sector": {
+            "type": "boolean",
+            "description": "True when the sector average is withheld because too few cooperatives contribute."
+          },
+          "sector_regional": {
+            "type": "boolean",
+            "description": "True when the sector+regional average is withheld because too few cooperatives contribute."
+          }
+        }
+      },
+      "BasicBenchmarkParams": {
+        "type": "object",
+        "properties": {
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "BasicBenchmarkResponse": {
+        "type": "object",
+        "description": "Privacy-safe benchmark comparison for questionnaire (basic-tier) cooperatives.\nFor cooperative callers the response is structurally incapable of containing\nother cooperatives' rows: only the caller's own row plus server-computed\naverages cross the wire. Admin callers (ministry/federation/apex) receive the\nfull population rows because they are authorized to see them.",
+        "required": [
+          "rows",
+          "insufficient_data"
+        ],
+        "properties": {
+          "cooperative": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BasicBenchmarkRow"
+              }
+            ],
+            "nullable": true
+          },
+          "insufficient_data": {
+            "$ref": "#/components/schemas/BasicBenchmarkInsufficientData"
+          },
+          "national_average": {
+            "type": "object",
+            "description": "Maps each metric key to the national average over cooperatives-with-data.\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
+          },
+          "regional_average": {
+            "type": "object",
+            "description": "Maps each metric key to the regional average in the caller's region.\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BasicBenchmarkRow"
+            },
+            "description": "All questionnaire cooperatives in the caller's scope (admin callers only).\nAlways empty for cooperative callers — structural privacy guarantee."
+          },
+          "sector_average": {
+            "type": "object",
+            "description": "Maps each metric key to the sector average in the caller's sector (nationally).\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
+          },
+          "sector_regional_average": {
+            "type": "object",
+            "description": "Maps each metric key to the sector+regional average in the caller's\nsector within the caller's region. None when there are too few contributors.",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "BasicBenchmarkRow": {
+        "type": "object",
+        "description": "One questionnaire cooperative's row, used only for benchmarking.\nThe metric keys mirror the questionnaire `answers` JSON fields extracted by\n`get_questionnaire_analytics` (members, savings, loans, income, …).",
+        "required": [
+          "cooperative_id",
+          "name",
+          "has_data",
+          "metrics"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "has_data": {
+            "type": "boolean"
+          },
+          "metrics": {
+            "type": "object",
+            "description": "questionnaire metric key → value",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "BenchmarkInsufficientData": {
         "type": "object",
         "required": [
@@ -7267,12 +7445,16 @@
       "BenchmarkResponse": {
         "type": "object",
         "required": [
-          "cooperative",
           "insufficient_data"
         ],
         "properties": {
           "cooperative": {
-            "$ref": "#/components/schemas/CoopKpiRow"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CoopKpiRow"
+              }
+            ],
+            "nullable": true
           },
           "insufficient_data": {
             "$ref": "#/components/schemas/BenchmarkInsufficientData"

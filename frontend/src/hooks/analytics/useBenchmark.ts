@@ -4,7 +4,9 @@ import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 
 export interface BenchmarkResponse {
   reporting_year: number | null;
-  cooperative: CoopKpiRow;
+  /** The calling cooperative's own row; null when it has no approved/submitted
+   *  data for the year (a legitimate empty state, not an error). */
+  cooperative: CoopKpiRow | null;
   national_average: Record<string, number> | null;
   regional_average: Record<string, number> | null;
   sector_average: Record<string, number> | null;

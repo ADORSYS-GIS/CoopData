@@ -17,7 +17,8 @@ use crate::api::dto::national_overview::{
 };
 use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::auth::claims::Claims;
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
+use crate::services::benchmark::scoped_average;
 use crate::services::kpi_engine::KpiEngine;
 use crate::services::nf_indicator_engine::NfIndicatorEngine;
 use crate::AppState;
@@ -645,21 +646,19 @@ const BENCHMARK_KPIS: [&str; 28] = [
     "fd_early_withdrawal_pct",
 ];
 
-/// Minimum number of contributing cooperatives required before a regional
-/// average is disclosed. Below this, the average would reveal individual data.
-const MIN_CONTRIBUTORS: usize = 3;
-
 /// Returns the benchmark comparison for the calling cooperative: its own KPI
 /// row plus server-computed national and regional averages. Other cooperatives'
 /// raw rows are never returned — the response type cannot contain them.
+/// When the caller has no approved/submitted financial data for the year the
+/// response is still `200 OK` with `cooperative: null` — "no data" is a
+/// legitimate state, not an error.
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/benchmark",
     params(BenchmarkParams),
     responses(
         (status = 200, description = "Benchmark comparison for the calling cooperative", body = BenchmarkResponse),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Cooperative data not found")
+        (status = 403, description = "Forbidden")
     ),
     tag = "Analytics"
 )]
@@ -676,38 +675,68 @@ pub async fn get_benchmark(
     let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
     let all_rows = compute_coop_rows(&state, all_coop_ids, params.reporting_year).await?;
 
+    // A cooperative caller without an approved/submitted financial statement for
+    // the year gets `cooperative: null` with 200 OK — the absence of data is a
+    // legitimate state the UI renders as an empty state, not an error.
     let own_row = all_rows
         .iter()
         .find(|r| caller_coop_ids.contains(&r.cooperative_id))
-        .cloned()
-        .ok_or_else(|| AppError::NotFound("Cooperative data not found".into()))?;
+        .cloned();
 
     // National average is gated by the same MIN_CONTRIBUTORS guard as the
     // regional/sector slices: with a small national with-data sample, a calling
     // coop that knows its own value could otherwise derive a competitor's.
-    let (national_average, national_insufficient) = scoped_average(&all_rows, |_| true);
+    let (national_average, national_insufficient) =
+        scoped_average(&all_rows, |r| r.has_data, get_kpi_value, &BENCHMARK_KPIS);
 
-    let (regional_average, regional_insufficient) = match own_row.region.as_deref() {
-        Some(region) => scoped_average(&all_rows, |r| r.region.as_deref() == Some(region)),
-        None => (None, true),
-    };
-
-    let (sector_average, sector_insufficient) = match own_row.sector.as_deref() {
-        Some(sector) => scoped_average(&all_rows, |r| r.sector.as_deref() == Some(sector)),
-        None => (None, true),
-    };
-
-    let (sector_regional_average, sector_regional_insufficient) =
-        match (own_row.sector.as_deref(), own_row.region.as_deref()) {
-            (Some(sector), Some(region)) => scoped_average(&all_rows, |r| {
-                r.sector.as_deref() == Some(sector) && r.region.as_deref() == Some(region)
-            }),
-            _ => (None, true),
+    // Without an own row we cannot know the caller's region/sector, so those
+    // slices are withheld (null + insufficient flag) rather than guessed.
+    let (regional_average, regional_insufficient) =
+        match own_row.as_ref().and_then(|r| r.region.as_deref()) {
+            Some(region) => scoped_average(
+                &all_rows,
+                |r| r.has_data && r.region.as_deref() == Some(region),
+                get_kpi_value,
+                &BENCHMARK_KPIS,
+            ),
+            None => (None, true),
         };
+
+    let (sector_average, sector_insufficient) =
+        match own_row.as_ref().and_then(|r| r.sector.as_deref()) {
+            Some(sector) => scoped_average(
+                &all_rows,
+                |r| r.has_data && r.sector.as_deref() == Some(sector),
+                get_kpi_value,
+                &BENCHMARK_KPIS,
+            ),
+            None => (None, true),
+        };
+
+    let (sector_regional_average, sector_regional_insufficient) = match (
+        own_row.as_ref().and_then(|r| r.sector.as_deref()),
+        own_row.as_ref().and_then(|r| r.region.as_deref()),
+    ) {
+        (Some(sector), Some(region)) => scoped_average(
+            &all_rows,
+            |r| {
+                r.has_data
+                    && r.sector.as_deref() == Some(sector)
+                    && r.region.as_deref() == Some(region)
+            },
+            get_kpi_value,
+            &BENCHMARK_KPIS,
+        ),
+        _ => (None, true),
+    };
 
     tracing::info!(
         caller = %claims.sub,
-        cooperative = %own_row.cooperative_id,
+        cooperative = own_row
+            .as_ref()
+            .map(|r| r.cooperative_id.to_string())
+            .unwrap_or_default(),
+        has_own_data = own_row.is_some(),
         "Benchmark computed for cooperative"
     );
 
@@ -728,45 +757,6 @@ pub async fn get_benchmark(
             },
         }),
     ))
-}
-
-/// Computes an average over rows matching `predicate`, withholding it when fewer
-/// than `MIN_CONTRIBUTORS` cooperatives-with-data contribute. Shared by the
-/// regional, sector and sector+regional slices to avoid duplication.
-fn scoped_average(
-    all_rows: &[CoopKpiRow],
-    predicate: impl Fn(&CoopKpiRow) -> bool,
-) -> (Option<HashMap<String, f64>>, bool) {
-    let rows: Vec<CoopKpiRow> = all_rows
-        .iter()
-        .filter(|r| r.has_data && predicate(r))
-        .cloned()
-        .collect();
-    if rows.len() >= MIN_CONTRIBUTORS {
-        (Some(compute_averages(&rows, &BENCHMARK_KPIS)), false)
-    } else {
-        (None, true)
-    }
-}
-
-/// Averages each KPI over the given rows (cooperatives-with-data only).
-fn compute_averages(rows: &[CoopKpiRow], keys: &[&str]) -> HashMap<String, f64> {
-    keys.iter()
-        .map(|key| {
-            let vals: Vec<f64> = rows
-                .iter()
-                .filter(|r| r.has_data)
-                .filter_map(|r| get_kpi_value(r, key))
-                .filter(|v| !v.is_nan())
-                .collect();
-            let avg = if vals.is_empty() {
-                0.0
-            } else {
-                vals.iter().sum::<f64>() / vals.len() as f64
-            };
-            (key.to_string(), avg)
-        })
-        .collect()
 }
 
 /// Extracts a KPI value from a row: financial KPIs live in `row.kpis`,

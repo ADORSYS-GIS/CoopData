@@ -1,5 +1,6 @@
 pub mod apex;
 pub mod audit;
+pub mod basic_benchmark;
 pub mod common;
 pub mod cooperative;
 pub mod custom_kpi;
@@ -19,6 +20,7 @@ pub mod verification;
 
 pub use apex::*;
 pub use audit::*;
+pub use basic_benchmark::*;
 pub use common::*;
 pub use cooperative::*;
 pub use custom_kpi::*;
