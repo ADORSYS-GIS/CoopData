@@ -53,7 +53,7 @@ apiClient.use({
       const isAppRoute = window.location.pathname.startsWith("/app");
       const isPrintRoute = window.location.pathname.startsWith("/print");
       if (!isAppRoute && !isPrintRoute) {
-        window.location.href = "/auth/login";
+        window.location.href = "/login";
       }
     }
     return response;

@@ -1099,7 +1099,9 @@
       "confirmManual": "Utiliser la saisie manuelle",
       "confirmQuestionnaire": "Utiliser le questionnaire",
       "choosePrompt": "Veuillez choisir l'une des trois méthodes pour continuer.",
-      "currentBadge": "Méthode de soumission : {{method}}"
+      "currentBadge": "Méthode de soumission : {{method}}",
+      "changeHint": "Vous pouvez changer la méthode de soumission tant que cette soumission est encore un brouillon.",
+      "changeBtn": "Changer de méthode"
     }
   },
   "reports": {
@@ -1868,9 +1870,18 @@
     "selectTargetPlaceholder": "Sélectionner la cible…",
     "nationalAverageAll": "🌍 Moyenne nationale (Toutes les coops)",
     "regionAverage": "📍 Moyenne de la région {{region}}",
+    "sectorAverage": "🏭 Moyenne du secteur",
+    "sectorRegionalAverage": "🏭 Moyenne du secteur ({{region}})",
+    "sectorBadge": "Secteur : {{sector}}",
+    "sectorTargetSubtitle": "Comparaison avec le secteur {{sector}}",
+    "sectorRegionalTargetSubtitle": "Comparaison avec le secteur {{sector}} dans {{region}}",
     "focusRatioMetric": "Ratio/Métrique de focus",
     "chooseKpiPlaceholder": "Choisir le KPI à visualiser…",
     "noSubmittedDataYear": "La coopérative sélectionnée n'a aucune donnée soumise pour l'année {{year}}.",
+    "insufficientNationalData": "Pas assez de coopératives ont soumis de données au niveau national pour calculer une moyenne nationale fiable.",
+    "insufficientRegionalData": "Pas assez de coopératives de votre région ont soumis de données pour calculer une moyenne régionale fiable.",
+    "insufficientSectorData": "Pas assez de coopératives de votre secteur ont soumis de données pour calculer une moyenne sectorielle fiable.",
+    "insufficientSectorRegionalData": "Pas assez de coopératives de votre secteur et de votre région ont soumis de données pour calculer une moyenne sectorielle fiable.",
     "visualBenchmark": "Benchmark visuel",
     "benchmarkingInsight": "Perspective de benchmarking",
     "outperformingPeerGroup": "Surperformance du groupe de pairs",
@@ -1889,6 +1900,8 @@
     "status": "Statut",
     "nationalAverage": "Moyenne nationale",
     "regionAvg": "Moy. région {{region}}",
+    "sectorAvg": "Moy. secteur",
+    "sectorRegionalAvg": "Moy. secteur ({{region}})",
     "comparisonGroupBalances": "Soldes financiers",
     "comparisonGroupRatios": "Ratios financiers et risque",
     "comparisonGroupNonFinancial": "Indicateurs membres et opérationnels",

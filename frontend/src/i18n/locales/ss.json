@@ -1099,7 +1099,9 @@
       "confirmManual": "Sebentisa kufaka ngesandla",
       "confirmQuestionnaire": "Sebentisa emibuto",
       "choosePrompt": "Khetsa lenye yetindlela tintatfu kuze uqhubeke.",
-      "currentBadge": "Indlela yekufaka: {{method}}"
+      "currentBadge": "Indlela yekufaka: {{method}}",
+      "changeHint": "Ungashintja indlela yekufaka ngenkathi lommbiko usengumtselelo (draft).",
+      "changeBtn": "Shintja indlela"
     }
   },
   "reports": {
@@ -1868,9 +1870,18 @@
     "selectTargetPlaceholder": "Khetha inhloso...",
     "nationalAverageAll": "🌍 Isilinganiso Sesive (Onke Emakhopharethi)",
     "regionAverage": "📍 Isilinganiso Sesifundza se-{{region}}",
+    "sectorAverage": "🏭 Isilinganiso Semkhakha",
+    "sectorRegionalAverage": "🏭 Isilinganiso Semkhakha ({{region}})",
+    "sectorBadge": "Umkhakha: {{sector}}",
+    "sectorTargetSubtitle": "Kuqhathaniswa nomkhakha we-{{sector}}",
+    "sectorRegionalTargetSubtitle": "Kuqhathaniswa nomkhakha we-{{sector}} esifundzeni sase-{{region}}",
     "focusRatioMetric": "Izinga/Metric Okugxilwe Kuyo",
     "chooseKpiPlaceholder": "Khetha i-KPI ozoyibonisa...",
     "noSubmittedDataYear": "Ikhopharethi ekhethiwe ayinayo data ecesiwe yonyaka {{year}}.",
+    "insufficientNationalData": "Awekho amakhopharethi anele anedatha ecesiwe esiveni kute kubalwe isilinganiso sesive esithembekile.",
+    "insufficientRegionalData": "Awekho amakhopharethi anele esifundeni sakho anedatha ecesiwe kute kubalwe isilinganiso sesifunda esithembekile.",
+    "insufficientSectorData": "Awekho amakhopharethi anele emkhakheni wakho anedatha ecesiwe kute kubalwe isilinganiso semkhakha esithembekile.",
+    "insufficientSectorRegionalData": "Awekho amakhopharethi anele emkhakheni nasesifundeni sakho anedatha ecesiwe kute kubalwe isilinganiso semkhakha esithembekile.",
     "visualBenchmark": "Ukufananisa Okubonakalayo",
     "benchmarkingInsight": "Umbono Wokufananisa",
     "outperformingPeerGroup": "Kudlula Iqembu Labafana",
@@ -1889,6 +1900,8 @@
     "status": "Simo",
     "nationalAverage": "Isilinganiso Sesive",
     "regionAvg": "Isilinganiso Sesifundza se-{{region}}",
+    "sectorAvg": "Isilinganiso Semkhakha",
+    "sectorRegionalAvg": "Isilinganiso Semkhakha ({{region}})",
     "comparisonGroupBalances": "Amabhalansi Etimali",
     "comparisonGroupRatios": "Amalinganiso Etimali & Ingozi",
     "comparisonGroupNonFinancial": "Tinkhombandlela Zemalunga & Zokusebenza",

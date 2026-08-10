@@ -441,7 +441,7 @@ export function AppShell({
   // Redirect to login if not authenticated — must be in useEffect, not render body
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate({ to: "/auth/login" });
+      navigate({ to: "/login" });
     }
   }, [isLoading, isAuthenticated, navigate]);
 

@@ -10,13 +10,14 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::national_overview::{
-    ComparativeStatementsParams, ComparativeStatementsResponse, CoopKpiRow, CoopNfSummary,
-    CooperativeLineItem, CooperativeStatementGrid, KpiStatusCount, NationalOverviewResponse,
-    NfPortfolioSummary, TrafficLightDistribution,
+    BenchmarkInsufficientData, BenchmarkParams, BenchmarkResponse, ComparativeStatementsParams,
+    ComparativeStatementsResponse, CoopKpiRow, CoopNfSummary, CooperativeLineItem,
+    CooperativeStatementGrid, KpiStatusCount, NationalOverviewResponse, NfPortfolioSummary,
+    TrafficLightDistribution,
 };
 use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::auth::claims::Claims;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::services::kpi_engine::KpiEngine;
 use crate::services::nf_indicator_engine::NfIndicatorEngine;
 use crate::AppState;
@@ -60,11 +61,123 @@ pub async fn get_national_overview(
     )
     .await?;
 
+    let coop_rows = compute_coop_rows(&state, filtered_coop_ids, params.reporting_year).await?;
+
+    let total = coop_rows.len() as u64;
+
+    // Recompute traffic-light status counts from the computed rows
+    let mut status_counts: HashMap<String, KpiStatusCount> = HashMap::new();
+    for name in &RATIO_NAMES {
+        status_counts.insert(
+            name.to_string(),
+            KpiStatusCount {
+                green: 0,
+                amber: 0,
+                red: 0,
+                no_data: 0,
+            },
+        );
+    }
+    for row in &coop_rows {
+        for name in &RATIO_NAMES {
+            if let Some(kpi) = row.kpis.get(*name) {
+                if let Some(counts) = status_counts.get_mut(*name) {
+                    match kpi.status.as_deref() {
+                        Some("green") => counts.green += 1,
+                        Some("amber") => counts.amber += 1,
+                        Some("red") => counts.red += 1,
+                        _ => counts.no_data += 1,
+                    }
+                }
+            }
+        }
+    }
+
+    let mut distributions = HashMap::new();
+    for name in &RATIO_NAMES {
+        if let Some(counts) = status_counts.get(*name) {
+            let with_data = counts.green + counts.amber + counts.red;
+            distributions.insert(
+                name.to_string(),
+                TrafficLightDistribution {
+                    green_pct: pct(counts.green, with_data),
+                    amber_pct: pct(counts.amber, with_data),
+                    red_pct: pct(counts.red, with_data),
+                    no_data_pct: pct(counts.no_data, total),
+                    green_count: counts.green,
+                    amber_count: counts.amber,
+                    red_count: counts.red,
+                    no_data_count: counts.no_data,
+                },
+            );
+        }
+    }
+
+    let nf_rows: Vec<CoopNfSummary> = coop_rows
+        .iter()
+        .filter(|r| r.non_financial.has_data)
+        .map(|r| r.non_financial.clone())
+        .collect();
+    let nf_count = nf_rows.len() as u64;
+    let non_financial_summary = NfPortfolioSummary {
+        cooperatives_with_data: nf_count,
+        average_active_members_pct: average(&nf_rows, |row| row.active_members_pct),
+        average_savings_penetration_pct: average(&nf_rows, |row| row.savings_penetration_pct),
+        average_credit_penetration_pct: average(&nf_rows, |row| row.credit_penetration_pct),
+        average_fd_penetration_pct: average(&nf_rows, |row| row.fd_penetration_pct),
+        average_on_time_repayment_pct: average(&nf_rows, |row| row.on_time_repayment_pct),
+        average_dormancy_pct: average(&nf_rows, |row| row.dormancy_pct),
+        average_agm_participation_pct: average(&nf_rows, |row| row.agm_participation_pct),
+        average_arrears_rate_pct: average(&nf_rows, |row| row.arrears_rate_pct),
+        average_fd_early_withdrawal_pct: average(&nf_rows, |row| row.fd_early_withdrawal_pct),
+    };
+
+    tracing::info!(
+        caller = %claims.sub,
+        cooperatives_in_scope = total,
+        "National overview computed"
+    );
+
+    let custom_formulas = state.custom_kpi_repo.find_all().await?;
+    let mut system_wide_custom_kpis = HashMap::new();
+    for formula_def in &custom_formulas {
+        let mut sum = 0.0;
+        let mut count = 0;
+        for row in &coop_rows {
+            if let Some(&val) = row.custom_kpis.get(&formula_def.name) {
+                sum += val;
+                count += 1;
+            }
+        }
+        if count > 0 {
+            system_wide_custom_kpis.insert(formula_def.name.clone(), sum / count as f64);
+        }
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(NationalOverviewResponse {
+            total_cooperatives: total,
+            cooperatives_with_data: coop_rows.iter().filter(|r| r.has_data).count() as u64,
+            non_financial_summary,
+            distributions,
+            cooperatives: coop_rows,
+            custom_kpis: system_wide_custom_kpis,
+        }),
+    ))
+}
+
+/// Computes a `CoopKpiRow` for every cooperative in `coop_ids`.
+/// Shared by the national overview (aggregation) and the benchmark endpoint
+/// (server-side averages). Rows are computed server-side and never exposed to
+/// cooperative callers.
+async fn compute_coop_rows(
+    state: &AppState,
+    coop_ids: Vec<Uuid>,
+    reporting_year: Option<i32>,
+) -> AppResult<Vec<CoopKpiRow>> {
     // Batch 1: fetch all cooperatives
-    let cooperatives = state
-        .cooperative_repo
-        .find_by_ids(filtered_coop_ids.clone())
-        .await?;
+    let cooperatives = state.cooperative_repo.find_by_ids(coop_ids.clone()).await?;
 
     let all_apexes = state.apex_repo.list_all().await?;
     let mut apex_map: HashMap<Uuid, String> = HashMap::new();
@@ -77,15 +190,14 @@ pub async fn get_national_overview(
     let mut fs_map: HashMap<uuid::Uuid, (uuid::Uuid, uuid::Uuid)> = HashMap::new();
     let approved_submissions: Vec<_> = state
         .submission_repo
-        .find_by_cooperative_ids(filtered_coop_ids)
+        .find_by_cooperative_ids(coop_ids)
         .await?
         .into_iter()
         .filter(|submission| {
             let is_approved = submission.status
                 == crate::entities::enums::SubmissionStatus::Approved
                 || submission.status == crate::entities::enums::SubmissionStatus::Submitted;
-            let matches_year = params
-                .reporting_year
+            let matches_year = reporting_year
                 .map(|year| submission.reporting_year == year)
                 .unwrap_or(true);
             is_approved && matches_year
@@ -190,45 +302,9 @@ pub async fn get_national_overview(
             .push(entry);
     }
 
-    // Compute KPIs per cooperative
-    let ratio_names = [
-        "total_assets",
-        "gross_loan_portfolio",
-        "net_loan_portfolio",
-        "total_member_deposits",
-        "total_equity",
-        "net_surplus",
-        "par30",
-        "par90",
-        "npl_ratio",
-        "loan_loss_coverage",
-        "roa",
-        "roe",
-        "operating_expense_ratio",
-        "capital_adequacy_ratio",
-        "liquid_funds_ratio",
-        "operational_self_sufficiency",
-        "net_interest_margin",
-        "deposits_to_loans",
-    ];
-
-    let mut status_counts: HashMap<String, KpiStatusCount> = HashMap::new();
-    for name in &ratio_names {
-        status_counts.insert(
-            name.to_string(),
-            KpiStatusCount {
-                green: 0,
-                amber: 0,
-                red: 0,
-                no_data: 0,
-            },
-        );
-    }
-
     let custom_formulas = state.custom_kpi_repo.find_all().await?;
 
     let mut coop_rows: Vec<CoopKpiRow> = Vec::new();
-    let mut nf_rows: Vec<CoopNfSummary> = Vec::new();
 
     let raw_account_codes = [
         1100, 1101, 1102, 1103, 1104, 1200, 1201, 1202, 1203, 1204, 1205, 1250, 1251, 1252, 1300,
@@ -298,7 +374,7 @@ pub async fn get_national_overview(
                 .unwrap_or(&[]);
             let computed = KpiEngine::compute(items);
             let mut kpi_map = HashMap::new();
-            for name in &ratio_names {
+            for name in &RATIO_NAMES {
                 if let Some(kpi) = computed.get_by_name(name) {
                     kpi_map.insert(name.to_string(), kpi.clone());
                 }
@@ -353,10 +429,6 @@ pub async fn get_national_overview(
             (kpi_map, nf_summary)
         };
 
-        if non_financial.has_data {
-            nf_rows.push(non_financial.clone());
-        }
-
         let mut eval_ctx: evalexpr::HashMapContext = evalexpr::HashMapContext::new();
         use evalexpr::ContextWithMutableVariables;
         let mut set_keys = std::collections::HashSet::new();
@@ -382,20 +454,12 @@ pub async fn get_national_overview(
             }
         }
 
-        for name in &ratio_names {
+        for name in &RATIO_NAMES {
             if let Some(kpi) = kpi_map.get(*name) {
                 eval_ctx
                     .set_value(name.to_string(), evalexpr::Value::Float(kpi.value))
                     .unwrap();
                 set_keys.insert(name.to_string());
-                if let Some(counts) = status_counts.get_mut(*name) {
-                    match kpi.status.as_deref() {
-                        Some("green") => counts.green += 1,
-                        Some("amber") => counts.amber += 1,
-                        Some("red") => counts.red += 1,
-                        _ => counts.no_data += 1,
-                    }
-                }
             } else {
                 eval_ctx
                     .set_value(name.to_string(), evalexpr::Value::Float(0.0))
@@ -509,74 +573,7 @@ pub async fn get_national_overview(
         });
     }
 
-    let total = cooperatives.len() as u64;
-
-    let mut distributions = HashMap::new();
-    for name in &ratio_names {
-        if let Some(counts) = status_counts.get(*name) {
-            let with_data = counts.green + counts.amber + counts.red;
-            distributions.insert(
-                name.to_string(),
-                TrafficLightDistribution {
-                    green_pct: pct(counts.green, with_data),
-                    amber_pct: pct(counts.amber, with_data),
-                    red_pct: pct(counts.red, with_data),
-                    no_data_pct: pct(counts.no_data, total),
-                    green_count: counts.green,
-                    amber_count: counts.amber,
-                    red_count: counts.red,
-                    no_data_count: counts.no_data,
-                },
-            );
-        }
-    }
-
-    let nf_count = nf_rows.len() as u64;
-    let non_financial_summary = NfPortfolioSummary {
-        cooperatives_with_data: nf_count,
-        average_active_members_pct: average(&nf_rows, |row| row.active_members_pct),
-        average_savings_penetration_pct: average(&nf_rows, |row| row.savings_penetration_pct),
-        average_credit_penetration_pct: average(&nf_rows, |row| row.credit_penetration_pct),
-        average_fd_penetration_pct: average(&nf_rows, |row| row.fd_penetration_pct),
-        average_on_time_repayment_pct: average(&nf_rows, |row| row.on_time_repayment_pct),
-        average_dormancy_pct: average(&nf_rows, |row| row.dormancy_pct),
-        average_agm_participation_pct: average(&nf_rows, |row| row.agm_participation_pct),
-        average_arrears_rate_pct: average(&nf_rows, |row| row.arrears_rate_pct),
-        average_fd_early_withdrawal_pct: average(&nf_rows, |row| row.fd_early_withdrawal_pct),
-    };
-
-    tracing::info!(
-        caller = %claims.sub,
-        cooperatives_in_scope = total,
-        "National overview computed"
-    );
-
-    let mut system_wide_custom_kpis = HashMap::new();
-    for formula_def in &custom_formulas {
-        let mut sum = 0.0;
-        let mut count = 0;
-        for row in &coop_rows {
-            if let Some(&val) = row.custom_kpis.get(&formula_def.name) {
-                sum += val;
-                count += 1;
-            }
-        }
-        if count > 0 {
-            system_wide_custom_kpis.insert(formula_def.name.clone(), sum / count as f64);
-        }
-    }
-
-    Ok((
-        StatusCode::OK,
-        Json(NationalOverviewResponse {
-            total_cooperatives: total,
-            cooperatives_with_data: coop_rows.iter().filter(|r| r.has_data).count() as u64,
-            non_financial_summary,
-            distributions,
-            cooperatives: coop_rows,
-            custom_kpis: system_wide_custom_kpis,
-        }),
-    ))
+    Ok(coop_rows)
 }
 
 fn pct(part: u64, total: u64) -> f64 {
@@ -591,6 +588,205 @@ fn average(rows: &[CoopNfSummary], selector: impl Fn(&CoopNfSummary) -> f64) -> 
         0.0
     } else {
         rows.iter().map(selector).sum::<f64>() / rows.len() as f64
+    }
+}
+
+const RATIO_NAMES: [&str; 18] = [
+    "total_assets",
+    "gross_loan_portfolio",
+    "net_loan_portfolio",
+    "total_member_deposits",
+    "total_equity",
+    "net_surplus",
+    "par30",
+    "par90",
+    "npl_ratio",
+    "loan_loss_coverage",
+    "roa",
+    "roe",
+    "operating_expense_ratio",
+    "capital_adequacy_ratio",
+    "liquid_funds_ratio",
+    "operational_self_sufficiency",
+    "net_interest_margin",
+    "deposits_to_loans",
+];
+
+/// KPI keys benchmarked for a cooperative against national/regional averages.
+/// Mirrors the frontend `comparableKpis` list (financial + non-financial).
+const BENCHMARK_KPIS: [&str; 28] = [
+    "total_assets",
+    "gross_loan_portfolio",
+    "net_loan_portfolio",
+    "total_member_deposits",
+    "total_equity",
+    "net_surplus",
+    "capital_adequacy_ratio",
+    "liquid_funds_ratio",
+    "npl_ratio",
+    "par30",
+    "par90",
+    "loan_loss_coverage",
+    "roa",
+    "roe",
+    "operating_expense_ratio",
+    "operational_self_sufficiency",
+    "net_interest_margin",
+    "deposits_to_loans",
+    "total_members",
+    "active_members_pct",
+    "savings_penetration_pct",
+    "credit_penetration_pct",
+    "fd_penetration_pct",
+    "on_time_repayment_pct",
+    "dormancy_pct",
+    "agm_participation_pct",
+    "arrears_rate_pct",
+    "fd_early_withdrawal_pct",
+];
+
+/// Minimum number of contributing cooperatives required before a regional
+/// average is disclosed. Below this, the average would reveal individual data.
+const MIN_CONTRIBUTORS: usize = 3;
+
+/// Returns the benchmark comparison for the calling cooperative: its own KPI
+/// row plus server-computed national and regional averages. Other cooperatives'
+/// raw rows are never returned — the response type cannot contain them.
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/benchmark",
+    params(BenchmarkParams),
+    responses(
+        (status = 200, description = "Benchmark comparison for the calling cooperative", body = BenchmarkResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Cooperative data not found")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_benchmark(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<BenchmarkParams>,
+) -> AppResult<impl IntoResponse> {
+    let caller_coop_ids = resolve_caller_cooperative_ids(&state, &claims).await?;
+
+    // Compute rows for the FULL population server-side. Only aggregates are
+    // returned to the caller; individual rows never leave this function.
+    let all_coops = state.cooperative_repo.list_all().await?;
+    let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
+    let all_rows = compute_coop_rows(&state, all_coop_ids, params.reporting_year).await?;
+
+    let own_row = all_rows
+        .iter()
+        .find(|r| caller_coop_ids.contains(&r.cooperative_id))
+        .cloned()
+        .ok_or_else(|| AppError::NotFound("Cooperative data not found".into()))?;
+
+    // National average is gated by the same MIN_CONTRIBUTORS guard as the
+    // regional/sector slices: with a small national with-data sample, a calling
+    // coop that knows its own value could otherwise derive a competitor's.
+    let (national_average, national_insufficient) = scoped_average(&all_rows, |_| true);
+
+    let (regional_average, regional_insufficient) = match own_row.region.as_deref() {
+        Some(region) => scoped_average(&all_rows, |r| r.region.as_deref() == Some(region)),
+        None => (None, true),
+    };
+
+    let (sector_average, sector_insufficient) = match own_row.sector.as_deref() {
+        Some(sector) => scoped_average(&all_rows, |r| r.sector.as_deref() == Some(sector)),
+        None => (None, true),
+    };
+
+    let (sector_regional_average, sector_regional_insufficient) =
+        match (own_row.sector.as_deref(), own_row.region.as_deref()) {
+            (Some(sector), Some(region)) => scoped_average(&all_rows, |r| {
+                r.sector.as_deref() == Some(sector) && r.region.as_deref() == Some(region)
+            }),
+            _ => (None, true),
+        };
+
+    tracing::info!(
+        caller = %claims.sub,
+        cooperative = %own_row.cooperative_id,
+        "Benchmark computed for cooperative"
+    );
+
+    Ok((
+        StatusCode::OK,
+        Json(BenchmarkResponse {
+            reporting_year: params.reporting_year,
+            cooperative: own_row,
+            national_average,
+            regional_average,
+            sector_average,
+            sector_regional_average,
+            insufficient_data: BenchmarkInsufficientData {
+                national: national_insufficient,
+                regional: regional_insufficient,
+                sector: sector_insufficient,
+                sector_regional: sector_regional_insufficient,
+            },
+        }),
+    ))
+}
+
+/// Computes an average over rows matching `predicate`, withholding it when fewer
+/// than `MIN_CONTRIBUTORS` cooperatives-with-data contribute. Shared by the
+/// regional, sector and sector+regional slices to avoid duplication.
+fn scoped_average(
+    all_rows: &[CoopKpiRow],
+    predicate: impl Fn(&CoopKpiRow) -> bool,
+) -> (Option<HashMap<String, f64>>, bool) {
+    let rows: Vec<CoopKpiRow> = all_rows
+        .iter()
+        .filter(|r| r.has_data && predicate(r))
+        .cloned()
+        .collect();
+    if rows.len() >= MIN_CONTRIBUTORS {
+        (Some(compute_averages(&rows, &BENCHMARK_KPIS)), false)
+    } else {
+        (None, true)
+    }
+}
+
+/// Averages each KPI over the given rows (cooperatives-with-data only).
+fn compute_averages(rows: &[CoopKpiRow], keys: &[&str]) -> HashMap<String, f64> {
+    keys.iter()
+        .map(|key| {
+            let vals: Vec<f64> = rows
+                .iter()
+                .filter(|r| r.has_data)
+                .filter_map(|r| get_kpi_value(r, key))
+                .filter(|v| !v.is_nan())
+                .collect();
+            let avg = if vals.is_empty() {
+                0.0
+            } else {
+                vals.iter().sum::<f64>() / vals.len() as f64
+            };
+            (key.to_string(), avg)
+        })
+        .collect()
+}
+
+/// Extracts a KPI value from a row: financial KPIs live in `row.kpis`,
+/// non-financial KPIs live in `row.non_financial`.
+fn get_kpi_value(row: &CoopKpiRow, key: &str) -> Option<f64> {
+    if let Some(kpi) = row.kpis.get(key) {
+        return Some(kpi.value);
+    }
+    match key {
+        "total_members" => Some(row.non_financial.total_members as f64),
+        "active_members_pct" => Some(row.non_financial.active_members_pct),
+        "savings_penetration_pct" => Some(row.non_financial.savings_penetration_pct),
+        "credit_penetration_pct" => Some(row.non_financial.credit_penetration_pct),
+        "fd_penetration_pct" => Some(row.non_financial.fd_penetration_pct),
+        "on_time_repayment_pct" => Some(row.non_financial.on_time_repayment_pct),
+        "dormancy_pct" => Some(row.non_financial.dormancy_pct),
+        "agm_participation_pct" => Some(row.non_financial.agm_participation_pct),
+        "arrears_rate_pct" => Some(row.non_financial.arrears_rate_pct),
+        "fd_early_withdrawal_pct" => Some(row.non_financial.fd_early_withdrawal_pct),
+        _ => None,
     }
 }
 

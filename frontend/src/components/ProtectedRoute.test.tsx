@@ -85,7 +85,7 @@ describe("ProtectedRoute", () => {
 
     await waitFor(() => {
       const nav = screen.getByTestId("navigate");
-      expect(nav).toHaveAttribute("data-to", "/auth/login");
+      expect(nav).toHaveAttribute("data-to", "/login");
     });
   });
 

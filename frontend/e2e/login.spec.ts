@@ -6,7 +6,7 @@ test.describe("Login flow via Keycloak", () => {
     await mockKeycloak(page, "ministry");
     await mockBackendApi(page);
 
-    await page.goto("/auth/login");
+    await page.goto("/login");
 
     await expect(page.getByText("Redirecting to login")).toBeVisible({ timeout: 10000 });
   });

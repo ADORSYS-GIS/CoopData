@@ -12,12 +12,12 @@ export async function requireAuth() {
   const ready = await waitForKeycloakReady();
   if (!ready) {
     console.warn("[guard] requireAuth: Keycloak init timed out, redirecting to login");
-    throw redirect({ to: "/auth/login" });
+    throw redirect({ to: "/login" });
   }
 
   if (!isAuthenticated()) {
     console.log("[guard] requireAuth: Not authenticated, redirecting to Keycloak login");
-    throw redirect({ to: "/auth/login" });
+    throw redirect({ to: "/login" });
   }
 
   const profile = getUserProfile();
@@ -35,12 +35,12 @@ export async function requireRole(...roles: Role[]) {
   const ready = await waitForKeycloakReady();
   if (!ready) {
     console.warn("[guard] requireRole: Keycloak init timed out, redirecting to login");
-    throw redirect({ to: "/auth/login" });
+    throw redirect({ to: "/login" });
   }
 
   if (!isAuthenticated()) {
     console.log("[guard] requireRole: Not authenticated, redirecting to Keycloak login");
-    throw redirect({ to: "/auth/login" });
+    throw redirect({ to: "/login" });
   }
 
   const profile = getUserProfile();

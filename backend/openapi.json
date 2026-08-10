@@ -13,6 +13,46 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/analytics/benchmark": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Returns the benchmark comparison for the calling cooperative: its own KPI",
+        "description": "row plus server-computed national and regional averages. Other cooperatives'\nraw rows are never returned — the response type cannot contain them.",
+        "operationId": "get_benchmark",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Benchmark comparison for the calling cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Cooperative data not found"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/comparative-statements": {
       "get": {
         "tags": [
@@ -7167,6 +7207,43 @@
           }
         }
       },
+      "BenchmarkInsufficientData": {
+        "type": "object",
+        "required": [
+          "national",
+          "regional",
+          "sector",
+          "sector_regional"
+        ],
+        "properties": {
+          "national": {
+            "type": "boolean",
+            "description": "True when the national average is withheld because too few cooperatives contribute."
+          },
+          "regional": {
+            "type": "boolean",
+            "description": "True when the regional average is withheld because too few cooperatives contribute."
+          },
+          "sector": {
+            "type": "boolean",
+            "description": "True when the sector average is withheld because too few cooperatives contribute."
+          },
+          "sector_regional": {
+            "type": "boolean",
+            "description": "True when the sector+regional average is withheld because too few cooperatives contribute."
+          }
+        }
+      },
+      "BenchmarkParams": {
+        "type": "object",
+        "properties": {
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
       "BenchmarkQueryParams": {
         "type": "object",
         "required": [
@@ -7190,50 +7267,56 @@
       "BenchmarkResponse": {
         "type": "object",
         "required": [
-          "kpi_name",
-          "reporting_year",
-          "sector_average",
-          "national_average",
-          "percentile_25",
-          "percentile_50",
-          "percentile_75",
-          "sample_count"
+          "cooperative",
+          "insufficient_data"
         ],
         "properties": {
-          "cooperative_type": {
-            "type": "string",
-            "nullable": true
+          "cooperative": {
+            "$ref": "#/components/schemas/CoopKpiRow"
           },
-          "kpi_name": {
-            "type": "string"
+          "insufficient_data": {
+            "$ref": "#/components/schemas/BenchmarkInsufficientData"
           },
           "national_average": {
-            "type": "number",
-            "format": "double"
+            "type": "object",
+            "description": "Maps each KPI key to the national average over cooperatives-with-data.\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
           },
-          "percentile_25": {
-            "type": "number",
-            "format": "double"
-          },
-          "percentile_50": {
-            "type": "number",
-            "format": "double"
-          },
-          "percentile_75": {
-            "type": "number",
-            "format": "double"
+          "regional_average": {
+            "type": "object",
+            "description": "Maps each KPI key to the regional average over cooperatives-with-data in the caller's region.\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
           },
           "reporting_year": {
             "type": "integer",
-            "format": "int32"
-          },
-          "sample_count": {
-            "type": "integer",
-            "minimum": 0
+            "format": "int32",
+            "nullable": true
           },
           "sector_average": {
-            "type": "number",
-            "format": "double"
+            "type": "object",
+            "description": "Maps each KPI key to the sector average over cooperatives-with-data in the caller's sector (nationally).\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
+          },
+          "sector_regional_average": {
+            "type": "object",
+            "description": "Maps each KPI key to the sector+regional average over cooperatives-with-data in the caller's\nsector within the caller's region. None when there are too few contributors.",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
           }
         }
       },
