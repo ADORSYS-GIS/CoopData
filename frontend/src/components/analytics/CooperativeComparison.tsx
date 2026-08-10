@@ -41,6 +41,7 @@ import {
   ShieldAlert,
   Globe,
   MapPin,
+  Briefcase,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -314,6 +315,23 @@ function buildComparableKpis(t: TFunction): ComparableKpi[] {
   ];
 }
 
+// Shared averaging helper — used for national, regional, sector and
+// sector+regional slices to avoid duplicating the averaging math.
+function computeKpiAverages(
+  rows: CoopKpiRow[],
+  kpis: ComparableKpi[],
+  getValue: (row: CoopKpiRow, kpi: ComparableKpi) => number,
+): Record<string, number> {
+  const averages: Record<string, number> = {};
+  kpis.forEach((kpi) => {
+    const vals = rows
+      .map((c) => getValue(c, kpi))
+      .filter((v): v is number => v !== undefined && !isNaN(v));
+    averages[kpi.key] = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  });
+  return averages;
+}
+
 export function CooperativeComparison({ reportingYear }: CooperativeComparisonProps) {
   const { t } = useTranslation();
   const { role } = useAuth();
@@ -389,6 +407,10 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return cooperatives.find((c) => c.cooperative_id === activeCoopId);
   }, [cooperatives, activeCoopId]);
 
+  // Selected coop's sector/region — drives the sector comparison targets
+  const selectedCoopSector = selectedCoop?.sector ?? null;
+  const selectedCoopRegion = selectedCoop?.region ?? null;
+
   // Available regions derived from data
   const availableRegions = useMemo(() => {
     const regions = new Set<string>();
@@ -398,14 +420,16 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     return Array.from(regions).sort();
   }, [cooperativesWithData]);
 
-  // Selected target details (National Average, Regional Average, or Coop B)
+  // Selected target details (National/Regional/Sector averages, or Coop B)
   const compareTarget = useMemo(() => {
     if (compareTargetId === "national_average") {
       return {
         name: t("analytics.nationalAverage"),
         isAverage: true,
         isRegional: false,
+        isSector: false,
         region: null as string | null,
+        sector: null as string | null,
       };
     }
     if (compareTargetId.startsWith("region_avg_")) {
@@ -414,37 +438,60 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         name: t("analytics.regionAvg", { region }),
         isAverage: true,
         isRegional: true,
+        isSector: false,
         region,
+        sector: null as string | null,
+      };
+    }
+    if (compareTargetId === "sector_avg") {
+      return {
+        name: t("analytics.sectorAvg", { sector: selectedCoopSector ?? "" }),
+        isAverage: true,
+        isRegional: false,
+        isSector: true,
+        region: null as string | null,
+        sector: selectedCoopSector,
+      };
+    }
+    if (compareTargetId === "sector_regional_avg") {
+      return {
+        name: t("analytics.sectorRegionalAvg", {
+          sector: selectedCoopSector ?? "",
+          region: selectedCoopRegion ?? "",
+        }),
+        isAverage: true,
+        isRegional: true,
+        isSector: true,
+        region: selectedCoopRegion,
+        sector: selectedCoopSector,
       };
     }
     const coop = cooperatives.find((c) => c.cooperative_id === compareTargetId);
     return coop
-      ? { ...coop, isAverage: false, isRegional: false, region: coop.region ?? null }
+      ? {
+          ...coop,
+          isAverage: false,
+          isRegional: false,
+          isSector: false,
+          region: coop.region ?? null,
+          sector: coop.sector ?? null,
+        }
       : {
           name: t("analytics.nationalAverage"),
           isAverage: true,
           isRegional: false,
+          isSector: false,
           region: null as string | null,
+          sector: null as string | null,
         };
-  }, [cooperatives, compareTargetId, t]);
+  }, [cooperatives, compareTargetId, t, selectedCoopSector, selectedCoopRegion]);
 
   // Dynamic system averages for comparable KPIs (national).
   // Coop users consume the server-computed national average.
   const systemAverages = useMemo(() => {
     if (isCoopUser) return benchmark?.national_average ?? {};
-    const averages: Record<string, number> = {};
-    comparableKpis.forEach((kpi) => {
-      const validValues = cooperativesWithData
-        .map((c) => getCoopKpiValue(c, kpi))
-        .filter((val): val is number => val !== undefined && !isNaN(val));
-      averages[kpi.key] =
-        validValues.length > 0
-          ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
-          : 0;
-    });
-    return averages;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCoopUser, benchmark, cooperativesWithData]);
+    return computeKpiAverages(cooperativesWithData, comparableKpis, getCoopKpiValue);
+  }, [isCoopUser, benchmark, cooperativesWithData, comparableKpis]);
 
   // Regional averages keyed by region name → kpi key → average value.
   // Coop users consume the server-computed regional average for their own region.
@@ -459,21 +506,45 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     const result: Record<string, Record<string, number>> = {};
     availableRegions.forEach((region) => {
       const regionCoops = cooperativesWithData.filter((c) => c.region === region);
-      const kpiAverages: Record<string, number> = {};
-      comparableKpis.forEach((kpi) => {
-        const vals = regionCoops
-          .map((c) => getCoopKpiValue(c, kpi))
-          .filter((v): v is number => v !== undefined && !isNaN(v));
-        kpiAverages[kpi.key] = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
-      });
-      result[region] = kpiAverages;
+      result[region] = computeKpiAverages(regionCoops, comparableKpis, getCoopKpiValue);
     });
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCoopUser, benchmark, cooperativesWithData, availableRegions]);
+  }, [isCoopUser, benchmark, cooperativesWithData, availableRegions, comparableKpis]);
+
+  // Sector average for the selected coop's sector (nationally).
+  // Coop users consume the server-computed sector average.
+  const sectorAverages = useMemo(() => {
+    if (isCoopUser) return benchmark?.sector_average ?? null;
+    if (!selectedCoopSector) return null;
+    const sectorCoops = cooperativesWithData.filter((c) => c.sector === selectedCoopSector);
+    return computeKpiAverages(sectorCoops, comparableKpis, getCoopKpiValue);
+  }, [isCoopUser, benchmark, selectedCoopSector, cooperativesWithData, comparableKpis]);
+
+  // Sector+regional average for the selected coop's sector within its region.
+  const sectorRegionalAverages = useMemo(() => {
+    if (isCoopUser) return benchmark?.sector_regional_average ?? null;
+    if (!selectedCoopSector || !selectedCoopRegion) return null;
+    const coops = cooperativesWithData.filter(
+      (c) => c.sector === selectedCoopSector && c.region === selectedCoopRegion,
+    );
+    return computeKpiAverages(coops, comparableKpis, getCoopKpiValue);
+  }, [
+    isCoopUser,
+    benchmark,
+    selectedCoopSector,
+    selectedCoopRegion,
+    cooperativesWithData,
+    comparableKpis,
+  ]);
 
   // Helper to get comparison value for a KPI based on selected compare target
   const getCompareValue = (kpiKey: string): number => {
+    if (compareTarget.isSector && compareTarget.isRegional) {
+      return sectorRegionalAverages?.[kpiKey] ?? 0;
+    }
+    if (compareTarget.isSector) {
+      return sectorAverages?.[kpiKey] ?? 0;
+    }
     if (compareTarget.isRegional && compareTarget.region) {
       return regionalAverages[compareTarget.region]?.[kpiKey] ?? 0;
     }
@@ -514,7 +585,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
       { name: compareTarget.name, Value: targetVal, color: "#10b981" },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCoop, selectedKpi, compareTarget, systemAverages, regionalAverages]);
+  }, [
+    selectedCoop,
+    selectedKpi,
+    compareTarget,
+    systemAverages,
+    regionalAverages,
+    sectorAverages,
+    sectorRegionalAverages,
+  ]);
 
   const activeKpiInfo = useMemo(() => {
     return comparableKpis.find((k) => k.key === selectedKpi);
@@ -539,16 +618,33 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         label: t("analytics.nationalAverageAll"),
         description: t("analytics.nationalAverageDesc"),
         group: "averages",
-        icon: <Globe className="size-3 text-emerald-500" />,
       },
       ...availableRegions.map((region) => ({
         value: `region_avg_${region}`,
         label: t("analytics.regionAverage", { region }),
         description: t("analytics.regionAverageDesc"),
         group: "averages",
-        icon: <MapPin className="size-3 text-emerald-400" />,
       })),
     ];
+    if (selectedCoopSector) {
+      averages.push({
+        value: "sector_avg",
+        label: t("analytics.sectorAverage", { sector: selectedCoopSector }),
+        description: t("analytics.sectorAvgDesc"),
+        group: "averages",
+      });
+      if (selectedCoopRegion) {
+        averages.push({
+          value: "sector_regional_avg",
+          label: t("analytics.sectorRegionalAverage", {
+            sector: selectedCoopSector,
+            region: selectedCoopRegion,
+          }),
+          description: t("analytics.sectorRegionalAvgDesc"),
+          group: "averages",
+        });
+      }
+    }
     if (isCoopUser) return averages;
     return [
       ...averages,
@@ -562,11 +658,32 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           icon: <Users className="size-3 text-blue-400" />,
         })),
     ];
-  }, [isCoopUser, availableRegions, cooperativesWithData, activeCoopId, t]);
+  }, [
+    isCoopUser,
+    availableRegions,
+    selectedCoopSector,
+    selectedCoopRegion,
+    cooperativesWithData,
+    activeCoopId,
+    t,
+  ]);
 
-  // True when a coop user selected the regional average but the backend withheld it
+  // True when a coop user selected an average the backend withheld (too few contributors)
   const isRegionalInsufficient =
-    isCoopUser && compareTarget.isRegional && benchmark?.insufficient_data.regional;
+    isCoopUser &&
+    compareTarget.isRegional &&
+    !compareTarget.isSector &&
+    benchmark?.insufficient_data.regional;
+  const isSectorInsufficient =
+    isCoopUser &&
+    compareTarget.isSector &&
+    !compareTarget.isRegional &&
+    benchmark?.insufficient_data.sector;
+  const isSectorRegionalInsufficient =
+    isCoopUser &&
+    compareTarget.isSector &&
+    compareTarget.isRegional &&
+    benchmark?.insufficient_data.sector_regional;
 
   if (isLoading) {
     return (
@@ -701,6 +818,16 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2">
             <AlertCircle className="size-4 shrink-0 text-amber-500" />
             <span>{t("analytics.noSubmittedDataYear", { year: reportingYear })}</span>
+          </div>
+        ) : isSectorRegionalInsufficient ? (
+          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+            <span>{t("analytics.insufficientSectorRegionalData")}</span>
+          </div>
+        ) : isSectorInsufficient ? (
+          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+            <span>{t("analytics.insufficientSectorData")}</span>
           </div>
         ) : isRegionalInsufficient ? (
           <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">

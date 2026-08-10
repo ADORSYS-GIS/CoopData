@@ -685,20 +685,22 @@ pub async fn get_benchmark(
     let national_average = compute_averages(&all_rows, &BENCHMARK_KPIS);
 
     let (regional_average, regional_insufficient) = match own_row.region.as_deref() {
-        Some(region) => {
-            let region_rows: Vec<CoopKpiRow> = all_rows
-                .iter()
-                .filter(|r| r.region.as_deref() == Some(region) && r.has_data)
-                .cloned()
-                .collect();
-            if region_rows.len() >= MIN_CONTRIBUTORS {
-                (Some(compute_averages(&region_rows, &BENCHMARK_KPIS)), false)
-            } else {
-                (None, true)
-            }
-        }
+        Some(region) => scoped_average(&all_rows, |r| r.region.as_deref() == Some(region)),
         None => (None, true),
     };
+
+    let (sector_average, sector_insufficient) = match own_row.sector.as_deref() {
+        Some(sector) => scoped_average(&all_rows, |r| r.sector.as_deref() == Some(sector)),
+        None => (None, true),
+    };
+
+    let (sector_regional_average, sector_regional_insufficient) =
+        match (own_row.sector.as_deref(), own_row.region.as_deref()) {
+            (Some(sector), Some(region)) => scoped_average(&all_rows, |r| {
+                r.sector.as_deref() == Some(sector) && r.region.as_deref() == Some(region)
+            }),
+            _ => (None, true),
+        };
 
     tracing::info!(
         caller = %claims.sub,
@@ -713,11 +715,34 @@ pub async fn get_benchmark(
             cooperative: own_row,
             national_average,
             regional_average,
+            sector_average,
+            sector_regional_average,
             insufficient_data: BenchmarkInsufficientData {
                 regional: regional_insufficient,
+                sector: sector_insufficient,
+                sector_regional: sector_regional_insufficient,
             },
         }),
     ))
+}
+
+/// Computes an average over rows matching `predicate`, withholding it when fewer
+/// than `MIN_CONTRIBUTORS` cooperatives-with-data contribute. Shared by the
+/// regional, sector and sector+regional slices to avoid duplication.
+fn scoped_average(
+    all_rows: &[CoopKpiRow],
+    predicate: impl Fn(&CoopKpiRow) -> bool,
+) -> (Option<HashMap<String, f64>>, bool) {
+    let rows: Vec<CoopKpiRow> = all_rows
+        .iter()
+        .filter(|r| r.has_data && predicate(r))
+        .cloned()
+        .collect();
+    if rows.len() >= MIN_CONTRIBUTORS {
+        (Some(compute_averages(&rows, &BENCHMARK_KPIS)), false)
+    } else {
+        (None, true)
+    }
 }
 
 /// Averages each KPI over the given rows (cooperatives-with-data only).

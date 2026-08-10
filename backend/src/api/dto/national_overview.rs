@@ -105,6 +105,12 @@ pub struct BenchmarkResponse {
     /// kpi_key -> regional average over cooperatives-with-data in the caller's region.
     /// None when there are too few contributors (see `insufficient_data`).
     pub regional_average: Option<HashMap<String, f64>>,
+    /// kpi_key -> sector average over cooperatives-with-data in the caller's sector (nationally).
+    /// None when there are too few contributors (see `insufficient_data`).
+    pub sector_average: Option<HashMap<String, f64>>,
+    /// kpi_key -> sector+regional average over cooperatives-with-data in the caller's
+    /// sector within the caller's region. None when there are too few contributors.
+    pub sector_regional_average: Option<HashMap<String, f64>>,
     pub insufficient_data: BenchmarkInsufficientData,
 }
 
@@ -112,6 +118,10 @@ pub struct BenchmarkResponse {
 pub struct BenchmarkInsufficientData {
     /// True when the regional average is withheld because too few cooperatives contribute.
     pub regional: bool,
+    /// True when the sector average is withheld because too few cooperatives contribute.
+    pub sector: bool,
+    /// True when the sector+regional average is withheld because too few cooperatives contribute.
+    pub sector_regional: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]

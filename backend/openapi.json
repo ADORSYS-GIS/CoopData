@@ -7210,12 +7210,22 @@
       "BenchmarkInsufficientData": {
         "type": "object",
         "required": [
-          "regional"
+          "regional",
+          "sector",
+          "sector_regional"
         ],
         "properties": {
           "regional": {
             "type": "boolean",
             "description": "True when the regional average is withheld because too few cooperatives contribute."
+          },
+          "sector": {
+            "type": "boolean",
+            "description": "True when the sector average is withheld because too few cooperatives contribute."
+          },
+          "sector_regional": {
+            "type": "boolean",
+            "description": "True when the sector+regional average is withheld because too few cooperatives contribute."
           }
         }
       },
@@ -7283,6 +7293,24 @@
           "reporting_year": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          },
+          "sector_average": {
+            "type": "object",
+            "description": "kpi_key -> sector average over cooperatives-with-data in the caller's sector (nationally).\nNone when there are too few contributors (see `insufficient_data`).",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "nullable": true
+          },
+          "sector_regional_average": {
+            "type": "object",
+            "description": "kpi_key -> sector+regional average over cooperatives-with-data in the caller's\nsector within the caller's region. None when there are too few contributors.",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
             "nullable": true
           }
         }

@@ -7,7 +7,13 @@ export interface BenchmarkResponse {
   cooperative: CoopKpiRow;
   national_average: Record<string, number>;
   regional_average: Record<string, number> | null;
-  insufficient_data: { regional: boolean };
+  sector_average: Record<string, number> | null;
+  sector_regional_average: Record<string, number> | null;
+  insufficient_data: {
+    regional: boolean;
+    sector: boolean;
+    sector_regional: boolean;
+  };
 }
 
 export interface BenchmarkParams {
