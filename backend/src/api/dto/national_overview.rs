@@ -93,6 +93,7 @@ pub struct CoopNfSummary {
 )]
 pub struct BenchmarkParams {
     pub reporting_year: Option<i32>,
+    pub cooperative_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]

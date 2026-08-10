@@ -676,11 +676,24 @@ pub async fn get_benchmark(
     let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
     let all_rows = compute_coop_rows(&state, all_coop_ids, params.reporting_year).await?;
 
-    let own_row = all_rows
-        .iter()
-        .find(|r| caller_coop_ids.contains(&r.cooperative_id))
-        .cloned()
-        .ok_or_else(|| AppError::NotFound("Cooperative data not found".into()))?;
+    let own_row = if let Some(target_coop_id) = params.cooperative_id {
+        if !caller_coop_ids.contains(&target_coop_id) {
+            return Err(AppError::Forbidden(
+                "Not authorized to view benchmark for this cooperative".into(),
+            ));
+        }
+        all_rows
+            .iter()
+            .find(|r| r.cooperative_id == target_coop_id)
+            .cloned()
+            .ok_or_else(|| AppError::NotFound("Cooperative data not found".into()))?
+    } else {
+        all_rows
+            .iter()
+            .find(|r| caller_coop_ids.contains(&r.cooperative_id))
+            .cloned()
+            .ok_or_else(|| AppError::NotFound("Cooperative data not found".into()))?
+    };
 
     // National average is gated by the same MIN_CONTRIBUTORS guard as the
     // regional/sector slices: with a small national with-data sample, a calling
@@ -750,21 +763,22 @@ fn scoped_average(
 }
 
 /// Averages each KPI over the given rows (cooperatives-with-data only).
+/// Discloses a KPI average only when at least `MIN_CONTRIBUTORS` cooperatives contribute to that specific metric.
 fn compute_averages(rows: &[CoopKpiRow], keys: &[&str]) -> HashMap<String, f64> {
     keys.iter()
-        .map(|key| {
+        .filter_map(|key| {
             let vals: Vec<f64> = rows
                 .iter()
                 .filter(|r| r.has_data)
                 .filter_map(|r| get_kpi_value(r, key))
                 .filter(|v| !v.is_nan())
                 .collect();
-            let avg = if vals.is_empty() {
-                0.0
+            if vals.len() >= MIN_CONTRIBUTORS {
+                let avg = vals.iter().sum::<f64>() / vals.len() as f64;
+                Some((key.to_string(), avg))
             } else {
-                vals.iter().sum::<f64>() / vals.len() as f64
-            };
-            (key.to_string(), avg)
+                None
+            }
         })
         .collect()
 }
