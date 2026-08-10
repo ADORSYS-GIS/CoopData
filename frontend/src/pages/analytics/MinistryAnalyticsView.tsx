@@ -234,9 +234,6 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
         </Card>
       )}
 
-      {/* Full NF consolidation panel */}
-      <NonFinancialConsolidation />
-
       {coops.length === 0 && (
         <div className="rounded-xl border border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
           {t("ministryAnalytics.noData")}

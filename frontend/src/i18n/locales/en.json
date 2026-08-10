@@ -1617,6 +1617,18 @@
     "originalTenure": "Original Tenure"
   },
   "analytics": {
+    "filter": {
+      "federation": "Federation",
+      "apex": "Apex",
+      "cooperative": "Cooperative",
+      "region": "Region",
+      "sector": "Sector"
+    },
+    "allFederations": "All Federations",
+    "allApexes": "All Apexes",
+    "allCooperatives": "All Cooperatives",
+    "allRegions": "All Regions",
+    "allSectors": "All Sectors",
     "tab": {
       "consolidatedDashboard": "Consolidated Dashboard",
       "cooperativeRankings": "Cooperative Rankings",

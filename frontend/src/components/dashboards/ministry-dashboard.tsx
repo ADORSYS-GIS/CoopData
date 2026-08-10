@@ -44,13 +44,6 @@ export function MinistryDashboard() {
             <BarChart3 className="size-4 text-accent" />
             {t("dashboard.ministry.viewAllStats")}
           </Link>
-          <button
-            onClick={() => toast.info(t("dashboard.ministry.reportExportComing"))}
-            className="hidden items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:inline-flex"
-          >
-            <Download className="size-4" />
-            {t("dashboard.ministry.generateReport")}
-          </button>
         </div>
       }
     >
@@ -176,7 +169,9 @@ export function MinistryDashboard() {
                       <td className="px-5 py-3.5 font-semibold">{sub.cooperative_name ?? "—"}</td>
                       <td className="px-5 py-3.5">{sub.reporting_year}</td>
                       <td className="px-5 py-3.5 text-xs text-muted-foreground">
-                        {sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "—"}
+                        {sub.submitted_at || sub.created_at
+                          ? new Date(sub.submitted_at || sub.created_at).toLocaleDateString()
+                          : "—"}
                       </td>
                       <td className="px-5 py-3.5">
                         <span
