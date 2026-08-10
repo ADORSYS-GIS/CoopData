@@ -992,8 +992,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
                   const targetVal = getCompareValue(selectedKpi);
 
                   const diff = coopVal - targetVal;
-                  const percentDiff =
-                    targetVal !== 0 ? (diff / Math.abs(targetVal)) * 100 : 0;
+                  const percentDiff = targetVal !== 0 ? (diff / Math.abs(targetVal)) * 100 : 0;
 
                   // Lower is better for NPL, PAR, and dormancy indicators
                   const isPositiveIndicator = ![
