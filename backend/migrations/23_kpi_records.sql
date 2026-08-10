@@ -14,3 +14,5 @@ CREATE TABLE kpi_records (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_submission_kpi UNIQUE (submission_id, kpi_name)
 );
+
+

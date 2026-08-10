@@ -18,7 +18,7 @@ function AppLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" />;
+    return <Navigate to="/login" />;
   }
 
   if (user) {

@@ -155,12 +155,34 @@ provision_admin() {
 
   echo "[provision] Done: ${email}"
 }
-
 # ─── Provision both admin users ──────────────────────────────────────────────
 provision_admin "${DGRV_EMAIL}"     "${DGRV_FIRSTNAME}"     "${DGRV_LASTNAME}"     "${DGRV_PASSWORD}"
 provision_admin "${MINISTRY_EMAIL}" "${MINISTRY_FIRSTNAME}" "${MINISTRY_LASTNAME}" "${MINISTRY_PASSWORD}"
 
-# ─── Service account roles ───────────────────────────────────────────────────
+# ─── Update Frontend Client redirect URIs based on DOMAIN_NAME ───────────────
+DOMAIN_NAME="${DOMAIN_NAME:-localhost}"
+if [ "${DOMAIN_NAME}" != "localhost" ] && [ -n "${DOMAIN_NAME}" ]; then
+  FRONTEND_BASE_URL="https://${DOMAIN_NAME}"
+  echo "[provision] Production domain detected: ${FRONTEND_BASE_URL}. Updating client coopdata-frontend..."
+  
+  CLIENT_INTERNAL_ID=$(./kcadm.sh get clients -r "${REALM}" --server "${KEYCLOAK_SERVER}" -q clientId=coopdata-frontend --fields id --format csv 2>/dev/null | tr -d '"' || echo "")
+  
+  if [ -n "${CLIENT_INTERNAL_ID}" ]; then
+    echo "[provision] Found client internal ID: ${CLIENT_INTERNAL_ID}"
+    # Update rootUrl, baseUrl, redirectUris, and post.logout.redirect.uris attribute
+    ./kcadm.sh update "clients/${CLIENT_INTERNAL_ID}" \
+      -r "${REALM}" \
+      --server "${KEYCLOAK_SERVER}" \
+      -s "rootUrl=${FRONTEND_BASE_URL}" \
+      -s "baseUrl=${FRONTEND_BASE_URL}" \
+      -s "redirectUris=[\"${FRONTEND_BASE_URL}/*\"]" \
+      -s "attributes.post.logout.redirect.uris=${FRONTEND_BASE_URL}/*" 2>&1
+    echo "[provision] Client coopdata-frontend updated successfully."
+  else
+    echo "[provision] WARNING: Client coopdata-frontend not found in Keycloak."
+  fi
+fi
+
 echo ""
 echo "[provision] Granting coopdata-backend service account roles..."
 ./kcadm.sh add-roles \

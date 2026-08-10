@@ -88,7 +88,7 @@ pub async fn create_apex(
                 keycloak_id: sea_orm::Set(org_id.clone()),
                 display_name: sea_orm::Set(body.name.clone()),
                 is_active: sea_orm::Set(true),
-                metadata: sea_orm::Set(None),
+                metadata: sea_orm::Set(Some(serde_json::json!({}))),
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };
@@ -636,6 +636,14 @@ pub async fn remove_apex_member(
         .remove_user_from_group(&user_id, &group_id)
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    // Fully delete the user account so the email can be reused under another apex
+    if let Err(e) = state.keycloak.delete_user(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from Keycloak after apex removal");
+    }
+    if let Err(e) = state.user_repo.delete_by_keycloak_id(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from PG after apex removal");
+    }
 
     if let Err(e) = state
         .audit

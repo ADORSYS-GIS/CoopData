@@ -5,7 +5,7 @@
  * Ministry role required for all federation endpoints.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
 
 const FEDERATIONS_KEY = "federations";
@@ -144,6 +144,12 @@ export const useFederationMembers = (federationId: string) =>
       return data;
     },
     enabled: !!federationId,
+    // Keep the previous federation's members on screen while the new
+    // federation's data is fetching — eliminates the blank flash that
+    // makes the page look frozen during a dropdown switch.
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 
 /** List invitations for a federation */

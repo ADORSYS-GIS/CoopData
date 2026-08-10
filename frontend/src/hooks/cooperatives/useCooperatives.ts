@@ -15,7 +15,7 @@ import { getAccessToken } from "@/services/shared/authService";
 
 const COOPERATIVES_KEY = "cooperatives";
 const COOPERATIVE_SELF_KEY = "cooperative-self";
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 type CooperativeResponse = components["schemas"]["CooperativeResponse"];
 type MemberResponse = components["schemas"]["MemberResponse"];

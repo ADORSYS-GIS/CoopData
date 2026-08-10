@@ -10,12 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
-import { Route as AuthRouteImport } from './routes/auth'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as PrintMinistryRouteImport } from './routes/print.ministry'
-import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
@@ -54,9 +53,9 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
   path: '/unauthorized',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -78,11 +77,6 @@ const PrintMinistryRoute = PrintMinistryRouteImport.update({
   id: '/print/ministry',
   path: '/print/ministry',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRoute,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
   id: '/users',
@@ -254,7 +248,7 @@ const AppSubmissionsIdManualEntryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
+  '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
@@ -276,7 +270,6 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
-  '/auth/login': typeof AuthLoginRoute
   '/print/ministry': typeof PrintMinistryRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
@@ -294,7 +287,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
@@ -315,7 +308,6 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
-  '/auth/login': typeof AuthLoginRoute
   '/print/ministry': typeof PrintMinistryRoute
   '/app': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
@@ -334,7 +326,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
+  '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
@@ -356,7 +348,6 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
-  '/auth/login': typeof AuthLoginRoute
   '/print/ministry': typeof PrintMinistryRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
@@ -377,7 +368,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
-    | '/auth'
+    | '/login'
     | '/unauthorized'
     | '/app/analytics'
     | '/app/apexes'
@@ -399,7 +390,6 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/submissions'
     | '/app/users'
-    | '/auth/login'
     | '/print/ministry'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
@@ -417,7 +407,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/auth'
+    | '/login'
     | '/unauthorized'
     | '/app/analytics'
     | '/app/apexes'
@@ -438,7 +428,6 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/submissions'
-    | '/auth/login'
     | '/print/ministry'
     | '/app'
     | '/app/cooperative-members/$cooperativeId'
@@ -456,7 +445,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
-    | '/auth'
+    | '/login'
     | '/unauthorized'
     | '/app/analytics'
     | '/app/apexes'
@@ -478,7 +467,6 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/submissions'
     | '/app/users'
-    | '/auth/login'
     | '/print/ministry'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
@@ -498,7 +486,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
+  LoginRoute: typeof LoginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   PrintMinistryRoute: typeof PrintMinistryRoute
   PrintApexIdRoute: typeof PrintApexIdRoute
@@ -515,11 +503,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnauthorizedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -549,13 +537,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/print/ministry'
       preLoaderRoute: typeof PrintMinistryRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRoute
     }
     '/app/users': {
       id: '/app/users'
@@ -873,20 +854,10 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface AuthRouteChildren {
-  AuthLoginRoute: typeof AuthLoginRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthLoginRoute: AuthLoginRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  AuthRoute: AuthRouteWithChildren,
+  LoginRoute: LoginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   PrintMinistryRoute: PrintMinistryRoute,
   PrintApexIdRoute: PrintApexIdRoute,

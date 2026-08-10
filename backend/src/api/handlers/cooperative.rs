@@ -291,7 +291,11 @@ pub async fn create_cooperative(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(CooperativeSector::parse(&body.sector)),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector).or_else(|| {
+            Some(CooperativeSector::from_institution_type(
+                &body.institution_type,
+            ))
+        })),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
@@ -851,6 +855,14 @@ pub async fn remove_cooperative_member(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+    // Fully delete the user account so the email can be reused under another cooperative
+    if let Err(e) = state.keycloak.delete_user(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from Keycloak after cooperative removal");
+    }
+    if let Err(e) = state.user_repo.delete_by_keycloak_id(&user_id).await {
+        tracing::warn!(user_id = %user_id, error = %e, "Failed to delete user from PG after cooperative removal");
+    }
+
     if let Err(e) = state
         .audit
         .log(
@@ -1287,7 +1299,11 @@ pub async fn create_cooperative_profile(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(CooperativeSector::parse(&body.sector)),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector).or_else(|| {
+            Some(CooperativeSector::from_institution_type(
+                &body.institution_type,
+            ))
+        })),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),

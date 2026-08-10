@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useTransition } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -116,15 +116,25 @@ function createColumns(
 
 export const MemberList: React.FC = () => {
   const { t } = useTranslation();
-  const { data: federations = [], isLoading: federationsLoading } = useFederations();
+  const [isPending, startTransition] = useTransition();
+  const { data: federations, isLoading: federationsLoading } = useFederations();
+  const federationList = useMemo(
+    () => (federations as components["schemas"]["FederationResponse"][]) ?? [],
+    [federations],
+  );
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
 
-  // Auto-select the first federation once the list is loaded
+  // Auto-select the first federation exactly once when data first arrives.
+  // Using a ref flag ensures this never re-fires when the user changes the
+  // dropdown or when React Query does a background refetch — both of which
+  // previously caused a rapid re-render storm that froze the page.
+  const autoSelectedRef = useRef(false);
   useEffect(() => {
-    if (!federationsLoading && federations.length > 0 && !selectedFederationId) {
-      setSelectedFederationId(federations[0].id);
+    if (!autoSelectedRef.current && !federationsLoading && federationList.length > 0) {
+      autoSelectedRef.current = true;
+      setSelectedFederationId(federationList[0].id);
     }
-  }, [federationsLoading, federations, selectedFederationId]);
+  }, [federationsLoading, federationList]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
@@ -132,9 +142,11 @@ export const MemberList: React.FC = () => {
   const {
     data: members = [],
     isLoading: membersLoading,
+    isPlaceholderData,
     error: membersError,
     refetch: refetchMembers,
   } = useFederationMembers(selectedFederationId);
+  const memberList = (members as Member[]) ?? [];
 
   const removeMemberMutation = useRemoveFederationMember();
 
@@ -162,7 +174,7 @@ export const MemberList: React.FC = () => {
   const columns = useMemo(() => createColumns(t, (member) => setDeleteTarget(member)), [t]);
 
   const table = useReactTable({
-    data: (members as Member[]) ?? [],
+    data: memberList,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -181,8 +193,8 @@ export const MemberList: React.FC = () => {
     },
   });
 
-  const activeMembers = (members as Member[]).filter((m) => m.status === "ACTIVE").length;
-  const pendingMembers = (members as Member[]).filter((m) => m.status === "PENDING").length;
+  const activeMembers = memberList.filter((m) => m.status === "ACTIVE").length;
+  const pendingMembers = memberList.filter((m) => m.status === "PENDING").length;
 
   return (
     <AppShell title={t("memberList.title")} subtitle={t("memberList.subtitle")}>
@@ -197,12 +209,20 @@ export const MemberList: React.FC = () => {
               {federationsLoading ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
-                <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
+                <Select
+                  value={selectedFederationId}
+                  onValueChange={(id) => {
+                    startTransition(() => {
+                      table.setPageIndex(0);
+                      setSelectedFederationId(id);
+                    });
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t("memberList.selectFederationPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {federations.map((f: components["schemas"]["FederationResponse"]) => (
+                    {federationList.map((f: components["schemas"]["FederationResponse"]) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.name}
                       </SelectItem>
@@ -220,7 +240,7 @@ export const MemberList: React.FC = () => {
             <StatCard
               icon={Users}
               label={t("memberList.totalMembers")}
-              value={String((members as Member[]).length)}
+              value={String(memberList.length)}
               subtitle={t("memberList.allRegisteredMembers")}
               tone="primary"
             />
@@ -241,7 +261,7 @@ export const MemberList: React.FC = () => {
             <StatCard
               icon={Users}
               label={t("memberList.federations")}
-              value={String(federations.length)}
+              value={String(federationList.length)}
               subtitle={t("memberList.totalFederations")}
               tone="info"
             />
@@ -250,132 +270,148 @@ export const MemberList: React.FC = () => {
 
         {/* Members Table */}
         {selectedFederationId && (
-          <Card
-            title={t("memberList.federationMembersTitle")}
-            subtitle={t("memberList.membersFound", {
-              count: table.getFilteredRowModel().rows.length,
-            })}
-            action={
-              <div className="relative w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t("memberList.searchPlaceholder")}
-                  value={globalFilter ?? ""}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            }
+          <div
+            className={`transition-opacity duration-150 ${isPlaceholderData || isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}
           >
-            {membersLoading ? (
-              <div className="space-y-3 py-6">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : membersError ? (
-              <div className="py-8 text-center text-destructive">
-                <p>{t("memberList.failedLoad", { error: String(membersError) })}</p>
-                <Button variant="outline" className="mt-3" onClick={() => window.location.reload()}>
-                  {t("memberList.retry")}
-                </Button>
-              </div>
-            ) : table.getFilteredRowModel().rows.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground">
-                <Users className="mx-auto mb-3 size-12 opacity-30" />
-                <p className="text-lg font-medium">{t("memberList.noMembersFound")}</p>
-                <p className="text-sm">
-                  {globalFilter ? t("memberList.adjustSearchQuery") : t("memberList.noMembersYet")}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <div className="rounded-md border">
-                    <table className="w-full">
-                      <thead>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                          <tr key={headerGroup.id} className="border-b bg-muted/50">
-                            {headerGroup.headers.map((header) => (
-                              <th
-                                key={header.id}
-                                className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                              >
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(header.column.columnDef.header, header.getContext())}
-                              </th>
-                            ))}
-                          </tr>
-                        ))}
-                      </thead>
-                      <tbody>
-                        {table.getRowModel().rows.map((row) => (
-                          <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
-                            {row.getVisibleCells().map((cell) => (
-                              <td key={cell.id} className="px-4 py-3 align-middle">
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            <Card
+              title={t("memberList.federationMembersTitle")}
+              subtitle={t("memberList.membersFound", {
+                count: table.getFilteredRowModel().rows.length,
+              })}
+              action={
+                <div className="relative w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t("memberList.searchPlaceholder")}
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
+              }
+            >
+              {membersLoading && !isPlaceholderData ? (
+                <div className="space-y-3 py-6">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : membersError ? (
+                <div className="py-8 text-center text-destructive">
+                  <p>{t("memberList.failedLoad", { error: String(membersError) })}</p>
+                  <Button
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => window.location.reload()}
+                  >
+                    {t("memberList.retry")}
+                  </Button>
+                </div>
+              ) : table.getFilteredRowModel().rows.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <Users className="mx-auto mb-3 size-12 opacity-30" />
+                  <p className="text-lg font-medium">{t("memberList.noMembersFound")}</p>
+                  <p className="text-sm">
+                    {globalFilter
+                      ? t("memberList.adjustSearchQuery")
+                      : t("memberList.noMembersYet")}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <div className="rounded-md border">
+                      <table className="w-full">
+                        <thead>
+                          {table.getHeaderGroups().map((headerGroup) => (
+                            <tr key={headerGroup.id} className="border-b bg-muted/50">
+                              {headerGroup.headers.map((header) => (
+                                <th
+                                  key={header.id}
+                                  className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                                >
+                                  {header.isPlaceholder
+                                    ? null
+                                    : flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext(),
+                                      )}
+                                </th>
+                              ))}
+                            </tr>
+                          ))}
+                        </thead>
+                        <tbody>
+                          {table.getRowModel().rows.map((row) => (
+                            <tr
+                              key={row.id}
+                              className="border-b transition-colors hover:bg-muted/50"
+                            >
+                              {row.getVisibleCells().map((cell) => (
+                                <td key={cell.id} className="px-4 py-3 align-middle">
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                {/* Pagination */}
-                <div className="flex items-center justify-between space-x-2 py-4">
-                  <div className="text-sm text-muted-foreground">
-                    {t("memberList.showingCount", {
-                      filtered: table.getFilteredRowModel().rows.length,
-                      total: (members as Member[]).length,
-                    })}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.setPageIndex(0)}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      {t("memberList.first")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      {t("memberList.previous")}
-                    </Button>
-                    <span className="text-sm font-medium">
-                      {t("memberList.pageIndicator", {
-                        current: table.getState().pagination.pageIndex + 1,
-                        total: table.getPageCount(),
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between space-x-2 py-4">
+                    <div className="text-sm text-muted-foreground">
+                      {t("memberList.showingCount", {
+                        filtered: table.getFilteredRowModel().rows.length,
+                        total: memberList.length,
                       })}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      {t("memberList.next")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      {t("memberList.last")}
-                    </Button>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.setPageIndex(0)}
+                        disabled={!table.getCanPreviousPage()}
+                      >
+                        {t("memberList.first")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                      >
+                        {t("memberList.previous")}
+                      </Button>
+                      <span className="text-sm font-medium">
+                        {t("memberList.pageIndicator", {
+                          current: table.getState().pagination.pageIndex + 1,
+                          total: table.getPageCount(),
+                        })}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                      >
+                        {t("memberList.next")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                        disabled={!table.getCanNextPage()}
+                      >
+                        {t("memberList.last")}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
-          </Card>
+                </>
+              )}
+            </Card>
+          </div>
         )}
 
         {/* Empty state when no federation selected */}

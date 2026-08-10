@@ -73,13 +73,13 @@ describe("route-guards", () => {
     it("should redirect to login when not authenticated", async () => {
       mockAuth.isAuthenticated.mockReturnValue(false);
       await expect(requireAuth()).rejects.toThrow();
-      expect(redirect).toHaveBeenCalledWith({ to: "/auth/login" });
+      expect(redirect).toHaveBeenCalledWith({ to: "/login" });
     });
 
     it("should redirect to login when keycloak init times out", async () => {
       mockAuth.waitForKeycloakReady.mockResolvedValue(false);
       await expect(requireAuth()).rejects.toThrow();
-      expect(redirect).toHaveBeenCalledWith({ to: "/auth/login" });
+      expect(redirect).toHaveBeenCalledWith({ to: "/login" });
     });
 
     it("should redirect to unauthorized when authenticated but no profile", async () => {
@@ -109,13 +109,13 @@ describe("route-guards", () => {
     it("should redirect to login when not authenticated", async () => {
       mockAuth.isAuthenticated.mockReturnValue(false);
       await expect(requireRole("ministry")).rejects.toThrow();
-      expect(redirect).toHaveBeenCalledWith({ to: "/auth/login" });
+      expect(redirect).toHaveBeenCalledWith({ to: "/login" });
     });
 
     it("should redirect to login when keycloak init times out", async () => {
       mockAuth.waitForKeycloakReady.mockResolvedValue(false);
       await expect(requireRole("ministry")).rejects.toThrow();
-      expect(redirect).toHaveBeenCalledWith({ to: "/auth/login" });
+      expect(redirect).toHaveBeenCalledWith({ to: "/login" });
     });
 
     it("should redirect to unauthorized when authenticated but no profile", async () => {

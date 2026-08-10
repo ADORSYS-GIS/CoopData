@@ -97,13 +97,7 @@ function PublicHeader() {
           <LanguageSwitcher />
           <button
             onClick={handleLogin}
-            className="rounded-lg px-3.5 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-          >
-            {t("landing.header.signIn")}
-          </button>
-          <button
-            onClick={handleLogin}
-            className="press-feedback hidden items-center gap-2 rounded-xl bg-primary px-4.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95 sm:inline-flex"
+            className="press-feedback inline-flex items-center gap-2 rounded-xl bg-primary px-4.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95"
           >
             {t("landing.header.enterPlatform")} <ArrowRight className="size-4" />
           </button>
@@ -151,12 +145,6 @@ function Hero() {
               className="press-feedback inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elev-2)] transition-colors hover:bg-primary/95"
             >
               {t("landing.hero.openPlatform")} <ArrowRight className="size-4" />
-            </button>
-            <button
-              onClick={handleLogin}
-              className="press-feedback inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-6 py-3.5 text-sm font-semibold text-foreground shadow-[var(--shadow-elev-1)] transition-colors hover:bg-muted/40"
-            >
-              {t("landing.hero.signInCredentials")}
             </button>
           </div>
           <dl className="animate-hero animate-hero-delay-4 mt-12 grid max-w-lg grid-cols-3 gap-8 text-sm border-t border-border/80 pt-8">
