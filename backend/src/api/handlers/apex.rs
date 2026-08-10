@@ -68,8 +68,7 @@ pub async fn create_apex(
     let group = state
         .keycloak
         .create_group(&group_name, Some(attrs))
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+        .await?;
 
     // Track in PostgreSQL — look up federation PG record by KC org ID
     let federation_pg = state

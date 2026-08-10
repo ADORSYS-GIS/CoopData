@@ -376,7 +376,9 @@ export const FederationsPage: React.FC = () => {
           refetch();
         },
         onError: (err) => {
-          toast.error(t("federationsPage.toastCreateFailed"), { description: String(err) });
+          toast.error(t("federationsPage.toastCreateFailed"), {
+            description: err instanceof Error ? err.message : String(err),
+          });
         },
       },
     );
@@ -398,7 +400,9 @@ export const FederationsPage: React.FC = () => {
           refetch();
         },
         onError: (err) => {
-          toast.error(t("federationsPage.toastUpdateFailed"), { description: String(err) });
+          toast.error(t("federationsPage.toastUpdateFailed"), {
+            description: err instanceof Error ? err.message : String(err),
+          });
         },
       },
     );
@@ -423,7 +427,9 @@ export const FederationsPage: React.FC = () => {
             resolve();
           },
           onError: (err) => {
-            toast.error(t("federationsPage.toastDeleteFailed"), { description: String(err) });
+            toast.error(t("federationsPage.toastDeleteFailed"), {
+              description: err instanceof Error ? err.message : String(err),
+            });
             reject(err);
           },
         },

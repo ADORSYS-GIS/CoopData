@@ -9,13 +9,22 @@ import { apiClient } from "@/openapi-client";
 
 const ORGANIZATIONS_KEY = "organizations";
 
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return String(err);
+}
+
 /** List all organizations (ministry only, paginated) */
 export const useOrganizations = (enabled = true) =>
   useQuery({
     queryKey: [ORGANIZATIONS_KEY],
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/organizations");
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled,
@@ -29,7 +38,7 @@ export const useOrganization = (id: string) =>
       const { data, error } = await apiClient.GET("/api/v1/organizations/{id}", {
         params: { path: { id } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!id,
@@ -53,7 +62,7 @@ export const useCreateOrganization = () => {
       const { data, error } = await apiClient.POST("/api/v1/organizations", {
         body: body as never,
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
@@ -86,7 +95,7 @@ export const useUpdateOrganization = () => {
         params: { path: { id } },
         body: body as never,
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: (_data, variables) => {
@@ -104,7 +113,7 @@ export const useDeleteOrganization = () => {
       const { error } = await apiClient.DELETE("/api/v1/organizations/{id}", {
         params: { path: { id } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ORGANIZATIONS_KEY] });
