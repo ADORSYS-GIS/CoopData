@@ -351,8 +351,9 @@ export const InvitationList: React.FC = () => {
           setShowCreateModal(false);
         },
         onError: (err) => {
+          const errMsg = (err as any)?.body?.message || (err as any)?.response?.data?.message || (err instanceof Error ? err.message : String(err));
           toast.error(t("invitationList.toastSendFailed"), {
-            description: err instanceof Error ? err.message : String(err),
+            description: errMsg,
           });
         },
       },
@@ -369,8 +370,9 @@ export const InvitationList: React.FC = () => {
           setConfirmAction(null);
         },
         onError: (err) => {
+          const errMsg = (err as any)?.body?.message || (err as any)?.response?.data?.message || (err instanceof Error ? err.message : String(err));
           toast.error(t("invitationList.toastResendFailed"), {
-            description: err instanceof Error ? err.message : String(err),
+            description: errMsg,
           });
         },
       },
@@ -387,8 +389,9 @@ export const InvitationList: React.FC = () => {
           setConfirmAction(null);
         },
         onError: (err) => {
+          const errMsg = (err as any)?.body?.message || (err as any)?.response?.data?.message || (err instanceof Error ? err.message : String(err));
           toast.error(t("invitationList.toastCancelFailed"), {
-            description: err instanceof Error ? err.message : String(err),
+            description: errMsg,
           });
         },
       },
