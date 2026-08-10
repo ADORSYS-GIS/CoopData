@@ -452,7 +452,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     }
     if (compareTargetId === "sector_avg") {
       return {
-        name: t("analytics.sectorAvg", { sector: selectedCoopSector ?? "" }),
+        name: t("analytics.sectorAvg"),
         isAverage: true,
         isRegional: false,
         isSector: true,
@@ -463,7 +463,6 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     if (compareTargetId === "sector_regional_avg") {
       return {
         name: t("analytics.sectorRegionalAvg", {
-          sector: selectedCoopSector ?? "",
           region: selectedCoopRegion ?? "",
         }),
         isAverage: true,
@@ -641,7 +640,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     if (selectedCoopSector) {
       averages.push({
         value: "sector_avg",
-        label: t("analytics.sectorAverage", { sector: selectedCoopSector }),
+        label: t("analytics.sectorAverage"),
         description: t("analytics.sectorAvgDesc"),
         group: "averages",
       });
@@ -649,7 +648,6 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
         averages.push({
           value: "sector_regional_avg",
           label: t("analytics.sectorRegionalAverage", {
-            sector: selectedCoopSector,
             region: selectedCoopRegion,
           }),
           description: t("analytics.sectorRegionalAvgDesc"),
@@ -746,6 +744,21 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
               emptyMessage={t("analytics.noCooperativeFound")}
               disabled={isCoopUser}
             />
+            {selectedCoop && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {selectedCoopSector && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                    <Briefcase className="size-3" />{" "}
+                    {t("analytics.sectorBadge", { sector: selectedCoopSector })}
+                  </span>
+                )}
+                {selectedCoopRegion && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                    <MapPin className="size-3" /> {selectedCoopRegion}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── Pair de comparaison ───────────────────────────────── */}
@@ -774,6 +787,19 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
               searchPlaceholder={t("analytics.searchComparison")}
               emptyMessage={t("analytics.noComparisonFound")}
             />
+            {compareTarget.isSector && (
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 pt-1">
+                <Briefcase className="size-3 text-indigo-400" />
+                {compareTarget.isRegional
+                  ? t("analytics.sectorRegionalTargetSubtitle", {
+                      sector: selectedCoopSector ?? "",
+                      region: selectedCoopRegion ?? "",
+                    })
+                  : t("analytics.sectorTargetSubtitle", {
+                      sector: selectedCoopSector ?? "",
+                    })}
+              </p>
+            )}
           </div>
 
           {/* ── Ratio / Métrique de focus ─────────────────────────── */}
