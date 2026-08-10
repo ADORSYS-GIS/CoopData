@@ -4,7 +4,6 @@
         <#-- Header handled inside form panel -->
     <#elseif section = "form">
         <#setting url_escaping_charset='UTF-8'>
-        <#-- Safe fallback for application URL (avoids Keycloak internal account management /realms/.../account/) -->
         <#assign appUrl = "/">
         <#if client?? && client.baseUrl?? && client.baseUrl?has_content && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
             <#assign appUrl = client.baseUrl>
@@ -42,42 +41,38 @@
 
                 <div class="form-container">
                     <div class="status-container">
-                        <#-- Error status icon -->
-                        <div class="status-icon-wrapper error">
+                        <#-- Expired status icon -->
+                        <div class="status-icon-wrapper info">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                <polyline points="12 6 12 12 16 14"/>
                             </svg>
                         </div>
 
                         <h1 class="status-title">
-                            ${kcSanitize(msg("errorTitle"))?no_esc}
+                            ${msg("pageExpiredTitle")}
                         </h1>
 
                         <p class="status-description">
-                            ${message.summary?no_esc}
+                            ${msg("pageExpiredMsg1")}
                         </p>
 
-                        <#if message?? && message.summary?? && (message.summary?contains("authenticated as different user") || message.summary?contains("already authenticated"))>
-                            <a href="/realms/coop-data/protocol/openid-connect/logout?post_logout_redirect_uri=${appUrl?url('UTF-8')}&client_id=coopdata-frontend" class="btn-primary status-action-button" style="margin-bottom: 12px; background-color: #e11d48; border-color: #e11d48;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                                    <polyline points="16 17 21 12 16 7"/>
-                                    <line x1="21" y1="12" x2="9" y2="12"/>
-                                </svg>
-                                Sign Out &amp; Switch Account
-                            </a>
-                        </#if>
+                        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 16px;">
+                            <#if url.loginRestartFlowUrl??>
+                                <a id="stl-start-restart-flow" href="${url.loginRestartFlowUrl}" class="btn-primary status-action-button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                                    </svg>
+                                    ${msg("pageExpiredRestartFlowAction")}
+                                </a>
+                            </#if>
 
-                        <#if !skipLink??>
-                            <a href="${appUrl}" class="btn-primary status-action-button" <#if message?? && message.summary?? && (message.summary?contains("authenticated as different user") || message.summary?contains("already authenticated"))>style="background-color: #475569; border-color: #475569;"</#if>>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                                </svg>
-                                ${kcSanitize(msg("backToApplication"))?no_esc}
-                            </a>
-                        </#if>
+                            <#if url.loginAction??>
+                                <a id="stl-continue-login" href="${url.loginAction}" class="btn-primary status-action-button" style="background-color: #475569; border-color: #475569;">
+                                    ${msg("pageExpiredContinueAction")}
+                                </a>
+                            </#if>
+                        </div>
                     </div>
                 </div>
             </main>
