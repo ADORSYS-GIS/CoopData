@@ -119,14 +119,12 @@ impl QuestionnaireRepository {
             crate::entities::cooperative::Model,
         )>,
     > {
-        // Only Approved/Submitted submissions count towards analytics — drafts
-        // and rejected questionnaires must not leak into aggregates. Resolve the
-        // eligible submission ids first, then filter responses on them.
+        // Only ministry-Approved submissions count towards analytics — drafts,
+        // in-review, submitted-but-unapproved and rejected questionnaires must
+        // not leak into aggregates. Resolve the eligible submission ids first,
+        // then filter responses on them.
         let approved_sub_ids: Vec<Uuid> = submission::Entity::find()
-            .filter(
-                submission::Column::Status
-                    .is_in([SubmissionStatus::Approved, SubmissionStatus::Submitted]),
-            )
+            .filter(submission::Column::Status.eq(SubmissionStatus::Approved))
             .all(&self.db)
             .await
             .map_err(AppError::DatabaseError)?
