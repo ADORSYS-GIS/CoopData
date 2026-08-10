@@ -185,6 +185,37 @@ info "Pulling pre-built images from GHCR..."
 $COMPOSE_CMD -f "$PROD_COMPOSE" pull
 ok "All images pulled"
 
+# ── Local AI Model Pull ────────────────────────────────────────────────────
+# If the backend is configured to use local Ollama (AI_PROVIDER_URL points at
+# ollama/11434), start the Ollama service and pull the model named by AI_MODEL
+# automatically. No interactive prompt — just set AI_MODEL in .env.
+AI_BACKEND=$(grep -E "^EXTRACTION_BACKEND=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "mock")
+AI_URL=$(grep -E "^AI_PROVIDER_URL=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+AI_MODEL=$(grep -E "^AI_MODEL=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+
+IS_LOCAL_AI=false
+if [[ "$AI_BACKEND" == "llm" && -n "$AI_MODEL" ]]; then
+    if [[ "$AI_URL" == *"ollama"* || "$AI_URL" == *"11434"* ]]; then
+        IS_LOCAL_AI=true
+    fi
+fi
+
+if [[ "$IS_LOCAL_AI" == true ]]; then
+    info "Local AI detected (model: ${AI_MODEL}). Ensuring Ollama is running..."
+    $COMPOSE_CMD -f "$PROD_COMPOSE" up -d ollama
+    ok "Ollama service started"
+
+    info "Pulling model '${AI_MODEL}' into Ollama (this downloads several GB on first run)..."
+    if $COMPOSE_CMD -f "$PROD_COMPOSE" exec -T ollama ollama pull "$AI_MODEL"; then
+        ok "Model '${AI_MODEL}' is ready"
+    else
+        warn "Model pull failed. Check disk space and network, then re-run:"
+        warn "  $COMPOSE_CMD -f $PROD_COMPOSE exec ollama ollama pull $AI_MODEL"
+    fi
+else
+    info "Skipping local model pull (EXTRACTION_BACKEND=$AI_BACKEND, AI_PROVIDER_URL=$AI_URL)"
+fi
+
 # ── Start Services ─────────────────────────────────────────────────────────
 info "Starting CoopData production stack..."
 $COMPOSE_CMD -f "$PROD_COMPOSE" up -d --no-build

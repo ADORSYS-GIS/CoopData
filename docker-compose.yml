@@ -221,7 +221,22 @@ services:
       - CHROMIUM_DISABLE_SANDBOX=true
     restart: unless-stopped
 
+  # Local AI inference (Ollama). Serves an OpenAI-compatible /v1/chat/completions
+  # endpoint. Point AI_PROVIDER_URL at http://ollama:11434/v1 when running the
+  # backend in this compose stack. Pull a model first, e.g.:
+  #   docker compose exec ollama ollama pull qwen2.5-vl:3b
+  # NOTE: models are stored in the ollama_data volume (several GB each).
+  ollama:
+    image: ollama/ollama:latest
+    container_name: coopdata-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  ollama_data:
