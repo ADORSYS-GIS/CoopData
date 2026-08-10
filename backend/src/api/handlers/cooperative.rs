@@ -291,10 +291,11 @@ pub async fn create_cooperative(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(
-            CooperativeSector::parse(&body.sector)
-                .or_else(|| Some(CooperativeSector::from_institution_type(&body.institution_type))),
-        ),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector).or_else(|| {
+            Some(CooperativeSector::from_institution_type(
+                &body.institution_type,
+            ))
+        })),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
@@ -1298,10 +1299,11 @@ pub async fn create_cooperative_profile(
         region: sea_orm::Set(EswatiniRegion::parse(&body.region)),
         geographic_classif: sea_orm::Set(UrbanRural::parse(&body.geographic_classif)),
         phone: sea_orm::Set(body.phone.clone()),
-        sector: sea_orm::Set(
-            CooperativeSector::parse(&body.sector)
-                .or_else(|| Some(CooperativeSector::from_institution_type(&body.institution_type))),
-        ),
+        sector: sea_orm::Set(CooperativeSector::parse(&body.sector).or_else(|| {
+            Some(CooperativeSector::from_institution_type(
+                &body.institution_type,
+            ))
+        })),
         responsible_financial: sea_orm::Set(body.responsible_financial),
         responsible_non_financial: sea_orm::Set(body.responsible_non_financial),
         status: sea_orm::Set(CoopStatus::parse(&body.status).unwrap_or(CoopStatus::Active)),
