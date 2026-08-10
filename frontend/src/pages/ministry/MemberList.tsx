@@ -270,133 +270,147 @@ export const MemberList: React.FC = () => {
 
         {/* Members Table */}
         {selectedFederationId && (
-          <div className={`transition-opacity duration-150 ${isPlaceholderData || isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-          <Card
-            title={t("memberList.federationMembersTitle")}
-            subtitle={t("memberList.membersFound", {
-              count: table.getFilteredRowModel().rows.length,
-            })}
-            action={
-              <div className="relative w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t("memberList.searchPlaceholder")}
-                  value={globalFilter ?? ""}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            }
+          <div
+            className={`transition-opacity duration-150 ${isPlaceholderData || isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}
           >
-            {membersLoading && !isPlaceholderData ? (
-              <div className="space-y-3 py-6">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : membersError ? (
-              <div className="py-8 text-center text-destructive">
-                <p>{t("memberList.failedLoad", { error: String(membersError) })}</p>
-                <Button variant="outline" className="mt-3" onClick={() => window.location.reload()}>
-                  {t("memberList.retry")}
-                </Button>
-              </div>
-            ) : table.getFilteredRowModel().rows.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground">
-                <Users className="mx-auto mb-3 size-12 opacity-30" />
-                <p className="text-lg font-medium">{t("memberList.noMembersFound")}</p>
-                <p className="text-sm">
-                  {globalFilter ? t("memberList.adjustSearchQuery") : t("memberList.noMembersYet")}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <div className="rounded-md border">
-                    <table className="w-full">
-                      <thead>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                          <tr key={headerGroup.id} className="border-b bg-muted/50">
-                            {headerGroup.headers.map((header) => (
-                              <th
-                                key={header.id}
-                                className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                              >
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(header.column.columnDef.header, header.getContext())}
-                              </th>
-                            ))}
-                          </tr>
-                        ))}
-                      </thead>
-                      <tbody>
-                        {table.getRowModel().rows.map((row) => (
-                          <tr key={row.id} className="border-b transition-colors hover:bg-muted/50">
-                            {row.getVisibleCells().map((cell) => (
-                              <td key={cell.id} className="px-4 py-3 align-middle">
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            <Card
+              title={t("memberList.federationMembersTitle")}
+              subtitle={t("memberList.membersFound", {
+                count: table.getFilteredRowModel().rows.length,
+              })}
+              action={
+                <div className="relative w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t("memberList.searchPlaceholder")}
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
+              }
+            >
+              {membersLoading && !isPlaceholderData ? (
+                <div className="space-y-3 py-6">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : membersError ? (
+                <div className="py-8 text-center text-destructive">
+                  <p>{t("memberList.failedLoad", { error: String(membersError) })}</p>
+                  <Button
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => window.location.reload()}
+                  >
+                    {t("memberList.retry")}
+                  </Button>
+                </div>
+              ) : table.getFilteredRowModel().rows.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <Users className="mx-auto mb-3 size-12 opacity-30" />
+                  <p className="text-lg font-medium">{t("memberList.noMembersFound")}</p>
+                  <p className="text-sm">
+                    {globalFilter
+                      ? t("memberList.adjustSearchQuery")
+                      : t("memberList.noMembersYet")}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <div className="rounded-md border">
+                      <table className="w-full">
+                        <thead>
+                          {table.getHeaderGroups().map((headerGroup) => (
+                            <tr key={headerGroup.id} className="border-b bg-muted/50">
+                              {headerGroup.headers.map((header) => (
+                                <th
+                                  key={header.id}
+                                  className="h-10 px-4 text-left align-middle text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                                >
+                                  {header.isPlaceholder
+                                    ? null
+                                    : flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext(),
+                                      )}
+                                </th>
+                              ))}
+                            </tr>
+                          ))}
+                        </thead>
+                        <tbody>
+                          {table.getRowModel().rows.map((row) => (
+                            <tr
+                              key={row.id}
+                              className="border-b transition-colors hover:bg-muted/50"
+                            >
+                              {row.getVisibleCells().map((cell) => (
+                                <td key={cell.id} className="px-4 py-3 align-middle">
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                {/* Pagination */}
-                <div className="flex items-center justify-between space-x-2 py-4">
-                  <div className="text-sm text-muted-foreground">
-                    {t("memberList.showingCount", {
-                      filtered: table.getFilteredRowModel().rows.length,
-                      total: memberList.length,
-                    })}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.setPageIndex(0)}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      {t("memberList.first")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      {t("memberList.previous")}
-                    </Button>
-                    <span className="text-sm font-medium">
-                      {t("memberList.pageIndicator", {
-                        current: table.getState().pagination.pageIndex + 1,
-                        total: table.getPageCount(),
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between space-x-2 py-4">
+                    <div className="text-sm text-muted-foreground">
+                      {t("memberList.showingCount", {
+                        filtered: table.getFilteredRowModel().rows.length,
+                        total: memberList.length,
                       })}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      {t("memberList.next")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      {t("memberList.last")}
-                    </Button>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.setPageIndex(0)}
+                        disabled={!table.getCanPreviousPage()}
+                      >
+                        {t("memberList.first")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                      >
+                        {t("memberList.previous")}
+                      </Button>
+                      <span className="text-sm font-medium">
+                        {t("memberList.pageIndicator", {
+                          current: table.getState().pagination.pageIndex + 1,
+                          total: table.getPageCount(),
+                        })}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                      >
+                        {t("memberList.next")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                        disabled={!table.getCanNextPage()}
+                      >
+                        {t("memberList.last")}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
-          </Card>
+                </>
+              )}
+            </Card>
           </div>
         )}
 

@@ -100,15 +100,15 @@ pub struct BenchmarkResponse {
     pub reporting_year: Option<i32>,
     /// The calling cooperative's own KPI row. Structurally cannot contain other cooperatives.
     pub cooperative: CoopKpiRow,
-    /// kpi_key -> national average over cooperatives-with-data
+    /// Maps each KPI key to the national average over cooperatives-with-data.
     pub national_average: HashMap<String, f64>,
-    /// kpi_key -> regional average over cooperatives-with-data in the caller's region.
+    /// Maps each KPI key to the regional average over cooperatives-with-data in the caller's region.
     /// None when there are too few contributors (see `insufficient_data`).
     pub regional_average: Option<HashMap<String, f64>>,
-    /// kpi_key -> sector average over cooperatives-with-data in the caller's sector (nationally).
+    /// Maps each KPI key to the sector average over cooperatives-with-data in the caller's sector (nationally).
     /// None when there are too few contributors (see `insufficient_data`).
     pub sector_average: Option<HashMap<String, f64>>,
-    /// kpi_key -> sector+regional average over cooperatives-with-data in the caller's
+    /// Maps each KPI key to the sector+regional average over cooperatives-with-data in the caller's
     /// sector within the caller's region. None when there are too few contributors.
     pub sector_regional_average: Option<HashMap<String, f64>>,
     pub insufficient_data: BenchmarkInsufficientData,
