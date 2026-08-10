@@ -7275,7 +7275,7 @@
           },
           "national_average": {
             "type": "object",
-            "description": "kpi_key -> national average over cooperatives-with-data",
+            "description": "Maps each KPI key to the national average over cooperatives-with-data",
             "additionalProperties": {
               "type": "number",
               "format": "double"
@@ -7283,7 +7283,7 @@
           },
           "regional_average": {
             "type": "object",
-            "description": "kpi_key -> regional average over cooperatives-with-data in the caller's region.\nNone when there are too few contributors (see `insufficient_data`).",
+            "description": "Maps each KPI key to the regional average over cooperatives-with-data in the caller's region.\nNone when there are too few contributors (see `insufficient_data`).",
             "additionalProperties": {
               "type": "number",
               "format": "double"
@@ -7297,7 +7297,7 @@
           },
           "sector_average": {
             "type": "object",
-            "description": "kpi_key -> sector average over cooperatives-with-data in the caller's sector (nationally).\nNone when there are too few contributors (see `insufficient_data`).",
+            "description": "Maps each KPI key to the sector average over cooperatives-with-data in the caller's sector (nationally).\nNone when there are too few contributors (see `insufficient_data`).",
             "additionalProperties": {
               "type": "number",
               "format": "double"
@@ -7306,7 +7306,7 @@
           },
           "sector_regional_average": {
             "type": "object",
-            "description": "kpi_key -> sector+regional average over cooperatives-with-data in the caller's\nsector within the caller's region. None when there are too few contributors.",
+            "description": "Maps each KPI key to the sector+regional average over cooperatives-with-data in the caller's\nsector within the caller's region. None when there are too few contributors.",
             "additionalProperties": {
               "type": "number",
               "format": "double"

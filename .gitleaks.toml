@@ -16,6 +16,8 @@ regexes = [
     '''<random-secret>''',
     # i18n translation keys / chart-of-accounts codes flagged as false positives
     '''loansInArrears\d+_\d+''',
+    # Benchmark DTO doc comments describing a KPI-key -> average mapping (not a secret)
+    '''sector\+regional''',
 ]
 paths = [
     '''docs/''',
