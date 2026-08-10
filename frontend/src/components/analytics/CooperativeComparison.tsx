@@ -315,6 +315,13 @@ function buildComparableKpis(t: TFunction): ComparableKpi[] {
   ];
 }
 
+// Minimum number of contributing cooperatives-with-data required before a
+// sector / sector+regional average is disclosed. Cooperative users mirror the
+// backend guard (3); apex/federation users may drop to 2 since they already
+// have visibility into their own scoped cooperatives.
+const MIN_CONTRIBUTORS_COOP = 3;
+const MIN_CONTRIBUTORS_APEX_FED = 2;
+
 // Shared averaging helper — used for national, regional, sector and
 // sector+regional slices to avoid duplicating the averaging math.
 function computeKpiAverages(
@@ -512,11 +519,15 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   }, [isCoopUser, benchmark, cooperativesWithData, availableRegions, comparableKpis]);
 
   // Sector average for the selected coop's sector (nationally).
-  // Coop users consume the server-computed sector average.
+  // Coop users consume the server-computed sector average; apex/federation
+  // users compute it over their scoped coops but withhold it below
+  // MIN_CONTRIBUTORS_APEX_FED (2) — a lower bar than coop users since they
+  // already have visibility into their own scoped cooperatives.
   const sectorAverages = useMemo(() => {
     if (isCoopUser) return benchmark?.sector_average ?? null;
     if (!selectedCoopSector) return null;
     const sectorCoops = cooperativesWithData.filter((c) => c.sector === selectedCoopSector);
+    if (sectorCoops.length < MIN_CONTRIBUTORS_APEX_FED) return null;
     return computeKpiAverages(sectorCoops, comparableKpis, getCoopKpiValue);
   }, [isCoopUser, benchmark, selectedCoopSector, cooperativesWithData, comparableKpis]);
 
@@ -527,6 +538,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     const coops = cooperativesWithData.filter(
       (c) => c.sector === selectedCoopSector && c.region === selectedCoopRegion,
     );
+    if (coops.length < MIN_CONTRIBUTORS_APEX_FED) return null;
     return computeKpiAverages(coops, comparableKpis, getCoopKpiValue);
   }, [
     isCoopUser,
@@ -668,22 +680,18 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
     t,
   ]);
 
-  // True when a coop user selected an average the backend withheld (too few contributors)
+  // True when the selected average was withheld for too few contributors.
+  // Coop users rely on the backend's insufficient_data flags; apex/federation
+  // users rely on the client-side MIN_CONTRIBUTORS guard (null average).
   const isRegionalInsufficient =
     isCoopUser &&
     compareTarget.isRegional &&
     !compareTarget.isSector &&
     benchmark?.insufficient_data.regional;
   const isSectorInsufficient =
-    isCoopUser &&
-    compareTarget.isSector &&
-    !compareTarget.isRegional &&
-    benchmark?.insufficient_data.sector;
+    compareTarget.isSector && !compareTarget.isRegional && sectorAverages == null;
   const isSectorRegionalInsufficient =
-    isCoopUser &&
-    compareTarget.isSector &&
-    compareTarget.isRegional &&
-    benchmark?.insufficient_data.sector_regional;
+    compareTarget.isSector && compareTarget.isRegional && sectorRegionalAverages == null;
 
   if (isLoading) {
     return (
