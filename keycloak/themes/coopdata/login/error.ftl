@@ -6,8 +6,19 @@
         <#setting url_escaping_charset='UTF-8'>
         <#-- Safe fallback for application URL (avoids Keycloak internal account management /realms/.../account/) -->
         <#assign appUrl = "/">
-        <#if client?? && client.baseUrl?? && client.baseUrl?has_content && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
+        <#if client?? && client.rootUrl?? && client.rootUrl?has_content && client.rootUrl?starts_with("http") && !client.rootUrl?contains("/account") && !client.rootUrl?contains("/realms/")>
+            <#assign appUrl = client.rootUrl>
+        <#elseif client?? && client.baseUrl?? && client.baseUrl?has_content && client.baseUrl?starts_with("http") && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
             <#assign appUrl = client.baseUrl>
+        <#elseif url.resourcesPath?? && url.resourcesPath?starts_with("http")>
+            <#assign appUrl = url.resourcesPath?keep_before("/realms/")>
+        <#elseif url.loginUrl?? && url.loginUrl?starts_with("http")>
+            <#assign appUrl = url.loginUrl?keep_before("/realms/")>
+        </#if>
+
+        <#assign logoutRedirect = appUrl>
+        <#if !logoutRedirect?ends_with("/")>
+            <#assign logoutRedirect = logoutRedirect + "/">
         </#if>
 
         <div class="split-screen-layout">
@@ -59,19 +70,8 @@
                             ${message.summary?no_esc}
                         </p>
 
-                        <#if message?? && message.summary?? && (message.summary?contains("authenticated as different user") || message.summary?contains("already authenticated"))>
-                            <a href="/realms/coop-data/protocol/openid-connect/logout?post_logout_redirect_uri=${appUrl?url('UTF-8')}&client_id=coopdata-frontend" class="btn-primary status-action-button" style="margin-bottom: 12px; background-color: #e11d48; border-color: #e11d48;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                                    <polyline points="16 17 21 12 16 7"/>
-                                    <line x1="21" y1="12" x2="9" y2="12"/>
-                                </svg>
-                                Sign Out &amp; Switch Account
-                            </a>
-                        </#if>
-
                         <#if !skipLink??>
-                            <a href="${appUrl}" class="btn-primary status-action-button" <#if message?? && message.summary?? && (message.summary?contains("authenticated as different user") || message.summary?contains("already authenticated"))>style="background-color: #475569; border-color: #475569;"</#if>>
+                            <a href="${appUrl}" class="btn-primary status-action-button">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
