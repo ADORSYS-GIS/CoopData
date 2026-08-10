@@ -1617,6 +1617,18 @@
     "originalTenure": "Prazo Original"
   },
   "analytics": {
+    "filter": {
+      "federation": "Federação",
+      "apex": "Organização Apex",
+      "cooperative": "Cooperativa",
+      "region": "Região",
+      "sector": "Setor"
+    },
+    "allFederations": "Todas as Federações",
+    "allApexes": "Todas as Organizações Apex",
+    "allCooperatives": "Todas as Cooperativas",
+    "allRegions": "Todas as Regiões",
+    "allSectors": "Todos os Setores",
     "tab": {
       "consolidatedDashboard": "Painel Consolidado",
       "cooperativeRankings": "Classificações das Cooperativas",

@@ -1617,6 +1617,18 @@
     "originalTenure": "Durée originale"
   },
   "analytics": {
+    "filter": {
+      "federation": "Fédération",
+      "apex": "Faîtière",
+      "cooperative": "Coopérative",
+      "region": "Région",
+      "sector": "Secteur"
+    },
+    "allFederations": "Toutes les fédérations",
+    "allApexes": "Toutes les faîtières",
+    "allCooperatives": "Toutes les coopératives",
+    "allRegions": "Toutes les régions",
+    "allSectors": "Tous les secteurs",
     "tab": {
       "consolidatedDashboard": "Tableau de bord consolidé",
       "cooperativeRankings": "Classements des coopératives",

@@ -1617,6 +1617,18 @@
     "originalTenure": "Isikhatsi Sokuqala"
   },
   "analytics": {
+    "filter": {
+      "federation": "Inhlangano Yekucala",
+      "apex": "Apex",
+      "cooperative": "Ikhoperative",
+      "region": "Sifundza",
+      "sector": "Umkhakha"
+    },
+    "allFederations": "Tinhlangano Tonkhe",
+    "allApexes": "Ma-Apex Onkhe",
+    "allCooperatives": "Tikhoperative Tonkhe",
+    "allRegions": "Tifundza Tonkhe",
+    "allSectors": "Imikhakha Yonkhe",
     "tab": {
       "consolidatedDashboard": "Ideshibhodi Ehihlanganisiwe",
       "cooperativeRankings": "Izinga Lemakhopharethi",
