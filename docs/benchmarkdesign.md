@@ -130,13 +130,14 @@ pub async fn get_benchmark(State, Extension(claims), Query(params)) -> AppResult
 pub struct BenchmarkResponse {
     pub reporting_year: Option<i32>,
     pub cooperative: CoopKpiRow,                       // caller's OWN row only
-    pub national_average: HashMap<String, f64>,
+    pub national_average: Option<HashMap<String, f64>>,
     pub regional_average: Option<HashMap<String, f64>>,
     pub sector_average: Option<HashMap<String, f64>>,          // same sector, nationally
     pub sector_regional_average: Option<HashMap<String, f64>>, // same sector + same region
     pub insufficient_data: BenchmarkInsufficientData,
 }
 pub struct BenchmarkInsufficientData {
+    pub national: bool,
     pub regional: bool,
     pub sector: bool,
     pub sector_regional: bool,
@@ -152,6 +153,8 @@ const MIN_CONTRIBUTORS: usize = 3; // server-side, applied for cooperative calle
 ```
 
 If fewer than 3 cooperatives-with-data contribute to a slice, the average is **withheld** (`null` + `insufficient_data.<slice> = true`). This prevents leaking individual data: with only 2 coops in a sector, the "average" is essentially the competitor's figure, which the caller could derive from their own value.
+
+The guard applies to **all four** slices — national, regional, sector, and sector+regional. The national average is gated too: with a small national with-data sample, a calling coop that knows its own value could otherwise solve for a competitor's (`other = 2 * national_avg − own`). `BenchmarkInsufficientData` therefore carries a `national` flag alongside `regional`, `sector`, and `sector_regional`.
 
 > **Role-based thresholds.** The backend guard (3) applies to **cooperative** callers, who must not be able to infer a competitor's figure. **Apex/Federation** callers compute sector averages client-side over their own scoped coops and use a lower threshold of **2** (`MIN_CONTRIBUTORS_APEX_FED`), because they are already authorized to see their own coops' raw data — there is no leak to protect. This keeps the two levels consistent in *behaviour* (both withhold below their threshold) while acknowledging apex/fed's greater data visibility.
 
@@ -194,11 +197,11 @@ The sector options are always relative to the **selected cooperative's sector**.
 
 **Apex/Fed sector scope:** sector averages for apex/fed are computed **client-side over their own scoped coops** (level-scoped), not true national. Sector (national) = all scoped coops with the same sector; Sector (regional) = scoped coops with the same sector **and** same region. Both respect `MIN_CONTRIBUTORS_APEX_FED = 2`.
 
-**Honest empty states:** when an average is withheld (below the threshold), the widget shows an amber notice instead of a misleading `0` — e.g., *"Not enough cooperatives in your sector have submitted data to compute a reliable sector average."* This applies to both coop users (backend `insufficient_data`) and apex/fed users (client-side null average).
+**Honest empty states:** when an average is withheld (below the threshold), the widget shows an amber notice instead of a misleading `0` — e.g., *"Not enough cooperatives in your sector have submitted data to compute a reliable sector average."* This applies to both coop users (backend `insufficient_data`, including the national flag) and apex/fed users (client-side null average).
 
 ### 5.5 i18n
 
-Added all new strings (`sectorAverage`, `sectorRegionalAverage`, `sectorAvg`, `sectorRegionalAvg`, `sectorBadge`, `sectorTargetSubtitle`, `sectorRegionalTargetSubtitle`, `insufficientSectorData`, `insufficientSectorRegionalData`, plus the earlier `insufficientRegionalData`) to all 4 locales: `en`, `fr`, `pt`, `ss`.
+Added all new strings (`sectorAverage`, `sectorRegionalAverage`, `sectorAvg`, `sectorRegionalAvg`, `sectorBadge`, `sectorTargetSubtitle`, `sectorRegionalTargetSubtitle`, `insufficientNationalData`, `insufficientSectorData`, `insufficientSectorRegionalData`, plus the earlier `insufficientRegionalData`) to all 4 locales: `en`, `fr`, `pt`, `ss`.
 
 ---
 

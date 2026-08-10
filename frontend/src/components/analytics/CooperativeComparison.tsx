@@ -681,6 +681,11 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
   // True when the selected average was withheld for too few contributors.
   // Coop users rely on the backend's insufficient_data flags; apex/federation
   // users rely on the client-side MIN_CONTRIBUTORS guard (null average).
+  const isNationalInsufficient =
+    isCoopUser &&
+    !compareTarget.isRegional &&
+    !compareTarget.isSector &&
+    benchmark?.insufficient_data.national;
   const isRegionalInsufficient =
     isCoopUser &&
     compareTarget.isRegional &&
@@ -862,6 +867,11 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
           <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
             <AlertCircle className="size-4 shrink-0 text-amber-500" />
             <span>{t("analytics.insufficientSectorData")}</span>
+          </div>
+        ) : isNationalInsufficient ? (
+          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+            <span>{t("analytics.insufficientNationalData")}</span>
           </div>
         ) : isRegionalInsufficient ? (
           <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">

@@ -1878,6 +1878,7 @@
     "focusRatioMetric": "Ratio/Métrique de focus",
     "chooseKpiPlaceholder": "Choisir le KPI à visualiser…",
     "noSubmittedDataYear": "La coopérative sélectionnée n'a aucune donnée soumise pour l'année {{year}}.",
+    "insufficientNationalData": "Pas assez de coopératives ont soumis de données au niveau national pour calculer une moyenne nationale fiable.",
     "insufficientRegionalData": "Pas assez de coopératives de votre région ont soumis de données pour calculer une moyenne régionale fiable.",
     "insufficientSectorData": "Pas assez de coopératives de votre secteur ont soumis de données pour calculer une moyenne sectorielle fiable.",
     "insufficientSectorRegionalData": "Pas assez de coopératives de votre secteur et de votre région ont soumis de données pour calculer une moyenne sectorielle fiable.",

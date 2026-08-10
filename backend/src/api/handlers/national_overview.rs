@@ -682,7 +682,10 @@ pub async fn get_benchmark(
         .cloned()
         .ok_or_else(|| AppError::NotFound("Cooperative data not found".into()))?;
 
-    let national_average = compute_averages(&all_rows, &BENCHMARK_KPIS);
+    // National average is gated by the same MIN_CONTRIBUTORS guard as the
+    // regional/sector slices: with a small national with-data sample, a calling
+    // coop that knows its own value could otherwise derive a competitor's.
+    let (national_average, national_insufficient) = scoped_average(&all_rows, |_| true);
 
     let (regional_average, regional_insufficient) = match own_row.region.as_deref() {
         Some(region) => scoped_average(&all_rows, |r| r.region.as_deref() == Some(region)),
@@ -718,6 +721,7 @@ pub async fn get_benchmark(
             sector_average,
             sector_regional_average,
             insufficient_data: BenchmarkInsufficientData {
+                national: national_insufficient,
                 regional: regional_insufficient,
                 sector: sector_insufficient,
                 sector_regional: sector_regional_insufficient,

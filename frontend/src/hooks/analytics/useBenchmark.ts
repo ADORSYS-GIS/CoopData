@@ -5,11 +5,12 @@ import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 export interface BenchmarkResponse {
   reporting_year: number | null;
   cooperative: CoopKpiRow;
-  national_average: Record<string, number>;
+  national_average: Record<string, number> | null;
   regional_average: Record<string, number> | null;
   sector_average: Record<string, number> | null;
   sector_regional_average: Record<string, number> | null;
   insufficient_data: {
+    national: boolean;
     regional: boolean;
     sector: boolean;
     sector_regional: boolean;
@@ -49,5 +50,5 @@ export const useBenchmark = (params: BenchmarkParams = {}, enabled = true) =>
       if (!data) throw new Error("Benchmark response was empty.");
       return data as BenchmarkResponse;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });

@@ -1878,6 +1878,7 @@
     "focusRatioMetric": "Rácio/Métrica de Foco",
     "chooseKpiPlaceholder": "Escolher KPI para visualizar…",
     "noSubmittedDataYear": "A cooperativa selecionada não tem dados submetidos para o ano {{year}}.",
+    "insufficientNationalData": "Não há cooperativas suficientes com dados submetidos a nível nacional para calcular uma média nacional fiável.",
     "insufficientRegionalData": "Não há cooperativas suficientes na sua região com dados submetidos para calcular uma média regional fiável.",
     "insufficientSectorData": "Não há cooperativas suficientes no seu setor com dados submetidos para calcular uma média setorial fiável.",
     "insufficientSectorRegionalData": "Não há cooperativas suficientes no seu setor e região com dados submetidos para calcular uma média setorial fiável.",

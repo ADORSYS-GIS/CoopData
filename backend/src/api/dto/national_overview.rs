@@ -101,7 +101,8 @@ pub struct BenchmarkResponse {
     /// The calling cooperative's own KPI row. Structurally cannot contain other cooperatives.
     pub cooperative: CoopKpiRow,
     /// Maps each KPI key to the national average over cooperatives-with-data.
-    pub national_average: HashMap<String, f64>,
+    /// None when there are too few contributors (see `insufficient_data`).
+    pub national_average: Option<HashMap<String, f64>>,
     /// Maps each KPI key to the regional average over cooperatives-with-data in the caller's region.
     /// None when there are too few contributors (see `insufficient_data`).
     pub regional_average: Option<HashMap<String, f64>>,
@@ -116,6 +117,8 @@ pub struct BenchmarkResponse {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct BenchmarkInsufficientData {
+    /// True when the national average is withheld because too few cooperatives contribute.
+    pub national: bool,
     /// True when the regional average is withheld because too few cooperatives contribute.
     pub regional: bool,
     /// True when the sector average is withheld because too few cooperatives contribute.

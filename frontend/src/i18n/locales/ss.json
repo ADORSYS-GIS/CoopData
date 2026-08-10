@@ -1878,6 +1878,7 @@
     "focusRatioMetric": "Izinga/Metric Okugxilwe Kuyo",
     "chooseKpiPlaceholder": "Khetha i-KPI ozoyibonisa...",
     "noSubmittedDataYear": "Ikhopharethi ekhethiwe ayinayo data ecesiwe yonyaka {{year}}.",
+    "insufficientNationalData": "Awekho amakhopharethi anele anedatha ecesiwe esiveni kute kubalwe isilinganiso sesive esithembekile.",
     "insufficientRegionalData": "Awekho amakhopharethi anele esifundeni sakho anedatha ecesiwe kute kubalwe isilinganiso sesifunda esithembekile.",
     "insufficientSectorData": "Awekho amakhopharethi anele emkhakheni wakho anedatha ecesiwe kute kubalwe isilinganiso semkhakha esithembekile.",
     "insufficientSectorRegionalData": "Awekho amakhopharethi anele emkhakheni nasesifundeni sakho anedatha ecesiwe kute kubalwe isilinganiso semkhakha esithembekile.",
