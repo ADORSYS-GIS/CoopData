@@ -678,10 +678,22 @@ pub async fn get_benchmark(
     // A cooperative caller without an approved/submitted financial statement for
     // the year gets `cooperative: null` with 200 OK — the absence of data is a
     // legitimate state the UI renders as an empty state, not an error.
-    let own_row = all_rows
-        .iter()
-        .find(|r| caller_coop_ids.contains(&r.cooperative_id))
-        .cloned();
+    let own_row = if let Some(target_coop_id) = params.cooperative_id {
+        if !caller_coop_ids.contains(&target_coop_id) {
+            return Err(AppError::Forbidden(
+                "Not authorized to view benchmark for this cooperative".into(),
+            ));
+        }
+        all_rows
+            .iter()
+            .find(|r| r.cooperative_id == target_coop_id)
+            .cloned()
+    } else {
+        all_rows
+            .iter()
+            .find(|r| caller_coop_ids.contains(&r.cooperative_id))
+            .cloned()
+    };
 
     // National average is gated by the same MIN_CONTRIBUTORS guard as the
     // regional/sector slices: with a small national with-data sample, a calling
@@ -758,6 +770,7 @@ pub async fn get_benchmark(
         }),
     ))
 }
+
 
 /// Extracts a KPI value from a row: financial KPIs live in `row.kpis`,
 /// non-financial KPIs live in `row.non_financial`.

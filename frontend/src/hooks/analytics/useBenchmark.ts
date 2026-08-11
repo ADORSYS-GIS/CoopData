@@ -21,6 +21,7 @@ export interface BenchmarkResponse {
 
 export interface BenchmarkParams {
   reportingYear?: number;
+  cooperativeId?: string;
 }
 
 const extractErrorMessage = (error: unknown): string => {
@@ -45,6 +46,7 @@ export const useBenchmark = (params: BenchmarkParams = {}, enabled = true) =>
         params: {
           query: {
             reporting_year: params.reportingYear,
+            cooperative_id: params.cooperativeId,
           } as Record<string, unknown>,
         },
       });
