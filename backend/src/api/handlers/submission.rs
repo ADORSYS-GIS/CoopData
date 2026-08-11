@@ -4,7 +4,6 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use chrono::Datelike;
 use sea_orm::Set;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -42,13 +41,10 @@ pub async fn create_submission(
     Extension(claims): Extension<Arc<Claims>>,
     Json(body): Json<CreateSubmissionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let current_year = chrono::Utc::now().year();
-    if body.reporting_year < current_year - 5 || body.reporting_year > current_year {
-        return Err(AppError::BadRequest(format!(
-            "reporting_year must be between {} and {}",
-            current_year - 5,
-            current_year
-        )));
+    if body.reporting_year < 1900 || body.reporting_year > 2100 {
+        return Err(AppError::BadRequest(
+            "reporting_year must be between 1900 and 2100".to_string(),
+        ));
     }
 
     let coop =

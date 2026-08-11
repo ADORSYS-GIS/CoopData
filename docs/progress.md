@@ -471,6 +471,8 @@
 - [x] **`scripts/setup-ollama-gpu.sh`** — AWS GPU provisioning: NVIDIA driver, Ollama install, bind 0.0.0.0:11434, pull `qwen2.5-vl:32b`
 - [x] **`docs/design-local-ai.md`** — design doc (problem, 4 AI tasks, config-only rationale, model selection, architecture, acceptance criteria)
 - [x] **`docs/runbook-local-ai.md`** — operational runbook (local dev, AWS GPU prod, cost control, troubleshooting)
+- [x] **`docs/ai-optimization-guide.md`** — optimization & orchestration guide (VRAM budget, KV cache, context length, concurrency, continuous batching, vLLM vs Ollama, scaling, cost, recommended prod config)
+- [x] **`docs/ai-architecture-recommendation.md`** — architecture decision (OCR engine + small AI vs big 32B vs two small models), weighted comparison, recommendation = PaddleOCR + Qwen2.5-VL-7B + human review
 - [x] Verification: `bash -n` on setup script ✅
 
 > **Next:** Pull a model locally and run an end-to-end extraction test; deploy GPU instance on AWS and A/B test `qwen2.5-vl:32b` vs `internvl3:38b`.

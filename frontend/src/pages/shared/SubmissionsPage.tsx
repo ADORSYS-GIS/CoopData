@@ -90,8 +90,13 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
+  const [year, setYear] = useState<number>(currentYear);
+  const [showCalendar, setShowCalendar] = useState<boolean>(false);
+  const [decadeStart, setDecadeStart] = useState<number>(Math.floor(currentYear / 10) * 10);
   const createSubmission = useCreateSubmission();
+
+  const quickYears = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4];
+  const isQuickYear = quickYears.includes(year);
 
   const handleCreate = async () => {
     try {
@@ -104,12 +109,14 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const decadeYears = Array.from({ length: 12 }, (_, i) => decadeStart + i);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+      <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 overflow-hidden">
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
@@ -134,31 +141,131 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Body */}
-        <div className="px-6 pb-2">
-          <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-            {t("submissions.reportingYear")}
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map(
-              (y) => (
+        <div className="px-6 pb-4 space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {t("submissions.reportingYear")}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCalendar((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                <Calendar className="size-3.5" />
+                {showCalendar ? t("submissions.quickSelect") : t("submissions.calendarPicker")}
+              </button>
+            </div>
+
+            {/* Quick Pills */}
+            <div className="grid grid-cols-5 gap-2">
+              {quickYears.map((y) => (
                 <button
                   key={y}
-                  onClick={() => setYear(y)}
-                  className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${
+                  type="button"
+                  onClick={() => {
+                    setYear(y);
+                    setDecadeStart(Math.floor(y / 10) * 10);
+                  }}
+                  className={`rounded-xl border py-2.5 text-sm font-bold transition-all duration-150 ${
                     year === y
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm scale-[1.02]"
                       : "border-border bg-muted/30 text-foreground hover:border-primary/40 hover:bg-muted/60"
                   }`}
                 >
                   {y}
                 </button>
-              ),
+              ))}
+            </div>
+
+            {/* Custom Selected Badge if not in quick pills */}
+            {!isQuickYear && (
+              <div className="mt-2.5 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <Calendar className="size-4" />
+                  <span>{t("submissions.selectedYear", { year })}</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 font-bold">
+                  Custom
+                </span>
+              </div>
             )}
           </div>
+
+          {/* Expandable Calendar Year Picker & Direct Input */}
+          {showCalendar && (
+            <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground">
+                  {decadeStart} – {decadeStart + 11}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setDecadeStart((prev) => prev - 10)}
+                    className="p-1 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors"
+                    title="Previous Decade"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDecadeStart((prev) => prev + 10)}
+                    className="p-1 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors"
+                    title="Next Decade"
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Year Grid Calendar */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {decadeYears.map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => setYear(y)}
+                    className={`py-2 rounded-lg text-xs font-bold transition-all ${
+                      year === y
+                        ? "bg-primary text-primary-foreground shadow-sm scale-105"
+                        : "bg-background border border-border hover:border-primary/50 text-foreground"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+
+              {/* Direct Year Input */}
+              <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-3">
+                <label htmlFor="custom-year-input" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  {t("submissions.orEnterYear")}:
+                </label>
+                <div className="relative flex-1">
+                  <input
+                    id="custom-year-input"
+                    type="number"
+                    min={1900}
+                    max={2100}
+                    value={year}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val)) {
+                        setYear(val);
+                        setDecadeStart(Math.floor(val / 10) * 10);
+                      }
+                    }}
+                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-5">
+        <div className="flex gap-3 px-6 py-4 border-t border-border/40 bg-muted/10">
           <button
             onClick={onClose}
             className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
@@ -167,7 +274,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={handleCreate}
-            disabled={createSubmission.isPending}
+            disabled={createSubmission.isPending || !year || year < 1900 || year > 2100}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {createSubmission.isPending ? (
