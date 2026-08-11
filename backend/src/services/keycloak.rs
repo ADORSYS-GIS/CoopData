@@ -1017,7 +1017,7 @@ impl KeycloakService {
         // briefRepresentation=false ensures attributes are included in the list response.
         // Without it, Keycloak strips the attributes map from every item.
         let url = format!(
-            "{}/organizations?briefRepresentation=false",
+            "{}/organizations?briefRepresentation=false&max=1000",
             self.realm_url()
         );
 
@@ -1582,12 +1582,12 @@ impl KeycloakService {
         let token = self.get_cached_admin_token().await?;
         let url = match search {
             Some(s) => format!(
-                "{}/groups?search={}&briefRepresentation=false&max=100",
+                "{}/groups?search={}&briefRepresentation=false&max=1000",
                 self.realm_url(),
                 s
             ),
             None => format!(
-                "{}/groups?briefRepresentation=false&max=100",
+                "{}/groups?briefRepresentation=false&max=1000",
                 self.realm_url()
             ),
         };

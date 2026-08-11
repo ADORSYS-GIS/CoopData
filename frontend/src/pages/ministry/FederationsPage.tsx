@@ -657,7 +657,7 @@ export const FederationsPage: React.FC = () => {
         entityId={deleteTarget?.id ?? ""}
         previewData={
           previewData as unknown as
-            { apexes: number; cooperatives: number; members: number } | undefined
+          { apexes: number; cooperatives: number; members: number } | undefined
         }
         previewLoading={previewLoading}
         onVerifyIdentity={handleVerifyIdentity}
