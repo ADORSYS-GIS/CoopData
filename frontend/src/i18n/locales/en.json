@@ -3176,7 +3176,10 @@
     "toastDeleted": "Deleted \"{{name}}\"",
     "toastDeletedDesc": "Federation removed from registry.",
     "toastDeleteFailed": "Failed to delete federation",
-    "toastExporting": "Exporting federation data as CSV..."
+    "toastExporting": "Exporting federation data as CSV...",
+    "errorDuplicateFederation": "A federation with this name or domain already exists. Please use a different name or domain.",
+    "errorGenericCreate": "Registration could not be completed. Please try again or contact support if the issue persists.",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "memberList": {
     "tableHeaders": {
