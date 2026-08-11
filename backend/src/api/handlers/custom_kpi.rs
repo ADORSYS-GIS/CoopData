@@ -301,7 +301,6 @@ pub async fn evaluate_custom_kpi(
                 .into_iter()
                 .filter(|s| {
                     s.status == crate::entities::enums::SubmissionStatus::Approved
-                        || s.status == crate::entities::enums::SubmissionStatus::Submitted
                 })
                 .collect();
             if let Some(latest) = approved

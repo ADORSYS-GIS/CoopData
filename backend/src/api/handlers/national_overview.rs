@@ -82,8 +82,7 @@ pub async fn get_national_overview(
         .into_iter()
         .filter(|submission| {
             let is_approved = submission.status
-                == crate::entities::enums::SubmissionStatus::Approved
-                || submission.status == crate::entities::enums::SubmissionStatus::Submitted;
+                == crate::entities::enums::SubmissionStatus::Approved;
             let matches_year = params
                 .reporting_year
                 .map(|year| submission.reporting_year == year)
@@ -660,8 +659,7 @@ pub async fn get_comparative_statements(
         .into_iter()
         .filter(|s| {
             s.reporting_year == year
-                && (s.status == crate::entities::enums::SubmissionStatus::Approved
-                    || s.status == crate::entities::enums::SubmissionStatus::Submitted)
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
         })
         .collect();
 
