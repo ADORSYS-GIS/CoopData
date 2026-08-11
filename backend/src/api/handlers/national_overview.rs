@@ -17,7 +17,7 @@ use crate::api::dto::national_overview::{
 };
 use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::auth::claims::Claims;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::services::benchmark::scoped_average;
 use crate::services::kpi_engine::KpiEngine;
 use crate::services::nf_indicator_engine::NfIndicatorEngine;
@@ -770,7 +770,6 @@ pub async fn get_benchmark(
         }),
     ))
 }
-
 
 /// Extracts a KPI value from a row: financial KPIs live in `row.kpis`,
 /// non-financial KPIs live in `row.non_financial`.
