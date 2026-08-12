@@ -6,11 +6,19 @@ import { mapKeycloakRolesToRole } from "@/constants/roles";
 
 const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
+// 30-day offline token validity window
+const OFFLINE_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 let keycloakInitialized = false;
 let isLoggingOut = false;
 let keycloakInitPromise: Promise<boolean> | null = null;
 let keycloakReadyResolvers: ((value: boolean) => void)[] = [];
+// Set to true when authenticated via cached offline token (no network)
+let offlineModeActive = false;
+
+export function isOfflineModeActive(): boolean {
+  return offlineModeActive;
+}
 
 function resolveKeycloakReady() {
   keycloakInitialized = true;
@@ -125,6 +133,16 @@ async function doInitKeycloak(): Promise<boolean> {
       return true;
     }
 
+    // ── OFFLINE RECOVERY ──────────────────────────────────────────────────────
+    // If the browser is offline (or Keycloak is simply unreachable) and we have
+    // a valid offline token stored in IDB, activate offline mode so the app can
+    // render with cached data instead of bouncing the user to /login.
+    if (!navigator.onLine && cachedTokens && isOfflineTokenValid(cachedTokens)) {
+      console.log("[auth] Offline recovery — activating offline mode with cached token");
+      offlineModeActive = true;
+      return true;
+    }
+
     if (cachedTokens?.token) {
       console.log("[auth] Falling back to cached token");
       return true;
@@ -140,7 +158,8 @@ export async function login(): Promise<void> {
   const currentLang = localStorage.getItem("i18nextLng") || "en";
   await keycloak.login({
     redirectUri: window.location.origin + "/app/dashboard",
-    scope: "openid profile email",
+    // offline_access scope gives us a 30-day refresh token that works without network
+    scope: "openid profile email offline_access",
     locale: currentLang,
   });
 }
@@ -148,6 +167,7 @@ export async function login(): Promise<void> {
 export async function logout(): Promise<void> {
   console.log("[auth] logout() called");
   isLoggingOut = true;
+  offlineModeActive = false;
   await clearCachedTokens();
   keycloakInitialized = false;
   await keycloak.logout({
@@ -159,6 +179,17 @@ export async function logout(): Promise<void> {
 export async function getAccessToken(): Promise<string> {
   if (isLoggingOut) {
     throw new Error("Logging out");
+  }
+
+  // Offline mode: return cached token directly — the SW or IDB persister
+  // handles data locally so the backend never receives this expired token.
+  if (offlineModeActive) {
+    const cached = await loadCachedTokens();
+    if (cached?.token) {
+      console.warn("[auth] Offline mode — returning cached access token");
+      return cached.token;
+    }
+    throw new Error("No cached token available offline.");
   }
 
   if (!keycloak.authenticated) {
@@ -223,6 +254,14 @@ function extractOrgId(
 }
 
 export function getUserProfile(): UserProfile | null {
+  // In offline mode, decode the cached token directly (no Keycloak instance needed)
+  if (offlineModeActive) {
+    const profile = loadCachedProfileSync();
+    if (profile) return profile;
+    console.warn("[auth] getUserProfile: offline mode but no cached profile");
+    return null;
+  }
+
   if (!keycloak.authenticated || !keycloak.tokenParsed) {
     console.log("[auth] getUserProfile: not authenticated or no token");
     return null;
@@ -310,18 +349,75 @@ interface CachedTokens {
   refreshToken: string;
   idToken: string;
   timestamp: number;
+  // Offline extensions
+  tokenExpiry: number; // access_token expiry (Unix ms)
+  refreshTokenExpiry: number; // refresh_token expiry (Unix ms)
+  userProfile: UserProfile | null; // cached decoded profile (available offline)
+  offlineToken: boolean; // true when offline_access scope was granted
+}
+
+/** Checks whether the stored refresh token is still within the 30-day offline window. */
+function isOfflineTokenValid(cached: CachedTokens): boolean {
+  return cached.offlineToken && Date.now() - cached.timestamp < OFFLINE_TOKEN_MAX_AGE_MS;
+}
+
+/** Synchronously read the user profile from a localStorage mirror (fallback for offline). */
+function loadCachedProfileSync(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem("coopdata_user_profile");
+    return raw ? (JSON.parse(raw) as UserProfile) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function persistTokens(): Promise<void> {
   if (!keycloak.token || !keycloak.refreshToken) return;
+
+  // Parse expiry from JWT claims
+  let tokenExpiry = Date.now() + 5 * 60 * 1000; // default 5 min
+  let refreshTokenExpiry = Date.now() + OFFLINE_TOKEN_MAX_AGE_MS;
+  try {
+    const [, tp] = keycloak.token.split(".");
+    const claims = JSON.parse(atob(tp.replace(/-/g, "+").replace(/_/g, "/"))) as Record<
+      string,
+      number
+    >;
+    if (claims.exp) tokenExpiry = claims.exp * 1000;
+    const [, rtp] = keycloak.refreshToken.split(".");
+    const rclaims = JSON.parse(atob(rtp.replace(/-/g, "+").replace(/_/g, "/"))) as Record<
+      string,
+      number
+    >;
+    if (rclaims.exp) refreshTokenExpiry = rclaims.exp * 1000;
+  } catch {
+    /* ignore parse errors */
+  }
+
+  // Detect if this is an offline token (scope contains offline_access)
+  const offlineToken = keycloak.tokenParsed
+    ? String((keycloak.tokenParsed as Record<string, unknown>).scope ?? "").includes(
+        "offline_access",
+      )
+    : false;
+
+  const profile = getUserProfile();
+
   const tokens: CachedTokens = {
     token: keycloak.token,
     refreshToken: keycloak.refreshToken,
     idToken: keycloak.idToken ?? "",
     timestamp: Date.now(),
+    tokenExpiry,
+    refreshTokenExpiry,
+    userProfile: profile,
+    offlineToken,
   };
+
   try {
     await set(TOKEN_CACHE_KEY, tokens);
+    // Mirror profile to localStorage for synchronous offline reads
+    if (profile) localStorage.setItem("coopdata_user_profile", JSON.stringify(profile));
   } catch {
     console.warn("[auth] Failed to persist tokens to IndexedDB");
   }
@@ -330,7 +426,9 @@ async function persistTokens(): Promise<void> {
 async function loadCachedTokens(): Promise<CachedTokens | null> {
   try {
     const tokens = await get<CachedTokens>(TOKEN_CACHE_KEY);
-    if (tokens && Date.now() - tokens.timestamp < 24 * 60 * 60 * 1000) {
+    if (!tokens) return null;
+    // Accept cached tokens within the 30-day offline window
+    if (Date.now() - tokens.timestamp < OFFLINE_TOKEN_MAX_AGE_MS) {
       return tokens;
     }
     await clearCachedTokens();

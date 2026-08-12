@@ -1,9 +1,33 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { get, set, del } from "idb-keyval";
 import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import type { PersistedClient, Persister } from "@tanstack/react-query-persist-client";
+import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { KeycloakAuthProvider } from "../context/AuthContext";
 import { ThemeProvider } from "../lib/theme";
 import { useTranslation } from "react-i18next";
+import { OfflineStatusBanner } from "@/components/shared/OfflineStatusBanner";
+
+const IDB_QUERY_CACHE_KEY = "coopdata_query_cache";
+const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
+
+/** Persists the entire TanStack Query cache to IndexedDB via idb-keyval. */
+function createIDBPersister(idbKey: string = IDB_QUERY_CACHE_KEY): Persister {
+  return {
+    persistClient: async (client: PersistedClient) => {
+      await set(idbKey, client);
+    },
+    restoreClient: async (): Promise<PersistedClient | undefined> => {
+      return await get<PersistedClient>(idbKey);
+    },
+    removeClient: async () => {
+      await del(idbKey);
+    },
+  };
+}
+
+const persister = createIDBPersister();
 
 function NotFoundComponent() {
   const { t } = useTranslation();
@@ -76,10 +100,31 @@ function RootComponent() {
   return (
     <ThemeProvider>
       <KeycloakAuthProvider>
-        <QueryClientProvider client={queryClient}>
+        {/*
+          PersistQueryClientProvider replaces QueryClientProvider.
+          It automatically saves the entire query cache to IndexedDB on every
+          mutation, and restores it on app startup. This gives every existing
+          hook offline read access for free — no per-hook changes needed.
+
+          onSuccess fires after the cache is restored from IDB.
+          resumePausedMutations() re-runs any writes that were paused while offline.
+        */}
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister,
+            maxAge: SEVEN_DAYS_MS,
+            // Bust the cache if the app version changes (prevents stale schema issues)
+            buster: import.meta.env.VITE_APP_VERSION ?? "v1",
+          }}
+          onSuccess={() => {
+            void queryClient.resumePausedMutations();
+          }}
+        >
+          <OfflineStatusBanner />
           <Outlet />
           <Toaster position="top-right" richColors closeButton duration={4000} />
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </KeycloakAuthProvider>
     </ThemeProvider>
   );

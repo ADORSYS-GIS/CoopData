@@ -7,6 +7,7 @@ import {
   logout as keycloakLogout,
   getAccessToken,
   getUserProfile,
+  isOfflineModeActive,
 } from "@/services/shared/authService";
 import type { AuthContextValue, UserProfile } from "@/types/auth";
 import type { Role } from "@/constants/roles";
@@ -19,7 +20,21 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOfflineAuthenticated, setIsOfflineAuthenticated] = useState(false);
   const { t } = useTranslation();
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -69,6 +84,8 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
             }, 800);
           }
         }
+        // Record whether this was an offline-token recovery
+        setIsOfflineAuthenticated(isOfflineModeActive());
       } catch (error) {
         console.error("[auth-context] Keycloak initialization failed:", error);
         if (mounted) {
@@ -136,6 +153,8 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     hasRole: hasRoleFn,
     hasAnyRole: hasAnyRoleFn,
     getAccessToken: getAccessTokenFn,
+    isOffline,
+    isOfflineAuthenticated,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4553,5 +4553,11 @@
   "localizedField": {
     "toggle": "Traduire",
     "otherLanguages": "Traductions (PT / SS / FR)"
+  },
+  "offline": {
+    "banner": "Vous êtes hors ligne — affichage des données en cache",
+    "backOnline": "Connexion rétablie — synchronisation de vos modifications",
+    "noSessionTitle": "Aucune connexion disponible",
+    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter pour la première fois."
   }
 }
