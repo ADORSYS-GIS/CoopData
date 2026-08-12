@@ -33,10 +33,6 @@ pub fn shared_routes() -> Router<AppState> {
             post(crate::api::handlers::me::mfa_setup),
         )
         .route(
-            "/me/security/mfa/verify",
-            post(crate::api::handlers::me::mfa_verify),
-        )
-        .route(
             "/me/security/mfa",
             delete(crate::api::handlers::me::disable_mfa),
         )

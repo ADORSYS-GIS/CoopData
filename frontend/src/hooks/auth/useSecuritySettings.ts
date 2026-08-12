@@ -14,7 +14,6 @@ function extractErrorMessage(err: unknown): string {
 }
 
 export type SecuritySettings = components["schemas"]["SecuritySettingsResponse"];
-export type MfaSetup = components["schemas"]["MfaSetupResponse"];
 
 export const useSecuritySettings = () =>
   useQuery({
@@ -26,23 +25,15 @@ export const useSecuritySettings = () =>
     },
   });
 
-/** Generate a fresh TOTP secret + otpauth URI for the setup dialog. */
-export const useMfaSetup = () =>
-  useMutation({
-    mutationFn: async (): Promise<MfaSetup> => {
-      const { data, error } = await apiClient.POST("/api/v1/me/security/mfa/setup");
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as MfaSetup;
-    },
-  });
-
-/** Verify the 6-digit code and register the OTP credential in Keycloak. */
-export const useMfaVerify = () => {
+/**
+ * Arm the CONFIGURE_TOTP required action on the Keycloak account. The user then
+ * completes TOTP setup on Keycloak's (branded) screen via kc_action=CONFIGURE_TOTP.
+ */
+export const useMfaSetup = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ secret, code }: { secret: string; code: string }) => {
-      const body: components["schemas"]["MfaVerifyRequest"] = { secret, code };
-      const { data, error } = await apiClient.POST("/api/v1/me/security/mfa/verify", { body });
+    mutationFn: async (): Promise<SecuritySettings> => {
+      const { data, error } = await apiClient.POST("/api/v1/me/security/mfa/setup");
       if (error) throw new Error(extractErrorMessage(error));
       return data as SecuritySettings;
     },

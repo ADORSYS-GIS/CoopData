@@ -13,7 +13,6 @@ pub mod object_storage;
 pub mod pdf_templates;
 pub mod report_narrative;
 pub mod submission_workflow;
-pub mod totp;
 pub mod verification_token;
 
 pub use ai_extraction::{Extractor, NfHeaderMapper};
@@ -26,5 +25,4 @@ pub use nf_indicator_engine::NfIndicatorEngine;
 pub use object_storage::ObjectStorageService;
 pub use report_narrative::{create_narrative_generator, ReportNarrativeGenerator};
 pub use submission_workflow::SubmissionWorkflow;
-pub use totp::{generate_setup, verify_code};
 pub use verification_token::VerificationTokenService;

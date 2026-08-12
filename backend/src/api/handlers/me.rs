@@ -3,8 +3,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::api::dto::member::{
-    ChangePasswordRequest, ChangePasswordResponse, MfaSetupResponse, MfaVerifyRequest,
-    SecuritySettingsResponse, UserProfileResponse,
+    ChangePasswordRequest, ChangePasswordResponse, SecuritySettingsResponse, UserProfileResponse,
 };
 use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
@@ -208,7 +207,7 @@ pub async fn get_security_settings(
     post,
     path = "/api/v1/me/security/mfa/setup",
     responses(
-        (status = 200, description = "TOTP setup payload generated", body = MfaSetupResponse),
+        (status = 200, description = "MFA setup initiated; user completes TOTP at next sign-in", body = SecuritySettingsResponse),
         (status = 400, description = "MFA already enabled", body = ErrorResponse),
         (status = 401, description = "Unauthorized", body = ErrorResponse)
     ),
@@ -217,76 +216,24 @@ pub async fn get_security_settings(
 pub async fn mfa_setup(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
 ) -> AppResult<impl IntoResponse> {
-    if state.keycloak.get_user_mfa_enabled(&claims.sub).await? {
+    // Only block when a real OTP credential already exists. A pending
+    // CONFIGURE_TOTP action (setup started but never completed) must NOT block:
+    // initiate_totp_setup is idempotent, so the user can resume the redirect and
+    // finish setup instead of being stuck behind a 400.
+    if state.keycloak.get_user_otp_status(&claims.sub).await? {
         return Err(AppError::BadRequest(
             "MFA is already enabled for this account".to_string(),
         ));
     }
 
-    let account_name = claims
-        .email
-        .clone()
-        .or_else(|| claims.username().map(String::from))
-        .unwrap_or_else(|| claims.sub.clone());
-    let (secret, otpauth_uri) = crate::services::totp::generate_setup(&account_name)?;
-
-    tracing::info!(user_id = %claims.sub, "MFA setup payload generated");
-    Ok((
-        StatusCode::OK,
-        Json(MfaSetupResponse {
-            secret,
-            otpauth_uri,
-        }),
-    ))
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/me/security/mfa/verify",
-    request_body = MfaVerifyRequest,
-    responses(
-        (status = 200, description = "MFA enabled after successful verification", body = SecuritySettingsResponse),
-        (status = 400, description = "Invalid code or input", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse)
-    ),
-    tag = "Auth"
-)]
-pub async fn mfa_verify(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Extension(audit_ctx): Extension<AuditContext>,
-    Json(body): Json<MfaVerifyRequest>,
-) -> AppResult<impl IntoResponse> {
-    if body.code.len() != 6 || !body.code.chars().all(|c| c.is_ascii_digit()) {
-        return Err(AppError::BadRequest(
-            "Verification code must be 6 digits".to_string(),
-        ));
-    }
-
-    // Idempotency guard: a double-submit or retry after a successful enable must
-    // not create a duplicate OTP credential.
-    if state.keycloak.get_user_mfa_enabled(&claims.sub).await? {
-        return Ok((
-            StatusCode::OK,
-            Json(SecuritySettingsResponse { mfa_enabled: true }),
-        ));
-    }
-
-    if !crate::services::totp::verify_code(&body.secret, &body.code) {
-        return Err(AppError::BadRequest(
-            "The code does not match this authenticator app setup. \
-             Check the time on your device and try again."
-                .to_string(),
-        ));
-    }
-
     state
         .keycloak
-        .create_otp_credential(&claims.sub, &body.secret)
+        .initiate_totp_setup(&claims.sub)
         .await
         .map_err(|e| {
-            tracing::error!(user_id = %claims.sub, error = %e, "Failed to create OTP credential");
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to initiate MFA setup");
             e
         })?;
 
@@ -306,7 +253,7 @@ pub async fn mfa_verify(
         tracing::error!("Failed to log audit: {}", e);
     }
 
-    tracing::info!(user_id = %claims.sub, "MFA enabled after verification");
+    tracing::info!(user_id = %claims.sub, "MFA setup initiated (CONFIGURE_TOTP)");
     Ok((
         StatusCode::OK,
         Json(SecuritySettingsResponse { mfa_enabled: true }),

@@ -16,26 +16,10 @@ pub struct ChangePasswordResponse {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SecuritySettingsResponse {
-    /// True when the user has an OTP (TOTP) credential configured in Keycloak.
-    /// Legacy accounts with a pending CONFIGURE_TOTP required action also
-    /// report true so they can be cleaned up from the UI.
+    /// True when the user has an OTP (TOTP) credential configured in Keycloak,
+    /// or a CONFIGURE_TOTP required action is pending (setup initiated but not
+    /// yet completed at next sign-in).
     pub mfa_enabled: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MfaSetupResponse {
-    /// Base32 TOTP secret (used to verify the confirmation code).
-    pub secret: String,
-    /// `otpauth://` URI rendered as the QR code.
-    pub otpauth_uri: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MfaVerifyRequest {
-    /// Base32 TOTP secret returned by the setup endpoint.
-    pub secret: String,
-    /// 6-digit code from the user's authenticator app.
-    pub code: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

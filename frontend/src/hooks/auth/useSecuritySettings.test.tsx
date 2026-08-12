@@ -12,12 +12,7 @@ vi.mock("@/openapi-client", () => ({
 }));
 
 import { apiClient } from "@/openapi-client";
-import {
-  useSecuritySettings,
-  useMfaSetup,
-  useMfaVerify,
-  useDisableMfa,
-} from "@/hooks/auth/useSecuritySettings";
+import { useSecuritySettings, useMfaSetup, useDisableMfa } from "@/hooks/auth/useSecuritySettings";
 
 const mockedGet = vi.mocked(apiClient.GET);
 const mockedPost = vi.mocked(apiClient.POST);
@@ -72,12 +67,8 @@ describe("useMfaSetup", () => {
     vi.clearAllMocks();
   });
 
-  it("should POST the setup endpoint and return the secret + otpauth URI", async () => {
-    const payload = {
-      secret: "JBSWY3DPEHPK3PXP",
-      otpauth_uri: "otpauth://totp/CoopData:user@example.com?secret=JBSWY3DPEHPK3PXP",
-    };
-    mockedPost.mockResolvedValue(okResult(payload) as never);
+  it("should POST the setup endpoint and mark MFA as enabled", async () => {
+    mockedPost.mockResolvedValue(okResult({ mfa_enabled: true }) as never);
     const { wrapper } = makeWrapper();
 
     const { result } = renderHook(() => useMfaSetup(), { wrapper });
@@ -88,39 +79,16 @@ describe("useMfaSetup", () => {
     });
 
     expect(mockedPost).toHaveBeenCalledWith("/api/v1/me/security/mfa/setup");
-    expect(response).toEqual(payload);
-  });
-});
-
-describe("useMfaVerify", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    expect(response).toEqual({ mfa_enabled: true });
   });
 
-  it("should POST the code and secret for verification", async () => {
-    mockedPost.mockResolvedValue(okResult({ mfa_enabled: true }) as never);
+  it("should surface the backend error when setup fails", async () => {
+    mockedPost.mockResolvedValue(errResult("MFA is already enabled") as never);
     const { wrapper } = makeWrapper();
 
-    const { result } = renderHook(() => useMfaVerify(), { wrapper });
+    const { result } = renderHook(() => useMfaSetup(), { wrapper });
 
-    await act(async () => {
-      await result.current.mutateAsync({ secret: "ABC123", code: "123456" });
-    });
-
-    expect(mockedPost).toHaveBeenCalledWith("/api/v1/me/security/mfa/verify", {
-      body: { secret: "ABC123", code: "123456" },
-    });
-  });
-
-  it("should surface the backend message on a wrong code", async () => {
-    mockedPost.mockResolvedValue(errResult("The code does not match") as never);
-    const { wrapper } = makeWrapper();
-
-    const { result } = renderHook(() => useMfaVerify(), { wrapper });
-
-    await expect(result.current.mutateAsync({ secret: "ABC123", code: "000000" })).rejects.toThrow(
-      "The code does not match",
-    );
+    await expect(result.current.mutateAsync()).rejects.toThrow("MFA is already enabled");
   });
 });
 

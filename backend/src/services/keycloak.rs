@@ -356,77 +356,27 @@ impl KeycloakService {
         Ok(())
     }
 
-    /// Register a verified TOTP secret as a real OTP credential in Keycloak
-    /// via the Admin API. The credential is active immediately — the user does
-    /// not need to log in again or complete a setup wizard.
+    /// Initiate MFA (TOTP) setup for a user by adding the `CONFIGURE_TOTP`
+    /// required action. Keycloak has no admin API to create an OTP credential
+    /// directly, so the user completes the (already branded) TOTP setup screen
+    /// on their next authentication — after which Keycloak stores the credential
+    /// and consumes the required action automatically.
     ///
-    /// Any stale `CONFIGURE_TOTP` required action is cleared so Keycloak never
-    /// shows a confusing second setup prompt.
-    pub async fn create_otp_credential(
-        &self,
-        keycloak_id: &str,
-        secret_base32: &str,
-    ) -> Result<(), AppError> {
+    /// Idempotent: setting the action twice is a no-op.
+    pub async fn initiate_totp_setup(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
-        let url = format!("{}/users/{}/credentials", self.realm_url(), keycloak_id);
+        let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
 
-        let secret_data = json!({ "value": secret_base32 }).to_string();
-        let credential_data = json!({
-            "subType": "totp",
-            "period": 30,
-            "digits": 6,
-            "algorithm": "HmacSHA1",
-            "counter": 0,
-        })
-        .to_string();
-
-        let body = json!({
-            "type": "otp",
-            "userLabel": "Authenticator app",
-            "secretData": secret_data,
-            "credentialData": credential_data,
-            "enabled": true,
-        });
-
-        let response = self
-            .client
-            .post(&url)
-            .bearer_auth(&token)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
-
-        check_response!(response, "Failed to create OTP credential");
-        info!(keycloak_id = %keycloak_id, "OTP credential created (MFA enabled)");
-
-        // Best-effort: clear a stale CONFIGURE_TOTP required action so the user
-        // is not prompted to set up 2FA again at their next login. The credential
-        // (the important part) is already created — a failure here must not fail
-        // the request or the user would see an error despite MFA being on.
-        if let Err(e) = async {
-            let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
-            let required_actions: Vec<String> = user
-                .required_actions
-                .iter()
-                .filter(|a| a.as_str() != "CONFIGURE_TOTP")
-                .cloned()
-                .collect();
-            if required_actions.len() != user.required_actions.len() {
-                self.put_user_with_required_actions(&token, &user, required_actions)
-                    .await?;
-            }
-            Ok::<(), AppError>(())
-        }
-        .await
-        {
-            warn!(
-                keycloak_id = %keycloak_id,
-                error = %e,
-                "Failed to clear CONFIGURE_TOTP required action after credential creation (non-fatal)"
-            );
+        if user.required_actions.iter().any(|a| a == "CONFIGURE_TOTP") {
+            return Ok(());
         }
 
+        let mut required_actions = user.required_actions.clone();
+        required_actions.push("CONFIGURE_TOTP".to_string());
+        self.put_user_with_required_actions(&token, &user, required_actions)
+            .await?;
+
+        info!(keycloak_id = %keycloak_id, "CONFIGURE_TOTP required action set — MFA setup initiated");
         Ok(())
     }
 
