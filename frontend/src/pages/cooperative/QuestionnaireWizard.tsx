@@ -65,11 +65,15 @@ const FieldInput: React.FC<{
   field: TemplateField;
   value: unknown;
   onChange: (key: string, value: unknown) => void;
-}> = ({ field, value, onChange }) => {
+  hasError?: boolean;
+}> = ({ field, value, onChange, hasError }) => {
   const { t } = useTranslation();
   const id = `field-${field.key}`;
-  const baseClass =
-    "w-full rounded-xl border border-border bg-card/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/45 focus:border-primary transition-all";
+  const baseClass = `w-full rounded-xl border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all ${
+    hasError
+      ? "border-danger/60 bg-danger/5 focus:ring-danger/30 focus:border-danger"
+      : "border-border bg-card/50 focus:ring-primary/45 focus:border-primary"
+  }`;
 
   if (field.type === "select" && field.options) {
     return (
@@ -142,6 +146,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   const [currentSection, setCurrentSection] = React.useState(0);
   const [answers, setAnswers] = React.useState<Record<string, unknown>>({});
   const [saveSuccess, setSaveSuccess] = React.useState(false);
+  // Keys of fields currently flagged as missing so the input keeps a red ring
+  // until the user actually edits it.
+  const [missingKeys, setMissingKeys] = React.useState<Record<string, boolean>>({});
 
   // Load the active questionnaire template dynamically
   const {
@@ -167,6 +174,13 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
   const handleFieldChange = (key: string, value: unknown) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
+    // Clear the error ring as soon as the user starts editing the field.
+    setMissingKeys((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   };
 
   const handlePopulateTestData = () => {
@@ -215,36 +229,52 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     setTimeout(() => setSaveSuccess(false), 2500);
   };
 
-  const validateCurrentSection = () => {
+  const isValueFilled = (val: unknown): boolean => {
+    return !(val === undefined || val === null || (typeof val === "string" && val.trim() === ""));
+  };
+
+  // Every field in a questionnaire section is mandatory before moving on.
+  const findMissingFields = (fields: TemplateField[]): { key: string; label: string }[] => {
     const missing: { key: string; label: string }[] = [];
-    if (section) {
-      (section.fields || []).forEach((field: TemplateField) => {
-        if (field.required) {
-          const val = answers[field.key];
-          if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
-            missing.push({ key: field.key, label: field.label });
-          }
-        }
-      });
-    }
+    fields.forEach((field: TemplateField) => {
+      if (!isValueFilled(answers[field.key])) {
+        missing.push({ key: field.key, label: field.label });
+      }
+    });
+    return missing;
+  };
+
+  // Focus + scroll to the first omitted field and give it a shake.
+  const shakeAndFocus = (key: string) => {
+    const el = document.getElementById(`field-${key}`);
+    if (!el) return;
+    el.focus();
+    el.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    el.animate?.(
+      [
+        { transform: "translateX(0)" },
+        { transform: "translateX(-5px)" },
+        { transform: "translateX(5px)" },
+        { transform: "translateX(-5px)" },
+        { transform: "translateX(5px)" },
+        { transform: "translateX(0)" },
+      ],
+      { duration: 400, iterations: 1 },
+    );
+  };
+
+  const validateCurrentSection = () => {
+    if (!section) return true;
+    const missing = findMissingFields(section.fields || []);
+    setMissingKeys(Object.fromEntries(missing.map((m) => [m.key, true])));
 
     if (missing.length > 0) {
-      toast.error(t("questionnaire.requiredFieldsSection", { fields: missing.map(m => m.label).join(", ") }));
-      const firstMissing = document.getElementById(`field-${missing[0].key}`);
-      if (firstMissing) {
-        firstMissing.focus();
-        firstMissing.animate(
-          [
-            { transform: "translateX(0)" },
-            { transform: "translateX(-5px)" },
-            { transform: "translateX(5px)" },
-            { transform: "translateX(-5px)" },
-            { transform: "translateX(5px)" },
-            { transform: "translateX(0)" },
-          ],
-          { duration: 400, iterations: 1 }
-        );
-      }
+      toast.error(
+        t("questionnaire.requiredFieldsSection", {
+          fields: missing.map((m) => m.label).join(", "),
+        }),
+      );
+      shakeAndFocus(missing[0].key);
       return false;
     }
     return true;
@@ -261,53 +291,38 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   };
 
   const handleSubmitAll = async () => {
-    // Validate all sections
-    const missing: Array<{ sectionTitle: string; fieldLabel: string; fieldKey: string; sectionIndex: number }> = [];
+    // Validate every field across all sections
+    const missing: Array<{
+      sectionTitle: string;
+      fieldLabel: string;
+      fieldKey: string;
+      sectionIndex: number;
+    }> = [];
     sections.forEach((sec: TemplateSection, secIdx: number) => {
-      (sec.fields || []).forEach((field: TemplateField) => {
-        if (field.required) {
-          const val = answers[field.key];
-          if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
-            missing.push({
-              sectionTitle: sec.title,
-              fieldLabel: field.label,
-              fieldKey: field.key,
-              sectionIndex: secIdx,
-            });
-          }
-        }
+      findMissingFields(sec.fields || []).forEach((m) => {
+        missing.push({
+          sectionTitle: sec.title,
+          fieldLabel: m.label,
+          fieldKey: m.key,
+          sectionIndex: secIdx,
+        });
       });
     });
 
     if (missing.length > 0) {
+      setMissingKeys(Object.fromEntries(missing.map((m) => [m.fieldKey, true])));
       toast.error(
         t("questionnaire.cannotCompleteFields", {
           fields: missing.map((m) => `"${m.fieldLabel}" (${m.sectionTitle})`).join(", "),
         }),
       );
-      // Focus/go to the first section with missing fields
+      // Jump to the first section with missing fields, then focus its first empty field
       setCurrentSection(missing[0].sectionIndex);
-      
-      setTimeout(() => {
-        const firstMissing = document.getElementById(`field-${missing[0].fieldKey}`);
-        if (firstMissing) {
-          firstMissing.focus();
-          firstMissing.animate(
-            [
-              { transform: "translateX(0)" },
-              { transform: "translateX(-5px)" },
-              { transform: "translateX(5px)" },
-              { transform: "translateX(-5px)" },
-              { transform: "translateX(5px)" },
-              { transform: "translateX(0)" },
-            ],
-            { duration: 400, iterations: 1 }
-          );
-        }
-      }, 100);
+      setTimeout(() => shakeAndFocus(missing[0].fieldKey), 100);
       return;
     }
 
+    setMissingKeys({});
     await saveMutation.mutateAsync({
       questionnaire_type: questionnaireType,
       answers,
@@ -484,6 +499,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                 {section.description && (
                   <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
                 )}
+                <p className="text-xs font-medium text-destructive/80 mt-1.5">
+                  * {t("questionnaire.allFieldsRequired")}
+                </p>
               </div>
             </div>
 
@@ -493,9 +511,12 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   key={field.key}
                   className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
                 >
-                  <label className="text-sm font-medium text-foreground/80 mb-0.5">
+                  <label
+                    htmlFor={`field-${field.key}`}
+                    className="text-sm font-medium text-foreground/80 mb-0.5"
+                  >
                     {field.label}
-                    {field.required && <span className="text-destructive ml-0.5">*</span>}
+                    <span className="text-destructive ml-0.5">*</span>
                   </label>
                   {field.description && (
                     <span className="text-xs text-muted-foreground -mt-1 mb-1 leading-relaxed">
@@ -506,6 +527,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                     field={field}
                     value={answers[field.key]}
                     onChange={handleFieldChange}
+                    hasError={!!missingKeys[field.key]}
                   />
                 </div>
               ))}

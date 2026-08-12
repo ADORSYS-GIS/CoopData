@@ -1261,6 +1261,7 @@
     "enterField": "Entrer {{field}}…",
     "testDataPopulated": "Réponses de questionnaire de test peuplées !",
     "requiredFieldsSection": "Veuillez remplir tous les champs obligatoires de cette section avant de continuer : {{fields}}",
+    "allFieldsRequired": "Tous les champs sont obligatoires",
     "cannotCompleteFields": "Impossible de terminer le questionnaire. Veuillez remplir les champs obligatoires suivants : {{fields}}",
     "loadingConfig": "Chargement de la configuration du formulaire…",
     "noQuestionnaireFound": "Aucun questionnaire actif trouvé",

@@ -1261,6 +1261,7 @@
     "enterField": "Faka {{field}}...",
     "testDataPopulated": "Izimpendulo zemibuzo yekuhlola zigcwalisiwe!",
     "requiredFieldsSection": "Sicela ugcwalise tonkhe tinsimu ezidingekako kulesigaba ngaphambi kokuqhubeka: {{fields}}",
+    "allFieldsRequired": "Tonkhe tinsimu tidzingekile",
     "cannotCompleteFields": "Akukwazi kugcwalisa umbuzo. Sicela ugcwalise letinsimu ezilandelayo ezidingekako: {{fields}}",
     "loadingConfig": "Kulayisha ukuhlelwa kwefomu...",
     "noQuestionnaireFound": "Akukho mbuzo osebentako otholiwe",

@@ -1261,6 +1261,7 @@
     "enterField": "Introduzir {{field}}…",
     "testDataPopulated": "Respostas de questionário de teste preenchidas!",
     "requiredFieldsSection": "Por favor, preencha todos os campos obrigatórios nesta secção antes de continuar: {{fields}}",
+    "allFieldsRequired": "Todos os campos são obrigatórios",
     "cannotCompleteFields": "Não é possível completar o questionário. Por favor, preencha os seguintes campos obrigatórios: {{fields}}",
     "loadingConfig": "A carregar configuração do formulário…",
     "noQuestionnaireFound": "Nenhum questionário ativo encontrado",

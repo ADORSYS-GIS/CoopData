@@ -1260,6 +1260,7 @@
     "select": "— Select —",
     "enterField": "Enter {{field}}...",
     "testDataPopulated": "Test questionnaire answers populated!",
+    "allFieldsRequired": "All fields are required",
     "requiredFieldsSection": "Please fill in all required fields in this section before continuing: {{fields}}",
     "cannotCompleteFields": "Cannot complete questionnaire. Please fill in the following required fields: {{fields}}",
     "loadingConfig": "Loading form configuration...",
