@@ -67,12 +67,14 @@ const FieldInput: React.FC<{
   onChange: (key: string, value: unknown) => void;
 }> = ({ field, value, onChange }) => {
   const { t } = useTranslation();
+  const id = `field-${field.key}`;
   const baseClass =
     "w-full rounded-xl border border-border bg-card/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/45 focus:border-primary transition-all";
 
   if (field.type === "select" && field.options) {
     return (
       <select
+        id={id}
         className={baseClass}
         value={(value as string) ?? ""}
         onChange={(e) => onChange(field.key, e.target.value)}
@@ -91,6 +93,7 @@ const FieldInput: React.FC<{
   if (field.type === "textarea") {
     return (
       <textarea
+        id={id}
         rows={3}
         className={`${baseClass} resize-none`}
         value={(value as string) ?? ""}
@@ -103,6 +106,7 @@ const FieldInput: React.FC<{
 
   return (
     <input
+      id={id}
       type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
       className={baseClass}
       value={(value as string | number) ?? ""}
@@ -211,24 +215,43 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     setTimeout(() => setSaveSuccess(false), 2500);
   };
 
-  const handleSaveAndNext = async () => {
-    // Validate current section's required fields
-    const missing: string[] = [];
+  const validateCurrentSection = () => {
+    const missing: { key: string; label: string }[] = [];
     if (section) {
       (section.fields || []).forEach((field: TemplateField) => {
         if (field.required) {
           const val = answers[field.key];
           if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
-            missing.push(field.label);
+            missing.push({ key: field.key, label: field.label });
           }
         }
       });
     }
 
     if (missing.length > 0) {
-      toast.error(t("questionnaire.requiredFieldsSection", { fields: missing.join(", ") }));
-      return;
+      toast.error(t("questionnaire.requiredFieldsSection", { fields: missing.map(m => m.label).join(", ") }));
+      const firstMissing = document.getElementById(`field-${missing[0].key}`);
+      if (firstMissing) {
+        firstMissing.focus();
+        firstMissing.animate(
+          [
+            { transform: "translateX(0)" },
+            { transform: "translateX(-5px)" },
+            { transform: "translateX(5px)" },
+            { transform: "translateX(-5px)" },
+            { transform: "translateX(5px)" },
+            { transform: "translateX(0)" },
+          ],
+          { duration: 400, iterations: 1 }
+        );
+      }
+      return false;
     }
+    return true;
+  };
+
+  const handleSaveAndNext = async () => {
+    if (!validateCurrentSection()) return;
 
     await handleSave();
     if (currentSection < sections.length - 1) {
@@ -239,7 +262,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
 
   const handleSubmitAll = async () => {
     // Validate all sections
-    const missing: Array<{ sectionTitle: string; fieldLabel: string; sectionIndex: number }> = [];
+    const missing: Array<{ sectionTitle: string; fieldLabel: string; fieldKey: string; sectionIndex: number }> = [];
     sections.forEach((sec: TemplateSection, secIdx: number) => {
       (sec.fields || []).forEach((field: TemplateField) => {
         if (field.required) {
@@ -248,6 +271,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             missing.push({
               sectionTitle: sec.title,
               fieldLabel: field.label,
+              fieldKey: field.key,
               sectionIndex: secIdx,
             });
           }
@@ -263,6 +287,24 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
       );
       // Focus/go to the first section with missing fields
       setCurrentSection(missing[0].sectionIndex);
+      
+      setTimeout(() => {
+        const firstMissing = document.getElementById(`field-${missing[0].fieldKey}`);
+        if (firstMissing) {
+          firstMissing.focus();
+          firstMissing.animate(
+            [
+              { transform: "translateX(0)" },
+              { transform: "translateX(-5px)" },
+              { transform: "translateX(5px)" },
+              { transform: "translateX(-5px)" },
+              { transform: "translateX(5px)" },
+              { transform: "translateX(0)" },
+            ],
+            { duration: 400, iterations: 1 }
+          );
+        }
+      }, 100);
       return;
     }
 
@@ -401,7 +443,12 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
               return (
                 <button
                   key={s.id}
-                  onClick={() => setCurrentSection(idx)}
+                  onClick={() => {
+                    if (idx !== currentSection) {
+                      if (!validateCurrentSection()) return;
+                      setCurrentSection(idx);
+                    }
+                  }}
                   className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                     isCurrent
                       ? "bg-primary text-primary-foreground shadow-sm"
