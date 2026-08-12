@@ -250,6 +250,131 @@ impl KeycloakService {
             .any(|c| c.get("type").and_then(|t| t.as_str()) == Some("otp")))
     }
 
+    /// Whether MFA is "on" for a user: they either already have an OTP
+    /// credential configured, or a CONFIGURE_TOTP required action is pending
+    /// (they asked to enable MFA but haven't set up their authenticator yet).
+    pub async fn get_user_mfa_enabled(&self, user_id: &str) -> Result<bool, AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let user = self.get_user_by_id_raw(&token, user_id).await?;
+        if user.required_actions.iter().any(|a| a == "CONFIGURE_TOTP") {
+            return Ok(true);
+        }
+        self.get_user_otp_status(user_id).await
+    }
+
+    /// Keycloak's `PUT /users/{id}` is a full replace of the representation, so
+    /// we must echo every field we fetched (username, email, …) together with the
+    /// updated required actions. Attributes are always sent as a map — never
+    /// `null` — so we can't accidentally wipe user attributes such as
+    /// `org.ro.active` or `assigned_dimensions`.
+    async fn put_user_with_required_actions(
+        &self,
+        token: &str,
+        user: &KeycloakUser,
+        required_actions: Vec<String>,
+    ) -> Result<(), AppError> {
+        let url = format!("{}/users/{}", self.realm_url(), user.id);
+        let body = json!({
+            "username": user.username,
+            "email": user.email,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "enabled": user.enabled,
+            "emailVerified": user.email_verified,
+            "attributes": user.attributes.clone().unwrap_or_default(),
+            "requiredActions": required_actions,
+        });
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to update Keycloak user");
+        Ok(())
+    }
+
+    /// Enable or disable MFA (TOTP authenticator app) for a user.
+    ///
+    /// - Enable: adds the `CONFIGURE_TOTP` required action so the user is
+    ///   prompted to scan a QR code and register an authenticator app at their
+    ///   next login.
+    /// - Disable: removes any existing OTP credentials and clears the pending
+    ///   `CONFIGURE_TOTP` required action.
+    pub async fn set_user_mfa(&self, keycloak_id: &str, enabled: bool) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+
+        if enabled {
+            let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
+            if user.required_actions.iter().any(|a| a == "CONFIGURE_TOTP") {
+                return Ok(()); // already pending setup
+            }
+            let mut required_actions = user.required_actions.clone();
+            required_actions.push("CONFIGURE_TOTP".to_string());
+
+            self.put_user_with_required_actions(&token, &user, required_actions)
+                .await?;
+            info!(keycloak_id = %keycloak_id, "MFA (TOTP) setup requested");
+            return Ok(());
+        }
+
+        // Disable: delete any existing OTP credentials first.
+        let cred_url = format!("{}/users/{}/credentials", self.realm_url(), keycloak_id);
+        let response = self
+            .client
+            .get(&cred_url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+        check_response!(response, "Failed to fetch user credentials");
+
+        let credentials: Vec<serde_json::Value> = response
+            .json()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        for cred in credentials {
+            if cred.get("type").and_then(|t| t.as_str()) != Some("otp") {
+                continue;
+            }
+            if let Some(cred_id) = cred.get("id").and_then(|id| id.as_str()) {
+                let del_url = format!(
+                    "{}/users/{}/credentials/{}",
+                    self.realm_url(),
+                    keycloak_id,
+                    cred_id
+                );
+                let del_resp = self
+                    .client
+                    .delete(&del_url)
+                    .bearer_auth(&token)
+                    .send()
+                    .await
+                    .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+                check_response!(del_resp, "Failed to remove OTP credential");
+            }
+        }
+
+        // Clear any pending CONFIGURE_TOTP action so the prompt disappears.
+        let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
+        let required_actions: Vec<String> = user
+            .required_actions
+            .iter()
+            .filter(|a| a.as_str() != "CONFIGURE_TOTP")
+            .cloned()
+            .collect();
+
+        self.put_user_with_required_actions(&token, &user, required_actions)
+            .await?;
+        info!(keycloak_id = %keycloak_id, "MFA (TOTP) disabled");
+        Ok(())
+    }
+
     async fn get_realm_management_client_id(&self) -> Result<String, AppError> {
         {
             let cached = self.realm_management_client_id.read().await;

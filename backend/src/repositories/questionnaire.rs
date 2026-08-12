@@ -1,6 +1,8 @@
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait};
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]

@@ -2,7 +2,10 @@ use axum::extract::Extension;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
-use crate::api::dto::member::{ChangePasswordRequest, ChangePasswordResponse, UserProfileResponse};
+use crate::api::dto::member::{
+    ChangePasswordRequest, ChangePasswordResponse, SecuritySettingsResponse, UpdateMfaRequest,
+    UserProfileResponse,
+};
 use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
@@ -178,5 +181,79 @@ pub async fn verify_identity(
             verification_token: token,
             requires_otp: has_otp,
         }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/me/security",
+    responses(
+        (status = 200, description = "Current user security settings", body = SecuritySettingsResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn get_security_settings(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let mfa_enabled = state.keycloak.get_user_mfa_enabled(&claims.sub).await?;
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse { mfa_enabled }),
+    ))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/me/security/mfa",
+    request_body = UpdateMfaRequest,
+    responses(
+        (status = 200, description = "MFA setting updated", body = SecuritySettingsResponse),
+        (status = 400, description = "Invalid input", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn update_mfa(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Json(body): Json<UpdateMfaRequest>,
+) -> AppResult<impl IntoResponse> {
+    state
+        .keycloak
+        .set_user_mfa(&claims.sub, body.enabled)
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to update MFA setting");
+            e
+        })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            if body.enabled {
+                "MFA_ENABLED"
+            } else {
+                "MFA_DISABLED"
+            },
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(user_id = %claims.sub, enabled = body.enabled, "MFA setting updated");
+    let mfa_enabled = state.keycloak.get_user_mfa_enabled(&claims.sub).await?;
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse { mfa_enabled }),
     ))
 }

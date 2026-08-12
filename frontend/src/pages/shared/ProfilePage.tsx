@@ -1,10 +1,11 @@
-import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Clock, Loader2 } from "lucide-react";
+import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Loader2 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useAuth, ROLES, useUserRole } from "@/lib/auth";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
+import { useSecuritySettings, useUpdateMfa } from "@/hooks/auth/useSecuritySettings";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -123,8 +124,19 @@ export const ProfilePage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const role = useUserRole();
-  const [mfaActive, setMfaActive] = useState(true);
-  const [sessionTimeout, setSessionTimeout] = useState(60);
+  const { data: security, isLoading: securityLoading } = useSecuritySettings();
+  const updateMfa = useUpdateMfa();
+  const mfaEnabled = security?.mfa_enabled ?? false;
+
+  const handleToggleMfa = async () => {
+    const next = !mfaEnabled;
+    try {
+      await updateMfa.mutateAsync(next);
+      toast.success(t(next ? "profile.mfaEnabledToast" : "profile.mfaDisabledToast"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("profile.unexpectedError"));
+    }
+  };
 
   if (!role || !user) return null;
 
@@ -299,43 +311,32 @@ export const ProfilePage: React.FC = () => {
                     <p className="text-xs text-muted-foreground">{t("profile.mfaDesc")}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      setMfaActive(!mfaActive);
-                      toast.success(`MFA ${!mfaActive ? "ENABLED" : "DISABLED"}`);
-                    }}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${mfaActive ? "bg-success border-success" : "bg-muted border-border"}`}
+                    onClick={handleToggleMfa}
+                    disabled={updateMfa.isPending || securityLoading}
+                    role="switch"
+                    aria-checked={mfaEnabled}
+                    aria-label={t("profile.mfa")}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
+                      mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <span
-                      className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform ${mfaActive ? "translate-x-[18px]" : "translate-x-0"}`}
-                    />
+                      className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
+                        mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
+                      }`}
+                    >
+                      {updateMfa.isPending && (
+                        <Loader2 className="size-3 animate-spin text-primary" />
+                      )}
+                    </span>
                   </button>
                 </div>
-                <div className="p-3.5 rounded-xl border border-border bg-muted/30 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="size-4 text-accent" />
-                      <span className="text-sm font-semibold text-foreground">
-                        {t("profile.autoLockout")}
-                      </span>
-                    </div>
-                    <span className="text-sm font-mono font-bold text-accent tabular-nums">
-                      {t("profile.minutes", { count: sessionTimeout })}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="180"
-                    step="15"
-                    value={sessionTimeout}
-                    onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
-                    className="w-full accent-accent h-1.5 rounded-lg outline-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                    <span>{t("profile.minutes", { count: 15 })}</span>
-                    <span>{t("profile.minutes", { count: 180 })}</span>
-                  </div>
-                </div>
+                {securityLoading && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" />
+                    {t("profile.loadingSecurity")}
+                  </p>
+                )}
               </div>
             </Card>
 

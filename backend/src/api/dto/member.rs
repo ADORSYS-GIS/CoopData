@@ -15,6 +15,19 @@ pub struct ChangePasswordResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SecuritySettingsResponse {
+    /// True when the user has an OTP credential configured OR a pending
+    /// CONFIGURE_TOTP required action (i.e. they asked to enable MFA but have
+    /// not yet set up their authenticator app).
+    pub mfa_enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateMfaRequest {
+    pub enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddMemberRequest {
     pub email: String,
     pub first_name: String,
