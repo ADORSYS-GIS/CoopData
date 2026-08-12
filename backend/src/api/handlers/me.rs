@@ -284,10 +284,10 @@ pub async fn disable_mfa(
             AppError::BadRequest("Unable to verify credentials for this account".to_string())
         })?;
 
-    // Verify password before allowing MFA disable
+    // Verify password and OTP before allowing MFA disable
     state
         .keycloak
-        .verify_user_password(username, &body.password, None)
+        .verify_user_password(username, &body.password, Some(&body.otp))
         .await?;
 
     state

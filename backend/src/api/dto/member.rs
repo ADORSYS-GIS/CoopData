@@ -25,6 +25,7 @@ pub struct SecuritySettingsResponse {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct DisableMfaRequest {
     pub password: String,
+    pub otp: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
