@@ -1,0 +1,106 @@
+import { offlineDb, type SyncQueueItem } from "./offlineDb";
+import { getAccessToken } from "./authService";
+
+export async function enqueue(
+  item: Omit<SyncQueueItem, "id" | "correlationId" | "createdAt" | "retryCount" | "status">,
+): Promise<string> {
+  const correlationId = crypto.randomUUID();
+  await offlineDb.syncQueue.add({
+    ...item,
+    correlationId,
+    createdAt: Date.now(),
+    retryCount: 0,
+    status: "pending",
+  });
+
+  if ("serviceWorker" in navigator && "SyncManager" in window) {
+    try {
+      const sw = await navigator.serviceWorker.ready;
+      await (sw as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register(
+        "coopdata-sync",
+      );
+    } catch (e) {
+      console.warn("[syncQueue] Could not register background sync:", e);
+    }
+  }
+
+  return correlationId;
+}
+
+export async function getPendingCount(): Promise<number> {
+  try {
+    return await offlineDb.syncQueue.where("status").equals("pending").count();
+  } catch {
+    return 0;
+  }
+}
+
+export async function getFailedItems(): Promise<SyncQueueItem[]> {
+  return await offlineDb.syncQueue.where("status").equals("failed").toArray();
+}
+
+export async function retryFailed(): Promise<void> {
+  await offlineDb.syncQueue
+    .where("status")
+    .equals("failed")
+    .modify({ status: "pending", retryCount: 0, lastError: undefined });
+
+  if ("serviceWorker" in navigator && "SyncManager" in window) {
+    try {
+      const sw = await navigator.serviceWorker.ready;
+      await (sw as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register(
+        "coopdata-sync",
+      );
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export async function flushSyncQueue(): Promise<void> {
+  if (!navigator.onLine) return;
+
+  const pending = await offlineDb.syncQueue.where("status").equals("pending").toArray();
+  if (pending.length === 0) return;
+
+  console.log(`[syncQueue] Processing ${pending.length} pending offline items...`);
+
+  for (const item of pending) {
+    try {
+      await offlineDb.syncQueue.update(item.id!, { status: "syncing" });
+
+      const token = await getAccessToken();
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const url = `${baseUrl}${item.endpoint}`;
+
+      const res = await fetch(url, {
+        method: item.method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Correlation-Id": item.correlationId,
+        },
+        body: item.body ? JSON.stringify(item.body) : undefined,
+      });
+
+      if (res.ok) {
+        await offlineDb.syncQueue.update(item.id!, { status: "done" });
+      } else {
+        const errorText = await res.text().catch(() => `HTTP ${res.status}`);
+        const retryCount = (item.retryCount ?? 0) + 1;
+        await offlineDb.syncQueue.update(item.id!, {
+          status: retryCount >= 5 ? "failed" : "pending",
+          retryCount,
+          lastError: errorText,
+        });
+      }
+    } catch (err) {
+      const retryCount = (item.retryCount ?? 0) + 1;
+      await offlineDb.syncQueue.update(item.id!, {
+        status: retryCount >= 5 ? "failed" : "pending",
+        retryCount,
+        lastError: String(err),
+      });
+    }
+  }
+}

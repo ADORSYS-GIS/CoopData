@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_KEYCLOAK_URL": JSON.stringify(keycloakUrl),
     },
     build: {
-      outDir: "dist-pwa",
+      outDir: "dist",
     },
     plugins: [
       TanStackRouterVite({ autoCodeSplitting: true }),
@@ -35,7 +35,6 @@ export default defineConfig(({ mode }) => {
       tsConfigPaths(),
       e2eMockAuth(),
       VitePWA({
-        outDir: "dist-pwa",
         registerType: "autoUpdate",
         injectRegister: "auto",
         // Use generateSW strategy: Workbox creates the SW from the manifest

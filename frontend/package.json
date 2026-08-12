@@ -8,7 +8,7 @@
     "predev": "node ../scripts/fetch_openapi.js",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview --outDir dist-pwa",
+    "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
     "prettier:check": "prettier --check .",
