@@ -2458,6 +2458,7 @@
       "subtitle": "{{total}} items · {{unmapped}} unmapped · {{lowConf}} low confidence",
       "deleteStatement": "Delete Statement",
       "resolveErrorsHint": "Resolve errors before marking ready",
+      "enterDataHint": "Enter financial data before marking this section ready",
       "markReady": "Mark Section Ready",
       "ready": "Section Ready"
     },

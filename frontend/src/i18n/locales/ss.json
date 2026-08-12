@@ -2448,6 +2448,7 @@
       "subtitle": "{{total}} izinto · {{unmapped}} ezingamaphishiwe · {{lowConf}} okuqiniseka okuphansi",
       "deleteStatement": "Susa Sitatimende",
       "resolveErrorsHint": "Xazulula amaphutsa ngaphambi kokumaka kulungele",
+      "enterDataHint": "Faka ematfumo etimali ngaphambi kokumaka lesigaba silungele",
       "markReady": "Maka Isigaba Kulungele",
       "ready": "Isigaba Silungele"
     },

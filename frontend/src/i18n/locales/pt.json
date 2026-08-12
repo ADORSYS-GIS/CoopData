@@ -2448,6 +2448,7 @@
       "subtitle": "{{total}} itens · {{unmapped}} não mapeados · {{lowConf}} baixa confiança",
       "deleteStatement": "Eliminar Demonstração",
       "resolveErrorsHint": "Resolva os erros antes de marcar como pronto",
+      "enterDataHint": "Insira dados financeiros antes de marcar esta secção como pronta",
       "markReady": "Marcar Secção como Pronta",
       "ready": "Secção Pronta"
     },

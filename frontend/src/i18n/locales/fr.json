@@ -2448,6 +2448,7 @@
       "subtitle": "{{total}} éléments · {{unmapped}} non mappés · {{lowConf}} faible confiance",
       "deleteStatement": "Supprimer l'état",
       "resolveErrorsHint": "Résolvez les erreurs avant de marquer comme prêt",
+      "enterDataHint": "Saisissez des données financières avant de marquer cette section comme prête",
       "markReady": "Marquer la section comme prête",
       "ready": "Section prête"
     },
