@@ -4913,6 +4913,16 @@
           "Auth"
         ],
         "operationId": "disable_mfa",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableMfaRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "MFA disabled",
@@ -8802,6 +8812,21 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          }
+        }
+      },
+      "DisableMfaRequest": {
+        "type": "object",
+        "required": [
+          "password",
+          "otp"
+        ],
+        "properties": {
+          "otp": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
           }
         }
       },

@@ -105,10 +105,12 @@ describe("useDisableMfa", () => {
 
     let response;
     await act(async () => {
-      response = await result.current.mutateAsync();
+      response = await result.current.mutateAsync({ password: "test-password", otp: "123456" });
     });
 
-    expect(mockedDelete).toHaveBeenCalledWith("/api/v1/me/security/mfa");
+    expect(mockedDelete).toHaveBeenCalledWith("/api/v1/me/security/mfa", {
+      body: { password: "test-password", otp: "123456" },
+    });
     expect(response).toEqual({ mfa_enabled: false });
   });
 });

@@ -361,7 +361,9 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
               {apexData.map((row, i) => (
                 <tr key={i} className="even:bg-slate-50">
                   <td className="p-1.5 border border-slate-300 font-medium">{row.apex}</td>
-                  <td className="p-1.5 border border-slate-300 text-right font-bold">{row.coops}</td>
+                  <td className="p-1.5 border border-slate-300 text-right font-bold">
+                    {row.coops}
+                  </td>
                   <td className="p-1.5 border border-slate-300 text-right">{row.submitted}</td>
                   <td className="p-1.5 border border-slate-300 text-right">{row.approved}</td>
                   <td className="p-1.5 border border-slate-300 text-right">{row.returned}</td>
