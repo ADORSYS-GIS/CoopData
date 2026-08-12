@@ -91,9 +91,11 @@ export default defineConfig(({ mode }) => {
           ],
         },
         devOptions: {
-          // Enable SW in dev so we can test offline behaviour locally
+          // Enable SW in dev so we can test offline behaviour locally in Docker dev (port 5173)
           enabled: true,
           type: "module",
+          navigateFallback: "index.html",
+          suppressWarnings: true,
         },
       }),
     ],
