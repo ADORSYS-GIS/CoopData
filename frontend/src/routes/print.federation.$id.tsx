@@ -51,15 +51,13 @@ function PrintComponent() {
   }
 
   return (
-    <div className="bg-slate-200 min-h-screen">
-      <FederationReportPrint
-        entityName={federation?.name ?? "Federation"}
-        year={currentYear}
-        data={overviewData}
-        priorData={priorData}
-        narratives={narratives}
-      />
-    </div>
+    <FederationReportPrint
+      entityName={federation?.name ?? "Federation"}
+      year={currentYear}
+      data={overviewData}
+      priorData={priorData}
+      narratives={narratives}
+    />
   );
 }
 
