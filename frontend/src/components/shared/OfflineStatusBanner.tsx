@@ -3,20 +3,13 @@ import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
 import { useTranslation } from "react-i18next";
 
 /**
- * A non-intrusive top-of-screen banner that reflects the current network state:
- *
- *  - Amber:   browser is offline — showing cached data
- *  - Green:   just came back online — syncing
- *  - Hidden:  online and nothing pending
- *
- * Mounted once in __root.tsx so it appears on every route.
+ * Top-of-screen banner reflecting the current network and sync state.
  */
 export function OfflineStatusBanner() {
-  const { isOnline, wasOffline } = useNetworkStatus();
+  const { isOnline, wasOffline, pendingSyncCount } = useNetworkStatus();
   const { t } = useTranslation();
 
-  // Fully hidden when online and no recent transition
-  if (isOnline && !wasOffline) return null;
+  if (isOnline && !wasOffline && pendingSyncCount === 0) return null;
 
   return (
     <div
@@ -34,11 +27,21 @@ export function OfflineStatusBanner() {
         <>
           <WifiOff className="size-3.5 shrink-0" aria-hidden="true" />
           <span>{t("offline.banner")}</span>
+          {pendingSyncCount > 0 && (
+            <span className="ml-1.5 rounded-full bg-amber-950/20 px-2 py-0.5 text-[10px] font-bold">
+              {pendingSyncCount} pending
+            </span>
+          )}
         </>
       ) : (
         <>
           <Wifi className="size-3.5 shrink-0" aria-hidden="true" />
           <span>{t("offline.backOnline")}</span>
+          {pendingSyncCount > 0 && (
+            <span className="ml-1.5 rounded-full bg-emerald-950/20 px-2 py-0.5 text-[10px] font-bold">
+              {pendingSyncCount} syncing
+            </span>
+          )}
         </>
       )}
     </div>
