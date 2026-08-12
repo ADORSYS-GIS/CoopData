@@ -25,6 +25,9 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl),
       "import.meta.env.VITE_KEYCLOAK_URL": JSON.stringify(keycloakUrl),
     },
+    build: {
+      outDir: "dist-pwa",
+    },
     plugins: [
       TanStackRouterVite({ autoCodeSplitting: true }),
       react(),
@@ -32,6 +35,7 @@ export default defineConfig(({ mode }) => {
       tsConfigPaths(),
       e2eMockAuth(),
       VitePWA({
+        outDir: "dist-pwa",
         registerType: "autoUpdate",
         injectRegister: "auto",
         // Use generateSW strategy: Workbox creates the SW from the manifest
@@ -49,6 +53,22 @@ export default defineConfig(({ mode }) => {
             // Don't intercept API or Keycloak auth requests
             /^\/api\//,
             /^\/auth\//,
+          ],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "google-fonts",
+                expiration: {
+                  maxEntries: 30,
+                  maxAgeSeconds: 60 * 60 * 24 * 365,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
           ],
           // Skip waiting and claim clients immediately
           skipWaiting: true,

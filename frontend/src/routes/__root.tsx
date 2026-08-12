@@ -9,6 +9,8 @@ import { ThemeProvider } from "../lib/theme";
 import { useTranslation } from "react-i18next";
 import { OfflineStatusBanner } from "@/components/shared/OfflineStatusBanner";
 
+import { flushSyncQueue } from "@/services/shared/syncQueueService";
+
 const IDB_QUERY_CACHE_KEY = "coopdata_query_cache";
 const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -119,6 +121,7 @@ function RootComponent() {
           }}
           onSuccess={() => {
             void queryClient.resumePausedMutations();
+            void flushSyncQueue();
           }}
         >
           <OfflineStatusBanner />
