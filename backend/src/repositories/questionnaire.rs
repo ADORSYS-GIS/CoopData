@@ -143,14 +143,11 @@ impl QuestionnaireRepository {
             query = query.filter(QuestionnaireResponseColumn::CooperativeId.is_in(coop_ids));
         }
         if let Some(r) = region {
+            // Only apply the region filter when the value parses to a valid
+            // Eswatini region. An unrecognized value is ignored rather than
+            // producing an impossible (never-matching) WHERE clause.
             if let Some(reg) = crate::entities::enums::EswatiniRegion::parse(&r) {
                 query = query.filter(crate::entities::cooperative::Column::Region.eq(reg));
-            } else {
-                query = query.filter(
-                    crate::entities::cooperative::Column::Region
-                        .is_null()
-                        .and(crate::entities::cooperative::Column::Region.is_not_null()),
-                );
             }
         }
         if let Some(s) = sector {

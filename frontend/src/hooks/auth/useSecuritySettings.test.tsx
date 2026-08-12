@@ -113,4 +113,15 @@ describe("useDisableMfa", () => {
     });
     expect(response).toEqual({ mfa_enabled: false });
   });
+
+  it("should surface the backend error when disabling MFA fails", async () => {
+    mockedDelete.mockResolvedValue(errResult("Invalid OTP code") as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useDisableMfa(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ password: "test-password", otp: "123456" }),
+    ).rejects.toThrow("Invalid OTP code");
+  });
 });

@@ -277,6 +277,13 @@ pub async fn disable_mfa(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<DisableMfaRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Defense-in-depth: validate the OTP format before forwarding to Keycloak.
+    if body.otp.len() != 6 || !body.otp.chars().all(|c| c.is_ascii_digit()) {
+        return Err(AppError::BadRequest(
+            "OTP must be a 6-digit code".to_string(),
+        ));
+    }
+
     let username = claims
         .username()
         .or(claims.email.as_deref())
