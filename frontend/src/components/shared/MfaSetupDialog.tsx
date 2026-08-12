@@ -109,7 +109,12 @@ export const MfaSetupDialog: React.FC<MfaSetupDialogProps> = ({
 
           {mfaSetup.isSuccess && mfaSetup.data && (
             <>
-              <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                <img
+                  src="/coopdatalogo.png"
+                  alt={t("common.logoAlt")}
+                  className="h-8 w-auto object-contain"
+                />
                 <QRCodeSVG
                   value={mfaSetup.data.otpauth_uri}
                   size={196}
