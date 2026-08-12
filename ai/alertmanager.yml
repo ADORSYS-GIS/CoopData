@@ -1,0 +1,14 @@
+route:
+  receiver: "default"
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: "default"
+    # Add your notification channel here (email, Slack, PagerDuty, webhook).
+    # email_configs:
+    #   - to: "ops@example.com"
+    #     from: "alert@example.com"
+    #     smarthost: "smtp.example.com:587"

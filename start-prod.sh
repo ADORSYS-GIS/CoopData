@@ -185,35 +185,28 @@ info "Pulling pre-built images from GHCR..."
 $COMPOSE_CMD -f "$PROD_COMPOSE" pull
 ok "All images pulled"
 
-# ── Local AI Model Pull ────────────────────────────────────────────────────
-# If the backend is configured to use local Ollama (AI_PROVIDER_URL points at
-# ollama/11434), start the Ollama service and pull the model named by AI_MODEL
-# automatically. No interactive prompt — just set AI_MODEL in .env.
+# ── AI Module Check ─────────────────────────────────────────────────────────
+# Production uses the standalone vLLM module (deployed separately on the GPU
+# instance via the ai/ module). This script does NOT run Ollama — it just
+# verifies the vLLM endpoint configured in AI_PROVIDER_URL is reachable.
 AI_BACKEND=$(grep -E "^EXTRACTION_BACKEND=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "mock")
 AI_URL=$(grep -E "^AI_PROVIDER_URL=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
 AI_MODEL=$(grep -E "^AI_MODEL=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
 
-IS_LOCAL_AI=false
-if [[ "$AI_BACKEND" == "llm" && -n "$AI_MODEL" ]]; then
-    if [[ "$AI_URL" == *"ollama"* || "$AI_URL" == *"11434"* ]]; then
-        IS_LOCAL_AI=true
-    fi
-fi
-
-if [[ "$IS_LOCAL_AI" == true ]]; then
-    info "Local AI detected (model: ${AI_MODEL}). Ensuring Ollama is running..."
-    $COMPOSE_CMD -f "$PROD_COMPOSE" up -d ollama
-    ok "Ollama service started"
-
-    info "Pulling model '${AI_MODEL}' into Ollama (this downloads several GB on first run)..."
-    if $COMPOSE_CMD -f "$PROD_COMPOSE" exec -T ollama ollama pull "$AI_MODEL"; then
-        ok "Model '${AI_MODEL}' is ready"
+if [[ "$AI_BACKEND" == "llm" && -n "$AI_URL" ]]; then
+    info "AI module configured (model: ${AI_MODEL:-<unset>}, url: ${AI_URL}). Checking endpoint..."
+    # Strip path to get the base host for a health probe.
+    AI_HOST="${AI_URL%%/v1*}"
+    if curl -sf --max-time 5 "${AI_HOST}/health" >/dev/null 2>&1 \
+        || curl -sf --max-time 5 "${AI_URL}/models" >/dev/null 2>&1; then
+        ok "AI module (vLLM) is reachable"
     else
-        warn "Model pull failed. Check disk space and network, then re-run:"
-        warn "  $COMPOSE_CMD -f $PROD_COMPOSE exec ollama ollama pull $AI_MODEL"
+        warn "AI module (vLLM) is NOT reachable at ${AI_URL}."
+        warn "Deploy it first via the ai/ module on the GPU instance, then re-run."
+        warn "The app will start, but AI extraction jobs will fail until it is up."
     fi
 else
-    info "Skipping local model pull (EXTRACTION_BACKEND=$AI_BACKEND, AI_PROVIDER_URL=$AI_URL)"
+    info "Skipping AI module check (EXTRACTION_BACKEND=$AI_BACKEND)"
 fi
 
 # ── Start Services ─────────────────────────────────────────────────────────

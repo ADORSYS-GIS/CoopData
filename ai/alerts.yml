@@ -1,0 +1,30 @@
+groups:
+  - name: ai
+    rules:
+      - alert: GPUOutOfMemory
+        expr: dcgm_memory_used_bytes / dcgm_memory_total_bytes > 0.95
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "GPU memory above 95%"
+
+      - alert: VLLMDown
+        expr: up{job="vllm"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "vLLM endpoint is down"
+
+      - alert: VLLMQueueHigh
+        expr: vllm:num_requests_waiting > 20
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "vLLM request queue is high"
+
+      - alert: HighErrorRate
+        expr: rate(vllm:request_success_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "High inference error rate"

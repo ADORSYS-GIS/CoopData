@@ -1,0 +1,114 @@
+# CoopData AI Module — standalone deployment
+# Deploy this module independently from the app backend.
+# If this module is down, the rest of the app stays up (backend degrades gracefully).
+#
+# Usage:
+#   docker compose up -d vllm          # start inference only
+#   docker compose up -d               # start inference + monitoring
+#   docker compose up -d monitoring    # start monitoring only
+#
+# Config via .env (see .env.example in this module):
+#   AI_MODEL            model to serve (default: Qwen/Qwen2.5-VL-7B-Instruct)
+#   AI_SERVED_NAME      name exposed to the app (default: qwen2.5vl:7b)
+#   AI_MAX_MODEL_LEN    context length (default: 32768)
+#   AI_MAX_NUM_SEQS     concurrency (default: 8)
+#   AI_GPU_UTIL         GPU memory utilization (default: 0.9)
+
+services:
+  vllm:
+    build: .
+    image: ghcr.io/adorsys-gis/coopdata-ai:latest
+    container_name: coopdata-ai-vllm
+    command:
+      - --model
+      - ${AI_MODEL:-Qwen/Qwen2.5-VL-7B-Instruct}
+      - --quantization
+      - awq
+      - --max-model-len
+      - ${AI_MAX_MODEL_LEN:-32768}
+      - --max-num-seqs
+      - ${AI_MAX_NUM_SEQS:-8}
+      - --gpu-memory-utilization
+      - ${AI_GPU_UTIL:-0.9}
+      - --served-model-name
+      - ${AI_SERVED_NAME:-qwen2.5vl:7b}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - model_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ── Monitoring (optional, deploy with `docker compose up -d monitoring`) ──
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:latest
+    container_name: coopdata-ai-dcgm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "127.0.0.1:9400:9400"
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: coopdata-ai-node
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: coopdata-ai-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: coopdata-ai-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: coopdata-ai-alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+
+volumes:
+  model_cache:
+  prometheus_data:
+  grafana_data:

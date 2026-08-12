@@ -466,13 +466,15 @@
 - [x] **`.env.example`** — documented local (Ollama) vs production (AWS GPU) vs cloud (Gemini) AI config; added `AI_PROVIDER_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_VISION_MODEL`, `AI_MAX_TOKENS`
 - [x] **`docker-compose.yml`** — added `ollama` service (OpenAI-compatible `/v1` endpoint) + `ollama_data` volume
 - [x] **`docker-compose.ghcr.yaml`** — added `ollama` service + `ollama_data` volume for production
-- [x] **`start-prod.sh`** — auto-pulls `AI_MODEL` from `.env` into Ollama on startup (no interactive prompt); skips when `EXTRACTION_BACKEND=mock` or using a cloud provider
+- [x] **`start-prod.sh`** — production uses the standalone vLLM module; verifies the vLLM endpoint is reachable (no Ollama in prod). Local `start.sh` uses Ollama + auto-pulls `AI_MODEL`.
 - [x] **`.env`** — pointed at local Ollama (`http://ollama:11434/v1`, `qwen2.5-vl:3b`) for dev testing
 - [x] **`scripts/setup-ollama-gpu.sh`** — AWS GPU provisioning: NVIDIA driver, Ollama install, bind 0.0.0.0:11434, pull `qwen2.5-vl:32b`
 - [x] **`docs/design-local-ai.md`** — design doc (problem, 4 AI tasks, config-only rationale, model selection, architecture, acceptance criteria)
 - [x] **`docs/runbook-local-ai.md`** — operational runbook (local dev, AWS GPU prod, cost control, troubleshooting)
 - [x] **`docs/ai-optimization-guide.md`** — optimization & orchestration guide (VRAM budget, KV cache, context length, concurrency, continuous batching, vLLM vs Ollama, scaling, cost, recommended prod config)
 - [x] **`docs/ai-architecture-recommendation.md`** — architecture decision (OCR engine + small AI vs big 32B vs two small models), weighted comparison, recommendation = PaddleOCR + Qwen2.5-VL-7B + human review
+- [x] **`docs/ai-deployment-strategy.md`** — deployment strategy (Docker Compose on single GPU, vLLM service, Prometheus/Grafana/DCGM monitoring, alerts, CI/CD GitHub Actions, cost auto-stop, runbook, troubleshooting)
+- [x] **`ai/` module** — standalone, independently deployable AI module (vLLM Dockerfile, docker-compose, Prometheus/Grafana/DCGM monitoring, alerts, CI/CD GitHub Actions, auto-stop script, README). Backend degrades gracefully if the module is down.
 - [x] Verification: `bash -n` on setup script ✅
 
 > **Next:** Pull a model locally and run an end-to-end extraction test; deploy GPU instance on AWS and A/B test `qwen2.5-vl:32b` vs `internvl3:38b`.

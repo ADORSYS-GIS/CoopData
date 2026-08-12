@@ -9,11 +9,11 @@ set -euo pipefail
 # Installs:
 #   1. NVIDIA driver + CUDA (if not already present)
 #   2. Ollama (OpenAI-compatible /v1 endpoint)
-#   3. Pulls the production multimodal model (qwen2.5-vl:32b)
+#   3. Pulls the production multimodal model (qwen2.5vl:32b)
 #   4. Binds Ollama to 0.0.0.0 so the backend can reach it over the VPC
 #
 # Usage:  sudo ./setup-ollama-gpu.sh [model]
-#   Default model: qwen2.5-vl:32b
+#   Default model: qwen2.5vl:32b
 # ═══════════════════════════════════════════════════════════════════════════
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
@@ -22,7 +22,7 @@ ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
-MODEL="${1:-qwen2.5-vl:32b}"
+MODEL="${1:-qwen2.5vl:32b}"
 
 if [[ $EUID -ne 0 ]]; then
     error "Please run as root: sudo ./setup-ollama-gpu.sh"

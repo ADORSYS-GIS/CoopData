@@ -197,20 +197,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── Local AI inference (Ollama) — OpenAI-compatible /v1 endpoint ─────────
-  # The backend reaches it at http://ollama:11434/v1 (set AI_PROVIDER_URL in
-  # .env). The model named by AI_MODEL is pulled automatically by start-prod.sh.
-  ollama:
-    image: ollama/ollama:latest
-    container_name: coopdata-ollama
-    ports:
-      - "127.0.0.1:11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   redis_data:
   minio_data:
-  ollama_data:

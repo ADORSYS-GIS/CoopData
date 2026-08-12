@@ -1,0 +1,32 @@
+name: deploy-ai-module
+
+on:
+  push:
+    branches: [main]
+    paths: ["ai/**"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build vLLM image
+        run: docker build -t ghcr.io/${{ github.repository }}/coopdata-ai:${GITHUB_SHA::7} ./ai
+
+      - name: Push image to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          docker push ghcr.io/${{ github.repository }}/coopdata-ai:${GITHUB_SHA::7}
+
+      - name: Deploy to GPU instance
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.GPU_HOST }}
+          username: ubuntu
+          key: ${{ secrets.GPU_SSH_KEY }}
+          script: |
+            cd /opt/coopdata-ai
+            git pull
+            docker compose pull
+            docker compose up -d vllm
