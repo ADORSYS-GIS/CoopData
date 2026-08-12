@@ -15,17 +15,17 @@ test.describe("Role-based redirect after login", () => {
     });
   }
 
-  test("should redirect authenticated user from /auth/login to dashboard", async ({ page }) => {
+  test("should redirect authenticated user from /login to dashboard", async ({ page }) => {
     await mockKeycloakAuthenticated(page, "ministry");
     await mockBackendApi(page);
 
-    await page.goto("/auth/login");
+    await page.goto("/login");
 
     await page.waitForURL(/\/app\/dashboard/, { timeout: 15000 });
     await expect(page).toHaveURL(/\/app\/dashboard/);
   });
 
-  test("should redirect unauthenticated user from /app to /auth/login", async ({ page }) => {
+  test("should redirect unauthenticated user from /app to /login", async ({ page }) => {
     await mockBackendApi(page);
 
     await page.goto("/app/dashboard");
@@ -33,9 +33,7 @@ test.describe("Role-based redirect after login", () => {
     await expect(page.getByText("Redirecting to login")).toBeVisible({ timeout: 10000 });
   });
 
-  test("should redirect unauthenticated user from any /app/* route to /auth/login", async ({
-    page,
-  }) => {
+  test("should redirect unauthenticated user from any /app/* route to /login", async ({ page }) => {
     await mockBackendApi(page);
 
     await page.goto("/app/federations");

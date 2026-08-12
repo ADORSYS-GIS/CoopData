@@ -70,6 +70,11 @@ pub fn shared_routes() -> Router<AppState> {
             "/analytics/national-overview",
             get(crate::api::handlers::national_overview::get_national_overview),
         )
+        // Benchmark — privacy-safe cooperative comparison (own row + server averages)
+        .route(
+            "/analytics/benchmark",
+            get(crate::api::handlers::national_overview::get_benchmark),
+        )
         // Dynamic questionnaire analytics - accessible to all authenticated roles
         .route(
             "/analytics/questionnaire",
