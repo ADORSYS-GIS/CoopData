@@ -2941,75 +2941,50 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Platform configuration, security policy, and notification preferences",
+    "subtitle": "Platform preferences and shortcuts to important configuration areas",
     "subtitleIndicators": "Configure dynamic reporting requirements for cooperatives",
     "backBtn": "Back to Settings",
-    "securityPolicyTitle": "Security Policy",
-    "securityPolicySubtitle": "Enforced across all 10,235 accounts",
-    "editPolicy": "Edit policy",
-    "securityPolicyUpdateQueued": "Security policy update queued for review.",
-    "notificationChannelsTitle": "Notification Channels",
-    "notificationChannelsSubtitle": "Default delivery methods for system events and compliance alerts",
-    "eventTypesCount": "{{count}} event type",
-    "eventTypesCount_plural": "{{count}} event types",
-    "notificationsToggled": "{{channel}} notifications toggled.",
-    "openingSettingsToast": "Opening {{title}} settings...",
-    "groups": {
-      "organization": {
-        "title": "Organization",
-        "desc": "Ministry profile, legal entity, branding and disclosure policies."
-      },
-      "localization": {
-        "title": "Localization",
-        "desc": "Languages: English, SiSwati, Portuguese. Date and number formats."
-      },
-      "security": {
-        "title": "Security",
-        "desc": "Password policy, MFA enforcement, session timeout, device trust."
-      },
-      "notifications": {
-        "title": "Notifications",
-        "desc": "Email, in-app, and SMS delivery for system events and alerts."
-      },
-      "retention": {
-        "title": "Data Retention",
-        "desc": "Archival schedules, audit log retention, and export policies."
-      },
-      "indicators": {
-        "title": "Non-Financial Indicators",
-        "desc": "Configure dynamic reporting fields (e.g. board details, training) for cooperatives."
-      }
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Choose how the platform looks for you",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "language": "Language",
+      "languageDesc": "Choose the language for the platform interface"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Multi-factor authentication",
-        "value": "Required for all roles"
-      },
-      "passwordLength": {
-        "label": "Minimum password length",
-        "value": "14 characters"
-      },
-      "passwordRotation": {
-        "label": "Password rotation cycle",
-        "value": "Every 90 days"
-      },
-      "sessionTimeout": {
-        "label": "Session idle timeout",
-        "value": "30 minutes of inactivity"
-      },
-      "failedLockout": {
-        "label": "Failed login lockout",
-        "value": "5 attempts · 15 min lockout"
-      },
-      "deviceTrust": {
-        "label": "Device trust window",
-        "value": "30 days per device"
-      }
+    "indicators": {
+      "title": "Non-Financial Indicators",
+      "desc": "Configure dynamic reporting fields (e.g. board details, training) for cooperatives.",
+      "open": "Configure indicators"
     },
-    "channels": {
-      "email": "Email",
-      "inApp": "In-app",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Configuration Shortcuts",
+      "subtitle": "These settings live on their own pages",
+      "profile": {
+        "title": "Profile & Security",
+        "desc": "Password, MFA, session and language preferences"
+      },
+      "users": {
+        "title": "Users & Access",
+        "desc": "Provision users and manage who can access the platform"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "desc": "Review every action recorded across the platform"
+      },
+      "templates": {
+        "title": "Questionnaire Templates",
+        "desc": "Design the questionnaires cooperatives fill in"
+      },
+      "kpis": {
+        "title": "Custom KPIs",
+        "desc": "Define additional performance indicators for cooperatives"
+      },
+      "invitations": {
+        "title": "Federation Invitations",
+        "desc": "Invite federation officers and track pending invites"
+      }
     }
   },
   "apexesPage": {

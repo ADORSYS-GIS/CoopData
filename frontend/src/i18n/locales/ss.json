@@ -2931,75 +2931,50 @@
   },
   "settings": {
     "title": "Tinhlelo",
-    "subtitle": "Ukuhlelwa kwepulatifomu, inqubomgomo yekuvikeleka, nezintandokazi zesaziso",
+    "subtitle": "Tintandokazi tepulatifomu netindledlana etindzaweni letibalulekile tekulungisa",
     "subtitleIndicators": "Hlela izidingo zokufaka umbiko ezidinamikhi zemakhopharethi",
     "backBtn": "Buyela kuTinhlelo",
-    "securityPolicyTitle": "Inqubomgomo Yekuvikeleka",
-    "securityPolicySubtitle": "Iphoqelelwa kuwo wonke ama-akhawunti angu-10,235",
-    "editPolicy": "Lungisa inqubomgomo",
-    "securityPolicyUpdateQueued": "Ukubuyeketa kwenqubomgomo yekuvikeleka kufakwe kulayini wekuhlola.",
-    "notificationChannelsTitle": "Iziteshi Zesaziso",
-    "notificationChannelsSubtitle": "Izindlela zokulethwa ezijwayelekile zemisebenzi yesistimu nezixwayiso zokuhambisana",
-    "eventTypesCount": "{{count}} uhlobo lomcimbi",
-    "eventTypesCount_plural": "{{count}} izinhlobo zemici mbi",
-    "notificationsToggled": "Izaziso ze-{{channel}} zishintjiwe.",
-    "openingSettingsToast": "Kuvula tinhlelo ze-{{title}}...",
-    "groups": {
-      "organization": {
-        "title": "Inhlangano",
-        "desc": "Iphrofayili yelitiko, inhlangano esemthethweni, ukumaka nezinqubomgomo zokudalula."
-      },
-      "localization": {
-        "title": "Ukwenza Kwendawo",
-        "desc": "Tilwimi: English, SiSwati, Portuguese. Amafomethi elusuku nenombolo."
-      },
-      "security": {
-        "title": "Ukuvikeleka",
-        "desc": "Inqubomgomo yephasiwedi, ukuphoqelela i-MFA, isikhathi seseshini, ukuthemba kwedivayisi."
-      },
-      "notifications": {
-        "title": "Izaziso",
-        "desc": "I-imeyili, in-app, nokulethwa kwe-SMS kwemisebenzi yesistimu nezixwayiso."
-      },
-      "retention": {
-        "title": "Ukugcinwa Kwedata",
-        "desc": "Amashejuli okugcina, ukugcinwa kwelogi yekuhlola, nezinqubomgomo zokukhipha."
-      },
-      "indicators": {
-        "title": "Tinkhombandlela Ezinge Kho Etimali",
-        "desc": "Hlela tinsimu zokufaka umbiko ezidinamikhi (isib. imininingwane yebhodi, ukuqeqeshwa) zemakhopharethi."
-      }
+    "appearance": {
+      "title": "Kubukeka",
+      "subtitle": "Khetsa kutsi ipulatifomu ibukeke njani kuwe",
+      "light": "Kukhanya",
+      "dark": "Bumnyama",
+      "system": "Sistimu",
+      "language": "Lulwimi",
+      "languageDesc": "Khetsa lulwimi lwesikhulumi sepulatifomu"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Ukucinisekisa ngezindlela eziningi",
-        "value": "Kuyadingeka kuzo zonke izindima"
-      },
-      "passwordLength": {
-        "label": "Ubude bephasiwedi obuncane",
-        "value": "Izinhlamvu ezingu-14"
-      },
-      "passwordRotation": {
-        "label": "Umjikelezo wokushintja iphasiwedi",
-        "value": "Njalo ngezinsuku ezingu-90"
-      },
-      "sessionTimeout": {
-        "label": "Isikhathi sokungasebenzi kweseshini",
-        "value": "Imizuzu engama-30 yokungasebenzi"
-      },
-      "failedLockout": {
-        "label": "Ukuvalwa kokungena okwehlulekile",
-        "value": "Imizamo engu-5 · Ukuvalwa kwemizuzu engama-15"
-      },
-      "deviceTrust": {
-        "label": "Iwindi lokuthemba idivayisi",
-        "value": "Izinsuku ezingu-30 nge-divayisi ngayinye"
-      }
+    "indicators": {
+      "title": "Tinkhombandlela Ezinge Kho Etimali",
+      "desc": "Hlela tinsimu tekufaka umbiko letishintjako (isib. imininingwane yebhodi, kuqeqeshwa) temakhopharethi.",
+      "open": "Hlela tinkhombandlela"
     },
-    "channels": {
-      "email": "I-imeyili",
-      "inApp": "In-app",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Tindledlana Tekulungisa",
+      "subtitle": "Letinhlelo tihlala emakhasi ato",
+      "profile": {
+        "title": "Iphrofayela neKuvikeleka",
+        "desc": "Iphasiwedi, i-MFA, seshini netintfo telulwimi"
+      },
+      "users": {
+        "title": "Bemisebenzisi neKufinyelela",
+        "desc": "Hlela bemisebenzisi nekutsi ngubani longafinyelela epulatifomu"
+      },
+      "audit": {
+        "title": "Umlandvo we-Audit",
+        "desc": "Buyeketa konkhe lokwentiwe epulatifomu"
+      },
+      "templates": {
+        "title": "Titfombe teMibuto",
+        "desc": "Dizayina imibuto lebhalwa ngemakhopharethi"
+      },
+      "kpis": {
+        "title": "Ti-KPI Letikhethekile",
+        "desc": "Cacisa tinkhombandlela tekusebenta letinengeziwe temakhopharethi"
+      },
+      "invitations": {
+        "title": "Titimemo teFederation",
+        "desc": "Mema tikhulu tefederation futsi ulandzelele titimemo letisalindziwe"
+      }
     }
   },
   "apexesPage": {

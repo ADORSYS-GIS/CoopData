@@ -2931,75 +2931,50 @@
   },
   "settings": {
     "title": "Definições",
-    "subtitle": "Configuração da plataforma, política de segurança e preferências de notificação",
+    "subtitle": "Preferências da plataforma e atalhos para áreas de configuração importantes",
     "subtitleIndicators": "Configurar requisitos de reporte dinâmicos para cooperativas",
     "backBtn": "Voltar às Definições",
-    "securityPolicyTitle": "Política de Segurança",
-    "securityPolicySubtitle": "Aplicada a todas as 10 235 contas",
-    "editPolicy": "Editar política",
-    "securityPolicyUpdateQueued": "Atualização da política de segurança em fila para revisão.",
-    "notificationChannelsTitle": "Canais de Notificação",
-    "notificationChannelsSubtitle": "Métodos de entrega predefinidos para eventos do sistema e alertas de conformidade",
-    "eventTypesCount": "{{count}} tipo de evento",
-    "eventTypesCount_plural": "{{count}} tipos de evento",
-    "notificationsToggled": "Notificações de {{channel}} alternadas.",
-    "openingSettingsToast": "A abrir definições de {{title}}...",
-    "groups": {
-      "organization": {
-        "title": "Organização",
-        "desc": "Perfil do ministério, entidade legal, branding e políticas de divulgação."
-      },
-      "localization": {
-        "title": "Localização",
-        "desc": "Idiomas: Inglês, SiSwati, Português. Formatos de data e número."
-      },
-      "security": {
-        "title": "Segurança",
-        "desc": "Política de palavras-passe, aplicação de MFA, tempo limite de sessão, confiança de dispositivos."
-      },
-      "notifications": {
-        "title": "Notificações",
-        "desc": "Entrega por e-mail, na aplicação e SMS para eventos do sistema e alertas."
-      },
-      "retention": {
-        "title": "Retenção de Dados",
-        "desc": "Agendamentos de arquivo, retenção de registos de auditoria e políticas de exportação."
-      },
-      "indicators": {
-        "title": "Indicadores Não Financeiros",
-        "desc": "Configurar campos de reporte dinâmicos (ex. detalhes do conselho, formação) para cooperativas."
-      }
+    "appearance": {
+      "title": "Aparência",
+      "subtitle": "Escolha como a plataforma se apresenta para si",
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema",
+      "language": "Idioma",
+      "languageDesc": "Escolha o idioma da interface da plataforma"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Autenticação multifator",
-        "value": "Obrigatória para todas as funções"
-      },
-      "passwordLength": {
-        "label": "Comprimento mínimo da palavra-passe",
-        "value": "14 caracteres"
-      },
-      "passwordRotation": {
-        "label": "Ciclo de rotação da palavra-passe",
-        "value": "A cada 90 dias"
-      },
-      "sessionTimeout": {
-        "label": "Tempo limite de inatividade da sessão",
-        "value": "30 minutos de inatividade"
-      },
-      "failedLockout": {
-        "label": "Bloqueio por falhas de início de sessão",
-        "value": "5 tentativas · bloqueio de 15 min"
-      },
-      "deviceTrust": {
-        "label": "Janela de confiança do dispositivo",
-        "value": "30 dias por dispositivo"
-      }
+    "indicators": {
+      "title": "Indicadores Não Financeiros",
+      "desc": "Configurar campos de reporte dinâmicos (ex. detalhes do conselho, formação) para cooperativas.",
+      "open": "Configurar indicadores"
     },
-    "channels": {
-      "email": "E-mail",
-      "inApp": "Na aplicação",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Atalhos de Configuração",
+      "subtitle": "Estas definições vivem nas suas próprias páginas",
+      "profile": {
+        "title": "Perfil e Segurança",
+        "desc": "Palavra-passe, MFA, sessão e preferências de idioma"
+      },
+      "users": {
+        "title": "Utilizadores e Acesso",
+        "desc": "Provisionar utilizadores e gerir quem pode aceder à plataforma"
+      },
+      "audit": {
+        "title": "Trilha de Auditoria",
+        "desc": "Rever cada ação registada na plataforma"
+      },
+      "templates": {
+        "title": "Modelos de Questionário",
+        "desc": "Conceber os questionários que as cooperativas preenchem"
+      },
+      "kpis": {
+        "title": "KPIs Personalizados",
+        "desc": "Definir indicadores de desempenho adicionais para cooperativas"
+      },
+      "invitations": {
+        "title": "Convites de Federação",
+        "desc": "Convidar oficiais de federação e acompanhar convites pendentes"
+      }
     }
   },
   "apexesPage": {
