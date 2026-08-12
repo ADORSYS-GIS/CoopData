@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useSecuritySettings, useDisableMfa } from "@/hooks/auth/useSecuritySettings";
 import { MfaSetupDialog } from "@/components/shared/MfaSetupDialog";
+import { DisableMfaDialog } from "@/components/shared/DisableMfaDialog";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -129,6 +130,7 @@ export const ProfilePage: React.FC = () => {
   const disableMfa = useDisableMfa();
   const mfaEnabled = security?.mfa_enabled ?? false;
   const [mfaSetupOpen, setMfaSetupOpen] = useState(false);
+  const [mfaDisableOpen, setMfaDisableOpen] = useState(false);
 
   const handleToggleMfa = async () => {
     if (!mfaEnabled) {
@@ -136,13 +138,8 @@ export const ProfilePage: React.FC = () => {
       setMfaSetupOpen(true);
       return;
     }
-    // Disabling removes the credential immediately.
-    try {
-      await disableMfa.mutateAsync();
-      toast.success(t("profile.mfaDisabledToast"));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("profile.unexpectedError"));
-    }
+    // Disabling requires password confirmation.
+    setMfaDisableOpen(true);
   };
 
   if (!role || !user) return null;
@@ -414,6 +411,7 @@ export const ProfilePage: React.FC = () => {
       </div>
 
       <MfaSetupDialog open={mfaSetupOpen} onOpenChange={setMfaSetupOpen} />
+      <DisableMfaDialog open={mfaDisableOpen} onOpenChange={setMfaDisableOpen} />
     </AppShell>
   );
 };

@@ -43,12 +43,14 @@ export const useMfaSetup = () => {
   });
 };
 
-/** Disable MFA (deletes the OTP credential immediately). */
+/** Disable MFA (deletes the OTP credential immediately). Requires password for verification. */
 export const useDisableMfa = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (): Promise<SecuritySettings> => {
-      const { data, error } = await apiClient.DELETE("/api/v1/me/security/mfa");
+    mutationFn: async ({ password }: { password: string }): Promise<SecuritySettings> => {
+      const { data, error } = await apiClient.DELETE("/api/v1/me/security/mfa", {
+        body: { password },
+      });
       if (error) throw new Error(extractErrorMessage(error));
       return data as SecuritySettings;
     },

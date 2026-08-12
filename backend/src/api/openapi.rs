@@ -230,6 +230,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::member::ChangePasswordRequest,
         api_module::dto::member::ChangePasswordResponse,
         api_module::dto::member::SecuritySettingsResponse,
+        api_module::dto::member::DisableMfaRequest,
         api_module::dto::verification::VerifyIdentityRequest,
         api_module::dto::verification::VerifyIdentityResponse,
         api_module::dto::verification::DeletePreviewResponse,

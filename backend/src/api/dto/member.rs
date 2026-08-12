@@ -23,6 +23,11 @@ pub struct SecuritySettingsResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct DisableMfaRequest {
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddMemberRequest {
     pub email: String,
     pub first_name: String,

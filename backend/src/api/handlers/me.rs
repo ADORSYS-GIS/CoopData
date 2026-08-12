@@ -3,7 +3,8 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::api::dto::member::{
-    ChangePasswordRequest, ChangePasswordResponse, SecuritySettingsResponse, UserProfileResponse,
+    ChangePasswordRequest, ChangePasswordResponse, DisableMfaRequest, SecuritySettingsResponse,
+    UserProfileResponse,
 };
 use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
@@ -263,6 +264,7 @@ pub async fn mfa_setup(
 #[utoipa::path(
     delete,
     path = "/api/v1/me/security/mfa",
+    request_body = DisableMfaRequest,
     responses(
         (status = 200, description = "MFA disabled", body = SecuritySettingsResponse),
         (status = 401, description = "Unauthorized", body = ErrorResponse)
@@ -273,7 +275,21 @@ pub async fn disable_mfa(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
+    Json(body): Json<DisableMfaRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let username = claims
+        .username()
+        .or(claims.email.as_deref())
+        .ok_or_else(|| {
+            AppError::BadRequest("Unable to verify credentials for this account".to_string())
+        })?;
+
+    // Verify password before allowing MFA disable
+    state
+        .keycloak
+        .verify_user_password(username, &body.password, None)
+        .await?;
+
     state
         .keycloak
         .disable_user_mfa(&claims.sub)
