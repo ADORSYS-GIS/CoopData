@@ -266,7 +266,7 @@
     "mfaSetupTitle": "Configurar a autenticação de dois fatores",
     "mfaSetupDesc": "Vamos redirecioná-lo para iniciar sessão novamente e concluir a configuração da autenticação de dois fatores com a sua aplicação de autenticação.",
     "mfaStartSetup": "Iniciar configuração",
-    "mfaRedirectHint": "Será pedido que inicie sessão mais uma vez e, em seguida, digitalize um código QR com a sua aplicação de autenticação (Google Authenticator, Authy, etc.). Após concluir a configuração, será levado de volta ao seu perfil.",
+    "mfaRedirectHint": "Ser-lhe-á pedido que digitalize um código QR com a sua aplicação de autenticação (Google Authenticator, Authy, etc.). Após concluir a configuração, será levado de volta ao seu perfil.",
     "mfaCancel": "Cancelar",
     "caps": {
       "userProvisioning": "Provisionamento de Contas de Utilizador",

@@ -266,7 +266,7 @@
     "mfaSetupTitle": "Configurer l'authentification à deux facteurs",
     "mfaSetupDesc": "Nous allons vous rediriger pour vous connecter à nouveau et terminer la configuration de l'authentification à deux facteurs avec votre application d'authentification.",
     "mfaStartSetup": "Démarrer la configuration",
-    "mfaRedirectHint": "Vous serez invité à vous connecter une nouvelle fois, puis à scanner un code QR avec votre application d'authentification (Google Authenticator, Authy, etc.). Une fois la configuration terminée, vous serez ramené à votre profil.",
+    "mfaRedirectHint": "Vous serez invité à scanner un code QR avec votre application d'authentification (Google Authenticator, Authy, etc.). Une fois la configuration terminée, vous serez ramené à votre profil.",
     "mfaCancel": "Annuler",
     "caps": {
       "userProvisioning": "Provisionnement des comptes utilisateurs",

@@ -266,7 +266,7 @@
     "mfaSetupTitle": "Set up two-factor authentication",
     "mfaSetupDesc": "We'll redirect you to sign in again and finish setting up two-factor authentication with your authenticator app.",
     "mfaStartSetup": "Start setup",
-    "mfaRedirectHint": "You'll be asked to sign in once more, then scan a QR code with your authenticator app (Google Authenticator, Authy, etc.). After you complete setup, you'll be brought back to your profile.",
+    "mfaRedirectHint": "You'll be asked to scan a QR code with your authenticator app (Google Authenticator, Authy, etc.). After you complete setup, you'll be brought back to your profile.",
     "mfaCancel": "Cancel",
     "caps": {
       "userProvisioning": "User Account Provisioning",

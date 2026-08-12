@@ -266,7 +266,7 @@
     "mfaSetupTitle": "Lungisa kucinisekisa ngetindlela letimbili",
     "mfaSetupDesc": "Sitakucondzisa kutsi ungene futhi ucedze kulungisa kucinisekisa ngetindlela letimbili nge-app yakho yekucinisekisa.",
     "mfaStartSetup": "Qala Kulungisa",
-    "mfaRedirectHint": "Utacelwa kutsi ungene sikhatsi sinye futsi, bese uskena ikhodi ye-QR nge-app yakho yekucinisekisa (Google Authenticator, Authy, njll.). Nangemva kokucedza kulungisa, utabuyiselwa ephrofayilini yakho.",
+    "mfaRedirectHint": "Utacelwa kutsi uskena ikhodi ye-QR nge-app yakho yekucinisekisa (Google Authenticator, Authy, njll.). Nangemva kokucedza kulungisa, utabuyiselwa ephrofayilini yakho.",
     "mfaCancel": "Yekela",
     "caps": {
       "userProvisioning": "Kuniketa Ema-Akhawunti Emasebentisi",
