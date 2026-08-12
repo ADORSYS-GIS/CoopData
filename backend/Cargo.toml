@@ -52,6 +52,7 @@ csv = "1.3"
 docx-rs = "0.4"
 printpdf = "0.7"
 evalexpr = "13.1.0"
+totp-rs = { version = "5", features = ["otpauth", "gen_secret"] }
 
 [features]
 test-utils = []

@@ -6,15 +6,22 @@ import type { ReactNode } from "react";
 vi.mock("@/openapi-client", () => ({
   apiClient: {
     GET: vi.fn(),
-    PUT: vi.fn(),
+    POST: vi.fn(),
+    DELETE: vi.fn(),
   },
 }));
 
 import { apiClient } from "@/openapi-client";
-import { useSecuritySettings, useUpdateMfa } from "@/hooks/auth/useSecuritySettings";
+import {
+  useSecuritySettings,
+  useMfaSetup,
+  useMfaVerify,
+  useDisableMfa,
+} from "@/hooks/auth/useSecuritySettings";
 
 const mockedGet = vi.mocked(apiClient.GET);
-const mockedPut = vi.mocked(apiClient.PUT);
+const mockedPost = vi.mocked(apiClient.POST);
+const mockedDelete = vi.mocked(apiClient.DELETE);
 
 function okResult(body: unknown) {
   return { data: body, error: undefined };
@@ -60,34 +67,80 @@ describe("useSecuritySettings", () => {
   });
 });
 
-describe("useUpdateMfa", () => {
+describe("useMfaSetup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should PUT the new MFA state and return the updated settings", async () => {
-    mockedPut.mockResolvedValue(okResult({ mfa_enabled: true }) as never);
+  it("should POST the setup endpoint and return the secret + otpauth URI", async () => {
+    const payload = {
+      secret: "JBSWY3DPEHPK3PXP",
+      otpauth_uri: "otpauth://totp/CoopData:user@example.com?secret=JBSWY3DPEHPK3PXP",
+    };
+    mockedPost.mockResolvedValue(okResult(payload) as never);
     const { wrapper } = makeWrapper();
 
-    const { result } = renderHook(() => useUpdateMfa(), { wrapper });
+    const { result } = renderHook(() => useMfaSetup(), { wrapper });
 
     let response;
     await act(async () => {
-      response = await result.current.mutateAsync(true);
+      response = await result.current.mutateAsync();
     });
 
-    expect(mockedPut).toHaveBeenCalledWith("/api/v1/me/security/mfa", {
-      body: { enabled: true },
-    });
-    expect(response).toEqual({ mfa_enabled: true });
+    expect(mockedPost).toHaveBeenCalledWith("/api/v1/me/security/mfa/setup");
+    expect(response).toEqual(payload);
+  });
+});
+
+describe("useMfaVerify", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should surface the backend message on failure", async () => {
-    mockedPut.mockResolvedValue(errResult("Keycloak unavailable") as never);
+  it("should POST the code and secret for verification", async () => {
+    mockedPost.mockResolvedValue(okResult({ mfa_enabled: true }) as never);
     const { wrapper } = makeWrapper();
 
-    const { result } = renderHook(() => useUpdateMfa(), { wrapper });
+    const { result } = renderHook(() => useMfaVerify(), { wrapper });
 
-    await expect(result.current.mutateAsync(false)).rejects.toThrow("Keycloak unavailable");
+    await act(async () => {
+      await result.current.mutateAsync({ secret: "ABC123", code: "123456" });
+    });
+
+    expect(mockedPost).toHaveBeenCalledWith("/api/v1/me/security/mfa/verify", {
+      body: { secret: "ABC123", code: "123456" },
+    });
+  });
+
+  it("should surface the backend message on a wrong code", async () => {
+    mockedPost.mockResolvedValue(errResult("The code does not match") as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useMfaVerify(), { wrapper });
+
+    await expect(result.current.mutateAsync({ secret: "ABC123", code: "000000" })).rejects.toThrow(
+      "The code does not match",
+    );
+  });
+});
+
+describe("useDisableMfa", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should DELETE the MFA credential and return the updated settings", async () => {
+    mockedDelete.mockResolvedValue(okResult({ mfa_enabled: false }) as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useDisableMfa(), { wrapper });
+
+    let response;
+    await act(async () => {
+      response = await result.current.mutateAsync();
+    });
+
+    expect(mockedDelete).toHaveBeenCalledWith("/api/v1/me/security/mfa");
+    expect(response).toEqual({ mfa_enabled: false });
   });
 });

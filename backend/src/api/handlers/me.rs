@@ -3,8 +3,8 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::api::dto::member::{
-    ChangePasswordRequest, ChangePasswordResponse, SecuritySettingsResponse, UpdateMfaRequest,
-    UserProfileResponse,
+    ChangePasswordRequest, ChangePasswordResponse, MfaSetupResponse, MfaVerifyRequest,
+    SecuritySettingsResponse, UserProfileResponse,
 };
 use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
@@ -205,28 +205,88 @@ pub async fn get_security_settings(
 }
 
 #[utoipa::path(
-    put,
-    path = "/api/v1/me/security/mfa",
-    request_body = UpdateMfaRequest,
+    post,
+    path = "/api/v1/me/security/mfa/setup",
     responses(
-        (status = 200, description = "MFA setting updated", body = SecuritySettingsResponse),
-        (status = 400, description = "Invalid input", body = ErrorResponse),
+        (status = 200, description = "TOTP setup payload generated", body = MfaSetupResponse),
+        (status = 400, description = "MFA already enabled", body = ErrorResponse),
         (status = 401, description = "Unauthorized", body = ErrorResponse)
     ),
     tag = "Auth"
 )]
-pub async fn update_mfa(
+pub async fn mfa_setup(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    if state.keycloak.get_user_mfa_enabled(&claims.sub).await? {
+        return Err(AppError::BadRequest(
+            "MFA is already enabled for this account".to_string(),
+        ));
+    }
+
+    let account_name = claims
+        .email
+        .clone()
+        .or_else(|| claims.username().map(String::from))
+        .unwrap_or_else(|| claims.sub.clone());
+    let (secret, otpauth_uri) = crate::services::totp::generate_setup(&account_name)?;
+
+    tracing::info!(user_id = %claims.sub, "MFA setup payload generated");
+    Ok((
+        StatusCode::OK,
+        Json(MfaSetupResponse {
+            secret,
+            otpauth_uri,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/me/security/mfa/verify",
+    request_body = MfaVerifyRequest,
+    responses(
+        (status = 200, description = "MFA enabled after successful verification", body = SecuritySettingsResponse),
+        (status = 400, description = "Invalid code or input", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn mfa_verify(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
-    Json(body): Json<UpdateMfaRequest>,
+    Json(body): Json<MfaVerifyRequest>,
 ) -> AppResult<impl IntoResponse> {
+    if body.code.len() != 6 || !body.code.chars().all(|c| c.is_ascii_digit()) {
+        return Err(AppError::BadRequest(
+            "Verification code must be 6 digits".to_string(),
+        ));
+    }
+
+    // Idempotency guard: a double-submit or retry after a successful enable must
+    // not create a duplicate OTP credential.
+    if state.keycloak.get_user_mfa_enabled(&claims.sub).await? {
+        return Ok((
+            StatusCode::OK,
+            Json(SecuritySettingsResponse { mfa_enabled: true }),
+        ));
+    }
+
+    if !crate::services::totp::verify_code(&body.secret, &body.code) {
+        return Err(AppError::BadRequest(
+            "The code does not match this authenticator app setup. \
+             Check the time on your device and try again."
+                .to_string(),
+        ));
+    }
+
     state
         .keycloak
-        .set_user_mfa(&claims.sub, body.enabled)
+        .create_otp_credential(&claims.sub, &body.secret)
         .await
         .map_err(|e| {
-            tracing::error!(user_id = %claims.sub, error = %e, "Failed to update MFA setting");
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to create OTP credential");
             e
         })?;
 
@@ -234,11 +294,7 @@ pub async fn update_mfa(
         .audit
         .log(
             &claims,
-            if body.enabled {
-                "MFA_ENABLED"
-            } else {
-                "MFA_DISABLED"
-            },
+            "MFA_ENABLED",
             "user",
             Some(&claims.sub),
             None,
@@ -250,10 +306,55 @@ pub async fn update_mfa(
         tracing::error!("Failed to log audit: {}", e);
     }
 
-    tracing::info!(user_id = %claims.sub, enabled = body.enabled, "MFA setting updated");
-    let mfa_enabled = state.keycloak.get_user_mfa_enabled(&claims.sub).await?;
+    tracing::info!(user_id = %claims.sub, "MFA enabled after verification");
     Ok((
         StatusCode::OK,
-        Json(SecuritySettingsResponse { mfa_enabled }),
+        Json(SecuritySettingsResponse { mfa_enabled: true }),
+    ))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/me/security/mfa",
+    responses(
+        (status = 200, description = "MFA disabled", body = SecuritySettingsResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn disable_mfa(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+) -> AppResult<impl IntoResponse> {
+    state
+        .keycloak
+        .disable_user_mfa(&claims.sub)
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to disable MFA");
+            e
+        })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "MFA_DISABLED",
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(user_id = %claims.sub, "MFA disabled");
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse { mfa_enabled: false }),
     ))
 }

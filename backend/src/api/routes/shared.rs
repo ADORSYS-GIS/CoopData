@@ -4,7 +4,7 @@
 
 use axum::{
     extract::{Extension, State},
-    routing::{get, post, put},
+    routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -29,8 +29,16 @@ pub fn shared_routes() -> Router<AppState> {
             get(crate::api::handlers::me::get_security_settings),
         )
         .route(
+            "/me/security/mfa/setup",
+            post(crate::api::handlers::me::mfa_setup),
+        )
+        .route(
+            "/me/security/mfa/verify",
+            post(crate::api::handlers::me::mfa_verify),
+        )
+        .route(
             "/me/security/mfa",
-            put(crate::api::handlers::me::update_mfa),
+            delete(crate::api::handlers::me::disable_mfa),
         )
         // Non-financial indicator catalog — readable by all authenticated roles
         .route(

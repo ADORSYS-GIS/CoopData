@@ -5,7 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
-import { useSecuritySettings, useUpdateMfa } from "@/hooks/auth/useSecuritySettings";
+import { useSecuritySettings, useDisableMfa } from "@/hooks/auth/useSecuritySettings";
+import { MfaSetupDialog } from "@/components/shared/MfaSetupDialog";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -125,14 +126,20 @@ export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const role = useUserRole();
   const { data: security, isLoading: securityLoading } = useSecuritySettings();
-  const updateMfa = useUpdateMfa();
+  const disableMfa = useDisableMfa();
   const mfaEnabled = security?.mfa_enabled ?? false;
+  const [mfaSetupOpen, setMfaSetupOpen] = useState(false);
 
   const handleToggleMfa = async () => {
-    const next = !mfaEnabled;
+    if (!mfaEnabled) {
+      // Enabling is a two-step flow: open the inline QR setup dialog.
+      setMfaSetupOpen(true);
+      return;
+    }
+    // Disabling removes the credential immediately.
     try {
-      await updateMfa.mutateAsync(next);
-      toast.success(t(next ? "profile.mfaEnabledToast" : "profile.mfaDisabledToast"));
+      await disableMfa.mutateAsync();
+      toast.success(t("profile.mfaDisabledToast"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("profile.unexpectedError"));
     }
@@ -312,7 +319,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <button
                     onClick={handleToggleMfa}
-                    disabled={updateMfa.isPending || securityLoading}
+                    disabled={disableMfa.isPending || securityLoading}
                     role="switch"
                     aria-checked={mfaEnabled}
                     aria-label={t("profile.mfa")}
@@ -325,7 +332,7 @@ export const ProfilePage: React.FC = () => {
                         mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
                       }`}
                     >
-                      {updateMfa.isPending && (
+                      {disableMfa.isPending && (
                         <Loader2 className="size-3 animate-spin text-primary" />
                       )}
                     </span>
@@ -405,6 +412,8 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <MfaSetupDialog open={mfaSetupOpen} onOpenChange={setMfaSetupOpen} />
     </AppShell>
   );
 };
