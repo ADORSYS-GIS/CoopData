@@ -79,10 +79,7 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
   }, []);
 
   return (
-    <div
-      className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
-      style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
-    >
+    <div className="print-page relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white text-slate-900 border-b border-gray-200 break-after-page font-sans">
       {/* Header */}
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
@@ -141,25 +138,25 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
 
         {/* Table */}
         <div className="shrink-0 overflow-hidden">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-[10px] border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900 w-1/4">
+                <th className="p-2 text-left border border-slate-900 w-1/4">
                   {t("printReports.headers.type")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-2 text-right border border-slate-900">
                   {t("printReports.headers.coops")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-2 text-right border border-slate-900">
                   {t("printReports.headers.filingPct")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-2 text-right border border-slate-900">
                   {t("printReports.headers.avgPar30")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-2 text-right border border-slate-900">
                   {t("printReports.headers.avgCar")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-2 text-right border border-slate-900">
                   {t("printReports.headers.avgRoa")}
                 </th>
               </tr>
@@ -167,12 +164,12 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
             <tbody>
               {sectorData.map((row, i) => (
                 <tr key={i} className="even:bg-slate-50">
-                  <td className="p-3 border border-slate-300 font-medium">{row.sector}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.coops}</td>
-                  <td className="p-3 border border-slate-300 text-right">
+                  <td className="p-2 border border-slate-300 font-medium">{row.sector}</td>
+                  <td className="p-2 border border-slate-300 text-right">{row.coops}</td>
+                  <td className="p-2 border border-slate-300 text-right">
                     {row.filingPct.toFixed(0)}%
                   </td>
-                  <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
+                  <td className="p-2 border border-slate-300 text-right font-bold text-slate-700">
                     <span
                       className={
                         row.par30 > 10
@@ -185,7 +182,7 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
                       {row.par30.toFixed(1)}%
                     </span>
                   </td>
-                  <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
+                  <td className="p-2 border border-slate-300 text-right font-bold text-slate-700">
                     <span
                       className={
                         row.car < 10
@@ -198,7 +195,7 @@ export const FederationSectorSheet: React.FC<FederationSectorSheetProps> = ({
                       {row.car.toFixed(1)}%
                     </span>
                   </td>
-                  <td className="p-3 border border-slate-300 text-right font-bold text-slate-700">
+                  <td className="p-2 border border-slate-300 text-right font-bold text-slate-700">
                     <span
                       className={
                         row.roa < 0

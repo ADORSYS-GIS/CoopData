@@ -25,4 +25,5 @@ pub use nf_excel_parser::CalamineNfParser;
 pub use nf_indicator_engine::NfIndicatorEngine;
 pub use object_storage::ObjectStorageService;
 pub use report_narrative::{create_narrative_generator, ReportNarrativeGenerator};
+pub use submission_workflow::SubmissionWorkflow;
 pub use verification_token::VerificationTokenService;

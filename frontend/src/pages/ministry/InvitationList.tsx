@@ -78,6 +78,15 @@ type InvitationFormValues = {
 
 // ─── Columns ──────────────────────────────────────────────────────────────
 
+function extractErrorMessage(err: unknown): string {
+  const e = err as { body?: { message?: string }; response?: { data?: { message?: string } } };
+  return (
+    e?.body?.message ??
+    e?.response?.data?.message ??
+    (err instanceof Error ? err.message : String(err))
+  );
+}
+
 function createColumns(
   t: (key: string) => string,
   onResend: (invitationId: string, email: string) => void,
@@ -351,7 +360,10 @@ export const InvitationList: React.FC = () => {
           setShowCreateModal(false);
         },
         onError: (err) => {
-          toast.error(t("invitationList.toastSendFailed"), { description: String(err) });
+          const errMsg = extractErrorMessage(err);
+          toast.error(t("invitationList.toastSendFailed"), {
+            description: errMsg,
+          });
         },
       },
     );
@@ -367,7 +379,10 @@ export const InvitationList: React.FC = () => {
           setConfirmAction(null);
         },
         onError: (err) => {
-          toast.error(t("invitationList.toastResendFailed"), { description: String(err) });
+          const errMsg = extractErrorMessage(err);
+          toast.error(t("invitationList.toastResendFailed"), {
+            description: errMsg,
+          });
         },
       },
     );
@@ -383,7 +398,10 @@ export const InvitationList: React.FC = () => {
           setConfirmAction(null);
         },
         onError: (err) => {
-          toast.error(t("invitationList.toastCancelFailed"), { description: String(err) });
+          const errMsg = extractErrorMessage(err);
+          toast.error(t("invitationList.toastCancelFailed"), {
+            description: errMsg,
+          });
         },
       },
     );

@@ -2,7 +2,9 @@ use crate::entities::enums::SubmissionStatus;
 use crate::entities::submission;
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -137,7 +139,14 @@ impl QuestionnaireRepository {
 
         let mut query = questionnaire_response::Entity::find()
             .find_also_related(crate::entities::cooperative::Entity)
-            .filter(QuestionnaireResponseColumn::SubmissionId.is_in(approved_sub_ids));
+            .join(
+                sea_orm::JoinType::InnerJoin,
+                crate::entities::questionnaire_response::Relation::Submission.def(),
+            )
+            .filter(
+                crate::entities::submission::Column::Status
+                    .eq(crate::entities::enums::SubmissionStatus::Approved),
+            );
 
         if let Some(year) = reporting_year {
             query = query.filter(QuestionnaireResponseColumn::ReportingYear.eq(year));
@@ -152,14 +161,11 @@ impl QuestionnaireRepository {
             query = query.filter(QuestionnaireResponseColumn::CooperativeId.is_in(coop_ids));
         }
         if let Some(r) = region {
+            // Only apply the region filter when the value parses to a valid
+            // Eswatini region. An unrecognized value is ignored rather than
+            // producing an impossible (never-matching) WHERE clause.
             if let Some(reg) = crate::entities::enums::EswatiniRegion::parse(&r) {
                 query = query.filter(crate::entities::cooperative::Column::Region.eq(reg));
-            } else {
-                query = query.filter(
-                    crate::entities::cooperative::Column::Region
-                        .is_null()
-                        .and(crate::entities::cooperative::Column::Region.is_not_null()),
-                );
             }
         }
         if let Some(s) = sector {

@@ -356,7 +356,7 @@ export const FederationsPage: React.FC = () => {
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     state: { sorting, columnFilters, globalFilter },
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: { pagination: { pageSize: 30 } },
   });
 
   const activeCount = federationsList.filter((f) => f.enabled).length;
@@ -376,7 +376,9 @@ export const FederationsPage: React.FC = () => {
           refetch();
         },
         onError: (err) => {
-          toast.error(t("federationsPage.toastCreateFailed"), { description: String(err) });
+          toast.error(t("federationsPage.toastCreateFailed"), {
+            description: err instanceof Error ? err.message : String(err),
+          });
         },
       },
     );
@@ -398,7 +400,9 @@ export const FederationsPage: React.FC = () => {
           refetch();
         },
         onError: (err) => {
-          toast.error(t("federationsPage.toastUpdateFailed"), { description: String(err) });
+          toast.error(t("federationsPage.toastUpdateFailed"), {
+            description: err instanceof Error ? err.message : String(err),
+          });
         },
       },
     );
@@ -423,7 +427,9 @@ export const FederationsPage: React.FC = () => {
             resolve();
           },
           onError: (err) => {
-            toast.error(t("federationsPage.toastDeleteFailed"), { description: String(err) });
+            toast.error(t("federationsPage.toastDeleteFailed"), {
+              description: err instanceof Error ? err.message : String(err),
+            });
             reject(err);
           },
         },
@@ -557,37 +563,55 @@ export const FederationsPage: React.FC = () => {
           )}
 
           {/* Pagination */}
-          {!isLoading && !error && table.getFilteredRowModel().rows.length > 0 && (
-            <div className="flex items-center justify-between space-x-2 py-4">
-              <div className="text-sm text-muted-foreground">
-                {t("federationsPage.showingCount", {
-                  filtered: table.getFilteredRowModel().rows.length,
-                  total: federationsList.length,
-                })}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  {t("federationsPage.previous")}
-                </Button>
-                <span className="text-sm font-medium">
-                  {table.getState().pagination.pageIndex + 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  {t("federationsPage.next")}
-                </Button>
-              </div>
-            </div>
-          )}
+          {!isLoading &&
+            !error &&
+            table.getFilteredRowModel().rows.length > 0 &&
+            (() => {
+              const { pageIndex, pageSize } = table.getState().pagination;
+              const totalFiltered = table.getFilteredRowModel().rows.length;
+              const pageCount = table.getPageCount();
+              const from = pageIndex * pageSize + 1;
+              const to = Math.min((pageIndex + 1) * pageSize, totalFiltered);
+              return (
+                <div className="flex items-center justify-between py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing{" "}
+                    <span className="font-medium">
+                      {from}–{to}
+                    </span>{" "}
+                    of <span className="font-medium">{federationsList.length}</span> federation
+                    {federationsList.length !== 1 ? "s" : ""}
+                    {totalFiltered < federationsList.length && (
+                      <span className="italic"> ({totalFiltered} match search)</span>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      {t("federationsPage.previous")}
+                    </Button>
+                    <span className="text-sm font-medium tabular-nums">
+                      {t("federationsPage.pageOf", {
+                        page: pageIndex + 1,
+                        total: pageCount,
+                      })}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      {t("federationsPage.next")}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
         </Card>
       </div>
 

@@ -279,7 +279,8 @@ export const FinancialStatementEditor: React.FC<{
   submissionId: string;
   isDraft: boolean;
   isCooperative: boolean;
-}> = ({ fsId, submissionId, isDraft, isCooperative }) => {
+  isExtracting?: boolean;
+}> = ({ fsId, submissionId, isDraft, isCooperative, isExtracting }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: fs } = useFinancialStatement(fsId);
@@ -567,9 +568,25 @@ export const FinancialStatementEditor: React.FC<{
                 {financialSection && financialSection.status !== "ready" && (
                   <button
                     onClick={handleMarkFinancialReady}
-                    disabled={updateSection.isPending || hasErrors}
+                    disabled={
+                      updateSection.isPending ||
+                      hasErrors ||
+                      isExtracting ||
+                      itemsLoading ||
+                      items.length === 0
+                    }
                     className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                    title={hasErrors ? t("financialStatementEditor.matrix.resolveErrorsHint") : ""}
+                    title={
+                      isExtracting
+                        ? t("financialStatementEditor.matrix.extractingHint")
+                        : hasErrors
+                          ? t("financialStatementEditor.matrix.resolveErrorsHint")
+                          : itemsLoading
+                            ? ""
+                            : items.length === 0
+                              ? t("financialStatementEditor.matrix.enterDataHint")
+                              : ""
+                    }
                   >
                     {updateSection.isPending ? (
                       <Loader2 className="size-3.5 animate-spin" />

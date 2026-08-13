@@ -349,6 +349,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                     submissionId={submission.id}
                     isDraft={isDraft}
                     isCooperative={isCooperative}
+                    isExtracting={isExtracting}
                   />
                 )}
                 {!submission.financial_statement_id &&

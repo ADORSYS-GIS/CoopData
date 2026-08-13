@@ -234,8 +234,7 @@
     "securityPreferences": "Security Preferences",
     "accountProtection": "Account protection settings",
     "mfa": "Multi-Factor Authentication",
-    "mfaDesc": "Require secondary email OTP verification on login",
-    "autoLockout": "Auto-Lockout Session",
+    "mfaDesc": "Require a one-time code from your authenticator app (TOTP) at login",
     "roleScope": "Role Scope & Ecosystem Permissions",
     "securityCredentialsMatrix": "Your explicit security credentials matrix",
     "permissionScope": "Permission Scope",
@@ -262,7 +261,14 @@
     "passwordTooShort": "New password must be at least 8 characters.",
     "passwordUpdated": "Password updated successfully!",
     "unexpectedError": "Unexpected error.",
-    "minutes": "{{count}} min",
+    "loadingSecurity": "Loading security settings…",
+    "mfaEnabledToast": "Two-factor authentication enabled.",
+    "mfaDisabledToast": "Two-factor authentication disabled.",
+    "mfaSetupTitle": "Set up two-factor authentication",
+    "mfaSetupDesc": "We'll redirect you to sign in again and finish setting up two-factor authentication with your authenticator app.",
+    "mfaStartSetup": "Start setup",
+    "mfaRedirectHint": "You'll be asked to scan a QR code with your authenticator app (Google Authenticator, Authy, etc.). After you complete setup, you'll be brought back to your profile.",
+    "mfaCancel": "Cancel",
     "caps": {
       "userProvisioning": "User Account Provisioning",
       "filingApprovals": "Filing Approvals / Sign-off",
@@ -1261,6 +1267,7 @@
     "select": "— Select —",
     "enterField": "Enter {{field}}...",
     "testDataPopulated": "Test questionnaire answers populated!",
+    "allFieldsRequired": "All fields are required",
     "requiredFieldsSection": "Please fill in all required fields in this section before continuing: {{fields}}",
     "cannotCompleteFields": "Cannot complete questionnaire. Please fill in the following required fields: {{fields}}",
     "loadingConfig": "Loading form configuration...",
@@ -1618,6 +1625,18 @@
     "originalTenure": "Original Tenure"
   },
   "analytics": {
+    "filter": {
+      "federation": "Federation",
+      "apex": "Apex",
+      "cooperative": "Cooperative",
+      "region": "Region",
+      "sector": "Sector"
+    },
+    "allFederations": "All Federations",
+    "allApexes": "All Apexes",
+    "allCooperatives": "All Cooperatives",
+    "allRegions": "All Regions",
+    "allSectors": "All Sectors",
     "tab": {
       "consolidatedDashboard": "Consolidated Dashboard",
       "cooperativeRankings": "Cooperative Rankings",
@@ -1792,7 +1811,6 @@
     "comparativeAuditSubtitle": "Comparative Audit Spreadsheet Grid & Operational Surplus ({{year}})",
     "date": "Date",
     "cooperativesLabel": "Cooperatives",
-    "allCooperatives": "All Cooperatives",
     "selectedCount": "{{count}} Selected",
     "resetSelection": "Reset Selection (All)",
     "incomeStatementMapping": "Income Statement Mapping:",
@@ -2460,6 +2478,7 @@
       "subtitle": "{{total}} items · {{unmapped}} unmapped · {{lowConf}} low confidence",
       "deleteStatement": "Delete Statement",
       "resolveErrorsHint": "Resolve errors before marking ready",
+      "enterDataHint": "Enter financial data before marking this section ready",
       "markReady": "Mark Section Ready",
       "ready": "Section Ready"
     },
@@ -2944,75 +2963,50 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Platform configuration, security policy, and notification preferences",
+    "subtitle": "Platform preferences and shortcuts to important configuration areas",
     "subtitleIndicators": "Configure dynamic reporting requirements for cooperatives",
     "backBtn": "Back to Settings",
-    "securityPolicyTitle": "Security Policy",
-    "securityPolicySubtitle": "Enforced across all 10,235 accounts",
-    "editPolicy": "Edit policy",
-    "securityPolicyUpdateQueued": "Security policy update queued for review.",
-    "notificationChannelsTitle": "Notification Channels",
-    "notificationChannelsSubtitle": "Default delivery methods for system events and compliance alerts",
-    "eventTypesCount": "{{count}} event type",
-    "eventTypesCount_plural": "{{count}} event types",
-    "notificationsToggled": "{{channel}} notifications toggled.",
-    "openingSettingsToast": "Opening {{title}} settings...",
-    "groups": {
-      "organization": {
-        "title": "Organization",
-        "desc": "Ministry profile, legal entity, branding and disclosure policies."
-      },
-      "localization": {
-        "title": "Localization",
-        "desc": "Languages: English, SiSwati, Portuguese. Date and number formats."
-      },
-      "security": {
-        "title": "Security",
-        "desc": "Password policy, MFA enforcement, session timeout, device trust."
-      },
-      "notifications": {
-        "title": "Notifications",
-        "desc": "Email, in-app, and SMS delivery for system events and alerts."
-      },
-      "retention": {
-        "title": "Data Retention",
-        "desc": "Archival schedules, audit log retention, and export policies."
-      },
-      "indicators": {
-        "title": "Non-Financial Indicators",
-        "desc": "Configure dynamic reporting fields (e.g. board details, training) for cooperatives."
-      }
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Choose how the platform looks for you",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "language": "Language",
+      "languageDesc": "Choose the language for the platform interface"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Multi-factor authentication",
-        "value": "Required for all roles"
-      },
-      "passwordLength": {
-        "label": "Minimum password length",
-        "value": "14 characters"
-      },
-      "passwordRotation": {
-        "label": "Password rotation cycle",
-        "value": "Every 90 days"
-      },
-      "sessionTimeout": {
-        "label": "Session idle timeout",
-        "value": "30 minutes of inactivity"
-      },
-      "failedLockout": {
-        "label": "Failed login lockout",
-        "value": "5 attempts · 15 min lockout"
-      },
-      "deviceTrust": {
-        "label": "Device trust window",
-        "value": "30 days per device"
-      }
+    "indicators": {
+      "title": "Non-Financial Indicators",
+      "desc": "Configure dynamic reporting fields (e.g. board details, training) for cooperatives.",
+      "open": "Configure indicators"
     },
-    "channels": {
-      "email": "Email",
-      "inApp": "In-app",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Configuration Shortcuts",
+      "subtitle": "These settings live on their own pages",
+      "profile": {
+        "title": "Profile & Security",
+        "desc": "Password, MFA, session and language preferences"
+      },
+      "users": {
+        "title": "Users & Access",
+        "desc": "Provision users and manage who can access the platform"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "desc": "Review every action recorded across the platform"
+      },
+      "templates": {
+        "title": "Questionnaire Templates",
+        "desc": "Design the questionnaires cooperatives fill in"
+      },
+      "kpis": {
+        "title": "Custom KPIs",
+        "desc": "Define additional performance indicators for cooperatives"
+      },
+      "invitations": {
+        "title": "Federation Invitations",
+        "desc": "Invite federation officers and track pending invites"
+      }
     }
   },
   "apexesPage": {
@@ -3179,7 +3173,10 @@
     "toastDeleted": "Deleted \"{{name}}\"",
     "toastDeletedDesc": "Federation removed from registry.",
     "toastDeleteFailed": "Failed to delete federation",
-    "toastExporting": "Exporting federation data as CSV..."
+    "toastExporting": "Exporting federation data as CSV...",
+    "errorDuplicateFederation": "A federation with this name or domain already exists. Please use a different name or domain.",
+    "errorGenericCreate": "Registration could not be completed. Please try again or contact support if the issue persists.",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "memberList": {
     "tableHeaders": {

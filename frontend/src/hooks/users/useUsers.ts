@@ -9,13 +9,22 @@ import { apiClient } from "@/openapi-client";
 
 const USERS_KEY = "users";
 
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return String(err);
+}
+
 /** List all users (paginated) */
 export const useUsers = () =>
   useQuery({
     queryKey: [USERS_KEY],
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/users");
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
   });
@@ -28,7 +37,7 @@ export const useUser = (id: string) =>
       const { data, error } = await apiClient.GET("/api/v1/users/{id}", {
         params: { path: { id } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!id,
@@ -49,7 +58,7 @@ export const useCreateUser = () => {
       const { data, error } = await apiClient.POST("/api/v1/users", {
         body: body as never,
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
@@ -77,7 +86,7 @@ export const useUpdateUser = () => {
         params: { path: { id } },
         body: body as never,
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: (_data, variables) => {
@@ -95,7 +104,7 @@ export const useDeleteUser = () => {
       const { error } = await apiClient.DELETE("/api/v1/users/{id}", {
         params: { path: { id } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USERS_KEY] });
@@ -112,7 +121,7 @@ export const useAssignRole = () => {
         params: { path: { id } },
         body: { role } as never,
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: (_data, variables) => {

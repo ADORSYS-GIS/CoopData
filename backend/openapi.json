@@ -4911,6 +4911,116 @@
         }
       }
     },
+    "/api/v1/me/security": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "get_security_settings",
+        "responses": {
+          "200": {
+            "description": "Current user security settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecuritySettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/security/mfa": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "disable_mfa",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableMfaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "MFA disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecuritySettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/security/mfa/setup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "mfa_setup",
+        "responses": {
+          "200": {
+            "description": "MFA setup initiated; user completes TOTP at next sign-in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecuritySettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MFA already enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/verify-identity": {
       "post": {
         "tags": [
@@ -8887,6 +8997,21 @@
           }
         }
       },
+      "DisableMfaRequest": {
+        "type": "object",
+        "required": [
+          "password",
+          "otp"
+        ],
+        "properties": {
+          "otp": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "DomainRequest": {
         "type": "object",
         "required": [
@@ -12661,6 +12786,18 @@
             "items": {
               "$ref": "#/components/schemas/SectorBreakdownPoint"
             }
+          }
+        }
+      },
+      "SecuritySettingsResponse": {
+        "type": "object",
+        "required": [
+          "mfa_enabled"
+        ],
+        "properties": {
+          "mfa_enabled": {
+            "type": "boolean",
+            "description": "True when the user has an OTP (TOTP) credential configured in Keycloak,\nor a CONFIGURE_TOTP required action is pending (setup initiated but not\nyet completed at next sign-in)."
           }
         }
       },

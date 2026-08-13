@@ -212,8 +212,8 @@ export function FederationDashboard() {
                       {sub.cooperative_name ?? "—"}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      {sub.submitted_at
-                        ? new Date(sub.submitted_at).toLocaleDateString()
+                      {sub.submitted_at || (sub.status !== "draft" && sub.created_at)
+                        ? new Date(sub.submitted_at || sub.created_at).toLocaleDateString()
                         : t("dashboard.federation.notSubmitted")}
                     </p>
                   </div>

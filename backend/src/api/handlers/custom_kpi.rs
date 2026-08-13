@@ -195,7 +195,9 @@ pub async fn update_custom_kpi(
         active.formula = sea_orm::Set(formula);
     }
     if let Some(translations) = payload.translations {
-        if !translations.is_null() && !translations.as_object().is_some_and(|obj| obj.is_empty()) {
+        if !(translations.is_null()
+            || translations.is_object() && translations.as_object().unwrap().is_empty())
+        {
             active.translations = sea_orm::Set(translations);
         }
     }
@@ -297,10 +299,7 @@ pub async fn evaluate_custom_kpi(
                 .unwrap_or_default();
             let approved: Vec<_> = submissions
                 .into_iter()
-                .filter(|s| {
-                    s.status == crate::entities::enums::SubmissionStatus::Approved
-                        || s.status == crate::entities::enums::SubmissionStatus::Submitted
-                })
+                .filter(|s| s.status == crate::entities::enums::SubmissionStatus::Approved)
                 .collect();
             if let Some(latest) = approved
                 .iter()

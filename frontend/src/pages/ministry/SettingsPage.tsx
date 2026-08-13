@@ -1,86 +1,73 @@
 import {
-  Building2,
-  Globe,
-  ShieldCheck,
-  Bell,
-  Database,
-  Palette,
-  ChevronRight,
-  Lock,
+  Sun,
+  Moon,
   Monitor,
   User,
-  Mail,
-  Save,
-  ArrowLeft,
+  Users,
+  ScrollText,
   ClipboardList,
+  LineChart,
+  Mail,
+  ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppShell, Card } from "@/components/app-shell";
 import { useState } from "react";
-import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
+import { useTheme, type Theme } from "@/lib/theme";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { NonFinancialCatalogManager } from "@/components/submissions/non-financial-catalog-manager";
 
-const GROUPS = [
+const THEME_OPTIONS: { value: Theme; labelKey: string; icon: typeof Sun }[] = [
+  { value: "light", labelKey: "settings.appearance.light", icon: Sun },
+  { value: "dark", labelKey: "settings.appearance.dark", icon: Moon },
+  { value: "system", labelKey: "settings.appearance.system", icon: Monitor },
+];
+
+const SHORTCUTS = [
   {
-    id: "organization",
-    icon: Building2,
+    to: "/app/profile",
+    icon: User,
+    titleKey: "settings.shortcuts.profile.title",
+    descKey: "settings.shortcuts.profile.desc",
   },
   {
-    id: "localization",
-    icon: Globe,
+    to: "/app/users",
+    icon: Users,
+    titleKey: "settings.shortcuts.users.title",
+    descKey: "settings.shortcuts.users.desc",
   },
   {
-    id: "security",
-    icon: ShieldCheck,
+    to: "/app/audit",
+    icon: ScrollText,
+    titleKey: "settings.shortcuts.audit.title",
+    descKey: "settings.shortcuts.audit.desc",
   },
   {
-    id: "notifications",
-    icon: Bell,
-  },
-  {
-    id: "retention",
-    icon: Database,
-  },
-  {
-    id: "indicators",
+    to: "/app/questionnaire-templates",
     icon: ClipboardList,
+    titleKey: "settings.shortcuts.templates.title",
+    descKey: "settings.shortcuts.templates.desc",
   },
-];
-
-const SECURITY_POLICIES = [
-  { id: "mfa", icon: Lock },
-  { id: "passwordLength", icon: ShieldCheck },
-  { id: "passwordRotation", icon: Lock },
-  { id: "sessionTimeout", icon: Monitor },
-  { id: "failedLockout", icon: User },
-  { id: "deviceTrust", icon: Monitor },
-];
-
-const NOTIFICATION_CHANNELS = [
-  { id: "email", channelKey: "email", icon: Mail, enabled: true, count: 12 },
-  { id: "inApp", channelKey: "inApp", icon: Bell, enabled: true, count: 24 },
-  { id: "sms", channelKey: "sms", icon: Globe, enabled: false, count: 3 },
-];
+  {
+    to: "/app/custom-kpis",
+    icon: LineChart,
+    titleKey: "settings.shortcuts.kpis.title",
+    descKey: "settings.shortcuts.kpis.desc",
+  },
+  {
+    to: "/app/invitations",
+    icon: Mail,
+    titleKey: "settings.shortcuts.invitations.title",
+    descKey: "settings.shortcuts.invitations.desc",
+  },
+] as const;
 
 export const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [activeCategory, setActiveCategory] = useState<string>("general");
-  const [channels, setChannels] = useState(NOTIFICATION_CHANNELS);
-
-  const toggleChannel = (chId: string, channelName: string) => {
-    setChannels((prev) => prev.map((c) => (c.id === chId ? { ...c, enabled: !c.enabled } : c)));
-    toast.success(t("settings.notificationsToggled", { channel: channelName }));
-  };
-
-  const handleGroupClick = (group: (typeof GROUPS)[0]) => {
-    if (group.id === "indicators") {
-      setActiveCategory("indicators");
-    } else {
-      toast.info(
-        t("settings.openingSettingsToast", { title: t(`settings.groups.${group.id}.title`) }),
-      );
-    }
-  };
 
   return (
     <AppShell
@@ -102,101 +89,100 @@ export const SettingsPage: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Settings Category Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden border border-border">
-              {GROUPS.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => handleGroupClick(g)}
-                  className="bg-surface p-5 text-left group transition-colors hover:bg-muted/40"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="size-9 rounded-lg grid place-items-center bg-muted text-muted-foreground group-hover:bg-accent/10 group-hover:text-accent transition-colors">
-                      <g.icon className="size-4" />
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-accent transition-colors mt-1" />
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-foreground">
-                    {t(`settings.groups.${g.id}.title`)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    {t(`settings.groups.${g.id}.desc`)}
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            {/* Security Policy */}
+            {/* Appearance — Light / Dark / System */}
             <Card
-              title={t("settings.securityPolicyTitle")}
-              subtitle={t("settings.securityPolicySubtitle")}
+              title={t("settings.appearance.title")}
+              subtitle={t("settings.appearance.subtitle")}
+              edge="accent"
             >
-              <div className="divide-y divide-border -mx-5">
-                {SECURITY_POLICIES.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <p.icon className="size-4 text-muted-foreground shrink-0" />
-                      <span className="text-sm text-foreground">
-                        {t(`settings.securityPolicies.${p.id}.label`)}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-foreground shrink-0 tabular-nums">
-                      {t(`settings.securityPolicies.${p.id}.value`)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-3 border-t border-border flex justify-end">
-                <button
-                  onClick={() => toast.success(t("settings.securityPolicyUpdateQueued"))}
-                  className="press-feedback inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
-                >
-                  <Save className="size-3.5" /> {t("settings.editPolicy")}
-                </button>
-              </div>
-            </Card>
-
-            {/* Notification Preferences */}
-            <Card
-              title={t("settings.notificationChannelsTitle")}
-              subtitle={t("settings.notificationChannelsSubtitle")}
-            >
-              <div className="grid md:grid-cols-3 gap-4">
-                {channels.map((n) => {
-                  const channelName = t(`settings.channels.${n.channelKey}`);
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {THEME_OPTIONS.map((opt) => {
+                  const isActive = theme === opt.value;
                   return (
                     <button
-                      key={n.id}
-                      onClick={() => toggleChannel(n.id, channelName)}
-                      className={`rounded-lg border p-4 text-left transition-all hover-lift ${
-                        n.enabled ? "border-accent/25 bg-accent/[0.03]" : "border-border bg-surface"
+                      key={opt.value}
+                      onClick={() => setTheme(opt.value)}
+                      aria-pressed={isActive}
+                      className={`group flex items-center gap-3 rounded-xl border p-4 text-left transition-all hover-lift ${
+                        isActive
+                          ? "border-accent/40 bg-accent/[0.06] shadow-[var(--shadow-elev-1)]"
+                          : "border-border bg-surface hover:border-accent/25"
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div
-                          className={`size-8 rounded-lg grid place-items-center ${n.enabled ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}
-                        >
-                          <n.icon className="size-4" />
-                        </div>
-                        {/* Toggle switch */}
-                        <div
-                          className={`w-9 h-5 rounded-full transition-colors relative ${n.enabled ? "bg-accent" : "bg-border"}`}
-                        >
-                          <span
-                            className={`absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform ${n.enabled ? "translate-x-4" : "translate-x-0.5"}`}
-                          />
-                        </div>
-                      </div>
-                      <p className="text-sm font-semibold text-foreground">{channelName}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {t("settings.eventTypesCount", { count: n.count })}
-                      </p>
+                      <span
+                        className={`size-9 rounded-lg grid place-items-center transition-colors ${
+                          isActive
+                            ? "bg-accent/10 text-accent"
+                            : "bg-muted text-muted-foreground group-hover:text-accent"
+                        }`}
+                      >
+                        <opt.icon className="size-4" />
+                      </span>
+                      <span
+                        className={`text-sm font-semibold ${
+                          isActive ? "text-accent" : "text-foreground"
+                        }`}
+                      >
+                        {t(opt.labelKey)}
+                      </span>
+                      {isActive && <span className="ml-auto size-2 rounded-full bg-accent" />}
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Language preference */}
+              <div className="mt-5 pt-5 border-t border-border flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {t("settings.appearance.language")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.appearance.languageDesc")}
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  <LanguageSwitcher />
+                </div>
+              </div>
+            </Card>
+
+            {/* Non-Financial Indicators — the one inline configuration feature */}
+            <Card
+              title={t("settings.indicators.title")}
+              subtitle={t("settings.indicators.desc")}
+              edge="primary"
+            >
+              <button
+                onClick={() => setActiveCategory("indicators")}
+                className="press-feedback inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
+              >
+                <ClipboardList className="size-3.5" /> {t("settings.indicators.open")}
+                <ChevronRight className="size-3.5" />
+              </button>
+            </Card>
+
+            {/* Configuration Shortcuts — redirect to existing pages */}
+            <Card title={t("settings.shortcuts.title")} subtitle={t("settings.shortcuts.subtitle")}>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden border border-border">
+                {SHORTCUTS.map((s) => (
+                  <Link
+                    key={s.to}
+                    to={s.to}
+                    className="bg-surface p-5 text-left group transition-colors hover:bg-muted/40"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="size-9 rounded-lg grid place-items-center bg-muted text-muted-foreground group-hover:bg-accent/10 group-hover:text-accent transition-colors">
+                        <s.icon className="size-4" />
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-accent transition-colors mt-1" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-foreground">{t(s.titleKey)}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {t(s.descKey)}
+                    </p>
+                  </Link>
+                ))}
               </div>
             </Card>
           </>

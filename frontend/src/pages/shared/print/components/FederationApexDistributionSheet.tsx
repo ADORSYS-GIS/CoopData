@@ -62,10 +62,7 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
   }, [apexGroups]);
 
   return (
-    <div
-      className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
-      style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
-    >
+    <div className="print-page relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white text-slate-900 border-b border-gray-200 break-after-page font-sans">
       {/* Header */}
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
@@ -144,16 +141,16 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
             </div>
           </div>
 
-          <table className="w-full text-left text-sm border-collapse">
+          <table className="w-full text-left text-[10px] border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 border border-slate-700">
+                <th className="p-2 border border-slate-700">
                   {t("printReports.headers.apexOrganization")}
                 </th>
-                <th className="p-3 border border-slate-700 text-right">
+                <th className="p-2 border border-slate-700 text-right">
                   {t("printReports.headers.cooperatives")}
                 </th>
-                <th className="p-3 border border-slate-700 text-right">
+                <th className="p-2 border border-slate-700 text-right">
                   {t("printReports.headers.totalActiveMembers")}
                 </th>
               </tr>
@@ -161,11 +158,11 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
             <tbody>
               {Array.from(apexGroups.entries()).map(([apexName, stats]) => (
                 <tr key={apexName} className="border-b border-slate-200">
-                  <td className="p-3 border-x border-slate-300 bg-slate-50">{apexName}</td>
-                  <td className="p-3 border-x border-slate-300 text-right font-semibold text-blue-800">
+                  <td className="p-2 border-x border-slate-300 bg-slate-50">{apexName}</td>
+                  <td className="p-2 border-x border-slate-300 text-right font-semibold text-blue-800">
                     {stats.coopCount}
                   </td>
-                  <td className="p-3 border-x border-slate-300 text-right">
+                  <td className="p-2 border-x border-slate-300 text-right">
                     {stats.members.toLocaleString()}
                   </td>
                 </tr>

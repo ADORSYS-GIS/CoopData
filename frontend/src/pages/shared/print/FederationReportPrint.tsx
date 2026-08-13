@@ -45,7 +45,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
   if (!data) return null;
 
   return (
-    <div className="print-report bg-white min-h-screen">
+    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
       {/* Cover Page */}
       <ConsolidatedCoverPage
         tier={tier}

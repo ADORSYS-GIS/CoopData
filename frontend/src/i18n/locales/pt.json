@@ -234,8 +234,7 @@
     "securityPreferences": "Preferências de Segurança",
     "accountProtection": "Definições de proteção da conta",
     "mfa": "Autenticação Multifator",
-    "mfaDesc": "Exigir verificação OTP por e-mail secundário no início de sessão",
-    "autoLockout": "Bloqueio Automático de Sessão",
+    "mfaDesc": "Exigir um código único da sua aplicação de autenticação (TOTP) no início de sessão",
     "roleScope": "Âmbito da Função e Permissões do Ecossistema",
     "securityCredentialsMatrix": "A sua matriz explícita de credenciais de segurança",
     "permissionScope": "Âmbito de Permissões",
@@ -262,7 +261,14 @@
     "passwordTooShort": "A nova palavra-passe deve ter pelo menos 8 caracteres.",
     "passwordUpdated": "Palavra-passe atualizada com sucesso!",
     "unexpectedError": "Erro inesperado.",
-    "minutes": "{{count}} min",
+    "loadingSecurity": "A carregar definições de segurança…",
+    "mfaEnabledToast": "Autenticação de dois fatores ativada.",
+    "mfaDisabledToast": "Autenticação de dois fatores desativada.",
+    "mfaSetupTitle": "Configurar a autenticação de dois fatores",
+    "mfaSetupDesc": "Vamos redirecioná-lo para iniciar sessão novamente e concluir a configuração da autenticação de dois fatores com a sua aplicação de autenticação.",
+    "mfaStartSetup": "Iniciar configuração",
+    "mfaRedirectHint": "Ser-lhe-á pedido que digitalize um código QR com a sua aplicação de autenticação (Google Authenticator, Authy, etc.). Após concluir a configuração, será levado de volta ao seu perfil.",
+    "mfaCancel": "Cancelar",
     "caps": {
       "userProvisioning": "Provisionamento de Contas de Utilizador",
       "filingApprovals": "Aprovações / Assinatura de Depósitos",
@@ -1262,6 +1268,7 @@
     "enterField": "Introduzir {{field}}…",
     "testDataPopulated": "Respostas de questionário de teste preenchidas!",
     "requiredFieldsSection": "Por favor, preencha todos os campos obrigatórios nesta secção antes de continuar: {{fields}}",
+    "allFieldsRequired": "Todos os campos são obrigatórios",
     "cannotCompleteFields": "Não é possível completar o questionário. Por favor, preencha os seguintes campos obrigatórios: {{fields}}",
     "loadingConfig": "A carregar configuração do formulário…",
     "noQuestionnaireFound": "Nenhum questionário ativo encontrado",
@@ -1618,6 +1625,18 @@
     "originalTenure": "Prazo Original"
   },
   "analytics": {
+    "filter": {
+      "federation": "Federação",
+      "apex": "Organização Apex",
+      "cooperative": "Cooperativa",
+      "region": "Região",
+      "sector": "Setor"
+    },
+    "allFederations": "Todas as Federações",
+    "allApexes": "Todas as Organizações Apex",
+    "allCooperatives": "Todas as Cooperativas",
+    "allRegions": "Todas as Regiões",
+    "allSectors": "Todos os Setores",
     "tab": {
       "consolidatedDashboard": "Painel Consolidado",
       "cooperativeRankings": "Classificações das Cooperativas",
@@ -1792,7 +1811,6 @@
     "comparativeAuditSubtitle": "Grelha de Folha de Cálculo de Auditoria Comparativa e Excedente Operacional ({{year}})",
     "date": "Data",
     "cooperativesLabel": "Cooperativas",
-    "allCooperatives": "Todas as Cooperativas",
     "selectedCount": "{{count}} Selecionadas",
     "resetSelection": "Repor Seleção (Todas)",
     "incomeStatementMapping": "Mapeamento da Demonstração de Resultados:",
@@ -2448,6 +2466,7 @@
       "subtitle": "{{total}} itens · {{unmapped}} não mapeados · {{lowConf}} baixa confiança",
       "deleteStatement": "Eliminar Demonstração",
       "resolveErrorsHint": "Resolva os erros antes de marcar como pronto",
+      "enterDataHint": "Insira dados financeiros antes de marcar esta secção como pronta",
       "markReady": "Marcar Secção como Pronta",
       "ready": "Secção Pronta"
     },
@@ -2932,75 +2951,50 @@
   },
   "settings": {
     "title": "Definições",
-    "subtitle": "Configuração da plataforma, política de segurança e preferências de notificação",
+    "subtitle": "Preferências da plataforma e atalhos para áreas de configuração importantes",
     "subtitleIndicators": "Configurar requisitos de reporte dinâmicos para cooperativas",
     "backBtn": "Voltar às Definições",
-    "securityPolicyTitle": "Política de Segurança",
-    "securityPolicySubtitle": "Aplicada a todas as 10 235 contas",
-    "editPolicy": "Editar política",
-    "securityPolicyUpdateQueued": "Atualização da política de segurança em fila para revisão.",
-    "notificationChannelsTitle": "Canais de Notificação",
-    "notificationChannelsSubtitle": "Métodos de entrega predefinidos para eventos do sistema e alertas de conformidade",
-    "eventTypesCount": "{{count}} tipo de evento",
-    "eventTypesCount_plural": "{{count}} tipos de evento",
-    "notificationsToggled": "Notificações de {{channel}} alternadas.",
-    "openingSettingsToast": "A abrir definições de {{title}}...",
-    "groups": {
-      "organization": {
-        "title": "Organização",
-        "desc": "Perfil do ministério, entidade legal, branding e políticas de divulgação."
-      },
-      "localization": {
-        "title": "Localização",
-        "desc": "Idiomas: Inglês, SiSwati, Português. Formatos de data e número."
-      },
-      "security": {
-        "title": "Segurança",
-        "desc": "Política de palavras-passe, aplicação de MFA, tempo limite de sessão, confiança de dispositivos."
-      },
-      "notifications": {
-        "title": "Notificações",
-        "desc": "Entrega por e-mail, na aplicação e SMS para eventos do sistema e alertas."
-      },
-      "retention": {
-        "title": "Retenção de Dados",
-        "desc": "Agendamentos de arquivo, retenção de registos de auditoria e políticas de exportação."
-      },
-      "indicators": {
-        "title": "Indicadores Não Financeiros",
-        "desc": "Configurar campos de reporte dinâmicos (ex. detalhes do conselho, formação) para cooperativas."
-      }
+    "appearance": {
+      "title": "Aparência",
+      "subtitle": "Escolha como a plataforma se apresenta para si",
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema",
+      "language": "Idioma",
+      "languageDesc": "Escolha o idioma da interface da plataforma"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Autenticação multifator",
-        "value": "Obrigatória para todas as funções"
-      },
-      "passwordLength": {
-        "label": "Comprimento mínimo da palavra-passe",
-        "value": "14 caracteres"
-      },
-      "passwordRotation": {
-        "label": "Ciclo de rotação da palavra-passe",
-        "value": "A cada 90 dias"
-      },
-      "sessionTimeout": {
-        "label": "Tempo limite de inatividade da sessão",
-        "value": "30 minutos de inatividade"
-      },
-      "failedLockout": {
-        "label": "Bloqueio por falhas de início de sessão",
-        "value": "5 tentativas · bloqueio de 15 min"
-      },
-      "deviceTrust": {
-        "label": "Janela de confiança do dispositivo",
-        "value": "30 dias por dispositivo"
-      }
+    "indicators": {
+      "title": "Indicadores Não Financeiros",
+      "desc": "Configurar campos de reporte dinâmicos (ex. detalhes do conselho, formação) para cooperativas.",
+      "open": "Configurar indicadores"
     },
-    "channels": {
-      "email": "E-mail",
-      "inApp": "Na aplicação",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Atalhos de Configuração",
+      "subtitle": "Estas definições vivem nas suas próprias páginas",
+      "profile": {
+        "title": "Perfil e Segurança",
+        "desc": "Palavra-passe, MFA, sessão e preferências de idioma"
+      },
+      "users": {
+        "title": "Utilizadores e Acesso",
+        "desc": "Provisionar utilizadores e gerir quem pode aceder à plataforma"
+      },
+      "audit": {
+        "title": "Trilha de Auditoria",
+        "desc": "Rever cada ação registada na plataforma"
+      },
+      "templates": {
+        "title": "Modelos de Questionário",
+        "desc": "Conceber os questionários que as cooperativas preenchem"
+      },
+      "kpis": {
+        "title": "KPIs Personalizados",
+        "desc": "Definir indicadores de desempenho adicionais para cooperativas"
+      },
+      "invitations": {
+        "title": "Convites de Federação",
+        "desc": "Convidar oficiais de federação e acompanhar convites pendentes"
+      }
     }
   },
   "apexesPage": {
