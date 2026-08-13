@@ -36,10 +36,19 @@ import type {
 
 // Minimum number of contributing cooperatives-with-data required before a
 // sector / sector+regional average is disclosed client-side for admin users.
-// Cooperative users rely on the backend guard (MIN_CONTRIBUTORS = 3);
-// apex/federation users may drop to 2 since they already have visibility into
-// their own scoped cooperatives.
-const MIN_CONTRIBUTORS_APEX_FED = 2;
+//
+// Security model (why admins may use 2 while coop users are held to 3):
+// - Cooperative callers never see other cooperatives' rows — the backend
+//   returns only their own row plus server-computed averages, and enforces
+//   MIN_CONTRIBUTORS = 3 (services/benchmark.rs) so a coop cannot derive a
+//   competitor's value from a small average. This is the differential-privacy
+//   guard that matters.
+// - Admin callers (ministry / federation / apex) are already authorized to see
+//   the raw rows of every cooperative in their scope (the backend returns the
+//   full `rows` array to them). A 2-coop sector/regional average therefore
+//   reveals nothing they do not already have direct access to, so the relaxed
+//   client-side threshold of 2 is acceptable for them.
+const MIN_CONTRIBUTORS_ADMIN = 2;
 
 interface BenchmarkComparisonProps {
   reportingYear: number;
@@ -222,14 +231,13 @@ export function BenchmarkComparison({
   ]);
 
   // Sector average for the selected coop's sector (nationally).
-  // Coop users consume the server-computed sector average; apex/federation users
-  // compute it over their scoped coops but withhold it below
-  // MIN_CONTRIBUTORS_APEX_FED.
+  // Coop users consume the server-computed sector average; admin users compute
+  // it over their scoped coops but withhold it below MIN_CONTRIBUTORS_ADMIN.
   const sectorAverages = useMemo(() => {
     if (isCoopUser) return serverAverages?.sector ?? null;
     if (!selectedCoopSector) return null;
     const sectorCoops = cooperativesWithData.filter((c) => c.sector === selectedCoopSector);
-    if (sectorCoops.length < MIN_CONTRIBUTORS_APEX_FED) return null;
+    if (sectorCoops.length < MIN_CONTRIBUTORS_ADMIN) return null;
     return computeKpiAverages(sectorCoops, metrics, getValue);
   }, [isCoopUser, serverAverages, selectedCoopSector, cooperativesWithData, metrics, getValue]);
 
@@ -240,7 +248,7 @@ export function BenchmarkComparison({
     const coops = cooperativesWithData.filter(
       (c) => c.sector === selectedCoopSector && c.region === selectedCoopRegion,
     );
-    if (coops.length < MIN_CONTRIBUTORS_APEX_FED) return null;
+    if (coops.length < MIN_CONTRIBUTORS_ADMIN) return null;
     return computeKpiAverages(coops, metrics, getValue);
   }, [
     isCoopUser,

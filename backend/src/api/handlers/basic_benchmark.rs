@@ -82,6 +82,45 @@ pub async fn get_basic_benchmark(
 
     let all_rows = build_questionnaire_rows(responses);
 
+    let response = compute_basic_benchmark(
+        all_rows,
+        &caller_coop_ids,
+        is_coop_caller,
+        params.reporting_year,
+    );
+
+    tracing::info!(
+        caller = %claims.sub,
+        is_coop_caller,
+        cooperatives_in_scope = response.rows.len(),
+        has_own_data = response.cooperative.is_some(),
+        "Basic benchmark computed"
+    );
+
+    Ok((StatusCode::OK, Json(response)))
+}
+
+/// Pure decision logic for the basic-benchmark endpoint. Extracted from the
+/// handler so the privacy guarantees are unit-testable without a database:
+///
+/// - **Coop callers** receive only their own row (`cooperative`) plus
+///   server-computed averages; `rows` is always empty — the response is
+///   structurally incapable of leaking other cooperatives. A coop with no
+///   approved/submitted questionnaire gets `cooperative: None` (a legitimate
+///   empty state, not an error).
+/// - **Admin callers** (ministry/federation/apex) receive the full `rows` for
+///   their authorized scope plus a national average; regional/sector slices are
+///   left for the frontend to compute client-side over those rows.
+///
+/// Every average slice is gated by `MIN_CONTRIBUTORS` (see
+/// `services/benchmark.rs`) so a caller cannot derive an individual coop's value
+/// from a small sample.
+fn compute_basic_benchmark(
+    all_rows: Vec<BasicBenchmarkRow>,
+    caller_coop_ids: &[Uuid],
+    is_coop_caller: bool,
+    reporting_year: Option<i32>,
+) -> BasicBenchmarkResponse {
     if !is_coop_caller {
         // Admin path: rows scoped to the caller's authorized cooperatives.
         let scoped_rows: Vec<BasicBenchmarkRow> = all_rows
@@ -89,42 +128,33 @@ pub async fn get_basic_benchmark(
             .filter(|r| caller_coop_ids.contains(&r.cooperative_id))
             .collect();
         // Informational national average over the scoped population, gated by
-        // the same MIN_CONTRIBUTORS guard for consistency (the widget computes
-        // its own client-side averages with the lower apex/fed threshold).
+        // the same MIN_CONTRIBUTORS guard for consistency.
         let (national_average, national_insufficient) = scoped_average(
             &scoped_rows,
             |r| r.has_data,
             get_metric_value,
             &BASIC_BENCHMARK_METRICS,
         );
-        tracing::info!(
-            caller = %claims.sub,
-            cooperatives_in_scope = scoped_rows.len(),
-            "Basic benchmark computed for admin caller"
-        );
-        return Ok((
-            StatusCode::OK,
-            Json(BasicBenchmarkResponse {
-                reporting_year: params.reporting_year,
-                cooperative: None,
-                rows: scoped_rows,
-                national_average,
-                regional_average: None,
-                sector_average: None,
-                sector_regional_average: None,
-                insufficient_data: BasicBenchmarkInsufficientData {
-                    national: national_insufficient,
-                    regional: true,
-                    sector: true,
-                    sector_regional: true,
-                },
-            }),
-        ));
+        return BasicBenchmarkResponse {
+            reporting_year,
+            cooperative: None,
+            rows: scoped_rows,
+            national_average,
+            regional_average: None,
+            sector_average: None,
+            sector_regional_average: None,
+            insufficient_data: BasicBenchmarkInsufficientData {
+                national: national_insufficient,
+                regional: true,
+                sector: true,
+                sector_regional: true,
+            },
+        };
     }
 
     // A cooperative caller without an approved/submitted questionnaire for the
-    // year gets `cooperative: null` with 200 OK — the absence of data is a
-    // legitimate state the UI renders as an empty state, not an error.
+    // year gets `cooperative: None` — the absence of data is a legitimate state
+    // the UI renders as an empty state, not an error.
     let own_row = all_rows
         .iter()
         .find(|r| caller_coop_ids.contains(&r.cooperative_id))
@@ -181,34 +211,21 @@ pub async fn get_basic_benchmark(
         _ => (None, true),
     };
 
-    tracing::info!(
-        caller = %claims.sub,
-        cooperative = own_row
-            .as_ref()
-            .map(|r| r.cooperative_id.to_string())
-            .unwrap_or_default(),
-        has_own_data = own_row.is_some(),
-        "Basic benchmark computed for cooperative caller"
-    );
-
-    Ok((
-        StatusCode::OK,
-        Json(BasicBenchmarkResponse {
-            reporting_year: params.reporting_year,
-            cooperative: own_row,
-            rows: vec![],
-            national_average,
-            regional_average,
-            sector_average,
-            sector_regional_average,
-            insufficient_data: BasicBenchmarkInsufficientData {
-                national: national_insufficient,
-                regional: regional_insufficient,
-                sector: sector_insufficient,
-                sector_regional: sector_regional_insufficient,
-            },
-        }),
-    ))
+    BasicBenchmarkResponse {
+        reporting_year,
+        cooperative: own_row,
+        rows: vec![],
+        national_average,
+        regional_average,
+        sector_average,
+        sector_regional_average,
+        insufficient_data: BasicBenchmarkInsufficientData {
+            national: national_insufficient,
+            regional: regional_insufficient,
+            sector: sector_insufficient,
+            sector_regional: sector_regional_insufficient,
+        },
+    }
 }
 
 /// Builds one `BasicBenchmarkRow` per cooperative, merging the answers of all its
@@ -447,4 +464,267 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
 /// Extracts a metric value from a questionnaire row.
 fn get_metric_value(row: &BasicBenchmarkRow, key: &str) -> Option<f64> {
     row.metrics.get(key).copied()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    fn row(
+        id: Uuid,
+        name: &str,
+        region: Option<&str>,
+        sector: Option<&str>,
+        has_data: bool,
+        metrics: HashMap<String, f64>,
+    ) -> BasicBenchmarkRow {
+        BasicBenchmarkRow {
+            cooperative_id: id,
+            name: name.to_string(),
+            region: region.map(|s| s.to_string()),
+            sector: sector.map(|s| s.to_string()),
+            has_data,
+            metrics,
+        }
+    }
+
+    fn metric(key: &str, val: f64) -> HashMap<String, f64> {
+        let mut m = HashMap::new();
+        m.insert(key.to_string(), val);
+        m
+    }
+
+    /// Three with-data coops in the same region/sector — enough to disclose
+    /// every average slice (MIN_CONTRIBUTORS = 3).
+    fn population() -> Vec<BasicBenchmarkRow> {
+        vec![
+            row(
+                Uuid::new_v4(),
+                "A",
+                Some("Hhohho"),
+                Some("Savings"),
+                true,
+                metric("total_income", 10.0),
+            ),
+            row(
+                Uuid::new_v4(),
+                "B",
+                Some("Hhohho"),
+                Some("Savings"),
+                true,
+                metric("total_income", 20.0),
+            ),
+            row(
+                Uuid::new_v4(),
+                "C",
+                Some("Hhohho"),
+                Some("Savings"),
+                true,
+                metric("total_income", 30.0),
+            ),
+        ]
+    }
+
+    // ── Structural privacy: coop callers never receive other coops' rows ─────
+
+    #[test]
+    fn coop_caller_receives_empty_rows_structural_privacy() {
+        let own = Uuid::new_v4();
+        let mut rows = population();
+        rows.push(row(
+            own,
+            "Mine",
+            Some("Hhohho"),
+            Some("Savings"),
+            true,
+            metric("total_income", 100.0),
+        ));
+
+        let resp = compute_basic_benchmark(rows, &[own], true, Some(2025));
+
+        assert!(
+            resp.rows.is_empty(),
+            "coop caller must never receive other cooperatives' rows"
+        );
+        assert_eq!(resp.cooperative.as_ref().unwrap().cooperative_id, own);
+    }
+
+    #[test]
+    fn coop_caller_without_data_gets_cooperative_none_not_error() {
+        // Caller has no row in the population (no approved/submitted data).
+        let own = Uuid::new_v4();
+        let resp = compute_basic_benchmark(population(), &[own], true, Some(2025));
+
+        assert!(
+            resp.cooperative.is_none(),
+            "no-data is a legitimate empty state, not an error"
+        );
+        assert!(resp.rows.is_empty());
+    }
+
+    // ── Admin callers receive scoped rows ────────────────────────────────────
+
+    #[test]
+    fn admin_caller_receives_scoped_rows() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut rows = population();
+        rows.push(row(
+            a,
+            "A",
+            Some("Hhohho"),
+            Some("Savings"),
+            true,
+            metric("total_income", 10.0),
+        ));
+        rows.push(row(
+            b,
+            "B",
+            Some("Hhohho"),
+            Some("Savings"),
+            true,
+            metric("total_income", 20.0),
+        ));
+
+        let resp = compute_basic_benchmark(rows, &[a, b], false, Some(2025));
+
+        assert!(resp.cooperative.is_none(), "admin callers get no own row");
+        let scoped: HashSet<Uuid> = resp.rows.iter().map(|r| r.cooperative_id).collect();
+        assert_eq!(scoped.len(), 2);
+        assert!(scoped.contains(&a) && scoped.contains(&b));
+        assert!(
+            resp.rows
+                .iter()
+                .all(|r| r.cooperative_id == a || r.cooperative_id == b),
+            "admin rows must be limited to the authorized scope"
+        );
+    }
+
+    // ── MIN_CONTRIBUTORS guard ───────────────────────────────────────────────
+
+    #[test]
+    fn min_contributors_withholds_averages_below_three() {
+        // Only two with-data coops in the population → national average withheld.
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let rows = vec![
+            row(
+                a,
+                "A",
+                Some("Hhohho"),
+                Some("Savings"),
+                true,
+                metric("total_income", 10.0),
+            ),
+            row(
+                b,
+                "B",
+                Some("Hhohho"),
+                Some("Savings"),
+                true,
+                metric("total_income", 20.0),
+            ),
+        ];
+
+        let resp = compute_basic_benchmark(rows, &[a], true, Some(2025));
+
+        assert!(resp.national_average.is_none());
+        assert!(resp.insufficient_data.national);
+    }
+
+    #[test]
+    fn min_contributors_discloses_averages_at_three() {
+        let a = Uuid::new_v4();
+        let mut rows = population();
+        rows.push(row(
+            a,
+            "Mine",
+            Some("Hhohho"),
+            Some("Savings"),
+            true,
+            metric("total_income", 100.0),
+        ));
+
+        let resp = compute_basic_benchmark(rows, &[a], true, Some(2025));
+
+        assert!(!resp.insufficient_data.national);
+        // 10 + 20 + 30 + 100 = 160 / 4 = 40
+        assert_eq!(resp.national_average.unwrap()["total_income"], 40.0);
+    }
+
+    #[test]
+    fn regional_sector_slices_are_withheld_when_own_row_missing() {
+        // Caller has no own row → region/sector unknown → slices withheld.
+        let own = Uuid::new_v4();
+        let resp = compute_basic_benchmark(population(), &[own], true, Some(2025));
+
+        assert!(resp.regional_average.is_none());
+        assert!(resp.sector_average.is_none());
+        assert!(resp.sector_regional_average.is_none());
+        assert!(resp.insufficient_data.regional);
+        assert!(resp.insufficient_data.sector);
+        assert!(resp.insufficient_data.sector_regional);
+    }
+
+    // ── has_benchmark_metrics: presence-based, all-zero counts as data ───────
+
+    #[test]
+    fn has_benchmark_metrics_counts_all_zero_submission_as_data() {
+        // Metric keys present but all zero → still counts as submitted data.
+        let answers = serde_json::json!({
+            "total_income": 0,
+            "total_share_capital": 0,
+            "registered_members_male": 0,
+        });
+        assert!(has_benchmark_metrics(&answers));
+    }
+
+    #[test]
+    fn has_benchmark_metrics_false_when_no_benchmarkable_keys() {
+        let answers = serde_json::json!({ "some_unrelated_field": "x" });
+        assert!(!has_benchmark_metrics(&answers));
+    }
+
+    #[test]
+    fn has_benchmark_metrics_false_for_non_object() {
+        assert!(!has_benchmark_metrics(&serde_json::json!(null)));
+        assert!(!has_benchmark_metrics(&serde_json::json!([1, 2, 3])));
+    }
+
+    // ── metrics_from_answers: alias resolution ───────────────────────────────
+
+    #[test]
+    fn metrics_from_answers_resolves_aliases_and_sums_genders() {
+        let answers = serde_json::json!({
+            "registered_members_male": 30,
+            "registered_members_female": 20,
+            "active_members_male": 25,
+            "active_members_female": 15,
+            "savings_value_male": 100.0,
+            "savings_value_female": 50.0,
+            "outstanding_value_male": 40.0,
+            "outstanding_value_female": 10.0,
+            "amount_owed_by_members": 5.0,
+            "total_share_capital": 500.0,
+            "borrowed_funds_total": 200.0,
+            "current_total_income": 1000.0,
+            "current_total_expenditure": 700.0,
+            "current_net_income": 300.0,
+        });
+
+        let m = metrics_from_answers(&answers);
+
+        assert_eq!(m["total_registered_members"], 50.0);
+        assert_eq!(m["total_active_members"], 40.0);
+        assert_eq!(m["total_members_male"], 30.0);
+        assert_eq!(m["total_members_female"], 20.0);
+        assert_eq!(m["total_savings_value"], 150.0);
+        assert_eq!(m["total_loans_outstanding"], 55.0);
+        assert_eq!(m["total_share_capital"], 500.0);
+        assert_eq!(m["total_borrowed_funds"], 200.0);
+        assert_eq!(m["total_income"], 1000.0);
+        assert_eq!(m["total_expenditure"], 700.0);
+        assert_eq!(m["total_net_income"], 300.0);
+    }
 }

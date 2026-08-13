@@ -114,6 +114,8 @@ Both `basic_benchmark.rs` and `national_overview.rs` consume these helpers; the 
 
 **Without an own row, regional/sector slices are withheld** (`null` + flag): the caller's region/sector cannot be known without a row, so the backend does not guess.
 
+**Client-side admin threshold (`MIN_CONTRIBUTORS_ADMIN = 2`)** — the shared widget computes regional/sector slices client-side for admin callers (ministry/federation/apex) over the scoped `rows` the backend returns to them. It withholds a slice below 2 contributing coops. This is **not** a privacy regression: admin callers are already authorized to see the raw rows of every cooperative in their scope, so a 2-coop average reveals nothing they do not already have direct access to. The differential-privacy guard that matters — `MIN_CONTRIBUTORS = 3` server-side — applies to **cooperative** callers, who can only ever receive their own row plus aggregates and must not be able to derive a competitor's value from a small average. Coop callers never use the client-side threshold; they consume the server-computed averages.
+
 ---
 
 ## 3. What Was Implemented — Frontend
