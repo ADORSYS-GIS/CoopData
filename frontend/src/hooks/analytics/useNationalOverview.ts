@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 
 export interface KpiValue {
   name: string;
@@ -95,14 +95,37 @@ const extractErrorMessage = (error: unknown): string => {
   return "Unable to load portfolio analytics.";
 };
 
+const EMPTY_NATIONAL_OVERVIEW: NationalOverviewResponse = {
+  total_cooperatives: 0,
+  cooperatives_with_data: 0,
+  non_financial_summary: {
+    cooperatives_with_data: 0,
+    average_active_members_pct: 0,
+    average_savings_penetration_pct: 0,
+    average_credit_penetration_pct: 0,
+    average_fd_penetration_pct: 0,
+    average_on_time_repayment_pct: 0,
+    average_dormancy_pct: 0,
+    average_agm_participation_pct: 0,
+    average_arrears_rate_pct: 0,
+    average_fd_early_withdrawal_pct: 0,
+  },
+  distributions: {},
+  cooperatives: [],
+  custom_kpis: {},
+};
+
 export const useNationalOverview = (
   params: NationalOverviewParams = {},
   enabled = true,
   tokenOverride?: string,
 ) =>
-  useQuery<NationalOverviewResponse>({
+  useOfflineQuery<NationalOverviewResponse>({
     queryKey: ["national-overview", params],
+    cacheTable: "analytics",
+    cacheKey: `national-overview-${JSON.stringify(params)}`,
     enabled,
+    fallbackData: EMPTY_NATIONAL_OVERVIEW,
     queryFn: async () => {
       const headers: Record<string, string> | undefined = tokenOverride
         ? { Authorization: `Bearer ${tokenOverride}` }
@@ -126,3 +149,4 @@ export const useNationalOverview = (
     },
     staleTime: 5 * 60 * 1000,
   });
+

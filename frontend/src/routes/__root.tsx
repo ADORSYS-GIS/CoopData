@@ -8,6 +8,7 @@ import { KeycloakAuthProvider } from "../context/AuthContext";
 import { ThemeProvider } from "../lib/theme";
 import { useTranslation } from "react-i18next";
 import { OfflineStatusBanner } from "@/components/shared/OfflineStatusBanner";
+import { getUserProfile } from "@/services/shared/authService";
 
 import { flushSyncQueue } from "@/services/shared/syncQueueService";
 
@@ -59,8 +60,11 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const { t } = useTranslation();
-  console.error(error);
+  console.error("[root] Uncaught error:", error);
   const router = useRouter();
+
+  // Check if we are on an authenticated app route — if so, "go home" should stay within the app
+  const isAppRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/app");
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
@@ -69,6 +73,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           {t("root.error.title")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{t("root.error.desc")}</p>
+        {import.meta.env.DEV && (
+          <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-muted px-3 py-2 text-left text-[11px] text-destructive">
+            {error?.message ?? String(error)}
+          </pre>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -80,7 +89,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             {t("root.error.tryAgain")}
           </button>
           <a
-            href="/"
+            href={isAppRoute ? "/app/dashboard" : "/"}
             className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             {t("root.error.goHome")}
@@ -116,8 +125,14 @@ function RootComponent() {
           persistOptions={{
             persister,
             maxAge: SEVEN_DAYS_MS,
-            // Bust the cache if the app version changes (prevents stale schema issues)
-            buster: import.meta.env.VITE_APP_VERSION ?? "v1",
+            // Bust the cache when app version OR logged-in user changes.
+            // This prevents a ministry user from loading federation-role queries
+            // from a previous session, which would cause 403 errors on re-fetch.
+            buster: `${import.meta.env.VITE_APP_VERSION ?? "v1"}_${getUserProfile()?.id ?? "anon"}_${getUserProfile()?.role ?? "none"}`,
+            // Never persist queries that errored (avoids persisting 403 forbidden results)
+            dehydrateOptions: {
+              shouldDehydrateQuery: (query) => query.state.status !== "error",
+            },
           }}
           onSuccess={() => {
             void queryClient.resumePausedMutations();

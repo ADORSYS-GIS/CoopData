@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
 
 export interface BenchmarkResponse {
@@ -31,8 +31,10 @@ export const useBenchmarks = (params: BenchmarkParams, enabled = true) => {
   if (params.cooperativeType) queryParams.set("cooperative_type", params.cooperativeType);
   if (params.reportingYear) queryParams.set("reporting_year", String(params.reportingYear));
 
-  return useQuery<BenchmarkResponse>({
+  return useOfflineQuery<BenchmarkResponse>({
     queryKey: ["benchmarks", params],
+    cacheTable: "analytics",
+    cacheKey: `benchmarks-${params.kpiName}-${params.cooperativeType}-${params.reportingYear}`,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${BASE_URL}/api/v1/benchmarks?${queryParams}`, {

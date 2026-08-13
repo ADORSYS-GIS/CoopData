@@ -53,26 +53,40 @@ function createColumns(
     {
       accessorKey: "first_name",
       header: t("memberList.tableHeaders.name"),
-      cell: ({ row }) => (
-        <div className="font-medium text-foreground">
-          {row.original.first_name} {row.original.last_name}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const name = [row.original.first_name, row.original.last_name].filter(Boolean).join(" ");
+        return (
+          <div className="font-medium text-foreground">
+            {name || <span className="text-muted-foreground italic text-xs">Pending registration</span>}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "email",
       header: t("memberList.tableHeaders.email"),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue<string>("email") ?? "—"}</span>
-      ),
+      cell: ({ row }) => {
+        const email = row.getValue<string>("email");
+        return (
+          <span className={email ? "text-muted-foreground" : "text-muted-foreground/50 italic text-xs"}>
+            {email || "—"}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "username",
       header: t("memberList.tableHeaders.username"),
-      cell: ({ row }) => (
-        <span className="text-foreground">{row.getValue<string>("username") ?? "—"}</span>
-      ),
+      cell: ({ row }) => {
+        const username = row.getValue<string>("username");
+        return (
+          <span className={username ? "text-foreground" : "text-muted-foreground/50 italic text-xs"}>
+            {username || "—"}
+          </span>
+        );
+      },
     },
+
     {
       accessorKey: "status",
       header: t("memberList.tableHeaders.status"),

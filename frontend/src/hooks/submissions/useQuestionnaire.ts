@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { fetchWithAuth } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import i18n from "@/i18n";
 import type { QuestionnaireSection } from "@/hooks/admin/useQuestionnaireTemplates";
 
@@ -20,8 +22,10 @@ export interface QuestionnaireResponseData {
 }
 
 export const useQuestionnaire = (submissionId: string, questionnaireType?: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [QUESTIONNAIRE_KEY, submissionId, questionnaireType],
+    cacheTable: "submissions",
+    cacheKey: `questionnaire-${submissionId}-${questionnaireType}`,
     queryFn: async () => {
       const url = questionnaireType
         ? `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire?questionnaire_type=${questionnaireType}`
@@ -41,19 +45,32 @@ export const useSaveQuestionnaire = (submissionId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { questionnaire_type: string; answers: QuestionnaireAnswers }) => {
-      const res = await fetchWithAuth(
-        `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`,
+      return runMutation<QuestionnaireResponseData>(
+        "/api/v1/cooperative/submissions/{id}/questionnaire",
+        "POST",
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          pathParams: { id: submissionId },
+          body: payload,
+          optimisticData: payload as unknown as QuestionnaireResponseData,
+          online: async () => {
+            const res = await fetchWithAuth(
+              `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              },
+            );
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(
+                (body as { message?: string }).message ?? "Failed to save questionnaire",
+              );
+            }
+            return res.json() as Promise<QuestionnaireResponseData>;
+          },
         },
       );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { message?: string }).message ?? "Failed to save questionnaire");
-      }
-      return res.json() as Promise<QuestionnaireResponseData>;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUESTIONNAIRE_KEY, submissionId] });
@@ -66,8 +83,10 @@ export const useSaveQuestionnaire = (submissionId: string) => {
 
 export const useActiveTemplate = (type: string) => {
   const lang = i18n.language?.split("-")[0] || "en";
-  return useQuery({
+  return useOfflineQuery({
     queryKey: ["active-questionnaire-template", type, lang],
+    cacheTable: "submissions",
+    cacheKey: `active-template-${type}-${lang}`,
     queryFn: async () => {
       const res = await fetchWithAuth(
         `${BASE}/api/v1/cooperative/questionnaire-templates/active?questionnaire_type=${type}&lang=${encodeURIComponent(lang)}`,
@@ -141,8 +160,10 @@ export const useQuestionnaireAnalytics = (filters: {
     queryParams.append("cooperative_id", filters.cooperative_id);
   }
 
-  return useQuery({
+  return useOfflineQuery({
     queryKey: ["questionnaire-analytics", filters],
+    cacheTable: "submissions",
+    cacheKey: `questionnaire-analytics-${JSON.stringify(filters)}`,
     queryFn: async () => {
       const res = await fetchWithAuth(
         `${BASE}/api/v1/analytics/questionnaire?${queryParams.toString()}`,

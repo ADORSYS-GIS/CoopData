@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 export interface MembershipStats {
@@ -150,8 +150,10 @@ export const useNfStatistics = (
   params: NfStatisticsParams = {},
   enabled = true,
 ) =>
-  useQuery<NfStatisticsResponse>({
+  useOfflineQuery<NfStatisticsResponse>({
     queryKey: ["nf-statistics", isCooperative, params],
+    cacheTable: "analytics",
+    cacheKey: `nf-statistics-${isCooperative}-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       if (isCooperative) {

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
 import type { SubmissionKpisResponse } from "./useCooperativeKpis";
 
@@ -13,8 +13,10 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
  * the apex's cooperatives (resolve_caller_cooperative_ids).
  */
 export const useApexSubmissionKpis = (submissionId: string | undefined, tokenOverride?: string) =>
-  useQuery<SubmissionKpisResponse>({
+  useOfflineQuery<SubmissionKpisResponse>({
     queryKey: ["apex-submission-kpis", submissionId, tokenOverride],
+    cacheTable: "submissions",
+    cacheKey: `apex-submission-kpis-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(`${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis`, {

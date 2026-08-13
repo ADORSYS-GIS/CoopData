@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 export interface CooperativeLineItem {
@@ -36,8 +36,10 @@ export const useComparativeStatements = (
   params: ComparativeStatementsParams = {},
   enabled = true,
 ) =>
-  useQuery<ComparativeStatementsResponse>({
+  useOfflineQuery<ComparativeStatementsResponse>({
     queryKey: ["comparative-statements", params],
+    cacheTable: "analytics",
+    cacheKey: `comparative-statements-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

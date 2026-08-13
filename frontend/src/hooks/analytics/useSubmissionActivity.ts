@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 
 import { apiClient } from "@/openapi-client";
 
@@ -25,8 +25,10 @@ const extractErrorMessage = (error: unknown): string => {
 };
 
 export const useSubmissionActivity = (reportingYear: number, enabled = true) =>
-  useQuery<SubmissionActivityResponse>({
+  useOfflineQuery<SubmissionActivityResponse>({
     queryKey: ["submission-activity", reportingYear],
+    cacheTable: "analytics",
+    cacheKey: `submission-activity-${reportingYear}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -71,6 +71,8 @@ export async function initKeycloak(): Promise<boolean> {
   }
 }
 
+let lastCachedTokens: CachedTokens | null = null;
+
 async function doInitKeycloak(): Promise<boolean> {
   console.log("[auth] Initializing Keycloak...");
   const cachedTokens = await loadCachedTokens();
@@ -101,7 +103,12 @@ async function doInitKeycloak(): Promise<boolean> {
         await persistTokens();
         console.log("[auth] Token refreshed successfully");
       } catch (e) {
-        console.warn("[auth] Token refresh failed, clearing cache:", e);
+        console.warn("[auth] Token refresh failed:", e);
+        if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
+          console.log("[auth] Falling back to offline mode following token refresh error");
+          offlineModeActive = true;
+          return true;
+        }
         await clearCachedTokens();
         return false;
       }
@@ -111,9 +118,17 @@ async function doInitKeycloak(): Promise<boolean> {
         "[auth] User profile:",
         profile ? { email: profile.email, role: profile.role, name: profile.name } : null,
       );
+      return true;
+    } else {
+      // Keycloak check-sso returned false (e.g. silent iframe check failed or session ended)
+      // If we have a valid offline token, activate offline recovery so user stays logged in
+      if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
+        console.log("[auth] Keycloak check-sso returned false, but valid offline token exists — activating offline mode");
+        offlineModeActive = true;
+        return true;
+      }
+      return false;
     }
-
-    return authenticated;
   } catch (error) {
     console.error("[auth] Keycloak init failed:", error);
     resolveKeycloakReady();
@@ -133,20 +148,15 @@ async function doInitKeycloak(): Promise<boolean> {
       return true;
     }
 
-    // ── OFFLINE RECOVERY ──────────────────────────────────────────────────────
-    // If the browser is offline (or Keycloak is simply unreachable) and we have
-    // a valid offline token stored in IDB, activate offline mode so the app can
-    // render with cached data instead of bouncing the user to /login.
-    if (!navigator.onLine && cachedTokens && isOfflineTokenValid(cachedTokens)) {
-      console.log("[auth] Offline recovery — activating offline mode with cached token");
+    // ── OFFLINE / CACHED TOKEN RECOVERY ─────────────────────────────────────────
+    // If Keycloak init failed or throws an error (e.g. postMessage iframe error, network timeout),
+    // activate offline mode with cached token if valid.
+    if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
+      console.log("[auth] Keycloak init error — activating offline mode with cached token");
       offlineModeActive = true;
       return true;
     }
 
-    if (cachedTokens?.token) {
-      console.log("[auth] Falling back to cached token");
-      return true;
-    }
     return false;
   }
 }
@@ -253,16 +263,82 @@ function extractOrgId(
   return null;
 }
 
+export function decodeProfileFromToken(tokenStr: string): UserProfile | null {
+  try {
+    const [, tp] = tokenStr.split(".");
+    if (!tp) return null;
+    const token = JSON.parse(atob(tp.replace(/-/g, "+").replace(/_/g, "/"))) as CustomKeycloakToken;
+    const realmRoles = extractRealmRoles(token);
+    const role = mapKeycloakRolesToRole(realmRoles);
+    if (!role) return null;
+
+    const firstName = token.given_name ?? token.name?.split(" ")[0] ?? "";
+    const lastName = token.family_name ?? token.name?.split(" ").slice(1).join(" ") ?? "";
+    const initials = (firstName[0] ?? "") + (lastName[0] ?? "");
+    const orgName = extractOrgName(token.organization);
+    const orgId = extractOrgId(token.organization);
+    const cooperationPaths = Array.isArray(token.cooperation) ? token.cooperation : [];
+    const firstCoopPath = cooperationPaths[0] ?? null;
+    const pathSegments = firstCoopPath ? firstCoopPath.split("/").filter(Boolean) : [];
+    const apexGroupId = pathSegments[0] ?? null;
+    const coopSegment = pathSegments[1] ?? pathSegments[0] ?? null;
+
+    const coopName = coopSegment;
+    const coopId = coopSegment;
+
+    const region =
+      role === "ministry"
+        ? "National"
+        : role === "federation"
+          ? (orgName ?? "Unknown")
+          : (apexGroupId ?? "Unknown");
+
+    return {
+      id: token.sub,
+      email: token.email ?? "",
+      name: token.name ?? `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
+      initials: initials.toUpperCase() || "??",
+      role,
+      region,
+      organizationId: token.organization_id ?? orgId ?? null,
+      organizationName: orgName,
+      cooperationId: token.cooperation_id ?? coopId ?? null,
+      cooperationName: coopName,
+      assignedDimensions: token.assigned_dimensions ?? [],
+      realmRoles,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function getUserProfile(): UserProfile | null {
+  const getCachedProfile = (): UserProfile | null => {
+    const local = loadCachedProfileSync();
+    if (local) return local;
+    if (lastCachedTokens?.userProfile) return lastCachedTokens.userProfile;
+    if (lastCachedTokens?.token) {
+      return decodeProfileFromToken(lastCachedTokens.token);
+    }
+    return null;
+  };
+
   // In offline mode, decode the cached token directly (no Keycloak instance needed)
   if (offlineModeActive) {
-    const profile = loadCachedProfileSync();
+    const profile = getCachedProfile();
     if (profile) return profile;
     console.warn("[auth] getUserProfile: offline mode but no cached profile");
     return null;
   }
 
   if (!keycloak.authenticated || !keycloak.tokenParsed) {
+    const profile = getCachedProfile();
+    if (profile) {
+      console.log("[auth] getUserProfile: Keycloak instance unauthenticated, using cached profile:", profile.role);
+      return profile;
+    }
     console.log("[auth] getUserProfile: not authenticated or no token");
     return null;
   }
@@ -333,7 +409,7 @@ export function hasAnyRole(roles: Role[]): boolean {
 }
 
 export function isAuthenticated(): boolean {
-  return keycloak.authenticated ?? false;
+  return (keycloak.authenticated ?? false) || offlineModeActive || !!loadCachedProfileSync() || !!lastCachedTokens?.token;
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
@@ -426,6 +502,7 @@ async function persistTokens(): Promise<void> {
 async function loadCachedTokens(): Promise<CachedTokens | null> {
   try {
     const tokens = await get<CachedTokens>(TOKEN_CACHE_KEY);
+    lastCachedTokens = tokens ?? null;
     if (!tokens) return null;
     // Accept cached tokens within the 30-day offline window
     if (Date.now() - tokens.timestamp < OFFLINE_TOKEN_MAX_AGE_MS) {

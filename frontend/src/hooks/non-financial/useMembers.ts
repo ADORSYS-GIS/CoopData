@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type {
   NfMemberResponse,
   NfCreateMemberRequest,
@@ -88,14 +90,18 @@ async function deleteMember(id: string): Promise<void> {
 }
 
 export const useMembers = (params?: NfListParams) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_MEMBERS_KEY, params],
+    cacheTable: "submissions",
+    cacheKey: `members-list-${JSON.stringify(params ?? {})}`,
     queryFn: () => fetchMembers(params),
   });
 
 export const useMember = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_MEMBERS_KEY, id],
+    cacheTable: "submissions",
+    cacheKey: `member-${id}`,
     queryFn: () => fetchMember(id),
     enabled: !!id,
   });
@@ -103,7 +109,13 @@ export const useMember = (id: string) =>
 export const useCreateMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createMember,
+    mutationFn: async (body: NfCreateMemberRequest) => {
+      return runMutation<NfMemberResponse>("/api/v1/cooperative/non-financial/members", "POST", {
+        body,
+        optimisticData: body as unknown as NfMemberResponse,
+        online: () => createMember(body),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_MEMBERS_KEY] });
     },
@@ -113,7 +125,18 @@ export const useCreateMember = () => {
 export const useUpdateMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateMember,
+    mutationFn: async (vars: { id: string; body: NfUpdateMemberRequest }) => {
+      return runMutation<NfMemberResponse>(
+        "/api/v1/cooperative/non-financial/members/{id}",
+        "PUT",
+        {
+          pathParams: { id: vars.id },
+          body: vars.body,
+          optimisticData: vars.body as unknown as NfMemberResponse,
+          online: () => updateMember(vars),
+        },
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_MEMBERS_KEY] });
     },
@@ -123,7 +146,12 @@ export const useUpdateMember = () => {
 export const useDeleteMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteMember,
+    mutationFn: async (id: string) => {
+      return runMutation<void>("/api/v1/cooperative/non-financial/members/{id}", "DELETE", {
+        pathParams: { id },
+        online: () => deleteMember(id),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_MEMBERS_KEY] });
     },

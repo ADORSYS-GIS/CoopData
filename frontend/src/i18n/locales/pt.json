@@ -4557,6 +4557,7 @@
   "offline": {
     "banner": "Está offline — a mostrar dados em cache",
     "backOnline": "Ligação restabelecida — a sincronizar as suas alterações",
+    "online": "Online",
     "noSessionTitle": "Sem ligação disponível",
     "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão pela primeira vez."
   }

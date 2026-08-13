@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
 import { getAccessToken } from "@/services/shared/authService";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import { runMutation } from "@/services/shared/syncQueueService";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
 export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"];
@@ -20,8 +22,10 @@ function extractErrorMessage(err: unknown): string {
 // ── Cooperative: own submissions only ────────────────────────────────────────
 
 export const useCooperativeSubmissions = (enabled = true) =>
-  useQuery({
+  useOfflineQuery<SubmissionResponse[]>({
     queryKey: [SUBMISSIONS_KEY],
+    cacheTable: "submissions",
+    cacheKey: "cooperative-list",
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/submissions");
@@ -33,8 +37,10 @@ export const useCooperativeSubmissions = (enabled = true) =>
 // ── Apex: submissions of all cooperatives under this apex ─────────────────────
 
 export const useApexSubmissions = (enabled = true) =>
-  useQuery({
+  useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["apex-submissions"],
+    cacheTable: "submissions",
+    cacheKey: "apex-list",
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/submissions");
@@ -50,8 +56,10 @@ export const useFederationSubmissions = (
 ) => {
   const all = typeof options === "object" ? options.all : undefined;
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
-  return useQuery({
+  return useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["federation-submissions", { all, enabled }],
+    cacheTable: "submissions",
+    cacheKey: `federation-list-${all ?? "default"}`,
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/federation/submissions", {
@@ -72,8 +80,10 @@ export const useMinistrySubmissions = (
 ) => {
   const all = typeof options === "object" ? options.all : undefined;
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
-  return useQuery({
+  return useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["ministry-submissions", { all, enabled }],
+    cacheTable: "submissions",
+    cacheKey: `ministry-list-${all ?? "default"}`,
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/submissions", {
@@ -90,8 +100,10 @@ export const useMinistrySubmissions = (
 // ── Single submission — role-aware ────────────────────────────────────────────
 
 export const useSubmission = (id: string, role?: string, tokenOverride?: string) =>
-  useQuery({
+  useOfflineQuery<SubmissionResponse>({
     queryKey: [SUBMISSIONS_KEY, id],
+    cacheTable: "submissions",
+    cacheKey: `submission-${id}`,
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
 
@@ -133,9 +145,15 @@ export const useCreateSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: CreateSubmissionRequest) => {
-      const { data, error } = await apiClient.POST("/api/v1/cooperative/submissions", { body });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
+      return runMutation<SubmissionResponse>("/api/v1/cooperative/submissions", "POST", {
+        body,
+        optimisticData: body as unknown as SubmissionResponse,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/cooperative/submissions", { body });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
+        },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
@@ -153,12 +171,29 @@ export const useUpdateSubmissionMethod = () => {
       id: string;
       submissionMethod: "upload" | "manual" | "questionnaire";
     }) => {
-      const { data, error } = await apiClient.PATCH("/api/v1/cooperative/submissions/{id}/method", {
-        params: { path: { id } },
-        body: { submission_method: submissionMethod },
-      });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
+      return runMutation<SubmissionResponse>(
+        "/api/v1/cooperative/submissions/{id}/method",
+        "PATCH",
+        {
+          pathParams: { id },
+          body: { submission_method: submissionMethod },
+          optimisticData: {
+            id,
+            submission_method: submissionMethod,
+          } as unknown as SubmissionResponse,
+          online: async () => {
+            const { data, error } = await apiClient.PATCH(
+              "/api/v1/cooperative/submissions/{id}/method",
+              {
+                params: { path: { id } },
+                body: { submission_method: submissionMethod },
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as SubmissionResponse;
+          },
+        },
+      );
     },
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
@@ -173,10 +208,16 @@ export const useDeleteSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await apiClient.DELETE("/api/v1/cooperative/submissions/{id}", {
-        params: { path: { id } },
+      return runMutation<void>("/api/v1/cooperative/submissions/{id}", "DELETE", {
+        pathParams: { id },
+        optimisticData: undefined,
+        online: async () => {
+          const { error } = await apiClient.DELETE("/api/v1/cooperative/submissions/{id}", {
+            params: { path: { id } },
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
@@ -222,8 +263,10 @@ export interface SubmissionReviewResponse {
 }
 
 export const useSubmissionReviews = (submissionId: string | undefined) =>
-  useQuery({
+  useOfflineQuery<SubmissionReviewResponse[]>({
     queryKey: ["submission-reviews", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `reviews-${submissionId}`,
     enabled: !!submissionId,
     queryFn: async () => {
       const token = await getAccessToken();
@@ -239,8 +282,15 @@ export const useSubmissionReviews = (submissionId: string | undefined) =>
 // ── Stats hooks ───────────────────────────────────────────────────────────────
 
 export const useApexStats = (enabled = true) =>
-  useQuery({
+  useOfflineQuery<{
+    total_cooperatives: number;
+    pending_submissions: number;
+    approved_submissions: number;
+    rejected_submissions: number;
+  }>({
     queryKey: ["apex-stats"],
+    cacheTable: "submissions",
+    cacheKey: "apex-stats",
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/stats");
@@ -255,8 +305,16 @@ export const useApexStats = (enabled = true) =>
   });
 
 export const useCooperativeStats = (enabled = true) =>
-  useQuery({
+  useOfflineQuery<{
+    total_submissions: number;
+    draft_submissions: number;
+    pending_submissions: number;
+    approved_submissions: number;
+    rejected_submissions: number;
+  }>({
     queryKey: ["cooperative-stats"],
+    cacheTable: "submissions",
+    cacheKey: "cooperative-stats",
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/stats");

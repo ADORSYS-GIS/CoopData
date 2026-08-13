@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 export interface SectorBreakdownPoint {
@@ -29,8 +29,10 @@ const extractErrorMessage = (error: unknown): string => {
 };
 
 export const useSectorBreakdown = (enabled = true, filters: SectorBreakdownFilters = {}) =>
-  useQuery<SectorBreakdownResponse>({
+  useOfflineQuery<SectorBreakdownResponse>({
     queryKey: ["sector-breakdown", filters],
+    cacheTable: "analytics",
+    cacheKey: `sector-breakdown-${JSON.stringify(filters)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

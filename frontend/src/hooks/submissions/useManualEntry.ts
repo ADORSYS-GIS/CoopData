@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type {
   ManualFinancialStatementRequest,
   ManualFinancialStatementResponse,
@@ -14,19 +15,30 @@ export const useSubmitManualFinancialStatement = (submissionId: string) => {
     mutationFn: async (
       body: ManualFinancialStatementRequest,
     ): Promise<ManualFinancialStatementResponse> => {
-      const { data, error } = await apiClient.POST(
+      return runMutation<ManualFinancialStatementResponse>(
         "/api/v1/cooperative/submissions/{id}/manual-financial-statement",
+        "POST",
         {
-          params: { path: { id: submissionId } },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          body: body as any,
+          pathParams: { id: submissionId },
+          body,
+          optimisticData: body as unknown as ManualFinancialStatementResponse,
+          online: async () => {
+            const { data, error } = await apiClient.POST(
+              "/api/v1/cooperative/submissions/{id}/manual-financial-statement",
+              {
+                params: { path: { id: submissionId } },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                body: body as any,
+              },
+            );
+            if (error) {
+              const msg = (error as Record<string, string>)["message"] ?? "Submission failed";
+              throw new Error(msg);
+            }
+            return data as ManualFinancialStatementResponse;
+          },
         },
       );
-      if (error) {
-        const msg = (error as Record<string, string>)["message"] ?? "Submission failed";
-        throw new Error(msg);
-      }
-      return data as ManualFinancialStatementResponse;
     },
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
@@ -44,18 +56,25 @@ export const useSubmitManualMembers = (submissionId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: ManualMembersRequest): Promise<void> => {
-      const { error } = await apiClient.POST(
-        "/api/v1/cooperative/submissions/{id}/manual-members",
-        {
-          params: { path: { id: submissionId } },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          body: body as any,
+      return runMutation<void>("/api/v1/cooperative/submissions/{id}/manual-members", "POST", {
+        pathParams: { id: submissionId },
+        body,
+        optimisticData: undefined,
+        online: async () => {
+          const { error } = await apiClient.POST(
+            "/api/v1/cooperative/submissions/{id}/manual-members",
+            {
+              params: { path: { id: submissionId } },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              body: body as any,
+            },
+          );
+          if (error) {
+            const msg = (error as Record<string, string>)["message"] ?? "Submission failed";
+            throw new Error(msg);
+          }
         },
-      );
-      if (error) {
-        const msg = (error as Record<string, string>)["message"] ?? "Submission failed";
-        throw new Error(msg);
-      }
+      });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
@@ -72,14 +91,24 @@ export const useDeleteManualFinancialStatement = (submissionId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<void> => {
-      const { error } = await apiClient.DELETE(
+      return runMutation<void>(
         "/api/v1/cooperative/submissions/{id}/financial-statement",
-        { params: { path: { id: submissionId } } },
+        "DELETE",
+        {
+          pathParams: { id: submissionId },
+          optimisticData: undefined,
+          online: async () => {
+            const { error } = await apiClient.DELETE(
+              "/api/v1/cooperative/submissions/{id}/financial-statement",
+              { params: { path: { id: submissionId } } },
+            );
+            if (error) {
+              const msg = (error as Record<string, string>)["message"] ?? "Deletion failed";
+              throw new Error(msg);
+            }
+          },
+        },
       );
-      if (error) {
-        const msg = (error as Record<string, string>)["message"] ?? "Deletion failed";
-        throw new Error(msg);
-      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
@@ -95,14 +124,20 @@ export const useDeleteManualNonFinancialData = (submissionId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<void> => {
-      const { error } = await apiClient.DELETE(
-        "/api/v1/cooperative/submissions/{id}/non-financial",
-        { params: { path: { id: submissionId } } },
-      );
-      if (error) {
-        const msg = (error as Record<string, string>)["message"] ?? "Deletion failed";
-        throw new Error(msg);
-      }
+      return runMutation<void>("/api/v1/cooperative/submissions/{id}/non-financial", "DELETE", {
+        pathParams: { id: submissionId },
+        optimisticData: undefined,
+        online: async () => {
+          const { error } = await apiClient.DELETE(
+            "/api/v1/cooperative/submissions/{id}/non-financial",
+            { params: { path: { id: submissionId } } },
+          );
+          if (error) {
+            const msg = (error as Record<string, string>)["message"] ?? "Deletion failed";
+            throw new Error(msg);
+          }
+        },
+      });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });

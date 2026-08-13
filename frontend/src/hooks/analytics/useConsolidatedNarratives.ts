@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
 
 export interface ApexNarratives {
@@ -35,8 +35,10 @@ export const useApexNarratives = (
   year: number,
   tokenOverride?: string,
 ) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["apex-narratives", apexId, year, tokenOverride],
+    cacheTable: "analytics",
+    cacheKey: `apex-narratives-${apexId}-${year}`,
     enabled: !!apexId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -53,8 +55,10 @@ export const useFederationNarratives = (
   year: number,
   tokenOverride?: string,
 ) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["federation-narratives", federationId, year, tokenOverride],
+    cacheTable: "analytics",
+    cacheKey: `federation-narratives-${federationId}-${year}`,
     enabled: !!federationId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -67,8 +71,10 @@ export const useFederationNarratives = (
   });
 
 export const useMinistryNarratives = (year: number, tokenOverride?: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["ministry-narratives", year, tokenOverride],
+    cacheTable: "analytics",
+    cacheKey: `ministry-narratives-${year}`,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());

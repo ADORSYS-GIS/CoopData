@@ -9,6 +9,7 @@ import {
   getUserProfile,
   isOfflineModeActive,
 } from "@/services/shared/authService";
+import { seedOfflineCache } from "@/services/shared/offlineSeeder";
 import type { AuthContextValue, UserProfile } from "@/types/auth";
 import type { Role } from "@/constants/roles";
 import { ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
@@ -24,9 +25,12 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [isOfflineAuthenticated, setIsOfflineAuthenticated] = useState(false);
   const { t } = useTranslation();
 
-  // Track online/offline status
+  // Track online/offline status and flush sync queue / trigger seeder when back online
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
+    const handleOnline = () => {
+      setIsOffline(false);
+      void seedOfflineCache();
+    };
     const handleOffline = () => setIsOffline(true);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -60,6 +64,11 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
             setAccessToken(token);
           } catch (e) {
             console.warn("[auth-context] Failed to get access token:", e);
+          }
+
+          // Pre-cache all application data into IndexedDB in the background when online
+          if (navigator.onLine && !isOfflineModeActive()) {
+            void seedOfflineCache();
           }
 
           // Welcome toast — fires once per session on first load

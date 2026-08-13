@@ -5,7 +5,8 @@
  * All API calls go through apiClient (openapi-fetch) with automatic Bearer token injection.
  */
 
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
 
@@ -45,8 +46,10 @@ export const useAuditLogs = (filters: AuditLogFilters) => {
   query.page = filters.page ?? 1;
   query.per_page = filters.per_page ?? 20;
 
-  return useQuery({
+  return useOfflineQuery({
     queryKey: [AUDIT_KEY, query],
+    cacheTable: "analytics",
+    cacheKey: `audit-logs-${JSON.stringify(query)}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/audit-logs", {
         params: { query },
@@ -54,7 +57,7 @@ export const useAuditLogs = (filters: AuditLogFilters) => {
       if (error) throw new Error(extractErrorMessage(error));
       return data as unknown as PaginatedAuditLog;
     },
-    placeholderData: keepPreviousData,
     retry: false,
+    placeholderData: keepPreviousData,
   });
 };

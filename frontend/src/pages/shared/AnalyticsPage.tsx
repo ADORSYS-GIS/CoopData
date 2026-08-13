@@ -223,6 +223,7 @@ export const AnalyticsPage: React.FC = () => {
   );
 
   const { data: federations } = useFederations(role === "ministry");
+  // federation role: use federation endpoint; ministry/superadmin: use ministry endpoint
   const { data: apexes } = useApexes(role === "federation");
   const { data: ministryApexes } = useMinistryApexes(
     filterValues.federationId !== "all" ? filterValues.federationId : undefined,

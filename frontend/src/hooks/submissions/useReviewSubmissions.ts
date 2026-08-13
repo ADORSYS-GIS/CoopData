@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type { components } from "@/openapi-client/api";
 import {
   useApexSubmissions,
@@ -25,8 +27,10 @@ function extractErrorMessage(err: unknown): string {
 // ── Apex ──────────────────────────────────────────────────────────────────────
 
 export const useSubmissionFlags = (submissionId: string | null) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["submission-flags", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `submission-flags-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/submissions/{id}/flags", {
         params: { path: { id: submissionId! } },
@@ -41,12 +45,19 @@ export const useApexApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/approve", {
-        params: { path: { id } },
+      return runMutation<SubmissionResponse>("/api/v1/apex/submissions/{id}/approve", "POST", {
+        pathParams: { id },
         body: { comment },
+        optimisticData: undefined,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/approve", {
+            params: { path: { id } },
+            body: { comment },
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
@@ -58,12 +69,19 @@ export const useApexReturn = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/return", {
-        params: { path: { id } },
+      return runMutation<SubmissionResponse>("/api/v1/apex/submissions/{id}/return", "POST", {
+        pathParams: { id },
         body: { comment },
+        optimisticData: undefined,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/return", {
+            params: { path: { id } },
+            body: { comment },
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
@@ -77,12 +95,26 @@ export const useFederationApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/federation/submissions/{id}/approve", {
-        params: { path: { id } },
-        body: { comment },
-      });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
+      return runMutation<SubmissionResponse>(
+        "/api/v1/federation/submissions/{id}/approve",
+        "POST",
+        {
+          pathParams: { id },
+          body: { comment },
+          optimisticData: undefined,
+          online: async () => {
+            const { data, error } = await apiClient.POST(
+              "/api/v1/federation/submissions/{id}/approve",
+              {
+                params: { path: { id } },
+                body: { comment },
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as SubmissionResponse;
+          },
+        },
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["federation-submissions"] });
@@ -94,12 +126,22 @@ export const useFederationReturn = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/federation/submissions/{id}/return", {
-        params: { path: { id } },
+      return runMutation<SubmissionResponse>("/api/v1/federation/submissions/{id}/return", "POST", {
+        pathParams: { id },
         body: { comment },
+        optimisticData: undefined,
+        online: async () => {
+          const { data, error } = await apiClient.POST(
+            "/api/v1/federation/submissions/{id}/return",
+            {
+              params: { path: { id } },
+              body: { comment },
+            },
+          );
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["federation-submissions"] });
@@ -113,12 +155,22 @@ export const useMinistryApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/ministry/submissions/{id}/approve", {
-        params: { path: { id } },
+      return runMutation<SubmissionResponse>("/api/v1/ministry/submissions/{id}/approve", "POST", {
+        pathParams: { id },
         body: { comment },
+        optimisticData: undefined,
+        online: async () => {
+          const { data, error } = await apiClient.POST(
+            "/api/v1/ministry/submissions/{id}/approve",
+            {
+              params: { path: { id } },
+              body: { comment },
+            },
+          );
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ministry-submissions"] });
@@ -130,12 +182,19 @@ export const useMinistryReject = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/ministry/submissions/{id}/reject", {
-        params: { path: { id } },
+      return runMutation<SubmissionResponse>("/api/v1/ministry/submissions/{id}/reject", "POST", {
+        pathParams: { id },
         body: { comment },
+        optimisticData: undefined,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/ministry/submissions/{id}/reject", {
+            params: { path: { id } },
+            body: { comment },
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ministry-submissions"] });

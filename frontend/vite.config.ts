@@ -15,10 +15,7 @@ export default defineConfig(({ mode }) => {
       ? ""
       : env.VITE_API_BASE_URL || "";
 
-  const keycloakUrl =
-    isProd && (!env.VITE_KEYCLOAK_URL || env.VITE_KEYCLOAK_URL.includes("localhost"))
-      ? ""
-      : env.VITE_KEYCLOAK_URL || "";
+  const keycloakUrl = env.VITE_KEYCLOAK_URL || "http://localhost:8180";
 
   return {
     define: {
@@ -42,9 +39,6 @@ export default defineConfig(({ mode }) => {
         workbox: {
           // Pre-cache all JS, CSS, HTML, fonts, and icons
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,webp}"],
-          // CRITICAL: silent-check-sso.html MUST be cached so the Keycloak
-          // iframe check doesn't fail when offline (which would trigger a logout)
-          additionalManifestEntries: [{ url: "/silent-check-sso.html", revision: null }],
           // SPA fallback: all navigation requests return index.html
           // This ensures the app loads from cache on any route when offline
           navigateFallback: "/index.html",
@@ -52,6 +46,7 @@ export default defineConfig(({ mode }) => {
             // Don't intercept API or Keycloak auth requests
             /^\/api\//,
             /^\/auth\//,
+            /^\/realms\//,
           ],
           runtimeCaching: [
             {
@@ -72,6 +67,7 @@ export default defineConfig(({ mode }) => {
           // Skip waiting and claim clients immediately
           skipWaiting: true,
           clientsClaim: true,
+          cleanupOutdatedCaches: true,
         },
         manifest: {
           name: "CoopData",
@@ -86,15 +82,13 @@ export default defineConfig(({ mode }) => {
               src: "/coopdatalogo.png",
               sizes: "any",
               type: "image/png",
-              purpose: "maskable any",
             },
           ],
         },
         devOptions: {
-          // Enable SW in dev so we can test offline behaviour locally in Docker dev (port 5173)
           enabled: true,
-          type: "module",
-          navigateFallback: "index.html",
+          type: "classic",
+          navigateFallback: "/index.html",
           suppressWarnings: true,
         },
       }),
@@ -119,6 +113,18 @@ export default defineConfig(({ mode }) => {
         usePolling: true,
         interval: 1000,
       },
+      proxy: {
+        "/api": {
+          target: process.env.VITE_PROXY_TARGET || "http://localhost:3000",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+    preview: {
+      host: true,
+      port: 5173,
+      strictPort: true,
       proxy: {
         "/api": {
           target: process.env.VITE_PROXY_TARGET || "http://localhost:3000",

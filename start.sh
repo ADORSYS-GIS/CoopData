@@ -105,6 +105,7 @@ if [[ "$RUNNING_CONTAINERS" -gt 0 ]]; then
     echo ""
 
     prompt_choice "What would you like to do?" \
+        "Run PWA Production Preview Mode on Port 5173 (Best for Offline PWA Testing)" \
         "Restart (stop, rebuild, and start fresh)" \
         "Stop and remove everything (including data volumes)" \
         "Rebuild and start (keep data volumes)" \
@@ -112,11 +113,17 @@ if [[ "$RUNNING_CONTAINERS" -gt 0 ]]; then
 
     case $PROMPT_RESULT in
         0)
+            info "Starting PWA Production Preview Mode on Port 5173..."
+            docker stop coopdata-frontend-dev 2>/dev/null || true
+            (cd frontend && NODE_OPTIONS="--require ./scripts/node18-crypto-shim.cjs" npm run build && npm run preview -- --port 5173 --host 0.0.0.0)
+            exit 0
+            ;;
+        1)
             info "Stopping all services..."
             $COMPOSE_CMD down
             ok "Services stopped (data preserved)"
             ;;
-        1)
+        2)
             warn "This will DELETE all data (database, cache, Keycloak state)."
             echo -ne "${RED}${BOLD}Type 'yes' to confirm:${NC} "
             read -r confirm
@@ -128,12 +135,12 @@ if [[ "$RUNNING_CONTAINERS" -gt 0 ]]; then
             $COMPOSE_CMD down -v
             ok "All services and data removed"
             ;;
-        2)
+        3)
             info "Stopping services (keeping data)..."
             $COMPOSE_CMD down
             ok "Services stopped (data preserved)"
             ;;
-        3)
+        4)
             info "Leaving everything as is. Bye!"
             exit 0
             ;;
@@ -256,18 +263,30 @@ else
     warn "Keycloak provisioning is taking longer than expected. Access credentials might not be fully initialized yet."
 fi
 
+MODE="${1:-}"
+
+if [[ "$MODE" == "--preview" ]]; then
+    info "PWA Preview mode requested via command line flag."
+fi
+
 echo ""
 echo -e "${BOLD}╔═════════════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║                       CoopData is Running!                              ║${NC}"
 echo -e "${BOLD}╚═════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  ${GREEN}►${NC}  Frontend App:     ${CYAN}http://localhost:5174${NC}"
-echo -e "  ${GREEN}►${NC}  Backend API:      ${CYAN}http://localhost:3000/api/v1${NC}"
-echo -e "  ${GREEN}►${NC}  Swagger UI Docs:  ${CYAN}http://localhost:3000/swagger-ui/${NC}"
-echo -e "  ${GREEN}►${NC}  Keycloak Console: ${CYAN}http://localhost:8180${NC} (admin / admin)"
-echo -e "  ${GREEN}►${NC}  MailHog (SMTP UI):${CYAN}http://localhost:8025${NC}"
-echo -e "  ${GREEN}►${NC}  MinIO Console:    ${CYAN}http://localhost:9101${NC} (minioadmin / minioadmin)"
-echo -e "  ${GREEN}►${NC}  Adminer DB UI:    ${CYAN}http://localhost:8080${NC} (coopdata / change-me-in-production)"
+echo -e "  ${GREEN}►${NC}  Production App (Nginx):  ${CYAN}http://localhost:5174${NC}"
+echo -e "  ${GREEN}►${NC}  Development App (Vite):  ${CYAN}http://localhost:5173${NC}"
+echo -e "  ${GREEN}►${NC}  Backend API:             ${CYAN}http://localhost:3000/api/v1${NC}"
+echo -e "  ${GREEN}►${NC}  Swagger UI Docs:         ${CYAN}http://localhost:3000/swagger-ui/${NC}"
+echo -e "  ${GREEN}►${NC}  Keycloak Console:        ${CYAN}http://localhost:8180${NC} (admin / admin)"
+echo -e "  ${GREEN}►${NC}  MailHog (SMTP UI):       ${CYAN}http://localhost:8025${NC}"
+echo -e "  ${GREEN}►${NC}  MinIO Console:           ${CYAN}http://localhost:9101${NC} (minioadmin / minioadmin)"
+echo -e "  ${GREEN}►${NC}  Adminer DB UI:           ${CYAN}http://localhost:8080${NC} (coopdata / change-me-in-production)"
+echo ""
+echo -e "  ${YELLOW}Offline PWA Testing (Production Preview):${NC}"
+echo -e "    To test full PWA offline functionality (Precached Service Worker):"
+echo -e "    ${CYAN}cd frontend && npm run build && npm run preview${NC}"
+echo -e "    Or run: ${CYAN}./start.sh --preview${NC}"
 echo ""
 echo -e "  ${YELLOW}Useful commands:${NC}"
 echo -e "    $COMPOSE_CMD logs -f          Follow all logs"

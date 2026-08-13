@@ -57,6 +57,34 @@ export async function retryFailed(): Promise<void> {
   }
 }
 
+/**
+ * Runs a mutation online, or queues it for later sync when offline.
+ * Returns the API result when online, or the optimistic payload when offline.
+ */
+export async function runMutation<T>(
+  endpoint: string,
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  opts: {
+    body?: unknown;
+    pathParams?: Record<string, string>;
+    optimisticData?: unknown;
+    online: () => Promise<T>;
+  },
+): Promise<T> {
+  if (!navigator.onLine) {
+    await enqueue({
+      endpoint,
+      method,
+      pathParams: opts.pathParams,
+      body: opts.body,
+      optimisticData: opts.optimisticData,
+      userId: "current",
+    });
+    return opts.optimisticData as T;
+  }
+  return opts.online();
+}
+
 export async function flushSyncQueue(): Promise<void> {
   if (!navigator.onLine) return;
 
@@ -71,7 +99,14 @@ export async function flushSyncQueue(): Promise<void> {
 
       const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}${item.endpoint}`;
+      // Substitute {id} placeholders with the stored path params.
+      let path = item.endpoint;
+      if (item.pathParams) {
+        for (const [key, value] of Object.entries(item.pathParams)) {
+          path = path.replaceAll(`{${key}}`, encodeURIComponent(value));
+        }
+      }
+      const url = `${baseUrl}${path}`;
 
       const res = await fetch(url, {
         method: item.method,

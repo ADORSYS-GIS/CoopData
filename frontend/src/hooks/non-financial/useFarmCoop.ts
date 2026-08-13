@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type {
   FarmCoopResponse,
   CreateFarmCoopRequest,
@@ -78,14 +80,18 @@ async function deleteFarmCoop(id: string): Promise<void> {
 }
 
 export const useFarmCoops = (params?: NfListParams) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_FARM_KEY, params],
+    cacheTable: "submissions",
+    cacheKey: `farm-coops-list-${JSON.stringify(params ?? {})}`,
     queryFn: () => fetchFarmCoop(params),
   });
 
 export const useFarmCoop = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_FARM_KEY, id],
+    cacheTable: "submissions",
+    cacheKey: `farm-coop-${id}`,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/farm-coop/${id}`, {
@@ -101,7 +107,13 @@ export const useFarmCoop = (id: string) =>
 export const useCreateFarmCoop = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createFarmCoop,
+    mutationFn: async (body: CreateFarmCoopRequest) => {
+      return runMutation<FarmCoopResponse>("/api/v1/cooperative/non-financial/farm-coop", "POST", {
+        body,
+        optimisticData: body as unknown as FarmCoopResponse,
+        online: () => createFarmCoop(body),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_FARM_KEY] });
     },
@@ -111,7 +123,18 @@ export const useCreateFarmCoop = () => {
 export const useUpdateFarmCoop = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateFarmCoop,
+    mutationFn: async (vars: { id: string; body: UpdateFarmCoopRequest }) => {
+      return runMutation<FarmCoopResponse>(
+        "/api/v1/cooperative/non-financial/farm-coop/{id}",
+        "PUT",
+        {
+          pathParams: { id: vars.id },
+          body: vars.body,
+          optimisticData: vars.body as unknown as FarmCoopResponse,
+          online: () => updateFarmCoop(vars),
+        },
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_FARM_KEY] });
     },
@@ -121,7 +144,12 @@ export const useUpdateFarmCoop = () => {
 export const useDeleteFarmCoop = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteFarmCoop,
+    mutationFn: async (id: string) => {
+      return runMutation<void>("/api/v1/cooperative/non-financial/farm-coop/{id}", "DELETE", {
+        pathParams: { id },
+        online: () => deleteFarmCoop(id),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_FARM_KEY] });
     },
