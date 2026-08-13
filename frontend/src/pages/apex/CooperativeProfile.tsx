@@ -50,6 +50,33 @@ const GEO_CLASSIF = ["Urban", "Rural"] as const;
 const COOP_STATUS = ["Active", "Inactive", "Suspended"] as const;
 const ACCOUNTING_YEAR = ["calendar", "fiscal"] as const;
 const ESWATINI_REGIONS = ["Hhohho", "Lubombo", "Manzini", "Shiselweni"] as const;
+const SECTOR_OPTIONS = [
+  "finance",
+  "agriculture",
+  "housing",
+  "transport",
+  "manufacturing",
+  "other",
+] as const;
+
+export function deriveSectorFromInstitutionType(institutionType: string): string {
+  switch (institutionType.toLowerCase()) {
+    case "sacco":
+    case "finance":
+      return "finance";
+    case "farm":
+    case "agriculture":
+      return "agriculture";
+    case "housing":
+      return "housing";
+    case "transport":
+      return "transport";
+    case "multipurpose":
+    case "other":
+    default:
+      return "other";
+  }
+}
 
 const georeferenceRegex = /^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/;
 
@@ -106,7 +133,8 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
       region: (existing?.region as (typeof ESWATINI_REGIONS)[number]) ?? "Hhohho",
       geographic_classif: (existing?.geographic_classif as (typeof GEO_CLASSIF)[number]) ?? "Urban",
       phone: existing?.phone ?? "",
-      sector: existing?.sector ?? "",
+      sector:
+        existing?.sector || deriveSectorFromInstitutionType(existing?.institution_type ?? "sacco"),
       status: (existing?.status as (typeof COOP_STATUS)[number]) ?? "Active",
       registered_on: existing?.registered_on ?? "",
       accounting_year:
@@ -208,7 +236,14 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("coopProfile.institutionType")}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      const derived = deriveSectorFromInstitutionType(val);
+                      form.setValue("sector", derived);
+                    }}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t("coopProfile.placeholderType")} />
@@ -321,9 +356,25 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("coopProfile.sector")}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t("coopProfile.placeholderSector")} {...field} />
-                  </FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={
+                      field.value || deriveSectorFromInstitutionType(form.watch("institution_type"))
+                    }
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("coopProfile.placeholderSector")} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SECTOR_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s.charAt(0).toUpperCase() + s.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

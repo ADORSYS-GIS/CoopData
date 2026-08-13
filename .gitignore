@@ -13,6 +13,7 @@ node_modules
 # Build outputs
 dist
 dist-ssr
+frontend/dev-dist/
 .output
 .vinxi
 .tanstack/**

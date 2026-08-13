@@ -21,6 +21,7 @@ CVE-2026-3783
 CVE-2026-3784
 CVE-2026-5773
 CVE-2026-7168
+DLA-4726-1
 
 # Alpine base image vulnerabilities (node:22-alpine)
 # These are typically in the base OS packages and have no fix available yet

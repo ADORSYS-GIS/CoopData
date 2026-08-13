@@ -260,6 +260,17 @@ impl CooperativeSector {
         }
     }
 
+    pub fn from_institution_type(inst_type: &str) -> Self {
+        match inst_type.to_lowercase().as_str() {
+            "sacco" | "finance" | "financial" => Self::Finance,
+            "farm" | "agriculture" => Self::Agriculture,
+            "housing" => Self::Housing,
+            "transport" => Self::Transport,
+            "multipurpose" | "other" => Self::Other,
+            _ => Self::Other,
+        }
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Agriculture => "agriculture",
