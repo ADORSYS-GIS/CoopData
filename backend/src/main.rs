@@ -141,6 +141,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let app = create_app(state);
+    tracing::info!("Prometheus metrics endpoint available at /metrics");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(

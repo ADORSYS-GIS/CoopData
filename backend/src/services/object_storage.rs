@@ -1,5 +1,10 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
+use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::Client;
+
+use crate::config::AppConfig;
 use crate::error::{AppError, AppResult};
 
 #[async_trait::async_trait]
@@ -53,94 +58,142 @@ impl ObjectStorage for LocalFileStorage {
     }
 }
 
-// ── Factory ──────────────────────────────────────────────────────────────────
+// ── S3/MinIO implementation ──────────────────────────────────────────────────
 
-pub fn create_storage(backend: &str, local_path: &str) -> std::sync::Arc<dyn ObjectStorage> {
-    match backend {
-        "s3" => {
-            tracing::warn!("S3 backend not yet implemented, falling back to local storage");
-            std::sync::Arc::new(LocalFileStorage::new(local_path))
+pub struct S3FileStorage {
+    client: Client,
+    bucket: String,
+}
+
+impl S3FileStorage {
+    pub async fn new(config: &AppConfig) -> AppResult<Self> {
+        let endpoint_url = &config.s3_endpoint;
+        let region = &config.s3_region;
+        let access_key = &config.s3_access_key;
+        let secret_key = &config.s3_secret_key;
+        let bucket = config.s3_bucket.clone();
+
+        let credentials = aws_sdk_s3::config::Credentials::new(
+            access_key,
+            secret_key,
+            None,
+            None,
+            "coopdata",
+        );
+
+        let s3_config = aws_sdk_s3::config::Builder::new()
+            .region(aws_sdk_s3::config::Region::new(region.clone()))
+            .endpoint_url(endpoint_url)
+            .credentials_provider(credentials)
+            .force_path_style(true)
+            .behavior_version_latest()
+            .build();
+
+        let client = Client::from_conf(s3_config);
+
+        // Auto-create bucket if it doesn't exist
+        match client
+            .create_bucket()
+            .bucket(&bucket)
+            .send()
+            .await
+        {
+            Ok(_) => {
+                tracing::info!(bucket = %bucket, "S3 bucket created successfully");
+            }
+            Err(e) => {
+                let err_str = e.to_string();
+                if err_str.contains("BucketAlreadyExists")
+                    || err_str.contains("BucketAlreadyOwnedByYou")
+                    || err_str.contains("409")
+                {
+                    tracing::info!(
+                        bucket = %bucket,
+                        "S3 bucket already exists or owned by you, proceeding"
+                    );
+                } else {
+                    tracing::warn!(
+                        bucket = %bucket,
+                        error = %err_str,
+                        "Could not auto-create S3 bucket. Proceeding anyway..."
+                    );
+                }
+            }
         }
-        _ => std::sync::Arc::new(LocalFileStorage::new(local_path)),
+
+        Ok(Self { client, bucket })
     }
 }
-use crate::config::AppConfig;
+
+#[async_trait::async_trait]
+impl ObjectStorage for S3FileStorage {
+    async fn store(&self, key: &str, data: &[u8], content_type: &str) -> AppResult<()> {
+        self.client
+            .put_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .body(ByteStream::from(data.to_vec()))
+            .content_type(content_type)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(format!("S3 put_object error: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn retrieve(&self, key: &str) -> AppResult<Vec<u8>> {
+        let response = self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .send()
+            .await
+            .map_err(|e| {
+                if e.to_string().contains("NoSuchKey") {
+                    AppError::NotFound(format!("Object '{}' not found", key))
+                } else {
+                    AppError::ExternalServiceError(format!("S3 get_object error: {}", e))
+                }
+            })?;
+
+        let bytes = response
+            .body
+            .collect()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(format!("S3 read body error: {}", e)))?;
+
+        Ok(bytes.into_bytes().to_vec())
+    }
+
+    async fn delete(&self, key: &str) -> AppResult<()> {
+        self.client
+            .delete_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(format!("S3 delete_object error: {}", e)))?;
+
+        Ok(())
+    }
+}
+
+// ── High-level service wrapper ───────────────────────────────────────────────
 
 #[derive(Clone)]
 pub struct ObjectStorageService {
-    backend: StorageBackend,
-}
-
-#[derive(Clone)]
-enum StorageBackend {
-    S3 { bucket: Box<s3::Bucket> },
-    Local { base_path: PathBuf },
+    backend: Arc<dyn ObjectStorage>,
 }
 
 impl ObjectStorageService {
     pub async fn new(config: &AppConfig) -> AppResult<Self> {
-        if config.storage_type == "s3" {
-            let region = s3::Region::Custom {
-                region: config.s3_region.clone(),
-                endpoint: config.s3_endpoint.clone(),
-            };
-            let credentials = s3::creds::Credentials::new(
-                Some(&config.s3_access_key),
-                Some(&config.s3_secret_key),
-                None,
-                None,
-                None,
-            )
-            .map_err(|e| AppError::ExternalServiceError(format!("S3 credentials error: {}", e)))?;
-
-            // Auto-create the S3/MinIO bucket if it does not exist
-            let bucket_config = s3::BucketConfiguration::default();
-            match s3::Bucket::create_with_path_style(
-                &config.s3_bucket,
-                region.clone(),
-                credentials.clone(),
-                bucket_config,
-            )
-            .await
-            {
-                Ok(_) => {
-                    tracing::info!("S3 bucket '{}' created successfully", config.s3_bucket);
-                }
-                Err(e) => {
-                    let err_str = e.to_string();
-                    if err_str.contains("BucketAlreadyExists")
-                        || err_str.contains("BucketAlreadyOwnedByYou")
-                        || err_str.contains("409")
-                    {
-                        tracing::info!(
-                            "S3 bucket '{}' already exists or owned by you, proceeding",
-                            config.s3_bucket
-                        );
-                    } else {
-                        tracing::warn!(
-                            "Could not auto-create S3 bucket '{}': {}. Proceeding anyway...",
-                            config.s3_bucket,
-                            err_str
-                        );
-                    }
-                }
-            }
-
-            let bucket = s3::Bucket::new(&config.s3_bucket, region, credentials)
-                .map_err(|e| AppError::ExternalServiceError(format!("S3 bucket error: {}", e)))?;
-            let bucket = bucket.with_path_style();
-            Ok(Self {
-                backend: StorageBackend::S3 { bucket },
-            })
+        let backend: Arc<dyn ObjectStorage> = if config.storage_type == "s3" {
+            Arc::new(S3FileStorage::new(config).await?)
         } else {
-            let base_path = PathBuf::from(&config.storage_path);
-            std::fs::create_dir_all(&base_path).map_err(|e| {
-                AppError::ExternalServiceError(format!("Failed to create storage dir: {}", e))
-            })?;
-            Ok(Self {
-                backend: StorageBackend::Local { base_path },
-            })
-        }
+            Arc::new(LocalFileStorage::new(&config.storage_path))
+        };
+        Ok(Self { backend })
     }
 
     pub async fn put_object(
@@ -149,68 +202,16 @@ impl ObjectStorageService {
         bytes: &[u8],
         content_type: Option<&str>,
     ) -> AppResult<()> {
-        match &self.backend {
-            StorageBackend::S3 { bucket } => {
-                let ct = content_type.unwrap_or("application/octet-stream");
-                bucket
-                    .put_object_with_content_type(key, bytes, ct)
-                    .await
-                    .map(|_| ())
-                    .map_err(|e| {
-                        AppError::ExternalServiceError(format!("S3 put_object error: {}", e))
-                    })
-            }
-            StorageBackend::Local { base_path } => {
-                let path = base_path.join(key);
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent).map_err(|e| {
-                        AppError::ExternalServiceError(format!("Failed to create dir: {}", e))
-                    })?;
-                }
-                std::fs::write(&path, bytes).map_err(|e| {
-                    AppError::ExternalServiceError(format!("Failed to write file: {}", e))
-                })
-            }
-        }
+        let ct = content_type.unwrap_or("application/octet-stream");
+        self.backend.store(key, bytes, ct).await
     }
 
     pub async fn get_object(&self, key: &str) -> AppResult<Vec<u8>> {
-        match &self.backend {
-            StorageBackend::S3 { bucket } => {
-                let response_data = bucket.get_object(key).await.map_err(|e| {
-                    AppError::ExternalServiceError(format!("S3 get_object error: {}", e))
-                })?;
-                if response_data.status_code() == 200 {
-                    Ok(response_data.to_vec())
-                } else {
-                    Err(AppError::NotFound(format!(
-                        "Object '{}' not found (status {})",
-                        key,
-                        response_data.status_code()
-                    )))
-                }
-            }
-            StorageBackend::Local { base_path } => {
-                let path = base_path.join(key);
-                std::fs::read(&path)
-                    .map_err(|e| AppError::NotFound(format!("File '{}' not found: {}", key, e)))
-            }
-        }
+        self.backend.retrieve(key).await
     }
 
     pub async fn delete_object(&self, key: &str) -> AppResult<()> {
-        match &self.backend {
-            StorageBackend::S3 { bucket } => {
-                bucket.delete_object(key).await.map(|_| ()).map_err(|e| {
-                    AppError::ExternalServiceError(format!("S3 delete_object error: {}", e))
-                })
-            }
-            StorageBackend::Local { base_path } => {
-                let path = base_path.join(key);
-                std::fs::remove_file(&path)
-                    .map_err(|e| AppError::NotFound(format!("File '{}' not found: {}", key, e)))
-            }
-        }
+        self.backend.delete(key).await
     }
 
     pub async fn store(&self, key: &str, data: &[u8], content_type: &str) -> AppResult<()> {

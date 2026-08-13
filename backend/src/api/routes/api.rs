@@ -16,7 +16,10 @@
 
 use axum::routing::get;
 use axum::Router;
+use axum_prometheus::{PrometheusMetricLayer, utils::SECONDS_DURATION_BUCKETS};
+use metrics_exporter_prometheus::PrometheusBuilder;
 use tower_http::cors::{Any, CorsLayer};
+
 
 use crate::api::handlers;
 use crate::auth::middleware::auth_layer;
@@ -151,6 +154,15 @@ pub fn role_guard_layer(
 /// No handler-level role checks are needed — middleware enforces roles.
 /// Scope enforcement (data-level access) is handled in handlers via `ScopeEnforcement`.
 pub fn create_app(state: AppState) -> Router {
+    let recorder = PrometheusBuilder::new()
+        .set_buckets(&*SECONDS_DURATION_BUCKETS)
+        .unwrap()
+        .build_recorder();
+    let metric_handle = recorder.handle();
+    metrics::set_global_recorder(recorder)
+        .expect("failed to install prometheus recorder");
+    let prometheus_layer = PrometheusMetricLayer::new();
+
     let protected = Router::new()
         .merge(shared_routes())
         .merge(user_routes())
@@ -190,9 +202,11 @@ pub fn create_app(state: AppState) -> Router {
             auth_layer,
         ));
 
-    Router::new()
+    let app = Router::new()
         .nest("/api/v1", public_routes().merge(protected))
         .merge(crate::api::openapi::serve_openapi())
+        .route("/metrics", get(move || async move { metric_handle.render() }))
+        .layer(prometheus_layer)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -204,5 +218,7 @@ pub fn create_app(state: AppState) -> Router {
             axum::http::header::HeaderName::from_static("x-request-id"),
             tower_http::request_id::MakeRequestUuid,
         ))
-        .with_state(state)
+        .with_state(state);
+
+    app
 }

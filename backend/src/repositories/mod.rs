@@ -1,3 +1,26 @@
+use metrics::histogram;
+use std::future::Future;
+use std::time::Instant;
+
+use crate::error::AppResult;
+
+pub async fn db_query<F, T>(entity: &str, operation: &str, f: F) -> AppResult<T>
+where
+    F: Future<Output = AppResult<T>>,
+{
+    let start = Instant::now();
+    let result = f.await;
+    let elapsed = start.elapsed().as_secs_f64();
+
+    histogram!("coopdata_db_query_duration_seconds",
+        "entity" => entity.to_string(),
+        "operation" => operation.to_string()
+    )
+    .record(elapsed);
+
+    result
+}
+
 pub mod abnormality_flag;
 pub mod account_alias;
 pub mod apex;

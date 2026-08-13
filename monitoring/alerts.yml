@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CoopData Alerting Rules
+# Evaluated by Prometheus, routed via Grafana to Slack/Email
+# ─────────────────────────────────────────────────────────────────────────────
+
+groups:
+  - name: coopdata_alerts
+    rules:
+      # ── Critical Alerts ────────────────────────────────────────────────────
+
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CoopData backend is down"
+          description: "Backend has been unreachable for more than 1 minute."
+
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL exporter is down"
+          description: "PostgreSQL metrics have stopped flowing for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on CoopData API"
+          description: "More than 1% of requests are returning 5xx errors over the last 5 minutes."
+
+      # ── Warning Alerts ─────────────────────────────────────────────────────
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency (p99 > 2s)"
+          description: "99th percentile response time exceeds 2 seconds for the last 5 minutes."
+
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EC2 disk space is low"
+          description: "Less than 20% of disk space remains on the root volume."
+
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EC2 host memory usage is high"
+          description: "RAM utilization exceeds 85% for the last 5 minutes."
+
+      - alert: AIPipelineFailing
+        expr: |
+          (
+            sum(rate(coopdata_ai_extraction_duration_seconds_count{status="failure"}[10m]))
+            /
+            sum(rate(coopdata_ai_extraction_duration_seconds_count[10m]))
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI extraction pipeline failure rate is high"
+          description: "More than 10% of AI extraction jobs are failing over the last 10 minutes."

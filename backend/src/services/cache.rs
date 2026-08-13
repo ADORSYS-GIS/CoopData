@@ -1,3 +1,4 @@
+use metrics::counter;
 use redis::AsyncCommands;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
@@ -40,7 +41,8 @@ impl CacheService {
         &self,
         key: &str,
     ) -> Result<Option<T>, redis::RedisError> {
-        match &self.backend {
+        let entity = key.split(':').next().unwrap_or("unknown");
+        let result = match &self.backend {
             CacheBackend::Redis(client) => {
                 let mut conn = client.get_multiplexed_async_connection().await?;
                 let result: Option<String> = conn.get(key).await?;
@@ -74,7 +76,21 @@ impl CacheService {
                     None => Ok(None),
                 }
             }
+        };
+
+        match &result {
+            Ok(Some(_)) => {
+                counter!("coopdata_cache_hits_total", "entity" => entity.to_string())
+                    .increment(1);
+            }
+            Ok(None) => {
+                counter!("coopdata_cache_misses_total", "entity" => entity.to_string())
+                    .increment(1);
+            }
+            Err(_) => {}
         }
+
+        result
     }
 
     pub async fn set<T: Serialize>(
@@ -83,7 +99,8 @@ impl CacheService {
         value: &T,
         ttl: Duration,
     ) -> Result<(), redis::RedisError> {
-        match &self.backend {
+        let entity = key.split(':').next().unwrap_or("unknown");
+        let result = match &self.backend {
             CacheBackend::Redis(client) => {
                 let mut conn = client.get_multiplexed_async_connection().await?;
                 let json = serde_json::to_string(value).map_err(|e| {
@@ -107,7 +124,14 @@ impl CacheService {
                 lock.insert(key.to_string(), json);
                 Ok(())
             }
+        };
+
+        if result.is_ok() {
+            counter!("coopdata_cache_sets_total", "entity" => entity.to_string())
+                .increment(1);
         }
+
+        result
     }
 
     pub async fn delete(&self, key: &str) -> Result<(), redis::RedisError> {

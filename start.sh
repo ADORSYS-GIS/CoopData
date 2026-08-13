@@ -268,6 +268,8 @@ echo -e "  ${GREEN}►${NC}  Keycloak Console: ${CYAN}http://localhost:8180${NC}
 echo -e "  ${GREEN}►${NC}  MailHog (SMTP UI):${CYAN}http://localhost:8025${NC}"
 echo -e "  ${GREEN}►${NC}  MinIO Console:    ${CYAN}http://localhost:9101${NC} (minioadmin / minioadmin)"
 echo -e "  ${GREEN}►${NC}  Adminer DB UI:    ${CYAN}http://localhost:8080${NC} (coopdata / change-me-in-production)"
+echo -e "  ${GREEN}►${NC}  ${BOLD}Prometheus:${NC}       ${CYAN}http://localhost:9090${NC}"
+echo -e "  ${GREEN}►${NC}  ${BOLD}Grafana Dashboards:${NC} ${CYAN}http://localhost:3001${NC} (admin / admin)"
 echo ""
 echo -e "  ${YELLOW}Useful commands:${NC}"
 echo -e "    $COMPOSE_CMD logs -f          Follow all logs"
