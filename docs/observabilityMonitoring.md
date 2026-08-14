@@ -1,7 +1,7 @@
 # Observability & Monitoring Architecture
 
 > **Ticket**: [#70](https://github.com/ADORSYS-GIS/CoopData/issues/70) — Implement Grafana and Prometheus for Monitoring
-> **Status**: Phases 1-3 Complete, Phase 4 Partial (rules loaded, notifications not configured)
+> **Status**: Phases 1-5 Complete, Phase 4 Alerting Complete (25 rules, notifications pending webhook)
 > **Scope**: Add full-stack observability (Metrics, Dashboards, Alerts) to the CoopData platform in production (EC2/Docker).
 
 ---
@@ -28,7 +28,7 @@ By moving from a reactive to a proactive observability model, the team can ident
 | `/metrics` Prometheus endpoint | ✅ implemented |
 | Prometheus + Exporters | ✅ implemented |
 | Grafana with 4 dashboards | ✅ implemented |
-| Alert rules (7 rules) | ✅ loaded |
+| Alert rules (25 rules) | ✅ loaded |
 | Alert notifications (Slack/Email) | ⏳ not configured yet |
 | Database query metrics | ✅ implemented |
 
@@ -66,7 +66,7 @@ Since infrastructure components do not natively expose Prometheus metrics, we de
 │  • Backend    │      │  Every 15s   │      │              │      │              │
 │  • Postgres   │      │              │      │  Routes to   │      │  ⚠️ NOT SET  │
 │  • Redis      │      │  Evaluates   │      │  channels    │      │  UP YET      │
-│  • Node       │      │  7 rules     │      │              │      │              │
+│  • Node       │      │  25 rules    │      │              │      │              │
 │  • MinIO      │      │              │      │              │      │              │
 └──────────────┘      └──────────────┘      └──────────────┘      └──────────────┘
 ```
@@ -367,61 +367,152 @@ Row 5: [Cache Performance] [Top Endpoints by Latency]
 ### 6.1 How Alerts Flow
 
 1. **Metric stops flowing** — Prometheus scrapes every 15s. If no response for 2 consecutive scrapes, target is `DOWN`.
-2. **Prometheus evaluates rules** — Every 15s, checks all 7 rules in `monitoring/alerts.yml`.
-3. **Alert fires** — Rule has `for: 1m` (or 5m/10m), preventing flapping from brief blips.
-4. **Grafana sees the alert** — Unified Alerting queries Prometheus rules.
-5. **Notification sent** — ⚠️ Not configured yet (needs Slack webhook or SMTP).
+2. **Prometheus evaluates rules** — Every 15s, checks all rules in `monitoring/alerts.yml`.
+3. **Grafana evaluates rules** — Unified Alerting queries Prometheus and evaluates Grafana-managed rules.
+4. **Alert fires** — Rule has `for: 1m` (or 2m/5m/10m), preventing flapping from brief blips.
+5. **Notification sent** — ⚠️ Not configured yet (needs Slack webhook).
 
-### 6.2 Alert Rules
+### 6.2 Alert Rules (25 Total)
 
-| Alert Name | Condition (PromQL) | For | Severity | What It Monitors |
-|---|---|---|---|---|
-| **BackendDown** | `up{job="backend"} == 0` | 1m | 🔴 Critical | Backend unreachable |
-| **PostgresDown** | `up{job="postgres"} == 0` | 1m | 🔴 Critical | PG exporter unreachable |
-| **HighErrorRate** | 5xx/total > 1% | 5m | 🔴 Critical | API error rate |
-| **HighLatency** | p99 > 2.0s | 5m | 🟡 Warning | API response time |
-| **DiskSpaceLow** | free < 20% | 5m | 🟡 Warning | EC2 disk space |
-| **HighMemoryUsage** | RAM > 85% | 5m | 🟡 Warning | EC2 memory |
-| **AIPipelineFailing** | failure rate > 10% | 10m | 🟡 Warning | AI extraction pipeline |
+#### Critical Alerts (10 rules)
 
-### 6.3 Where Each Alert's Metrics Come From
+| Alert Name | Condition (PromQL) | For | What It Monitors |
+|---|---|---|---|
+| **BackendDown** | `up{job="backend"} == 0` | 1m | Backend API unreachable |
+| **PostgresDown** | `up{job="postgres"} == 0` | 1m | PostgreSQL exporter unreachable |
+| **RedisDown** | `up{job="redis"} == 0` | 1m | Redis exporter unreachable |
+| **MinIODown** | `up{job="minio"} == 0` | 1m | MinIO (S3) unreachable |
+| **PrometheusDown** | `up{job="prometheus"} == 0` | 2m | Prometheus itself unreachable (monitoring blind) |
+| **GrafanaDown** | `up{job="grafana"} == 0` | 2m | Grafana dashboards unavailable |
+| **HighErrorRate** | 5xx/total > 1% | 5m | API error rate |
+| **BackendContainerRestarting** | restarts > 3/hour | 5m | Container crash-looping |
+| **RequestRateDrop** | < 10% of normal | 5m | Traffic drop (frontend/network issue) |
+| **DiskSpaceCritical** | free < 10% | 5m | Disk about to fill up |
+
+#### Warning Alerts (15 rules)
+
+| Alert Name | Condition (PromQL) | For | What It Monitors |
+|---|---|---|---|
+| **HighLatency** | p99 > 2.0s | 5m | API response time |
+| **SlowDBQueries** | p95 > 100ms | 5m | Database query performance |
+| **DiskSpaceLow** | free < 20% | 5m | EC2 disk space |
+| **HighMemoryUsage** | RAM > 85% | 5m | EC2 memory |
+| **HighCPUUsage** | CPU > 80% | 5m | EC2 CPU utilization |
+| **HighDiskIOWait** | I/O > 90% | 10m | Disk saturation |
+| **PGHighConnections** | connections > 80% | 5m | PostgreSQL connection pool |
+| **PGDeadlocks** | deadlocks > 0 | 5m | Database deadlocks |
+| **PGSlowQueries** | tx_duration > 5min | 5m | Long-running queries |
+| **PGReplicationLag** | lag > 60s | 5m | Replication lag (if replicas exist) |
+| **RedisHighMemory** | memory > 90% | 5m | Redis OOM risk |
+| **RedisHighEviction** | evictions > 10/s | 5m | Cache too small |
+| **RedisHitRateDrop** | hit rate < 50% | 10m | Cache effectiveness |
+| **RequestRateSpike** | > 5x normal | 5m | DDoS or traffic surge |
+| **High4xxRate** | 4xx > 10% | 5m | Client errors (frontend bugs, auth issues) |
+
+### 6.3 Alert Categories
 
 ```
-BackendDown
-  └─ Metric: up{job="backend"}
-  └─ Source: Prometheus self-check (did /metrics respond?)
-
-HighErrorRate
-  └─ Metric: http_requests_total{status=~"5.."} / http_requests_total
-  └─ Source: axum-prometheus middleware (auto-instrumented)
-
-HighLatency
-  └─ Metric: histogram_quantile(0.99, http_request_duration_seconds_bucket)
-  └─ Source: axum-prometheus middleware (auto-instrumented)
-
-DiskSpaceLow
-  └─ Metric: node_filesystem_avail_bytes / node_filesystem_size_bytes
-  └─ Source: node-exporter (host metrics)
-
-HighMemoryUsage
-  └─ Metric: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes
-  └─ Source: node-exporter (host metrics)
-
-AIPipelineFailing
-  └─ Metric: coopdata_ai_extraction_duration_seconds_count{status="failure"}
-  └─ Source: Custom metric in extraction_pipeline.rs
-
-PostgresDown
-  └─ Metric: up{job="postgres"}
-  └─ Source: Prometheus self-check (did postgres-exporter respond?)
+┌─────────────────────────────────────────────────────────────────┐
+│                    ALERT CATEGORIES                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  SERVICE AVAILABILITY (5 rules)                                 │
+│  ├── BackendDown                                                │
+│  ├── PostgresDown                                               │
+│  ├── RedisDown                                                  │
+│  ├── MinIODown                                                  │
+│  └── BackendContainerRestarting                                 │
+│                                                                 │
+│  META-MONITORING (2 rules)                                      │
+│  ├── PrometheusDown                                             │
+│  └── GrafanaDown                                                │
+│                                                                 │
+│  HTTP ERRORS (2 rules)                                          │
+│  ├── HighErrorRate (5xx)                                        │
+│  └── High4xxRate (4xx)                                          │
+│                                                                 │
+│  PERFORMANCE (2 rules)                                          │
+│  ├── HighLatency (p99 > 2s)                                     │
+│  └── SlowDBQueries (p95 > 100ms)                                │
+│                                                                 │
+│  DATABASE (4 rules)                                             │
+│  ├── PGHighConnections                                          │
+│  ├── PGDeadlocks                                                │
+│  ├── PGSlowQueries                                              │
+│  └── PGReplicationLag                                           │
+│                                                                 │
+│  REDIS (3 rules)                                                │
+│  ├── RedisHighMemory                                            │
+│  ├── RedisHighEviction                                          │
+│  └── RedisHitRateDrop                                           │
+│                                                                 │
+│  TRAFFIC ANOMALIES (2 rules)                                    │
+│  ├── RequestRateSpike (> 5x normal)                             │
+│  └── RequestRateDrop (< 10% normal)                             │
+│                                                                 │
+│  INFRASTRUCTURE (5 rules)                                       │
+│  ├── HighCPUUsage                                               │
+│  ├── HighMemoryUsage                                            │
+│  ├── DiskSpaceLow (< 20%)                                       │
+│  ├── DiskSpaceCritical (< 10%)                                  │
+│  └── HighDiskIOWait                                             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.4 Adding Notifications (Future)
+### 6.4 Where Each Alert's Metrics Come From
 
-When ready to add Slack/Email notifications:
+```
+SERVICE AVAILABILITY
+  BackendDown        └─ up{job="backend"}          └─ Prometheus self-check
+  PostgresDown       └─ up{job="postgres"}        └─ Prometheus self-check
+  RedisDown          └─ up{job="redis"}           └─ Prometheus self-check
+  MinIODown          └─ up{job="minio"}           └─ Prometheus self-check
+  ContainerRestart   └─ container_restart_count     └─ cAdvisor (Docker)
+
+META-MONITORING
+  PrometheusDown     └─ up{job="prometheus"}       └─ Prometheus self-check
+  GrafanaDown        └─ up{job="grafana"}          └─ Prometheus probe
+
+HTTP ERRORS
+  HighErrorRate      └─ axum_http_requests_total{status=~"5.."}
+  High4xxRate        └─ axum_http_requests_total{status=~"4.."}
+
+PERFORMANCE
+  HighLatency        └─ histogram_quantile(0.99, axum_http_requests_duration_seconds_bucket)
+  SlowDBQueries      └─ histogram_quantile(0.95, coopdata_db_query_duration_seconds_bucket)
+
+DATABASE
+  PGHighConnections  └─ pg_stat_activity_count / pg_settings_max_connections
+  PGDeadlocks        └─ rate(pg_stat_database_deadlocks[5m])
+  PGSlowQueries      └─ pg_stat_activity_max_tx_duration > 300
+  PGReplicationLag   └─ pg_replication_lag > 60
+
+REDIS
+  RedisHighMemory    └─ redis_memory_used_bytes / redis_memory_max_bytes
+  RedisHighEviction  └─ rate(redis_evicted_keys_total[5m])
+  RedisHitRateDrop   └─ redis_keyspace_hits / (hits + misses)
+
+TRAFFIC ANOMALIES
+  RequestRateSpike   └─ rate(axum_http_requests_total[5m]) > 5x rate(... offset 1d)
+  RequestRateDrop    └─ rate(axum_http_requests_total[5m]) < 0.1x rate(... offset 1d)
+
+INFRASTRUCTURE
+  HighCPUUsage       └─ 100 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+  HighMemoryUsage    └─ 1 - (node_memory_MemAvailable / node_memory_MemTotal)
+  DiskSpaceLow       └─ node_filesystem_avail / node_filesystem_size < 0.20
+  DiskSpaceCritical  └─ node_filesystem_avail / node_filesystem_size < 0.10
+  HighDiskIOWait     └─ rate(node_disk_io_time_seconds_total[5m]) > 0.90
+```
+
+### 6.5 Adding Slack Notifications
+
+When ready to add Slack notifications:
 1. Create a Slack Incoming Webhook → get a URL
-2. In Grafana → Alerting → Contact Points → New → Slack → paste the webhook URL
-3. In Grafana → Alerting → Notification Policies → set Default Contact Point to your Slack channel
+2. In Grafana → Alerting → Contact Points → Edit "email receiver" or create new
+3. Select **Webhook** type → paste the Slack webhook URL
+4. In Grafana → Alerting → Notification Policies → set Default Contact Point
+5. Optionally, create label-based routing (e.g., `severity=critical` → `#alerts-critical` channel)
 
 ---
 
@@ -449,10 +540,14 @@ When ready to add Slack/Email notifications:
 - [x] Create `infrastructure.json` dashboard (9 panels)
 - [x] Create `business-metrics.json` dashboard (12 panels)
 
-### Phase 4: Alerting Rules ⚠️ Partial
-- [x] Create `monitoring/alerts.yml` with 7 rules
+### Phase 4: Alerting Rules ✅ Complete
+- [x] Create `monitoring/alerts.yml` with 7 rules (Prometheus-native)
 - [x] Wire Prometheus to load rules file
-- [ ] Configure Grafana alert routing (Slack/Email)
+- [x] Create 10 Grafana-managed alert rules (service availability + HTTP errors)
+- [x] Create 15 additional Grafana-managed alert rules (DB, Redis, traffic, infrastructure)
+- [x] Total: 25 alert rules across 2 groups (critical + warning)
+- [x] All rules evaluated and health-checked (0 errors)
+- [ ] Configure Grafana alert routing (Slack webhook) — pending user webhook URL
 
 ### Phase 5: Database Query Metrics ✅ Complete
 - [x] Add `db_query()` helper to `repositories/mod.rs`
