@@ -68,8 +68,7 @@ pub async fn create_apex(
     let group = state
         .keycloak
         .create_group(&group_name, Some(attrs))
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+        .await?;
 
     // Track in PostgreSQL — look up federation PG record by KC org ID
     let federation_pg = state
@@ -88,7 +87,7 @@ pub async fn create_apex(
                 keycloak_id: sea_orm::Set(org_id.clone()),
                 display_name: sea_orm::Set(body.name.clone()),
                 is_active: sea_orm::Set(true),
-                metadata: sea_orm::Set(Some(serde_json::json!({}))),
+                metadata: sea_orm::NotSet,
                 created_at: sea_orm::Set(chrono::Utc::now()),
                 updated_at: sea_orm::Set(chrono::Utc::now()),
             };

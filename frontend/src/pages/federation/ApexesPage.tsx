@@ -71,7 +71,9 @@ export const ApexesPage: React.FC = () => {
           setCreateDescription("");
         },
         onError: (err) =>
-          toast.error(t("apexesPage.toastCreateFailed"), { description: String(err) }),
+          toast.error(t("apexesPage.toastCreateFailed"), {
+            description: err instanceof Error ? err.message : String(err),
+          }),
       },
     );
   };
@@ -102,7 +104,9 @@ export const ApexesPage: React.FC = () => {
           setEditingApex(null);
         },
         onError: (err) =>
-          toast.error(t("apexesPage.toastUpdateFailed"), { description: String(err) }),
+          toast.error(t("apexesPage.toastUpdateFailed"), {
+            description: err instanceof Error ? err.message : String(err),
+          }),
       },
     );
   };
@@ -123,7 +127,9 @@ export const ApexesPage: React.FC = () => {
             resolve();
           },
           onError: (err) => {
-            toast.error(t("apexesPage.toastDeleteFailed"), { description: String(err) });
+            toast.error(t("apexesPage.toastDeleteFailed"), {
+              description: err instanceof Error ? err.message : String(err),
+            });
             reject(err);
           },
         },

@@ -2,7 +2,10 @@ use axum::extract::Extension;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
-use crate::api::dto::member::{ChangePasswordRequest, ChangePasswordResponse, UserProfileResponse};
+use crate::api::dto::member::{
+    ChangePasswordRequest, ChangePasswordResponse, DisableMfaRequest, SecuritySettingsResponse,
+    UserProfileResponse,
+};
 use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
@@ -178,5 +181,150 @@ pub async fn verify_identity(
             verification_token: token,
             requires_otp: has_otp,
         }),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/me/security",
+    responses(
+        (status = 200, description = "Current user security settings", body = SecuritySettingsResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn get_security_settings(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let mfa_enabled = state.keycloak.get_user_mfa_enabled(&claims.sub).await?;
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse { mfa_enabled }),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/me/security/mfa/setup",
+    responses(
+        (status = 200, description = "MFA setup initiated; user completes TOTP at next sign-in", body = SecuritySettingsResponse),
+        (status = 400, description = "MFA already enabled", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn mfa_setup(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+) -> AppResult<impl IntoResponse> {
+    // Only block when a real OTP credential already exists. A pending
+    // CONFIGURE_TOTP action (setup started but never completed) must NOT block:
+    // initiate_totp_setup is idempotent, so the user can resume the redirect and
+    // finish setup instead of being stuck behind a 400.
+    if state.keycloak.get_user_otp_status(&claims.sub).await? {
+        return Err(AppError::BadRequest(
+            "MFA is already enabled for this account".to_string(),
+        ));
+    }
+
+    state
+        .keycloak
+        .initiate_totp_setup(&claims.sub)
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to initiate MFA setup");
+            e
+        })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "MFA_ENABLED",
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(user_id = %claims.sub, "MFA setup initiated (CONFIGURE_TOTP)");
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse { mfa_enabled: true }),
+    ))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/me/security/mfa",
+    request_body = DisableMfaRequest,
+    responses(
+        (status = 200, description = "MFA disabled", body = SecuritySettingsResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn disable_mfa(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Json(body): Json<DisableMfaRequest>,
+) -> AppResult<impl IntoResponse> {
+    // Defense-in-depth: validate the OTP format before forwarding to Keycloak.
+    if body.otp.len() != 6 || !body.otp.chars().all(|c| c.is_ascii_digit()) {
+        return Err(AppError::BadRequest(
+            "OTP must be a 6-digit code".to_string(),
+        ));
+    }
+
+    let username = claims
+        .username()
+        .or(claims.email.as_deref())
+        .ok_or_else(|| {
+            AppError::BadRequest("Unable to verify credentials for this account".to_string())
+        })?;
+
+    // Verify password and OTP before allowing MFA disable
+    state
+        .keycloak
+        .verify_user_password(username, &body.password, Some(&body.otp))
+        .await?;
+
+    state
+        .keycloak
+        .disable_user_mfa(&claims.sub)
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to disable MFA");
+            e
+        })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "MFA_DISABLED",
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(user_id = %claims.sub, "MFA disabled");
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse { mfa_enabled: false }),
     ))
 }

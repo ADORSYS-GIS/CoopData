@@ -15,6 +15,20 @@ pub struct ChangePasswordResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SecuritySettingsResponse {
+    /// True when the user has an OTP (TOTP) credential configured in Keycloak,
+    /// or a CONFIGURE_TOTP required action is pending (setup initiated but not
+    /// yet completed at next sign-in).
+    pub mfa_enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct DisableMfaRequest {
+    pub password: String,
+    pub otp: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddMemberRequest {
     pub email: String,
     pub first_name: String,

@@ -103,8 +103,7 @@ pub async fn create_federation(
             Some(state.config.frontend_url.clone()),
             Some(attrs),
         )
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+        .await?;
 
     // Track in PostgreSQL
     let fed_model = federation::ActiveModel {
@@ -112,12 +111,22 @@ pub async fn create_federation(
         keycloak_id: sea_orm::Set(org.id.clone()),
         display_name: sea_orm::Set(display_name.clone()),
         is_active: sea_orm::Set(true),
-        metadata: sea_orm::Set(None),
+        metadata: sea_orm::Set(Some(serde_json::json!({}))),
         created_at: sea_orm::Set(chrono::Utc::now()),
         updated_at: sea_orm::Set(chrono::Utc::now()),
     };
     if let Err(e) = state.federation_repo.create(fed_model).await {
-        tracing::warn!(error = %e, "Failed to insert federation into PG");
+        tracing::error!(error = %e, "Failed to insert federation into PG");
+        if let Err(rollback_err) = state.keycloak.delete_organization(&org.id).await {
+            tracing::error!(
+                error = %rollback_err,
+                org_id = %org.id,
+                "Failed to roll back Keycloak organization after PG insert failure"
+            );
+        }
+        return Err(crate::error::AppError::InternalServerError(
+            "Federation created in Keycloak but failed to persist in database".into(),
+        ));
     }
 
     if let Err(e) = state
