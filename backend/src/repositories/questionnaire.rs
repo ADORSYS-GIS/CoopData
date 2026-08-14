@@ -1,6 +1,10 @@
+use crate::entities::enums::SubmissionStatus;
+use crate::entities::submission;
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait};
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -117,6 +121,22 @@ impl QuestionnaireRepository {
             crate::entities::cooperative::Model,
         )>,
     > {
+        // Only ministry-Approved submissions count towards analytics — drafts,
+        // in-review, submitted-but-unapproved and rejected questionnaires must
+        // not leak into aggregates. Resolve the eligible submission ids first,
+        // then filter responses on them.
+        let approved_sub_ids: Vec<Uuid> = submission::Entity::find()
+            .filter(submission::Column::Status.eq(SubmissionStatus::Approved))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        if approved_sub_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
         let mut query = questionnaire_response::Entity::find()
             .find_also_related(crate::entities::cooperative::Entity)
             .join(
@@ -141,14 +161,11 @@ impl QuestionnaireRepository {
             query = query.filter(QuestionnaireResponseColumn::CooperativeId.is_in(coop_ids));
         }
         if let Some(r) = region {
+            // Only apply the region filter when the value parses to a valid
+            // Eswatini region. An unrecognized value is ignored rather than
+            // producing an impossible (never-matching) WHERE clause.
             if let Some(reg) = crate::entities::enums::EswatiniRegion::parse(&r) {
                 query = query.filter(crate::entities::cooperative::Column::Region.eq(reg));
-            } else {
-                query = query.filter(
-                    crate::entities::cooperative::Column::Region
-                        .is_null()
-                        .and(crate::entities::cooperative::Column::Region.is_not_null()),
-                );
             }
         }
         if let Some(s) = sector {

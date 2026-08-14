@@ -24,8 +24,6 @@ interface FieldModalProps {
   setModalDescTr: (val: FieldTranslations) => void;
   modalType: string;
   setModalType: (val: string) => void;
-  modalRequired: boolean;
-  setModalRequired: (val: boolean) => void;
   modalOptions: string[];
   setModalOptions: (val: string[]) => void;
   /** Per-option translations, aligned by index with `modalOptions`. */
@@ -60,8 +58,6 @@ export const FieldModal: React.FC<FieldModalProps> = ({
   setModalDescTr,
   modalType,
   setModalType,
-  modalRequired,
-  setModalRequired,
   modalOptions,
   setModalOptions,
   modalOptionsTr,
@@ -138,17 +134,10 @@ export const FieldModal: React.FC<FieldModalProps> = ({
             </div>
 
             <div className="flex items-end pb-1.5">
-              <label className="flex items-center gap-2.5 cursor-pointer py-2">
-                <input
-                  type="checkbox"
-                  checked={modalRequired}
-                  onChange={(e) => setModalRequired(e.target.checked)}
-                  className="size-4 rounded border-border text-primary focus:ring-primary"
-                />
-                <span className="text-xs text-foreground font-semibold">
-                  {t("templateEditor.fieldModal.requiredQuestion")}
-                </span>
-              </label>
+              <span className="flex items-center gap-2 py-2 text-xs text-muted-foreground font-medium">
+                <span className="text-destructive font-bold">*</span>
+                {t("questionnaire.allFieldsRequired")}
+              </span>
             </div>
           </div>
 

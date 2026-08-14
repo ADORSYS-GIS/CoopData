@@ -55,6 +55,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
 import { QuestionnaireResponseViewer } from "@/components/submissions/QuestionnaireResponseViewer";
 import { useQuestionnaire } from "@/hooks/submissions/useQuestionnaire";
+import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -158,6 +159,7 @@ export const SubmissionDetailPage: React.FC = () => {
   const { data: reviews } = useSubmissionReviews(id);
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
+  const { data: fsLineItems = [] } = useLineItems(submission?.financial_statement_id ?? null);
 
   const params = useMemo(() => ({ submission_id: id ?? "", page: 1, page_size: 1 }), [id]);
   const { data: membersData } = useMembers(id ? params : undefined);
@@ -168,7 +170,7 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const hasUploadedData = (sectionKey: string): boolean => {
     if (sectionKey === "financial") {
-      return !!submission?.financial_statement_id || isQuestionnaireFilled(financialQ);
+      return fsLineItems.length > 0 || isQuestionnaireFilled(financialQ);
     }
     if (sectionKey === "indicators") {
       return isQuestionnaireFilled(nonFinancialQ);
@@ -673,7 +675,7 @@ export const SubmissionDetailPage: React.FC = () => {
                             </button>
                           ) : (
                             <div className="flex items-center gap-2">
-                              {(hasUploadedData(m.key) || isInProgress) && (
+                              {hasData && (
                                 <button
                                   onClick={async () => {
                                     setUpdatingSectionKey(m.key);
@@ -695,7 +697,7 @@ export const SubmissionDetailPage: React.FC = () => {
                                       setUpdatingSectionKey(null);
                                     }
                                   }}
-                                  disabled={updateSection.isPending}
+                                  disabled={updateSection.isPending || !hasData}
                                   className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
                                 >
                                   {isUpdatingThis ? (

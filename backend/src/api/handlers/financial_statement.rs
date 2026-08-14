@@ -1499,9 +1499,7 @@ pub async fn get_ministry_stats(
         .count() as i64;
     let approved_count = all_submissions
         .iter()
-        .filter(|s| {
-            s.status == SubmissionStatus::Approved
-        })
+        .filter(|s| s.status == SubmissionStatus::Approved)
         .count() as i64;
     let rejected_count = all_submissions
         .iter()
@@ -1518,9 +1516,7 @@ pub async fn get_ministry_stats(
     // Compute average PAR30 and CAR from approved submissions
     let approved_sub_ids: Vec<Uuid> = all_submissions
         .iter()
-        .filter(|s| {
-            s.status == SubmissionStatus::Approved
-        })
+        .filter(|s| s.status == SubmissionStatus::Approved)
         .map(|s| s.id)
         .collect();
 
@@ -2229,8 +2225,7 @@ pub async fn get_region_compliance(
                 .as_ref()
                 .map(|r| r.as_str().to_string())
                 .unwrap_or_else(|| "Unknown".to_string());
-            if sub.status == crate::entities::enums::SubmissionStatus::Approved
-            {
+            if sub.status == crate::entities::enums::SubmissionStatus::Approved {
                 *region_approved.entry(region).or_insert(0) += 1;
             }
         }

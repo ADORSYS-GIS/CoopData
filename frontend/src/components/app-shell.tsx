@@ -30,6 +30,7 @@ import {
   Info,
   Scale,
   Calculator,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect, useMemo } from "react";
@@ -65,6 +66,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/analytics", label: "Analytics", icon: PieChart },
       { to: "/app/basic-analytics", label: "Basic Analytics", icon: BarChart3 },
       { to: "/app/benchmarking", label: "Benchmarking", icon: Scale },
+      { to: "/app/basic-benchmarking", label: "Basic Benchmarking", icon: Gauge },
       { to: "/app/custom-kpis", label: "Custom KPIs", icon: Calculator },
     ],
   },
@@ -116,6 +118,7 @@ function Sidebar({
     if (item.to === "/app/analytics") return t("nav.analytics");
     if (item.to === "/app/basic-analytics") return t("nav.basicAnalytics");
     if (item.to === "/app/benchmarking") return t("nav.benchmarking");
+    if (item.to === "/app/basic-benchmarking") return t("nav.basicBenchmarking");
     if (item.to === "/app/custom-kpis") return t("nav.customKpis");
 
     if (item.to === "/app/audit") return t("nav.auditLog");

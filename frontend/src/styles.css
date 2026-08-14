@@ -451,7 +451,7 @@
   position: relative;
   background: #ffffff;
   box-shadow: inset 0 0 0 1px #cbd5e1;
-  padding: 0;
+  /* padding: 0; removed to let tailwind p-12 apply */
   overflow: hidden;
 }
 

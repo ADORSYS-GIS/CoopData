@@ -273,10 +273,7 @@ function SubmissionTable({
   const canValidate = true;
 
   return (
-    <Card
-      title={t("submissions.queue")}
-      subtitle={t("submissions.queueSubtitle")}
-    >
+    <Card title={t("submissions.queue")} subtitle={t("submissions.queueSubtitle")}>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Segmented filter control */}
         <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-xl p-1 border border-border/60">

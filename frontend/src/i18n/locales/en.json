@@ -13,6 +13,7 @@
     "analytics": "Analytics",
     "basicAnalytics": "Basic Analytics",
     "benchmarking": "Benchmarking",
+    "basicBenchmarking": "Basic Benchmarking",
     "customKpis": "Custom KPIs",
     "system": "System",
     "auditLog": "Audit Log",
@@ -233,8 +234,7 @@
     "securityPreferences": "Security Preferences",
     "accountProtection": "Account protection settings",
     "mfa": "Multi-Factor Authentication",
-    "mfaDesc": "Require secondary email OTP verification on login",
-    "autoLockout": "Auto-Lockout Session",
+    "mfaDesc": "Require a one-time code from your authenticator app (TOTP) at login",
     "roleScope": "Role Scope & Ecosystem Permissions",
     "securityCredentialsMatrix": "Your explicit security credentials matrix",
     "permissionScope": "Permission Scope",
@@ -261,7 +261,14 @@
     "passwordTooShort": "New password must be at least 8 characters.",
     "passwordUpdated": "Password updated successfully!",
     "unexpectedError": "Unexpected error.",
-    "minutes": "{{count}} min",
+    "loadingSecurity": "Loading security settings…",
+    "mfaEnabledToast": "Two-factor authentication enabled.",
+    "mfaDisabledToast": "Two-factor authentication disabled.",
+    "mfaSetupTitle": "Set up two-factor authentication",
+    "mfaSetupDesc": "We'll redirect you to sign in again and finish setting up two-factor authentication with your authenticator app.",
+    "mfaStartSetup": "Start setup",
+    "mfaRedirectHint": "You'll be asked to scan a QR code with your authenticator app (Google Authenticator, Authy, etc.). After you complete setup, you'll be brought back to your profile.",
+    "mfaCancel": "Cancel",
     "caps": {
       "userProvisioning": "User Account Provisioning",
       "filingApprovals": "Filing Approvals / Sign-off",
@@ -1260,6 +1267,7 @@
     "select": "— Select —",
     "enterField": "Enter {{field}}...",
     "testDataPopulated": "Test questionnaire answers populated!",
+    "allFieldsRequired": "All fields are required",
     "requiredFieldsSection": "Please fill in all required fields in this section before continuing: {{fields}}",
     "cannotCompleteFields": "Cannot complete questionnaire. Please fill in the following required fields: {{fields}}",
     "loadingConfig": "Loading form configuration...",
@@ -1644,7 +1652,7 @@
     "capitalAdequacy": "Capital Adequacy",
     "mgmtEfficiency": "Mgmt Efficiency",
     "thisNetwork": "This Network",
-    "sectorAverage": "Sector Average",
+    "sectorAverage": "🏭 Sector Average",
     "networkAvg": "Network Avg:",
     "nplRatio": "NPL Ratio",
     "riskNplRatio": "Risk (NPL Ratio)",
@@ -1803,7 +1811,6 @@
     "comparativeAuditSubtitle": "Comparative Audit Spreadsheet Grid & Operational Surplus ({{year}})",
     "date": "Date",
     "cooperativesLabel": "Cooperatives",
-    "allCooperatives": "All Cooperatives",
     "selectedCount": "{{count}} Selected",
     "resetSelection": "Reset Selection (All)",
     "incomeStatementMapping": "Income Statement Mapping:",
@@ -1894,7 +1901,6 @@
     "selectTargetPlaceholder": "Select target...",
     "nationalAverageAll": "🌍 National Average (All Coops)",
     "regionAverage": "📍 {{region}} Region Average",
-    "sectorAverage": "🏭 Sector Average",
     "sectorRegionalAverage": "🏭 Sector Average ({{region}})",
     "sectorBadge": "Sector: {{sector}}",
     "sectorTargetSubtitle": "Comparing against the {{sector}} sector",
@@ -2246,7 +2252,9 @@
     "savingsShort": "Savings",
     "savingsLoansDepositsTitle": "Savings, Loans & Deposits",
     "monthlyFinancialBreakdown": "Your monthly financial breakdown & variation",
-    "netVariation": "Net Variation"
+    "netVariation": "Net Variation",
+    "loadErrorTitle": "Couldn't Load Benchmark Data",
+    "loadErrorDesc": "Something went wrong while loading the benchmark. Please try again."
   },
   "cooperativeDashboard": {
     "title": "Cooperative Dashboard",
@@ -2470,6 +2478,7 @@
       "subtitle": "{{total}} items · {{unmapped}} unmapped · {{lowConf}} low confidence",
       "deleteStatement": "Delete Statement",
       "resolveErrorsHint": "Resolve errors before marking ready",
+      "enterDataHint": "Enter financial data before marking this section ready",
       "markReady": "Mark Section Ready",
       "ready": "Section Ready"
     },
@@ -2954,75 +2963,50 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Platform configuration, security policy, and notification preferences",
+    "subtitle": "Platform preferences and shortcuts to important configuration areas",
     "subtitleIndicators": "Configure dynamic reporting requirements for cooperatives",
     "backBtn": "Back to Settings",
-    "securityPolicyTitle": "Security Policy",
-    "securityPolicySubtitle": "Enforced across all 10,235 accounts",
-    "editPolicy": "Edit policy",
-    "securityPolicyUpdateQueued": "Security policy update queued for review.",
-    "notificationChannelsTitle": "Notification Channels",
-    "notificationChannelsSubtitle": "Default delivery methods for system events and compliance alerts",
-    "eventTypesCount": "{{count}} event type",
-    "eventTypesCount_plural": "{{count}} event types",
-    "notificationsToggled": "{{channel}} notifications toggled.",
-    "openingSettingsToast": "Opening {{title}} settings...",
-    "groups": {
-      "organization": {
-        "title": "Organization",
-        "desc": "Ministry profile, legal entity, branding and disclosure policies."
-      },
-      "localization": {
-        "title": "Localization",
-        "desc": "Languages: English, SiSwati, Portuguese. Date and number formats."
-      },
-      "security": {
-        "title": "Security",
-        "desc": "Password policy, MFA enforcement, session timeout, device trust."
-      },
-      "notifications": {
-        "title": "Notifications",
-        "desc": "Email, in-app, and SMS delivery for system events and alerts."
-      },
-      "retention": {
-        "title": "Data Retention",
-        "desc": "Archival schedules, audit log retention, and export policies."
-      },
-      "indicators": {
-        "title": "Non-Financial Indicators",
-        "desc": "Configure dynamic reporting fields (e.g. board details, training) for cooperatives."
-      }
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Choose how the platform looks for you",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "language": "Language",
+      "languageDesc": "Choose the language for the platform interface"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Multi-factor authentication",
-        "value": "Required for all roles"
-      },
-      "passwordLength": {
-        "label": "Minimum password length",
-        "value": "14 characters"
-      },
-      "passwordRotation": {
-        "label": "Password rotation cycle",
-        "value": "Every 90 days"
-      },
-      "sessionTimeout": {
-        "label": "Session idle timeout",
-        "value": "30 minutes of inactivity"
-      },
-      "failedLockout": {
-        "label": "Failed login lockout",
-        "value": "5 attempts · 15 min lockout"
-      },
-      "deviceTrust": {
-        "label": "Device trust window",
-        "value": "30 days per device"
-      }
+    "indicators": {
+      "title": "Non-Financial Indicators",
+      "desc": "Configure dynamic reporting fields (e.g. board details, training) for cooperatives.",
+      "open": "Configure indicators"
     },
-    "channels": {
-      "email": "Email",
-      "inApp": "In-app",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Configuration Shortcuts",
+      "subtitle": "These settings live on their own pages",
+      "profile": {
+        "title": "Profile & Security",
+        "desc": "Password, MFA, session and language preferences"
+      },
+      "users": {
+        "title": "Users & Access",
+        "desc": "Provision users and manage who can access the platform"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "desc": "Review every action recorded across the platform"
+      },
+      "templates": {
+        "title": "Questionnaire Templates",
+        "desc": "Design the questionnaires cooperatives fill in"
+      },
+      "kpis": {
+        "title": "Custom KPIs",
+        "desc": "Define additional performance indicators for cooperatives"
+      },
+      "invitations": {
+        "title": "Federation Invitations",
+        "desc": "Invite federation officers and track pending invites"
+      }
     }
   },
   "apexesPage": {
@@ -4580,5 +4564,71 @@
   "localizedField": {
     "toggle": "Translate",
     "otherLanguages": "Translations (PT / SS / FR)"
+  },
+  "basicBenchmarking": {
+    "pageTitle": "Basic Benchmarking",
+    "pageSubtitle": "Compare questionnaire-based performance against national, regional and sector averages",
+    "title": "Basic Benchmarking",
+    "subtitle": "Compare questionnaire metrics for {{year}}",
+    "info": "Compare your questionnaire-based performance against privacy-safe national, regional and sector averages. Averages are only shown when at least 3 cooperatives have submitted data.",
+    "slicers": "Benchmarking Slicers",
+    "slicersDesc": "Filter comparison data by reporting period",
+    "reportingYear": "Reporting Year",
+    "selectYear": "Select Year",
+    "calendarYear": "{{year}} Calendar Year",
+    "groups": {
+      "membership": "Membership & Demographics",
+      "balances": "Financial Balances",
+      "income": "Income & Surplus"
+    },
+    "kpis": {
+      "registeredMembers": "Registered Members",
+      "activeMembers": "Active Members",
+      "maleMembers": "Male Members",
+      "femaleMembers": "Female Members",
+      "age18_25": "Members Aged 18-25",
+      "age26_35": "Members Aged 26-35",
+      "age36_60": "Members Aged 36-60",
+      "age61Plus": "Members Aged 61+",
+      "shareCapital": "Share Capital",
+      "borrowedFunds": "Borrowed Funds",
+      "savingsValue": "Savings Value",
+      "loansOutstanding": "Outstanding Loans",
+      "income": "Total Income",
+      "expenditure": "Total Expenditure",
+      "netIncome": "Net Income / Surplus"
+    },
+    "descs": {
+      "registeredMembers": "Total number of registered members reported in the questionnaire",
+      "activeMembers": "Members considered active by the cooperative",
+      "maleMembers": "Registered male members",
+      "femaleMembers": "Registered female members",
+      "age18_25": "Registered members aged 18 to 25",
+      "age26_35": "Registered members aged 26 to 35",
+      "age36_60": "Registered members aged 36 to 60",
+      "age61Plus": "Registered members aged 61 and above",
+      "shareCapital": "Total share capital contributed by members",
+      "borrowedFunds": "Total funds borrowed by the cooperative",
+      "savingsValue": "Total member savings value",
+      "loansOutstanding": "Outstanding loans owed to the cooperative by members",
+      "income": "Total income generated during the reporting period",
+      "expenditure": "Total expenditure during the reporting period",
+      "netIncome": "Income minus expenditure (net surplus or deficit)"
+    },
+    "sectorAverage": "🏭 Sector Average",
+    "sectorRegionalAverage": "🏭 Sector Average ({{region}})",
+    "sectorAvg": "Sector Avg",
+    "sectorRegionalAvg": "Sector Avg ({{region}})",
+    "sectorAvgDesc": "Average across cooperatives in the same sector (nationally)",
+    "sectorRegionalAvgDesc": "Average across cooperatives in the same sector within the same region",
+    "noDataTitle": "No Benchmarking Data",
+    "noDataDesc": "No questionnaire cooperatives have submitted data for {{year}}. Check back once submissions are approved.",
+    "noApprovedDataTitle": "No Approved Questionnaire Data",
+    "noApprovedDataDesc": "Your cooperative has no approved or submitted questionnaire data for {{year}}. Benchmarking unlocks once your submission is submitted and approved — check back then.",
+    "insufficientNationalData": "Not enough cooperatives have submitted data to compute a reliable national average.",
+    "matrixTitle": "Questionnaire Metrics Comparison",
+    "matrixSubtitle": "Detailed comparison of every questionnaire metric against the selected target",
+    "loadErrorTitle": "Couldn't Load Benchmark Data",
+    "loadErrorDesc": "Something went wrong while loading the questionnaire benchmark. Please try again."
   }
 }

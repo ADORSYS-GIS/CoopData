@@ -4,7 +4,7 @@
 
 use axum::{
     extract::{Extension, State},
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -23,6 +23,18 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/me/verify-identity",
             post(crate::api::handlers::me::verify_identity),
+        )
+        .route(
+            "/me/security",
+            get(crate::api::handlers::me::get_security_settings),
+        )
+        .route(
+            "/me/security/mfa/setup",
+            post(crate::api::handlers::me::mfa_setup),
+        )
+        .route(
+            "/me/security/mfa",
+            delete(crate::api::handlers::me::disable_mfa),
         )
         // Non-financial indicator catalog — readable by all authenticated roles
         .route(
@@ -62,6 +74,11 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/analytics/benchmark",
             get(crate::api::handlers::national_overview::get_benchmark),
+        )
+        // Basic benchmark — privacy-safe comparison for questionnaire cooperatives
+        .route(
+            "/analytics/basic-benchmark",
+            get(crate::api::handlers::basic_benchmark::get_basic_benchmark),
         )
         // Dynamic questionnaire analytics - accessible to all authenticated roles
         .route(

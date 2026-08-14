@@ -103,7 +103,6 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   const [modalLabel, setModalLabel] = useState("");
   const [modalLabelTr, setModalLabelTr] = useState<FieldTranslations>({});
   const [modalType, setModalType] = useState("text");
-  const [modalRequired, setModalRequired] = useState(false);
   const [modalDescription, setModalDescription] = useState("");
   const [modalDescTr, setModalDescTr] = useState<FieldTranslations>({});
   const [modalOptions, setModalOptions] = useState<string[]>([]);
@@ -344,7 +343,6 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     setModalDescription("");
     setModalDescTr({});
     setModalType("text");
-    setModalRequired(false);
     setModalOptions([]);
     setModalOptionsTr([]);
     setNewOptionText("");
@@ -359,7 +357,6 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     setModalDescription(field.description || "");
     setModalDescTr(readFieldTr(sec.id, field.key, "description"));
     setModalType(field.type);
-    setModalRequired(!!field.required);
     const options = field.options || [];
     setModalOptions(options);
     setModalOptionsTr(readFieldOptionsTr(sec.id, field.key, options.length));
@@ -413,7 +410,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         label: modalLabel.trim(),
         description: modalDescription.trim() || undefined,
         type: modalType,
-        required: modalRequired,
+        required: true,
         options: modalType === "select" ? modalOptions : [],
       };
       sec.fields = [...(sec.fields || []), newField];
@@ -425,7 +422,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         label: modalLabel.trim(),
         description: modalDescription.trim() || undefined,
         type: modalType,
-        required: modalRequired,
+        required: true,
         options: modalType === "select" ? modalOptions : [],
       };
     }
@@ -644,8 +641,6 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         setModalDescTr={setModalDescTr}
         modalType={modalType}
         setModalType={setModalType}
-        modalRequired={modalRequired}
-        setModalRequired={setModalRequired}
         modalOptions={modalOptions}
         setModalOptions={setModalOptions}
         modalOptionsTr={modalOptionsTr}

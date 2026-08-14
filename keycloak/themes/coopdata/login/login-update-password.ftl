@@ -66,7 +66,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
                         </svg>
-                        Back to home
+                        ${msg("backToHome")}
                     </a>
                 </div>
 
@@ -76,10 +76,10 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                             </svg>
-                            Update password
+                            ${msg("updatePasswordBadge")}
                         </div>
-                        <h1>Update your password</h1>
-                        <p>Create a new password to secure your account.</p>
+                        <h1>${msg("updatePasswordTitle")}</h1>
+                        <p>${msg("updatePasswordSubtitle")}</p>
                     </div>
 
                     <form id="kc-passwd-update-form" class="login-form" action="${url.loginAction}" method="post">
@@ -89,7 +89,7 @@
                                 <input tabindex="1" id="password-new" class="form-control" name="password-new" type="password" autofocus autocomplete="new-password"
                                        aria-invalid="<#if messagesPerField.existsError('password-new')>true</#if>"
                                 />
-                                <button class="password-toggle" type="button" aria-label="Show password" tabindex="3" data-password-toggle>
+                                <button class="password-toggle" type="button" aria-label="${msg("showPassword")}" tabindex="3" data-password-toggle>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
@@ -108,7 +108,7 @@
                                 <input tabindex="2" id="password-confirm" class="form-control" name="password-confirm" type="password" autocomplete="new-password"
                                        aria-invalid="<#if messagesPerField.existsError('password-confirm')>true</#if>"
                                 />
-                                <button class="password-toggle" type="button" aria-label="Show password" tabindex="4" data-password-toggle>
+                                <button class="password-toggle" type="button" aria-label="${msg("showPassword")}" tabindex="4" data-password-toggle>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
@@ -133,7 +133,7 @@
                         <div class="form-actions">
                             <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
                             <button tabindex="6" class="btn-primary" name="submit" id="kc-submit" type="submit">
-                                Update password
+                                ${msg("updatePasswordButton")}
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
@@ -141,8 +141,7 @@
                         </div>
 
                         <p class="form-disclaimer">
-                            By updating your password you acknowledge this is the official CoopData platform for the Ministry
-                            of Commerce &amp; Cooperative Development.
+                            ${msg("updatePasswordDisclaimer")}
                         </p>
                     </form>
                 </div>

@@ -101,10 +101,7 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
   }, []);
 
   return (
-    <div
-      className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
-      style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
-    >
+    <div className="print-page relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white text-slate-900 border-b border-gray-200 break-after-page font-sans">
       <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">
@@ -127,21 +124,21 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
           fallbackContent={<>{t("printReports.pearls.mappedKpis")}</>}
         />
 
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-[10px] border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-3 text-left border border-slate-900 w-1/4">
+              <th className="p-1.5 text-left border border-slate-900 w-1/4">
                 {t("printReports.pearls.dimension")}
               </th>
-              <th className="p-3 text-left border border-slate-900 w-1/4">
+              <th className="p-1.5 text-left border border-slate-900 w-1/4">
                 {t("printReports.pearls.kpi")}
               </th>
               {apexNames.map((name) => (
-                <th key={name} className="p-3 text-right border border-slate-900">
+                <th key={name} className="p-1.5 text-right border border-slate-900">
                   {name}
                 </th>
               ))}
-              <th className="p-3 text-right border border-slate-900 bg-slate-800">
+              <th className="p-1.5 text-right border border-slate-900 bg-slate-800">
                 {t("printReports.pearls.sectorAvg")}
               </th>
             </tr>
@@ -151,10 +148,10 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
               const sectorAvg = getAvg(cooperatives, row.key);
               return (
                 <tr key={i} className="even:bg-slate-50 border-b border-slate-300">
-                  <td className="p-3 border-x border-slate-300 font-bold text-slate-700">
+                  <td className="p-1.5 border-x border-slate-300 font-bold text-slate-700">
                     {row.dimension}
                   </td>
-                  <td className="p-3 border-x border-slate-300">{row.label}</td>
+                  <td className="p-1.5 border-x border-slate-300">{row.label}</td>
 
                   {apexNames.map((name) => {
                     const apexCoops = cooperatives.filter(
@@ -164,13 +161,13 @@ export const FederationPearlsSheet: React.FC<FederationPearlsSheetProps> = ({
                     );
                     const apexAvg = getAvg(apexCoops, row.key);
                     return (
-                      <td key={name} className="p-3 border-x border-slate-300 text-right">
+                      <td key={name} className="p-1.5 border-x border-slate-300 text-right">
                         {renderVal(apexAvg)}
                       </td>
                     );
                   })}
 
-                  <td className="p-3 border-x border-slate-300 text-right font-bold bg-slate-100">
+                  <td className="p-1.5 border-x border-slate-300 text-right font-bold bg-slate-100">
                     {renderVal(sectorAvg)}
                   </td>
                 </tr>
