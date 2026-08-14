@@ -155,7 +155,7 @@ pub fn role_guard_layer(
 /// Scope enforcement (data-level access) is handled in handlers via `ScopeEnforcement`.
 pub fn create_app(state: AppState) -> Router {
     let recorder = PrometheusBuilder::new()
-        .set_buckets(&*SECONDS_DURATION_BUCKETS)
+        .set_buckets(SECONDS_DURATION_BUCKETS)
         .unwrap()
         .build_recorder();
     let metric_handle = recorder.handle();
@@ -202,7 +202,7 @@ pub fn create_app(state: AppState) -> Router {
             auth_layer,
         ));
 
-    let app = Router::new()
+    Router::new()
         .nest("/api/v1", public_routes().merge(protected))
         .merge(crate::api::openapi::serve_openapi())
         .route("/metrics", get(move || async move { metric_handle.render() }))
@@ -218,7 +218,5 @@ pub fn create_app(state: AppState) -> Router {
             axum::http::header::HeaderName::from_static("x-request-id"),
             tower_http::request_id::MakeRequestUuid,
         ))
-        .with_state(state);
-
-    app
+        .with_state(state)
 }
