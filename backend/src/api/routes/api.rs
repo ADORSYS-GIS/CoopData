@@ -16,10 +16,9 @@
 
 use axum::routing::get;
 use axum::Router;
-use axum_prometheus::{PrometheusMetricLayer, utils::SECONDS_DURATION_BUCKETS};
+use axum_prometheus::{utils::SECONDS_DURATION_BUCKETS, PrometheusMetricLayer};
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tower_http::cors::{Any, CorsLayer};
-
 
 use crate::api::handlers;
 use crate::auth::middleware::auth_layer;
@@ -159,8 +158,7 @@ pub fn create_app(state: AppState) -> Router {
         .unwrap()
         .build_recorder();
     let metric_handle = recorder.handle();
-    metrics::set_global_recorder(recorder)
-        .expect("failed to install prometheus recorder");
+    metrics::set_global_recorder(recorder).expect("failed to install prometheus recorder");
     let prometheus_layer = PrometheusMetricLayer::new();
 
     let protected = Router::new()
@@ -205,7 +203,10 @@ pub fn create_app(state: AppState) -> Router {
     Router::new()
         .nest("/api/v1", public_routes().merge(protected))
         .merge(crate::api::openapi::serve_openapi())
-        .route("/metrics", get(move || async move { metric_handle.render() }))
+        .route(
+            "/metrics",
+            get(move || async move { metric_handle.render() }),
+        )
         .layer(prometheus_layer)
         .layer(
             CorsLayer::new()

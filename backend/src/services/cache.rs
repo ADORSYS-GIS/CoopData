@@ -80,8 +80,7 @@ impl CacheService {
 
         match &result {
             Ok(Some(_)) => {
-                counter!("coopdata_cache_hits_total", "entity" => entity.to_string())
-                    .increment(1);
+                counter!("coopdata_cache_hits_total", "entity" => entity.to_string()).increment(1);
             }
             Ok(None) => {
                 counter!("coopdata_cache_misses_total", "entity" => entity.to_string())
@@ -127,8 +126,7 @@ impl CacheService {
         };
 
         if result.is_ok() {
-            counter!("coopdata_cache_sets_total", "entity" => entity.to_string())
-                .increment(1);
+            counter!("coopdata_cache_sets_total", "entity" => entity.to_string()).increment(1);
         }
 
         result

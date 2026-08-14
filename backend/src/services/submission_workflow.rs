@@ -136,8 +136,7 @@ impl SubmissionWorkflow {
             .update_status(submission_id, SubmissionStatus::Submitted, ReviewTier::Apex)
             .await?;
 
-        counter!("coopdata_submissions_processed_total", "status" => "submitted")
-            .increment(1);
+        counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
 
         // Immediately compute and save KPIs to database for cooperative analytics
         if sub.submission_method != "questionnaire" {

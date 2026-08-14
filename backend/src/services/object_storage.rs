@@ -73,13 +73,8 @@ impl S3FileStorage {
         let secret_key = &config.s3_secret_key;
         let bucket = config.s3_bucket.clone();
 
-        let credentials = aws_sdk_s3::config::Credentials::new(
-            access_key,
-            secret_key,
-            None,
-            None,
-            "coopdata",
-        );
+        let credentials =
+            aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "coopdata");
 
         let s3_config = aws_sdk_s3::config::Builder::new()
             .region(aws_sdk_s3::config::Region::new(region.clone()))
@@ -92,12 +87,7 @@ impl S3FileStorage {
         let client = Client::from_conf(s3_config);
 
         // Auto-create bucket if it doesn't exist
-        match client
-            .create_bucket()
-            .bucket(&bucket)
-            .send()
-            .await
-        {
+        match client.create_bucket().bucket(&bucket).send().await {
             Ok(_) => {
                 tracing::info!(bucket = %bucket, "S3 bucket created successfully");
             }
@@ -157,11 +147,10 @@ impl ObjectStorage for S3FileStorage {
                 }
             })?;
 
-        let bytes = response
-            .body
-            .collect()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("S3 read body error: {}", e)))?;
+        let bytes =
+            response.body.collect().await.map_err(|e| {
+                AppError::ExternalServiceError(format!("S3 read body error: {}", e))
+            })?;
 
         Ok(bytes.into_bytes().to_vec())
     }
@@ -173,7 +162,9 @@ impl ObjectStorage for S3FileStorage {
             .key(key)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError(format!("S3 delete_object error: {}", e)))?;
+            .map_err(|e| {
+                AppError::ExternalServiceError(format!("S3 delete_object error: {}", e))
+            })?;
 
         Ok(())
     }

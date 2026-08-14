@@ -505,8 +505,7 @@ impl KeycloakService {
         first_name: &str,
         last_name: &str,
     ) -> Result<KeycloakUser, AppError> {
-        counter!("coopdata_keycloak_requests_total", "operation" => "create_user")
-            .increment(1);
+        counter!("coopdata_keycloak_requests_total", "operation" => "create_user").increment(1);
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/users", self.realm_url());
 
@@ -1270,8 +1269,7 @@ impl KeycloakService {
         role: &str,
         _redirect_url: &str,
     ) -> Result<KeycloakInvitation, AppError> {
-        counter!("coopdata_keycloak_requests_total", "operation" => "invite_user")
-            .increment(1);
+        counter!("coopdata_keycloak_requests_total", "operation" => "invite_user").increment(1);
         let token = self.get_cached_admin_token().await?;
 
         let mut attributes = HashMap::new();
