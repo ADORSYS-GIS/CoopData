@@ -72,7 +72,7 @@ groups:
 
       - alert: HighLatency
         expr: |
-          histogram_quantile(0.99, sum(rate(axum_http_requests_duration_seconds_bucket[5m])) by (le)) > 2.0
+          histogram_quantile(0.99, sum by (le) (rate(axum_http_requests_duration_seconds_bucket[5m]))) > 2.0
         for: 5m
         labels:
           severity: warning
@@ -83,7 +83,7 @@ groups:
 
       - alert: HighDBQueryDuration
         expr: |
-          histogram_quantile(0.95, sum(rate(coopdata_db_query_duration_seconds_bucket[5m])) by (le)) > 0.1
+          histogram_quantile(0.95, sum by (le) (rate(coopdata_db_query_duration_seconds_bucket[5m]))) > 0.1
         for: 5m
         labels:
           severity: warning
@@ -147,7 +147,7 @@ groups:
           summary: "⚠️ Redis memory usage is high"
           description: "Redis memory usage exceeds 80% of max memory."
 
-      - alert: AIPipelineFailing
+      - alert: KeycloakHighErrorRate
         expr: |
           (
             sum(rate(coopdata_keycloak_requests_total{status=~"5.."}[10m]))

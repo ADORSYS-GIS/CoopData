@@ -220,7 +220,7 @@
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "topk(10, histogram_quantile(0.99, sum(rate(axum_http_requests_duration_seconds_bucket[5m])) by (le, endpoint)))",
+          "expr": "topk(10, histogram_quantile(0.99, sum by (le, endpoint) (rate(axum_http_requests_duration_seconds_bucket[5m]))))",
           "format": "table",
           "instant": true,
           "refId": "A"
