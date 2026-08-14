@@ -2,6 +2,9 @@
 ignore = [
   "RUSTSEC-2023-0071", # Marvin Attack: potential key recovery in rsa (no fixed upgrade available)
   "RUSTSEC-2024-0370", # proc-macro-error is unmaintained (informational warning)
+  "RUSTSEC-2026-0099", # rustls-webpki name constraints for wildcard certs — transitive via aws-sdk-s3 → rustls 0.21; will resolve on rustls 0.23+ upgrade
+  "RUSTSEC-2026-0104", # rustls-webpki panic in CRL parsing — transitive via aws-sdk-s3 → rustls 0.21; will resolve on rustls 0.23+ upgrade
+  "RUSTSEC-2026-0098", # rustls-webpki name constraints for URI names — transitive via aws-sdk-s3 → rustls 0.21; will resolve on rustls 0.23+ upgrade
   "RUSTSEC-2026-0173", # proc-macro-error2 is unmaintained (informational warning)
   "RUSTSEC-2026-0187", # lopdf stack overflow via nested PDF objects — transitive via printpdf 0.7; fix requires printpdf upgrade to 0.11+ (breaking API changes)
   "RUSTSEC-2026-0194", # quick-xml quadratic runtime on duplicate attributes — transitive via calamine; calamine 0.36 fix breaks office_oxide compile
