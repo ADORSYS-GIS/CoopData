@@ -1,7 +1,7 @@
 # Observability & Monitoring Architecture
 
 > **Ticket**: [#70](https://github.com/ADORSYS-GIS/CoopData/issues/70) — Implement Grafana and Prometheus for Monitoring
-> **Status**: Phases 1-5 Complete, Phase 4 Alerting Complete (25 rules, notifications pending webhook)
+> **Status**: Phases 1-5 Complete, Phase 4 Alerting Complete (25 rules, contact points configured via Grafana UI)
 > **Scope**: Add full-stack observability (Metrics, Dashboards, Alerts) to the CoopData platform in production (EC2/Docker).
 
 ---
@@ -29,7 +29,7 @@ By moving from a reactive to a proactive observability model, the team can ident
 | Prometheus + Exporters | ✅ implemented |
 | Grafana with 4 dashboards | ✅ implemented |
 | Alert rules (25 rules) | ✅ loaded |
-| Alert notifications (Slack/Email) | ⏳ not configured yet |
+| Alert notifications (Slack/Discord) | ✅ configured via Grafana UI (manual setup) |
 | Database query metrics | ✅ implemented |
 
 ---
@@ -61,11 +61,11 @@ Since infrastructure components do not natively expose Prometheus metrics, we de
 ```
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
 │  Metric       │      │  Prometheus   │      │  Grafana     │      │  You         │
-│  Sources      │─────►│  Rule Eval    │─────►│  Unified     │─────►│  (Slack/     │
-│               │      │              │      │  Alerting    │      │   Email)     │
+│  Sources      │─────►│  Rule Eval    │─────►│  Unified     │─────►│  (Slack +    │
+│               │      │              │      │  Alerting    │      │   Discord)   │
 │  • Backend    │      │  Every 15s   │      │              │      │              │
-│  • Postgres   │      │              │      │  Routes to   │      │  ⚠️ NOT SET  │
-│  • Redis      │      │  Evaluates   │      │  channels    │      │  UP YET      │
+│  • Postgres   │      │              │      │  Routes to   │      │  ✅ CONFIGURED│
+│  • Redis      │      │  Evaluates   │      │  channels    │      │  via UI      │
 │  • Node       │      │  25 rules    │      │              │      │              │
 │  • MinIO      │      │              │      │              │      │              │
 └──────────────┘      └──────────────┘      └──────────────┘      └──────────────┘
@@ -505,14 +505,58 @@ INFRASTRUCTURE
   HighDiskIOWait     └─ rate(node_disk_io_time_seconds_total[5m]) > 0.90
 ```
 
-### 6.5 Adding Slack Notifications
+### 6.5 Adding Notifications (Slack/Discord)
 
-When ready to add Slack notifications:
-1. Create a Slack Incoming Webhook → get a URL
-2. In Grafana → Alerting → Contact Points → Edit "email receiver" or create new
-3. Select **Webhook** type → paste the Slack webhook URL
-4. In Grafana → Alerting → Notification Policies → set Default Contact Point
-5. Optionally, create label-based routing (e.g., `severity=critical` → `#alerts-critical` channel)
+Contact points and notification policies are configured **manually via the Grafana UI**. This approach avoids provisioning complications and gives you full control over the configuration.
+
+#### Setting Up a Webhook
+
+**Step 1: Create a webhook**
+
+| Platform | Steps |
+|----------|-------|
+| **Slack** | api.slack.com/apps → Create New App → Incoming Webhooks → Activate → Add to Workspace → Copy URL |
+| **Discord** | Server → Channel Settings → Integrations → Webhooks → New Webhook → Copy URL |
+
+**Step 2: Add contact point in Grafana**
+
+1. Open Grafana → **Alerting → Contact points**
+2. Click **"Add contact point"**
+3. Fill in:
+   - **Name:** `Slack Alerts` or `Discord Alerts`
+   - **Type:** Select `Webhook` from the dropdown
+   - **URL:** Paste your webhook URL
+   - **HTTP Method:** POST
+4. Click **"Test"** to send a test notification
+5. Click **"Save"**
+
+**Step 3: Configure notification policy**
+
+1. Go to **Alerting → Notification policies**
+2. Edit the default policy
+3. Set **"Default contact point"** to your webhook (e.g., `Discord Alerts`)
+4. Optionally, add routes for different severity levels:
+   - `severity=critical` → Both Slack and Discord
+   - `severity=warning` → Slack only
+5. Click **"Update"**
+
+#### What Happens After Setup
+
+| Scenario | Behavior |
+|----------|----------|
+| Webhook URL empty | Alerts only visible in Grafana UI |
+| Webhook configured | Alerts sent to the configured channel |
+| Multiple webhooks | Add routes in notification policy |
+| Change webhook URL | Edit contact point in UI and save |
+
+#### Why Manual Setup Instead of Auto-Provisioning?
+
+We initially implemented auto-provisioning (both file-based and API-based), but reverted to manual UI setup because:
+
+1. **Grafana UI quirk**: Contact points created via provisioning APIs sometimes show as "cannot be edited through the UI" even with `provenance=api`
+2. **Simplicity**: Manual setup avoids complexity of entrypoint scripts and API calls
+3. **Flexibility**: Easy to change webhook URLs without restarting containers
+4. **Transparency**: Configuration is visible and editable in the UI
 
 ---
 
@@ -547,7 +591,8 @@ When ready to add Slack notifications:
 - [x] Create 15 additional Grafana-managed alert rules (DB, Redis, traffic, infrastructure)
 - [x] Total: 25 alert rules across 2 groups (critical + warning)
 - [x] All rules evaluated and health-checked (0 errors)
-- [ ] Configure Grafana alert routing (Slack webhook) — pending user webhook URL
+- [ ] Configure contact points (webhooks) via Grafana UI — manual setup required
+- [ ] Configure notification policies via Grafana UI — manual setup required
 
 ### Phase 5: Database Query Metrics ✅ Complete
 - [x] Add `db_query()` helper to `repositories/mod.rs`
@@ -564,13 +609,15 @@ When ready to add Slack notifications:
 CoopData/
 ├── monitoring/
 │   ├── prometheus.yml              # Prometheus scrape configuration
-│   ├── alerts.yml                  # Alerting rules
+│   ├── alerts.yml                  # Alerting rules (Prometheus-native)
 │   └── grafana/
 │       ├── provisioning/
 │       │   ├── datasources/
 │       │   │   └── prometheus.yml  # Auto-connect to Prometheus
-│       │   └── dashboards/
-│       │       └── dashboards.yml  # Dashboard provider config
+│       │   ├── dashboards/
+│       │   │   └── dashboards.yml  # Dashboard provider config
+│       │   └── alerting/           # Empty (configured manually via UI)
+│       └── dashboards/
 │       └── dashboards/
 │           ├── coopdata-backend.json
 │           ├── infrastructure.json
