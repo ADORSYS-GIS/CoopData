@@ -158,7 +158,7 @@ pub fn create_app(state: AppState) -> Router {
         .unwrap()
         .build_recorder();
     let metric_handle = recorder.handle();
-    metrics::set_global_recorder(recorder).expect("failed to install prometheus recorder");
+    let _ = metrics::set_global_recorder(recorder);
     let prometheus_layer = PrometheusMetricLayer::new();
 
     let protected = Router::new()
