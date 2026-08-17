@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
-import { fetchWithAuth } from "@/services/shared/authService";
+import { fetchWithAuth, getUserProfile } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { cacheSet } from "@/services/shared/offlineCache";
 import i18n from "@/i18n";
 import type { QuestionnaireSection } from "@/hooks/admin/useQuestionnaireTemplates";
 
@@ -36,7 +37,7 @@ export const useQuestionnaire = (submissionId: string, questionnaireType?: strin
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { message?: string }).message ?? "Failed to load questionnaire");
       }
-      return res.json() as Promise<QuestionnaireResponseData>;
+      return (await res.json()) as QuestionnaireResponseData;
     },
     enabled: !!submissionId,
   });
@@ -45,13 +46,38 @@ export const useSaveQuestionnaire = (submissionId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { questionnaire_type: string; answers: QuestionnaireAnswers }) => {
+      const userId = getUserProfile()?.id ?? "anon";
+      const cachedData: QuestionnaireResponseData = {
+        id: crypto.randomUUID(),
+        submission_id: submissionId,
+        cooperative_id: "self",
+        questionnaire_type: payload.questionnaire_type,
+        reporting_year: new Date().getFullYear(),
+        answers: payload.answers,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // 1. Save answers into IndexedDB immediately so offline view/refresh works seamlessly
+      try {
+        await cacheSet(
+          "submissions",
+          `questionnaire-${submissionId}-${payload.questionnaire_type}`,
+          userId,
+          cachedData,
+        );
+      } catch (e) {
+        console.warn("Failed to update cached questionnaire answers offline", e);
+      }
+
+      // 2. Enqueue REST mutation for sync when online
       return runMutation<QuestionnaireResponseData>(
         "/api/v1/cooperative/submissions/{id}/questionnaire",
         "POST",
         {
           pathParams: { id: submissionId },
           body: payload,
-          optimisticData: payload as unknown as QuestionnaireResponseData,
+          optimisticData: cachedData,
           online: async () => {
             const res = await fetchWithAuth(
               `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`,
@@ -67,7 +93,7 @@ export const useSaveQuestionnaire = (submissionId: string) => {
                 (body as { message?: string }).message ?? "Failed to save questionnaire",
               );
             }
-            return res.json() as Promise<QuestionnaireResponseData>;
+            return (await res.json()) as QuestionnaireResponseData;
           },
         },
       );
@@ -95,13 +121,13 @@ export const useActiveTemplate = (type: string) => {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { message?: string }).message ?? "Failed to load active template");
       }
-      return res.json() as Promise<{
+      return (await res.json()) as {
         id: string;
         questionnaire_type: string;
         version: number;
         label: string;
         sections: QuestionnaireSection[];
-      }>;
+      };
     },
     enabled: !!type,
   });
@@ -125,9 +151,9 @@ export interface QuestionnaireAnalyticsData {
     age_26_35: number;
     age_36_60: number;
     age_61plus: number;
-  };
-  region_counts: Record<string, number>;
-  sector_counts: Record<string, number>;
+  } | null | undefined;
+  region_counts: Record<string, number> | null | undefined;
+  sector_counts: Record<string, number> | null | undefined;
   details: {
     id: string;
     cooperative_name: string;
@@ -137,7 +163,7 @@ export interface QuestionnaireAnalyticsData {
     total_members: number;
     total_share_capital: number;
     net_income: number;
-  }[];
+  }[] | null | undefined;
 }
 
 export const useQuestionnaireAnalytics = (filters: {
@@ -174,7 +200,7 @@ export const useQuestionnaireAnalytics = (filters: {
           (body as { message?: string }).message ?? "Failed to load questionnaire analytics",
         );
       }
-      return res.json() as Promise<QuestionnaireAnalyticsData>;
+      return (await res.json()) as QuestionnaireAnalyticsData;
     },
   });
 };

@@ -8,6 +8,7 @@ interface Props {
 
 export function GovernanceFunnel({ stats }: Props) {
   const { t } = useTranslation();
+  if (!stats) return null;
 
   if (stats.total === 0) {
     return (

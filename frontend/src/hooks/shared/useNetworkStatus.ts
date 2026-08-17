@@ -15,9 +15,11 @@ export interface NetworkStatus {
  */
 export function useNetworkStatus(): NetworkStatus {
   const checkStatus = () => {
-    if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-    if (isOfflineModeActive()) return false;
-    return true;
+    if (typeof navigator !== "undefined") {
+      if (!navigator.onLine) return false;
+      return true;
+    }
+    return !isOfflineModeActive();
   };
 
   const [isOnline, setIsOnline] = useState(checkStatus);
@@ -68,6 +70,9 @@ export function useNetworkStatus(): NetworkStatus {
   useEffect(() => {
     let unmounted = false;
     const updateCount = async () => {
+      if (typeof navigator !== "undefined" && navigator.onLine && !isOfflineModeActive()) {
+        await flushSyncQueue();
+      }
       const count = await getPendingCount();
       if (!unmounted) setPendingSyncCount(count);
     };

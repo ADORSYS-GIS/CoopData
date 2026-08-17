@@ -86,6 +86,68 @@ function statusLabel(status: string, t: TFunction): string {
   return labels[status] ?? status;
 }
 
+function CalendarYearPicker({
+  selectedYear,
+  onChangeYear,
+}: {
+  selectedYear: number;
+  onChangeYear: (y: number) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const [pageStartYear, setPageStartYear] = useState(() => {
+    return Math.floor(selectedYear / 12) * 12;
+  });
+
+  const years = Array.from({ length: 12 }, (_, i) => pageStartYear + i);
+
+  return (
+    <div className="border border-border rounded-xl p-3 bg-muted/10">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <button
+          type="button"
+          onClick={() => setPageStartYear((prev) => prev - 12)}
+          className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border border-border"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <span className="text-xs font-bold text-foreground">
+          {pageStartYear} - {pageStartYear + 11}
+        </span>
+        <button
+          type="button"
+          onClick={() => setPageStartYear((prev) => prev + 12)}
+          className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border border-border"
+        >
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5">
+        {years.map((y) => {
+          const isSelected = y === selectedYear;
+          const isFuture = y > currentYear;
+          return (
+            <button
+              key={y}
+              type="button"
+              disabled={isFuture}
+              onClick={() => onChangeYear(y)}
+              className={`rounded-lg py-2 text-xs font-bold transition-all duration-150 border ${
+                isSelected
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : isFuture
+                    ? "border-transparent bg-transparent text-muted-foreground/30 cursor-not-allowed"
+                    : "border-border bg-surface text-foreground hover:border-primary/40 hover:bg-muted/60"
+              }`}
+            >
+              {y}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -138,23 +200,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
           <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
             {t("submissions.reportingYear")}
           </label>
-          <div className="grid grid-cols-5 gap-2">
-            {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map(
-              (y) => (
-                <button
-                  key={y}
-                  onClick={() => setYear(y)}
-                  className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${
-                    year === y
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-border bg-muted/30 text-foreground hover:border-primary/40 hover:bg-muted/60"
-                  }`}
-                >
-                  {y}
-                </button>
-              ),
-            )}
-          </div>
+          <CalendarYearPicker selectedYear={year} onChangeYear={setYear} />
         </div>
 
         {/* Footer */}
@@ -240,6 +286,9 @@ function OrgCard({
   );
 }
 
+import { DeleteSubmissionModal } from "@/components/submissions/DeleteSubmissionModal";
+
+
 function SubmissionTable({
   submissions,
   isLoading,
@@ -271,6 +320,10 @@ function SubmissionTable({
   const role = useUserRole();
   const deleteSubmission = useDeleteSubmission();
   const canValidate = true;
+  const [submissionToDelete, setSubmissionToDelete] = useState<{
+    id: string;
+    reference?: string | null;
+  } | null>(null);
 
   return (
     <Card
@@ -286,7 +339,6 @@ function SubmissionTable({
       }
     >
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Segmented filter control */}
         <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-xl p-1 border border-border/60">
           {(
             [
@@ -432,26 +484,9 @@ function SubmissionTable({
                       {role === "cooperative" && s.status !== "approved" && (
                         <button
                           type="button"
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.stopPropagation();
-                            if (
-                              confirm(
-                                t("submissions.deleteConfirmation", {
-                                  ref: s.reference ?? s.id.slice(0, 8),
-                                }),
-                              )
-                            ) {
-                              try {
-                                await deleteSubmission.mutateAsync(s.id);
-                                toast.success(t("submissions.deleteSuccess"));
-                              } catch (err) {
-                                toast.error(
-                                  err instanceof Error
-                                    ? err.message
-                                    : t("submissions.deleteFailed"),
-                                );
-                              }
-                            }
+                            setSubmissionToDelete({ id: s.id, reference: s.reference });
                           }}
                           disabled={deleteSubmission.isPending}
                           className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -474,6 +509,24 @@ function SubmissionTable({
           </tbody>
         </table>
       </div>
+
+      {submissionToDelete && (
+        <DeleteSubmissionModal
+          submission={submissionToDelete}
+          onClose={() => setSubmissionToDelete(null)}
+          onConfirm={async () => {
+            try {
+              await deleteSubmission.mutateAsync(submissionToDelete.id);
+              toast.success(t("submissions.deleteSuccess"));
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : t("submissions.deleteFailed"));
+            } finally {
+              setSubmissionToDelete(null);
+            }
+          }}
+          isPending={deleteSubmission.isPending}
+        />
+      )}
     </Card>
   );
 }

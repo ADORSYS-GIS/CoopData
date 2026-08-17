@@ -45,10 +45,7 @@ export async function cacheGet<T>(
     if (!row && key.includes("-")) {
       const parts = key.split("-");
       const baseKey = parts[0];
-      row = (await tbl
-        .where(pk)
-        .startsWith(baseKey)
-        .first()) as CacheRow | undefined;
+      row = (await tbl.where(pk).startsWith(baseKey).first()) as CacheRow | undefined;
     }
 
     // 4. Fall back to any row in that table if available

@@ -25,6 +25,7 @@ import {
 
 interface QuestionnaireTemplateEditorProps {
   templateId: string;
+  initialTemplate?: import("@/hooks/admin/useQuestionnaireTemplates").QuestionnaireTemplate;
   onBack: () => void;
 }
 
@@ -81,17 +82,26 @@ function mergeSectionsForLang(
 
 export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorProps> = ({
   templateId,
+  initialTemplate,
   onBack,
 }) => {
   const { t, i18n } = useTranslation();
   const { data: template, isLoading, error } = useQuestionnaireTemplate(templateId);
   const updateMutation = useUpdateQuestionnaireTemplate(templateId);
 
-  const [label, setLabel] = useState("");
+  // Pre-populate from initialTemplate immediately (avoids blank editor on first render)
+  const [label, setLabel] = useState(initialTemplate?.label ?? "");
   const [labelTr, setLabelTr] = useState<FieldTranslations>({});
-  const [sections, setSections] = useState<any[]>([]);
-  const [translations, setTranslations] = useState<QuestionnaireTranslations>({});
-  const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(null);
+  const [sections, setSections] = useState<any[]>(() => {
+    const raw = initialTemplate?.sections;
+    return Array.isArray(raw) ? raw : [];
+  });
+  const [translations, setTranslations] = useState<QuestionnaireTranslations>(
+    (initialTemplate?.translations as QuestionnaireTranslations) ?? {},
+  );
+  const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(
+    Array.isArray(initialTemplate?.sections) && (initialTemplate?.sections as unknown[]).length > 0 ? 0 : null,
+  );
   const [saveMessage, setSaveMessage] = useState<{
     type: "success" | "error";
     text: string;

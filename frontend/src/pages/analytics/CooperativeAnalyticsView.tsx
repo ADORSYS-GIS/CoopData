@@ -321,7 +321,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           />
         </Card>
 
-        {nfStats && (
+        {nfStats?.savings && (
           <Card
             title={t("cooperativeAnalytics.savingsPortfolioTitle")}
             subtitle={t("cooperativeAnalytics.savingsPortfolioSubtitle")}
@@ -411,7 +411,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {nfStats && (
+        {nfStats?.fixed_deposits && (
           <Card
             title={t("cooperativeAnalytics.liquidityRiskTitle")}
             subtitle={t("cooperativeAnalytics.liquidityRiskSubtitle")}
@@ -421,7 +421,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           </Card>
         )}
 
-        {nfStats && (
+        {nfStats?.membership && (
           <Card
             title={t("cooperativeAnalytics.democraticTitle")}
             subtitle={t("cooperativeAnalytics.democraticSubtitle")}
@@ -431,7 +431,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           </Card>
         )}
 
-        {nfStats && (
+        {nfStats?.loans && (
           <Card
             title={t("cooperativeAnalytics.inclusionTitle")}
             subtitle={t("cooperativeAnalytics.inclusionSubtitle")}
@@ -469,7 +469,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         </div>
       )}
 
-      {nfStats && (
+      {nfStats?.loans && (
         <Card
           title={t("cooperativeAnalytics.loanPortfolioTitle")}
           subtitle={t("cooperativeAnalytics.loanPortfolioSubtitle")}
@@ -489,7 +489,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {nfStats && (
+        {nfStats?.membership && (
           <Card
             title={t("cooperativeAnalytics.memberDemoTitle")}
             subtitle={t("cooperativeAnalytics.memberDemoSubtitle")}
@@ -509,7 +509,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         )}
       </div>
 
-      {nfStats && nfStats.farm_coop.total_coops > 0 && (
+      {nfStats?.farm_coop && nfStats.farm_coop.total_coops > 0 && (
         <Card
           title={t("cooperativeAnalytics.agriResilienceTitle")}
           subtitle={t("cooperativeAnalytics.agriResilienceSubtitle")}

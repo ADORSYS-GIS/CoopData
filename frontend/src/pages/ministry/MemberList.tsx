@@ -57,7 +57,9 @@ function createColumns(
         const name = [row.original.first_name, row.original.last_name].filter(Boolean).join(" ");
         return (
           <div className="font-medium text-foreground">
-            {name || <span className="text-muted-foreground italic text-xs">Pending registration</span>}
+            {name || (
+              <span className="text-muted-foreground italic text-xs">Pending registration</span>
+            )}
           </div>
         );
       },
@@ -68,7 +70,9 @@ function createColumns(
       cell: ({ row }) => {
         const email = row.getValue<string>("email");
         return (
-          <span className={email ? "text-muted-foreground" : "text-muted-foreground/50 italic text-xs"}>
+          <span
+            className={email ? "text-muted-foreground" : "text-muted-foreground/50 italic text-xs"}
+          >
             {email || "—"}
           </span>
         );
@@ -80,7 +84,9 @@ function createColumns(
       cell: ({ row }) => {
         const username = row.getValue<string>("username");
         return (
-          <span className={username ? "text-foreground" : "text-muted-foreground/50 italic text-xs"}>
+          <span
+            className={username ? "text-foreground" : "text-muted-foreground/50 italic text-xs"}
+          >
             {username || "—"}
           </span>
         );

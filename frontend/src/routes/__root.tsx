@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { get, set, del } from "idb-keyval";
 import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -19,13 +20,26 @@ const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
 function createIDBPersister(idbKey: string = IDB_QUERY_CACHE_KEY): Persister {
   return {
     persistClient: async (client: PersistedClient) => {
-      await set(idbKey, client);
+      try {
+        await set(idbKey, client);
+      } catch (err) {
+        console.warn("[persister] Failed to persist QueryClient to IndexedDB:", err);
+      }
     },
     restoreClient: async (): Promise<PersistedClient | undefined> => {
-      return await get<PersistedClient>(idbKey);
+      try {
+        return await get<PersistedClient>(idbKey);
+      } catch (err) {
+        console.warn("[persister] Failed to restore QueryClient from IndexedDB:", err);
+        return undefined;
+      }
     },
     removeClient: async () => {
-      await del(idbKey);
+      try {
+        await del(idbKey);
+      } catch (err) {
+        console.warn("[persister] Failed to remove QueryClient from IndexedDB:", err);
+      }
     },
   };
 }
@@ -108,6 +122,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const handleSyncComplete = () => {
+      console.log("[__root] Sync queue flushed, invalidating all queries...");
+      queryClient.invalidateQueries();
+    };
+    window.addEventListener("coopdata-sync-complete", handleSyncComplete);
+    return () => {
+      window.removeEventListener("coopdata-sync-complete", handleSyncComplete);
+    };
+  }, [queryClient]);
+
   return (
     <ThemeProvider>
       <KeycloakAuthProvider>

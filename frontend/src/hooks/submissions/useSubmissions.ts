@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
-import { getAccessToken } from "@/services/shared/authService";
+import { getAccessToken, getUserProfile } from "@/services/shared/authService";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
 export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"];
@@ -145,11 +146,125 @@ export const useCreateSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: CreateSubmissionRequest) => {
+      const localId = crypto.randomUUID();
+      const optimistic: SubmissionResponse = {
+        id: localId,
+        reporting_year: body.reporting_year,
+        cooperative_id: "self",
+        status: "draft" as unknown as SubmissionResponse["status"],
+        submission_method: (body.submission_method ?? "") as unknown as SubmissionResponse["submission_method"],
+        current_tier: "cooperative" as unknown as SubmissionResponse["current_tier"],
+        priority: body.priority ?? "Routine",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sections: [],
+      };
+
+      const payload = {
+        ...body,
+        id: localId,
+      };
+
+      const userId = getUserProfile()?.id ?? "anon";
+
+      // 1. Write the new optimistic submission to IndexedDB cached lists immediately
+      try {
+        const cachedCoopList = await cacheGet<SubmissionResponse[]>(
+          "submissions",
+          "cooperative-list",
+          userId,
+          true,
+        );
+        if (cachedCoopList) {
+          if (!cachedCoopList.some((s) => s.id === localId)) {
+            const updated = [optimistic, ...cachedCoopList];
+            await cacheSet("submissions", "cooperative-list", userId, updated);
+          }
+        } else {
+          await cacheSet("submissions", "cooperative-list", userId, [optimistic]);
+        }
+      } catch (e) {
+        console.warn("Failed to update cached cooperative submissions list on create", e);
+      }
+
+      // 2. Also cache the submission detail record so details view can open it offline
+      try {
+        await cacheSet("submissions", `submission-${localId}`, userId, optimistic);
+      } catch (e) {
+        // ignore
+      }
+
+      // 3. Cache empty reviews array for this new submission so no stale review history leaks
+      try {
+        await cacheSet("submissions", `reviews-${localId}`, userId, []);
+      } catch (e) {
+        // ignore
+      }
+
+      // 4. Cache initial pending section models for this new submission
+      const initialSections = [
+        {
+          id: crypto.randomUUID(),
+          submission_id: localId,
+          section: "financial",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: crypto.randomUUID(),
+          submission_id: localId,
+          section: "members",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: crypto.randomUUID(),
+          submission_id: localId,
+          section: "savings",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: crypto.randomUUID(),
+          submission_id: localId,
+          section: "loans",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: crypto.randomUUID(),
+          submission_id: localId,
+          section: "fixed_deposits",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: crypto.randomUUID(),
+          submission_id: localId,
+          section: "farm_coop",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
+      try {
+        await cacheSet("submissions", `sections-${localId}`, userId, initialSections);
+      } catch (e) {
+        // ignore
+      }
+
       return runMutation<SubmissionResponse>("/api/v1/cooperative/submissions", "POST", {
-        body,
-        optimisticData: body as unknown as SubmissionResponse,
+        body: payload,
+        optimisticData: optimistic,
         online: async () => {
-          const { data, error } = await apiClient.POST("/api/v1/cooperative/submissions", { body });
+          const { data, error } = await apiClient.POST("/api/v1/cooperative/submissions", {
+            body: payload as unknown as CreateSubmissionRequest,
+          });
           if (error) throw new Error(extractErrorMessage(error));
           return data as SubmissionResponse;
         },
@@ -171,6 +286,52 @@ export const useUpdateSubmissionMethod = () => {
       id: string;
       submissionMethod: "upload" | "manual" | "questionnaire";
     }) => {
+      const userId = getUserProfile()?.id ?? "anon";
+
+      // 1. Update single submission detail cache in IndexedDB with chosen method
+      try {
+        const cachedSub = await cacheGet<SubmissionResponse>(
+          "submissions",
+          `submission-${id}`,
+          userId,
+          true,
+        );
+        if (cachedSub) {
+          const updatedSub = {
+            ...cachedSub,
+            submission_method: submissionMethod as unknown as SubmissionResponse["submission_method"],
+            updated_at: new Date().toISOString(),
+          };
+          await cacheSet("submissions", `submission-${id}`, userId, updatedSub);
+        }
+      } catch (e) {
+        console.warn("Failed to update submission method in detail cache offline", e);
+      }
+
+      // 2. Update submission list cache in IndexedDB with chosen method
+      try {
+        const cachedList = await cacheGet<SubmissionResponse[]>(
+          "submissions",
+          "cooperative-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          const updatedList = cachedList.map((s) =>
+            s.id === id
+              ? {
+                  ...s,
+                  submission_method: submissionMethod as unknown as SubmissionResponse["submission_method"],
+                  updated_at: new Date().toISOString(),
+                }
+              : s,
+          );
+          await cacheSet("submissions", "cooperative-list", userId, updatedList);
+        }
+      } catch (e) {
+        console.warn("Failed to update submission method in list cache offline", e);
+      }
+
       return runMutation<SubmissionResponse>(
         "/api/v1/cooperative/submissions/{id}/method",
         "PATCH",
@@ -208,6 +369,41 @@ export const useDeleteSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      const userId = getUserProfile()?.id ?? "anon";
+
+      // Update cached lists offline
+      const listsToUpdate = [
+        "cooperative-list",
+        "ministry-list-default",
+        "ministry-list-all",
+        "federation-list-default",
+        "federation-list-all",
+        "apex-list",
+      ];
+      for (const listKey of listsToUpdate) {
+        try {
+          const cachedList = await cacheGet<SubmissionResponse[]>(
+            "submissions",
+            listKey,
+            userId,
+            true,
+          );
+          if (cachedList) {
+            const updated = cachedList.filter((s) => s.id !== id);
+            await cacheSet("submissions", listKey, userId, updated);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Delete cached details offline
+      try {
+        await cacheDelete("submissions", `submission-${id}`);
+      } catch {
+        // ignore
+      }
+
       return runMutation<void>("/api/v1/cooperative/submissions/{id}", "DELETE", {
         pathParams: { id },
         optimisticData: undefined,

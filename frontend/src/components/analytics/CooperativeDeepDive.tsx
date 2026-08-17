@@ -174,7 +174,7 @@ export const CooperativeDeepDive: React.FC<CooperativeDeepDiveProps> = ({
         )}
       </div>
 
-      {deepDiveNf && deepDiveNf.farm_coop.total_coops > 0 && (
+      {deepDiveNf?.farm_coop && deepDiveNf.farm_coop.total_coops > 0 && (
         <Card
           title={t("analytics.deepDiveAgriculturalResilience")}
           subtitle={t("analytics.deepDiveAgriSubtitle")}

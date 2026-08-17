@@ -34,16 +34,16 @@ export function useOfflineQuery<T>({
   // Default fallback: arrays for list/log/kpi keys, objects otherwise
   const getDefaultFallback = (): T => {
     if (fallbackData !== undefined) return fallbackData;
-    return (
-      cacheKey.includes("list") ||
-      cacheKey.includes("logs") ||
-      cacheKey.includes("kpi") ||
-      cacheKey.includes("apexes") ||
-      cacheKey.includes("federation") ||
-      cacheKey.includes("cooperative")
-        ? []
-        : {}
-    ) as unknown as T;
+    return (cacheKey.includes("list") ||
+    cacheKey.includes("logs") ||
+    cacheKey.includes("kpi") ||
+    cacheKey.includes("apexes") ||
+    cacheKey.includes("federation") ||
+    cacheKey.includes("cooperative") ||
+    cacheKey.includes("reviews") ||
+    cacheKey.includes("sections")
+      ? []
+      : {}) as unknown as T;
   };
 
   return useQuery<T>({
@@ -75,7 +75,10 @@ export function useOfflineQuery<T>({
         }
         return data;
       } catch (err) {
-        console.warn(`[useOfflineQuery] Fetch failed for ${cacheKey}, falling back to IndexedDB:`, err);
+        console.warn(
+          `[useOfflineQuery] Fetch failed for ${cacheKey}, falling back to IndexedDB:`,
+          err,
+        );
         // 3. On fetch failure (offline / network error), serve cached data ignoring TTL
         const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
         if (cached !== null) return cached;
@@ -85,4 +88,3 @@ export function useOfflineQuery<T>({
     },
   });
 }
-

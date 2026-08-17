@@ -135,18 +135,39 @@ export const UploadFinancialStatementWidget: React.FC<{
       {/* File dropzone */}
       {!jobId && (
         <>
+          {!navigator.onLine && (
+            <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-amber-500 mb-4">
+              <AlertCircle className="size-4 shrink-0" />
+              <p className="text-sm font-medium">
+                {t(
+                  "uploadFinancial.offlineNotice",
+                  "File upload and extraction require an active internet connection. Please connect to the internet to upload documents.",
+                )}
+              </p>
+            </div>
+          )}
+
           <div
             onDragOver={(e) => {
+              if (!navigator.onLine) return;
               e.preventDefault();
               setDragOver(true);
             }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
-            className={`relative cursor-pointer rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
-              dragOver
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50 hover:bg-muted/30"
+            onDrop={(e) => {
+              if (!navigator.onLine) return;
+              handleDrop(e);
+            }}
+            onClick={() => {
+              if (!navigator.onLine) return;
+              inputRef.current?.click();
+            }}
+            className={`relative rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
+              !navigator.onLine
+                ? "border-border/50 bg-muted/10 cursor-not-allowed opacity-50"
+                : dragOver
+                  ? "border-primary bg-primary/5 cursor-pointer"
+                  : "border-border hover:border-primary/50 hover:bg-muted/30 cursor-pointer"
             }`}
           >
             <input
@@ -154,6 +175,7 @@ export const UploadFinancialStatementWidget: React.FC<{
               type="file"
               accept={ACCEPTED_EXT}
               className="sr-only"
+              disabled={!navigator.onLine}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) handleFile(f);
@@ -178,12 +200,13 @@ export const UploadFinancialStatementWidget: React.FC<{
                     </p>
                   </div>
                   <button
+                    disabled={!navigator.onLine}
                     onClick={(e) => {
                       e.stopPropagation();
                       setFile(null);
                       setPreviewUrl(null);
                     }}
-                    className="ml-2 rounded-full p-1.5 hover:bg-muted transition-colors"
+                    className="ml-2 rounded-full p-1.5 hover:bg-muted transition-colors disabled:opacity-50"
                   >
                     <X className="size-4 text-muted-foreground" />
                   </button>
@@ -201,10 +224,18 @@ export const UploadFinancialStatementWidget: React.FC<{
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-4">
             <button
               onClick={handleSubmit}
-              disabled={!file || upload.isPending}
+              disabled={!file || upload.isPending || !navigator.onLine}
+              title={
+                !navigator.onLine
+                  ? t(
+                      "uploadFinancial.uploadDisabledOffline",
+                      "File upload is disabled when offline",
+                    )
+                  : undefined
+              }
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
               {upload.isPending ? (

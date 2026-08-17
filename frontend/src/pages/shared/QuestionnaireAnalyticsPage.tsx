@@ -388,30 +388,30 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                   {[
                     {
                       label: t("questionnaireAnalytics.age18to25"),
-                      value: stats.members_by_age.age_18_25,
+                      value: stats.members_by_age?.age_18_25 ?? 0,
                       color: "bg-emerald-500",
                     },
                     {
                       label: t("questionnaireAnalytics.age26to35"),
-                      value: stats.members_by_age.age_26_35,
+                      value: stats.members_by_age?.age_26_35 ?? 0,
                       color: "bg-blue-500",
                     },
                     {
                       label: t("questionnaireAnalytics.age36to60"),
-                      value: stats.members_by_age.age_36_60,
+                      value: stats.members_by_age?.age_36_60 ?? 0,
                       color: "bg-indigo-500",
                     },
                     {
                       label: t("questionnaireAnalytics.age61plus"),
-                      value: stats.members_by_age.age_61plus,
+                      value: stats.members_by_age?.age_61plus ?? 0,
                       color: "bg-amber-500",
                     },
                   ].map((group) => {
                     const totalAgeMembers =
-                      stats.members_by_age.age_18_25 +
-                      stats.members_by_age.age_26_35 +
-                      stats.members_by_age.age_36_60 +
-                      stats.members_by_age.age_61plus;
+                      (stats.members_by_age?.age_18_25 ?? 0) +
+                      (stats.members_by_age?.age_26_35 ?? 0) +
+                      (stats.members_by_age?.age_36_60 ?? 0) +
+                      (stats.members_by_age?.age_61plus ?? 0);
                     const pct =
                       totalAgeMembers > 0 ? Math.round((group.value / totalAgeMembers) * 100) : 0;
                     return (
@@ -620,7 +620,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {stats.details.map((row) => (
+                    {(stats.details ?? []).map((row) => (
                       <tr key={row.id} className="hover:bg-muted/10 transition-colors">
                         <td className="px-5 py-3.5 font-semibold text-foreground">
                           {row.cooperative_name}

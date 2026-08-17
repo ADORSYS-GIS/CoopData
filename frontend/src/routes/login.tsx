@@ -27,12 +27,7 @@ function AuthLoginHandler() {
 
     if (isAuthenticated && user) {
       const target = ROLE_DEFAULT_ROUTE[user.role] ?? "/app/dashboard";
-      console.log(
-        "[auth-login] Already authenticated as",
-        user.role,
-        "→ redirecting to",
-        target,
-      );
+      console.log("[auth-login] Already authenticated as", user.role, "→ redirecting to", target);
       window.location.href = target;
       return;
     }
@@ -71,15 +66,20 @@ function AuthLoginHandler() {
         </div>
         <h1 className="text-2xl font-bold tracking-tight">You are currently offline</h1>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          Keycloak identity server cannot be reached while disconnected from the network.
-          You can continue using stored IndexedDB data in Offline Mode.
+          Keycloak identity server cannot be reached while disconnected from the network. You can
+          continue using stored IndexedDB data in Offline Mode.
         </p>
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
           <Button onClick={handleOfflineContinue} size="lg" className="gap-2">
             <ShieldAlert className="size-4" />
             Enter Offline Mode
           </Button>
-          <Button onClick={() => window.location.reload()} variant="outline" size="lg" className="gap-2">
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            size="lg"
+            className="gap-2"
+          >
             <RefreshCw className="size-4" />
             Retry Connection
           </Button>

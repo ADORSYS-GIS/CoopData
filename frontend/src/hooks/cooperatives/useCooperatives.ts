@@ -12,8 +12,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
-import { getAccessToken } from "@/services/shared/authService";
+import { getAccessToken, getUserProfile } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
 
 const COOPERATIVES_KEY = "cooperatives";
 const COOPERATIVE_SELF_KEY = "cooperative-self";
@@ -89,12 +90,49 @@ export const useCreateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: CreateCooperativeInput) => {
+      const localId = crypto.randomUUID();
+      const optimistic = {
+        id: localId,
+        ...body,
+      } as unknown as CooperativeResponse;
+
+      const userId = getUserProfile()?.id ?? "anon";
+      try {
+        const cachedList = await cacheGet<CooperativeResponse[]>(
+          "cooperatives",
+          "cooperatives-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          if (!cachedList.some((c) => c.id === localId)) {
+            const updated = [optimistic, ...cachedList];
+            await cacheSet("cooperatives", "cooperatives-list", userId, updated);
+          }
+        } else {
+          await cacheSet("cooperatives", "cooperatives-list", userId, [optimistic]);
+        }
+      } catch (e) {
+        console.warn("Failed to update cached cooperatives list on create", e);
+      }
+
+      try {
+        await cacheSet("cooperatives", `cooperative-${localId}`, userId, optimistic);
+      } catch (e) {
+        // ignore
+      }
+
+      const payload = {
+        ...body,
+        id: localId,
+      };
+
       return runMutation<CooperativeResponse>("/api/v1/apex/cooperatives", "POST", {
-        body,
-        optimisticData: body as unknown as CooperativeResponse,
+        body: payload,
+        optimisticData: optimistic,
         online: async () => {
           const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives", {
-            body: body as never,
+            body: payload as never,
           });
           if (error) throw new Error(extractErrorMessage(error));
           return data as unknown as CooperativeResponse;
@@ -112,6 +150,39 @@ export const useUpdateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...body }: { id: string; name?: string; description?: string }) => {
+      const userId = getUserProfile()?.id ?? "anon";
+      try {
+        const cachedList = await cacheGet<CooperativeResponse[]>(
+          "cooperatives",
+          "cooperatives-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          const updated = cachedList.map((c) =>
+            c.id === id ? { ...c, ...body } : c,
+          ) as CooperativeResponse[];
+          await cacheSet("cooperatives", "cooperatives-list", userId, updated);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        const cachedDetail = await cacheGet<CooperativeResponse>(
+          "cooperatives",
+          `cooperative-${id}`,
+          userId,
+          true,
+        );
+        if (cachedDetail) {
+          const updated = { ...cachedDetail, ...body } as CooperativeResponse;
+          await cacheSet("cooperatives", `cooperative-${id}`, userId, updated);
+        }
+      } catch (e) {
+        // ignore
+      }
+
       return runMutation<CooperativeResponse>("/api/v1/apex/cooperatives/{id}", "PATCH", {
         pathParams: { id },
         body,
@@ -138,6 +209,28 @@ export const useDeleteCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
+      const userId = getUserProfile()?.id ?? "anon";
+      try {
+        const cachedList = await cacheGet<CooperativeResponse[]>(
+          "cooperatives",
+          "cooperatives-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          const updated = cachedList.filter((c) => c.id !== id);
+          await cacheSet("cooperatives", "cooperatives-list", userId, updated);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        await cacheDelete("cooperatives", `cooperative-${id}`);
+      } catch (e) {
+        // ignore
+      }
+
       return runMutation<void>("/api/v1/apex/cooperatives/{id}", "DELETE", {
         pathParams: { id },
         online: async () => {

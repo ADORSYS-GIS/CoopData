@@ -78,6 +78,15 @@ async function doInitKeycloak(): Promise<boolean> {
   const cachedTokens = await loadCachedTokens();
   console.log("[auth] Cached tokens:", cachedTokens ? "found" : "none");
 
+  if (!navigator.onLine) {
+    if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
+      console.log("[auth] Offline detected and valid token exists — bypassing Keycloak init");
+      offlineModeActive = true;
+      resolveKeycloakReady();
+      return true;
+    }
+  }
+
   try {
     const authenticated = await keycloak.init({
       onLoad: "check-sso",
@@ -123,7 +132,9 @@ async function doInitKeycloak(): Promise<boolean> {
       // Keycloak check-sso returned false (e.g. silent iframe check failed or session ended)
       // If we have a valid offline token, activate offline recovery so user stays logged in
       if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
-        console.log("[auth] Keycloak check-sso returned false, but valid offline token exists — activating offline mode");
+        console.log(
+          "[auth] Keycloak check-sso returned false, but valid offline token exists — activating offline mode",
+        );
         offlineModeActive = true;
         return true;
       }
@@ -191,9 +202,26 @@ export async function getAccessToken(): Promise<string> {
     throw new Error("Logging out");
   }
 
-  // Offline mode: return cached token directly — the SW or IDB persister
-  // handles data locally so the backend never receives this expired token.
-  if (offlineModeActive) {
+  // When online, try using/refreshing the Keycloak token first so API requests get a valid bearer token
+  if (navigator.onLine) {
+    if (keycloak.authenticated) {
+      try {
+        const refreshed = await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
+        if (refreshed) {
+          await persistTokens();
+        }
+        if (keycloak.token) {
+          offlineModeActive = false;
+          return keycloak.token;
+        }
+      } catch (err) {
+        console.warn("[auth] Keycloak updateToken failed while online:", err);
+      }
+    }
+  }
+
+  // Offline mode or offline fallback: return cached token directly
+  if (offlineModeActive || !navigator.onLine) {
     const cached = await loadCachedTokens();
     if (cached?.token) {
       console.warn("[auth] Offline mode — returning cached access token");
@@ -336,7 +364,10 @@ export function getUserProfile(): UserProfile | null {
   if (!keycloak.authenticated || !keycloak.tokenParsed) {
     const profile = getCachedProfile();
     if (profile) {
-      console.log("[auth] getUserProfile: Keycloak instance unauthenticated, using cached profile:", profile.role);
+      console.log(
+        "[auth] getUserProfile: Keycloak instance unauthenticated, using cached profile:",
+        profile.role,
+      );
       return profile;
     }
     console.log("[auth] getUserProfile: not authenticated or no token");
@@ -409,7 +440,12 @@ export function hasAnyRole(roles: Role[]): boolean {
 }
 
 export function isAuthenticated(): boolean {
-  return (keycloak.authenticated ?? false) || offlineModeActive || !!loadCachedProfileSync() || !!lastCachedTokens?.token;
+  return (
+    (keycloak.authenticated ?? false) ||
+    offlineModeActive ||
+    !!loadCachedProfileSync() ||
+    !!lastCachedTokens?.token
+  );
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {

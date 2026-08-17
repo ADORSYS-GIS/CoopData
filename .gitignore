@@ -47,6 +47,7 @@ backend/.env.development
 doc
 docs/progress.md
 docs/design.md
+docs/design-*.md
 
 #personal
 sources/
@@ -57,6 +58,7 @@ frontend/src/openapi-client/api.d.ts
 # Temporary directories
 worktrees/
 frontend/tmp/
+.playwright-mcp/
 
 # Python
 __pycache__/

@@ -95,9 +95,7 @@ function createColumns(
             <span className={`font-medium ${!email ? "text-muted-foreground italic text-xs" : ""}`}>
               {email || "Email not available"}
             </span>
-            {name && (
-              <p className="text-xs text-muted-foreground">{name}</p>
-            )}
+            {name && <p className="text-xs text-muted-foreground">{name}</p>}
           </div>
         );
       },

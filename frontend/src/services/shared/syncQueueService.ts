@@ -1,5 +1,5 @@
 import { offlineDb, type SyncQueueItem } from "./offlineDb";
-import { getAccessToken } from "./authService";
+import { getAccessToken, isOfflineModeActive } from "./authService";
 
 export async function enqueue(
   item: Omit<SyncQueueItem, "id" | "correlationId" | "createdAt" | "retryCount" | "status">,
@@ -57,10 +57,6 @@ export async function retryFailed(): Promise<void> {
   }
 }
 
-/**
- * Runs a mutation online, or queues it for later sync when offline.
- * Returns the API result when online, or the optimistic payload when offline.
- */
 export async function runMutation<T>(
   endpoint: string,
   method: "POST" | "PUT" | "PATCH" | "DELETE",
@@ -71,25 +67,45 @@ export async function runMutation<T>(
     online: () => Promise<T>;
   },
 ): Promise<T> {
-  if (!navigator.onLine) {
-    await enqueue({
-      endpoint,
-      method,
-      pathParams: opts.pathParams,
-      body: opts.body,
-      optimisticData: opts.optimisticData,
-      userId: "current",
-    });
-    return opts.optimisticData as T;
+  const correlationId = await enqueue({
+    endpoint,
+    method,
+    pathParams: opts.pathParams,
+    body: opts.body,
+    optimisticData: opts.optimisticData,
+    userId: "current",
+  });
+
+  if (navigator.onLine) {
+    try {
+      const item = await offlineDb.syncQueue.where("correlationId").equals(correlationId).first();
+      if (item) {
+        await offlineDb.syncQueue.update(item.id!, { status: "syncing" });
+        const data = await opts.online();
+        await offlineDb.syncQueue.update(item.id!, { status: "done" });
+        return data;
+      }
+    } catch (err) {
+      console.warn("[runMutation] Online request failed, keeping in syncQueue:", err);
+      const item = await offlineDb.syncQueue.where("correlationId").equals(correlationId).first();
+      if (item) {
+        await offlineDb.syncQueue.update(item.id!, { status: "pending", lastError: String(err) });
+      }
+    }
   }
-  return opts.online();
+
+  return opts.optimisticData as T;
 }
 
-export async function flushSyncQueue(): Promise<void> {
-  if (!navigator.onLine) return;
+let isFlushing = false;
 
-  const pending = await offlineDb.syncQueue.where("status").equals("pending").toArray();
-  if (pending.length === 0) return;
+export async function flushSyncQueue(): Promise<void> {
+  if (!navigator.onLine || isOfflineModeActive() || isFlushing) return;
+  isFlushing = true;
+
+  try {
+    const pending = await offlineDb.syncQueue.where("status").equals("pending").toArray();
+    if (pending.length === 0) return;
 
   console.log(`[syncQueue] Processing ${pending.length} pending offline items...`);
 
@@ -122,12 +138,23 @@ export async function flushSyncQueue(): Promise<void> {
         await offlineDb.syncQueue.update(item.id!, { status: "done" });
       } else {
         const errorText = await res.text().catch(() => `HTTP ${res.status}`);
-        const retryCount = (item.retryCount ?? 0) + 1;
-        await offlineDb.syncQueue.update(item.id!, {
-          status: retryCount >= 5 ? "failed" : "pending",
-          retryCount,
-          lastError: errorText,
-        });
+        const isIdempotentDone =
+          res.status === 409 ||
+          (res.status === 400 &&
+            (errorText.toLowerCase().includes("already exists") ||
+              errorText.toLowerCase().includes("duplicate")));
+
+        if (isIdempotentDone) {
+          console.log(`[syncQueue] Item ${item.id} already processed on server (${res.status}), marking done.`);
+          await offlineDb.syncQueue.update(item.id!, { status: "done" });
+        } else {
+          const retryCount = (item.retryCount ?? 0) + 1;
+          await offlineDb.syncQueue.update(item.id!, {
+            status: retryCount >= 5 ? "failed" : "pending",
+            retryCount,
+            lastError: errorText,
+          });
+        }
       }
     } catch (err) {
       const retryCount = (item.retryCount ?? 0) + 1;
@@ -137,5 +164,11 @@ export async function flushSyncQueue(): Promise<void> {
         lastError: String(err),
       });
     }
+  }
+
+    // Dispatch custom event to notify React components to invalidate queries
+    window.dispatchEvent(new CustomEvent("coopdata-sync-complete"));
+  } finally {
+    isFlushing = false;
   }
 }

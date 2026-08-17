@@ -8,19 +8,20 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useQuestionnaireTemplates } from "@/hooks/admin/useQuestionnaireTemplates";
+import { useQuestionnaireTemplates, type QuestionnaireTemplate } from "@/hooks/admin/useQuestionnaireTemplates";
 import { QuestionnaireTemplateEditor } from "./QuestionnaireTemplateEditor";
 
 export const QuestionnaireTemplatesPage: React.FC = () => {
   const { t } = useTranslation();
   const { data: templates, isLoading, error } = useQuestionnaireTemplates();
-  const [editorTemplateId, setEditorTemplateId] = useState<string | null>(null);
+  const [editorTemplate, setEditorTemplate] = useState<QuestionnaireTemplate | null>(null);
 
-  if (editorTemplateId) {
+  if (editorTemplate) {
     return (
       <QuestionnaireTemplateEditor
-        templateId={editorTemplateId}
-        onBack={() => setEditorTemplateId(null)}
+        templateId={editorTemplate.id}
+        initialTemplate={editorTemplate}
+        onBack={() => setEditorTemplate(null)}
       />
     );
   }
@@ -96,7 +97,7 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => setEditorTemplateId(tItem.id)}
+                        onClick={() => setEditorTemplate(tItem)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/40 text-foreground transition-colors font-semibold"
                         title={t("questionnaireTemplates.editFieldsTooltip")}
                       >
