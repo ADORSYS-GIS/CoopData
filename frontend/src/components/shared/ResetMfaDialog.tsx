@@ -1,4 +1,4 @@
-import { Loader2, RefreshCcw, Eye, EyeOff, Smartphone } from "lucide-react";
+import { Loader2, RefreshCcw, Eye, EyeOff, Smartphone, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -126,45 +126,70 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
           </div>
 
           {isLostDevice ? (
-            <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 text-center text-sm text-warning-foreground">
-              <p className="mb-2 font-semibold">
-                {t("profile.lostDeviceMode", "Lost Device Mode")}
-              </p>
-              <p className="text-xs opacity-90">
-                {t(
-                  "profile.lostDeviceDesc",
-                  "You will bypass the authenticator code check. Only proceed if you are using a recovery session.",
-                )}
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsLostDevice(false)}
-                className="mt-3 text-xs font-semibold text-warning hover:underline"
-              >
-                {t("profile.iFoundMyPhone", "I have my authenticator app")}
-              </button>
+            <div className="mt-2 rounded-xl border border-destructive/20 bg-destructive/5 p-4 relative overflow-hidden group transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="size-4 text-destructive" />
+                  <h4 className="text-sm font-semibold text-destructive">
+                    {t("profile.lostDeviceMode", "Lost Device Mode Active")}
+                  </h4>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                  {t(
+                    "profile.lostDeviceDescFull",
+                    "You are bypassing the authenticator code check. This relies on your active recovery session. If you have found your device and can generate codes, please return to the standard reset method.",
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsLostDevice(false)}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-destructive/20 bg-background px-4 py-2 text-xs font-semibold text-foreground shadow-sm transition-all hover:bg-destructive hover:text-destructive-foreground hover:border-transparent focus:ring-2 focus:ring-destructive/20"
+                >
+                  <Smartphone className="size-3.5" />
+                  {t("profile.iFoundMyPhoneBtn", "Use Authenticator App")}
+                </button>
+              </div>
             </div>
           ) : (
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-foreground">
+              <div className="mb-4">
+                <label className="block text-xs font-semibold mb-1.5 text-foreground">
                   {t("profile.authenticatorCode", "Authenticator Code")}
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsLostDevice(true)}
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  {t("profile.lostYourPhone", "Lost your phone?")}
-                </button>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
+                />
               </div>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-                placeholder="123456"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-              />
+
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 relative overflow-hidden group transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">
+                      {t("profile.lostDevicePromptTitle", "Lost access to your device?")}
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t(
+                        "profile.lostDevicePromptDesc",
+                        "If you no longer have access to your authenticator app but are logged in using a recovery code, you can reset it here.",
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsLostDevice(true)}
+                    className="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary/20"
+                  >
+                    <AlertTriangle className="size-3.5" />
+                    {t("profile.lostYourPhoneBtn", "I lost my phone")}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
