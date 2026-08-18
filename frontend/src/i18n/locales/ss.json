@@ -4550,6 +4550,13 @@
     "toggle": "Húmusha",
     "otherLanguages": "Tihumusho (PT / SS / FR)"
   },
+  "offline": {
+    "banner": "Awukho ku-inthanethi — kuboniswa idatha ye-cache",
+    "backOnline": "Ubuyile ku-inthanethi — uyavumelanisa",
+    "online": "Online",
+    "noSessionTitle": "Akukho lusito lwe-inthanethi",
+    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi ukuze ungene ngemvume okokuqala."
+  },
   "basicBenchmarking": {
     "pageTitle": "Kuhlukaniswa Kwekusebenta Lokucala",
     "pageSubtitle": "Compare kusebenta lokusekelwe emibutweni nemaphakathi esive, esifundza kanye nemkhakha",

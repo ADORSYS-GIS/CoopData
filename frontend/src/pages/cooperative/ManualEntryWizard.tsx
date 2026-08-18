@@ -27,6 +27,7 @@ import {
 } from "@/hooks/submissions/useManualEntry";
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import { apiClient } from "@/openapi-client";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -117,8 +118,10 @@ export function ManualEntryWizard() {
   const deleteNonFinancialData = useDeleteManualNonFinancialData(submissionId);
 
   // ── Existing Data Query Loaders ──
-  const { data: existingLineItems, isLoading: existingLineItemsLoading } = useQuery({
+  const { data: existingLineItems, isLoading: existingLineItemsLoading } = useOfflineQuery({
     queryKey: ["submission-line-items", submission?.financial_statement_id],
+    cacheTable: "submissions",
+    cacheKey: `manual-line-items-${submission?.financial_statement_id}`,
     queryFn: async () => {
       if (!submission?.financial_statement_id) return null;
       const { data, error } = await apiClient.GET(
@@ -136,8 +139,10 @@ export function ManualEntryWizard() {
     enabled: !!submission?.financial_statement_id && isFinancialWizard,
   });
 
-  const { data: existingMembers, isLoading: existingMembersLoading } = useQuery({
+  const { data: existingMembers, isLoading: existingMembersLoading } = useOfflineQuery({
     queryKey: ["manual-entry-members", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-members-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/members", {
         params: {
@@ -156,8 +161,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingSavings, isLoading: existingSavingsLoading } = useQuery({
+  const { data: existingSavings, isLoading: existingSavingsLoading } = useOfflineQuery({
     queryKey: ["manual-entry-savings", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-savings-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/savings", {
         params: {
@@ -176,8 +183,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingLoans, isLoading: existingLoansLoading } = useQuery({
+  const { data: existingLoans, isLoading: existingLoansLoading } = useOfflineQuery({
     queryKey: ["manual-entry-loans", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-loans-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/loans", {
         params: {
@@ -196,8 +205,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingDeposits, isLoading: existingDepositsLoading } = useQuery({
+  const { data: existingDeposits, isLoading: existingDepositsLoading } = useOfflineQuery({
     queryKey: ["manual-entry-deposits", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-deposits-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/non-financial/fixed-deposits",
@@ -219,8 +230,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingFarm, isLoading: existingFarmLoading } = useQuery({
+  const { data: existingFarm, isLoading: existingFarmLoading } = useOfflineQuery({
     queryKey: ["manual-entry-farm", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-farm-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/farm-coop", {
         params: {

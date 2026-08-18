@@ -4,8 +4,10 @@
  * Ministry, federation, and apex roles can access user endpoints.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 
 const USERS_KEY = "users";
 
@@ -20,8 +22,10 @@ function extractErrorMessage(err: unknown): string {
 
 /** List all users (paginated) */
 export const useUsers = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [USERS_KEY],
+    cacheTable: "users",
+    cacheKey: "users-list",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/users");
       if (error) throw new Error(extractErrorMessage(error));
@@ -31,8 +35,10 @@ export const useUsers = () =>
 
 /** Get a single user by ID */
 export const useUser = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [USERS_KEY, id],
+    cacheTable: "users",
+    cacheKey: `user-${id}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/users/{id}", {
         params: { path: { id } },
@@ -55,11 +61,17 @@ export const useCreateUser = () => {
       group_id?: string;
       region?: string;
     }) => {
-      const { data, error } = await apiClient.POST("/api/v1/users", {
-        body: body as never,
+      return runMutation<unknown>("/api/v1/users", "POST", {
+        body,
+        optimisticData: body,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/users", {
+            body: body as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USERS_KEY] });
@@ -82,12 +94,19 @@ export const useUpdateUser = () => {
       region?: string;
       is_active?: boolean;
     }) => {
-      const { data, error } = await apiClient.PATCH("/api/v1/users/{id}", {
-        params: { path: { id } },
-        body: body as never,
+      return runMutation<unknown>("/api/v1/users/{id}", "PATCH", {
+        pathParams: { id },
+        body,
+        optimisticData: body,
+        online: async () => {
+          const { data, error } = await apiClient.PATCH("/api/v1/users/{id}", {
+            params: { path: { id } },
+            body: body as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [USERS_KEY] });
@@ -101,10 +120,15 @@ export const useDeleteUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await apiClient.DELETE("/api/v1/users/{id}", {
-        params: { path: { id } },
+      return runMutation<void>("/api/v1/users/{id}", "DELETE", {
+        pathParams: { id },
+        online: async () => {
+          const { error } = await apiClient.DELETE("/api/v1/users/{id}", {
+            params: { path: { id } },
+          });
+          if (error) throw error;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USERS_KEY] });
@@ -117,12 +141,19 @@ export const useAssignRole = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, role }: { id: string; role: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/users/{id}/assign-role", {
-        params: { path: { id } },
-        body: { role } as never,
+      return runMutation<unknown>("/api/v1/users/{id}/assign-role", "POST", {
+        pathParams: { id },
+        body: { role },
+        optimisticData: { role },
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/users/{id}/assign-role", {
+            params: { path: { id } },
+            body: { role } as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [USERS_KEY] });

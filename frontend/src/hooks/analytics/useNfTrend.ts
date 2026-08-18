@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 
 import { apiClient } from "@/openapi-client";
 
@@ -37,8 +37,10 @@ const extractErrorMessage = (error: unknown): string => {
 };
 
 export const useNfTrend = (params: NfTrendParams = {}, enabled = true) =>
-  useQuery<NfTrendResponse>({
+  useOfflineQuery<NfTrendResponse>({
     queryKey: ["nf-trend", params],
+    cacheTable: "analytics",
+    cacheKey: `nf-trend-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

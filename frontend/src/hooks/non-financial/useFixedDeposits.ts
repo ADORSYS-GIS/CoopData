@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type {
   FixedDepositResponse,
   CreateFixedDepositRequest,
@@ -80,14 +82,18 @@ async function deleteFixedDeposit(id: string): Promise<void> {
 }
 
 export const useFixedDeposits = (params?: NfListParams) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_FD_KEY, params],
+    cacheTable: "submissions",
+    cacheKey: `fixed-deposits-list-${JSON.stringify(params ?? {})}`,
     queryFn: () => fetchFixedDeposits(params),
   });
 
 export const useFixedDeposit = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_FD_KEY, id],
+    cacheTable: "submissions",
+    cacheKey: `fixed-deposit-${id}`,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/fixed-deposits/${id}`, {
@@ -103,7 +109,17 @@ export const useFixedDeposit = (id: string) =>
 export const useCreateFixedDeposit = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createFixedDeposit,
+    mutationFn: async (body: CreateFixedDepositRequest) => {
+      return runMutation<FixedDepositResponse>(
+        "/api/v1/cooperative/non-financial/fixed-deposits",
+        "POST",
+        {
+          body,
+          optimisticData: body as unknown as FixedDepositResponse,
+          online: () => createFixedDeposit(body),
+        },
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_FD_KEY] });
     },
@@ -113,7 +129,18 @@ export const useCreateFixedDeposit = () => {
 export const useUpdateFixedDeposit = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateFixedDeposit,
+    mutationFn: async (vars: { id: string; body: UpdateFixedDepositRequest }) => {
+      return runMutation<FixedDepositResponse>(
+        "/api/v1/cooperative/non-financial/fixed-deposits/{id}",
+        "PUT",
+        {
+          pathParams: { id: vars.id },
+          body: vars.body,
+          optimisticData: vars.body as unknown as FixedDepositResponse,
+          online: () => updateFixedDeposit(vars),
+        },
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_FD_KEY] });
     },
@@ -123,7 +150,12 @@ export const useUpdateFixedDeposit = () => {
 export const useDeleteFixedDeposit = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteFixedDeposit,
+    mutationFn: async (id: string) => {
+      return runMutation<void>("/api/v1/cooperative/non-financial/fixed-deposits/{id}", "DELETE", {
+        pathParams: { id },
+        online: () => deleteFixedDeposit(id),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_FD_KEY] });
     },

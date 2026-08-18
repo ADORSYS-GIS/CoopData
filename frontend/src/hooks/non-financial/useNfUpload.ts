@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type { NfUploadResponse } from "@/types/non-financial";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -39,7 +40,12 @@ async function uploadFile({ file, submissionId }: UploadParams): Promise<NfUploa
 export const useNfUpload = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: uploadFile,
+    mutationFn: async (vars: UploadParams) => {
+      return runMutation<NfUploadResponse>("/api/v1/cooperative/non-financial/upload", "POST", {
+        optimisticData: undefined,
+        online: () => uploadFile(vars),
+      });
+    },
     onSuccess: (_data, vars) => {
       // Invalidate all 5 non-financial data caches so tables refresh immediately
       for (const key of [

@@ -275,7 +275,16 @@ export const FinancialStatementPage: React.FC = () => {
               )}
               <button
                 onClick={() => setShowUpload(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                disabled={!navigator.onLine}
+                title={
+                  !navigator.onLine
+                    ? t(
+                        "uploadFinancial.uploadDisabledOffline",
+                        "File upload is disabled when offline",
+                      )
+                    : undefined
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload className="size-3.5" />
                 {dataPopulated

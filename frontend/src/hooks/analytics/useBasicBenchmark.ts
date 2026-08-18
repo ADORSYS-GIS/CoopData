@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 /** One questionnaire cooperative's row (basic-tier benchmarking). */
@@ -48,8 +48,10 @@ const extractErrorMessage = (error: unknown): string => {
  * admin callers receive the full rows for their scope.
  */
 export const useBasicBenchmark = (params: BasicBenchmarkParams = {}, enabled = true) =>
-  useQuery<BasicBenchmarkResponse>({
+  useOfflineQuery<BasicBenchmarkResponse>({
     queryKey: ["basic-benchmark", params],
+    cacheTable: "analytics",
+    cacheKey: `basic-benchmark-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/analytics/basic-benchmark", {

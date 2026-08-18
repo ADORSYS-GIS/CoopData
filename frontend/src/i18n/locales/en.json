@@ -4565,6 +4565,13 @@
     "toggle": "Translate",
     "otherLanguages": "Translations (PT / SS / FR)"
   },
+  "offline": {
+    "banner": "You're offline — showing cached data",
+    "backOnline": "Back online — syncing your changes",
+    "online": "Online",
+    "noSessionTitle": "No connection available",
+    "noSessionDesc": "Please connect to the internet to sign in for the first time."
+  },
   "basicBenchmarking": {
     "pageTitle": "Basic Benchmarking",
     "pageSubtitle": "Compare questionnaire-based performance against national, regional and sector averages",

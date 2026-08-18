@@ -4,8 +4,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { I18nextProvider } from "react-i18next";
+import { registerSW } from "virtual:pwa-register";
 import { getRouter } from "./router";
 import "./styles.css";
+
+// Register Service Worker for instant offline app shell caching in dev & prod
+registerSW({ immediate: true });
 
 const router = getRouter();
 

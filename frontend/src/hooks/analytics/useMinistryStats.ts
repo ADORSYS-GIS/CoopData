@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 
 export interface MinistryStatsResponse {
   total_cooperatives: number;
@@ -23,8 +23,10 @@ function extractErrorMessage(err: unknown): string {
  * Counts cooperatives and submission statuses across the entire platform.
  */
 export const useMinistryStats = (enabled = true) =>
-  useQuery<MinistryStatsResponse>({
+  useOfflineQuery<MinistryStatsResponse>({
     queryKey: ["ministry-stats"],
+    cacheTable: "analytics",
+    cacheKey: "ministry-stats",
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

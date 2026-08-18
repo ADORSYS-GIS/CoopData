@@ -14,8 +14,8 @@
   "ssoSessionIdleTimeoutRememberMe": 0,
   "ssoSessionMaxLifespanRememberMe": 0,
   "offlineSessionIdleTimeout": 2592000,
-  "offlineSessionMaxLifespanEnabled": false,
-  "offlineSessionMaxLifespan": 5184000,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 2592000,
   "clientSessionIdleTimeout": 0,
   "clientSessionMaxLifespan": 0,
   "clientOfflineSessionIdleTimeout": 0,
@@ -889,7 +889,8 @@
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
         "http://localhost:5173/*",
-        "http://localhost:5174/*"
+        "http://localhost:5174/*",
+        "http://localhost:4173/*"
       ],
       "webOrigins": [
         "+"
@@ -974,13 +975,13 @@
         "roles",
         "organization",
         "basic",
-        "email"
+        "email",
+        "offline_access"
       ],
       "optionalClientScopes": [
         "realm_roles",
         "address",
         "phone",
-        "offline_access",
         "microprofile-jwt"
       ]
     },

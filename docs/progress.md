@@ -460,6 +460,22 @@
 - [x] Left props-driven components unchanged (MetricsGridCards, KpiScorecard)
 - [x] Verification: JSON valid ✅, `tsc --noEmit` clean ✅, ESLint clean ✅, 184 unit tests pass ✅
 
+### Phase 21: Offline-First Data Layer ✅
+> **Goal**: Let users enter/refresh the app offline and still see their data seamlessly, plus a small online/offline indicator.
+
+- [x] **`src/services/shared/offlineCache.ts`** — generic cache read/write/delete helpers over Dexie (TTL-aware, per-user)
+- [x] **`src/hooks/shared/useOfflineQuery.ts`** — TanStack Query wrapper: caches on success, falls back to cache on network failure
+- [x] Wired offline layer into core hooks: `useSubmissions.ts` (cooperative/apex/federation/ministry lists, single submission, reviews, stats), `useCooperativeKpis.ts` (KPIs, line items, portfolio, membership), `useNationalOverview.ts`, `useMinistryStats.ts`
+- [x] Wired offline layer into ALL remaining data hooks (~37 files): submissions (narratives, sections, questionnaire, review flags, extraction job, financial statement, apex KPIs, NF indicators), analytics (comparative statements, federation stats, monthly trend, benchmarks, custom KPIs, submission activity, NF trend/statistics, consolidated narratives, region compliance, sector breakdown), admin (questionnaire templates), non-financial (savings, members, fixed deposits, farm coop, loans), audit (logs), cooperatives, apexes, federations, users, organizations
+- [x] `useOfflineQuery` now forwards ALL standard useQuery options (refetchInterval, select, gcTime, placeholderData/keepPreviousData) — restored extraction-job polling, chart-of-accounts gcTime, federation-members pagination, audit-log pagination
+- [x] **`syncQueueService.ts`** — added `runMutation()` (online → API, offline → enqueue + optimistic); fixed `flushSyncQueue` to substitute `{id}` pathParams into the endpoint URL
+- [x] Wired offline mutations: create/update-method/delete submission + **70 mutations across 21 hook files** (manual entry, non-financial, questionnaire, reviews, narratives, upload, financial statement, custom KPIs, questionnaire templates, savings/members/fixed-deposits/farm-coop/loans, cooperatives, apexes, federations, users, organizations) now queue when offline
+- [x] **PWA fix** — removed duplicate `index.html` from the precache manifest (was causing `add-to-cache-list-conflicting-entries` and breaking the SW); added API proxy to `vite preview` config
+- [x] **`scripts/test-offline.sh`** — one-command offline testing: starts backend, frees port 5173, builds production frontend, serves via preview
+- [x] **`OfflineStatusBanner.tsx`** — replaced full-width bar with a small bottom-right pill indicator (online/offline dot + pending-sync badge)
+- [x] i18n: added `offline.online` key to en/fr/pt/ss
+- [x] Verification: `tsc --noEmit` ✅, ESLint on changed files ✅ (18 pre-existing auth-test failures unrelated to this work)
+
 ---
 
 ## Token Management Strategy

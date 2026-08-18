@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 function AppLayout() {
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, isOffline, isOfflineAuthenticated, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -17,7 +17,28 @@ function AppLayout() {
     );
   }
 
-  if (!isAuthenticated) {
+  // Only redirect to login when:
+  //   1. Definitively NOT authenticated (no valid online session), AND
+  //   2. NOT in offline mode with a valid cached token
+  // This prevents the "blank page / logout on refresh while offline" bug.
+  if (!isAuthenticated && !isOfflineAuthenticated) {
+    if (isOffline) {
+      // Offline and no previous session — show a friendly message instead of
+      // a broken redirect to Keycloak which would also fail.
+      return (
+        <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+          <div className="max-w-md text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">CoopData</p>
+            <h1 className="mt-3 text-xl font-heading font-semibold tracking-tight text-foreground">
+              {t("offline.noSessionTitle")}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              {t("offline.noSessionDesc")}
+            </p>
+          </div>
+        </div>
+      );
+    }
     return <Navigate to="/login" />;
   }
 

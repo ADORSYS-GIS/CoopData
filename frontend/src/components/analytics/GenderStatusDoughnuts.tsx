@@ -8,6 +8,7 @@ interface GenderStatusDoughnutsProps {
 
 export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
   const { t } = useTranslation();
+  if (!data) return null;
   const genderData = [
     { name: t("analytics.genderWomen"), value: data.female, fill: "var(--chart-1)" },
     { name: t("analytics.genderMen"), value: data.male, fill: "var(--chart-2)" },

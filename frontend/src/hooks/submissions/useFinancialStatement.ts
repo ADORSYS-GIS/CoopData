@@ -1,5 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
+import { getUserProfile } from "@/services/shared/authService";
+import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
+import type { SubmissionResponse } from "./useSubmissions";
 import type { components } from "@/openapi-client/api";
 
 export type FinancialStatementResponse = components["schemas"]["FinancialStatementResponse"];
@@ -17,8 +22,10 @@ function extractErrorMessage(err: unknown): string {
 
 /** Fetch a financial statement by its own ID */
 export const useFinancialStatement = (id: string | null | undefined) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["financial-statement", id],
+    cacheTable: "submissions",
+    cacheKey: `financial-statement-${id}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/financial-statements/{id}", {
         params: { path: { id: id! } },
@@ -30,8 +37,10 @@ export const useFinancialStatement = (id: string | null | undefined) =>
   });
 
 export const useLineItems = (financialStatementId: string | null) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["line-items", financialStatementId],
+    cacheTable: "submissions",
+    cacheKey: `line-items-${financialStatementId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/financial-statements/{id}/line-items",
@@ -47,12 +56,23 @@ export const useUpdateLineItems = (financialStatementId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: LineItemBulkUpdateRequest) => {
-      const { data, error } = await apiClient.PATCH(
+      return runMutation<LineItemResponse[]>(
         "/api/v1/cooperative/financial-statements/{id}/line-items",
-        { params: { path: { id: financialStatementId } }, body },
+        "PATCH",
+        {
+          pathParams: { id: financialStatementId },
+          body,
+          optimisticData: body as unknown as LineItemResponse[],
+          online: async () => {
+            const { data, error } = await apiClient.PATCH(
+              "/api/v1/cooperative/financial-statements/{id}/line-items",
+              { params: { path: { id: financialStatementId } }, body },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return (data as LineItemResponse[]) ?? [];
+          },
+        },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return (data as LineItemResponse[]) ?? [];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -66,12 +86,22 @@ export const useValidateExtraction = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
-      const { data, error } = await apiClient.POST(
+      return runMutation<unknown>(
         "/api/v1/cooperative/submissions/{id}/validate-extraction",
-        { params: { path: { id: submissionId } } },
+        "POST",
+        {
+          pathParams: { id: submissionId },
+          optimisticData: undefined,
+          online: async () => {
+            const { data, error } = await apiClient.POST(
+              "/api/v1/cooperative/submissions/{id}/validate-extraction",
+              { params: { path: { id: submissionId } } },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data;
+          },
+        },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
@@ -85,14 +115,73 @@ export const useSubmitSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
-      const { data, error } = await apiClient.POST("/api/v1/cooperative/submissions/{id}/submit", {
-        params: { path: { id: submissionId } },
+      const userId = getUserProfile()?.id ?? "anon";
+
+      // 1. Update single submission detail cache in IndexedDB
+      try {
+        const cachedSub = await cacheGet<SubmissionResponse>(
+          "submissions",
+          `submission-${submissionId}`,
+          userId,
+          true,
+        );
+        if (cachedSub) {
+          const updatedSub = {
+            ...cachedSub,
+            status: "submitted" as unknown as SubmissionResponse["status"],
+            current_tier: "apex" as unknown as SubmissionResponse["current_tier"],
+            updated_at: new Date().toISOString(),
+          };
+          await cacheSet("submissions", `submission-${submissionId}`, userId, updatedSub);
+        }
+      } catch (e) {
+        console.warn("Failed to update cached submission detail on submit offline", e);
+      }
+
+      // 2. Update submission list cache in IndexedDB
+      try {
+        const cachedList = await cacheGet<SubmissionResponse[]>(
+          "submissions",
+          "cooperative-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          const updatedList = cachedList.map((s) =>
+            s.id === submissionId
+              ? {
+                  ...s,
+                  status: "submitted" as unknown as SubmissionResponse["status"],
+                  current_tier: "apex" as unknown as SubmissionResponse["current_tier"],
+                  updated_at: new Date().toISOString(),
+                }
+              : s,
+          );
+          await cacheSet("submissions", "cooperative-list", userId, updatedList);
+        }
+      } catch (e) {
+        console.warn("Failed to update cached submission list on submit offline", e);
+      }
+
+      return runMutation<unknown>("/api/v1/cooperative/submissions/{id}/submit", "POST", {
+        pathParams: { id: submissionId },
+        optimisticData: { id: submissionId, status: "submitted", current_tier: "apex" },
+        online: async () => {
+          const { data, error } = await apiClient.POST(
+            "/api/v1/cooperative/submissions/{id}/submit",
+            {
+              params: { path: { id: submissionId } },
+            },
+          );
+          if (error) throw new Error(extractErrorMessage(error));
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, submissionId) => {
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["submission", submissionId] });
+      queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId] });
     },
   });
 };
@@ -111,8 +200,10 @@ export interface ChartOfAccountResponse {
 }
 
 export const useChartOfAccounts = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: ["chart-of-accounts"],
+    cacheTable: "submissions",
+    cacheKey: "chart-of-accounts",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/chart-of-accounts" as never);
       if (error) throw new Error(extractErrorMessage(error));

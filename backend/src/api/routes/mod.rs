@@ -9,7 +9,7 @@
 //! - `users` - User management routes (accessible by ministry, federation, apex)
 
 pub mod apex;
-mod cooperative;
+pub mod cooperative;
 pub mod federation;
 pub mod ministry;
 pub mod shared;
