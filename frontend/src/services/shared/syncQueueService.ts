@@ -210,11 +210,26 @@ async function doFlushSyncQueue(): Promise<void> {
           await offlineDb.syncQueue.update(item.id!, { status: "done" });
         } else {
           const errorText = await res.text().catch(() => `HTTP ${res.status}`);
-          const isIdempotentDone =
-            res.status === 409 ||
-            (res.status === 400 &&
+          let isIdempotentDone = false;
+          try {
+            const errObj = JSON.parse(errorText);
+            if (
+              errObj.error === "conflict" &&
+              errObj.message &&
+              (errObj.message.toLowerCase().includes("already exists") ||
+                errObj.message.toLowerCase().includes("duplicate"))
+            ) {
+              isIdempotentDone = true;
+            }
+          } catch {
+            if (
+              (res.status === 409 || res.status === 400) &&
               (errorText.toLowerCase().includes("already exists") ||
-                errorText.toLowerCase().includes("duplicate")));
+                errorText.toLowerCase().includes("duplicate"))
+            ) {
+              isIdempotentDone = true;
+            }
+          }
 
           if (isIdempotentDone) {
             console.log(

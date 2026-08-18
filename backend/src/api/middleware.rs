@@ -99,7 +99,11 @@ pub async fn idempotency_middleware(
         None => return next.run(req).await,
     };
 
-    let cache_key = format!("idem:{}", correlation_id);
+    let claims = req.extensions().get::<std::sync::Arc<crate::auth::claims::Claims>>();
+    let cache_key = match claims {
+        Some(c) => format!("idem:{}:{}", c.sub, correlation_id),
+        None => format!("idem:{}", correlation_id),
+    };
 
     if let Ok(Some(_)) = state.cache.get::<String>(&cache_key).await {
         tracing::info!(correlation_id = %correlation_id, "Idempotency hit! Returning cached success.");
