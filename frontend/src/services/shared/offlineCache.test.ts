@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock authService
@@ -60,9 +61,7 @@ vi.mock("./offlineDb", () => {
       orderBy: vi.fn((field) => ({
         limit: vi.fn((num) => ({
           toArray: vi.fn(async () => {
-            return [...mockSubmissionsStore]
-              .sort((a, b) => a[field] - b[field])
-              .slice(0, num);
+            return [...mockSubmissionsStore].sort((a, b) => a[field] - b[field]).slice(0, num);
           }),
         })),
       })),
@@ -122,9 +121,7 @@ vi.mock("./offlineDb", () => {
       orderBy: vi.fn((field) => ({
         limit: vi.fn((num) => ({
           toArray: vi.fn(async () => {
-            return [...mockAnalyticsStore]
-              .sort((a, b) => a[field] - b[field])
-              .slice(0, num);
+            return [...mockAnalyticsStore].sort((a, b) => a[field] - b[field]).slice(0, num);
           }),
         })),
       })),

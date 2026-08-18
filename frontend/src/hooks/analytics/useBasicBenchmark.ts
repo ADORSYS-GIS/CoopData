@@ -67,4 +67,3 @@ export const useBasicBenchmark = (params: BasicBenchmarkParams = {}, enabled = t
     },
     staleTime: 60 * 1000,
   });
-

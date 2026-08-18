@@ -57,7 +57,8 @@ export async function retryFailed(): Promise<void> {
   }
 }
 
-const syncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("coopdata-sync-channel") : null;
+const syncChannel =
+  typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("coopdata-sync-channel") : null;
 let isSyncingInOtherTab = false;
 let otherTabSyncTimeout: NodeJS.Timeout | null = null;
 
@@ -238,10 +239,14 @@ export async function flushSyncQueue(): Promise<void> {
 
   if (typeof navigator !== "undefined" && "locks" in navigator) {
     try {
-      await navigator.locks.request("flush-sync-queue-lock", { ifAvailable: true }, async (lock) => {
-        if (!lock) return;
-        await doFlushSyncQueue();
-      });
+      await navigator.locks.request(
+        "flush-sync-queue-lock",
+        { ifAvailable: true },
+        async (lock) => {
+          if (!lock) return;
+          await doFlushSyncQueue();
+        },
+      );
     } catch (e) {
       console.warn("[syncQueue] Lock acquisition failed, falling back to local lock:", e);
       await doFlushSyncQueue();

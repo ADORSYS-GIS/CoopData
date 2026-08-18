@@ -42,7 +42,13 @@ export async function cacheGet<T>(
     }
 
     // 3. Fall back to prefix matching for list/overview keys (e.g. "audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-")
-    const prefixWhitelist = ["audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-", "basic-benchmark-"];
+    const prefixWhitelist = [
+      "audit-logs-",
+      "questionnaire-analytics-",
+      "national-overview-",
+      "custom-kpis-",
+      "basic-benchmark-",
+    ];
     if (!row) {
       const matchingPrefix = prefixWhitelist.find((prefix) => key.startsWith(prefix));
       if (matchingPrefix) {
@@ -72,15 +78,21 @@ async function evictOldestCacheEntries(): Promise<void> {
   const tablesToEvict: CacheTable[] = ["submissions", "analytics", "reports", "users"];
   for (const tableName of tablesToEvict) {
     try {
-      const tbl = (offlineDb as any)[tableName];
+      const tbl = (offlineDb as AnyTable)[tableName];
       const count = await tbl.count();
       if (count > 20) {
         const limit = Math.ceil(count * 0.3);
-        const oldest = await tbl.orderBy("cachedAt").limit(limit).toArray();
-        const pKey = tableName === "analytics" || tableName === "meta" ? "key" : "id";
-        const keysToDelete = oldest.map((r: any) => r[pKey]);
+        const oldest = (await tbl.orderBy("cachedAt").limit(limit).toArray()) as Record<
+          string,
+          unknown
+        >[];
+        const pKey =
+          (tableName as string) === "analytics" || (tableName as string) === "meta" ? "key" : "id";
+        const keysToDelete = oldest.map((r) => r[pKey] as string);
         await tbl.bulkDelete(keysToDelete);
-        console.log(`[offlineCache] Evicted ${keysToDelete.length} oldest entries from ${tableName}`);
+        console.log(
+          `[offlineCache] Evicted ${keysToDelete.length} oldest entries from ${tableName}`,
+        );
       }
     } catch (err) {
       console.warn(`[offlineCache] Eviction failed for table ${tableName}:`, err);
