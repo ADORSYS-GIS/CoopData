@@ -31,19 +31,20 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLostDevice, setIsLostDevice] = useState(false);
 
   const handleReset = async () => {
     if (!password) {
       toast.error(t("profile.passwordRequired", "Please enter your password to confirm."));
       return;
     }
-    if (!otp || otp.length !== 6) {
+    if (!isLostDevice && (!otp || otp.length !== 6)) {
       toast.error(t("profile.otpRequired", "Please enter the 6-digit authenticator code."));
       return;
     }
 
     try {
-      await resetMfa.mutateAsync({ password, otp });
+      await resetMfa.mutateAsync({ password, otp: isLostDevice ? undefined : otp } as any);
       toast.success(
         t(
           "profile.mfaResetToast",
@@ -53,6 +54,7 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
       onOpenChange(false);
       setPassword("");
       setOtp("");
+      setIsLostDevice(false);
       // Arm the CONFIGURE_TOTP required action and redirect through Keycloak so
       // the user scans the new QR right away.
       await keycloak.login({
@@ -123,18 +125,48 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold mb-1.5 text-foreground">
-              {t("profile.authenticatorCode", "Authenticator Code")}
-            </label>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-              placeholder="123456"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
-            />
-          </div>
+          {isLostDevice ? (
+            <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 text-center text-sm text-warning-foreground">
+              <p className="mb-2 font-semibold">
+                {t("profile.lostDeviceMode", "Lost Device Mode")}
+              </p>
+              <p className="text-xs opacity-90">
+                {t(
+                  "profile.lostDeviceDesc",
+                  "You will bypass the authenticator code check. Only proceed if you are using a recovery session.",
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsLostDevice(false)}
+                className="mt-3 text-xs font-semibold text-warning hover:underline"
+              >
+                {t("profile.iFoundMyPhone", "I have my authenticator app")}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-foreground">
+                  {t("profile.authenticatorCode", "Authenticator Code")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsLostDevice(true)}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  {t("profile.lostYourPhone", "Lost your phone?")}
+                </button>
+              </div>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                placeholder="123456"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-shadow"
+              />
+            </div>
+          )}
 
           {resetMfa.isError && (
             <div className="w-full rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center text-sm text-destructive">
@@ -157,7 +189,7 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
           <button
             type="button"
             onClick={handleReset}
-            disabled={resetMfa.isPending || !password || otp.length !== 6}
+            disabled={resetMfa.isPending || !password || (!isLostDevice && otp.length !== 6)}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-warning px-4 py-2 text-sm font-semibold text-warning-foreground transition-colors hover:bg-warning/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {resetMfa.isPending ? (

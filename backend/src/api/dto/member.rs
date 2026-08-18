@@ -47,7 +47,7 @@ pub struct EnableMfaRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ResetMfaRequest {
     pub password: String,
-    pub otp: String,
+    pub otp: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -272,7 +272,7 @@ mod tests {
         let json = r#"{"password": "secret", "otp": "654321"}"#;
         let req: ResetMfaRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.password, "secret");
-        assert_eq!(req.otp, "654321");
+        assert_eq!(req.otp, Some("654321".to_string()));
     }
 
     #[test]

@@ -455,6 +455,27 @@ body {
     gap: 1rem;
 }
 
+/* Try another method */
+.try-another-way {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 150ms ease;
+}
+
+.try-another-way:hover {
+    color: oklch(0.42 0.15 240);
+    text-decoration: underline;
+}
+
 .btn-primary {
     display: inline-flex;
     align-items: center;
