@@ -130,7 +130,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     console.log("[auth-context] logout() called — redirecting");
     try {
       await Promise.all(
-        offlineDb.tables.map((t) => t.clear()),
+        offlineDb.tables.filter((t) => t.name !== "syncQueue").map((t) => t.clear()),
       );
       console.log("[auth-context] Offline database cache cleared on logout");
     } catch (e) {

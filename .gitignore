@@ -66,6 +66,7 @@ __pycache__/
 # Seed scripts
 patch_nf_kpis.py
 seed_matrix_test_data.py
+seed.sh
 
 # Vite PWA dev distribution
 frontend/dev-dist/
