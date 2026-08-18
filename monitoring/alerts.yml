@@ -150,7 +150,7 @@ groups:
       - alert: KeycloakHighErrorRate
         expr: |
           (
-            sum(rate(coopdata_keycloak_requests_total{status=~"5.."}[10m]))
+            sum(rate(coopdata_keycloak_errors_total[10m]))
             /
             sum(rate(coopdata_keycloak_requests_total[10m]))
           ) > 0.10

@@ -205,8 +205,8 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
       MINIO_PROMETHEUS_AUTH_TYPE: public
     ports:
-      - "9100:9000"
-      - "9101:9001"
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
     volumes:
       - minio_data:/data
     healthcheck:

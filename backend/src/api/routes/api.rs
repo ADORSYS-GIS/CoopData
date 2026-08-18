@@ -16,7 +16,7 @@
 
 use axum::routing::get;
 use axum::Router;
-use axum_prometheus::{utils::SECONDS_DURATION_BUCKETS, PrometheusMetricLayer};
+use axum_prometheus::{utils::SECONDS_DURATION_BUCKETS, PrometheusMetricLayerBuilder};
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -153,13 +153,22 @@ pub fn role_guard_layer(
 /// No handler-level role checks are needed — middleware enforces roles.
 /// Scope enforcement (data-level access) is handled in handlers via `ScopeEnforcement`.
 pub fn create_app(state: AppState) -> Router {
-    let recorder = PrometheusBuilder::new()
-        .set_buckets(SECONDS_DURATION_BUCKETS)
-        .unwrap()
-        .build_recorder();
-    let metric_handle = recorder.handle();
-    let _ = metrics::set_global_recorder(recorder);
-    let prometheus_layer = PrometheusMetricLayer::new();
+    // Build the Prometheus layer and its metric handle from the SAME recorder so
+    // that the axum_http_* metrics recorded by the layer are rendered at /metrics.
+    // Using `with_metrics_from_fn` lets us keep custom buckets for all histograms
+    // while avoiding the re-entry panic of `set_global_recorder(...).expect(...)`
+    // when `create_app` is called more than once in a process (e.g. tests).
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
+        .with_metrics_from_fn(|| {
+            let recorder = PrometheusBuilder::new()
+                .set_buckets(SECONDS_DURATION_BUCKETS)
+                .unwrap()
+                .build_recorder();
+            let handle = recorder.handle();
+            let _ = metrics::set_global_recorder(recorder);
+            handle
+        })
+        .build_pair();
 
     let protected = Router::new()
         .merge(shared_routes())

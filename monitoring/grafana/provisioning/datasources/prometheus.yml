@@ -10,6 +10,7 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+    uid: PBFA97CFB590B2093
     editable: false
     jsonData:
       timeInterval: "15s"
