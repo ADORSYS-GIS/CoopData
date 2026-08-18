@@ -3,6 +3,19 @@
     <#if section = "header">
         <#-- Header handled inside form panel -->
     <#elseif section = "form">
+        <#setting url_escaping_charset='UTF-8'>
+        <#-- Safe fallback for application URL (avoids Keycloak internal account management /realms/.../account/) -->
+        <#assign appUrl = "/">
+        <#if client?? && client.rootUrl?? && client.rootUrl?has_content && client.rootUrl?starts_with("http") && !client.rootUrl?contains("/account") && !client.rootUrl?contains("/realms/")>
+            <#assign appUrl = client.rootUrl>
+        <#elseif client?? && client.baseUrl?? && client.baseUrl?has_content && client.baseUrl?starts_with("http") && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
+            <#assign appUrl = client.baseUrl>
+        <#elseif url.resourcesPath?? && url.resourcesPath?starts_with("http")>
+            <#assign appUrl = url.resourcesPath?keep_before("/realms/")>
+        <#elseif url.loginUrl?? && url.loginUrl?starts_with("http")>
+            <#assign appUrl = url.loginUrl?keep_before("/realms/")>
+        </#if>
+
         <div class="split-screen-layout">
             <#-- Left Brand Panel -->
             <aside class="brand-panel">
@@ -72,8 +85,8 @@
                                     </svg>
                                     ${kcSanitize(msg("proceedWithAction"))?no_esc}
                                 </a>
-                            <#elseif (client.baseUrl)?has_content>
-                                <a href="${client.baseUrl}" class="btn-primary status-action-button">
+                            <#else>
+                                <a href="${appUrl}" class="btn-primary status-action-button">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>

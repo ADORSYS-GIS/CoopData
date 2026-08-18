@@ -11,6 +11,15 @@ import { runMutation } from "@/services/shared/syncQueueService";
 
 const USERS_KEY = "users";
 
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return String(err);
+}
+
 /** List all users (paginated) */
 export const useUsers = () =>
   useOfflineQuery({
@@ -19,7 +28,7 @@ export const useUsers = () =>
     cacheKey: "users-list",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/users");
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
   });
@@ -34,7 +43,7 @@ export const useUser = (id: string) =>
       const { data, error } = await apiClient.GET("/api/v1/users/{id}", {
         params: { path: { id } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!id,

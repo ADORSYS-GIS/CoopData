@@ -1,6 +1,7 @@
 pub mod abnormality_detector;
 pub mod ai_extraction;
 pub mod audit;
+pub mod benchmark;
 pub mod cache;
 pub mod export_generator;
 pub mod extraction_pipeline;
@@ -24,4 +25,5 @@ pub use nf_excel_parser::CalamineNfParser;
 pub use nf_indicator_engine::NfIndicatorEngine;
 pub use object_storage::ObjectStorageService;
 pub use report_narrative::{create_narrative_generator, ReportNarrativeGenerator};
+pub use submission_workflow::SubmissionWorkflow;
 pub use verification_token::VerificationTokenService;

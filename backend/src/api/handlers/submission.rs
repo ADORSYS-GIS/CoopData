@@ -24,6 +24,28 @@ use crate::error::{AppError, AppResult};
 use crate::repositories::submission_section::VALID_STATUSES;
 use crate::AppState;
 
+/// Resolve a federation's PostgreSQL tracking record by its Keycloak org ID,
+/// auto-backfilling a row if one is missing so Keycloak and PG never diverge.
+async fn resolve_federation_record(
+    state: &AppState,
+    org_id: &str,
+) -> AppResult<crate::entities::federation::Model> {
+    if let Some(f) = state.federation_repo.find_by_keycloak_id(org_id).await? {
+        return Ok(f);
+    }
+    tracing::warn!(org_id = %org_id, "Federation PG record not found, auto-backfilling");
+    let backfill_model = crate::entities::federation::ActiveModel {
+        id: sea_orm::Set(Uuid::new_v4()),
+        keycloak_id: sea_orm::Set(org_id.to_string()),
+        display_name: sea_orm::Set("Federation".to_string()),
+        is_active: sea_orm::Set(true),
+        metadata: sea_orm::Set(Some(serde_json::json!({}))),
+        created_at: sea_orm::Set(chrono::Utc::now()),
+        updated_at: sea_orm::Set(chrono::Utc::now()),
+    };
+    state.federation_repo.create(backfill_model).await
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/cooperative/submissions",
@@ -624,11 +646,7 @@ pub async fn get_submission_as_federation(
         AppError::Forbidden("Federation user has no organization associated".into())
     })?;
 
-    let federation = state
-        .federation_repo
-        .find_by_keycloak_id(&org_id)
-        .await?
-        .ok_or_else(|| AppError::Forbidden("Federation not found in database".into()))?;
+    let federation = resolve_federation_record(&state, &org_id).await?;
 
     let submission = state
         .submission_repo
@@ -815,11 +833,7 @@ pub async fn list_federation_submissions(
         AppError::Forbidden("Federation user has no organization associated".into())
     })?;
 
-    let federation = state
-        .federation_repo
-        .find_by_keycloak_id(&org_id)
-        .await?
-        .ok_or_else(|| AppError::Forbidden("Federation not found in database".into()))?;
+    let federation = resolve_federation_record(&state, &org_id).await?;
 
     let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
 

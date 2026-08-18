@@ -3,6 +3,24 @@
     <#if section = "header">
         <#-- Header handled inside form panel -->
     <#elseif section = "form">
+        <#setting url_escaping_charset='UTF-8'>
+        <#-- Safe fallback for application URL (avoids Keycloak internal account management /realms/.../account/) -->
+        <#assign appUrl = "/">
+        <#if client?? && client.rootUrl?? && client.rootUrl?has_content && client.rootUrl?starts_with("http") && !client.rootUrl?contains("/account") && !client.rootUrl?contains("/realms/")>
+            <#assign appUrl = client.rootUrl>
+        <#elseif client?? && client.baseUrl?? && client.baseUrl?has_content && client.baseUrl?starts_with("http") && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
+            <#assign appUrl = client.baseUrl>
+        <#elseif url.resourcesPath?? && url.resourcesPath?starts_with("http")>
+            <#assign appUrl = url.resourcesPath?keep_before("/realms/")>
+        <#elseif url.loginUrl?? && url.loginUrl?starts_with("http")>
+            <#assign appUrl = url.loginUrl?keep_before("/realms/")>
+        </#if>
+
+        <#assign logoutRedirect = appUrl>
+        <#if !logoutRedirect?ends_with("/")>
+            <#assign logoutRedirect = logoutRedirect + "/">
+        </#if>
+
         <div class="split-screen-layout">
             <#-- Left Brand Panel -->
             <aside class="brand-panel">
@@ -25,14 +43,12 @@
             <#-- Right Form Panel -->
             <main class="form-panel">
                 <div class="top-bar">
-                    <#if client?? && client.baseUrl??>
-                        <a href="${client.baseUrl}" class="back-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M19 12H5M12 19l-7-7 7-7"/>
-                            </svg>
-                            Back to application
-                        </a>
-                    </#if>
+                    <a href="${appUrl}" class="back-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to application
+                    </a>
                 </div>
 
                 <div class="form-container">
@@ -55,14 +71,12 @@
                         </p>
 
                         <#if !skipLink??>
-                            <#if client?? && client.baseUrl??>
-                                <a href="${client.baseUrl}" class="btn-primary status-action-button">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                                    </svg>
-                                    ${kcSanitize(msg("backToApplication"))?no_esc}
-                                </a>
-                            </#if>
+                            <a href="${appUrl}" class="btn-primary status-action-button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                                ${kcSanitize(msg("backToApplication"))?no_esc}
+                            </a>
                         </#if>
                     </div>
                 </div>

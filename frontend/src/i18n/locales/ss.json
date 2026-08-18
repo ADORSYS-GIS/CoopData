@@ -13,6 +13,7 @@
     "analytics": "Luhlatiyo",
     "basicAnalytics": "Luhlatiyo Lolulula",
     "benchmarking": "Kufananisa",
+    "basicBenchmarking": "Kuhlukaniswa Kwekusebenta Lokucala",
     "customKpis": "Ama-KPI Lasekelewe",
     "system": "Luhlelo",
     "auditLog": "Ilogi Yekuhlola",
@@ -233,8 +234,7 @@
     "securityPreferences": "Tintfo Tekuvikeleka",
     "accountProtection": "Tinhlelo tekuvikela i-akhawunti",
     "mfa": "Kucinisekisa Ngetindlela Letiningi",
-    "mfaDesc": "Dinga kucinisekisa nge-OTP ye-imeyili yesibili ngesikhatsi sekungena",
-    "autoLockout": "Kuvala Iseshini Ngekuzenzekela",
+    "mfaDesc": "Dinga likhodi lelisetjentiswa sikhatsi sinye ku-app yakho yekucinisekisa (TOTP) ngesikhatsi sekungena",
     "roleScope": "Umkhawulo Werole Nemalungelo E-Ecosystem",
     "securityCredentialsMatrix": "Imatrixi yemitfombo yakho yekuvikeleka",
     "permissionScope": "Umkhawulo Wemalungelo",
@@ -261,7 +261,14 @@
     "passwordTooShort": "Liphasiwedi lensha kumele ibe nezinhlamvu letingu-8 noma ngetulu.",
     "passwordUpdated": "Liphasiwedi libuyeketwe ngempumelelo!",
     "unexpectedError": "Liphutsa lelingakalindzeleki.",
-    "minutes": "{{count}} min",
+    "loadingSecurity": "Kulayisha tinhlelo tekutivikela…",
+    "mfaEnabledToast": "Kucinisekisa ngetindlela letimbili sekuvuliwe.",
+    "mfaDisabledToast": "Kucinisekisa ngetindlela letimbili kuvaliwe.",
+    "mfaSetupTitle": "Lungisa kucinisekisa ngetindlela letimbili",
+    "mfaSetupDesc": "Sitakucondzisa kutsi ungene futhi ucedze kulungisa kucinisekisa ngetindlela letimbili nge-app yakho yekucinisekisa.",
+    "mfaStartSetup": "Qala Kulungisa",
+    "mfaRedirectHint": "Utacelwa kutsi uskena ikhodi ye-QR nge-app yakho yekucinisekisa (Google Authenticator, Authy, njll.). Nangemva kokucedza kulungisa, utabuyiselwa ephrofayilini yakho.",
+    "mfaCancel": "Yekela",
     "caps": {
       "userProvisioning": "Kuniketa Ema-Akhawunti Emasebentisi",
       "filingApprovals": "Kuphasisa / Kusayina Imibiko",
@@ -1261,6 +1268,7 @@
     "enterField": "Faka {{field}}...",
     "testDataPopulated": "Izimpendulo zemibuzo yekuhlola zigcwalisiwe!",
     "requiredFieldsSection": "Sicela ugcwalise tonkhe tinsimu ezidingekako kulesigaba ngaphambi kokuqhubeka: {{fields}}",
+    "allFieldsRequired": "Tonkhe tinsimu tidzingekile",
     "cannotCompleteFields": "Akukwazi kugcwalisa umbuzo. Sicela ugcwalise letinsimu ezilandelayo ezidingekako: {{fields}}",
     "loadingConfig": "Kulayisha ukuhlelwa kwefomu...",
     "noQuestionnaireFound": "Akukho mbuzo osebentako otholiwe",
@@ -1617,6 +1625,18 @@
     "originalTenure": "Isikhatsi Sokuqala"
   },
   "analytics": {
+    "filter": {
+      "federation": "Inhlangano Yekucala",
+      "apex": "Apex",
+      "cooperative": "Ikhoperative",
+      "region": "Sifundza",
+      "sector": "Umkhakha"
+    },
+    "allFederations": "Tinhlangano Tonkhe",
+    "allApexes": "Ma-Apex Onkhe",
+    "allCooperatives": "Onke Emakhopharethi",
+    "allRegions": "Tifundza Tonkhe",
+    "allSectors": "Imikhakha Yonkhe",
     "tab": {
       "consolidatedDashboard": "Ideshibhodi Ehihlanganisiwe",
       "cooperativeRankings": "Izinga Lemakhopharethi",
@@ -1632,7 +1652,7 @@
     "capitalAdequacy": "Ukwaneliseka Kwemali",
     "mgmtEfficiency": "Ukusebenta Kahle Kwokuphatsa",
     "thisNetwork": "Le Nethiwekhi",
-    "sectorAverage": "Isilinganiso Sesekta",
+    "sectorAverage": "🏭 Isilinganiso Semkhakha",
     "networkAvg": "Isilinganiso Senethiwekhi:",
     "nplRatio": "Izinga le-NPL",
     "riskNplRatio": "Ingozi (Izinga le-NPL)",
@@ -1791,7 +1811,6 @@
     "comparativeAuditSubtitle": "Igridi Yespreadsheet Yekuhlola Okufananisiwe & Inzuzo Yokusebenza ({{year}})",
     "date": "Lusuku",
     "cooperativesLabel": "Emakhopharethi",
-    "allCooperatives": "Onke Emakhopharethi",
     "selectedCount": "{{count}} Akhethiwe",
     "resetSelection": "Setha Kabusha Ukukhetha (Konkhe)",
     "incomeStatementMapping": "Ukumaphisha Sitatimende Semali Engenayo:",
@@ -1870,7 +1889,6 @@
     "selectTargetPlaceholder": "Khetha inhloso...",
     "nationalAverageAll": "🌍 Isilinganiso Sesive (Onke Emakhopharethi)",
     "regionAverage": "📍 Isilinganiso Sesifundza se-{{region}}",
-    "sectorAverage": "🏭 Isilinganiso Semkhakha",
     "sectorRegionalAverage": "🏭 Isilinganiso Semkhakha ({{region}})",
     "sectorBadge": "Umkhakha: {{sector}}",
     "sectorTargetSubtitle": "Kuqhathaniswa nomkhakha we-{{sector}}",
@@ -2222,7 +2240,9 @@
     "savingsShort": "Imali Yekonga",
     "savingsLoansDepositsTitle": "Imali Yekonga, Emaloli & Emadiphozithi",
     "monthlyFinancialBreakdown": "Ukuhlukaniswa kwakho kwetimali ngenyanga & umehluko",
-    "netVariation": "Umehluko Net"
+    "netVariation": "Umehluko Net",
+    "loadErrorTitle": "Kwehluleka Kulayisha Datha Yekuhlukanisa",
+    "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta. Sicela utame futsi."
   },
   "cooperativeDashboard": {
     "title": "Ideshibhodi Yekhopharethi",
@@ -2446,6 +2466,7 @@
       "subtitle": "{{total}} izinto · {{unmapped}} ezingamaphishiwe · {{lowConf}} okuqiniseka okuphansi",
       "deleteStatement": "Susa Sitatimende",
       "resolveErrorsHint": "Xazulula amaphutsa ngaphambi kokumaka kulungele",
+      "enterDataHint": "Faka ematfumo etimali ngaphambi kokumaka lesigaba silungele",
       "markReady": "Maka Isigaba Kulungele",
       "ready": "Isigaba Silungele"
     },
@@ -2930,75 +2951,50 @@
   },
   "settings": {
     "title": "Tinhlelo",
-    "subtitle": "Ukuhlelwa kwepulatifomu, inqubomgomo yekuvikeleka, nezintandokazi zesaziso",
+    "subtitle": "Tintandokazi tepulatifomu netindledlana etindzaweni letibalulekile tekulungisa",
     "subtitleIndicators": "Hlela izidingo zokufaka umbiko ezidinamikhi zemakhopharethi",
     "backBtn": "Buyela kuTinhlelo",
-    "securityPolicyTitle": "Inqubomgomo Yekuvikeleka",
-    "securityPolicySubtitle": "Iphoqelelwa kuwo wonke ama-akhawunti angu-10,235",
-    "editPolicy": "Lungisa inqubomgomo",
-    "securityPolicyUpdateQueued": "Ukubuyeketa kwenqubomgomo yekuvikeleka kufakwe kulayini wekuhlola.",
-    "notificationChannelsTitle": "Iziteshi Zesaziso",
-    "notificationChannelsSubtitle": "Izindlela zokulethwa ezijwayelekile zemisebenzi yesistimu nezixwayiso zokuhambisana",
-    "eventTypesCount": "{{count}} uhlobo lomcimbi",
-    "eventTypesCount_plural": "{{count}} izinhlobo zemici mbi",
-    "notificationsToggled": "Izaziso ze-{{channel}} zishintjiwe.",
-    "openingSettingsToast": "Kuvula tinhlelo ze-{{title}}...",
-    "groups": {
-      "organization": {
-        "title": "Inhlangano",
-        "desc": "Iphrofayili yelitiko, inhlangano esemthethweni, ukumaka nezinqubomgomo zokudalula."
-      },
-      "localization": {
-        "title": "Ukwenza Kwendawo",
-        "desc": "Tilwimi: English, SiSwati, Portuguese. Amafomethi elusuku nenombolo."
-      },
-      "security": {
-        "title": "Ukuvikeleka",
-        "desc": "Inqubomgomo yephasiwedi, ukuphoqelela i-MFA, isikhathi seseshini, ukuthemba kwedivayisi."
-      },
-      "notifications": {
-        "title": "Izaziso",
-        "desc": "I-imeyili, in-app, nokulethwa kwe-SMS kwemisebenzi yesistimu nezixwayiso."
-      },
-      "retention": {
-        "title": "Ukugcinwa Kwedata",
-        "desc": "Amashejuli okugcina, ukugcinwa kwelogi yekuhlola, nezinqubomgomo zokukhipha."
-      },
-      "indicators": {
-        "title": "Tinkhombandlela Ezinge Kho Etimali",
-        "desc": "Hlela tinsimu zokufaka umbiko ezidinamikhi (isib. imininingwane yebhodi, ukuqeqeshwa) zemakhopharethi."
-      }
+    "appearance": {
+      "title": "Kubukeka",
+      "subtitle": "Khetsa kutsi ipulatifomu ibukeke njani kuwe",
+      "light": "Kukhanya",
+      "dark": "Bumnyama",
+      "system": "Sistimu",
+      "language": "Lulwimi",
+      "languageDesc": "Khetsa lulwimi lwesikhulumi sepulatifomu"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Ukucinisekisa ngezindlela eziningi",
-        "value": "Kuyadingeka kuzo zonke izindima"
-      },
-      "passwordLength": {
-        "label": "Ubude bephasiwedi obuncane",
-        "value": "Izinhlamvu ezingu-14"
-      },
-      "passwordRotation": {
-        "label": "Umjikelezo wokushintja iphasiwedi",
-        "value": "Njalo ngezinsuku ezingu-90"
-      },
-      "sessionTimeout": {
-        "label": "Isikhathi sokungasebenzi kweseshini",
-        "value": "Imizuzu engama-30 yokungasebenzi"
-      },
-      "failedLockout": {
-        "label": "Ukuvalwa kokungena okwehlulekile",
-        "value": "Imizamo engu-5 · Ukuvalwa kwemizuzu engama-15"
-      },
-      "deviceTrust": {
-        "label": "Iwindi lokuthemba idivayisi",
-        "value": "Izinsuku ezingu-30 nge-divayisi ngayinye"
-      }
+    "indicators": {
+      "title": "Tinkhombandlela Ezinge Kho Etimali",
+      "desc": "Hlela tinsimu tekufaka umbiko letishintjako (isib. imininingwane yebhodi, kuqeqeshwa) temakhopharethi.",
+      "open": "Hlela tinkhombandlela"
     },
-    "channels": {
-      "email": "I-imeyili",
-      "inApp": "In-app",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Tindledlana Tekulungisa",
+      "subtitle": "Letinhlelo tihlala emakhasi ato",
+      "profile": {
+        "title": "Iphrofayela neKuvikeleka",
+        "desc": "Iphasiwedi, i-MFA, seshini netintfo telulwimi"
+      },
+      "users": {
+        "title": "Bemisebenzisi neKufinyelela",
+        "desc": "Hlela bemisebenzisi nekutsi ngubani longafinyelela epulatifomu"
+      },
+      "audit": {
+        "title": "Umlandvo we-Audit",
+        "desc": "Buyeketa konkhe lokwentiwe epulatifomu"
+      },
+      "templates": {
+        "title": "Titfombe teMibuto",
+        "desc": "Dizayina imibuto lebhalwa ngemakhopharethi"
+      },
+      "kpis": {
+        "title": "Ti-KPI Letikhethekile",
+        "desc": "Cacisa tinkhombandlela tekusebenta letinengeziwe temakhopharethi"
+      },
+      "invitations": {
+        "title": "Titimemo teFederation",
+        "desc": "Mema tikhulu tefederation futsi ulandzelele titimemo letisalindziwe"
+      }
     }
   },
   "apexesPage": {
@@ -4560,5 +4556,71 @@
     "online": "Online",
     "noSessionTitle": "Akukho lusito lwe-inthanethi",
     "noSessionDesc": "Sicela unxibelelanise ne-inthanethi ukuze ungene ngemvume okokuqala."
+  },
+  "basicBenchmarking": {
+    "pageTitle": "Kuhlukaniswa Kwekusebenta Lokucala",
+    "pageSubtitle": "Compare kusebenta lokusekelwe emibutweni nemaphakathi esive, esifundza kanye nemkhakha",
+    "title": "Kuhlukaniswa Kwekusebenta Lokucala",
+    "subtitle": "Compare timethrikhi temibuto ta-{{year}}",
+    "info": "Compare kusebenta kwakho lokusekelwe emibutweni nemaphakathi asive, esifundza kanye emkhakheni lavikelekile. Emaphakathi aboniswa kuphela uma okungenani tinkhopharethi letintsatfu tisetele datha.",
+    "slicers": "Tincephu Tekuhlukanisa",
+    "slicersDesc": "Hlunga datha yekuhlukanisa ngesikhatsi sekubika",
+    "reportingYear": "Umnyaka Wekubika",
+    "selectYear": "Khetsa Umnyaka",
+    "calendarYear": "Umnyaka Wekhalenda {{year}}",
+    "groups": {
+      "membership": "Bulunga neBantfu",
+      "balances": "Tibhalansi Tetimali",
+      "income": "Emaholo neSibuyiselo"
+    },
+    "kpis": {
+      "registeredMembers": "Emalunga Labhalisiwe",
+      "activeMembers": "Emalunga Lasebentako",
+      "maleMembers": "Emalunga Emadvodza",
+      "femaleMembers": "Emalunga Ebafati",
+      "age18_25": "Emalunga Labaneminyaka 18-25",
+      "age26_35": "Emalunga Labaneminyaka 26-35",
+      "age36_60": "Emalunga Labaneminyaka 36-60",
+      "age61Plus": "Emalunga Labaneminyaka 61+",
+      "shareCapital": "Imali Yemalunga",
+      "borrowedFunds": "Timali Lebolekiwe",
+      "savingsValue": "Linani Lekonga",
+      "loansOutstanding": "Tikweleti Letisengakakhokhelwa",
+      "income": "Emaholo Lasewonkhe",
+      "expenditure": "Tindleko Letisebentisiwe",
+      "netIncome": "Emaholo Lamsulwa / Sibuyiselo"
+    },
+    "descs": {
+      "registeredMembers": "Linani lemalunga labhalisiwe labikiwe embutweni",
+      "activeMembers": "Emalunga labhekwa njengalasebentako yinkhopharethi",
+      "maleMembers": "Emalunga emadvodza labhalisiwe",
+      "femaleMembers": "Emalunga ebafati labhalisiwe",
+      "age18_25": "Emalunga labhalisiwe labaneminyaka 18 kuye ku-25",
+      "age26_35": "Emalunga labhalisiwe labaneminyaka 26 kuye ku-35",
+      "age36_60": "Emalunga labhalisiwe labaneminyaka 36 kuye ku-60",
+      "age61Plus": "Emalunga labhalisiwe labaneminyaka 61 nangapeca",
+      "shareCapital": "Imali yemalunga yonkhe lebeyikhicitwe emalungeni",
+      "borrowedFunds": "Timali letisebentiwe yinkhopharethi",
+      "savingsValue": "Linani lekonga lemalunga lisewonkhe",
+      "loansOutstanding": "Tikweleti letisengakakhokhelwa letikweletwa yinkhopharethi ngemalunga",
+      "income": "Emaholo lasewonkhe lakhicwe esikhatsini sekubika",
+      "expenditure": "Tindleko letisebentiwe esikhatsini sekubika",
+      "netIncome": "Emaholo kususwa tindleko (sibuyiselo noma sihlephu)"
+    },
+    "sectorAverage": "🏭 Isilinganiso Semkhakha",
+    "sectorRegionalAverage": "🏭 Isilinganiso Semkhakha ({{region}})",
+    "sectorAvg": "Isilinganiso Semkhakha",
+    "sectorRegionalAvg": "Isilinganiso Semkhakha ({{region}})",
+    "sectorAvgDesc": "Isilinganiso setinkhopharethi letisemkhakheni lofanako (esive sonkhe)",
+    "sectorRegionalAvgDesc": "Isilinganiso setinkhopharethi letisemkhakheni lofanako ngesifundza lesifanako",
+    "noDataTitle": "Kute Datha Yekuhlukanisa",
+    "noDataDesc": "Kute nkhopharethi yesibuto lesete datha {{year}}. Buya emuva uma tisetelo setivunyiwe.",
+    "noApprovedDataTitle": "Kute Datha Yesibuto Levunyiwe",
+    "noApprovedDataDesc": "Ikhopharethi yakho ayinayo datha yesibuto levunyiwe noma lecetsiwe yonyaka {{year}}. Kuhlukanisa kusebenta nje uma tisetelo sakho setfunyelwe futsi sevunyiwa.",
+    "insufficientNationalData": "Kute tinkhopharethi letanele letisete datha kute kubalwe isilinganiso sesive lesinembile.",
+    "matrixTitle": "Kuhlukaniswa Kwetimethrikhi Temibuto",
+    "matrixSubtitle": "Kuhlukaniswa lokunetulu kwatimethrikhi temibuto kanye nenhloso lekhetsiwe",
+    "loadErrorTitle": "Kwehluleka Kulayisha Datha Yekuhlukanisa",
+    "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta kwemibuto. Sicela utame futsi."
   }
 }

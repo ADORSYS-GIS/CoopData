@@ -13,6 +13,7 @@
     "analytics": "Análises",
     "basicAnalytics": "Análises Básicas",
     "benchmarking": "Benchmarking",
+    "basicBenchmarking": "Benchmarking Básico",
     "customKpis": "KPIs Personalizados",
     "system": "Sistema",
     "auditLog": "Registo de Auditoria",
@@ -233,8 +234,7 @@
     "securityPreferences": "Preferências de Segurança",
     "accountProtection": "Definições de proteção da conta",
     "mfa": "Autenticação Multifator",
-    "mfaDesc": "Exigir verificação OTP por e-mail secundário no início de sessão",
-    "autoLockout": "Bloqueio Automático de Sessão",
+    "mfaDesc": "Exigir um código único da sua aplicação de autenticação (TOTP) no início de sessão",
     "roleScope": "Âmbito da Função e Permissões do Ecossistema",
     "securityCredentialsMatrix": "A sua matriz explícita de credenciais de segurança",
     "permissionScope": "Âmbito de Permissões",
@@ -261,7 +261,14 @@
     "passwordTooShort": "A nova palavra-passe deve ter pelo menos 8 caracteres.",
     "passwordUpdated": "Palavra-passe atualizada com sucesso!",
     "unexpectedError": "Erro inesperado.",
-    "minutes": "{{count}} min",
+    "loadingSecurity": "A carregar definições de segurança…",
+    "mfaEnabledToast": "Autenticação de dois fatores ativada.",
+    "mfaDisabledToast": "Autenticação de dois fatores desativada.",
+    "mfaSetupTitle": "Configurar a autenticação de dois fatores",
+    "mfaSetupDesc": "Vamos redirecioná-lo para iniciar sessão novamente e concluir a configuração da autenticação de dois fatores com a sua aplicação de autenticação.",
+    "mfaStartSetup": "Iniciar configuração",
+    "mfaRedirectHint": "Ser-lhe-á pedido que digitalize um código QR com a sua aplicação de autenticação (Google Authenticator, Authy, etc.). Após concluir a configuração, será levado de volta ao seu perfil.",
+    "mfaCancel": "Cancelar",
     "caps": {
       "userProvisioning": "Provisionamento de Contas de Utilizador",
       "filingApprovals": "Aprovações / Assinatura de Depósitos",
@@ -1261,6 +1268,7 @@
     "enterField": "Introduzir {{field}}…",
     "testDataPopulated": "Respostas de questionário de teste preenchidas!",
     "requiredFieldsSection": "Por favor, preencha todos os campos obrigatórios nesta secção antes de continuar: {{fields}}",
+    "allFieldsRequired": "Todos os campos são obrigatórios",
     "cannotCompleteFields": "Não é possível completar o questionário. Por favor, preencha os seguintes campos obrigatórios: {{fields}}",
     "loadingConfig": "A carregar configuração do formulário…",
     "noQuestionnaireFound": "Nenhum questionário ativo encontrado",
@@ -1617,6 +1625,18 @@
     "originalTenure": "Prazo Original"
   },
   "analytics": {
+    "filter": {
+      "federation": "Federação",
+      "apex": "Organização Apex",
+      "cooperative": "Cooperativa",
+      "region": "Região",
+      "sector": "Setor"
+    },
+    "allFederations": "Todas as Federações",
+    "allApexes": "Todas as Organizações Apex",
+    "allCooperatives": "Todas as Cooperativas",
+    "allRegions": "Todas as Regiões",
+    "allSectors": "Todos os Setores",
     "tab": {
       "consolidatedDashboard": "Painel Consolidado",
       "cooperativeRankings": "Classificações das Cooperativas",
@@ -1632,7 +1652,7 @@
     "capitalAdequacy": "Adequação de Capital",
     "mgmtEfficiency": "Eficiência de Gestão",
     "thisNetwork": "Esta Rede",
-    "sectorAverage": "Média do Setor",
+    "sectorAverage": "🏭 Média do Setor",
     "networkAvg": "Média da Rede:",
     "nplRatio": "Rácio NPL",
     "riskNplRatio": "Risco (Rácio NPL)",
@@ -1791,7 +1811,6 @@
     "comparativeAuditSubtitle": "Grelha de Folha de Cálculo de Auditoria Comparativa e Excedente Operacional ({{year}})",
     "date": "Data",
     "cooperativesLabel": "Cooperativas",
-    "allCooperatives": "Todas as Cooperativas",
     "selectedCount": "{{count}} Selecionadas",
     "resetSelection": "Repor Seleção (Todas)",
     "incomeStatementMapping": "Mapeamento da Demonstração de Resultados:",
@@ -1870,7 +1889,6 @@
     "selectTargetPlaceholder": "Selecionar alvo…",
     "nationalAverageAll": "🌍 Média Nacional (Todas as Coops)",
     "regionAverage": "📍 Média da Região {{region}}",
-    "sectorAverage": "🏭 Média do Setor",
     "sectorRegionalAverage": "🏭 Média do Setor ({{region}})",
     "sectorBadge": "Setor: {{sector}}",
     "sectorTargetSubtitle": "Comparando com o setor {{sector}}",
@@ -2222,7 +2240,9 @@
     "savingsShort": "Poupanças",
     "savingsLoansDepositsTitle": "Poupanças, Empréstimos e Depósitos",
     "monthlyFinancialBreakdown": "A sua divisão financeira mensal e variação",
-    "netVariation": "Variação Líquida"
+    "netVariation": "Variação Líquida",
+    "loadErrorTitle": "Não foi possível carregar os dados de benchmarking",
+    "loadErrorDesc": "Ocorreu um erro ao carregar o benchmarking. Tente novamente."
   },
   "cooperativeDashboard": {
     "title": "Painel da Cooperativa",
@@ -2446,6 +2466,7 @@
       "subtitle": "{{total}} itens · {{unmapped}} não mapeados · {{lowConf}} baixa confiança",
       "deleteStatement": "Eliminar Demonstração",
       "resolveErrorsHint": "Resolva os erros antes de marcar como pronto",
+      "enterDataHint": "Insira dados financeiros antes de marcar esta secção como pronta",
       "markReady": "Marcar Secção como Pronta",
       "ready": "Secção Pronta"
     },
@@ -2930,75 +2951,50 @@
   },
   "settings": {
     "title": "Definições",
-    "subtitle": "Configuração da plataforma, política de segurança e preferências de notificação",
+    "subtitle": "Preferências da plataforma e atalhos para áreas de configuração importantes",
     "subtitleIndicators": "Configurar requisitos de reporte dinâmicos para cooperativas",
     "backBtn": "Voltar às Definições",
-    "securityPolicyTitle": "Política de Segurança",
-    "securityPolicySubtitle": "Aplicada a todas as 10 235 contas",
-    "editPolicy": "Editar política",
-    "securityPolicyUpdateQueued": "Atualização da política de segurança em fila para revisão.",
-    "notificationChannelsTitle": "Canais de Notificação",
-    "notificationChannelsSubtitle": "Métodos de entrega predefinidos para eventos do sistema e alertas de conformidade",
-    "eventTypesCount": "{{count}} tipo de evento",
-    "eventTypesCount_plural": "{{count}} tipos de evento",
-    "notificationsToggled": "Notificações de {{channel}} alternadas.",
-    "openingSettingsToast": "A abrir definições de {{title}}...",
-    "groups": {
-      "organization": {
-        "title": "Organização",
-        "desc": "Perfil do ministério, entidade legal, branding e políticas de divulgação."
-      },
-      "localization": {
-        "title": "Localização",
-        "desc": "Idiomas: Inglês, SiSwati, Português. Formatos de data e número."
-      },
-      "security": {
-        "title": "Segurança",
-        "desc": "Política de palavras-passe, aplicação de MFA, tempo limite de sessão, confiança de dispositivos."
-      },
-      "notifications": {
-        "title": "Notificações",
-        "desc": "Entrega por e-mail, na aplicação e SMS para eventos do sistema e alertas."
-      },
-      "retention": {
-        "title": "Retenção de Dados",
-        "desc": "Agendamentos de arquivo, retenção de registos de auditoria e políticas de exportação."
-      },
-      "indicators": {
-        "title": "Indicadores Não Financeiros",
-        "desc": "Configurar campos de reporte dinâmicos (ex. detalhes do conselho, formação) para cooperativas."
-      }
+    "appearance": {
+      "title": "Aparência",
+      "subtitle": "Escolha como a plataforma se apresenta para si",
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema",
+      "language": "Idioma",
+      "languageDesc": "Escolha o idioma da interface da plataforma"
     },
-    "securityPolicies": {
-      "mfa": {
-        "label": "Autenticação multifator",
-        "value": "Obrigatória para todas as funções"
-      },
-      "passwordLength": {
-        "label": "Comprimento mínimo da palavra-passe",
-        "value": "14 caracteres"
-      },
-      "passwordRotation": {
-        "label": "Ciclo de rotação da palavra-passe",
-        "value": "A cada 90 dias"
-      },
-      "sessionTimeout": {
-        "label": "Tempo limite de inatividade da sessão",
-        "value": "30 minutos de inatividade"
-      },
-      "failedLockout": {
-        "label": "Bloqueio por falhas de início de sessão",
-        "value": "5 tentativas · bloqueio de 15 min"
-      },
-      "deviceTrust": {
-        "label": "Janela de confiança do dispositivo",
-        "value": "30 dias por dispositivo"
-      }
+    "indicators": {
+      "title": "Indicadores Não Financeiros",
+      "desc": "Configurar campos de reporte dinâmicos (ex. detalhes do conselho, formação) para cooperativas.",
+      "open": "Configurar indicadores"
     },
-    "channels": {
-      "email": "E-mail",
-      "inApp": "Na aplicação",
-      "sms": "SMS"
+    "shortcuts": {
+      "title": "Atalhos de Configuração",
+      "subtitle": "Estas definições vivem nas suas próprias páginas",
+      "profile": {
+        "title": "Perfil e Segurança",
+        "desc": "Palavra-passe, MFA, sessão e preferências de idioma"
+      },
+      "users": {
+        "title": "Utilizadores e Acesso",
+        "desc": "Provisionar utilizadores e gerir quem pode aceder à plataforma"
+      },
+      "audit": {
+        "title": "Trilha de Auditoria",
+        "desc": "Rever cada ação registada na plataforma"
+      },
+      "templates": {
+        "title": "Modelos de Questionário",
+        "desc": "Conceber os questionários que as cooperativas preenchem"
+      },
+      "kpis": {
+        "title": "KPIs Personalizados",
+        "desc": "Definir indicadores de desempenho adicionais para cooperativas"
+      },
+      "invitations": {
+        "title": "Convites de Federação",
+        "desc": "Convidar oficiais de federação e acompanhar convites pendentes"
+      }
     }
   },
   "apexesPage": {
@@ -4560,5 +4556,71 @@
     "online": "Online",
     "noSessionTitle": "Sem ligação disponível",
     "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão pela primeira vez."
+  },
+  "basicBenchmarking": {
+    "pageTitle": "Benchmarking Básico",
+    "pageSubtitle": "Compare o desempenho baseado em questionários com as médias nacionais, regionais e setoriais",
+    "title": "Benchmarking Básico",
+    "subtitle": "Compare as métricas do questionário para {{year}}",
+    "info": "Compare o seu desempenho baseado em questionários com médias nacionais, regionais e setoriais seguras em termos de privacidade. As médias só são mostradas quando pelo menos 3 cooperativas submeteram dados.",
+    "slicers": "Filtros de benchmarking",
+    "slicersDesc": "Filtrar os dados de comparação por período",
+    "reportingYear": "Ano de reporte",
+    "selectYear": "Selecionar ano",
+    "calendarYear": "Ano civil {{year}}",
+    "groups": {
+      "membership": "Membros e Demografia",
+      "balances": "Saldos Financeiros",
+      "income": "Rendimentos e Excedente"
+    },
+    "kpis": {
+      "registeredMembers": "Membros Registados",
+      "activeMembers": "Membros Ativos",
+      "maleMembers": "Membros Masculinos",
+      "femaleMembers": "Membros Femininos",
+      "age18_25": "Membros com 18-25 anos",
+      "age26_35": "Membros com 26-35 anos",
+      "age36_60": "Membros com 36-60 anos",
+      "age61Plus": "Membros com 61+ anos",
+      "shareCapital": "Capital Social",
+      "borrowedFunds": "Fundos Emprestados",
+      "savingsValue": "Valor das Poupanças",
+      "loansOutstanding": "Empréstimos em Aberto",
+      "income": "Rendimento Total",
+      "expenditure": "Despesa Total",
+      "netIncome": "Rendimento Líquido / Excedente"
+    },
+    "descs": {
+      "registeredMembers": "Número total de membros registados reportado no questionário",
+      "activeMembers": "Membros considerados ativos pela cooperativa",
+      "maleMembers": "Membros masculinos registados",
+      "femaleMembers": "Membros femininos registadas",
+      "age18_25": "Membros registados com idades entre 18 e 25 anos",
+      "age26_35": "Membros registados com idades entre 26 e 35 anos",
+      "age36_60": "Membros registados com idades entre 36 e 60 anos",
+      "age61Plus": "Membros registados com 61 anos ou mais",
+      "shareCapital": "Capital social total contribuído pelos membros",
+      "borrowedFunds": "Fundos totais emprestados à cooperativa",
+      "savingsValue": "Valor total das poupanças dos membros",
+      "loansOutstanding": "Empréstimos em aberto devidos à cooperativa pelos membros",
+      "income": "Rendimento total gerado no período de reporte",
+      "expenditure": "Despesa total durante o período de reporte",
+      "netIncome": "Rendimentos menos despesas (excedente ou défice líquido)"
+    },
+    "sectorAverage": "🏭 Média do Setor",
+    "sectorRegionalAverage": "🏭 Média do Setor ({{region}})",
+    "sectorAvg": "Média do Setor",
+    "sectorRegionalAvg": "Média do Setor ({{region}})",
+    "sectorAvgDesc": "Média das cooperativas do mesmo setor (a nível nacional)",
+    "sectorRegionalAvgDesc": "Média das cooperativas do mesmo setor dentro da mesma região",
+    "noDataTitle": "Sem dados de benchmarking",
+    "noDataDesc": "Nenhuma cooperativa submeteu dados de questionário para {{year}}. Volte depois de as submissões serem aprovadas.",
+    "noApprovedDataTitle": "Sem dados de questionário aprovados",
+    "noApprovedDataDesc": "A sua cooperativa não tem dados de questionário aprovados ou submetidos para {{year}}. O benchmarking será ativado assim que a sua submissão for submetida e aprovada.",
+    "insufficientNationalData": "Não há cooperativas suficientes com dados submetidos para calcular uma média nacional fiável.",
+    "matrixTitle": "Comparação de Métricas do Questionário",
+    "matrixSubtitle": "Comparação detalhada de cada métrica do questionário com o alvo selecionado",
+    "loadErrorTitle": "Não foi possível carregar os dados de benchmarking",
+    "loadErrorDesc": "Ocorreu um erro ao carregar o benchmarking por questionário. Tente novamente."
   }
 }

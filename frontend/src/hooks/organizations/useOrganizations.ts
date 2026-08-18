@@ -11,6 +11,15 @@ import { runMutation } from "@/services/shared/syncQueueService";
 
 const ORGANIZATIONS_KEY = "organizations";
 
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return String(err);
+}
+
 /** List all organizations (ministry only, paginated) */
 export const useOrganizations = (enabled = true) =>
   useOfflineQuery({
@@ -19,7 +28,7 @@ export const useOrganizations = (enabled = true) =>
     cacheKey: "organizations-list",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/organizations");
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled,
@@ -35,7 +44,7 @@ export const useOrganization = (id: string) =>
       const { data, error } = await apiClient.GET("/api/v1/organizations/{id}", {
         params: { path: { id } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!id,

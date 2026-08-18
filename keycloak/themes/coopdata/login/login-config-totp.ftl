@@ -125,25 +125,7 @@
                             </#if>
                         </div>
 
-                        <#-- OTP configuration info -->
-                        <div class="totp-config-info">
-                            <div class="totp-config-item">
-                                <span class="totp-config-label">${msg("loginTotpType")}</span>
-                                <span class="totp-config-value">${totp.policy.type}</span>
-                            </div>
-                            <div class="totp-config-item">
-                                <span class="totp-config-label">${msg("loginTotpAlgorithm")}</span>
-                                <span class="totp-config-value">${totp.policy.getAlgorithmKey()?cap_first}</span>
-                            </div>
-                            <div class="totp-config-item">
-                                <span class="totp-config-label">${msg("loginTotpDigits")}</span>
-                                <span class="totp-config-value">${totp.policy.digits}</span>
-                            </div>
-                            <div class="totp-config-item">
-                                <span class="totp-config-label">${msg("loginTotpInterval")}</span>
-                                <span class="totp-config-value">${totp.policy.period}s</span>
-                            </div>
-                        </div>
+                        <#-- OTP configuration info removed to simplify UI -->
 
                         <#-- Verification code input -->
                         <div class="form-group">

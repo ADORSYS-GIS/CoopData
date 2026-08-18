@@ -94,7 +94,11 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
           }
         }
         // Record whether this was an offline-token recovery
-        setIsOfflineAuthenticated(isOfflineModeActive());
+        const offlineActive = isOfflineModeActive();
+        setIsOfflineAuthenticated(offlineActive);
+        if (offlineActive) {
+          setIsOffline(true);
+        }
       } catch (error) {
         console.error("[auth-context] Keycloak initialization failed:", error);
         if (mounted) {

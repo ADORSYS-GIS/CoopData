@@ -17,7 +17,6 @@ export function useNetworkStatus(): NetworkStatus {
   const checkStatus = () => {
     if (typeof navigator !== "undefined") {
       if (!navigator.onLine) return false;
-      return true;
     }
     return !isOfflineModeActive();
   };

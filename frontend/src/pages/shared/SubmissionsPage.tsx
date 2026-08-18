@@ -325,18 +325,7 @@ function SubmissionTable({
   } | null>(null);
 
   return (
-    <Card
-      title={t("submissions.queue")}
-      subtitle={t("submissions.queueSubtitle")}
-      action={
-        <button
-          onClick={onExport}
-          className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-colors"
-        >
-          <Download className="size-3.5" /> {t("submissions.export")}
-        </button>
-      }
-    >
+    <Card title={t("submissions.queue")} subtitle={t("submissions.queueSubtitle")}>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-xl p-1 border border-border/60">
           {(

@@ -51,9 +51,7 @@ pub async fn get_nf_statistics(
         .filter(crate::entities::submission::Column::CooperativeId.eq(coop.id))
         .filter(
             crate::entities::submission::Column::Status
-                .eq(crate::entities::enums::SubmissionStatus::Approved)
-                .or(crate::entities::submission::Column::Status
-                    .eq(crate::entities::enums::SubmissionStatus::Submitted)),
+                .eq(crate::entities::enums::SubmissionStatus::Approved),
         );
 
     if let Some(year) = params.reporting_year {
@@ -120,7 +118,6 @@ pub async fn get_nf_trend(
     let mut grouped: BTreeMap<i32, Vec<_>> = BTreeMap::new();
     for submission in submissions.into_iter().filter(|submission| {
         submission.status == crate::entities::enums::SubmissionStatus::Approved
-            || submission.status == crate::entities::enums::SubmissionStatus::Submitted
     }) {
         if params.reporting_year.map_or(true, |reporting_year| {
             submission.reporting_year == reporting_year
@@ -294,8 +291,7 @@ pub async fn get_consolidated_nf_statistics(
         .into_iter()
         .filter(|s| {
             s.reporting_year == year
-                && (s.status == crate::entities::enums::SubmissionStatus::Approved
-                    || s.status == crate::entities::enums::SubmissionStatus::Submitted)
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
         })
         .collect();
 

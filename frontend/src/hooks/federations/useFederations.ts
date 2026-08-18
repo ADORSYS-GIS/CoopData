@@ -12,6 +12,15 @@ import { runMutation } from "@/services/shared/syncQueueService";
 
 const FEDERATIONS_KEY = "federations";
 
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+  }
+  return String(err);
+}
+
 /** List all federations (ministry only) */
 export const useFederations = (enabled = true) =>
   useOfflineQuery({
@@ -21,7 +30,7 @@ export const useFederations = (enabled = true) =>
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations");
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
   });
@@ -38,7 +47,7 @@ export const useFederation = (id: string, tokenOverride?: string) =>
         params: { path: { id } },
         headers: headers as Record<string, string>,
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!id,
@@ -154,7 +163,7 @@ export const useFederationDeletePreview = (id: string) =>
           params: { path: { id } },
         },
       );
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!id,
@@ -170,7 +179,7 @@ export const useFederationMembers = (federationId: string) =>
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/members", {
         params: { path: { id: federationId } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!federationId,
@@ -189,7 +198,7 @@ export const useFederationInvitations = (federationId: string) =>
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/invitations", {
         params: { path: { id: federationId } },
       });
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     enabled: !!federationId,

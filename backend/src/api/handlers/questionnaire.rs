@@ -292,7 +292,7 @@ pub struct QuestionnaireAnalyticsResponse {
     pub details: Vec<QuestionnaireAnalyticsDetail>,
 }
 
-fn get_f64_from_json(json: &serde_json::Value, keys: &[&str]) -> f64 {
+pub(crate) fn get_f64_from_json(json: &serde_json::Value, keys: &[&str]) -> f64 {
     for key in keys {
         if let Some(val) = json.get(key) {
             if let Some(n) = val.as_f64() {
@@ -311,7 +311,7 @@ fn get_f64_from_json(json: &serde_json::Value, keys: &[&str]) -> f64 {
     0.0
 }
 
-fn get_i32_from_json(json: &serde_json::Value, keys: &[&str]) -> i32 {
+pub(crate) fn get_i32_from_json(json: &serde_json::Value, keys: &[&str]) -> i32 {
     get_f64_from_json(json, keys) as i32
 }
 

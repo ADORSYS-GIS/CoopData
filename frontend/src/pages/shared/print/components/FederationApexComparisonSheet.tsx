@@ -94,10 +94,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
   return (
     <>
       {/* Sheet 2: Apex Comparison */}
-      <div
-        className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
-        style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
-      >
+      <div className="print-page relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white text-slate-900 border-b border-gray-200 break-after-page font-sans">
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">
@@ -191,40 +188,40 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
           </div>
 
           <div className="shrink-0 overflow-hidden">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-[10px] border-collapse">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="p-3 text-left border border-slate-900">
+                  <th className="p-1.5 text-left border border-slate-900">
                     {t("printReports.headers.apex")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.coops")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.submitted")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.approved")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.filingPct")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.assets")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.avgPar30")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.avgCar")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.avgRoa")}
                   </th>
-                  <th className="p-3 text-right border border-slate-900">
+                  <th className="p-1.5 text-right border border-slate-900">
                     {t("printReports.headers.avgOer")}
                   </th>
-                  <th className="p-3 text-center border border-slate-900">
+                  <th className="p-1.5 text-center border border-slate-900">
                     {t("printReports.headers.risk")}
                   </th>
                 </tr>
@@ -232,17 +229,17 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
               <tbody>
                 {apexData.map((row, i) => (
                   <tr key={i} className="even:bg-slate-50">
-                    <td className="p-3 border border-slate-300 font-medium">{row.apex}</td>
-                    <td className="p-3 border border-slate-300 text-right">{row.coops}</td>
-                    <td className="p-3 border border-slate-300 text-right">{row.submitted}</td>
-                    <td className="p-3 border border-slate-300 text-right">{row.approved}</td>
-                    <td className="p-3 border border-slate-300 text-right">
+                    <td className="p-1.5 border border-slate-300 font-medium">{row.apex}</td>
+                    <td className="p-1.5 border border-slate-300 text-right">{row.coops}</td>
+                    <td className="p-1.5 border border-slate-300 text-right">{row.submitted}</td>
+                    <td className="p-1.5 border border-slate-300 text-right">{row.approved}</td>
+                    <td className="p-1.5 border border-slate-300 text-right">
                       {row.filingPct.toFixed(0)}%
                     </td>
-                    <td className="p-3 border border-slate-300 text-right">
+                    <td className="p-1.5 border border-slate-300 text-right">
                       {formatShortCurrency(row.assets)}
                     </td>
-                    <td className="p-3 border border-slate-300 text-right font-bold">
+                    <td className="p-1.5 border border-slate-300 text-right font-bold">
                       <span
                         className={
                           row.par30 > 10
@@ -255,7 +252,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                         {row.par30.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-3 border border-slate-300 text-right font-bold">
+                    <td className="p-1.5 border border-slate-300 text-right font-bold">
                       <span
                         className={
                           row.car < 10
@@ -268,7 +265,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                         {row.car.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-3 border border-slate-300 text-right font-bold">
+                    <td className="p-1.5 border border-slate-300 text-right font-bold">
                       <span
                         className={
                           row.roa < 0
@@ -281,7 +278,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                         {row.roa.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-3 border border-slate-300 text-right font-bold">
+                    <td className="p-1.5 border border-slate-300 text-right font-bold">
                       <span
                         className={
                           row.oer > 15
@@ -294,7 +291,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
                         {row.oer.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-3 border border-slate-300 text-center">
+                    <td className="p-1.5 border border-slate-300 text-center">
                       <div
                         className={`mx-auto w-4 h-4 rounded-full ${row.par30 > 10 || row.car < 10 ? "bg-red-500" : row.par30 > 5 || row.car < 15 ? "bg-amber-500" : "bg-green-500"}`}
                       />
@@ -308,10 +305,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
       </div>
 
       {/* Sheet 3: Filing Compliance by Apex */}
-      <div
-        className="print-page w-full min-h-[1122px] flex flex-col bg-white p-12 text-slate-900 border-b border-gray-200"
-        style={{ pageBreakAfter: "always", pageBreakInside: "avoid" }}
-      >
+      <div className="print-page relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white text-slate-900 border-b border-gray-200 break-after-page font-sans">
         <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6 shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">
@@ -328,37 +322,37 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
         </div>
 
         <div className="flex-1 min-h-0">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-[10px] border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="p-3 text-left border border-slate-900">
+                <th className="p-1.5 text-left border border-slate-900">
                   {t("printReports.headers.apex")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.total")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.submitted")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.approved")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.returned")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.pending")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.onTime")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.late")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.notFiled")}
                 </th>
-                <th className="p-3 text-right border border-slate-900">
+                <th className="p-1.5 text-right border border-slate-900">
                   {t("printReports.headers.compliancePct")}
                 </th>
               </tr>
@@ -366,49 +360,51 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
             <tbody>
               {apexData.map((row, i) => (
                 <tr key={i} className="even:bg-slate-50">
-                  <td className="p-3 border border-slate-300 font-medium">{row.apex}</td>
-                  <td className="p-3 border border-slate-300 text-right font-bold">{row.coops}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.submitted}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.approved}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.returned}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.pending}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.onTime}</td>
-                  <td className="p-3 border border-slate-300 text-right">{row.late}</td>
-                  <td className="p-3 border border-slate-300 text-right text-red-600 font-bold">
+                  <td className="p-1.5 border border-slate-300 font-medium">{row.apex}</td>
+                  <td className="p-1.5 border border-slate-300 text-right font-bold">
+                    {row.coops}
+                  </td>
+                  <td className="p-1.5 border border-slate-300 text-right">{row.submitted}</td>
+                  <td className="p-1.5 border border-slate-300 text-right">{row.approved}</td>
+                  <td className="p-1.5 border border-slate-300 text-right">{row.returned}</td>
+                  <td className="p-1.5 border border-slate-300 text-right">{row.pending}</td>
+                  <td className="p-1.5 border border-slate-300 text-right">{row.onTime}</td>
+                  <td className="p-1.5 border border-slate-300 text-right">{row.late}</td>
+                  <td className="p-1.5 border border-slate-300 text-right text-red-600 font-bold">
                     {row.notFiled}
                   </td>
-                  <td className="p-3 border border-slate-300 text-right font-bold">
+                  <td className="p-1.5 border border-slate-300 text-right font-bold">
                     {row.filingPct.toFixed(0)}%
                   </td>
                 </tr>
               ))}
               <tr className="bg-slate-100 font-bold border-t-2 border-slate-900">
-                <td className="p-3 border border-slate-300">{t("printReports.total")}</td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300">{t("printReports.total")}</td>
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.coops, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.submitted, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.approved, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.returned, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.pending, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.onTime, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.reduce((acc, row) => acc + row.late, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right text-red-600">
+                <td className="p-1.5 border border-slate-300 text-right text-red-600">
                   {apexData.reduce((acc, row) => acc + row.notFiled, 0)}
                 </td>
-                <td className="p-3 border border-slate-300 text-right">
+                <td className="p-1.5 border border-slate-300 text-right">
                   {apexData.length > 0
                     ? (
                         (apexData.reduce((acc, row) => acc + row.submitted, 0) /
