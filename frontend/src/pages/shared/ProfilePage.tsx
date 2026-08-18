@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
-import { useSecuritySettings, useDisableMfa } from "@/hooks/auth/useSecuritySettings";
+import { useSecuritySettings } from "@/hooks/auth/useSecuritySettings";
 import { MfaSetupDialog } from "@/components/shared/MfaSetupDialog";
 import { ReEnableMfaDialog } from "@/components/shared/ReEnableMfaDialog";
 import { DisableMfaDialog } from "@/components/shared/DisableMfaDialog";
@@ -129,7 +129,6 @@ export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const role = useUserRole();
   const { data: security, isLoading: securityLoading } = useSecuritySettings();
-  const disableMfa = useDisableMfa();
   const mfaEnabled = security?.mfa_enabled ?? false;
   const mfaConfigured = security?.mfa_configured ?? false;
   const [mfaSetupOpen, setMfaSetupOpen] = useState(false);
@@ -338,7 +337,7 @@ export const ProfilePage: React.FC = () => {
                     <div className="pt-0.5 shrink-0">
                       <button
                         onClick={handleToggleMfa}
-                        disabled={disableMfa.isPending || securityLoading}
+                        disabled={securityLoading}
                         role="switch"
                         aria-checked={mfaEnabled}
                         aria-label={t("profile.mfa")}
@@ -350,11 +349,7 @@ export const ProfilePage: React.FC = () => {
                           className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
                             mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
                           }`}
-                        >
-                          {disableMfa.isPending && (
-                            <Loader2 className="size-3 animate-spin text-primary" />
-                          )}
-                        </span>
+                        />
                       </button>
                     </div>
                   </div>

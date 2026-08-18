@@ -493,6 +493,11 @@ impl KeycloakService {
         }
 
         let mut attributes = user.attributes.clone().unwrap_or_default();
+        // Set mfa_enabled=true up front so the Keycloak conditional flow prompts
+        // for OTP once the credential exists. This is safe even if the user
+        // abandons setup: the CONFIGURE_TOTP required action armed above forces
+        // the TOTP setup screen at the next sign-in, so the account can never be
+        // left with mfa_enabled=true but no credential and no pending setup.
         attributes.insert(MFA_ENABLED_ATTR.to_string(), vec!["true".to_string()]);
 
         let url = format!("{}/users/{}", self.realm_url(), keycloak_id);

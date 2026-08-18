@@ -384,26 +384,28 @@ pub async fn reset_mfa(
         })?;
 
     // Verify password + current OTP before revoking the old secret.
-    // If the user lost their device (OTP is None), Keycloak ROPC will fail if MFA is enabled.
-    // So we try the password verification, and if it fails due to missing TOTP, we gracefully ignore the error.
+    // If the user lost their device (OTP is None), Keycloak ROPC may fail when the
+    // account has a pending setup (missing TOTP). We only bypass that specific case —
+    // a wrong password must still fail, otherwise an attacker with a stolen JWT and a
+    // known password could reset the victim's 2FA.
     let verify_result = state
         .keycloak
         .verify_user_password(username, &body.password, body.otp.as_deref())
         .await;
 
     if let Err(e) = verify_result {
-        // If OTP is missing, Keycloak returns 401. Since the user is already authenticated
-        // with a valid session token (via Recovery Code), we allow the reset if the password
-        // is correct. (If password was wrong, Keycloak returns the same error, so this relies
-        // on the fact that the frontend requires them to be logged in).
-        // For defense in depth, we only bypass this if body.otp is None.
+        // When an OTP was supplied, any failure is a hard error.
         if body.otp.is_some() {
             return Err(e);
-        } else {
-            // Note: In a production environment with strict ROPC, we'd ideally have an admin API
-            // way to verify the password. For now, we trust the valid session JWT for the lost device flow.
-            tracing::warn!(user_id = %claims.sub, "Lost device flow: bypassing strict Keycloak ROPC check because TOTP is missing");
         }
+        // Lost-device flow: only bypass when the failure is specifically a missing
+        // TOTP / pending setup, never for invalid credentials.
+        let is_missing_totp = matches!(&e, AppError::Unauthorized(msg)
+            if msg.contains("not fully set up") || msg.contains("totp") || msg.contains("otp"));
+        if !is_missing_totp {
+            return Err(e);
+        }
+        tracing::warn!(user_id = %claims.sub, "Lost device flow: bypassing strict Keycloak ROPC check because TOTP is missing");
     }
 
     state
