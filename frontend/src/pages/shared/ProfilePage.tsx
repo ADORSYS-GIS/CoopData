@@ -365,9 +365,9 @@ export const ProfilePage: React.FC = () => {
                         type="button"
                         onClick={() => setMfaResetOpen(true)}
                         disabled={securityLoading}
-                        className="inline-flex items-center gap-2 text-xs font-medium text-foreground/80 hover:text-foreground transition-colors disabled:opacity-50"
+                        className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent/5 px-4 py-2.5 text-sm font-medium text-accent transition-all hover:bg-accent/10 hover:shadow-sm active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                       >
-                        <Smartphone className="size-3.5" />
+                        <Smartphone className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:rotate-[-5deg]" />
                         {t("profile.mfaChangeDevice", "Change device")}
                       </button>
                     </div>
