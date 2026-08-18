@@ -23,7 +23,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
-import { useUserRole } from "@/lib/auth";
+import { useUserRole, useAuth } from "@/lib/auth";
 import {
   useSubmission,
   useDeleteSubmission,
@@ -54,7 +54,9 @@ import { NfParseResults } from "@/components/non-financial/NfParseResults";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
 import { QuestionnaireResponseViewer } from "@/components/submissions/QuestionnaireResponseViewer";
-import { useQuestionnaire } from "@/hooks/submissions/useQuestionnaire";
+import { useQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
+import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -122,8 +124,46 @@ function sectionStatusLabel(status: string, t: TFunction) {
   return key ? t(key) : status;
 }
 
-const isQuestionnaireFilled = (q: { id?: string } | null | undefined): boolean => {
-  return !!(q && q.id && q.id !== "00000000-0000-0000-0000-000000000000");
+const isValueFilled = (val: unknown): boolean => {
+  if (val === undefined || val === null) return false;
+  if (typeof val === "string") return val.trim().length > 0;
+  if (typeof val === "number") return val !== 0;
+  if (typeof val === "boolean") return true;
+  if (Array.isArray(val)) return val.length > 0;
+  if (typeof val === "object") return Object.keys(val).length > 0;
+  return false;
+};
+
+const isQuestionnaireComplete = (
+  q: { answers?: Record<string, unknown> } | null | undefined,
+  template:
+    | { sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }> }
+    | null
+    | undefined,
+): boolean => {
+  if (!q || !q.answers) return false;
+  const answers = q.answers;
+
+  if (template && template.sections && template.sections.length > 0) {
+    let requiredCount = 0;
+    for (const sec of template.sections) {
+      if (!sec.fields) continue;
+      for (const field of sec.fields) {
+        if (field.required) {
+          requiredCount++;
+          if (!isValueFilled(answers[field.key])) {
+            return false;
+          }
+        }
+      }
+    }
+    if (requiredCount > 0) return true;
+  }
+
+  // Fallback when template is uninitialized or has no required flags:
+  // Requires at least 5 non-empty, non-zero filled values in answers
+  const filledCount = Object.values(answers).filter(isValueFilled).length;
+  return filledCount >= 5;
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -143,6 +183,8 @@ export const SubmissionDetailPage: React.FC = () => {
   } = useSubmission(id ?? "", role ?? undefined);
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
+  const { isOffline } = useAuth();
+  const { verifyIdentity } = useVerifyIdentity();
   const submitMutation = useSubmitSubmission();
   const deleteMutation = useDeleteSubmission();
   const apexApprove = useApexApprove();
@@ -156,9 +198,12 @@ export const SubmissionDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("financial");
   const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
   const [methodModalOpen, setMethodModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const { data: reviews } = useSubmissionReviews(id);
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
+  const { data: financialTemplate } = useActiveTemplate("financial");
+  const { data: nonFinancialTemplate } = useActiveTemplate("non_financial");
   const { data: fsLineItems = [] } = useLineItems(submission?.financial_statement_id ?? null);
 
   const params = useMemo(() => ({ submission_id: id ?? "", page: 1, page_size: 1 }), [id]);
@@ -170,10 +215,28 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const hasUploadedData = (sectionKey: string): boolean => {
     if (sectionKey === "financial") {
-      return fsLineItems.length > 0 || isQuestionnaireFilled(financialQ);
+      return (
+        fsLineItems.length > 0 ||
+        isQuestionnaireComplete(
+          financialQ,
+          financialTemplate as unknown as {
+            sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+          },
+        )
+      );
     }
-    if (sectionKey === "indicators") {
-      return isQuestionnaireFilled(nonFinancialQ);
+    if (
+      sectionKey === "indicators" ||
+      ["members", "savings", "loans", "fixed_deposits"].includes(sectionKey)
+    ) {
+      if (submissionMethod === "questionnaire") {
+        return isQuestionnaireComplete(
+          nonFinancialQ,
+          nonFinancialTemplate as unknown as {
+            sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+          },
+        );
+      }
     }
     if (sectionKey === "members") {
       return (membersData?.total ?? 0) > 0 || (membersData?.data?.length ?? 0) > 0;
@@ -279,14 +342,11 @@ export const SubmissionDetailPage: React.FC = () => {
   const isReadOnly = submission ? submission.status !== "draft" || role !== "cooperative" : true;
 
   const mappedSections = (sections ?? []).map((s) => {
-    // If non-financial questionnaire is filled, database sections are implicitly ready
-    if (
-      isQuestionnaireFilled(nonFinancialQ) &&
-      ["members", "savings", "loans", "fixed_deposits", "farm_coop"].includes(s.section)
-    ) {
-      return { ...s, status: "ready" };
-    }
-    return s;
+    const dataPresent = hasUploadedData(s.section);
+    return {
+      ...s,
+      status: dataPresent ? "ready" : "pending",
+    };
   });
   const requiredSections = mappedSections.filter((s) => s.section !== "farm_coop");
   const allReady =
@@ -302,6 +362,46 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!id) return;
+
+    if (submissionMethod === "questionnaire") {
+      const finComplete = isQuestionnaireComplete(
+        financialQ,
+        financialTemplate as unknown as {
+          sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+        },
+      );
+      const nonFinComplete = isQuestionnaireComplete(
+        nonFinancialQ,
+        nonFinancialTemplate as unknown as {
+          sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+        },
+      );
+
+      if (!finComplete) {
+        toast.error(
+          "Please complete all required fields in the Financial Questionnaire before submitting.",
+        );
+        return;
+      }
+      if (!nonFinComplete) {
+        toast.error(
+          "Please complete all required fields in the Non-Financial Questionnaire before submitting.",
+        );
+        return;
+      }
+    }
+
+    if (!canSubmit) {
+      if (remainingSections.length > 0) {
+        toast.error(
+          `Please complete the remaining required sections: ${remainingSections.join(", ")}`,
+        );
+      } else {
+        toast.error("Please complete all sections before submitting.");
+      }
+      return;
+    }
+
     try {
       await submitMutation.mutateAsync(id);
       toast.success(t("submissions.detail.toastSubmitted"));
@@ -311,14 +411,20 @@ export const SubmissionDetailPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (verificationToken: string) => {
     if (!id) return;
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync({ id, verificationToken });
       toast.success(t("submissions.detail.toastDraftDeleted"));
+      setDeleteModalOpen(false);
       navigate({ to: "/app/submissions" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("submissions.detail.toastDeleteFailed"));
+      throw e;
     }
   };
 
@@ -429,15 +535,22 @@ export const SubmissionDetailPage: React.FC = () => {
                 {isCooperative && submission.status !== "approved" && (
                   <button
                     onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
+                    disabled={deleteMutation.isPending || isOffline}
                     className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={
+                      isOffline
+                        ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                        : t("submissions.detail.deleteSubmission")
+                    }
                   >
                     {deleteMutation.isPending ? (
                       <Loader2 className="size-3.5 animate-spin" />
                     ) : (
                       <Trash2 className="size-3.5" />
                     )}
-                    {t("submissions.detail.deleteSubmission")}
+                    {isOffline
+                      ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                      : t("submissions.detail.deleteSubmission")}
                   </button>
                 )}
               </div>
@@ -762,15 +875,22 @@ export const SubmissionDetailPage: React.FC = () => {
                     {submission?.status !== "approved" && (
                       <button
                         onClick={handleDelete}
-                        disabled={deleteMutation.isPending}
+                        disabled={deleteMutation.isPending || isOffline}
                         className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title={
+                          isOffline
+                            ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                            : t("submissions.detail.deleteDraft")
+                        }
                       >
                         {deleteMutation.isPending ? (
                           <Loader2 className="size-3.5 animate-spin" />
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        {t("submissions.detail.deleteDraft")}
+                        {isOffline
+                          ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                          : t("submissions.detail.deleteDraft")}
                       </button>
                     )}
                     <button
@@ -872,16 +992,16 @@ export const SubmissionDetailPage: React.FC = () => {
                     <div className="flex flex-col items-center">
                       <div
                         className={`size-8 rounded-full grid place-items-center shrink-0 ring-2 ring-background ${
-                          r.action === "approve"
+                          r.action?.toLowerCase() === "approve"
                             ? "bg-success/15 text-success ring-success/10"
-                            : r.action === "reject"
+                            : r.action?.toLowerCase() === "reject"
                               ? "bg-destructive/15 text-destructive ring-destructive/10"
                               : "bg-warning/15 text-warning-foreground ring-warning/10"
                         }`}
                       >
-                        {r.action === "approve" ? (
+                        {r.action?.toLowerCase() === "approve" ? (
                           <CheckCircle2 className="size-4" />
-                        ) : r.action === "reject" ? (
+                        ) : r.action?.toLowerCase() === "reject" ? (
                           <XCircle className="size-4" />
                         ) : (
                           <ArrowLeft className="size-4" />
@@ -955,6 +1075,15 @@ export const SubmissionDetailPage: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ["submission", id] });
           queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
         }}
+      />
+      <DeleteConfirmationDialog
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        entityName={submission ? submission.reference || submission.id.slice(0, 8) : ""}
+        entityType="submission"
+        entityId={submission?.id ?? ""}
+        onVerifyIdentity={async (password, otp) => verifyIdentity({ password, otp })}
+        onConfirmDelete={handleConfirmDelete}
       />
     </AppShell>
   );

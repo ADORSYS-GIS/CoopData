@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 export interface MonthlyTrendPoint {
@@ -33,8 +33,10 @@ const extractErrorMessage = (error: unknown): string => {
 };
 
 export const useMonthlyTrend = (params: MonthlyTrendParams = {}, enabled = true) => {
-  return useQuery<MonthlyTrendResponse>({
+  return useOfflineQuery<MonthlyTrendResponse>({
     queryKey: ["monthly-trend", params],
+    cacheTable: "analytics",
+    cacheKey: `monthly-trend-${JSON.stringify(params)}`,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (apiClient as any).GET("/api/v1/analytics/monthly-trend", {

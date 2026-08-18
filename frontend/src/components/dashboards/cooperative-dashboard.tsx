@@ -45,7 +45,7 @@ export function CooperativeDashboard() {
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latestSubmission?.id);
 
   // Helper: find a KPI by name from the API response
-  const getKpi = (name: string) => kpisData?.kpis.find((k) => k.name === name);
+  const getKpi = (name: string) => kpisData?.kpis?.find((k) => k.name === name);
 
   const totalSubs = stats?.total_submissions ?? 0;
   const pendingSubs = stats?.pending_submissions ?? 0;
@@ -289,7 +289,7 @@ export function CooperativeDashboard() {
               <div className="h-72 flex items-center justify-center">
                 <Skeleton className="h-48 w-full mx-6" />
               </div>
-            ) : kpisData ? (
+            ) : kpisData?.kpis && kpisData.kpis.length > 0 ? (
               <div className="h-72 pt-4 pr-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -351,7 +351,11 @@ export function CooperativeDashboard() {
 
           <Card
             title={t("dashboard.coop.portfolioQuality")}
-            subtitle={kpisData ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")}
+            subtitle={
+              kpisData?.kpis && kpisData.kpis.length > 0
+                ? t("dashboard.coop.derivedPar")
+                : t("dashboard.coop.noData")
+            }
             info={t("dashboard.coop.portfolioQualityInfo")}
           >
             {kpisLoading ? (

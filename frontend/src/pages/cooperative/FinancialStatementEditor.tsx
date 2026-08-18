@@ -413,7 +413,7 @@ export const FinancialStatementEditor: React.FC<{
   const handleDelete = async () => {
     if (!window.confirm(t("financialStatementEditor.deleteDialog.confirmDeleteDraft"))) return;
     try {
-      await deleteSubmission.mutateAsync(submissionId);
+      await deleteSubmission.mutateAsync({ id: submissionId, verificationToken: "" });
       toast.success(t("financialStatementEditor.toasts.draftDeleted"));
       navigate({ to: "/app/submissions" });
     } catch (e) {

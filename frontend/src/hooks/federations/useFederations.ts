@@ -5,8 +5,10 @@
  * Ministry role required for all federation endpoints.
  */
 
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 
 const FEDERATIONS_KEY = "federations";
 
@@ -21,8 +23,10 @@ function extractErrorMessage(err: unknown): string {
 
 /** List all federations (ministry only) */
 export const useFederations = (enabled = true) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [FEDERATIONS_KEY],
+    cacheTable: "federations",
+    cacheKey: "federations-list",
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations");
@@ -33,8 +37,10 @@ export const useFederations = (enabled = true) =>
 
 /** Get a single federation by ID */
 export const useFederation = (id: string, tokenOverride?: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [FEDERATIONS_KEY, id],
+    cacheTable: "federations",
+    cacheKey: `federation-${id}`,
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}", {
@@ -52,15 +58,22 @@ export const useCreateFederation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: { name: string; domain: string; contact_email?: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/ministry/federations", {
-        body: {
-          name: body.name,
-          domains: [{ name: body.domain }],
-          contact_email: body.contact_email,
-        } as never,
+      const payload = {
+        name: body.name,
+        domains: [{ name: body.domain }],
+        contact_email: body.contact_email,
+      };
+      return runMutation<unknown>("/api/v1/ministry/federations", "POST", {
+        body: payload,
+        optimisticData: payload as unknown,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/ministry/federations", {
+            body: payload as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY] });
@@ -85,18 +98,26 @@ export const useUpdateFederation = () => {
       contact_email?: string;
       description?: string;
     }) => {
-      const { data, error } = await apiClient.PATCH("/api/v1/ministry/federations/{id}", {
-        params: { path: { id } },
-        body: {
-          name,
-          description,
-          contact_email,
-          // Only send domains array when the user has provided a domain
-          ...(domain ? { domains: [{ name: domain }] } : {}),
-        } as never,
+      const payload = {
+        name,
+        description,
+        contact_email,
+        // Only send domains array when the user has provided a domain
+        ...(domain ? { domains: [{ name: domain }] } : {}),
+      };
+      return runMutation<unknown>("/api/v1/ministry/federations/{id}", "PATCH", {
+        pathParams: { id },
+        body: payload,
+        optimisticData: payload as unknown,
+        online: async () => {
+          const { data, error } = await apiClient.PATCH("/api/v1/ministry/federations/{id}", {
+            params: { path: { id } },
+            body: payload as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY] });
@@ -110,13 +131,19 @@ export const useDeleteFederation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
-      const { error } = await apiClient.DELETE("/api/v1/ministry/federations/{id}", {
-        params: {
-          path: { id },
-          header: { "x-verification-token": verificationToken } as never,
+      return runMutation<void>("/api/v1/ministry/federations/{id}", "DELETE", {
+        pathParams: { id },
+        verificationToken,
+        online: async () => {
+          const { error } = await apiClient.DELETE("/api/v1/ministry/federations/{id}", {
+            params: {
+              path: { id },
+              header: { "x-verification-token": verificationToken } as never,
+            },
+          });
+          if (error) throw error;
         },
       });
-      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [FEDERATIONS_KEY] });
@@ -126,8 +153,10 @@ export const useDeleteFederation = () => {
 
 /** Get cascade delete preview for a federation */
 export const useFederationDeletePreview = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [FEDERATIONS_KEY, id, "delete-preview"],
+    cacheTable: "federations",
+    cacheKey: `federation-${id}-delete-preview`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/ministry/federations/{id}/delete-preview",
@@ -143,8 +172,10 @@ export const useFederationDeletePreview = (id: string) =>
 
 /** List members of a federation */
 export const useFederationMembers = (federationId: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [FEDERATIONS_KEY, federationId, "members"],
+    cacheTable: "federations",
+    cacheKey: `federation-${federationId}-members`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/members", {
         params: { path: { id: federationId } },
@@ -153,18 +184,17 @@ export const useFederationMembers = (federationId: string) =>
       return data;
     },
     enabled: !!federationId,
-    // Keep the previous federation's members on screen while the new
-    // federation's data is fetching — eliminates the blank flash that
-    // makes the page look frozen during a dropdown switch.
-    placeholderData: keepPreviousData,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
     gcTime: 5 * 60_000,
   });
 
 /** List invitations for a federation */
 export const useFederationInvitations = (federationId: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [FEDERATIONS_KEY, federationId, "invitations"],
+    cacheTable: "federations",
+    cacheKey: `federation-${federationId}-invitations`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/invitations", {
         params: { path: { id: federationId } },
@@ -190,15 +220,22 @@ export const useInviteUserToFederation = () => {
       role: string;
       redirect_url?: string;
     }) => {
-      const { data, error } = await apiClient.POST(
-        "/api/v1/ministry/federations/{id}/invitations",
-        {
-          params: { path: { id: federationId } },
-          body: body as never,
+      return runMutation<unknown>("/api/v1/ministry/federations/{id}/invitations", "POST", {
+        pathParams: { id: federationId },
+        body,
+        optimisticData: body as unknown,
+        online: async () => {
+          const { data, error } = await apiClient.POST(
+            "/api/v1/ministry/federations/{id}/invitations",
+            {
+              params: { path: { id: federationId } },
+              body: body as never,
+            },
+          );
+          if (error) throw error;
+          return data;
         },
-      );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
+      });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -219,14 +256,24 @@ export const useResendInvitation = () => {
       federationId: string;
       invitationId: string;
     }) => {
-      const { data, error } = await apiClient.POST(
+      return runMutation<unknown>(
         "/api/v1/ministry/federations/{id}/invitations/{invitation_id}/resend",
+        "POST",
         {
-          params: { path: { id: federationId, invitation_id: invitationId } },
+          pathParams: { id: federationId, invitation_id: invitationId },
+          optimisticData: undefined,
+          online: async () => {
+            const { data, error } = await apiClient.POST(
+              "/api/v1/ministry/federations/{id}/invitations/{invitation_id}/resend",
+              {
+                params: { path: { id: federationId, invitation_id: invitationId } },
+              },
+            );
+            if (error) throw error;
+            return data;
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -241,13 +288,18 @@ export const useRemoveFederationMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ federationId, userId }: { federationId: string; userId: string }) => {
-      const { error } = await apiClient.DELETE(
-        "/api/v1/ministry/federations/{id}/members/{user_id}",
-        {
-          params: { path: { id: federationId, user_id: userId } },
+      return runMutation<void>("/api/v1/ministry/federations/{id}/members/{user_id}", "DELETE", {
+        pathParams: { id: federationId, user_id: userId },
+        online: async () => {
+          const { error } = await apiClient.DELETE(
+            "/api/v1/ministry/federations/{id}/members/{user_id}",
+            {
+              params: { path: { id: federationId, user_id: userId } },
+            },
+          );
+          if (error) throw error;
         },
-      );
-      if (error) throw new Error(extractErrorMessage(error));
+      });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -268,13 +320,22 @@ export const useDeleteInvitation = () => {
       federationId: string;
       invitationId: string;
     }) => {
-      const { error } = await apiClient.DELETE(
+      return runMutation<void>(
         "/api/v1/ministry/federations/{id}/invitations/{invitation_id}",
+        "DELETE",
         {
-          params: { path: { id: federationId, invitation_id: invitationId } },
+          pathParams: { id: federationId, invitation_id: invitationId },
+          online: async () => {
+            const { error } = await apiClient.DELETE(
+              "/api/v1/ministry/federations/{id}/invitations/{invitation_id}",
+              {
+                params: { path: { id: federationId, invitation_id: invitationId } },
+              },
+            );
+            if (error) throw error;
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({

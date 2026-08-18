@@ -8,6 +8,7 @@ interface Props {
 
 export function DepositConcentrationGauge({ stats }: Props) {
   const { t } = useTranslation();
+  if (!stats) return null;
 
   // If no fixed deposits, show empty state
   if (stats.total_fds === 0) {

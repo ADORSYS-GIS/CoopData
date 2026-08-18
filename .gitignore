@@ -47,6 +47,7 @@ backend/.env.development
 doc
 docs/progress.md
 docs/design.md
+docs/design-*.md
 
 #personal
 sources/
@@ -57,11 +58,15 @@ frontend/src/openapi-client/api.d.ts
 # Temporary directories
 worktrees/
 frontend/tmp/
+.playwright-mcp/
 
 # Python
 __pycache__/
 
 # Seed scripts
 patch_nf_kpis.py
-seed.sh
 seed_matrix_test_data.py
+seed.sh
+
+# Vite PWA dev distribution
+frontend/dev-dist/

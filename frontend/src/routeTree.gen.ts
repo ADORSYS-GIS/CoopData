@@ -31,6 +31,7 @@ import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
 import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
+import { Route as AppBasicBenchmarkingRouteImport } from './routes/app.basic-benchmarking'
 import { Route as AppBasicAnalyticsRouteImport } from './routes/app.basic-analytics'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
@@ -159,6 +160,11 @@ const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
   path: '/benchmarking',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBasicBenchmarkingRoute = AppBasicBenchmarkingRouteImport.update({
+  id: '/basic-benchmarking',
+  path: '/basic-benchmarking',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBasicAnalyticsRoute = AppBasicAnalyticsRouteImport.update({
   id: '/basic-analytics',
   path: '/basic-analytics',
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
   '/app/basic-analytics': typeof AppBasicAnalyticsRoute
+  '/app/basic-benchmarking': typeof AppBasicBenchmarkingRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
@@ -293,6 +300,7 @@ export interface FileRoutesByTo {
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
   '/app/basic-analytics': typeof AppBasicAnalyticsRoute
+  '/app/basic-benchmarking': typeof AppBasicBenchmarkingRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
   '/app/basic-analytics': typeof AppBasicAnalyticsRoute
+  '/app/basic-benchmarking': typeof AppBasicBenchmarkingRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
@@ -374,6 +383,7 @@ export interface FileRouteTypes {
     | '/app/apexes'
     | '/app/audit'
     | '/app/basic-analytics'
+    | '/app/basic-benchmarking'
     | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/custom-kpis'
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/app/apexes'
     | '/app/audit'
     | '/app/basic-analytics'
+    | '/app/basic-benchmarking'
     | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/custom-kpis'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/app/apexes'
     | '/app/audit'
     | '/app/basic-analytics'
+    | '/app/basic-benchmarking'
     | '/app/benchmarking'
     | '/app/cooperatives'
     | '/app/custom-kpis'
@@ -650,6 +662,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBenchmarkingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/basic-benchmarking': {
+      id: '/app/basic-benchmarking'
+      path: '/basic-benchmarking'
+      fullPath: '/app/basic-benchmarking'
+      preLoaderRoute: typeof AppBasicBenchmarkingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/basic-analytics': {
       id: '/app/basic-analytics'
       path: '/basic-analytics'
@@ -799,6 +818,7 @@ interface AppRouteChildren {
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
   AppBasicAnalyticsRoute: typeof AppBasicAnalyticsRoute
+  AppBasicBenchmarkingRoute: typeof AppBasicBenchmarkingRoute
   AppBenchmarkingRoute: typeof AppBenchmarkingRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppCustomKpisRoute: typeof AppCustomKpisRoute
@@ -827,6 +847,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
   AppBasicAnalyticsRoute: AppBasicAnalyticsRoute,
+  AppBasicBenchmarkingRoute: AppBasicBenchmarkingRoute,
   AppBenchmarkingRoute: AppBenchmarkingRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppCustomKpisRoute: AppCustomKpisRoute,

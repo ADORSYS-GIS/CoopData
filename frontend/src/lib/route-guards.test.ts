@@ -8,6 +8,7 @@ const mockAuth = vi.hoisted(() => ({
   isAuthenticated: vi.fn().mockReturnValue(false),
   hasAnyRole: vi.fn().mockReturnValue(false),
   getUserProfile: vi.fn().mockReturnValue(null) as Mock<() => UserProfile | null>,
+  isOfflineModeActive: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock("@/services/shared/authService", () => ({
@@ -15,6 +16,7 @@ vi.mock("@/services/shared/authService", () => ({
   isAuthenticated: mockAuth.isAuthenticated,
   hasAnyRole: mockAuth.hasAnyRole,
   getUserProfile: mockAuth.getUserProfile,
+  isOfflineModeActive: mockAuth.isOfflineModeActive,
 }));
 
 vi.mock("@tanstack/react-router", () => ({

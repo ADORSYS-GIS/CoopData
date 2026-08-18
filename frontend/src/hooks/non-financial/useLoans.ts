@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type {
   LoanResponse,
   CreateLoanRequest,
@@ -78,14 +80,18 @@ async function deleteLoan(id: string): Promise<void> {
 }
 
 export const useLoans = (params?: NfListParams) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_LOANS_KEY, params],
+    cacheTable: "submissions",
+    cacheKey: `loans-list-${JSON.stringify(params ?? {})}`,
     queryFn: () => fetchLoans(params),
   });
 
 export const useLoan = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_LOANS_KEY, id],
+    cacheTable: "submissions",
+    cacheKey: `loan-${id}`,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/loans/${id}`, {
@@ -101,7 +107,13 @@ export const useLoan = (id: string) =>
 export const useCreateLoan = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createLoan,
+    mutationFn: async (body: CreateLoanRequest) => {
+      return runMutation<LoanResponse>("/api/v1/cooperative/non-financial/loans", "POST", {
+        body,
+        optimisticData: body as unknown as LoanResponse,
+        online: () => createLoan(body),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_LOANS_KEY] });
     },
@@ -111,7 +123,14 @@ export const useCreateLoan = () => {
 export const useUpdateLoan = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateLoan,
+    mutationFn: async (vars: { id: string; body: UpdateLoanRequest }) => {
+      return runMutation<LoanResponse>("/api/v1/cooperative/non-financial/loans/{id}", "PUT", {
+        pathParams: { id: vars.id },
+        body: vars.body,
+        optimisticData: vars.body as unknown as LoanResponse,
+        online: () => updateLoan(vars),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_LOANS_KEY] });
     },
@@ -121,7 +140,12 @@ export const useUpdateLoan = () => {
 export const useDeleteLoan = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteLoan,
+    mutationFn: async (id: string) => {
+      return runMutation<void>("/api/v1/cooperative/non-financial/loans/{id}", "DELETE", {
+        pathParams: { id },
+        online: () => deleteLoan(id),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_LOANS_KEY] });
     },

@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 
 export interface BenchmarkResponse {
   reporting_year: number | null;
-  cooperative: CoopKpiRow;
+  /** The calling cooperative's own row; null when it has no approved/submitted
+   *  data for the year (a legitimate empty state, not an error). */
+  cooperative: CoopKpiRow | null;
   national_average: Record<string, number> | null;
   regional_average: Record<string, number> | null;
   sector_average: Record<string, number> | null;
@@ -36,8 +38,10 @@ const extractErrorMessage = (error: unknown): string => {
  * national/regional averages — never other cooperatives' raw data.
  */
 export const useBenchmark = (params: BenchmarkParams = {}, enabled = true) =>
-  useQuery<BenchmarkResponse>({
+  useOfflineQuery<BenchmarkResponse>({
     queryKey: ["benchmark", params],
+    cacheTable: "analytics",
+    cacheKey: `benchmark-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/analytics/benchmark", {

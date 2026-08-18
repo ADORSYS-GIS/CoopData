@@ -8,6 +8,7 @@ use crate::entities::submission_section::Model as SectionModel;
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateSubmissionRequest {
+    pub id: Option<Uuid>,
     pub reporting_year: i32,
     #[serde(default = "default_priority")]
     pub priority: String,

@@ -10,6 +10,7 @@ vi.mock("@/services/shared/authService", () => ({
   logout: vi.fn().mockResolvedValue(undefined),
   getAccessToken: vi.fn().mockResolvedValue("fake-token"),
   getUserProfile: vi.fn().mockReturnValue(null),
+  isOfflineModeActive: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock("sonner", () => ({

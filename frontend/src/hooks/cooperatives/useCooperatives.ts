@@ -8,10 +8,13 @@
  * injecting the Bearer token automatically. Never use raw fetch here.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
-import { getAccessToken } from "@/services/shared/authService";
+import { getAccessToken, getUserProfile } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
+import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
 
 const COOPERATIVES_KEY = "cooperatives";
 const COOPERATIVE_SELF_KEY = "cooperative-self";
@@ -35,8 +38,10 @@ function extractErrorMessage(err: unknown): string {
 // ─── Apex admin: Cooperative CRUD ────────────────────────────────────────────
 
 export const useCooperatives = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVES_KEY],
+    cacheTable: "cooperatives",
+    cacheKey: "cooperatives-list",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives");
       if (error) throw new Error(extractErrorMessage(error));
@@ -46,8 +51,10 @@ export const useCooperatives = () =>
   });
 
 export const useCooperative = (id: string, tokenOverride?: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVES_KEY, id],
+    cacheTable: "cooperatives",
+    cacheKey: `cooperative-${id}`,
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}", {
@@ -83,11 +90,54 @@ export const useCreateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: CreateCooperativeInput) => {
-      const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives", {
-        body: body as never,
+      const localId = crypto.randomUUID();
+      const optimistic = {
+        id: localId,
+        ...body,
+      } as unknown as CooperativeResponse;
+
+      const userId = getUserProfile()?.id ?? "anon";
+      try {
+        const cachedList = await cacheGet<CooperativeResponse[]>(
+          "cooperatives",
+          "cooperatives-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          if (!cachedList.some((c) => c.id === localId)) {
+            const updated = [optimistic, ...cachedList];
+            await cacheSet("cooperatives", "cooperatives-list", userId, updated);
+          }
+        } else {
+          await cacheSet("cooperatives", "cooperatives-list", userId, [optimistic]);
+        }
+      } catch (e) {
+        console.warn("Failed to update cached cooperatives list on create", e);
+      }
+
+      try {
+        await cacheSet("cooperatives", `cooperative-${localId}`, userId, optimistic);
+      } catch (e) {
+        // ignore
+      }
+
+      const payload = {
+        ...body,
+        id: localId,
+      };
+
+      return runMutation<CooperativeResponse>("/api/v1/apex/cooperatives", "POST", {
+        body: payload,
+        optimisticData: optimistic,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives", {
+            body: payload as never,
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as unknown as CooperativeResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as unknown as CooperativeResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
@@ -100,12 +150,52 @@ export const useUpdateCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...body }: { id: string; name?: string; description?: string }) => {
-      const { data, error } = await apiClient.PATCH("/api/v1/apex/cooperatives/{id}", {
-        params: { path: { id } },
-        body: body as never,
+      const userId = getUserProfile()?.id ?? "anon";
+      try {
+        const cachedList = await cacheGet<CooperativeResponse[]>(
+          "cooperatives",
+          "cooperatives-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          const updated = cachedList.map((c) =>
+            c.id === id ? { ...c, ...body } : c,
+          ) as CooperativeResponse[];
+          await cacheSet("cooperatives", "cooperatives-list", userId, updated);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        const cachedDetail = await cacheGet<CooperativeResponse>(
+          "cooperatives",
+          `cooperative-${id}`,
+          userId,
+          true,
+        );
+        if (cachedDetail) {
+          const updated = { ...cachedDetail, ...body } as CooperativeResponse;
+          await cacheSet("cooperatives", `cooperative-${id}`, userId, updated);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      return runMutation<CooperativeResponse>("/api/v1/apex/cooperatives/{id}", "PATCH", {
+        pathParams: { id },
+        body,
+        optimisticData: body as unknown as CooperativeResponse,
+        online: async () => {
+          const { data, error } = await apiClient.PATCH("/api/v1/apex/cooperatives/{id}", {
+            params: { path: { id } },
+            body: body as never,
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as unknown as CooperativeResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as unknown as CooperativeResponse;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
@@ -119,13 +209,41 @@ export const useDeleteCooperative = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
-      const { error } = await apiClient.DELETE("/api/v1/apex/cooperatives/{id}", {
-        params: {
-          path: { id },
-          header: { "x-verification-token": verificationToken } as never,
+      const userId = getUserProfile()?.id ?? "anon";
+      try {
+        const cachedList = await cacheGet<CooperativeResponse[]>(
+          "cooperatives",
+          "cooperatives-list",
+          userId,
+          true,
+        );
+        if (cachedList) {
+          const updated = cachedList.filter((c) => c.id !== id);
+          await cacheSet("cooperatives", "cooperatives-list", userId, updated);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        await cacheDelete("cooperatives", `cooperative-${id}`);
+      } catch (e) {
+        // ignore
+      }
+
+      return runMutation<void>("/api/v1/apex/cooperatives/{id}", "DELETE", {
+        pathParams: { id },
+        verificationToken,
+        online: async () => {
+          const { error } = await apiClient.DELETE("/api/v1/apex/cooperatives/{id}", {
+            params: {
+              path: { id },
+              header: { "x-verification-token": verificationToken } as never,
+            },
+          });
+          if (error) throw new Error(extractErrorMessage(error));
         },
       });
-      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [COOPERATIVES_KEY] });
@@ -136,8 +254,10 @@ export const useDeleteCooperative = () => {
 
 /** Get cascade delete preview for a cooperative */
 export const useCooperativeDeletePreview = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVES_KEY, id, "delete-preview"],
+    cacheTable: "cooperatives",
+    cacheKey: `cooperative-${id}-delete-preview`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}/delete-preview", {
         params: { path: { id } },
@@ -151,8 +271,10 @@ export const useCooperativeDeletePreview = (id: string) =>
 // ─── Apex admin: Member management ──────────────────────────────────────────
 
 export const useCooperativeMembers = (cooperativeId: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVES_KEY, cooperativeId, "members"],
+    cacheTable: "cooperatives",
+    cacheKey: `cooperative-${cooperativeId}-members`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}/members", {
         params: { path: { id: cooperativeId } },
@@ -177,12 +299,19 @@ export const useAddCooperativeMember = () => {
       role: string;
       assigned_dimensions?: string[];
     }) => {
-      const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives/{id}/members", {
-        params: { path: { id: cooperativeId } },
-        body: body as never,
+      return runMutation<MemberResponse>("/api/v1/apex/cooperatives/{id}/members", "POST", {
+        pathParams: { id: cooperativeId },
+        body,
+        optimisticData: body as unknown as MemberResponse,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/apex/cooperatives/{id}/members", {
+            params: { path: { id: cooperativeId } },
+            body: body as never,
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as unknown as MemberResponse;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as unknown as MemberResponse;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -206,15 +335,26 @@ export const useUpdateCooperativeMember = () => {
       first_name?: string;
       last_name?: string;
     }) => {
-      const { data, error } = await apiClient.PATCH(
+      return runMutation<MemberResponse>(
         "/api/v1/apex/cooperatives/{group_id}/members/{user_id}",
+        "PATCH",
         {
-          params: { path: { group_id: cooperativeId, user_id: userId } },
-          body: { first_name, last_name } as never,
+          pathParams: { group_id: cooperativeId, user_id: userId },
+          body: { first_name, last_name },
+          optimisticData: { first_name, last_name } as unknown as MemberResponse,
+          online: async () => {
+            const { data, error } = await apiClient.PATCH(
+              "/api/v1/apex/cooperatives/{group_id}/members/{user_id}",
+              {
+                params: { path: { group_id: cooperativeId, user_id: userId } },
+                body: { first_name, last_name } as never,
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as unknown as MemberResponse;
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as unknown as MemberResponse;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -228,13 +368,18 @@ export const useRemoveCooperativeMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ cooperativeId, userId }: { cooperativeId: string; userId: string }) => {
-      const { error } = await apiClient.DELETE(
-        "/api/v1/apex/cooperatives/{group_id}/members/{user_id}",
-        {
-          params: { path: { group_id: cooperativeId, user_id: userId } },
+      return runMutation<void>("/api/v1/apex/cooperatives/{group_id}/members/{user_id}", "DELETE", {
+        pathParams: { group_id: cooperativeId, user_id: userId },
+        online: async () => {
+          const { error } = await apiClient.DELETE(
+            "/api/v1/apex/cooperatives/{group_id}/members/{user_id}",
+            {
+              params: { path: { group_id: cooperativeId, user_id: userId } },
+            },
+          );
+          if (error) throw new Error(extractErrorMessage(error));
         },
-      );
-      if (error) throw new Error(extractErrorMessage(error));
+      });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -247,13 +392,22 @@ export const useRemoveCooperativeMember = () => {
 export const useResendCooperativeMemberVerification = () =>
   useMutation({
     mutationFn: async ({ cooperativeId, userId }: { cooperativeId: string; userId: string }) => {
-      const { error } = await apiClient.POST(
+      return runMutation<void>(
         "/api/v1/apex/cooperatives/{group_id}/members/{user_id}/resend-verification",
+        "POST",
         {
-          params: { path: { group_id: cooperativeId, user_id: userId } },
+          pathParams: { group_id: cooperativeId, user_id: userId },
+          online: async () => {
+            const { error } = await apiClient.POST(
+              "/api/v1/apex/cooperatives/{group_id}/members/{user_id}/resend-verification",
+              {
+                params: { path: { group_id: cooperativeId, user_id: userId } },
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
     },
   });
 
@@ -263,8 +417,10 @@ export const useResendCooperativeMemberVerification = () =>
 // the apiClient interceptor does.
 
 export const useMyCooperativeProfile = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "profile"],
+    cacheTable: "cooperatives",
+    cacheKey: "cooperative-self-profile",
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/profile`, {
@@ -277,8 +433,10 @@ export const useMyCooperativeProfile = () =>
   });
 
 export const useMyCooperativeMembers = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "members"],
+    cacheTable: "cooperatives",
+    cacheKey: "cooperative-self-members",
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/members`, {
@@ -291,8 +449,10 @@ export const useMyCooperativeMembers = () =>
   });
 
 export const useMyAssignedDimensions = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "dimensions"],
+    cacheTable: "cooperatives",
+    cacheKey: "cooperative-self-dimensions",
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/dimensions`, {

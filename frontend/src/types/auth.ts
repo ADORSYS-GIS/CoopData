@@ -34,6 +34,10 @@ export interface AuthContextValue extends AuthState {
   hasRole: (role: Role) => boolean;
   hasAnyRole: (roles: Role[]) => boolean;
   getAccessToken: () => Promise<string>;
+  /** True when the browser has no network connectivity */
+  isOffline: boolean;
+  /** True when the user is authenticated via a cached offline token (no Keycloak reachable) */
+  isOfflineAuthenticated: boolean;
 }
 
 /** Keycloak token claims we care about */

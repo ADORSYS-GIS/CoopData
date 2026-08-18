@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { isOfflineModeActive } from "@/services/shared/authService";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
@@ -53,13 +54,19 @@ function useLoginRedirect() {
   const navigate = useNavigate();
 
   const handleLogin = useCallback(async () => {
-    // If still loading, wait for auth check to complete first
     if (isLoading) return;
     if (isAuthenticated && user) {
-      navigate({ to: ROLE_DEFAULT_ROUTE[user.role] });
-    } else {
-      await login();
+      const target = ROLE_DEFAULT_ROUTE[user.role] ?? "/app/dashboard";
+      navigate({ to: target });
+      return;
     }
+    // When offline or offline mode active, navigate directly to dashboard
+    if (!navigator.onLine || isOfflineModeActive()) {
+      console.log("[landing] Offline mode active — navigating directly to dashboard");
+      window.location.href = "/app/dashboard";
+      return;
+    }
+    await login();
   }, [login, isAuthenticated, isLoading, user, navigate]);
 
   return handleLogin;

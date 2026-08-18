@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 
 // Types matching the backend SubmissionKpisResponse
 export interface KpiItemResponse {
@@ -74,8 +75,10 @@ const BASE_URL =
  * from useCooperativeSubmissions — regardless of status.
  */
 export const useCooperativeKpis = (submissionId: string | undefined, tokenOverride?: string) =>
-  useQuery<SubmissionKpisResponse>({
+  useOfflineQuery<SubmissionKpisResponse>({
     queryKey: ["coop-kpis", submissionId, tokenOverride],
+    cacheTable: "submissions",
+    cacheKey: `kpis-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(
@@ -100,8 +103,10 @@ export const useCooperativeKpis = (submissionId: string | undefined, tokenOverri
   });
 
 export const useSubmissionLineItems = (submissionId: string | undefined, tokenOverride?: string) =>
-  useQuery<SubmissionLineItemsResponse>({
+  useOfflineQuery<SubmissionLineItemsResponse>({
     queryKey: ["coop-line-items", submissionId, tokenOverride],
+    cacheTable: "submissions",
+    cacheKey: `line-items-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(
@@ -122,8 +127,10 @@ export const useSubmissionLineItems = (submissionId: string | undefined, tokenOv
   });
 
 export const usePortfolioBreakdown = (submissionId: string | undefined, tokenOverride?: string) =>
-  useQuery<PortfolioBreakdownResponse>({
+  useOfflineQuery<PortfolioBreakdownResponse>({
     queryKey: ["portfolio-breakdown", submissionId, tokenOverride],
+    cacheTable: "submissions",
+    cacheKey: `portfolio-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(
@@ -144,8 +151,10 @@ export const usePortfolioBreakdown = (submissionId: string | undefined, tokenOve
   });
 
 export const useMembershipStats = (submissionId: string | undefined, tokenOverride?: string) =>
-  useQuery<MembershipStatsResponse>({
+  useOfflineQuery<MembershipStatsResponse>({
     queryKey: ["membership-stats", submissionId, tokenOverride],
+    cacheTable: "submissions",
+    cacheKey: `membership-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(

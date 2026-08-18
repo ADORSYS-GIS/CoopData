@@ -4,15 +4,20 @@ import {
   waitForKeycloakReady,
   hasAnyRole,
   getUserProfile,
+  isOfflineModeActive,
 } from "@/services/shared/authService";
 import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 
 export async function requireAuth() {
-  const ready = await waitForKeycloakReady();
-  if (!ready) {
-    console.warn("[guard] requireAuth: Keycloak init timed out, redirecting to login");
-    throw redirect({ to: "/login" });
+  // If offline and already authenticated via cached token, skip Keycloak network round-trip
+  const offlineAuthenticated = (!navigator.onLine || isOfflineModeActive()) && isAuthenticated();
+  if (!offlineAuthenticated) {
+    const ready = await waitForKeycloakReady();
+    if (!ready) {
+      console.warn("[guard] requireAuth: Keycloak init timed out, redirecting to login");
+      throw redirect({ to: "/login" });
+    }
   }
 
   if (!isAuthenticated()) {
@@ -32,10 +37,14 @@ export async function requireAuth() {
 }
 
 export async function requireRole(...roles: Role[]) {
-  const ready = await waitForKeycloakReady();
-  if (!ready) {
-    console.warn("[guard] requireRole: Keycloak init timed out, redirecting to login");
-    throw redirect({ to: "/login" });
+  // If offline and already authenticated via cached token, skip Keycloak network round-trip
+  const offlineAuthenticated = (!navigator.onLine || isOfflineModeActive()) && isAuthenticated();
+  if (!offlineAuthenticated) {
+    const ready = await waitForKeycloakReady();
+    if (!ready) {
+      console.warn("[guard] requireRole: Keycloak init timed out, redirecting to login");
+      throw redirect({ to: "/login" });
+    }
   }
 
   if (!isAuthenticated()) {

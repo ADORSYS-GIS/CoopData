@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type { components } from "@/openapi-client/api";
 
 export type SubmissionSectionResponse = components["schemas"]["SubmissionSectionResponse"];
@@ -17,8 +19,10 @@ function extractErrorMessage(err: unknown): string {
 }
 
 export const useSubmissionSections = (submissionId: string | null | undefined) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [SUBMISSIONS_KEY, submissionId, "sections"],
+    cacheTable: "submissions",
+    cacheKey: `sections-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/submissions/{id}/sections", {
         params: { path: { id: submissionId! } },
@@ -34,15 +38,26 @@ export const useUpdateSubmissionSection = (submissionId: string) => {
   return useMutation({
     mutationFn: async ({ section, status }: { section: string; status: string }) => {
       const body: UpdateSectionStatusRequest = { status };
-      const { data, error } = await apiClient.PATCH(
+      return runMutation<SubmissionSectionResponse>(
         "/api/v1/cooperative/submissions/{id}/sections/{section}",
+        "PATCH",
         {
-          params: { path: { id: submissionId, section } },
+          pathParams: { id: submissionId, section },
           body,
+          optimisticData: body as unknown as SubmissionSectionResponse,
+          online: async () => {
+            const { data, error } = await apiClient.PATCH(
+              "/api/v1/cooperative/submissions/{id}/sections/{section}",
+              {
+                params: { path: { id: submissionId, section } },
+                body,
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as SubmissionSectionResponse;
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionSectionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
