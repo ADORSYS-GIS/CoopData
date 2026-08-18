@@ -2402,21 +2402,41 @@ mod tests {
 
     #[test]
     fn mfa_enabled_from_parts_attribute_true() {
-        assert!(KeycloakService::mfa_enabled_from_parts(Some("true"), false, false));
-        assert!(KeycloakService::mfa_enabled_from_parts(Some("true"), false, true));
+        assert!(KeycloakService::mfa_enabled_from_parts(
+            Some("true"),
+            false,
+            false
+        ));
+        assert!(KeycloakService::mfa_enabled_from_parts(
+            Some("true"),
+            false,
+            true
+        ));
     }
 
     #[test]
     fn mfa_enabled_from_parts_attribute_false_is_soft_disabled() {
         // Soft-disabled: credential preserved but MFA off.
-        assert!(!KeycloakService::mfa_enabled_from_parts(Some("false"), false, true));
-        assert!(!KeycloakService::mfa_enabled_from_parts(Some("false"), false, false));
+        assert!(!KeycloakService::mfa_enabled_from_parts(
+            Some("false"),
+            false,
+            true
+        ));
+        assert!(!KeycloakService::mfa_enabled_from_parts(
+            Some("false"),
+            false,
+            false
+        ));
     }
 
     #[test]
     fn mfa_enabled_from_parts_pending_setup_counts_as_enabled() {
         assert!(KeycloakService::mfa_enabled_from_parts(None, true, false));
-        assert!(KeycloakService::mfa_enabled_from_parts(Some("false"), true, false));
+        assert!(KeycloakService::mfa_enabled_from_parts(
+            Some("false"),
+            true,
+            false
+        ));
     }
 
     #[test]

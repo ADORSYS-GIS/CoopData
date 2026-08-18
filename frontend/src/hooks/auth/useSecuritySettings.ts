@@ -110,7 +110,7 @@ export const useResetMfa = () => {
       otp,
     }: {
       password: string;
-      otp: string;
+      otp?: string;
     }): Promise<SecuritySettings> => {
       const { data, error } = await apiClient.POST("/api/v1/me/security/mfa/reset", {
         body: { password, otp },

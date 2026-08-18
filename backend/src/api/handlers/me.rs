@@ -400,7 +400,7 @@ pub async fn reset_mfa(
         if body.otp.is_some() {
             return Err(e);
         } else {
-            // Note: In a production environment with strict ROPC, we'd ideally have an admin API 
+            // Note: In a production environment with strict ROPC, we'd ideally have an admin API
             // way to verify the password. For now, we trust the valid session JWT for the lost device flow.
             tracing::warn!(user_id = %claims.sub, "Lost device flow: bypassing strict Keycloak ROPC check because TOTP is missing");
         }

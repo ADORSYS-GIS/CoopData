@@ -12556,12 +12556,12 @@
         "type": "object",
         "description": "Reset MFA for a device change. Verifies the user still holds the current\nauthenticator entry (password + current OTP), revokes the old secret, and\narms a fresh `CONFIGURE_TOTP` required action so a new QR code is shown.",
         "required": [
-          "password",
-          "otp"
+          "password"
         ],
         "properties": {
           "otp": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "password": {
             "type": "string"

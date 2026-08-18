@@ -44,7 +44,7 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
     }
 
     try {
-      await resetMfa.mutateAsync({ password, otp: isLostDevice ? undefined : otp } as any);
+      await resetMfa.mutateAsync({ password, otp: isLostDevice ? undefined : otp });
       toast.success(
         t(
           "profile.mfaResetToast",

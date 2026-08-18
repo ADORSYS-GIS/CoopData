@@ -358,7 +358,7 @@ export const ProfilePage: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                  
+
                   {mfaEnabled && (
                     <div className="pt-3 border-t border-border/50">
                       <button
