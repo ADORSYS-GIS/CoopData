@@ -90,16 +90,25 @@ pub async fn idempotency_middleware(
     next: Next,
 ) -> Response {
     let method = req.method().clone();
-    if method == axum::http::Method::GET || method == axum::http::Method::HEAD || method == axum::http::Method::OPTIONS {
+    if method == axum::http::Method::GET
+        || method == axum::http::Method::HEAD
+        || method == axum::http::Method::OPTIONS
+    {
         return next.run(req).await;
     }
 
-    let correlation_id = match req.headers().get("x-correlation-id").and_then(|v| v.to_str().ok()) {
+    let correlation_id = match req
+        .headers()
+        .get("x-correlation-id")
+        .and_then(|v| v.to_str().ok())
+    {
         Some(cid) => cid.to_string(),
         None => return next.run(req).await,
     };
 
-    let claims = req.extensions().get::<std::sync::Arc<crate::auth::claims::Claims>>();
+    let claims = req
+        .extensions()
+        .get::<std::sync::Arc<crate::auth::claims::Claims>>();
     let cache_key = match claims {
         Some(c) => format!("idem:{}:{}", c.sub, correlation_id),
         None => format!("idem:{}", correlation_id),
@@ -118,7 +127,14 @@ pub async fn idempotency_middleware(
     let response = next.run(req).await;
 
     if response.status().is_success() {
-        let _ = state.cache.set(&cache_key, &"done".to_string(), std::time::Duration::from_secs(24 * 60 * 60)).await;
+        let _ = state
+            .cache
+            .set(
+                &cache_key,
+                &"done".to_string(),
+                std::time::Duration::from_secs(24 * 60 * 60),
+            )
+            .await;
     }
 
     response
