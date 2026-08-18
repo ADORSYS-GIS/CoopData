@@ -57,6 +57,27 @@ export async function retryFailed(): Promise<void> {
   }
 }
 
+const syncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("coopdata-sync-channel") : null;
+let isSyncingInOtherTab = false;
+let otherTabSyncTimeout: NodeJS.Timeout | null = null;
+
+if (syncChannel) {
+  syncChannel.onmessage = (event) => {
+    if (event.data === "sync-start") {
+      isSyncingInOtherTab = true;
+      if (otherTabSyncTimeout) clearTimeout(otherTabSyncTimeout);
+      otherTabSyncTimeout = setTimeout(() => {
+        isSyncingInOtherTab = false;
+      }, 30000);
+    } else if (event.data === "sync-end") {
+      isSyncingInOtherTab = false;
+      if (otherTabSyncTimeout) clearTimeout(otherTabSyncTimeout);
+    } else if (event.data === "sync-complete") {
+      window.dispatchEvent(new CustomEvent("coopdata-sync-complete"));
+    }
+  };
+}
+
 export async function runMutation<T>(
   endpoint: string,
   method: "POST" | "PUT" | "PATCH" | "DELETE",
@@ -65,6 +86,7 @@ export async function runMutation<T>(
     pathParams?: Record<string, string>;
     optimisticData?: unknown;
     online: () => Promise<T>;
+    verificationToken?: string;
   },
 ): Promise<T> {
   const correlationId = await enqueue({
@@ -74,6 +96,7 @@ export async function runMutation<T>(
     body: opts.body,
     optimisticData: opts.optimisticData,
     userId: "current",
+    verificationToken: opts.verificationToken,
   });
 
   if (navigator.onLine) {
@@ -99,11 +122,34 @@ export async function runMutation<T>(
 
 let isFlushing = false;
 
-export async function flushSyncQueue(): Promise<void> {
-  if (!navigator.onLine || isOfflineModeActive() || isFlushing) return;
+export async function pruneSyncQueue(): Promise<void> {
+  try {
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    await offlineDb.syncQueue
+      .where("status")
+      .equals("done")
+      .and((item) => item.createdAt < oneWeekAgo)
+      .delete();
+  } catch (err) {
+    console.warn("[syncQueue] Pruning failed:", err);
+  }
+}
+
+async function doFlushSyncQueue(): Promise<void> {
   isFlushing = true;
+  if (syncChannel) {
+    syncChannel.postMessage("sync-start");
+  }
 
   try {
+    // Reset any items stuck in 'syncing' for more than 2 minutes back to 'pending'
+    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+    await offlineDb.syncQueue
+      .where("status")
+      .equals("syncing")
+      .and((item) => (item.createdAt ?? 0) < twoMinutesAgo)
+      .modify({ status: "pending" });
+
     const pending = await offlineDb.syncQueue.where("status").equals("pending").toArray();
     if (pending.length === 0) return;
 
@@ -124,13 +170,18 @@ export async function flushSyncQueue(): Promise<void> {
         }
         const url = `${baseUrl}${path}`;
 
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Correlation-Id": item.correlationId,
+        };
+        if (item.verificationToken) {
+          headers["x-verification-token"] = item.verificationToken;
+        }
+
         const res = await fetch(url, {
           method: item.method,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "X-Correlation-Id": item.correlationId,
-          },
+          headers,
           body: item.body ? JSON.stringify(item.body) : undefined,
         });
 
@@ -170,7 +221,32 @@ export async function flushSyncQueue(): Promise<void> {
 
     // Dispatch custom event to notify React components to invalidate queries
     window.dispatchEvent(new CustomEvent("coopdata-sync-complete"));
+    if (syncChannel) {
+      syncChannel.postMessage("sync-complete");
+    }
+    void pruneSyncQueue();
   } finally {
     isFlushing = false;
+    if (syncChannel) {
+      syncChannel.postMessage("sync-end");
+    }
+  }
+}
+
+export async function flushSyncQueue(): Promise<void> {
+  if (!navigator.onLine || isOfflineModeActive() || isFlushing || isSyncingInOtherTab) return;
+
+  if (typeof navigator !== "undefined" && "locks" in navigator) {
+    try {
+      await navigator.locks.request("flush-sync-queue-lock", { ifAvailable: true }, async (lock) => {
+        if (!lock) return;
+        await doFlushSyncQueue();
+      });
+    } catch (e) {
+      console.warn("[syncQueue] Lock acquisition failed, falling back to local lock:", e);
+      await doFlushSyncQueue();
+    }
+  } else {
+    await doFlushSyncQueue();
   }
 }

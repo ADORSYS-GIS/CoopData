@@ -137,6 +137,7 @@ export const useDeleteApex = () => {
     mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       return runMutation<void>("/api/v1/federation/apexes/{id}", "DELETE", {
         pathParams: { id },
+        verificationToken,
         online: async () => {
           const { error } = await apiClient.DELETE("/api/v1/federation/apexes/{id}", {
             params: {

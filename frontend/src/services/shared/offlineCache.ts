@@ -41,18 +41,12 @@ export async function cacheGet<T>(
       row = (await tbl.where(pk).equals(key).first()) as CacheRow | undefined;
     }
 
-    // 3. Fall back to prefix matching (e.g. "audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-")
-    if (!row && key.includes("-")) {
-      const parts = key.split("-");
-      const baseKey = parts[0];
-      row = (await tbl.where(pk).startsWith(baseKey).first()) as CacheRow | undefined;
-    }
-
-    // 4. Fall back to any row in that table if available
+    // 3. Fall back to prefix matching for list/overview keys (e.g. "audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-")
+    const prefixWhitelist = ["audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-", "basic-benchmark-"];
     if (!row) {
-      const allRows = (await tbl.toArray()) as CacheRow[];
-      if (allRows.length > 0) {
-        row = allRows[0];
+      const matchingPrefix = prefixWhitelist.find((prefix) => key.startsWith(prefix));
+      if (matchingPrefix) {
+        row = (await tbl.where(pk).startsWith(matchingPrefix).first()) as CacheRow | undefined;
       }
     }
 
@@ -74,6 +68,42 @@ export async function cacheGet<T>(
   }
 }
 
+async function evictOldestCacheEntries(): Promise<void> {
+  const tablesToEvict: CacheTable[] = ["submissions", "analytics", "reports", "users"];
+  for (const tableName of tablesToEvict) {
+    try {
+      const tbl = (offlineDb as any)[tableName];
+      const count = await tbl.count();
+      if (count > 20) {
+        const limit = Math.ceil(count * 0.3);
+        const oldest = await tbl.orderBy("cachedAt").limit(limit).toArray();
+        const pKey = tableName === "analytics" || tableName === "meta" ? "key" : "id";
+        const keysToDelete = oldest.map((r: any) => r[pKey]);
+        await tbl.bulkDelete(keysToDelete);
+        console.log(`[offlineCache] Evicted ${keysToDelete.length} oldest entries from ${tableName}`);
+      }
+    } catch (err) {
+      console.warn(`[offlineCache] Eviction failed for table ${tableName}:`, err);
+    }
+  }
+}
+
+export async function enforceStorageQuota(): Promise<void> {
+  if (typeof navigator === "undefined" || !navigator.storage || !navigator.storage.estimate) return;
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    if (usage && quota) {
+      const usagePercent = usage / quota;
+      if (usagePercent > 0.8 || usage > 50 * 1024 * 1024) {
+        console.log("[offlineCache] Storage usage is high, running LRU eviction...");
+        await evictOldestCacheEntries();
+      }
+    }
+  } catch (err) {
+    console.warn("[offlineCache] Failed to estimate storage:", err);
+  }
+}
+
 /**
  * Writes a value to the offline cache. Best-effort — never throws.
  */
@@ -92,6 +122,7 @@ export async function cacheSet<T>(
       cachedAt: Date.now(),
     };
     await (offlineDb as AnyTable)[table].put(row);
+    void enforceStorageQuota();
   } catch (err) {
     console.warn(`[offlineCache] cacheSet failed for table ${table}, key ${key}:`, err);
   }

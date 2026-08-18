@@ -26,14 +26,16 @@ export function useNetworkStatus(): NetworkStatus {
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
   useEffect(() => {
+    let wasOfflineTimer: NodeJS.Timeout | null = null;
+
     const handleOnline = async () => {
       const active = checkStatus();
       setIsOnline(active);
       if (active) {
         setWasOffline(true);
         void flushSyncQueue();
-        const timer = setTimeout(() => setWasOffline(false), 5000);
-        return () => clearTimeout(timer);
+        if (wasOfflineTimer) clearTimeout(wasOfflineTimer);
+        wasOfflineTimer = setTimeout(() => setWasOffline(false), 5000);
       }
     };
 
@@ -51,7 +53,8 @@ export function useNetworkStatus(): NetworkStatus {
         if (prev !== current) {
           if (current) {
             setWasOffline(true);
-            setTimeout(() => setWasOffline(false), 5000);
+            if (wasOfflineTimer) clearTimeout(wasOfflineTimer);
+            wasOfflineTimer = setTimeout(() => setWasOffline(false), 5000);
           }
           return current;
         }
@@ -63,6 +66,7 @@ export function useNetworkStatus(): NetworkStatus {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       clearInterval(interval);
+      if (wasOfflineTimer) clearTimeout(wasOfflineTimer);
     };
   }, []);
 

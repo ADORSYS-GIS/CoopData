@@ -133,6 +133,7 @@ export const useDeleteFederation = () => {
     mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       return runMutation<void>("/api/v1/ministry/federations/{id}", "DELETE", {
         pathParams: { id },
+        verificationToken,
         online: async () => {
           const { error } = await apiClient.DELETE("/api/v1/ministry/federations/{id}", {
             params: {

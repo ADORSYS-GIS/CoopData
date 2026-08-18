@@ -1,6 +1,8 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { cacheGet, cacheSet, type CacheTable } from "@/services/shared/offlineCache";
 import { getUserProfile, isOfflineModeActive } from "@/services/shared/authService";
+import i18n from "i18next";
+import { toast } from "sonner";
 
 export interface UseOfflineQueryOptions<T> extends Omit<
   UseQueryOptions<T>,
@@ -61,6 +63,7 @@ export function useOfflineQuery<T>({
 
       // 1. When offline, return from cache immediately without trying network
       if (isOffline) {
+        toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
         const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
         if (cached !== null) return cached;
         // Return type-safe fallback so UI never crashes offline
@@ -79,6 +82,7 @@ export function useOfflineQuery<T>({
           `[useOfflineQuery] Fetch failed for ${cacheKey}, falling back to IndexedDB:`,
           err,
         );
+        toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
         // 3. On fetch failure (offline / network error), serve cached data ignoring TTL
         const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
         if (cached !== null) return cached;

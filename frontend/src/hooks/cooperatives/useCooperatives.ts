@@ -233,6 +233,7 @@ export const useDeleteCooperative = () => {
 
       return runMutation<void>("/api/v1/apex/cooperatives/{id}", "DELETE", {
         pathParams: { id },
+        verificationToken,
         online: async () => {
           const { error } = await apiClient.DELETE("/api/v1/apex/cooperatives/{id}", {
             params: {

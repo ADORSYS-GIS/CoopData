@@ -72,6 +72,7 @@ export interface SyncQueueItem {
   lastError?: string;
   status: "pending" | "syncing" | "failed" | "done";
   optimisticData?: unknown;
+  verificationToken?: string;
 }
 
 export interface OfflineMeta {
@@ -93,6 +94,8 @@ export class CoopDataOfflineDB extends Dexie {
 
   constructor() {
     super("CoopDataOfflineDB");
+    
+    // Version 1 Schema
     this.version(1).stores({
       submissions: "&id, userId, role, isDirty, cachedAt",
       analytics: "&key, userId, cachedAt",
@@ -104,6 +107,22 @@ export class CoopDataOfflineDB extends Dexie {
       reports: "&id, userId, cachedAt",
       syncQueue: "++id, userId, status, correlationId, createdAt",
       meta: "&key",
+    });
+
+    // Version 2 Schema (placeholder for production schema upgrades)
+    this.version(2).stores({
+      submissions: "&id, userId, role, isDirty, cachedAt",
+      analytics: "&key, userId, cachedAt",
+      federations: "&id, userId, cachedAt",
+      apexes: "&id, userId, cachedAt",
+      users: "&id, userId, cachedAt",
+      cooperatives: "&id, userId, cachedAt",
+      formTemplates: "&id, userId, cachedAt",
+      reports: "&id, userId, cachedAt",
+      syncQueue: "++id, userId, status, correlationId, createdAt",
+      meta: "&key",
+    }).upgrade(async (tx) => {
+      console.log("[offlineDb] Schema upgraded to version 2 successfully");
     });
   }
 }

@@ -10,6 +10,7 @@ import {
   isOfflineModeActive,
 } from "@/services/shared/authService";
 import { seedOfflineCache } from "@/services/shared/offlineSeeder";
+import { offlineDb } from "@/services/shared/offlineDb";
 import type { AuthContextValue, UserProfile } from "@/types/auth";
 import type { Role } from "@/constants/roles";
 import { ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
@@ -127,6 +128,16 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     console.log("[auth-context] logout() called — redirecting");
+    try {
+      await Promise.all(
+        offlineDb.tables
+          .filter((t) => t.name !== "syncQueue")
+          .map((t) => t.clear())
+      );
+      console.log("[auth-context] Offline database cache cleared on logout");
+    } catch (e) {
+      console.warn("[auth-context] Failed to clear offline database on logout:", e);
+    }
     await keycloakLogout();
     setIsAuthenticated(false);
     setUser(null);
