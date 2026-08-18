@@ -351,7 +351,11 @@ export function CooperativeDashboard() {
 
           <Card
             title={t("dashboard.coop.portfolioQuality")}
-            subtitle={kpisData?.kpis && kpisData.kpis.length > 0 ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")}
+            subtitle={
+              kpisData?.kpis && kpisData.kpis.length > 0
+                ? t("dashboard.coop.derivedPar")
+                : t("dashboard.coop.noData")
+            }
             info={t("dashboard.coop.portfolioQualityInfo")}
           >
             {kpisLoading ? (

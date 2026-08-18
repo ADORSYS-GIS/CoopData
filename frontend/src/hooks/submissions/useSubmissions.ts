@@ -152,7 +152,8 @@ export const useCreateSubmission = () => {
         reporting_year: body.reporting_year,
         cooperative_id: "self",
         status: "draft" as unknown as SubmissionResponse["status"],
-        submission_method: (body.submission_method ?? "") as unknown as SubmissionResponse["submission_method"],
+        submission_method: (body.submission_method ??
+          "") as unknown as SubmissionResponse["submission_method"],
         current_tier: "cooperative" as unknown as SubmissionResponse["current_tier"],
         priority: body.priority ?? "Routine",
         created_at: new Date().toISOString(),
@@ -299,7 +300,8 @@ export const useUpdateSubmissionMethod = () => {
         if (cachedSub) {
           const updatedSub = {
             ...cachedSub,
-            submission_method: submissionMethod as unknown as SubmissionResponse["submission_method"],
+            submission_method:
+              submissionMethod as unknown as SubmissionResponse["submission_method"],
             updated_at: new Date().toISOString(),
           };
           await cacheSet("submissions", `submission-${id}`, userId, updatedSub);
@@ -321,7 +323,8 @@ export const useUpdateSubmissionMethod = () => {
             s.id === id
               ? {
                   ...s,
-                  submission_method: submissionMethod as unknown as SubmissionResponse["submission_method"],
+                  submission_method:
+                    submissionMethod as unknown as SubmissionResponse["submission_method"],
                   updated_at: new Date().toISOString(),
                 }
               : s,

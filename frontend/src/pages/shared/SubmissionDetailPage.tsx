@@ -388,7 +388,9 @@ export const SubmissionDetailPage: React.FC = () => {
 
     if (!canSubmit) {
       if (remainingSections.length > 0) {
-        toast.error(`Please complete the remaining required sections: ${remainingSections.join(", ")}`);
+        toast.error(
+          `Please complete the remaining required sections: ${remainingSections.join(", ")}`,
+        );
       } else {
         toast.error("Please complete all sections before submitting.");
       }

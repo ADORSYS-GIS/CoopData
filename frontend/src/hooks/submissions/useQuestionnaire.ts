@@ -146,24 +146,30 @@ export interface QuestionnaireAnalyticsData {
   total_income: number;
   total_expenditure: number;
   total_net_income: number;
-  members_by_age: {
-    age_18_25: number;
-    age_26_35: number;
-    age_36_60: number;
-    age_61plus: number;
-  } | null | undefined;
+  members_by_age:
+    | {
+        age_18_25: number;
+        age_26_35: number;
+        age_36_60: number;
+        age_61plus: number;
+      }
+    | null
+    | undefined;
   region_counts: Record<string, number> | null | undefined;
   sector_counts: Record<string, number> | null | undefined;
-  details: {
-    id: string;
-    cooperative_name: string;
-    questionnaire_type: string;
-    reporting_year: number;
-    region: string;
-    total_members: number;
-    total_share_capital: number;
-    net_income: number;
-  }[] | null | undefined;
+  details:
+    | {
+        id: string;
+        cooperative_name: string;
+        questionnaire_type: string;
+        reporting_year: number;
+        region: string;
+        total_members: number;
+        total_share_capital: number;
+        net_income: number;
+      }[]
+    | null
+    | undefined;
 }
 
 export const useQuestionnaireAnalytics = (filters: {

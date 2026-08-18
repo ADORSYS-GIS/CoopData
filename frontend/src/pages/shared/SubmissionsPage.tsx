@@ -288,7 +288,6 @@ function OrgCard({
 
 import { DeleteSubmissionModal } from "@/components/submissions/DeleteSubmissionModal";
 
-
 function SubmissionTable({
   submissions,
   isLoading,

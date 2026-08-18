@@ -107,64 +107,66 @@ export async function flushSyncQueue(): Promise<void> {
     const pending = await offlineDb.syncQueue.where("status").equals("pending").toArray();
     if (pending.length === 0) return;
 
-  console.log(`[syncQueue] Processing ${pending.length} pending offline items...`);
+    console.log(`[syncQueue] Processing ${pending.length} pending offline items...`);
 
-  for (const item of pending) {
-    try {
-      await offlineDb.syncQueue.update(item.id!, { status: "syncing" });
+    for (const item of pending) {
+      try {
+        await offlineDb.syncQueue.update(item.id!, { status: "syncing" });
 
-      const token = await getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      // Substitute {id} placeholders with the stored path params.
-      let path = item.endpoint;
-      if (item.pathParams) {
-        for (const [key, value] of Object.entries(item.pathParams)) {
-          path = path.replaceAll(`{${key}}`, encodeURIComponent(value));
+        const token = await getAccessToken();
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+        // Substitute {id} placeholders with the stored path params.
+        let path = item.endpoint;
+        if (item.pathParams) {
+          for (const [key, value] of Object.entries(item.pathParams)) {
+            path = path.replaceAll(`{${key}}`, encodeURIComponent(value));
+          }
         }
-      }
-      const url = `${baseUrl}${path}`;
+        const url = `${baseUrl}${path}`;
 
-      const res = await fetch(url, {
-        method: item.method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-Correlation-Id": item.correlationId,
-        },
-        body: item.body ? JSON.stringify(item.body) : undefined,
-      });
+        const res = await fetch(url, {
+          method: item.method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "X-Correlation-Id": item.correlationId,
+          },
+          body: item.body ? JSON.stringify(item.body) : undefined,
+        });
 
-      if (res.ok) {
-        await offlineDb.syncQueue.update(item.id!, { status: "done" });
-      } else {
-        const errorText = await res.text().catch(() => `HTTP ${res.status}`);
-        const isIdempotentDone =
-          res.status === 409 ||
-          (res.status === 400 &&
-            (errorText.toLowerCase().includes("already exists") ||
-              errorText.toLowerCase().includes("duplicate")));
-
-        if (isIdempotentDone) {
-          console.log(`[syncQueue] Item ${item.id} already processed on server (${res.status}), marking done.`);
+        if (res.ok) {
           await offlineDb.syncQueue.update(item.id!, { status: "done" });
         } else {
-          const retryCount = (item.retryCount ?? 0) + 1;
-          await offlineDb.syncQueue.update(item.id!, {
-            status: retryCount >= 5 ? "failed" : "pending",
-            retryCount,
-            lastError: errorText,
-          });
+          const errorText = await res.text().catch(() => `HTTP ${res.status}`);
+          const isIdempotentDone =
+            res.status === 409 ||
+            (res.status === 400 &&
+              (errorText.toLowerCase().includes("already exists") ||
+                errorText.toLowerCase().includes("duplicate")));
+
+          if (isIdempotentDone) {
+            console.log(
+              `[syncQueue] Item ${item.id} already processed on server (${res.status}), marking done.`,
+            );
+            await offlineDb.syncQueue.update(item.id!, { status: "done" });
+          } else {
+            const retryCount = (item.retryCount ?? 0) + 1;
+            await offlineDb.syncQueue.update(item.id!, {
+              status: retryCount >= 5 ? "failed" : "pending",
+              retryCount,
+              lastError: errorText,
+            });
+          }
         }
+      } catch (err) {
+        const retryCount = (item.retryCount ?? 0) + 1;
+        await offlineDb.syncQueue.update(item.id!, {
+          status: retryCount >= 5 ? "failed" : "pending",
+          retryCount,
+          lastError: String(err),
+        });
       }
-    } catch (err) {
-      const retryCount = (item.retryCount ?? 0) + 1;
-      await offlineDb.syncQueue.update(item.id!, {
-        status: retryCount >= 5 ? "failed" : "pending",
-        retryCount,
-        lastError: String(err),
-      });
     }
-  }
 
     // Dispatch custom event to notify React components to invalidate queries
     window.dispatchEvent(new CustomEvent("coopdata-sync-complete"));

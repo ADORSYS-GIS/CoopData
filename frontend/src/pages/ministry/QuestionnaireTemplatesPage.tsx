@@ -8,7 +8,10 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useQuestionnaireTemplates, type QuestionnaireTemplate } from "@/hooks/admin/useQuestionnaireTemplates";
+import {
+  useQuestionnaireTemplates,
+  type QuestionnaireTemplate,
+} from "@/hooks/admin/useQuestionnaireTemplates";
 import { QuestionnaireTemplateEditor } from "./QuestionnaireTemplateEditor";
 
 export const QuestionnaireTemplatesPage: React.FC = () => {

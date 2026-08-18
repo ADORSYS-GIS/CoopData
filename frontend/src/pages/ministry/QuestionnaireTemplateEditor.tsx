@@ -100,7 +100,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     (initialTemplate?.translations as QuestionnaireTranslations) ?? {},
   );
   const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(
-    Array.isArray(initialTemplate?.sections) && (initialTemplate?.sections as unknown[]).length > 0 ? 0 : null,
+    Array.isArray(initialTemplate?.sections) && (initialTemplate?.sections as unknown[]).length > 0
+      ? 0
+      : null,
   );
   const [saveMessage, setSaveMessage] = useState<{
     type: "success" | "error";
