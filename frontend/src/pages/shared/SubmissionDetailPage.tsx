@@ -537,14 +537,20 @@ export const SubmissionDetailPage: React.FC = () => {
                     onClick={handleDelete}
                     disabled={deleteMutation.isPending || isOffline}
                     className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title={isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteSubmission")}
+                    title={
+                      isOffline
+                        ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                        : t("submissions.detail.deleteSubmission")
+                    }
                   >
                     {deleteMutation.isPending ? (
                       <Loader2 className="size-3.5 animate-spin" />
                     ) : (
                       <Trash2 className="size-3.5" />
                     )}
-                    {isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteSubmission")}
+                    {isOffline
+                      ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                      : t("submissions.detail.deleteSubmission")}
                   </button>
                 )}
               </div>
@@ -871,14 +877,20 @@ export const SubmissionDetailPage: React.FC = () => {
                         onClick={handleDelete}
                         disabled={deleteMutation.isPending || isOffline}
                         className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title={isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteDraft")}
+                        title={
+                          isOffline
+                            ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                            : t("submissions.detail.deleteDraft")
+                        }
                       >
                         {deleteMutation.isPending ? (
                           <Loader2 className="size-3.5 animate-spin" />
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        {isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteDraft")}
+                        {isOffline
+                          ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                          : t("submissions.detail.deleteDraft")}
                       </button>
                     )}
                     <button
@@ -1067,7 +1079,7 @@ export const SubmissionDetailPage: React.FC = () => {
       <DeleteConfirmationDialog
         open={deleteModalOpen}
         onOpenChange={setDeleteModalOpen}
-        entityName={submission ? (submission.reference || submission.id.slice(0, 8)) : ""}
+        entityName={submission ? submission.reference || submission.id.slice(0, 8) : ""}
         entityType="submission"
         entityId={submission?.id ?? ""}
         onVerifyIdentity={async (password, otp) => verifyIdentity({ password, otp })}

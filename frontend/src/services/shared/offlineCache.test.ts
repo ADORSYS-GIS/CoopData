@@ -53,7 +53,8 @@ vi.mock("./offlineDb", () => {
           return makeCollectionMock(getFiltered());
         }),
         startsWith: vi.fn((val) => {
-          const getFiltered = () => mockSubmissionsStore.filter((x) => String(x[field]).startsWith(val));
+          const getFiltered = () =>
+            mockSubmissionsStore.filter((x) => String(x[field]).startsWith(val));
           const makeCollectionMock = (filteredList: any[]): any => ({
             first: vi.fn(async () => filteredList[0]),
             toArray: vi.fn(async () => filteredList),
@@ -121,7 +122,8 @@ vi.mock("./offlineDb", () => {
           return makeCollectionMock(getFiltered());
         }),
         startsWith: vi.fn((val) => {
-          const getFiltered = () => mockAnalyticsStore.filter((x) => String(x[field]).startsWith(val));
+          const getFiltered = () =>
+            mockAnalyticsStore.filter((x) => String(x[field]).startsWith(val));
           const makeCollectionMock = (filteredList: any[]): any => ({
             first: vi.fn(async () => filteredList[0]),
             toArray: vi.fn(async () => filteredList),

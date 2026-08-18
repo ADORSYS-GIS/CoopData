@@ -148,7 +148,7 @@ describe("syncQueueService", () => {
         online: async () => {
           throw new Error("Validation failed");
         },
-      })
+      }),
     ).rejects.toThrow("Validation failed");
 
     expect(mockSyncQueueStore.length).toBe(1);
@@ -162,7 +162,7 @@ describe("syncQueueService", () => {
       runMutation("/api/v1/cooperatives/coop-1", "DELETE", {
         optimisticData: undefined,
         online: async () => {},
-      })
+      }),
     ).rejects.toThrow("Destructive actions cannot be performed while offline.");
 
     expect(mockSyncQueueStore.length).toBe(0);

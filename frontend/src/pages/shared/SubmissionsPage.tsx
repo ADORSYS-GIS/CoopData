@@ -482,7 +482,11 @@ function SubmissionTable({
                           }}
                           disabled={deleteSubmission.isPending || isOffline}
                           className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteSubmission")}
+                          title={
+                            isOffline
+                              ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                              : t("submissions.detail.deleteSubmission")
+                          }
                         >
                           <Trash2 className="size-3.5" />
                         </button>
@@ -505,7 +509,11 @@ function SubmissionTable({
       <DeleteConfirmationDialog
         open={!!submissionToDelete}
         onOpenChange={(open) => !open && setSubmissionToDelete(null)}
-        entityName={submissionToDelete ? (submissionToDelete.reference || submissionToDelete.id.slice(0, 8)) : ""}
+        entityName={
+          submissionToDelete
+            ? submissionToDelete.reference || submissionToDelete.id.slice(0, 8)
+            : ""
+        }
         entityType="submission"
         entityId={submissionToDelete?.id ?? ""}
         onVerifyIdentity={async (password, otp) => verifyIdentity({ password, otp })}
