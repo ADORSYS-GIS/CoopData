@@ -32,6 +32,18 @@ struct CachedToken {
     expires_at: chrono::DateTime<Utc>,
 }
 
+/// User attribute that tracks whether MFA (TOTP) is currently enabled.
+/// Soft-disable sets this to "false" while keeping the OTP credential, so
+/// re-enabling does not require a new QR code.
+pub const MFA_ENABLED_ATTR: &str = "mfa_enabled";
+
+/// Keycloak required action that shows the recovery-codes setup screen. Armed
+/// alongside `CONFIGURE_TOTP` so the user is asked to generate backup codes in
+/// the same session as scanning the QR (with the realm's `add-recovery-codes`
+/// switch this also happens automatically on Keycloak 26.4+; arming it
+/// explicitly covers users on earlier flows and ensures it is never skipped).
+pub const CONFIGURE_RECOVERY_ACTION: &str = "CONFIGURE_RECOVERY_AUTHN_CODES";
+
 impl CachedToken {
     fn is_expired(&self) -> bool {
         Utc::now() + chrono::Duration::seconds(30) >= self.expires_at
@@ -250,30 +262,72 @@ impl KeycloakService {
             .any(|c| c.get("type").and_then(|t| t.as_str()) == Some("otp")))
     }
 
-    /// Whether MFA is "on" for a user: they either already have an OTP
-    /// credential configured, or a CONFIGURE_TOTP required action is pending
-    /// (they asked to enable MFA but haven't set up their authenticator yet).
+    /// Pure decision helper for `get_user_mfa_enabled`: given the user's
+    /// `mfa_enabled` attribute (if any), whether a CONFIGURE_TOTP action is
+    /// pending, and whether an OTP credential exists, returns whether MFA is on.
+    ///
+    /// - Attribute "true"  → enabled
+    /// - Attribute "false" → soft-disabled (credential preserved, no prompt)
+    /// - Attribute missing + credential exists → legacy user, treat as enabled
+    /// - Attribute missing + no credential → not enabled
+    fn mfa_enabled_from_parts(
+        attribute: Option<&str>,
+        configure_totp_pending: bool,
+        has_otp_credential: bool,
+    ) -> bool {
+        if configure_totp_pending {
+            return true;
+        }
+        match attribute {
+            Some("true") => true,
+            Some("false") => false,
+            _ => has_otp_credential,
+        }
+    }
+
+    /// Whether MFA is "on" for a user. MFA state is tracked via the
+    /// `mfa_enabled` user attribute ("true" / "false") so that disabling MFA
+    /// (soft-disable) can keep the OTP credential intact for a lockout-free
+    /// re-enable, while the login flow only prompts for OTP when the attribute
+    /// is "true".
+    ///
+    /// Legacy users who configured OTP before attribute tracking was introduced
+    /// have no attribute: they are treated as enabled (credential exists).
     pub async fn get_user_mfa_enabled(&self, user_id: &str) -> Result<bool, AppError> {
         let token = self.get_cached_admin_token().await?;
         let user = self.get_user_by_id_raw(&token, user_id).await?;
-        if user.required_actions.iter().any(|a| a == "CONFIGURE_TOTP") {
-            return Ok(true);
-        }
-        self.get_user_otp_status(user_id).await
+
+        let configure_totp_pending = user.required_actions.iter().any(|a| a == "CONFIGURE_TOTP");
+        let attribute = user.get_attribute(MFA_ENABLED_ATTR).map(|s| s.as_str());
+        let has_otp_credential = self.get_user_otp_status(user_id).await?;
+
+        Ok(Self::mfa_enabled_from_parts(
+            attribute,
+            configure_totp_pending,
+            has_otp_credential,
+        ))
     }
 
-    /// Keycloak's `PUT /users/{id}` is a full replace of the representation, so
-    /// we must echo every field we fetched (username, email, …) together with the
-    /// updated required actions. Attributes are always sent as a map — never
-    /// `null` — so we can't accidentally wipe user attributes such as
-    /// `org.ro.active` or `assigned_dimensions`.
-    async fn put_user_with_required_actions(
-        &self,
-        token: &str,
-        user: &KeycloakUser,
-        required_actions: Vec<String>,
-    ) -> Result<(), AppError> {
-        let url = format!("{}/users/{}", self.realm_url(), user.id);
+    /// Soft-disable MFA for a user: keeps the OTP credential (so the existing
+    /// authenticator entry stays valid for a lockout-free re-enable) but flips
+    /// the `mfa_enabled` attribute to "false" so the login flow stops prompting
+    /// for OTP. Also clears any pending `CONFIGURE_TOTP` action.
+    pub async fn disable_user_mfa(&self, keycloak_id: &str) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
+
+        // Keep the OTP credential — only flip the attribute and drop pending setup.
+        let required_actions: Vec<String> = user
+            .required_actions
+            .iter()
+            .filter(|a| a.as_str() != "CONFIGURE_TOTP")
+            .cloned()
+            .collect();
+
+        let mut attributes = user.attributes.clone().unwrap_or_default();
+        attributes.insert(MFA_ENABLED_ATTR.to_string(), vec!["false".to_string()]);
+
+        let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
         let body = json!({
             "username": user.username,
             "email": user.email,
@@ -281,29 +335,67 @@ impl KeycloakService {
             "lastName": user.last_name,
             "enabled": user.enabled,
             "emailVerified": user.email_verified,
-            "attributes": user.attributes.clone().unwrap_or_default(),
+            "attributes": attributes,
             "requiredActions": required_actions,
         });
 
         let response = self
             .client
             .put(&url)
-            .bearer_auth(token)
+            .bearer_auth(&token)
             .json(&body)
             .send()
             .await
             .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-        check_response!(response, "Failed to update Keycloak user");
+        check_response!(response, "Failed to disable MFA");
+        info!(keycloak_id = %keycloak_id, "MFA (TOTP) soft-disabled — credential preserved");
         Ok(())
     }
 
-    /// Disable MFA for a user: remove any existing OTP credentials and clear a
-    /// pending `CONFIGURE_TOTP` required action so the setup prompt disappears.
-    pub async fn disable_user_mfa(&self, keycloak_id: &str) -> Result<(), AppError> {
+    /// Re-enable MFA after a soft-disable. The OTP credential was preserved, so
+    /// this only flips the `mfa_enabled` attribute back to "true" — the user's
+    /// existing authenticator entry works again without a new QR code.
+    pub async fn enable_user_mfa(&self, keycloak_id: &str) -> Result<(), AppError> {
+        let token = self.get_cached_admin_token().await?;
+        let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
+
+        let mut attributes = user.attributes.clone().unwrap_or_default();
+        attributes.insert(MFA_ENABLED_ATTR.to_string(), vec!["true".to_string()]);
+
+        let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
+        let body = json!({
+            "username": user.username,
+            "email": user.email,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "enabled": user.enabled,
+            "emailVerified": user.email_verified,
+            "attributes": attributes,
+            "requiredActions": user.required_actions,
+        });
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to enable MFA");
+        info!(keycloak_id = %keycloak_id, "MFA (TOTP) re-enabled — same authenticator entry");
+        Ok(())
+    }
+
+    /// Reset MFA for a device change: deletes the existing OTP credential (the
+    /// old authenticator entry becomes permanently invalid) and arms a fresh
+    /// `CONFIGURE_TOTP` required action so the user scans a new QR code.
+    pub async fn reset_user_mfa(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
 
-        // Delete any existing OTP credentials first.
+        // Delete all OTP credentials (old secret is revoked permanently).
         let cred_url = format!("{}/users/{}/credentials", self.realm_url(), keycloak_id);
         let response = self
             .client
@@ -341,42 +433,91 @@ impl KeycloakService {
             }
         }
 
-        // Clear any pending CONFIGURE_TOTP action so the prompt disappears.
+        // Arm a fresh setup (TOTP + recovery codes) and keep the mfa_enabled
+        // attribute true.
         let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
-        let required_actions: Vec<String> = user
-            .required_actions
-            .iter()
-            .filter(|a| a.as_str() != "CONFIGURE_TOTP")
-            .cloned()
-            .collect();
+        let mut required_actions = user.required_actions.clone();
+        for action in ["CONFIGURE_TOTP", CONFIGURE_RECOVERY_ACTION] {
+            if !required_actions.iter().any(|a| a == action) {
+                required_actions.push(action.to_string());
+            }
+        }
 
-        self.put_user_with_required_actions(&token, &user, required_actions)
-            .await?;
-        info!(keycloak_id = %keycloak_id, "MFA (TOTP) disabled");
+        let mut attributes = user.attributes.clone().unwrap_or_default();
+        attributes.insert(MFA_ENABLED_ATTR.to_string(), vec!["true".to_string()]);
+
+        let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
+        let body = json!({
+            "username": user.username,
+            "email": user.email,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "enabled": user.enabled,
+            "emailVerified": user.email_verified,
+            "attributes": attributes,
+            "requiredActions": required_actions,
+        });
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to reset MFA");
+        info!(keycloak_id = %keycloak_id, "MFA (TOTP) reset — old credential revoked, new setup armed");
         Ok(())
     }
 
     /// Initiate MFA (TOTP) setup for a user by adding the `CONFIGURE_TOTP`
-    /// required action. Keycloak has no admin API to create an OTP credential
-    /// directly, so the user completes the (already branded) TOTP setup screen
-    /// on their next authentication — after which Keycloak stores the credential
-    /// and consumes the required action automatically.
+    /// required action (and `CONFIGURE_RECOVERY_AUTHN_CODES`, so the recovery
+    /// codes screen follows the QR scan in the same session). Keycloak has no
+    /// admin API to create an OTP credential directly, so the user completes
+    /// the (already branded) TOTP setup screen on their next authentication —
+    /// after which Keycloak stores the credential and consumes the actions.
     ///
-    /// Idempotent: setting the action twice is a no-op.
+    /// Idempotent: setting the actions twice is a no-op. Also marks the user as
+    /// MFA-enabled (attribute) so the login flow prompts for OTP after setup.
     pub async fn initiate_totp_setup(&self, keycloak_id: &str) -> Result<(), AppError> {
         let token = self.get_cached_admin_token().await?;
         let user = self.get_user_by_id_raw(&token, keycloak_id).await?;
 
-        if user.required_actions.iter().any(|a| a == "CONFIGURE_TOTP") {
-            return Ok(());
+        let mut required_actions = user.required_actions.clone();
+        for action in ["CONFIGURE_TOTP", CONFIGURE_RECOVERY_ACTION] {
+            if !required_actions.iter().any(|a| a == action) {
+                required_actions.push(action.to_string());
+            }
         }
 
-        let mut required_actions = user.required_actions.clone();
-        required_actions.push("CONFIGURE_TOTP".to_string());
-        self.put_user_with_required_actions(&token, &user, required_actions)
-            .await?;
+        let mut attributes = user.attributes.clone().unwrap_or_default();
+        attributes.insert(MFA_ENABLED_ATTR.to_string(), vec!["true".to_string()]);
 
-        info!(keycloak_id = %keycloak_id, "CONFIGURE_TOTP required action set — MFA setup initiated");
+        let url = format!("{}/users/{}", self.realm_url(), keycloak_id);
+        let body = json!({
+            "username": user.username,
+            "email": user.email,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "enabled": user.enabled,
+            "emailVerified": user.email_verified,
+            "attributes": attributes,
+            "requiredActions": required_actions,
+        });
+
+        let response = self
+            .client
+            .put(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+        check_response!(response, "Failed to initiate MFA setup");
+        info!(keycloak_id = %keycloak_id, "CONFIGURE_TOTP + recovery-codes required actions set — MFA setup initiated");
         Ok(())
     }
 
@@ -2252,5 +2393,37 @@ impl KeycloakService {
 
         check_response!(response, "Failed to reset user password");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::KeycloakService;
+
+    #[test]
+    fn mfa_enabled_from_parts_attribute_true() {
+        assert!(KeycloakService::mfa_enabled_from_parts(Some("true"), false, false));
+        assert!(KeycloakService::mfa_enabled_from_parts(Some("true"), false, true));
+    }
+
+    #[test]
+    fn mfa_enabled_from_parts_attribute_false_is_soft_disabled() {
+        // Soft-disabled: credential preserved but MFA off.
+        assert!(!KeycloakService::mfa_enabled_from_parts(Some("false"), false, true));
+        assert!(!KeycloakService::mfa_enabled_from_parts(Some("false"), false, false));
+    }
+
+    #[test]
+    fn mfa_enabled_from_parts_pending_setup_counts_as_enabled() {
+        assert!(KeycloakService::mfa_enabled_from_parts(None, true, false));
+        assert!(KeycloakService::mfa_enabled_from_parts(Some("false"), true, false));
+    }
+
+    #[test]
+    fn mfa_enabled_from_parts_legacy_credential_fallback() {
+        // Legacy user: no attribute but an OTP credential exists → enabled.
+        assert!(KeycloakService::mfa_enabled_from_parts(None, false, true));
+        // No attribute, no credential → not enabled.
+        assert!(!KeycloakService::mfa_enabled_from_parts(None, false, false));
     }
 }

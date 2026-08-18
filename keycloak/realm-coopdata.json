@@ -2085,12 +2085,13 @@
       "builtIn": true,
       "authenticationExecutions": [
         {
-          "authenticator": "conditional-user-configured",
+          "authenticator": "conditional-user-attribute",
           "authenticatorFlow": false,
           "requirement": "REQUIRED",
           "priority": 10,
           "autheticatorFlow": false,
-          "userSetupAllowed": false
+          "userSetupAllowed": false,
+          "authenticatorConfig": "mfa enabled condition"
         },
         {
           "authenticator": "auth-otp-form",
@@ -2111,7 +2112,7 @@
         {
           "authenticator": "auth-recovery-authn-code-form",
           "authenticatorFlow": false,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 40,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -2701,6 +2702,14 @@
       "config": {
         "update.profile.on.first.login": "missing"
       }
+    },
+    {
+      "id": "b9d3a2f1-7c4e-4a9b-8d6f-1e5c2b7a9d0e",
+      "alias": "mfa enabled condition",
+      "config": {
+        "attributeName": "mfa_enabled",
+        "attributeValue": "true"
+      }
     }
   ],
   "requiredActions": [
@@ -2711,7 +2720,9 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 10,
-      "config": {}
+      "config": {
+        "add-recovery-codes": "true"
+      }
     },
     {
       "alias": "TERMS_AND_CONDITIONS",
@@ -2846,7 +2857,7 @@
     "frontendUrl": "",
     "acr.loa.map": "{}"
   },
-  "keycloakVersion": "26.3.1",
+  "keycloakVersion": "26.4.6",
   "userManagedAccessAllowed": false,
   "organizationsEnabled": true,
   "verifiableCredentialsEnabled": false,

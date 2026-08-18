@@ -58,7 +58,7 @@ services:
     restart: unless-stopped
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3.1
+    image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak
     command: start-dev --import-realm
     env_file:
@@ -97,7 +97,7 @@ services:
       start_period: 30s
 
   keycloak-provision:
-    image: quay.io/keycloak/keycloak:26.3.1
+    image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak-provision
     env_file:
       - .env

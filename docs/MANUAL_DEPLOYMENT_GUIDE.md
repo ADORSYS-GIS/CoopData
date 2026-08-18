@@ -368,7 +368,7 @@ cd /opt/coopdata
    - `postgres:16-alpine`
    - `redis:7-alpine`
    - `minio/minio:latest`
-   - `quay.io/keycloak/keycloak:26.3.1`
+   - `quay.io/keycloak/keycloak:26.4.6`
    - `ghcr.io/adorsys-gis/coopdata-backend:latest`
    - `ghcr.io/adorsys-gis/coopdata-frontend:latest`
 4. Starts all containers

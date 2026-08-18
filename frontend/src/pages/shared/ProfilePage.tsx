@@ -7,7 +7,9 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useSecuritySettings, useDisableMfa } from "@/hooks/auth/useSecuritySettings";
 import { MfaSetupDialog } from "@/components/shared/MfaSetupDialog";
+import { ReEnableMfaDialog } from "@/components/shared/ReEnableMfaDialog";
 import { DisableMfaDialog } from "@/components/shared/DisableMfaDialog";
+import { ResetMfaDialog } from "@/components/shared/ResetMfaDialog";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -129,13 +131,22 @@ export const ProfilePage: React.FC = () => {
   const { data: security, isLoading: securityLoading } = useSecuritySettings();
   const disableMfa = useDisableMfa();
   const mfaEnabled = security?.mfa_enabled ?? false;
+  const mfaConfigured = security?.mfa_configured ?? false;
   const [mfaSetupOpen, setMfaSetupOpen] = useState(false);
+  const [mfaReenableOpen, setMfaReenableOpen] = useState(false);
   const [mfaDisableOpen, setMfaDisableOpen] = useState(false);
+  const [mfaResetOpen, setMfaResetOpen] = useState(false);
 
   const handleToggleMfa = async () => {
     if (!mfaEnabled) {
-      // Enabling is a two-step flow: open the inline QR setup dialog.
-      setMfaSetupOpen(true);
+      if (mfaConfigured) {
+        // Soft-disabled: the credential was preserved, so re-enable with the
+        // existing authenticator entry — no new QR code needed.
+        setMfaReenableOpen(true);
+      } else {
+        // Never set up: two-step flow — open the inline QR setup dialog.
+        setMfaSetupOpen(true);
+      }
       return;
     }
     // Disabling requires password confirmation.
@@ -312,28 +323,49 @@ export const ProfilePage: React.FC = () => {
                       <Shield className="size-4 text-accent" />
                       <p className="text-sm font-semibold text-foreground">{t("profile.mfa")}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.mfaDesc")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {mfaEnabled
+                        ? t("profile.mfaDesc")
+                        : mfaConfigured
+                          ? t(
+                              "profile.mfaSoftDisabledDesc",
+                              "Disabled — your authenticator entry is preserved",
+                            )
+                          : t("profile.mfaDesc")}
+                    </p>
                   </div>
-                  <button
-                    onClick={handleToggleMfa}
-                    disabled={disableMfa.isPending || securityLoading}
-                    role="switch"
-                    aria-checked={mfaEnabled}
-                    aria-label={t("profile.mfa")}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
-                      mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
-                        mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
-                      }`}
+                  <div className="flex items-center gap-2">
+                    {mfaEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => setMfaResetOpen(true)}
+                        disabled={securityLoading}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                      >
+                        {t("profile.mfaChangeDevice", "Change device")}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleToggleMfa}
+                      disabled={disableMfa.isPending || securityLoading}
+                      role="switch"
+                      aria-checked={mfaEnabled}
+                      aria-label={t("profile.mfa")}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
+                        mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {disableMfa.isPending && (
-                        <Loader2 className="size-3 animate-spin text-primary" />
-                      )}
-                    </span>
-                  </button>
+                      <span
+                        className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
+                          mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
+                        }`}
+                      >
+                        {disableMfa.isPending && (
+                          <Loader2 className="size-3 animate-spin text-primary" />
+                        )}
+                      </span>
+                    </button>
+                  </div>
                 </div>
                 {securityLoading && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -411,7 +443,9 @@ export const ProfilePage: React.FC = () => {
       </div>
 
       <MfaSetupDialog open={mfaSetupOpen} onOpenChange={setMfaSetupOpen} />
+      <ReEnableMfaDialog open={mfaReenableOpen} onOpenChange={setMfaReenableOpen} />
       <DisableMfaDialog open={mfaDisableOpen} onOpenChange={setMfaDisableOpen} />
+      <ResetMfaDialog open={mfaResetOpen} onOpenChange={setMfaResetOpen} />
     </AppShell>
   );
 };

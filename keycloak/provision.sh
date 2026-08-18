@@ -226,6 +226,25 @@ SMTP_JSON="{\"starttls\":\"${SMTP_STARTTLS}\",\"auth\":\"${SMTP_AUTH}\",\"host\"
 # SMTP delivery is verified implicitly: creating a user triggers a verification
 # email, and the backend now rolls back + returns a failure if that email fails.
 
+# ─── MFA attribute backfill ──────────────────────────────────────────────────
+# The realm's "Browser - Conditional 2FA" flow now keys off the `mfa_enabled`
+# user attribute instead of credential existence. Users who configured MFA
+# before this change have an OTP credential but no attribute, so they would
+# silently stop being prompted. Backfill the attribute for them.
+# The script lives next to this file (mounted at the same path in the container)
+# and is idempotent.
+echo "[provision] Backfilling mfa_enabled attribute for existing OTP users..."
+BACKFILL_SCRIPT="$(dirname "$0")/backfill-mfa-attribute.sh"
+if [ -f "${BACKFILL_SCRIPT}" ]; then
+  KEYCLOAK_URL="${KEYCLOAK_SERVER}" \
+    ADMIN_USER="${ADMIN_USER}" \
+    ADMIN_PASS="${ADMIN_PASS}" \
+    REALM="${REALM}" \
+    bash "${BACKFILL_SCRIPT}" || echo "[provision] WARNING: MFA backfill failed — run it manually later."
+else
+  echo "[provision] WARNING: ${BACKFILL_SCRIPT} not found — MFA backfill skipped."
+fi
+
 # ─── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "[provision] ========================================"

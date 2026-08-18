@@ -316,6 +316,84 @@ async fn test_token_nonexistent_fails() {
     assert!(result.is_err());
 }
 
+// ─── MFA endpoints (setup / enable / reset / disable) ────────────────────
+
+#[tokio::test]
+async fn test_mfa_setup_route_registered() {
+    let claims = claims_with_roles("ministry");
+    let test = TestApp::new().await;
+    let router = test_router(claims, test.state.clone());
+    // No live Keycloak in the test environment, so the handler may return a 502
+    // from the external call — the important part is the route is registered and
+    // reachable, not a 404/405.
+    let res = request(router, "POST", "/api/v1/me/security/mfa/setup", None).await;
+    assert!(
+        res.status() != StatusCode::NOT_FOUND && res.status() != StatusCode::METHOD_NOT_ALLOWED,
+        "Route should be registered, got {}",
+        res.status()
+    );
+}
+
+#[tokio::test]
+async fn test_mfa_enable_route_registered_and_requires_otp() {
+    let claims = claims_with_roles("ministry");
+    let test = TestApp::new().await;
+    let router = test_router(claims, test.state.clone());
+    // enable_mfa validates the OTP format first; a malformed OTP returns 400
+    // before any Keycloak call, proving the route is wired.
+    let res = request(
+        router,
+        "POST",
+        "/api/v1/me/security/mfa/enable",
+        Some(r#"{"password":"secret","otp":"abc"}"#.to_string()),
+    )
+    .await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_mfa_reset_route_registered_and_requires_otp() {
+    let claims = claims_with_roles("ministry");
+    let test = TestApp::new().await;
+    let router = test_router(claims, test.state.clone());
+    let res = request(
+        router,
+        "POST",
+        "/api/v1/me/security/mfa/reset",
+        Some(r#"{"password":"secret","otp":"12345"}"#.to_string()),
+    )
+    .await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_mfa_disable_route_registered_and_requires_otp() {
+    let claims = claims_with_roles("ministry");
+    let test = TestApp::new().await;
+    let router = test_router(claims, test.state.clone());
+    let res = request(
+        router,
+        "DELETE",
+        "/api/v1/me/security/mfa",
+        Some(r#"{"password":"secret","otp":"12ab56"}"#.to_string()),
+    )
+    .await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_security_settings_route_registered() {
+    let claims = claims_with_roles("ministry");
+    let test = TestApp::new().await;
+    let router = test_router(claims, test.state.clone());
+    let res = request(router, "GET", "/api/v1/me/security", None).await;
+    assert!(
+        res.status() != StatusCode::NOT_FOUND && res.status() != StatusCode::METHOD_NOT_ALLOWED,
+        "Route should be registered, got {}",
+        res.status()
+    );
+}
+
 // ─── Delete-preview endpoints are accessible ──────────────────────────────
 
 #[tokio::test]
