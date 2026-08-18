@@ -881,6 +881,169 @@ body {
     color: var(--foreground);
 }
 
+/* ── Recovery codes ──────────────────────────────────────────────── */
+
+/* Warning alert (amber) */
+.recovery-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: oklch(0.85 0.12 85 / 0.16);
+    border: 1px solid oklch(0.75 0.14 85 / 0.45);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+}
+
+.recovery-warning svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    color: oklch(0.6 0.15 85);
+}
+
+.recovery-warning strong {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: oklch(0.45 0.13 85);
+}
+
+.recovery-warning p {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: oklch(0.5 0.09 85);
+}
+
+/* Codes card */
+.recovery-codes-card {
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elev-1);
+    margin-bottom: 1.25rem;
+}
+
+.recovery-codes-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.625rem;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    counter-reset: recovery;
+}
+
+.recovery-codes-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'DM Mono', 'Courier New', monospace;
+}
+
+.recovery-codes-list li span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.375rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.recovery-codes-list li code {
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--foreground);
+    word-break: keep-all;
+}
+
+/* Print / download / copy actions */
+.recovery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.recovery-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.recovery-action-btn:hover {
+    background: var(--muted);
+    border-color: var(--ring);
+}
+
+.recovery-action-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Confirmation checkbox */
+.recovery-confirmation {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+}
+
+.recovery-confirmation input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 1px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.recovery-confirmation label {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+/* Recovery code entry input (login screen) */
+.recovery-code-input {
+    text-align: center;
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    padding: 0.75rem 1rem;
+    max-width: 18rem;
+    margin: 0 auto;
+    display: block;
+}
+
 /* ── TOTP secondary button (cancel AIA) ──────────────────────────── */
 .btn-secondary {
     display: inline-flex;
