@@ -1,4 +1,4 @@
-import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Loader2, Smartphone } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useAuth, ROLES, useUserRole } from "@/lib/auth";
 import { useState } from "react";
@@ -317,55 +317,61 @@ export const ProfilePage: React.FC = () => {
               edge="warning"
             >
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/30">
-                  <div className="space-y-1 pr-4">
-                    <div className="flex items-center gap-2">
-                      <Shield className="size-4 text-accent" />
-                      <p className="text-sm font-semibold text-foreground">{t("profile.mfa")}</p>
+                <div className="flex flex-col p-4 rounded-xl border border-border bg-muted/30 gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Shield className="size-4 text-accent" />
+                        <p className="text-sm font-semibold text-foreground">{t("profile.mfa")}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {mfaEnabled
+                          ? t("profile.mfaDesc")
+                          : mfaConfigured
+                            ? t(
+                                "profile.mfaSoftDisabledDesc",
+                                "Disabled — your authenticator entry is preserved",
+                              )
+                            : t("profile.mfaDesc")}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {mfaEnabled
-                        ? t("profile.mfaDesc")
-                        : mfaConfigured
-                          ? t(
-                              "profile.mfaSoftDisabledDesc",
-                              "Disabled — your authenticator entry is preserved",
-                            )
-                          : t("profile.mfaDesc")}
-                    </p>
+                    <div className="pt-0.5 shrink-0">
+                      <button
+                        onClick={handleToggleMfa}
+                        disabled={disableMfa.isPending || securityLoading}
+                        role="switch"
+                        aria-checked={mfaEnabled}
+                        aria-label={t("profile.mfa")}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
+                          mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
+                            mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
+                          }`}
+                        >
+                          {disableMfa.isPending && (
+                            <Loader2 className="size-3 animate-spin text-primary" />
+                          )}
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {mfaEnabled && (
+                  
+                  {mfaEnabled && (
+                    <div className="pt-3 border-t border-border/50">
                       <button
                         type="button"
                         onClick={() => setMfaResetOpen(true)}
                         disabled={securityLoading}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                        className="inline-flex items-center gap-2 text-xs font-medium text-foreground/80 hover:text-foreground transition-colors disabled:opacity-50"
                       >
+                        <Smartphone className="size-3.5" />
                         {t("profile.mfaChangeDevice", "Change device")}
                       </button>
-                    )}
-                    <button
-                      onClick={handleToggleMfa}
-                      disabled={disableMfa.isPending || securityLoading}
-                      role="switch"
-                      aria-checked={mfaEnabled}
-                      aria-label={t("profile.mfa")}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
-                        mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
-                          mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
-                        }`}
-                      >
-                        {disableMfa.isPending && (
-                          <Loader2 className="size-3 animate-spin text-primary" />
-                        )}
-                      </span>
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
                 {securityLoading && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
