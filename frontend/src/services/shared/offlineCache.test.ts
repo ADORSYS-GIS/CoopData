@@ -52,11 +52,19 @@ vi.mock("./offlineDb", () => {
           });
           return makeCollectionMock(getFiltered());
         }),
-        startsWith: vi.fn((val) => ({
-          first: vi.fn(async () => {
-            return mockSubmissionsStore.find((x) => String(x[field]).startsWith(val));
-          }),
-        })),
+        startsWith: vi.fn((val) => {
+          const getFiltered = () => mockSubmissionsStore.filter((x) => String(x[field]).startsWith(val));
+          const makeCollectionMock = (filteredList: any[]): any => ({
+            first: vi.fn(async () => filteredList[0]),
+            toArray: vi.fn(async () => filteredList),
+            count: vi.fn(async () => filteredList.length),
+            and: vi.fn((pred: any) => {
+              const nextList = filteredList.filter(pred);
+              return makeCollectionMock(nextList);
+            }),
+          });
+          return makeCollectionMock(getFiltered());
+        }),
       })),
       orderBy: vi.fn((field) => ({
         limit: vi.fn((num) => ({
@@ -112,11 +120,19 @@ vi.mock("./offlineDb", () => {
           });
           return makeCollectionMock(getFiltered());
         }),
-        startsWith: vi.fn((val) => ({
-          first: vi.fn(async () => {
-            return mockAnalyticsStore.find((x) => String(x[field]).startsWith(val));
-          }),
-        })),
+        startsWith: vi.fn((val) => {
+          const getFiltered = () => mockAnalyticsStore.filter((x) => String(x[field]).startsWith(val));
+          const makeCollectionMock = (filteredList: any[]): any => ({
+            first: vi.fn(async () => filteredList[0]),
+            toArray: vi.fn(async () => filteredList),
+            count: vi.fn(async () => filteredList.length),
+            and: vi.fn((pred: any) => {
+              const nextList = filteredList.filter(pred);
+              return makeCollectionMock(nextList);
+            }),
+          });
+          return makeCollectionMock(getFiltered());
+        }),
       })),
       orderBy: vi.fn((field) => ({
         limit: vi.fn((num) => ({

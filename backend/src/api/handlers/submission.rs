@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
@@ -22,6 +22,7 @@ use crate::entities::enums::SubmissionStatus;
 use crate::entities::submission::ActiveModel;
 use crate::error::{AppError, AppResult};
 use crate::repositories::submission_section::VALID_STATUSES;
+use crate::services::verification_token::VerificationTokenService;
 use crate::AppState;
 
 /// Resolve a federation's PostgreSQL tracking record by its Keycloak org ID,
@@ -1445,14 +1446,27 @@ pub async fn update_submission_section(
         (status = 204, description = "Submission deleted"),
         (status = 403, description = "Forbidden — not your cooperative"),
         (status = 404, description = "Submission not found"),
+        (status = 428, description = "Identity verification required", body = ErrorResponse)
     ),
     security(("bearer" = []))
 )]
 pub async fn delete_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
+    let token = headers
+        .get("x-verification-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| {
+            AppError::PreconditionRequired(
+                "Identity verification is required for destructive actions. Please verify your identity and try again.".to_string(),
+            )
+        })?;
+
+    VerificationTokenService::validate_and_consume(&state.cache, &claims.sub, token).await?;
+
     let coop =
         crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
 

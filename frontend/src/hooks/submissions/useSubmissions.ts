@@ -371,7 +371,7 @@ export const useUpdateSubmissionMethod = () => {
 export const useDeleteSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       const userId = getUserProfile()?.id ?? "anon";
 
       // Update cached lists offline
@@ -410,9 +410,13 @@ export const useDeleteSubmission = () => {
       return runMutation<void>("/api/v1/cooperative/submissions/{id}", "DELETE", {
         pathParams: { id },
         optimisticData: undefined,
+        verificationToken,
         online: async () => {
           const { error } = await apiClient.DELETE("/api/v1/cooperative/submissions/{id}", {
-            params: { path: { id } },
+            params: {
+              path: { id },
+              header: { "x-verification-token": verificationToken } as never,
+            },
           });
           if (error) throw new Error(extractErrorMessage(error));
         },

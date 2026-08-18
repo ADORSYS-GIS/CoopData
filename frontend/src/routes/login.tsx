@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ShieldAlert, WifiOff, RefreshCw } from "lucide-react";
+import { WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function AuthLoginHandler() {
@@ -42,22 +42,6 @@ function AuthLoginHandler() {
     login();
   }, [isAuthenticated, isLoading, user, login]);
 
-  const handleOfflineContinue = () => {
-    const defaultProfile = {
-      id: "offline-admin",
-      username: "admin@dgrv.coop",
-      email: "admin@dgrv.coop",
-      firstName: "DGRV",
-      lastName: "Administrator",
-      name: "DGRV Administrator",
-      role: "ministry" as const,
-      organizationName: "Ministry of Commerce & Cooperative Development",
-    };
-    localStorage.setItem("coopdata_offline_user", JSON.stringify(defaultProfile));
-    localStorage.setItem("coopdata_offline_authenticated", "true");
-    window.location.href = "/app/dashboard";
-  };
-
   if (isOffline && !isAuthenticated) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-background p-6 text-center">
@@ -67,13 +51,9 @@ function AuthLoginHandler() {
         <h1 className="text-2xl font-bold tracking-tight">You are currently offline</h1>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
           Keycloak identity server cannot be reached while disconnected from the network. You can
-          continue using stored IndexedDB data in Offline Mode.
+          continue using stored IndexedDB data in Offline Mode once network is restored.
         </p>
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
-          <Button onClick={handleOfflineContinue} size="lg" className="gap-2">
-            <ShieldAlert className="size-4" />
-            Enter Offline Mode
-          </Button>
           <Button
             onClick={() => window.location.reload()}
             variant="outline"

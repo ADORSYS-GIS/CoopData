@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       ? ""
       : env.VITE_API_BASE_URL || "";
 
-  const keycloakUrl = env.VITE_KEYCLOAK_URL || "http://localhost:8180";
+  const keycloakUrl = env.VITE_KEYCLOAK_URL || "";
 
   return {
     define: {

@@ -286,7 +286,9 @@ function OrgCard({
   );
 }
 
-import { DeleteSubmissionModal } from "@/components/submissions/DeleteSubmissionModal";
+import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
+import { useAuth } from "@/context/AuthContext";
 
 function SubmissionTable({
   submissions,
@@ -317,6 +319,8 @@ function SubmissionTable({
 }) {
   const { t } = useTranslation();
   const role = useUserRole();
+  const { isOffline } = useAuth();
+  const { verifyIdentity } = useVerifyIdentity();
   const deleteSubmission = useDeleteSubmission();
   const canValidate = true;
   const [submissionToDelete, setSubmissionToDelete] = useState<{
@@ -476,9 +480,9 @@ function SubmissionTable({
                             e.stopPropagation();
                             setSubmissionToDelete({ id: s.id, reference: s.reference });
                           }}
-                          disabled={deleteSubmission.isPending}
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title={t("submissions.detail.deleteSubmission")}
+                          disabled={deleteSubmission.isPending || isOffline}
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteSubmission")}
                         >
                           <Trash2 className="size-3.5" />
                         </button>
@@ -498,23 +502,20 @@ function SubmissionTable({
         </table>
       </div>
 
-      {submissionToDelete && (
-        <DeleteSubmissionModal
-          submission={submissionToDelete}
-          onClose={() => setSubmissionToDelete(null)}
-          onConfirm={async () => {
-            try {
-              await deleteSubmission.mutateAsync(submissionToDelete.id);
-              toast.success(t("submissions.deleteSuccess"));
-            } catch (err) {
-              toast.error(err instanceof Error ? err.message : t("submissions.deleteFailed"));
-            } finally {
-              setSubmissionToDelete(null);
-            }
-          }}
-          isPending={deleteSubmission.isPending}
-        />
-      )}
+      <DeleteConfirmationDialog
+        open={!!submissionToDelete}
+        onOpenChange={(open) => !open && setSubmissionToDelete(null)}
+        entityName={submissionToDelete ? (submissionToDelete.reference || submissionToDelete.id.slice(0, 8)) : ""}
+        entityType="submission"
+        entityId={submissionToDelete?.id ?? ""}
+        onVerifyIdentity={async (password, otp) => verifyIdentity({ password, otp })}
+        onConfirmDelete={async (verificationToken) => {
+          if (!submissionToDelete) return;
+          await deleteSubmission.mutateAsync({ id: submissionToDelete.id, verificationToken });
+          toast.success(t("submissions.deleteSuccess"));
+          setSubmissionToDelete(null);
+        }}
+      />
     </Card>
   );
 }

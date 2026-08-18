@@ -10,8 +10,8 @@ use axum::{
 use common::mock::TestApp;
 use coop_data_backend::api::routes::api::role_guard_layer;
 use coop_data_backend::api::routes::{
-    apex::apex_routes, federation::federation_routes, ministry::ministry_routes,
-    shared::shared_routes,
+    apex::apex_routes, cooperative::cooperative_routes, federation::federation_routes,
+    ministry::ministry_routes, shared::shared_routes,
 };
 use coop_data_backend::auth::claims::{Claims, RealmAccess};
 use coop_data_backend::auth::rbac::roles;
@@ -61,6 +61,15 @@ fn test_router(claims: Claims, state: coop_data_backend::AppState) -> Router {
         .nest(
             "/apex",
             apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[roles::APEX]))),
+        )
+        .nest(
+            "/cooperative",
+            cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                roles::COOPERATIVE,
+                roles::APEX,
+                roles::FEDERATION,
+                roles::MINISTRY,
+            ]))),
         )
         .layer(axum::middleware::from_fn(
             coop_data_backend::api::middleware::audit_context_layer,
@@ -215,6 +224,22 @@ async fn test_delete_cooperative_without_verification_token_returns_4xx() {
         "Expected 4xx, got {}",
         res.status()
     );
+}
+
+#[tokio::test]
+async fn test_delete_submission_without_verification_token_returns_428() {
+    let claims = claims_with_roles("cooperative");
+    let test = TestApp::new().await;
+    let router = test_router(claims, test.state.clone());
+    let sub_id = uuid::Uuid::new_v4();
+    let res = request(
+        router,
+        "DELETE",
+        &format!("/api/v1/cooperative/submissions/{}", sub_id),
+        None,
+    )
+    .await;
+    assert_eq!(res.status(), StatusCode::PRECONDITION_REQUIRED);
 }
 
 // ─── Delete With Invalid Token → 428 ──────────────────────────────────────

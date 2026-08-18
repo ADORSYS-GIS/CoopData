@@ -13,6 +13,10 @@ vi.mock("@/services/shared/authService", () => ({
   isOfflineModeActive: vi.fn().mockReturnValue(false),
 }));
 
+vi.mock("@/services/shared/offlineSeeder", () => ({
+  seedOfflineCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));

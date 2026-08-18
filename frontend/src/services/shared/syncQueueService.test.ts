@@ -5,6 +5,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("./authService", () => ({
   isOfflineModeActive: vi.fn().mockReturnValue(false),
   getAccessToken: vi.fn().mockResolvedValue("fake-jwt-token"),
+  getUserProfile: vi.fn().mockReturnValue({ id: "user-123" }),
+}));
+
+vi.mock("@/services/shared/authService", () => ({
+  isOfflineModeActive: vi.fn().mockReturnValue(false),
+  getAccessToken: vi.fn().mockResolvedValue("fake-jwt-token"),
+  getUserProfile: vi.fn().mockReturnValue({ id: "user-123" }),
 }));
 
 // Mock offlineDb
@@ -61,12 +68,16 @@ vi.mock("./offlineDb", () => {
   };
 });
 
-import { enqueue, flushSyncQueue } from "./syncQueueService";
+import { getUserProfile } from "./authService";
+import { enqueue, flushSyncQueue, runMutation } from "./syncQueueService";
+
+const mockedGetUserProfile = vi.mocked(getUserProfile);
 
 const globalFetch = global.fetch;
 
 describe("syncQueueService", () => {
   beforeEach(() => {
+    mockedGetUserProfile.mockReturnValue({ id: "user-123" } as any);
     mockSyncQueueStore.length = 0;
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -116,5 +127,44 @@ describe("syncQueueService", () => {
     const headers = fetchArgs[1].headers;
     expect(headers["x-verification-token"]).toBe("secret-token-123");
     expect(mockSyncQueueStore[0].status).toBe("done");
+  });
+
+  it("should scope runMutation items to the current user ID", async () => {
+    await runMutation("/api/v1/cooperatives", "POST", {
+      body: { name: "Coop A" },
+      optimisticData: { name: "Coop A" },
+      online: async () => ({ name: "Coop A" }),
+    });
+
+    expect(mockSyncQueueStore.length).toBe(1);
+    expect(mockSyncQueueStore[0].userId).toBe("user-123");
+  });
+
+  it("should throw online error on runMutation failure", async () => {
+    await expect(
+      runMutation("/api/v1/cooperatives", "POST", {
+        body: { name: "Coop A" },
+        optimisticData: { name: "Coop A" },
+        online: async () => {
+          throw new Error("Validation failed");
+        },
+      })
+    ).rejects.toThrow("Validation failed");
+
+    expect(mockSyncQueueStore.length).toBe(1);
+    expect(mockSyncQueueStore[0].status).toBe("pending");
+  });
+
+  it("should block offline delete on runMutation immediately", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+
+    await expect(
+      runMutation("/api/v1/cooperatives/coop-1", "DELETE", {
+        optimisticData: undefined,
+        online: async () => {},
+      })
+    ).rejects.toThrow("Destructive actions cannot be performed while offline.");
+
+    expect(mockSyncQueueStore.length).toBe(0);
   });
 });

@@ -36,12 +36,7 @@ export async function cacheGet<T>(
       .and((r: CacheRow) => r.userId === userId)
       .first()) as CacheRow | undefined;
 
-    // 2. Fall back to primary key alone
-    if (!row) {
-      row = (await tbl.where(pk).equals(key).first()) as CacheRow | undefined;
-    }
-
-    // 3. Fall back to prefix matching for list/overview keys (e.g. "audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-")
+    // 2. Fall back to prefix matching for list/overview keys (e.g. "audit-logs-", "questionnaire-analytics-", "national-overview-", "custom-kpis-")
     const prefixWhitelist = [
       "audit-logs-",
       "questionnaire-analytics-",
@@ -52,7 +47,11 @@ export async function cacheGet<T>(
     if (!row) {
       const matchingPrefix = prefixWhitelist.find((prefix) => key.startsWith(prefix));
       if (matchingPrefix) {
-        row = (await tbl.where(pk).startsWith(matchingPrefix).first()) as CacheRow | undefined;
+        row = (await tbl
+          .where(pk)
+          .startsWith(matchingPrefix)
+          .and((r: CacheRow) => r.userId === userId)
+          .first()) as CacheRow | undefined;
       }
     }
 

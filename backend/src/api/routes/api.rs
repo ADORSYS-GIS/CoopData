@@ -182,6 +182,10 @@ pub fn create_app(state: AppState) -> Router {
                 roles::MINISTRY,
             ]))),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            crate::api::middleware::idempotency_middleware,
+        ))
         .layer(axum::middleware::from_fn(
             crate::api::middleware::audit_context_layer,
         ))

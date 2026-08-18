@@ -1,5 +1,5 @@
 import { offlineDb, type SyncQueueItem } from "./offlineDb";
-import { getAccessToken, isOfflineModeActive } from "./authService";
+import { getAccessToken, isOfflineModeActive, getUserProfile } from "./authService";
 
 export async function enqueue(
   item: Omit<SyncQueueItem, "id" | "correlationId" | "createdAt" | "retryCount" | "status">,
@@ -90,17 +90,24 @@ export async function runMutation<T>(
     verificationToken?: string;
   },
 ): Promise<T> {
+  const isOffline = !navigator.onLine || isOfflineModeActive();
+  if (isOffline && method === "DELETE") {
+    throw new Error("Destructive actions cannot be performed while offline.");
+  }
+
+  const profile = getUserProfile();
+  const userId = profile?.id ?? "anonymous";
   const correlationId = await enqueue({
     endpoint,
     method,
     pathParams: opts.pathParams,
     body: opts.body,
     optimisticData: opts.optimisticData,
-    userId: "current",
+    userId,
     verificationToken: opts.verificationToken,
   });
 
-  if (navigator.onLine) {
+  if (!isOffline) {
     try {
       const item = await offlineDb.syncQueue.where("correlationId").equals(correlationId).first();
       if (item) {
@@ -110,11 +117,16 @@ export async function runMutation<T>(
         return data;
       }
     } catch (err) {
-      console.warn("[runMutation] Online request failed, keeping in syncQueue:", err);
+      console.warn("[runMutation] Online request failed:", err);
       const item = await offlineDb.syncQueue.where("correlationId").equals(correlationId).first();
       if (item) {
-        await offlineDb.syncQueue.update(item.id!, { status: "pending", lastError: String(err) });
+        if (method === "DELETE") {
+          await offlineDb.syncQueue.delete(item.id!);
+        } else {
+          await offlineDb.syncQueue.update(item.id!, { status: "pending", lastError: String(err) });
+        }
       }
+      throw err;
     }
   }
 
@@ -151,7 +163,15 @@ async function doFlushSyncQueue(): Promise<void> {
       .and((item) => (item.createdAt ?? 0) < twoMinutesAgo)
       .modify({ status: "pending" });
 
-    const pending = await offlineDb.syncQueue.where("status").equals("pending").toArray();
+    const profile = getUserProfile();
+    const currentUserId = profile?.id;
+    if (!currentUserId) return;
+
+    const pending = await offlineDb.syncQueue
+      .where("status")
+      .equals("pending")
+      .and((item) => item.userId === currentUserId)
+      .toArray();
     if (pending.length === 0) return;
 
     console.log(`[syncQueue] Processing ${pending.length} pending offline items...`);

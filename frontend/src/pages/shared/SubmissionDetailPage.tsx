@@ -23,7 +23,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
-import { useUserRole } from "@/lib/auth";
+import { useUserRole, useAuth } from "@/lib/auth";
 import {
   useSubmission,
   useDeleteSubmission,
@@ -55,7 +55,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
 import { QuestionnaireResponseViewer } from "@/components/submissions/QuestionnaireResponseViewer";
 import { useQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
-import { DeleteSubmissionModal } from "@/components/submissions/DeleteSubmissionModal";
+import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -182,6 +183,8 @@ export const SubmissionDetailPage: React.FC = () => {
   } = useSubmission(id ?? "", role ?? undefined);
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
+  const { isOffline } = useAuth();
+  const { verifyIdentity } = useVerifyIdentity();
   const submitMutation = useSubmitSubmission();
   const deleteMutation = useDeleteSubmission();
   const apexApprove = useApexApprove();
@@ -412,15 +415,16 @@ export const SubmissionDetailPage: React.FC = () => {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (verificationToken: string) => {
     if (!id) return;
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync({ id, verificationToken });
       toast.success(t("submissions.detail.toastDraftDeleted"));
       setDeleteModalOpen(false);
       navigate({ to: "/app/submissions" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("submissions.detail.toastDeleteFailed"));
+      throw e;
     }
   };
 
@@ -531,15 +535,16 @@ export const SubmissionDetailPage: React.FC = () => {
                 {isCooperative && submission.status !== "approved" && (
                   <button
                     onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
+                    disabled={deleteMutation.isPending || isOffline}
                     className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteSubmission")}
                   >
                     {deleteMutation.isPending ? (
                       <Loader2 className="size-3.5 animate-spin" />
                     ) : (
                       <Trash2 className="size-3.5" />
                     )}
-                    {t("submissions.detail.deleteSubmission")}
+                    {isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteSubmission")}
                   </button>
                 )}
               </div>
@@ -864,15 +869,16 @@ export const SubmissionDetailPage: React.FC = () => {
                     {submission?.status !== "approved" && (
                       <button
                         onClick={handleDelete}
-                        disabled={deleteMutation.isPending}
+                        disabled={deleteMutation.isPending || isOffline}
                         className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title={isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteDraft")}
                       >
                         {deleteMutation.isPending ? (
                           <Loader2 className="size-3.5 animate-spin" />
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        {t("submissions.detail.deleteDraft")}
+                        {isOffline ? t("submissions.cannotDeleteOffline", "Cannot delete while offline") : t("submissions.detail.deleteDraft")}
                       </button>
                     )}
                     <button
@@ -1058,14 +1064,15 @@ export const SubmissionDetailPage: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
         }}
       />
-      {deleteModalOpen && submission && (
-        <DeleteSubmissionModal
-          submission={{ id: submission.id, reference: submission.id.slice(0, 8) }}
-          onClose={() => setDeleteModalOpen(false)}
-          onConfirm={handleConfirmDelete}
-          isPending={deleteMutation.isPending}
-        />
-      )}
+      <DeleteConfirmationDialog
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        entityName={submission ? (submission.reference || submission.id.slice(0, 8)) : ""}
+        entityType="submission"
+        entityId={submission?.id ?? ""}
+        onVerifyIdentity={async (password, otp) => verifyIdentity({ password, otp })}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </AppShell>
   );
 };

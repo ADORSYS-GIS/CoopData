@@ -83,3 +83,39 @@ pub async fn request_logging(req: Request<Body>, next: Next) -> Response {
 
     response
 }
+
+pub async fn idempotency_middleware(
+    axum::extract::State(state): axum::extract::State<crate::AppState>,
+    req: Request<Body>,
+    next: Next,
+) -> Response {
+    let method = req.method().clone();
+    if method == axum::http::Method::GET || method == axum::http::Method::HEAD || method == axum::http::Method::OPTIONS {
+        return next.run(req).await;
+    }
+
+    let correlation_id = match req.headers().get("x-correlation-id").and_then(|v| v.to_str().ok()) {
+        Some(cid) => cid.to_string(),
+        None => return next.run(req).await,
+    };
+
+    let cache_key = format!("idem:{}", correlation_id);
+
+    if let Ok(Some(_)) = state.cache.get::<String>(&cache_key).await {
+        tracing::info!(correlation_id = %correlation_id, "Idempotency hit! Returning cached success.");
+        let status_code = if method == axum::http::Method::DELETE {
+            axum::http::StatusCode::NO_CONTENT
+        } else {
+            axum::http::StatusCode::OK
+        };
+        return axum::response::IntoResponse::into_response(status_code);
+    }
+
+    let response = next.run(req).await;
+
+    if response.status().is_success() {
+        let _ = state.cache.set(&cache_key, &"done".to_string(), std::time::Duration::from_secs(24 * 60 * 60)).await;
+    }
+
+    response
+}

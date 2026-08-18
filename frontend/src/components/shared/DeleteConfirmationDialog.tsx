@@ -21,7 +21,7 @@ interface DeleteConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entityName: string;
-  entityType: "federation" | "apex" | "cooperative";
+  entityType: "federation" | "apex" | "cooperative" | "submission";
   entityId: string;
   previewData?: DeletePreviewData;
   previewLoading?: boolean;
