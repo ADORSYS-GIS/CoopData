@@ -1086,3 +1086,86 @@ body {
     background: var(--muted);
     border-color: var(--muted-foreground);
 }
+
+/* ── Select authenticator (try another method) ──────────────────── */
+.authenticator-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.authenticator-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem 1.125rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-sans);
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms var(--ease-out-expo);
+}
+
+.authenticator-item:hover {
+    border-color: var(--ring);
+    box-shadow: var(--shadow-elev-1);
+    transform: translateY(-1px);
+}
+
+.authenticator-item:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.authenticator-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius);
+    background: oklch(0.5 0.17 240 / 0.1);
+    color: var(--accent);
+    font-size: 1.25rem;
+}
+
+.authenticator-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.authenticator-item-heading {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.authenticator-item-description {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+}
+
+.authenticator-item-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    transition: color 160ms ease, transform 160ms var(--ease-out-expo);
+}
+
+.authenticator-item:hover .authenticator-item-arrow {
+    color: var(--accent);
+    transform: translateX(2px);
+}
