@@ -1,4 +1,5 @@
 use chrono::Utc;
+use metrics::counter;
 use reqwest::Client;
 use serde::Serialize;
 use serde_json::json;
@@ -72,6 +73,8 @@ macro_rules! check_response {
         if !$response.status().is_success() {
             let status = $response.status();
             let body = $response.text().await.unwrap_or_default();
+            counter!("coopdata_keycloak_errors_total", "operation" => $context.to_string())
+                .increment(1);
             error!(status = %status, body = %body, "{}", $context);
             let detail = if !body.is_empty() {
                 // Try to extract the Keycloak error message from JSON
@@ -122,11 +125,15 @@ impl KeycloakService {
             let cached = self.admin_token.read().await;
             if let Some(ref token) = *cached {
                 if !token.is_expired() {
+                    counter!("coopdata_keycloak_requests_total", "operation" => "get_admin_token_cached")
+                        .increment(1);
                     return Ok(token.access_token.clone());
                 }
             }
         }
 
+        counter!("coopdata_keycloak_requests_total", "operation" => "get_admin_token_refresh")
+            .increment(1);
         let url = format!("{}/protocol/openid-connect/token", self.openid_url());
         let params = [
             ("grant_type", "client_credentials"),
@@ -498,6 +505,7 @@ impl KeycloakService {
         first_name: &str,
         last_name: &str,
     ) -> Result<KeycloakUser, AppError> {
+        counter!("coopdata_keycloak_requests_total", "operation" => "create_user").increment(1);
         let token = self.get_cached_admin_token().await?;
         let url = format!("{}/users", self.realm_url());
 
@@ -1261,6 +1269,7 @@ impl KeycloakService {
         role: &str,
         _redirect_url: &str,
     ) -> Result<KeycloakInvitation, AppError> {
+        counter!("coopdata_keycloak_requests_total", "operation" => "invite_user").increment(1);
         let token = self.get_cached_admin_token().await?;
 
         let mut attributes = HashMap::new();

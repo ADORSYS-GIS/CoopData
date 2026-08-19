@@ -1,3 +1,4 @@
+use metrics::counter;
 use uuid::Uuid;
 
 use crate::auth::claims::Claims;
@@ -134,6 +135,8 @@ impl SubmissionWorkflow {
         self.submission_repo
             .update_status(submission_id, SubmissionStatus::Submitted, ReviewTier::Apex)
             .await?;
+
+        counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
 
         // Immediately compute and save KPIs to database for cooperative analytics
         if sub.submission_method != "questionnaire" {
@@ -307,8 +310,18 @@ impl SubmissionWorkflow {
 
         let next_tier = new_tier.clone();
         self.submission_repo
-            .update_status(submission_id, new_status, new_tier)
+            .update_status(submission_id, new_status.clone(), new_tier.clone())
             .await?;
+
+        counter!("coopdata_submission_transitions_total", "status" => new_status.as_str().to_string())
+            .increment(1);
+
+        if new_tier == ReviewTier::Ministry
+            && matches!(action, ReviewAction::Approve | ReviewAction::Reject)
+        {
+            counter!("coopdata_submissions_processed_total", "status" => new_status.as_str().to_string())
+                .increment(1);
+        }
 
         let reviewer_tier = sub.current_tier.clone();
         let target_tier = match action {

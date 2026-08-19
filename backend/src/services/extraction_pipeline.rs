@@ -1,3 +1,4 @@
+use metrics::histogram;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use std::sync::Arc;
@@ -33,7 +34,8 @@ pub async fn run_extraction_pipeline(
     flag_repo: AbnormalityFlagRepository,
     section_repo: SubmissionSectionRepository,
 ) {
-    if let Err(e) = run_pipeline_inner(
+    let start = std::time::Instant::now();
+    let result = run_pipeline_inner(
         job_id,
         submission_id,
         cooperative_id,
@@ -50,8 +52,14 @@ pub async fn run_extraction_pipeline(
         &flag_repo,
         &section_repo,
     )
-    .await
-    {
+    .await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+    let status = if result.is_ok() { "success" } else { "failure" };
+    histogram!("coopdata_ai_extraction_duration_seconds", "status" => status.to_string())
+        .record(elapsed);
+
+    if let Err(e) = result {
         tracing::error!(job_id = %job_id, error = %e, "Extraction pipeline failed");
         let _ = job_repo
             .update_status(

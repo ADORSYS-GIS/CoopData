@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CoopData Alerting Rules
+# Evaluated by Prometheus every 15s, alerts sent to Grafana Alerting
+# which routes them to configured contact points (Slack, Discord, etc.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+groups:
+  - name: coopdata_alerts
+    rules:
+      # ══════════════════════════════════════════════════════════════════════
+      # CRITICAL ALERTS — Immediate action required
+      # ══════════════════════════════════════════════════════════════════════
+
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: coopdata-backend
+        annotations:
+          summary: "🚨 CoopData backend is DOWN"
+          description: "Backend has been unreachable for more than 1 minute. Users cannot access the application."
+
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: coopdata-postgres
+        annotations:
+          summary: "🚨 PostgreSQL exporter is DOWN"
+          description: "PostgreSQL metrics have stopped flowing. The database may be unreachable."
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: coopdata-redis
+        annotations:
+          summary: "🚨 Redis exporter is DOWN"
+          description: "Redis metrics have stopped flowing. Cache layer may be down."
+
+      - alert: MinIODown
+        expr: up{job="minio"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: coopdata-minio
+        annotations:
+          summary: "🚨 MinIO (S3) is DOWN"
+          description: "MinIO metrics have stopped flowing. File uploads may be failing."
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(axum_http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(axum_http_requests_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          service: coopdata-backend
+        annotations:
+          summary: "🚨 High 5xx error rate on CoopData API"
+          description: "More than 1% of requests are returning 5xx errors over the last 5 minutes."
+
+      # ══════════════════════════════════════════════════════════════════════
+      # WARNING ALERTS — Investigate soon
+      # ══════════════════════════════════════════════════════════════════════
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(axum_http_requests_duration_seconds_bucket[5m]))) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-backend
+        annotations:
+          summary: "⚠️ High API latency (p99 > 2s)"
+          description: "99th percentile response time exceeds 2 seconds for the last 5 minutes."
+
+      - alert: HighDBQueryDuration
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(coopdata_db_query_duration_seconds_bucket[5m]))) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-backend
+        annotations:
+          summary: "⚠️ Slow database queries (p95 > 100ms)"
+          description: "95th percentile DB query duration exceeds 100ms for the last 5 minutes."
+
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.20
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-host
+        annotations:
+          summary: "⚠️ EC2 disk space is low"
+          description: "Less than 20% of disk space remains on the root volume."
+
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-host
+        annotations:
+          summary: "⚠️ EC2 host memory usage is high"
+          description: "RAM utilization exceeds 85% for the last 5 minutes."
+
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-host
+        annotations:
+          summary: "⚠️ EC2 CPU usage is high"
+          description: "CPU utilization exceeds 80% for the last 5 minutes."
+
+      - alert: PostgresHighConnections
+        expr: |
+          pg_stat_activity_count > (pg_settings_max_connections * 0.8)
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-postgres
+        annotations:
+          summary: "⚠️ PostgreSQL connection pool is nearly full"
+          description: "Active connections exceed 80% of max_connections."
+
+      - alert: RedisHighMemory
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          service: coopdata-redis
+        annotations:
+          summary: "⚠️ Redis memory usage is high"
+          description: "Redis memory usage exceeds 80% of max memory."
+
+      - alert: KeycloakHighErrorRate
+        expr: |
+          (
+            sum(rate(coopdata_keycloak_errors_total[10m]))
+            /
+            sum(rate(coopdata_keycloak_requests_total[10m]))
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          service: coopdata-backend
+        annotations:
+          summary: "⚠️ Keycloak request failure rate is high"
+          description: "More than 10% of Keycloak requests are failing over the last 10 minutes."

@@ -31,7 +31,7 @@ services:
       - backend_cargo_git:/usr/local/cargo/git
       - backend_target:/app/target
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   frontend:
     # Replace nginx-served build with Vite dev server (HMR).

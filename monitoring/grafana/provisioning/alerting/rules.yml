@@ -1,0 +1,573 @@
+apiVersion: 1
+groups:
+- orgId: 1
+  name: Critical
+  folder: Critical Alerts
+  interval: 1m
+  rules:
+  - uid: backend-down
+    title: BackendDown
+    condition: A
+    for: 1m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-backend
+    annotations:
+      summary: 🔴 Backend is DOWN
+      description: The CoopData backend API is unreachable for 1 minute.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: up{job="backend"} == 0
+        interval: 15s
+        legendFormat: ''
+  - uid: postgres-down
+    title: PostgresDown
+    condition: A
+    for: 1m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-postgres
+    annotations:
+      summary: 🔴 PostgreSQL is DOWN
+      description: PostgreSQL exporter is unreachable for 1 minute.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: up{job="postgres"} == 0
+        interval: 15s
+        legendFormat: ''
+  - uid: redis-down
+    title: RedisDown
+    condition: A
+    for: 1m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-redis
+    annotations:
+      summary: 🔴 Redis is DOWN
+      description: Redis exporter is unreachable for 1 minute.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: up{job="redis"} == 0
+        interval: 15s
+        legendFormat: ''
+  - uid: minio-down
+    title: MinIODown
+    condition: A
+    for: 1m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-minio
+    annotations:
+      summary: 🔴 MinIO is DOWN
+      description: MinIO (S3) is unreachable for 1 minute.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: up{job="minio"} == 0
+        interval: 15s
+        legendFormat: ''
+  - uid: prometheus-down
+    title: PrometheusDown
+    condition: A
+    for: 2m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: prometheus
+    annotations:
+      summary: 🔴 Prometheus is DOWN
+      description: Prometheus itself is unreachable — monitoring is blind.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: up{job="prometheus"} == 0
+        interval: 15s
+        legendFormat: ''
+  - uid: grafana-down
+    title: GrafanaDown
+    condition: A
+    for: 2m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: grafana
+    annotations:
+      summary: 🔴 Grafana is DOWN
+      description: Grafana dashboards are unreachable for 2 minutes.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 300
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: up{job="grafana"} == 0
+        interval: 15s
+        legendFormat: ''
+  - uid: high-error-rate
+    title: HighErrorRate
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-backend
+    annotations:
+      summary: 🔴 High API error rate (5xx > 1%)
+      description: More than 1% of API requests are returning 5xx errors.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: sum(rate(axum_http_requests_total{status=~"5.."}[5m])) / sum(rate(axum_http_requests_total[5m]))
+          * 100 > 1
+        interval: 15s
+        legendFormat: ''
+  - uid: backend-restarting
+    title: BackendContainerRestarting
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-backend
+    annotations:
+      summary: 🔴 Backend container crash-looping
+      description: Backend container restarted more than 3 times in the last hour.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: increase(container_restart_count{name="coopdata-backend"}[1h]) > 3
+        interval: 15s
+        legendFormat: ''
+  - uid: request-rate-drop
+    title: RequestRateDrop
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: coopdata-backend
+    annotations:
+      summary: 🔴 Request rate dropped <10% of normal
+      description: Traffic dropped significantly — possible frontend or network issue.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: sum(rate(axum_http_requests_total[5m])) < 0.1 * sum(rate(axum_http_requests_total[5m]
+          offset 1d))
+        interval: 15s
+        legendFormat: ''
+  - uid: disk-space-critical
+    title: DiskSpaceCritical
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: critical
+      service: node-exporter
+    annotations:
+      summary: 🔴 Disk space critical (<10% free)
+      description: Less than 10% disk space remaining.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: node_filesystem_avail{mountpoint="/"} / node_filesystem_size{mountpoint="/"}
+          * 100 < 10
+        interval: 15s
+        legendFormat: ''
+- orgId: 1
+  name: Warning
+  folder: Warning Alerts
+  interval: 1m
+  rules:
+  - uid: high-latency
+    title: HighLatency
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-backend
+    annotations:
+      summary: ⚠️ High API latency (p99 > 2s)
+      description: 99th percentile response time exceeds 2 seconds.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: histogram_quantile(0.99, sum by (le) (rate(axum_http_requests_duration_seconds_bucket[5m])))
+          > 2.0
+        interval: 15s
+        legendFormat: ''
+  - uid: high-db-query-duration
+    title: HighDBQueryDuration
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-backend
+    annotations:
+      summary: ⚠️ Slow DB queries (p95 > 100ms)
+      description: 95th percentile DB query duration exceeds 100ms.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: histogram_quantile(0.95, sum by (le) (rate(coopdata_db_query_duration_seconds_bucket[5m])))
+          > 0.1
+        interval: 15s
+        legendFormat: ''
+  - uid: disk-space-low
+    title: DiskSpaceLow
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: node-exporter
+    annotations:
+      summary: ⚠️ Disk space low (<20% free)
+      description: Less than 20% disk space remaining.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: node_filesystem_avail{mountpoint="/"} / node_filesystem_size{mountpoint="/"}
+          * 100 < 20
+        interval: 15s
+        legendFormat: ''
+  - uid: high-memory-usage
+    title: HighMemoryUsage
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: node-exporter
+    annotations:
+      summary: ⚠️ High memory usage (>85%)
+      description: EC2 memory usage exceeds 85%.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) *
+          100 > 85
+        interval: 15s
+        legendFormat: ''
+  - uid: high-cpu-usage
+    title: HighCPUUsage
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: node-exporter
+    annotations:
+      summary: ⚠️ High CPU usage (>80%)
+      description: EC2 CPU utilization exceeds 80%.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        interval: 15s
+        legendFormat: ''
+  - uid: pg-high-connections
+    title: PGHighConnections
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-postgres
+    annotations:
+      summary: ⚠️ PG connection pool >80%
+      description: PostgreSQL active connections exceed 80% of max.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: pg_stat_activity_count / pg_settings_max_connections * 100 > 80
+        interval: 15s
+        legendFormat: ''
+  - uid: pg-deadlocks
+    title: PGDeadlocks
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-postgres
+    annotations:
+      summary: ⚠️ PostgreSQL deadlocks detected
+      description: Database deadlocks have been detected.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: rate(pg_stat_database_deadlocks[5m]) > 0
+        interval: 15s
+        legendFormat: ''
+  - uid: redis-high-memory
+    title: RedisHighMemory
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-redis
+    annotations:
+      summary: ⚠️ Redis memory >90%
+      description: Redis memory usage exceeds 90% of max.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        interval: 15s
+        legendFormat: ''
+  - uid: redis-high-eviction
+    title: RedisHighEviction
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-redis
+    annotations:
+      summary: ⚠️ Redis high eviction rate
+      description: Redis is evicting keys due to memory pressure.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: rate(redis_evicted_keys_total[5m]) > 10
+        interval: 15s
+        legendFormat: ''
+  - uid: redis-hit-rate-drop
+    title: RedisHitRateDrop
+    condition: A
+    for: 10m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-redis
+    annotations:
+      summary: ⚠️ Redis cache hit rate <50%
+      description: Cache effectiveness has degraded significantly.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total)
+          * 100 < 50
+        interval: 15s
+        legendFormat: ''
+  - uid: request-rate-spike
+    title: RequestRateSpike
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-backend
+    annotations:
+      summary: ⚠️ Request rate spike (>5x normal)
+      description: Traffic surged to more than 5x the normal rate.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: sum(rate(axum_http_requests_total[5m])) > 5 * sum(rate(axum_http_requests_total[5m]
+          offset 1d))
+        interval: 15s
+        legendFormat: ''
+  - uid: high-4xx-rate
+    title: High4xxRate
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-backend
+    annotations:
+      summary: ⚠️ High 4xx error rate (>10%)
+      description: More than 10% of requests return 4xx errors.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: sum(rate(axum_http_requests_total{status=~"4.."}[5m])) / sum(rate(axum_http_requests_total[5m]))
+          * 100 > 10
+        interval: 15s
+        legendFormat: ''
+  - uid: high-disk-io
+    title: HighDiskIOWait
+    condition: A
+    for: 10m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: node-exporter
+    annotations:
+      summary: ⚠️ High disk I/O wait (>90%)
+      description: Disk is saturated — queries and requests may be slow.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.9
+        interval: 15s
+        legendFormat: ''
+  - uid: pg-slow-queries
+    title: PGSlowQueries
+    condition: A
+    for: 5m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-postgres
+    annotations:
+      summary: ⚠️ Long-running PG queries (>5min)
+      description: A query has been running for more than 5 minutes.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: pg_stat_activity_max_tx_duration > 300
+        interval: 15s
+        legendFormat: ''
+  - uid: keycloak-high-error-rate
+    title: KeycloakHighErrorRate
+    condition: A
+    for: 10m
+    noDataState: NoData
+    execErrState: Error
+    labels:
+      severity: warning
+      service: coopdata-backend
+    annotations:
+      summary: ⚠️ Keycloak error rate >10%
+      description: More than 10% of Keycloak API requests are failing.
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: PBFA97CFB590B2093
+      model:
+        expr: sum(rate(coopdata_keycloak_errors_total[10m])) / sum(rate(coopdata_keycloak_requests_total[10m]))
+          > 0.10
+        interval: 15s
+        legendFormat: ''
