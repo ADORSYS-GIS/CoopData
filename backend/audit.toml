@@ -11,5 +11,6 @@ ignore = [
   "RUSTSEC-2026-0195", # quick-xml memory exhaustion in NsReader — same transitive dep, same blocker
   "RUSTSEC-2026-0192", # ttf-parser unmaintained — transitive via pdf_oxide; no alternative available
   "RUSTSEC-2026-0221", # event-listener !Send StackSlot — transitive via sqlx-core 0.8.6; fix requires sqlx upgrade
-  "RUSTSEC-2026-0235"  # rkyv archive OOB read — transitive via rust_decimal 1.42.1; fix requires rkyv >= 0.8.17 (breaking)
+  "RUSTSEC-2026-0235", # rkyv archive OOB read — transitive via rust_decimal 1.42.1; fix requires rkyv >= 0.8.17 (breaking)
+  "RUSTSEC-2026-0258"  # h2 unbounded empty DATA frames — transitive via hyper 0.14 / aws-smithy-http-client; no patched 0.3.x, requires hyper 1.x upgrade
 ]
