@@ -567,7 +567,7 @@ groups:
         to: 0
       datasourceUid: PBFA97CFB590B2093
       model:
-        expr: sum(rate(coopdata_keycloak_requests_total{status=~"5.."}[10m])) / sum(rate(coopdata_keycloak_requests_total[10m]))
+        expr: sum(rate(coopdata_keycloak_errors_total[10m])) / sum(rate(coopdata_keycloak_requests_total[10m]))
           > 0.10
         interval: 15s
         legendFormat: ''
