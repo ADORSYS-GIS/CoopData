@@ -43,7 +43,11 @@ export const useMfaSetup = () => {
   });
 };
 
-/** Disable MFA (deletes the OTP credential immediately). Requires password and OTP for verification. */
+/**
+ * Soft-disable MFA: keeps the OTP credential in Keycloak (so the existing
+ * authenticator entry stays valid) but turns off the OTP prompt at login.
+ * Requires password and current OTP for verification.
+ */
 export const useDisableMfa = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -55,6 +59,60 @@ export const useDisableMfa = () => {
       otp: string;
     }): Promise<SecuritySettings> => {
       const { data, error } = await apiClient.DELETE("/api/v1/me/security/mfa", {
+        body: { password, otp },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SecuritySettings;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData([SECURITY_KEY], data);
+    },
+  });
+};
+
+/**
+ * Re-enable MFA after a soft-disable. The credential was preserved, so no new
+ * QR code is generated — the existing authenticator entry works again.
+ * Requires password and current OTP for verification.
+ */
+export const useEnableMfa = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      password,
+      otp,
+    }: {
+      password: string;
+      otp: string;
+    }): Promise<SecuritySettings> => {
+      const { data, error } = await apiClient.POST("/api/v1/me/security/mfa/enable", {
+        body: { password, otp },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SecuritySettings;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData([SECURITY_KEY], data);
+    },
+  });
+};
+
+/**
+ * Reset MFA for a device change: revokes the old secret (old authenticator
+ * entry becomes permanently invalid) and arms a fresh CONFIGURE_TOTP setup so
+ * a new QR code is shown at next sign-in. Requires password + current OTP.
+ */
+export const useResetMfa = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      password,
+      otp,
+    }: {
+      password: string;
+      otp?: string;
+    }): Promise<SecuritySettings> => {
+      const { data, error } = await apiClient.POST("/api/v1/me/security/mfa/reset", {
         body: { password, otp },
       });
       if (error) throw new Error(extractErrorMessage(error));

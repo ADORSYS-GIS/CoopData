@@ -16,16 +16,38 @@ pub struct ChangePasswordResponse {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SecuritySettingsResponse {
-    /// True when the user has an OTP (TOTP) credential configured in Keycloak,
-    /// or a CONFIGURE_TOTP required action is pending (setup initiated but not
-    /// yet completed at next sign-in).
+    /// True when MFA is currently turned on for the user (the `mfa_enabled`
+    /// attribute is "true"), or a CONFIGURE_TOTP required action is pending
+    /// (setup initiated but not yet completed at next sign-in).
     pub mfa_enabled: bool,
+    /// True when an OTP (TOTP) credential still exists in Keycloak. After a
+    /// soft-disable the credential is preserved, so the user can re-enable MFA
+    /// without scanning a new QR code.
+    pub mfa_configured: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct DisableMfaRequest {
     pub password: String,
     pub otp: String,
+}
+
+/// Re-enable MFA after a soft-disable. Verifies the user still holds the
+/// existing authenticator entry (password + current OTP) before flipping the
+/// `mfa_enabled` attribute back on. No new QR code is generated.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct EnableMfaRequest {
+    pub password: String,
+    pub otp: String,
+}
+
+/// Reset MFA for a device change. Verifies the user still holds the current
+/// authenticator entry (password + current OTP), revokes the old secret, and
+/// arms a fresh `CONFIGURE_TOTP` required action so a new QR code is shown.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ResetMfaRequest {
+    pub password: String,
+    pub otp: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -213,5 +235,51 @@ mod tests {
         };
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("Password changed successfully"));
+    }
+
+    #[test]
+    fn test_security_settings_response_serialization() {
+        let response = SecuritySettingsResponse {
+            mfa_enabled: true,
+            mfa_configured: true,
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"mfa_enabled\":true"));
+        assert!(json.contains("\"mfa_configured\":true"));
+    }
+
+    #[test]
+    fn test_security_settings_response_soft_disabled() {
+        let response = SecuritySettingsResponse {
+            mfa_enabled: false,
+            mfa_configured: true,
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"mfa_enabled\":false"));
+        assert!(json.contains("\"mfa_configured\":true"));
+    }
+
+    #[test]
+    fn test_enable_mfa_request_deserialization() {
+        let json = r#"{"password": "secret", "otp": "123456"}"#;
+        let req: EnableMfaRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.password, "secret");
+        assert_eq!(req.otp, "123456");
+    }
+
+    #[test]
+    fn test_reset_mfa_request_deserialization() {
+        let json = r#"{"password": "secret", "otp": "654321"}"#;
+        let req: ResetMfaRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.password, "secret");
+        assert_eq!(req.otp, Some("654321".to_string()));
+    }
+
+    #[test]
+    fn test_disable_mfa_request_deserialization() {
+        let json = r#"{"password": "secret", "otp": "111222"}"#;
+        let req: DisableMfaRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.password, "secret");
+        assert_eq!(req.otp, "111222");
     }
 }

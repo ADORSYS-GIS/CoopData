@@ -1984,7 +1984,7 @@
         "subComponents": {},
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"org.ro.active\",\"displayName\":\"Invited org\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"org.ro.active\",\"displayName\":\"Invited org\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"mfa_enabled\",\"displayName\":\"MFA enabled\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
           ]
         }
       }
@@ -2079,17 +2079,26 @@
     },
     {
       "id": "7236cd83-7324-4657-9f7b-e7aec97ec96f",
-      "alias": "Browser - Conditional 2FA",
+      "alias": "CoopData Conditional 2FA",
       "description": "Flow to determine if any 2FA is required for the authentication",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": true,
       "authenticationExecutions": [
         {
-          "authenticator": "conditional-user-configured",
+          "authenticator": "conditional-user-attribute",
           "authenticatorFlow": false,
           "requirement": "REQUIRED",
           "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "mfa enabled condition"
+        },
+        {
+          "authenticator": "conditional-user-configured",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 15,
           "autheticatorFlow": false,
           "userSetupAllowed": false
         },
@@ -2099,7 +2108,7 @@
           "requirement": "ALTERNATIVE",
           "priority": 20,
           "autheticatorFlow": false,
-          "userSetupAllowed": false
+          "userSetupAllowed": true
         },
         {
           "authenticator": "webauthn-authenticator",
@@ -2112,7 +2121,7 @@
         {
           "authenticator": "auth-recovery-authn-code-form",
           "authenticatorFlow": false,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 40,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -2561,7 +2570,7 @@
           "requirement": "CONDITIONAL",
           "priority": 20,
           "autheticatorFlow": true,
-          "flowAlias": "Browser - Conditional 2FA",
+          "flowAlias": "CoopData Conditional 2FA",
           "userSetupAllowed": false
         }
       ]
@@ -2702,6 +2711,14 @@
       "config": {
         "update.profile.on.first.login": "missing"
       }
+    },
+    {
+      "id": "b9d3a2f1-7c4e-4a9b-8d6f-1e5c2b7a9d0e",
+      "alias": "mfa enabled condition",
+      "config": {
+        "attribute_name": "mfa_enabled",
+        "attribute_expected_value": "true"
+      }
     }
   ],
   "requiredActions": [
@@ -2712,7 +2729,9 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 10,
-      "config": {}
+      "config": {
+        "add-recovery-codes": "true"
+      }
     },
     {
       "alias": "TERMS_AND_CONDITIONS",
@@ -2847,7 +2866,7 @@
     "frontendUrl": "",
     "acr.loa.map": "{}"
   },
-  "keycloakVersion": "26.3.1",
+  "keycloakVersion": "26.4.6",
   "userManagedAccessAllowed": false,
   "organizationsEnabled": true,
   "verifiableCredentialsEnabled": false,

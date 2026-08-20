@@ -25,7 +25,7 @@
 
 ## 1. Architecture Overview
 
-CoopData uses **Keycloak 26.3.1** as its identity provider (IdP) and central authority for authentication and role management. The application architecture has three layers:
+CoopData uses **Keycloak 26.4.6** as its identity provider (IdP) and central authority for authentication and role management. The application architecture has three layers:
 
 ```mermaid
 graph TB
@@ -43,7 +43,7 @@ graph TB
         KS[KeycloakService]
     end
 
-    subgraph Keycloak ["Keycloak 26.3.1"]
+    subgraph Keycloak ["Keycloak 26.4.6"]
         Realm["Realm: coopdata"]
         Org["Organizations"]
         Groups["Groups & Subgroups"]

@@ -68,6 +68,16 @@
               "format": "int32",
               "nullable": true
             }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
           }
         ],
         "responses": {
@@ -4981,6 +4991,96 @@
         }
       }
     },
+    "/api/v1/me/security/mfa/enable": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "enable_mfa",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableMfaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "MFA re-enabled using the existing authenticator entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecuritySettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No OTP credential to re-enable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/security/mfa/reset": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "reset_mfa",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMfaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "MFA reset; user completes setup with a new QR at next sign-in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecuritySettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/security/mfa/setup": {
       "post": {
         "tags": [
@@ -7525,6 +7625,11 @@
       "BenchmarkParams": {
         "type": "object",
         "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "reporting_year": {
             "type": "integer",
             "format": "int32",
@@ -9047,6 +9152,22 @@
           "Days61To90",
           "Days91Plus"
         ]
+      },
+      "EnableMfaRequest": {
+        "type": "object",
+        "description": "Re-enable MFA after a soft-disable. Verifies the user still holds the\nexisting authenticator entry (password + current OTP) before flipping the\n`mfa_enabled` attribute back on. No new QR code is generated.",
+        "required": [
+          "password",
+          "otp"
+        ],
+        "properties": {
+          "otp": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -12431,6 +12552,22 @@
           }
         }
       },
+      "ResetMfaRequest": {
+        "type": "object",
+        "description": "Reset MFA for a device change. Verifies the user still holds the current\nauthenticator entry (password + current OTP), revokes the old secret, and\narms a fresh `CONFIGURE_TOTP` required action so a new QR code is shown.",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "otp": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "ReviewActionRequest": {
         "type": "object",
         "properties": {
@@ -12792,12 +12929,17 @@
       "SecuritySettingsResponse": {
         "type": "object",
         "required": [
-          "mfa_enabled"
+          "mfa_enabled",
+          "mfa_configured"
         ],
         "properties": {
+          "mfa_configured": {
+            "type": "boolean",
+            "description": "True when an OTP (TOTP) credential still exists in Keycloak. After a\nsoft-disable the credential is preserved, so the user can re-enable MFA\nwithout scanning a new QR code."
+          },
           "mfa_enabled": {
             "type": "boolean",
-            "description": "True when the user has an OTP (TOTP) credential configured in Keycloak,\nor a CONFIGURE_TOTP required action is pending (setup initiated but not\nyet completed at next sign-in)."
+            "description": "True when MFA is currently turned on for the user (the `mfa_enabled`\nattribute is \"true\"), or a CONFIGURE_TOTP required action is pending\n(setup initiated but not yet completed at next sign-in)."
           }
         }
       },

@@ -11,6 +11,8 @@ keycloak/themes/coopdata/login/
 ├── theme.properties          # Theme configuration
 ├── template.ftl              # Base template layout
 ├── login.ftl                 # Login page template
+├── login-recovery-authn-code-config.ftl  # Recovery codes setup page
+├── login-recovery-authn-code-input.ftl   # Recovery code entry page
 └── resources/
     ├── css/
     │   └── styles.css        # Theme styles
@@ -168,6 +170,15 @@ docker compose restart keycloak
 1. Check Keycloak logs for FreeMarker parsing errors
 2. Verify all `<#if>` blocks are properly closed with `</#if>`
 3. Ensure all variables are properly escaped with `${...}`
+
+## Recovery Codes Pages
+
+Two additional pages are themed with the same split-screen layout:
+
+- **`login-recovery-authn-code-config.ftl`** — shown immediately after TOTP setup when recovery codes are generated. Displays the 12 one-time codes in a card with print / download / copy actions, a warning banner, and a "I've saved these codes" confirmation checkbox that enables the submit button.
+- **`login-recovery-authn-code-input.ftl`** — shown when a user signs in with a recovery code instead of an authenticator code. Mirrors the OTP login page.
+
+Both use the standard Keycloak base messages for recovery-code strings (inherited via `parent=base`) plus custom keys (`recoveryCodes*`, `recoveryCodeInput*`) defined in `messages/` for brand copy in all four locales (EN/FR/PT/SS).
 
 ## Related Documentation
 

@@ -12,7 +12,13 @@ vi.mock("@/openapi-client", () => ({
 }));
 
 import { apiClient } from "@/openapi-client";
-import { useSecuritySettings, useMfaSetup, useDisableMfa } from "@/hooks/auth/useSecuritySettings";
+import {
+  useSecuritySettings,
+  useMfaSetup,
+  useDisableMfa,
+  useEnableMfa,
+  useResetMfa,
+} from "@/hooks/auth/useSecuritySettings";
 
 const mockedGet = vi.mocked(apiClient.GET);
 const mockedPost = vi.mocked(apiClient.POST);
@@ -119,6 +125,74 @@ describe("useDisableMfa", () => {
     const { wrapper } = makeWrapper();
 
     const { result } = renderHook(() => useDisableMfa(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ password: "test-password", otp: "123456" }),
+    ).rejects.toThrow("Invalid OTP code");
+  });
+});
+
+describe("useEnableMfa", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should POST the enable endpoint and return MFA as enabled with credential preserved", async () => {
+    mockedPost.mockResolvedValue(okResult({ mfa_enabled: true, mfa_configured: true }) as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useEnableMfa(), { wrapper });
+
+    let response;
+    await act(async () => {
+      response = await result.current.mutateAsync({ password: "test-password", otp: "123456" });
+    });
+
+    expect(mockedPost).toHaveBeenCalledWith("/api/v1/me/security/mfa/enable", {
+      body: { password: "test-password", otp: "123456" },
+    });
+    expect(response).toEqual({ mfa_enabled: true, mfa_configured: true });
+  });
+
+  it("should surface the backend error when re-enabling MFA fails", async () => {
+    mockedPost.mockResolvedValue(errResult("Invalid OTP code") as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useEnableMfa(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ password: "test-password", otp: "123456" }),
+    ).rejects.toThrow("Invalid OTP code");
+  });
+});
+
+describe("useResetMfa", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should POST the reset endpoint and return MFA enabled with credential cleared", async () => {
+    mockedPost.mockResolvedValue(okResult({ mfa_enabled: true, mfa_configured: false }) as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useResetMfa(), { wrapper });
+
+    let response;
+    await act(async () => {
+      response = await result.current.mutateAsync({ password: "test-password", otp: "123456" });
+    });
+
+    expect(mockedPost).toHaveBeenCalledWith("/api/v1/me/security/mfa/reset", {
+      body: { password: "test-password", otp: "123456" },
+    });
+    expect(response).toEqual({ mfa_enabled: true, mfa_configured: false });
+  });
+
+  it("should surface the backend error when resetting MFA fails", async () => {
+    mockedPost.mockResolvedValue(errResult("Invalid OTP code") as never);
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => useResetMfa(), { wrapper });
 
     await expect(
       result.current.mutateAsync({ password: "test-password", otp: "123456" }),

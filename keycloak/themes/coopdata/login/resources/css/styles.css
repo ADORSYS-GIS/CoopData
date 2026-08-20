@@ -455,6 +455,27 @@ body {
     gap: 1rem;
 }
 
+/* Try another method */
+.try-another-way {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 150ms ease;
+}
+
+.try-another-way:hover {
+    color: oklch(0.42 0.15 240);
+    text-decoration: underline;
+}
+
 .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -881,6 +902,169 @@ body {
     color: var(--foreground);
 }
 
+/* ── Recovery codes ──────────────────────────────────────────────── */
+
+/* Warning alert (amber) */
+.recovery-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: oklch(0.85 0.12 85 / 0.16);
+    border: 1px solid oklch(0.75 0.14 85 / 0.45);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+}
+
+.recovery-warning svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    color: oklch(0.6 0.15 85);
+}
+
+.recovery-warning strong {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: oklch(0.45 0.13 85);
+}
+
+.recovery-warning p {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: oklch(0.5 0.09 85);
+}
+
+/* Codes card */
+.recovery-codes-card {
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elev-1);
+    margin-bottom: 1.25rem;
+}
+
+.recovery-codes-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.625rem;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    counter-reset: recovery;
+}
+
+.recovery-codes-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'DM Mono', 'Courier New', monospace;
+}
+
+.recovery-codes-list li span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.375rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.recovery-codes-list li code {
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--foreground);
+    word-break: keep-all;
+}
+
+/* Print / download / copy actions */
+.recovery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.recovery-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.recovery-action-btn:hover {
+    background: var(--muted);
+    border-color: var(--ring);
+}
+
+.recovery-action-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Confirmation checkbox */
+.recovery-confirmation {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+}
+
+.recovery-confirmation input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 1px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.recovery-confirmation label {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+/* Recovery code entry input (login screen) */
+.recovery-code-input {
+    text-align: center;
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    padding: 0.75rem 1rem;
+    max-width: 18rem;
+    margin: 0 auto;
+    display: block;
+}
+
 /* ── TOTP secondary button (cancel AIA) ──────────────────────────── */
 .btn-secondary {
     display: inline-flex;
@@ -901,4 +1085,87 @@ body {
 .btn-secondary:hover {
     background: var(--muted);
     border-color: var(--muted-foreground);
+}
+
+/* ── Select authenticator (try another method) ──────────────────── */
+.authenticator-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.authenticator-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem 1.125rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-sans);
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms var(--ease-out-expo);
+}
+
+.authenticator-item:hover {
+    border-color: var(--ring);
+    box-shadow: var(--shadow-elev-1);
+    transform: translateY(-1px);
+}
+
+.authenticator-item:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.authenticator-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius);
+    background: oklch(0.5 0.17 240 / 0.1);
+    color: var(--accent);
+    font-size: 1.25rem;
+}
+
+.authenticator-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.authenticator-item-heading {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.authenticator-item-description {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+}
+
+.authenticator-item-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    transition: color 160ms ease, transform 160ms var(--ease-out-expo);
+}
+
+.authenticator-item:hover .authenticator-item-arrow {
+    color: var(--accent);
+    transform: translateX(2px);
 }
