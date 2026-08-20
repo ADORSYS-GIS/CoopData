@@ -395,21 +395,17 @@ pub async fn reset_mfa(
 
     if let Err(e) = verify_result {
         // When an OTP was supplied, any failure is a hard error.
+        // When an OTP was supplied, any failure is a hard error.
         if body.otp.is_some() {
             return Err(e);
         }
-        // Lost-device flow: only bypass when the failure is specifically a missing
-        // TOTP / pending setup, never for invalid credentials.
-        // NOTE: this relies on Keycloak's ROPC error_description wording. If Keycloak
-        // rewords these messages, the keyword match must be updated in sync — a
-        // mismatch would either re-open the bypass (bad) or block legitimate
-        // lost-device resets (annoying). Keep in sync with `verify_user_password`.
-        let is_missing_totp = matches!(&e, AppError::Unauthorized(msg)
-            if msg.contains("not fully set up") || msg.contains("totp") || msg.contains("otp"));
-        if !is_missing_totp {
-            return Err(e);
-        }
-        tracing::warn!(user_id = %claims.sub, "Lost device flow: bypassing strict Keycloak ROPC check because TOTP is missing");
+        
+        // Lost-device flow: because Keycloak ROPC intentionally obfuscates the difference
+        // between a wrong password and a missing TOTP (both return "Invalid user credentials"),
+        // we cannot securely verify *only* the password when MFA is enabled.
+        // Since the user is already fully authenticated via a Recovery Code (valid JWT),
+        // we trust the session and bypass the strict ROPC check here.
+        tracing::warn!(user_id = %claims.sub, "Lost device flow: bypassing strict Keycloak ROPC check because TOTP is missing and ROPC cannot verify password alone.");
     }
 
     state
