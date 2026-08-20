@@ -399,7 +399,7 @@ pub async fn reset_mfa(
         if body.otp.is_some() {
             return Err(e);
         }
-        
+
         // Lost-device flow: because Keycloak ROPC intentionally obfuscates the difference
         // between a wrong password and a missing TOTP (both return "Invalid user credentials"),
         // we cannot securely verify *only* the password when MFA is enabled.
