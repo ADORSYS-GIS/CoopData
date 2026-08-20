@@ -125,6 +125,7 @@ services:
       SMTP_ENVELOPE_FROM: ${SMTP_ENVELOPE_FROM}
     volumes:
       - ./keycloak/provision.sh:/opt/keycloak/data/import/provision.sh:ro
+      - ./keycloak/backfill-mfa-attribute.sh:/opt/keycloak/data/import/backfill-mfa-attribute.sh:ro
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/provision.sh"]
     depends_on:
       keycloak:

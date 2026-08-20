@@ -400,6 +400,10 @@ pub async fn reset_mfa(
         }
         // Lost-device flow: only bypass when the failure is specifically a missing
         // TOTP / pending setup, never for invalid credentials.
+        // NOTE: this relies on Keycloak's ROPC error_description wording. If Keycloak
+        // rewords these messages, the keyword match must be updated in sync — a
+        // mismatch would either re-open the bypass (bad) or block legitimate
+        // lost-device resets (annoying). Keep in sync with `verify_user_password`.
         let is_missing_totp = matches!(&e, AppError::Unauthorized(msg)
             if msg.contains("not fully set up") || msg.contains("totp") || msg.contains("otp"));
         if !is_missing_totp {

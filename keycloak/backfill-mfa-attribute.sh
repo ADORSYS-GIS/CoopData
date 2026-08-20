@@ -51,15 +51,42 @@ if [ -z "$TOKEN" ]; then
 fi
 
 echo "[backfill] Listing users in realm '${REALM}'..."
-USERS_JSON=$(curl -s "${KEYCLOAK_URL}/admin/realms/${REALM}/users?max=1000" \
-  -H "Authorization: Bearer ${TOKEN}")
+# Paginate over the user list (Keycloak caps results at `max` per request).
+# Without looping, realms with more than PAGE_SIZE users would silently miss
+# backfilled users and leave them without OTP prompts under the new
+# attribute-keyed flow.
+PAGE_SIZE=1000
+FIRST=0
+USER_IDS=""
+while true; do
+  PAGE=$(curl -s "${KEYCLOAK_URL}/admin/realms/${REALM}/users?max=${PAGE_SIZE}&first=${FIRST}" \
+    -H "Authorization: Bearer ${TOKEN}")
 
-USER_IDS=$(echo "$USERS_JSON" | "${PYTHON_BIN}" -c "
+  PAGE_IDS=$(echo "$PAGE" | "${PYTHON_BIN}" -c "
 import sys, json
 users = json.load(sys.stdin)
 for u in users:
     print(u.get('id', ''))
 " 2>/dev/null)
+
+  COUNT=$(echo "$PAGE" | "${PYTHON_BIN}" -c "
+import sys, json
+try:
+    print(len(json.load(sys.stdin)))
+except Exception:
+    print(0)
+" 2>/dev/null)
+
+  if [ -z "$COUNT" ] || [ "$COUNT" -eq 0 ]; then
+    break
+  fi
+
+  if [ -n "$PAGE_IDS" ]; then
+    USER_IDS="${USER_IDS}
+${PAGE_IDS}"
+  fi
+  FIRST=$((FIRST + PAGE_SIZE))
+done
 
 TOTAL=0
 ATTR_UPDATED=0
