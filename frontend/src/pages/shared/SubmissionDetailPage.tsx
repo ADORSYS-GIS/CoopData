@@ -692,7 +692,7 @@ export const SubmissionDetailPage: React.FC = () => {
               </Card>
             )}
 
-          {isEditor && isDraft && (
+          {isDraft && (
             <div className="rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
               {/* Card header */}
               <div
@@ -859,7 +859,7 @@ export const SubmissionDetailPage: React.FC = () => {
                             </button>
                           ) : (
                             <div className="flex items-center gap-2">
-                              {hasData && (
+                              {hasData && isEditor && (
                                 <button
                                   onClick={async () => {
                                     setUpdatingSectionKey(m.key);
