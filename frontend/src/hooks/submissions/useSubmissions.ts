@@ -8,6 +8,9 @@ import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache"
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
 export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"];
+export type CreateApexSubmissionRequest = components["schemas"]["CreateApexSubmissionRequest"];
+export type DelegateSubmissionRequest = components["schemas"]["DelegateSubmissionRequest"];
+export type ReclaimSubmissionRequest = components["schemas"]["ReclaimSubmissionRequest"];
 
 const SUBMISSIONS_KEY = "cooperative-submissions";
 
@@ -18,6 +21,29 @@ function extractErrorMessage(err: unknown): string {
     if (typeof msg === "string" && msg.length > 0) return msg;
   }
   return String(err);
+}
+
+/**
+ * Extract the submission_id from a 409 conflict error response.
+ * Returns the UUID string if present, null otherwise.
+ */
+function extractSubmissionId(err: unknown): string | null {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const sid = e["submission_id"];
+    if (typeof sid === "string" && sid.length > 0) return sid;
+  }
+  return null;
+}
+
+/** Custom error that carries an existing submission_id for redirect */
+export class DuplicateSubmissionError extends Error {
+  submissionId: string;
+  constructor(message: string, submissionId: string) {
+    super(message);
+    this.name = "DuplicateSubmissionError";
+    this.submissionId = submissionId;
+  }
 }
 
 // ── Cooperative: own submissions only ────────────────────────────────────────
@@ -266,13 +292,18 @@ export const useCreateSubmission = () => {
           const { data, error } = await apiClient.POST("/api/v1/cooperative/submissions", {
             body: payload as unknown as CreateSubmissionRequest,
           });
-          if (error) throw new Error(extractErrorMessage(error));
+          if (error) {
+            const sid = extractSubmissionId(error);
+            if (sid) throw new DuplicateSubmissionError(extractErrorMessage(error), sid);
+            throw new Error(extractErrorMessage(error));
+          }
           return data as SubmissionResponse;
         },
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
     },
   });
 };
@@ -335,33 +366,33 @@ export const useUpdateSubmissionMethod = () => {
         console.warn("Failed to update submission method in list cache offline", e);
       }
 
-      return runMutation<SubmissionResponse>(
-        "/api/v1/cooperative/submissions/{id}/method",
-        "PATCH",
-        {
-          pathParams: { id },
-          body: { submission_method: submissionMethod },
-          optimisticData: {
-            id,
-            submission_method: submissionMethod,
-          } as unknown as SubmissionResponse,
-          online: async () => {
-            const { data, error } = await apiClient.PATCH(
-              "/api/v1/cooperative/submissions/{id}/method",
-              {
-                params: { path: { id } },
-                body: { submission_method: submissionMethod },
-              },
-            );
-            if (error) throw new Error(extractErrorMessage(error));
-            return data as SubmissionResponse;
-          },
+      const userRole = getUserProfile()?.role ?? "cooperative";
+      const basePath =
+        userRole === "apex"
+          ? "/api/v1/apex/submissions/{id}/method"
+          : "/api/v1/cooperative/submissions/{id}/method";
+
+      return runMutation<SubmissionResponse>(basePath, "PATCH", {
+        pathParams: { id },
+        body: { submission_method: submissionMethod },
+        optimisticData: {
+          id,
+          submission_method: submissionMethod,
+        } as unknown as SubmissionResponse,
+        online: async () => {
+          const { data, error } = await apiClient.PATCH(basePath as never, {
+            params: { path: { id } },
+            body: { submission_method: submissionMethod },
+          });
+          if (error) throw new Error(extractErrorMessage(error));
+          return data as SubmissionResponse;
         },
-      );
+      });
     },
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["submission", id] });
       queryClient.invalidateQueries({ queryKey: ["submission-sections", id] });
     },
@@ -373,6 +404,7 @@ export const useDeleteSubmission = () => {
   return useMutation({
     mutationFn: async ({ id, verificationToken }: { id: string; verificationToken: string }) => {
       const userId = getUserProfile()?.id ?? "anon";
+      const userRole = getUserProfile()?.role ?? "cooperative";
 
       // Update cached lists offline
       const listsToUpdate = [
@@ -407,12 +439,17 @@ export const useDeleteSubmission = () => {
         // ignore
       }
 
-      return runMutation<void>("/api/v1/cooperative/submissions/{id}", "DELETE", {
+      const basePath =
+        userRole === "apex"
+          ? "/api/v1/apex/submissions/{id}"
+          : "/api/v1/cooperative/submissions/{id}";
+
+      return runMutation<void>(basePath, "DELETE", {
         pathParams: { id },
         optimisticData: undefined,
         verificationToken,
         online: async () => {
-          const { error } = await apiClient.DELETE("/api/v1/cooperative/submissions/{id}", {
+          const { error } = await apiClient.DELETE(basePath as never, {
             params: {
               path: { id },
               header: { "x-verification-token": verificationToken } as never,
@@ -424,6 +461,7 @@ export const useDeleteSubmission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
     },
   });
 };
@@ -531,3 +569,93 @@ export const useCooperativeStats = (enabled = true) =>
       };
     },
   });
+
+// ── Apex-Initiated Submissions ───────────────────────────────────────────────
+
+export const useCreateApexSubmission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      cooperative_id: string;
+      reporting_year: number;
+      priority?: string;
+      submission_method?: string;
+    }) => {
+      const { data, error } = await apiClient.POST("/api/v1/apex/submissions", {
+        body: body as unknown as CreateApexSubmissionRequest,
+      });
+      if (error) {
+        const sid = extractSubmissionId(error);
+        if (sid) throw new DuplicateSubmissionError(extractErrorMessage(error), sid);
+        throw new Error(extractErrorMessage(error));
+      }
+      return data as SubmissionResponse;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+    },
+  });
+};
+
+export const useDelegateSubmission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/delegate", {
+        params: { path: { id } },
+        body: { comment } as unknown as DelegateSubmissionRequest,
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SubmissionResponse;
+    },
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+    },
+  });
+};
+
+export const useReclaimSubmission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/reclaim", {
+        params: { path: { id } },
+        body: { comment } as unknown as ReclaimSubmissionRequest,
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SubmissionResponse;
+    },
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+    },
+  });
+};
+
+export const useClaimSubmission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const userRole = getUserProfile()?.role ?? "cooperative";
+      const basePath =
+        userRole === "apex"
+          ? "/api/v1/apex/submissions/{id}/claim"
+          : "/api/v1/cooperative/submissions/{id}/claim";
+
+      const { data, error } = await apiClient.POST(basePath as never, {
+        params: { path: { id } },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SubmissionResponse;
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["submission", id] });
+    },
+  });
+};
