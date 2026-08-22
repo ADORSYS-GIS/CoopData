@@ -56,6 +56,7 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
     onSuccess: (_data, vars) => {
       const sid = vars.submissionId ?? submissionId;
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
       if (sid) {
         queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", sid] });
       }
