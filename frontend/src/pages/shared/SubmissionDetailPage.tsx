@@ -982,7 +982,8 @@ export const SubmissionDetailPage: React.FC = () => {
           {/* Apex: Returned submission — Fix myself or Delegate to Cooperative */}
           {role === "apex" &&
             submission.status === "submitted" &&
-            submission.current_tier === "apex" && (
+            submission.current_tier === "apex" &&
+            submission.created_by_role === "apex" && (
               <Card
                 title="Action Required"
                 subtitle="Fix this submission yourself or delegate to the cooperative"
