@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
+import { useUserRole } from "@/lib/auth";
 import { runMutation } from "@/services/shared/syncQueueService";
 import type { components } from "@/openapi-client/api";
 
@@ -7,8 +8,15 @@ export type UploadResponse = components["schemas"]["UploadResponse"];
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
+function uploadPath(role: string | null): string {
+  return role === "apex"
+    ? "/api/v1/apex/financial-statement/upload"
+    : "/api/v1/cooperative/financial-statement/upload";
+}
+
 export const useUploadFinancialStatement = (submissionId?: string) => {
   const queryClient = useQueryClient();
+  const role = useUserRole();
   return useMutation({
     mutationFn: async ({
       file,
@@ -23,7 +31,8 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       currency?: string;
       submissionId?: string;
     }): Promise<UploadResponse> => {
-      return runMutation<UploadResponse>("/api/v1/cooperative/financial-statement/upload", "POST", {
+      const endpoint = uploadPath(role);
+      return runMutation<UploadResponse>(endpoint, "POST", {
         optimisticData: undefined,
         online: async () => {
           const token = await getAccessToken();
@@ -37,7 +46,7 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
             form.append("submission_id", resolvedId);
           }
 
-          const res = await fetch(`${API_BASE}/api/v1/cooperative/financial-statement/upload`, {
+          const res = await fetch(`${API_BASE}${endpoint}`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
             body: form,

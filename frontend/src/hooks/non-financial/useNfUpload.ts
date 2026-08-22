@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
+import { useUserRole } from "@/lib/auth";
 import { runMutation } from "@/services/shared/syncQueueService";
 import type { NfUploadResponse } from "@/types/non-financial";
 
@@ -20,13 +21,23 @@ export interface UploadParams {
   submissionId: string;
 }
 
-async function uploadFile({ file, submissionId }: UploadParams): Promise<NfUploadResponse> {
+function nfUploadPath(role: string | null): string {
+  return role === "apex"
+    ? "/api/v1/apex/non-financial/upload"
+    : "/api/v1/cooperative/non-financial/upload";
+}
+
+async function uploadFile(
+  { file, submissionId }: UploadParams,
+  role: string | null,
+): Promise<NfUploadResponse> {
   const token = await getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   formData.append("submission_id", submissionId);
 
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/upload`, {
+  const path = nfUploadPath(role);
+  const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -39,11 +50,13 @@ async function uploadFile({ file, submissionId }: UploadParams): Promise<NfUploa
 
 export const useNfUpload = () => {
   const queryClient = useQueryClient();
+  const role = useUserRole();
   return useMutation({
     mutationFn: async (vars: UploadParams) => {
-      return runMutation<NfUploadResponse>("/api/v1/cooperative/non-financial/upload", "POST", {
+      const endpoint = nfUploadPath(role);
+      return runMutation<NfUploadResponse>(endpoint, "POST", {
         optimisticData: undefined,
-        online: () => uploadFile(vars),
+        online: () => uploadFile(vars, role),
       });
     },
     onSuccess: (_data, vars) => {
@@ -66,6 +79,7 @@ export const useNfUpload = () => {
       void queryClient.invalidateQueries({
         queryKey: ["cooperative-submissions", vars.submissionId],
       });
+      void queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
     },
   });
 };

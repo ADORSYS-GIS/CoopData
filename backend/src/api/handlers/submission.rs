@@ -1459,17 +1459,25 @@ pub async fn update_submission_section(
     Path((id, section)): Path<(Uuid, String)>,
     Json(body): Json<UpdateSectionStatusRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-
     let submission = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
-        return Err(AppError::Forbidden("Access denied".into()));
+    if claims.has_role("apex") {
+        let coop_ids =
+            crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims)
+                .await?;
+        if !coop_ids.contains(&submission.cooperative_id) {
+            return Err(AppError::Forbidden("Access denied".into()));
+        }
+    } else {
+        let coop =
+            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+        if submission.cooperative_id != coop.id {
+            return Err(AppError::Forbidden("Access denied".into()));
+        }
     }
 
     if submission.status != SubmissionStatus::Draft {
