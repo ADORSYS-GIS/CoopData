@@ -635,27 +635,3 @@ export const useReclaimSubmission = () => {
     },
   });
 };
-
-export const useClaimSubmission = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const userRole = getUserProfile()?.role ?? "cooperative";
-      const basePath =
-        userRole === "apex"
-          ? "/api/v1/apex/submissions/{id}/claim"
-          : "/api/v1/cooperative/submissions/{id}/claim";
-
-      const { data, error } = await apiClient.POST(basePath as never, {
-        params: { path: { id } },
-      });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as SubmissionResponse;
-    },
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
-      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
-      queryClient.invalidateQueries({ queryKey: ["submission", id] });
-    },
-  });
-};

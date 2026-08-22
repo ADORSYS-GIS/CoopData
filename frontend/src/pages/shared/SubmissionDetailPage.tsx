@@ -31,7 +31,6 @@ import {
   useDeleteFinancialStatement,
   useDelegateSubmission,
   useReclaimSubmission,
-  useClaimSubmission,
 } from "@/hooks/submissions/useSubmissions";
 import { useDeleteManualNonFinancialData } from "@/hooks/submissions/useManualEntry";
 import {
@@ -199,7 +198,6 @@ export const SubmissionDetailPage: React.FC = () => {
   const ministryReject = useMinistryReject();
   const delegateSubmission = useDelegateSubmission();
   const reclaimSubmission = useReclaimSubmission();
-  const claimSubmission = useClaimSubmission();
   const [reviewComment, setReviewComment] = useState("");
   const [showDelegateModal, setShowDelegateModal] = useState(false);
   const [showReclaimModal, setShowReclaimModal] = useState(false);
@@ -658,40 +656,6 @@ export const SubmissionDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Cooperative: Claim delegated apex-created submission */}
-          {role === "cooperative" &&
-            isDraft &&
-            submission.created_by_role === "apex" &&
-            !isEditor && (
-              <Card
-                title="Claim for Editing"
-                subtitle="This submission was created by the apex. Claim editing rights to fill in the data."
-              >
-                <button
-                  onClick={async () => {
-                    if (!id) return;
-                    try {
-                      await claimSubmission.mutateAsync(id);
-                      toast.success("Editing rights claimed. You can now edit this submission.");
-                    } catch (err) {
-                      toast.error(
-                        err instanceof Error ? err.message : "Failed to claim submission",
-                      );
-                    }
-                  }}
-                  disabled={claimSubmission.isPending}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                >
-                  {claimSubmission.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <PenLine className="size-4" />
-                  )}
-                  Claim for Editing
-                </button>
-              </Card>
-            )}
-
           {isDraft && (
             <div className="rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
               {/* Card header */}
@@ -1030,17 +994,16 @@ export const SubmissionDetailPage: React.FC = () => {
                       try {
                         await apexReturn.mutateAsync({ id });
                         toast.success("Returned to draft. You can now edit this submission.");
-                        await claimSubmission.mutateAsync(id);
                       } catch (err) {
                         toast.error(
                           err instanceof Error ? err.message : "Failed to return submission",
                         );
                       }
                     }}
-                    disabled={apexReturn.isPending || claimSubmission.isPending}
+                    disabled={apexReturn.isPending}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {apexReturn.isPending || claimSubmission.isPending ? (
+                    {apexReturn.isPending ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
                       <PenLine className="size-4" />

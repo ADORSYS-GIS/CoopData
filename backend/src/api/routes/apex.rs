@@ -8,7 +8,7 @@
 //! All routes require the `apex` role.
 //! Scope enforcement ensures users can only access cooperatives within their own group.
 
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, patch, post};
 use axum::Router;
 
 use crate::api::handlers;
@@ -67,11 +67,13 @@ pub fn apex_routes() -> Router<AppState> {
         // Submission review
         .route(
             "/submissions",
-            get(handlers::submission::list_apex_submissions),
+            get(handlers::submission::list_apex_submissions)
+                .post(handlers::submission::create_apex_submission),
         )
         .route(
             "/submissions/{id}",
-            get(handlers::submission::get_submission_as_apex),
+            get(handlers::submission::get_submission_as_apex)
+                .delete(handlers::submission::delete_submission),
         )
         .route(
             "/submissions/{id}/approve",
@@ -80,6 +82,22 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/return",
             post(handlers::submission::apex_return_submission),
+        )
+        .route(
+            "/submissions/{id}/submit",
+            post(handlers::submission::apex_submit_submission),
+        )
+        .route(
+            "/submissions/{id}/delegate",
+            post(handlers::submission::delegate_submission),
+        )
+        .route(
+            "/submissions/{id}/reclaim",
+            post(handlers::submission::reclaim_submission),
+        )
+        .route(
+            "/submissions/{id}/method",
+            patch(handlers::submission::update_submission_method),
         )
         .route(
             "/submissions/{id}/flags",
