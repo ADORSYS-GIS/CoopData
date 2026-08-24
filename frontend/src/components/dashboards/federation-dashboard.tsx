@@ -30,9 +30,7 @@ export function FederationDashboard() {
     "all",
   );
 
-  const { data: submissions = [], isLoading: subsLoading } = useFederationSubmissions({
-    all: true,
-  });
+  const { data: submissions = [], isLoading: subsLoading } = useFederationSubmissions();
   const { data: apexes = [], isLoading: apexesLoading } = useApexes();
   const { data: fedStats, isLoading: statsLoading } = useFederationStats();
 
