@@ -1042,7 +1042,8 @@ export const SubmissionDetailPage: React.FC = () => {
           {role === "apex" &&
             submission.status === "draft" &&
             submission.current_tier === "cooperative" &&
-            submission.created_by_role === "apex" && (
+            submission.created_by_role === "apex" &&
+            submission.edited_by == null && (
               <Card
                 title="Delegated to Cooperative"
                 subtitle="This submission is being fixed by the cooperative"
