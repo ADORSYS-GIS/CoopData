@@ -2212,22 +2212,43 @@ pub async fn delegate_submission(
         ));
     }
 
-    // Verify submission is in Returned status and at Apex tier
-    if submission.status != crate::entities::enums::SubmissionStatus::Returned {
+    // Verify submission is delegatable:
+    // - "returned" status at apex tier (federation returned to apex)
+    // - "submitted" status at apex tier (returned by federation, set to submitted)
+    // - "submitted" status at federation tier (apex-created, not yet reviewed by fed)
+    let delegatable = match submission.status {
+        crate::entities::enums::SubmissionStatus::Returned
+            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
+        {
+            true
+        }
+        crate::entities::enums::SubmissionStatus::Submitted => {
+            submission.current_tier == crate::entities::enums::ReviewTier::Apex
+                || submission.current_tier == crate::entities::enums::ReviewTier::Federation
+        }
+        _ => false,
+    };
+    if !delegatable {
         return Err(AppError::BadRequest(format!(
-            "Cannot delegate a submission in '{}' status. Only returned submissions can be delegated.",
-            submission.status.as_str()
+            "Cannot delegate a submission in '{}' status at {:?} tier. Only returned or submitted submissions can be delegated.",
+            submission.status.as_str(),
+            submission.current_tier
         )));
-    }
-    if submission.current_tier != crate::entities::enums::ReviewTier::Apex {
-        return Err(AppError::BadRequest(
-            "Cannot delegate: submission is not at apex tier".into(),
-        ));
     }
 
     // Find the cooperative's primary user to set as edited_by
     // For now, we clear edited_by and set it when cooperative user opens the submission
     let delegate_comment = body.comment.clone();
+
+    // Transition status to draft at cooperative tier so the coop can edit
+    state
+        .submission_repo
+        .update_status(
+            id,
+            crate::entities::enums::SubmissionStatus::Draft,
+            crate::entities::enums::ReviewTier::Cooperative,
+        )
+        .await?;
 
     // Record the delegation review
     let reviewer_id = Uuid::parse_str(&claims.sub).ok();
