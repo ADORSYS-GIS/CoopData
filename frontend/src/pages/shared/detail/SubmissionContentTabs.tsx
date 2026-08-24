@@ -351,7 +351,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                     submissionId={submission.id}
                     isDraft={isDraft}
                     isCooperative={isCooperative}
-                    isCreatorRole={isCreatorRole}
+                    isReadOnly={isReadOnly}
                     isExtracting={isExtracting}
                   />
                 )}

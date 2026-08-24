@@ -1311,7 +1311,7 @@ export const SubmissionDetailPage: React.FC = () => {
           <SubmissionContentTabs
             submission={submission}
             isDraft={!!isDraft}
-            isCooperative={isEditor}
+            isCooperative={isCooperative}
             isCreatorRole={isCreatorRole}
             role={role}
             activeTab={activeTab}
