@@ -171,12 +171,14 @@ function ValidationPanel({
   infos,
   onRevalidate,
   isRevalidating,
+  isCreatorRole,
 }: {
   errors: { rule: string; message: string; severity: string }[];
   warnings: { rule: string; message: string; severity: string }[];
   infos: { rule: string; message: string; severity: string }[];
   onRevalidate: () => void;
   isRevalidating: boolean;
+  isCreatorRole: boolean;
 }) {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
@@ -212,7 +214,7 @@ function ValidationPanel({
         <div className="flex items-center gap-2">
           <button
             onClick={onRevalidate}
-            disabled={isRevalidating}
+            disabled={isRevalidating || !isCreatorRole}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
           >
             {isRevalidating ? (
@@ -279,8 +281,9 @@ export const FinancialStatementEditor: React.FC<{
   submissionId: string;
   isDraft: boolean;
   isCooperative: boolean;
+  isCreatorRole: boolean;
   isExtracting?: boolean;
-}> = ({ fsId, submissionId, isDraft, isCooperative, isExtracting }) => {
+}> = ({ fsId, submissionId, isDraft, isCooperative, isCreatorRole, isExtracting }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: fs } = useFinancialStatement(fsId);
@@ -506,6 +509,7 @@ export const FinancialStatementEditor: React.FC<{
           infos={[]}
           onRevalidate={handleValidate}
           isRevalidating={validate.isPending}
+          isCreatorRole={isCreatorRole}
         />
       )}
 
@@ -523,7 +527,7 @@ export const FinancialStatementEditor: React.FC<{
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleValidate}
-                  disabled={validate.isPending}
+                  disabled={validate.isPending || !isCreatorRole}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
                 >
                   {validate.isPending ? (
@@ -573,7 +577,8 @@ export const FinancialStatementEditor: React.FC<{
                       hasErrors ||
                       isExtracting ||
                       itemsLoading ||
-                      items.length === 0
+                      items.length === 0 ||
+                      !isCreatorRole
                     }
                     className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                     title={

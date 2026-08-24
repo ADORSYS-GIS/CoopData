@@ -238,4 +238,29 @@ impl SubmissionRepository {
         active.updated_at = Set(chrono::Utc::now());
         active.update(&self.db).await.map_err(Into::into)
     }
+
+    /// Transfer editing rights to a new user (exclusive editor model).
+    pub async fn set_edited_by(
+        &self,
+        id: Uuid,
+        user_id: Option<Uuid>,
+        user_name: Option<String>,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.edited_by = Set(user_id);
+        active.edited_by_name = Set(user_name);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
+
+    /// Clear edited_by when submission is submitted (no one editing).
+    pub async fn clear_edited_by(&self, id: Uuid) -> AppResult<submission::Model> {
+        self.set_edited_by(id, None, None).await
+    }
 }

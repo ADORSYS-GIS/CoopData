@@ -1408,6 +1408,46 @@
             "description": "Forbidden"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "create_apex_submission",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApexSubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Submission created on behalf of cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Forbidden — cooperative not under your apex"
+          },
+          "404": {
+            "description": "Cooperative not found"
+          },
+          "409": {
+            "description": "Submission already exists for this cooperative and year"
+          }
+        }
       }
     },
     "/api/v1/apex/submissions/{id}": {
@@ -1496,6 +1536,57 @@
         }
       }
     },
+    "/api/v1/apex/submissions/{id}/delegate": {
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "delegate_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelegateSubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Submission delegated to cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state — submission is not returned to apex"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
     "/api/v1/apex/submissions/{id}/flags": {
       "get": {
         "tags": [
@@ -1527,6 +1618,57 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/submissions/{id}/reclaim": {
+      "post": {
+        "tags": [
+          "Apex"
+        ],
+        "operationId": "reclaim_submission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReclaimSubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Submission reclaimed by apex",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid state — submission is not delegated to cooperative"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Not found"
@@ -3202,6 +3344,16 @@
           },
           "404": {
             "description": "Submission not found"
+          },
+          "428": {
+            "description": "Identity verification required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -8360,6 +8512,29 @@
           }
         }
       },
+      "CreateApexSubmissionRequest": {
+        "type": "object",
+        "required": [
+          "cooperative_id",
+          "reporting_year"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submission_method": {
+            "type": "string"
+          }
+        }
+      },
       "CreateCooperativeProfileRequest": {
         "type": "object",
         "required": [
@@ -8976,6 +9151,11 @@
           "reporting_year"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "priority": {
             "type": "string"
           },
@@ -9075,6 +9255,15 @@
             "description": "Canonical, stable identifier used as the key for computed KPI values and in formulas."
           },
           "translations": {}
+        }
+      },
+      "DelegateSubmissionRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
         }
       },
       "DeletePreviewResponse": {
@@ -12517,6 +12706,15 @@
           }
         }
       },
+      "ReclaimSubmissionRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "RegionCompliancePoint": {
         "type": "object",
         "required": [
@@ -13109,8 +13307,35 @@
             "type": "string",
             "format": "date-time"
           },
+          "created_by_name": {
+            "type": "string",
+            "description": "Display name of the creator",
+            "nullable": true
+          },
+          "created_by_role": {
+            "type": "string",
+            "description": "Who created this submission: cooperative or apex",
+            "nullable": true
+          },
+          "created_by_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the user who created this submission",
+            "nullable": true
+          },
           "current_tier": {
             "type": "string"
+          },
+          "edited_by": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the user who currently owns the draft (exclusive editing)",
+            "nullable": true
+          },
+          "edited_by_name": {
+            "type": "string",
+            "description": "Display name of the current editor",
+            "nullable": true
           },
           "extraction_job_id": {
             "type": "string",

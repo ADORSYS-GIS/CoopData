@@ -23,6 +23,7 @@ interface NfDatabasesTabProps {
   isReadOnly: boolean;
   isDraft: boolean;
   isCooperative: boolean;
+  isCreatorRole: boolean;
   sections: SubmissionSectionResponse[] | undefined;
   onUploadComplete: (result: NfUploadResponse) => void;
   nfResult: NfUploadResponse | null;
@@ -187,6 +188,7 @@ export function NfDatabasesTab({
   isReadOnly,
   isDraft,
   isCooperative,
+  isCreatorRole,
   sections,
   onUploadComplete,
   nfResult,
@@ -215,7 +217,7 @@ export function NfDatabasesTab({
     fds.length > 0 ||
     farmCoops.length > 0;
   const isLoading = lm || ls || ll || lf || lfc;
-  const canMarkReady = isCooperative && isDraft;
+  const canMarkReady = isCooperative && isDraft && isCreatorRole;
 
   const handleMarkReady = async (sectionKey: string, label: string) => {
     try {

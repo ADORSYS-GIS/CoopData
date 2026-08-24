@@ -32,6 +32,7 @@ interface SubmissionContentTabsProps {
   submission: SubmissionResponse | null | undefined;
   isDraft: boolean;
   isCooperative: boolean;
+  isCreatorRole: boolean;
   role: string;
   activeTab: string;
   setActiveTab: (val: string) => void;
@@ -141,6 +142,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
   submission,
   isDraft,
   isCooperative,
+  isCreatorRole,
   role,
   activeTab,
   setActiveTab,
@@ -349,6 +351,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                     submissionId={submission.id}
                     isDraft={isDraft}
                     isCooperative={isCooperative}
+                    isCreatorRole={isCreatorRole}
                     isExtracting={isExtracting}
                   />
                 )}
@@ -497,6 +500,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                 isReadOnly={isReadOnly}
                 isDraft={!!isDraft}
                 isCooperative={isCooperative}
+                isCreatorRole={isCreatorRole}
                 sections={sections}
                 onUploadComplete={handleNfUploadComplete}
                 nfResult={nfResult}

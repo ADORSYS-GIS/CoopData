@@ -163,16 +163,19 @@ export const useSubmitSubmission = () => {
         console.warn("Failed to update cached submission list on submit offline", e);
       }
 
-      return runMutation<unknown>("/api/v1/cooperative/submissions/{id}/submit", "POST", {
+      const userRole = getUserProfile()?.role ?? "cooperative";
+      const basePath =
+        userRole === "apex"
+          ? "/api/v1/apex/submissions/{id}/submit"
+          : "/api/v1/cooperative/submissions/{id}/submit";
+
+      return runMutation<unknown>(basePath, "POST", {
         pathParams: { id: submissionId },
         optimisticData: { id: submissionId, status: "submitted", current_tier: "apex" },
         online: async () => {
-          const { data, error } = await apiClient.POST(
-            "/api/v1/cooperative/submissions/{id}/submit",
-            {
-              params: { path: { id: submissionId } },
-            },
-          );
+          const { data, error } = await apiClient.POST(basePath as never, {
+            params: { path: { id: submissionId } },
+          });
           if (error) throw new Error(extractErrorMessage(error));
           return data;
         },
@@ -180,6 +183,7 @@ export const useSubmitSubmission = () => {
     },
     onSuccess: (_data, submissionId) => {
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["submission", submissionId] });
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId] });
     },
