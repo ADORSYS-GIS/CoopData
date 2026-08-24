@@ -961,7 +961,9 @@ export const SubmissionDetailPage: React.FC = () => {
             </div>
           )}
 
-          {role === "apex" && submission.status === "submitted" && (
+          {role === "apex" &&
+            submission.status === "submitted" &&
+            submission.created_by_role !== "apex" && (
             <ReviewActionPanel
               title={t("submissions.detail.apexReviewTitle")}
               description={t("submissions.detail.apexReviewDesc")}
@@ -1161,7 +1163,7 @@ export const SubmissionDetailPage: React.FC = () => {
           )}
 
           {role === "federation" &&
-            submission.status === "in_review" &&
+            (submission.status === "in_review" || submission.status === "submitted") &&
             submission.current_tier === "federation" && (
               <ReviewActionPanel
                 title={t("submissions.detail.fedReviewTitle")}
