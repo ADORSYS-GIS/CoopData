@@ -635,3 +635,40 @@ export const useReclaimSubmission = () => {
     },
   });
 };
+
+export const useClaimCooperativeEdit = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/cooperative/submissions/{id}/claim-edit",
+        { params: { path: { id } } },
+      );
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SubmissionResponse;
+    },
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+    },
+  });
+};
+
+export const useClaimApexEdit = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/apex/submissions/{id}/claim-edit",
+        { params: { path: { id } } },
+      );
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as SubmissionResponse;
+    },
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [SUBMISSIONS_KEY] });
+    },
+  });
+};

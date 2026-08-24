@@ -94,6 +94,10 @@ pub fn apex_routes() -> Router<AppState> {
             post(handlers::submission::delegate_submission),
         )
         .route(
+            "/submissions/{id}/claim-edit",
+            post(handlers::submission::claim_apex_edit),
+        )
+        .route(
             "/submissions/{id}/reclaim",
             post(handlers::submission::reclaim_submission),
         )

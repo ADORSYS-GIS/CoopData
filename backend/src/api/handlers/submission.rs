@@ -2295,6 +2295,76 @@ pub async fn delegate_submission(
     Ok((StatusCode::OK, Json(resp)))
 }
 
+// ── Claim edit (Cooperative) ────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/claim-edit",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Edit rights claimed", body = SubmissionResponse),
+        (status = 400, description = "Cannot claim — not a draft or already has editor"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn claim_cooperative_edit(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop =
+        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_id = coop.id;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop_id {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your cooperative".into(),
+        ));
+    }
+
+    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot claim edit on a '{}' submission. Only draft submissions can be claimed.",
+            submission.status.as_str()
+        )));
+    }
+
+    if submission.edited_by.is_some() {
+        return Err(AppError::Conflict(
+            "Another user is currently editing this submission".into(),
+        ));
+    }
+
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
+    let user_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
+
+    let updated = state
+        .submission_repo
+        .set_edited_by(id, Some(user_id), user_name)
+        .await?;
+
+    tracing::info!(
+        submission_id = %id,
+        coop_id = %coop_id,
+        user_id = %user_id,
+        "Cooperative user claimed edit rights"
+    );
+
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/apex/submissions/{id}/reclaim",
@@ -2408,4 +2478,77 @@ pub async fn reclaim_submission(
             .unwrap_or_default(),
     );
     Ok((StatusCode::OK, Json(resp)))
+}
+
+// ── Claim edit (Apex) ───────────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/submissions/{id}/claim-edit",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Edit rights claimed", body = SubmissionResponse),
+        (status = 400, description = "Cannot claim — not a draft or already has editor"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Apex"
+)]
+pub async fn claim_apex_edit(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let belongs = cooperatives
+        .iter()
+        .any(|c| c.id == submission.cooperative_id);
+    if !belongs {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your apex".into(),
+        ));
+    }
+
+    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot claim edit on a '{}' submission. Only draft submissions can be claimed.",
+            submission.status.as_str()
+        )));
+    }
+
+    if submission.edited_by.is_some() {
+        return Err(AppError::Conflict(
+            "Another user is currently editing this submission".into(),
+        ));
+    }
+
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
+    let user_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
+
+    let updated = state
+        .submission_repo
+        .set_edited_by(id, Some(user_id), user_name)
+        .await?;
+
+    tracing::info!(
+        submission_id = %id,
+        apex_id = %apex_db_id,
+        user_id = %user_id,
+        "Apex user claimed edit rights"
+    );
+
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }

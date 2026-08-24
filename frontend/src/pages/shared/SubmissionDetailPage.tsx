@@ -31,6 +31,8 @@ import {
   useDeleteFinancialStatement,
   useDelegateSubmission,
   useReclaimSubmission,
+  useClaimCooperativeEdit,
+  useClaimApexEdit,
 } from "@/hooks/submissions/useSubmissions";
 import { useDeleteManualNonFinancialData } from "@/hooks/submissions/useManualEntry";
 import {
@@ -344,6 +346,19 @@ export const SubmissionDetailPage: React.FC = () => {
   // Hooks must be called before any early returns
   const isEditor =
     isDraft && submission?.edited_by != null && submission.edited_by === currentUserId;
+
+  const claimCoopEdit = useClaimCooperativeEdit();
+  const claimApexEdit = useClaimApexEdit();
+
+  // Auto-claim edit rights when opening a delegated draft with no editor
+  useEffect(() => {
+    if (!submission || !isDraft || submission.edited_by != null || !id) return;
+    if (role === "cooperative" && submission.current_tier === "cooperative") {
+      claimCoopEdit.mutate({ id });
+    } else if (role === "apex" && submission.current_tier === "apex") {
+      claimApexEdit.mutate({ id });
+    }
+  }, [submission, isDraft, id, role]);
 
   useEffect(() => {
     if (isEditor && isDraft && !methodChosen) {
