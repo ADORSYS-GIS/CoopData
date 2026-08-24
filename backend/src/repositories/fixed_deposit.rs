@@ -130,7 +130,7 @@ impl FixedDepositRepository {
         fixed_deposit::Entity::insert_many(models)
             .on_conflict(
                 OnConflict::columns([
-                    FixedDepositColumn::SubmissionId,
+                    FixedDepositColumn::CooperativeId,
                     FixedDepositColumn::FixedDepositId,
                 ])
                 .update_columns([

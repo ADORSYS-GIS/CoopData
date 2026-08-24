@@ -122,7 +122,7 @@ impl LoanRepository {
         let count = models.len() as u64;
         loan::Entity::insert_many(models)
             .on_conflict(
-                OnConflict::columns([LoanColumn::SubmissionId, LoanColumn::LoanId])
+                OnConflict::columns([LoanColumn::CooperativeId, LoanColumn::LoanId])
                     .update_columns([
                         LoanColumn::SubmissionId,
                         LoanColumn::MemberId,
