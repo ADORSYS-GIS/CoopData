@@ -538,7 +538,7 @@ export const FinancialStatementEditor: React.FC<{
                   {t("financialStatementEditor.validationPanel.revalidate")}
                 </button>
 
-                {isCooperative && (
+                {!isReadOnly && (
                   <button
                     onClick={() =>
                       navigate({
@@ -554,7 +554,7 @@ export const FinancialStatementEditor: React.FC<{
                   </button>
                 )}
 
-                {isCooperative && (
+                {!isReadOnly && (
                   <button
                     onClick={() => setIsDeleteDialogOpen(true)}
                     disabled={deleteFs.isPending}
