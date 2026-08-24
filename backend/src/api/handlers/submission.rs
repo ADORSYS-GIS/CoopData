@@ -2216,8 +2216,14 @@ pub async fn delegate_submission(
     // - "returned" status at apex tier (federation returned to apex)
     // - "submitted" status at apex tier (returned by federation, set to submitted)
     // - "submitted" status at federation tier (apex-created, not yet reviewed by fed)
+    // - "draft" status at apex tier (reclaimed by apex or apex returned to self)
     let delegatable = match submission.status {
         crate::entities::enums::SubmissionStatus::Returned
+            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
+        {
+            true
+        }
+        crate::entities::enums::SubmissionStatus::Draft
             if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
         {
             true
@@ -2452,6 +2458,10 @@ pub async fn reclaim_submission(
     state.review_repo.create(review_model).await?;
 
     // Transfer ownership back to apex
+    state
+        .submission_repo
+        .set_current_tier(id, crate::entities::enums::ReviewTier::Apex)
+        .await?;
     let updated = state
         .submission_repo
         .set_edited_by(id, apex_user_id, apex_name)

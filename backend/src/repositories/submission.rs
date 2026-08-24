@@ -263,4 +263,21 @@ impl SubmissionRepository {
     pub async fn clear_edited_by(&self, id: Uuid) -> AppResult<submission::Model> {
         self.set_edited_by(id, None, None).await
     }
+
+    pub async fn set_current_tier(
+        &self,
+        id: Uuid,
+        tier: ReviewTier,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.current_tier = Set(tier);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
 }

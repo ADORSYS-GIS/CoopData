@@ -217,7 +217,7 @@ export function NfDatabasesTab({
     fds.length > 0 ||
     farmCoops.length > 0;
   const isLoading = lm || ls || ll || lf || lfc;
-  const canMarkReady = isCooperative && isDraft && isCreatorRole;
+  const canMarkReady = isCooperative && isDraft;
 
   const handleMarkReady = async (sectionKey: string, label: string) => {
     try {

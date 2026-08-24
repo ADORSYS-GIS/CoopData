@@ -358,7 +358,7 @@ export const SubmissionDetailPage: React.FC = () => {
     } else if (role === "apex" && submission.current_tier === "apex") {
       claimApexEdit.mutate({ id });
     }
-  }, [submission, isDraft, id, role]);
+  }, [submission, isDraft, id, role, claimCoopEdit, claimApexEdit]);
 
   useEffect(() => {
     if (isEditor && isDraft && !methodChosen) {
@@ -431,7 +431,7 @@ export const SubmissionDetailPage: React.FC = () => {
     try {
       await submitMutation.mutateAsync(id);
       toast.success(
-        submission?.created_by_role === "apex"
+        submission?.current_tier === "apex"
           ? "Submitted to Federation"
           : t("submissions.detail.toastSubmitted"),
       );
@@ -966,7 +966,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : (
                         <Send className="size-4" />
                       )}
-                      {submission.created_by_role === "apex"
+                      {submission.current_tier === "apex"
                         ? t("submissions.detail.submitToFederation", "Submit to Federation")
                         : t("submissions.detail.submitToApex")}
                     </button>
@@ -979,28 +979,28 @@ export const SubmissionDetailPage: React.FC = () => {
           {role === "apex" &&
             submission.status === "submitted" &&
             submission.created_by_role !== "apex" && (
-            <ReviewActionPanel
-              title={t("submissions.detail.apexReviewTitle")}
-              description={t("submissions.detail.apexReviewDesc")}
-              comment={reviewComment}
-              setComment={setReviewComment}
-              onApprove={() =>
-                handleReviewAction(apexApprove, t("submissions.detail.apexReviewApprovedMsg"))
-              }
-              onReturn={() =>
-                handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))
-              }
-              approveLabel={t("submissions.detail.btnApproveForward")}
-              returnLabel={t("submissions.detail.btnRequestChanges")}
-              isPending={apexApprove.isPending || apexReturn.isPending}
-            />
-          )}
+              <ReviewActionPanel
+                title={t("submissions.detail.apexReviewTitle")}
+                description={t("submissions.detail.apexReviewDesc")}
+                comment={reviewComment}
+                setComment={setReviewComment}
+                onApprove={() =>
+                  handleReviewAction(apexApprove, t("submissions.detail.apexReviewApprovedMsg"))
+                }
+                onReturn={() =>
+                  handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))
+                }
+                approveLabel={t("submissions.detail.btnApproveForward")}
+                returnLabel={t("submissions.detail.btnRequestChanges")}
+                isPending={apexApprove.isPending || apexReturn.isPending}
+              />
+            )}
 
           {/* Apex: Action Required — Fix myself or Delegate to Cooperative */}
           {role === "apex" &&
             submission.status === "submitted" &&
             submission.created_by_role === "apex" &&
-            (submission.current_tier === "apex" || submission.current_tier === "federation") && (
+            submission.current_tier === "apex" && (
               <Card
                 title="Action Required"
                 subtitle="Fix this submission yourself or delegate to the cooperative"
@@ -1053,6 +1053,26 @@ export const SubmissionDetailPage: React.FC = () => {
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
                   >
                     <PenLine className="size-4" /> Reclaim Submission
+                  </button>
+                </div>
+              </Card>
+            )}
+
+          {/* Apex: Reclaimed draft — Delegate to Cooperative */}
+          {role === "apex" &&
+            submission.status === "draft" &&
+            submission.current_tier === "apex" &&
+            submission.created_by_role === "apex" && (
+              <Card
+                title="Ready to Delegate"
+                subtitle="Delegate this submission to the cooperative for editing"
+              >
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowDelegateModal(true)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm font-semibold text-amber-600 hover:bg-amber-500/10 transition-colors"
+                  >
+                    <Users className="size-4" /> Delegate to Cooperative
                   </button>
                 </div>
               </Card>

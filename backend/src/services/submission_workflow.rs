@@ -132,11 +132,13 @@ impl SubmissionWorkflow {
             }
         }
 
-        // Apex-created submissions skip to Federation (apex already validated)
-        let next_tier = if sub.created_by_role == crate::entities::enums::SubmissionCreatedByRole::Apex {
-            ReviewTier::Federation
-        } else {
+        // Route based on where the draft currently sits:
+        // - Cooperative tier → Apex for review (coop submitting after delegation)
+        // - Apex tier → Federation (apex submitting directly or after reviewing)
+        let next_tier = if sub.current_tier == ReviewTier::Cooperative {
             ReviewTier::Apex
+        } else {
+            ReviewTier::Federation
         };
 
         self.submission_repo
@@ -204,7 +206,7 @@ impl SubmissionWorkflow {
             SubmissionStatus::Submitted,
             ReviewAction::Return,
             SubmissionStatus::Draft,
-            ReviewTier::Cooperative,
+            ReviewTier::Apex,
             claims,
             comment,
         )
@@ -213,17 +215,16 @@ impl SubmissionWorkflow {
             .reset_to_in_progress(submission_id)
             .await?;
 
-        // Set edited_by to the original creator so they can fix the submission
-        if let Ok(Some(sub)) = self.submission_repo.find_by_id(submission_id).await {
-            let _ = self
-                .submission_repo
-                .set_edited_by(
-                    submission_id,
-                    sub.created_by_user_id,
-                    sub.created_by_name,
-                )
-                .await;
-        }
+        // Set edited_by to the caller (apex user) so they can fix the submission
+        let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
+        let user_name = claims
+            .name
+            .clone()
+            .or_else(|| claims.preferred_username.clone());
+        let _ = self
+            .submission_repo
+            .set_edited_by(submission_id, user_id, user_name)
+            .await;
 
         Ok(())
     }
