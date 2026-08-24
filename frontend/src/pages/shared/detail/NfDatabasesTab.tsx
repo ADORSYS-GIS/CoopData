@@ -217,7 +217,7 @@ export function NfDatabasesTab({
     fds.length > 0 ||
     farmCoops.length > 0;
   const isLoading = lm || ls || ll || lf || lfc;
-  const canMarkReady = isCooperative && isDraft;
+  const canMarkReady = !isReadOnly && isDraft;
 
   const handleMarkReady = async (sectionKey: string, label: string) => {
     try {
@@ -237,12 +237,12 @@ export function NfDatabasesTab({
 
   return (
     <div className="space-y-4 font-sans">
-      {isCooperative && isDraft && hasData && (
+      {!isReadOnly && isDraft && hasData && (
         <div className="flex justify-end pr-2">
           <ClearNonFinancialButton submissionId={submissionId} />
         </div>
       )}
-      {isCooperative && isDraft && !hasData && !methodChosen && (
+      {!isReadOnly && isDraft && !hasData && !methodChosen && (
         <div className="rounded-xl border border-warning/25 bg-warning/5 p-6 text-center">
           <div className="mx-auto size-12 rounded-xl bg-warning/10 grid place-items-center mb-3">
             <Database className="size-6 text-warning-foreground" />
@@ -261,7 +261,7 @@ export function NfDatabasesTab({
           </button>
         </div>
       )}
-      {isCooperative && isDraft && !hasData && methodChosen && submissionMethod === "upload" && (
+      {!isReadOnly && isDraft && !hasData && methodChosen && submissionMethod === "upload" && (
         <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-stretch">
           <Card
             title={t("submissions.detail.nfDatabases.uploadTitle")}
@@ -309,7 +309,7 @@ export function NfDatabasesTab({
           </Card>
         </div>
       )}
-      {isCooperative && isDraft && !hasData && methodChosen && submissionMethod === "manual" && (
+      {!isReadOnly && isDraft && !hasData && methodChosen && submissionMethod === "manual" && (
         <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-stretch">
           <Card
             title={t("submissions.detail.nfDatabases.manualTitle")}

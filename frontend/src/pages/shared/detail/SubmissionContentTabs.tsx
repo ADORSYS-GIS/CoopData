@@ -172,7 +172,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
           <ChangeMethodBanner
             submissionMethod={submissionMethod}
             methodChosen={methodChosen}
-            isCooperative={isCooperative}
+            isCooperative={!isReadOnly}
             isDraft={isDraft}
             onOpenMethodModal={onOpenMethodModal}
           />
@@ -198,7 +198,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
               title={t("submissions.detail.contentTabs.financialQResponsesTitle")}
               subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
               action={
-                isDraft && (isCooperative || role === "ministry") ? (
+                isDraft && !isReadOnly ? (
                   <button
                     onClick={() =>
                       navigate({
@@ -227,7 +227,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
               title={t("submissions.detail.contentTabs.nonFinancialQResponsesTitle")}
               subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
               action={
-                isDraft && (isCooperative || role === "ministry") ? (
+                isDraft && !isReadOnly ? (
                   <button
                     onClick={() =>
                       navigate({
@@ -256,7 +256,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
           <ChangeMethodBanner
             submissionMethod={submissionMethod}
             methodChosen={methodChosen}
-            isCooperative={isCooperative}
+            isCooperative={!isReadOnly}
             isDraft={isDraft}
             onOpenMethodModal={onOpenMethodModal}
           />
@@ -307,7 +307,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                 title={t("submissions.detail.contentTabs.uploadedDocTitle")}
                 subtitle={t("submissions.detail.contentTabs.uploadedDocSubtitle")}
                 action={
-                  isDraft && isCooperative ? (
+                  isDraft && !isReadOnly ? (
                     <DeleteFileButton submissionId={submission.id} />
                   ) : undefined
                 }
@@ -322,7 +322,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                 title={t("submissions.detail.contentTabs.financialQResponsesTitle")}
                 subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
                 action={
-                  isDraft && isCooperative ? (
+                  isDraft && !isReadOnly ? (
                     <button
                       onClick={() =>
                         navigate({
@@ -357,7 +357,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                 )}
                 {!submission.financial_statement_id &&
                   !isExtracting &&
-                  isCooperative &&
+                  !isReadOnly &&
                   !methodChosen && (
                     <Card
                       title={t("submissions.detail.contentTabs.tabFinancial")}
@@ -384,7 +384,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                   )}
                 {!submission.financial_statement_id &&
                   !isExtracting &&
-                  isCooperative &&
+                  !isReadOnly &&
                   methodChosen &&
                   submissionMethod === "upload" && (
                     <Card
@@ -413,7 +413,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                   )}
                 {!submission.financial_statement_id &&
                   !isExtracting &&
-                  isCooperative &&
+                  !isReadOnly &&
                   methodChosen &&
                   submissionMethod === "manual" && (
                     <Card
@@ -450,7 +450,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                       </div>
                     </Card>
                   )}
-                {!submission.financial_statement_id && !isExtracting && !isCooperative && (
+                {!submission.financial_statement_id && !isExtracting && isReadOnly && (
                   <Card
                     title={t("submissions.detail.contentTabs.tabFinancial")}
                     subtitle={t("submissions.detail.contentTabs.noDocUploadedSubtitle")}
@@ -473,7 +473,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                 title={t("submissions.detail.contentTabs.nonFinancialQResponsesTitle")}
                 subtitle={t("submissions.detail.contentTabs.questionnaireResponsesSubtitle")}
                 action={
-                  isDraft && isCooperative ? (
+                  isDraft && !isReadOnly ? (
                     <button
                       onClick={() =>
                         navigate({
