@@ -352,15 +352,17 @@ export const SubmissionDetailPage: React.FC = () => {
     isDraft &&
     submission?.edited_by == null &&
     ((role === "cooperative" && submission?.current_tier === "cooperative") ||
-     (role === "apex" && submission?.current_tier === "apex"));
+      (role === "apex" && submission?.current_tier === "apex"));
 
-  const isEditor =
-    isDraft &&
-    (submission?.edited_by === currentUserId || isDelegatedToMe);
+  const isEditor = isDraft && (submission?.edited_by === currentUserId || isDelegatedToMe);
 
   // Auto-claim edit rights when opening a delegated draft with no editor
+  // Guard against React StrictMode double-mount and rapid navigation triggering multiple claims
+  const hasClaimedRef = useRef(false);
   useEffect(() => {
     if (!submission || !isDraft || submission.edited_by != null || !id) return;
+    if (hasClaimedRef.current) return;
+    hasClaimedRef.current = true;
     if (role === "cooperative" && submission.current_tier === "cooperative") {
       claimCoopEdit.mutate({ id });
     } else if (role === "apex" && submission.current_tier === "apex") {

@@ -226,10 +226,9 @@ impl SubmissionWorkflow {
             .name
             .clone()
             .or_else(|| claims.preferred_username.clone());
-        let _ = self
-            .submission_repo
+        self.submission_repo
             .set_edited_by(submission_id, user_id, user_name)
-            .await;
+            .await?;
 
         Ok(())
     }
@@ -317,25 +316,16 @@ impl SubmissionWorkflow {
         }
 
         self.submission_repo
-            .update_status(
-                submission_id,
-                SubmissionStatus::Submitted,
-                ReviewTier::Apex,
-            )
+            .update_status(submission_id, SubmissionStatus::Submitted, ReviewTier::Apex)
             .await?;
 
         counter!("coopdata_submission_transitions_total", "status" => "submitted").increment(1);
 
         // Set edited_by to the apex user who needs to fix/resubmit
         if let Ok(Some(sub)) = self.submission_repo.find_by_id(submission_id).await {
-            let _ = self
-                .submission_repo
-                .set_edited_by(
-                    submission_id,
-                    sub.created_by_user_id,
-                    sub.created_by_name,
-                )
-                .await;
+            self.submission_repo
+                .set_edited_by(submission_id, sub.created_by_user_id, sub.created_by_name)
+                .await?;
         }
 
         self.append_review(

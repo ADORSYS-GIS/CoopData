@@ -143,9 +143,7 @@ pub async fn upload_financial_statement(
             .iter()
             .find(|c| c.id == existing.cooperative_id)
             .ok_or_else(|| {
-                AppError::Forbidden(
-                    "Access denied: submission does not belong to your apex".into(),
-                )
+                AppError::Forbidden("Access denied: submission does not belong to your apex".into())
             })?;
         coop_model.clone()
     } else {

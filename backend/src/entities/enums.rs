@@ -716,7 +716,11 @@ impl FdStatus {
 #[derive(
     Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
 )]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "submission_created_by_role")]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "Enum",
+    enum_name = "submission_created_by_role"
+)]
 pub enum SubmissionCreatedByRole {
     #[sea_orm(string_value = "cooperative")]
     Cooperative,

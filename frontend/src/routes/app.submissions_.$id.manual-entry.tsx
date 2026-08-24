@@ -4,7 +4,9 @@ import { ManualEntryWizard } from "@/pages/cooperative/ManualEntryWizard";
 import { z } from "zod";
 
 const manualEntrySearchSchema = z.object({
-  step: z.enum(["financial", "members", "savings", "loans", "deposits", "farm", "review"]).optional(),
+  step: z
+    .enum(["financial", "members", "savings", "loans", "deposits", "farm", "review"])
+    .optional(),
 });
 
 function ManualEntryRoute() {

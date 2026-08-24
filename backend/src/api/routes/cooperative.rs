@@ -104,10 +104,7 @@ pub fn cooperative_routes() -> Router<AppState> {
             "/submissions/{id}",
             get(get_submission).delete(delete_submission),
         )
-        .route(
-            "/submissions/{id}/claim-edit",
-            post(claim_cooperative_edit),
-        )
+        .route("/submissions/{id}/claim-edit", post(claim_cooperative_edit))
         .route(
             "/submissions/{id}/manual-financial-statement",
             post(crate::api::handlers::financial_statement::create_manual_financial_statement),

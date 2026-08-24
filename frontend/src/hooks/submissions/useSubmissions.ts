@@ -658,10 +658,9 @@ export const useClaimApexEdit = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const { data, error } = await apiClient.POST(
-        "/api/v1/apex/submissions/{id}/claim-edit",
-        { params: { path: { id } } },
-      );
+      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/claim-edit", {
+        params: { path: { id } },
+      });
       if (error) throw new Error(extractErrorMessage(error));
       return data as SubmissionResponse;
     },

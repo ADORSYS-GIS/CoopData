@@ -5,7 +5,7 @@ use axum::{
     Extension, Json,
 };
 use chrono::Datelike;
-use sea_orm::Set;
+use sea_orm::{Set, TransactionTrait};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -1575,7 +1575,8 @@ pub async fn delete_submission(
 
     if claims.has_role("apex") {
         let apex_db_id =
-            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+                .await?;
         let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
         let belongs = cooperatives
             .iter()
@@ -1605,7 +1606,8 @@ pub async fn delete_submission(
         }
         if submission.created_by_role == crate::entities::enums::SubmissionCreatedByRole::Apex {
             return Err(AppError::Forbidden(
-                "This submission was created by the apex and cannot be deleted by the cooperative".into(),
+                "This submission was created by the apex and cannot be deleted by the cooperative"
+                    .into(),
             ));
         }
     }
@@ -1970,7 +1972,8 @@ pub async fn update_submission_method(
 
     if claims.has_role("apex") {
         let apex_db_id =
-            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+                .await?;
         let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
         let belongs = cooperatives
             .iter()
@@ -2246,10 +2249,13 @@ pub async fn delegate_submission(
     // For now, we clear edited_by and set it when cooperative user opens the submission
     let delegate_comment = body.comment.clone();
 
+    let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
+
     // Transition status to draft at cooperative tier so the coop can edit
     state
         .submission_repo
-        .update_status(
+        .update_status_tx(
+            &txn,
             id,
             crate::entities::enums::SubmissionStatus::Draft,
             crate::entities::enums::ReviewTier::Cooperative,
@@ -2268,13 +2274,15 @@ pub async fn delegate_submission(
         target_tier: Set(Some(crate::entities::enums::ReviewTier::Cooperative)),
         created_at: Set(chrono::Utc::now()),
     };
-    state.review_repo.create(review_model).await?;
+    state.review_repo.create_tx(&txn, review_model).await?;
 
     // Transfer ownership to cooperative (clear edited_by — cooperative will pick it up)
     let updated = state
         .submission_repo
-        .set_edited_by(id, None, None)
+        .set_edited_by_tx(&txn, id, None, None)
         .await?;
+
+    txn.commit().await.map_err(AppError::DatabaseError)?;
 
     tracing::info!(
         submission_id = %id,
@@ -2343,12 +2351,6 @@ pub async fn claim_cooperative_edit(
         )));
     }
 
-    if submission.edited_by.is_some() {
-        return Err(AppError::Conflict(
-            "Another user is currently editing this submission".into(),
-        ));
-    }
-
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
     let user_name = claims
@@ -2358,8 +2360,11 @@ pub async fn claim_cooperative_edit(
 
     let updated = state
         .submission_repo
-        .set_edited_by(id, Some(user_id), user_name)
-        .await?;
+        .claim_edited_by(id, user_id, user_name)
+        .await?
+        .ok_or_else(|| {
+            AppError::Conflict("Another user is currently editing this submission".into())
+        })?;
 
     tracing::info!(
         submission_id = %id,
@@ -2535,12 +2540,6 @@ pub async fn claim_apex_edit(
         )));
     }
 
-    if submission.edited_by.is_some() {
-        return Err(AppError::Conflict(
-            "Another user is currently editing this submission".into(),
-        ));
-    }
-
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
     let user_name = claims
@@ -2550,8 +2549,11 @@ pub async fn claim_apex_edit(
 
     let updated = state
         .submission_repo
-        .set_edited_by(id, Some(user_id), user_name)
-        .await?;
+        .claim_edited_by(id, user_id, user_name)
+        .await?
+        .ok_or_else(|| {
+            AppError::Conflict("Another user is currently editing this submission".into())
+        })?;
 
     tracing::info!(
         submission_id = %id,
