@@ -344,11 +344,19 @@ export const SubmissionDetailPage: React.FC = () => {
 
   // Exclusive editor model: only the user who owns the draft (edited_by) can edit
   // Hooks must be called before any early returns
-  const isEditor =
-    isDraft && submission?.edited_by != null && submission.edited_by === currentUserId;
-
   const claimCoopEdit = useClaimCooperativeEdit();
   const claimApexEdit = useClaimApexEdit();
+
+  // Check if this is a delegated/reclaimed draft waiting to be claimed
+  const isDelegatedToMe =
+    isDraft &&
+    submission?.edited_by == null &&
+    ((role === "cooperative" && submission?.current_tier === "cooperative") ||
+     (role === "apex" && submission?.current_tier === "apex"));
+
+  const isEditor =
+    isDraft &&
+    (submission?.edited_by === currentUserId || isDelegatedToMe);
 
   // Auto-claim edit rights when opening a delegated draft with no editor
   useEffect(() => {
@@ -1042,8 +1050,7 @@ export const SubmissionDetailPage: React.FC = () => {
           {role === "apex" &&
             submission.status === "draft" &&
             submission.current_tier === "cooperative" &&
-            submission.created_by_role === "apex" &&
-            submission.edited_by == null && (
+            submission.created_by_role === "apex" && (
               <Card
                 title="Delegated to Cooperative"
                 subtitle="This submission is being fixed by the cooperative"
