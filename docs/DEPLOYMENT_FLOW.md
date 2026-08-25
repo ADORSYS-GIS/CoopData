@@ -1,8 +1,67 @@
-# CoopData Enterprise Production Deployment & Operations Specification
+# CoopData Production Deployment & Operations Specification
 
 > 📖 **MASTER SPECIFICATIONS**:
 > - 🚀 **Release Strategy & SemVer Guide**: [`RELEASE_STRATEGY_GUIDE.md`](file:///home/ariel/Desktop/CoopData/docs/RELEASE_STRATEGY_GUIDE.md)
 > - 🛡️ **Backup & Disaster Recovery Guide**: [`BACKUP_AND_RECOVERY_GUIDE.md`](file:///home/ariel/Desktop/CoopData/docs/BACKUP_AND_RECOVERY_GUIDE.md)
+> - 🧪 **Multi-Environment Guide (Prod + Demo)**: [`MULTI_ENVIRONMENT_GUIDE.md`](file:///home/ariel/Desktop/CoopData/docs/MULTI_ENVIRONMENT_GUIDE.md)
+
+---
+
+## 🚀 Complete End-to-End Lifecycle: Dev $\rightarrow$ Demo $\rightarrow$ Prod
+
+```mermaid
+flowchart TD
+    Dev["1. Local Dev & Feature Branch\n(Conventional Commits: feat:, fix:)"] --> PR_Dev["2. Pull Request to 'develop'"]
+    PR_Dev --> Merge_Dev["3. Merge into 'develop' Branch"]
+    
+    Merge_Dev --> CD_Demo["4. Automated CI/CD Deploy to Demo\n(demo.coopdata.dgrvcoop360.com)\n• Reads .env.demo\n• Capped at 25% server resources"]
+    
+    CD_Demo --> QA_Testing["5. QA & Ministry Stakeholder Testing\non Demo Environment"]
+    
+    QA_Testing -- "Approved" --> PR_Main["6. Merge 'develop' into 'main' Branch"]
+    PR_Main --> Release_Please["7. Release-Please Bot Opens Release PR\nCalculates SemVer (v1.1.0) + CHANGELOG"]
+    
+    Release_Please --> Merge_Release["8. Team Merges Release PR"]
+    Merge_Release --> Git_Tag["9. Git Tag v1.1.0 & Release Created"]
+    
+    Git_Tag --> CD_Prod["10. Automated CI/CD Deploy to Production\n(coopdata.dgrvcoop360.com)\n• docker-rollout zero downtime\n• 75% host resource allocation"]
+```
+
+---
+
+## 📋 Step-by-Step Deployment Pipeline Breakdown
+
+### Phase 1: Local Development & Feature Branching
+- Developers work on feature branches (e.g. `feature/mfa-auth`).
+- Write commits using **Conventional Commits**:
+  - `fix: resolve JWT expiration token bug` $\rightarrow$ Triggers Patch release `v1.0.1`
+  - `feat: add MFA support` $\rightarrow$ Triggers Minor release `v1.1.0`
+  - `feat!: overhaul DB schema` $\rightarrow$ Triggers Major release `v2.0.0`
+- Open Pull Request targeting `develop` branch.
+
+### Phase 2: Automated Demo Staging (`develop` branch)
+- Merge PR into `develop`.
+- GitHub Actions ([`.github/workflows/docker.yml`](file:///home/ariel/Desktop/CoopData/.github/workflows/docker.yml)) builds images and pushes `:develop` tags to GHCR.
+- SSHs to server and executes [`./scripts/deploy-demo.sh develop`](file:///home/ariel/Desktop/CoopData/scripts/deploy-demo.sh).
+- Updates Demo stack ([`docker-compose.demo.yaml`](file:///home/ariel/Desktop/CoopData/docker-compose.demo.yaml)) accessible at `https://demo.coopdata.dgrvcoop360.com`.
+- **Safety Isolation**: Demo uses `.env.demo` and is strictly capped at **25% CPU / RAM**. Demo load **can NEVER disrupt Production**.
+
+### Phase 3: Release Creation & SemVer Tagging (`main` branch)
+- Open PR from `develop` into `main`.
+- Upon merge to `main`, Google's `release-please` ([`.github/workflows/release-please.yml`](file:///home/ariel/Desktop/CoopData/.github/workflows/release-please.yml)) scans conventional commits and opens a **Release PR** (`chore(main): release 1.1.0`).
+- Merging the Release PR automatically generates Git Tag `v1.1.0` and publishes the GitHub Release.
+
+### Phase 4: Production Zero-Downtime Rollout (`v1.1.0`)
+- Tag `v1.1.0` triggers GitHub Actions to build GHCR images (`:v1.1.0`, `:latest`).
+- SSHs to production server and executes [`./scripts/deploy.sh v1.1.0`](file:///home/ariel/Desktop/CoopData/scripts/deploy.sh).
+- `docker-rollout` boots `v2` alongside `v1`, verifies health, shifts Nginx traffic, and stops `v1`.
+- **Client Downtime**: **0 Seconds** (< 1 sec drop window).
+
+### Phase 5: Operations, Auto-Healing & Disaster Recovery
+- **Self-Healing**: `willfarrell/autoheal` monitors `/health` every 5s; restarts crashed containers in **< 30s**.
+- **Offsite Backups**: `backup-production.sh` runs daily at 02:00 AM saving App DB, Keycloak IAM, and MinIO files to AWS S3.
+- **Disaster Recovery**: Single command `restore-production.sh <date>` recovers full server loss in **< 15 minutes**.
+- **TLS Management**: Single Let's Encrypt SAN cert covers `coopdata.dgrvcoop360.com` and `demo.coopdata.dgrvcoop360.com` with zero-downtime auto-renewals.
 
 ---
 

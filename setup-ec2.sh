@@ -181,8 +181,9 @@ NGINX_PRE_TLS
             --email "$EMAIL" \
             --agree-tos \
             --no-eff-email \
-            -d "$DOMAIN"
-        ok "TLS certificate obtained"
+            -d "$DOMAIN" \
+            -d "demo.$DOMAIN"
+        ok "TLS certificate obtained for $DOMAIN and demo.$DOMAIN"
     fi
 
     # ── Final Nginx config with TLS ──────────────────────────────────────
@@ -282,6 +283,51 @@ server {
 
     location /js/ {
         proxy_pass         http://127.0.0.1:8180/js/;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+}
+
+# ── DEMO / STAGING SUBDOMAIN (demo.$DOMAIN) ──────────────────────────────
+server {
+    listen 80;
+    server_name demo.$DOMAIN;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name demo.$DOMAIN;
+
+    ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass         http://127.0.0.1:5175;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /api/ {
+        proxy_pass         http://127.0.0.1:3005;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+    }
+
+    location /auth/ {
+        proxy_pass         http://127.0.0.1:8185/;
         proxy_set_header   Host \$host;
         proxy_set_header   X-Real-IP \$remote_addr;
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -466,7 +512,22 @@ else
     ok ".env already exists — keeping it"
 fi
 
-chmod 600 .env 2>/dev/null || true
+# ── Set up .env.demo ──────────────────────────────────────────────────────
+info "Setting up .env.demo file..."
+if [[ ! -f .env.demo ]] && [[ -f .env.demo.example ]]; then
+    cp .env.demo.example .env.demo
+    sed -i "s|coopdata.dgrvcoop360.com|$DOMAIN|g" .env.demo
+    sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=${PROTOCOL}://demo.${DOMAIN}|g" .env.demo
+    sed -i "s|JWT_ISSUER=.*|JWT_ISSUER=${PROTOCOL}://demo.${DOMAIN}/auth/realms/coop-data|g" .env.demo
+    sed -i "s|JWT_ISSUER_ALIASES=.*|JWT_ISSUER_ALIASES=${PROTOCOL}://demo.${DOMAIN}/auth/realms/coop-data,http://demo-keycloak:8180/realms/coop-data|g" .env.demo
+    sed -i "s|DOMAIN_NAME=.*|DOMAIN_NAME=${DOMAIN}|g" .env.demo
+    chmod 600 .env.demo 2>/dev/null || true
+    ok "Created .env.demo from .env.demo.example"
+else
+    ok ".env.demo already exists — keeping it"
+fi
+
+chmod 600 .env .env.demo 2>/dev/null || true
 chown -R ubuntu:ubuntu "$SCRIPT_DIR" 2>/dev/null || true
 
 # ── Step 5: Configure Docker log rotation ────────────────────────────────────
