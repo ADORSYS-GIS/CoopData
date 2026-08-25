@@ -132,18 +132,16 @@ impl SubmissionWorkflow {
             }
         }
 
-        // Route based on where the draft currently sits:
-        // - Cooperative tier → Apex for review (coop submitting after delegation)
-        // - Cooperative tier + apex-created → Federation (skip apex review — apex already validated)
-        // - Apex tier → Federation (apex submitting directly or after reviewing)
-        let next_tier = if sub.current_tier == ReviewTier::Cooperative {
-            if sub.created_by_role == crate::entities::enums::SubmissionCreatedByRole::Apex {
-                ReviewTier::Federation
-            } else {
-                ReviewTier::Apex
-            }
-        } else {
-            ReviewTier::Federation
+        // Route based on current tier only:
+        // - Cooperative tier → Apex (coop submits after delegation, apex reviews)
+        // - Apex tier → Federation (apex is done reviewing, sends to federation)
+        // - Federation tier → stays at federation (federation reviews)
+        // - Ministry tier → stays at ministry (ministry reviews)
+        let next_tier = match sub.current_tier {
+            ReviewTier::Cooperative => ReviewTier::Apex,
+            ReviewTier::Apex => ReviewTier::Federation,
+            ReviewTier::Federation => ReviewTier::Federation,
+            ReviewTier::Ministry => ReviewTier::Ministry,
         };
 
         self.submission_repo
