@@ -2,7 +2,7 @@ use metrics::counter;
 use uuid::Uuid;
 
 use crate::auth::claims::Claims;
-use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionStatus};
+use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
 use crate::entities::submission_review::ActiveModel as ReviewModel;
 use crate::error::{AppError, AppResult};
 use crate::repositories::{
@@ -132,16 +132,21 @@ impl SubmissionWorkflow {
             }
         }
 
-        // Route based on current tier only:
+        // Route based on current tier and creator role:
+        // - Apex-created submissions skip apex review, go directly to Federation
         // - Cooperative tier → Apex (coop submits after delegation, apex reviews)
         // - Apex tier → Federation (apex is done reviewing, sends to federation)
         // - Federation tier → stays at federation (federation reviews)
         // - Ministry tier → stays at ministry (ministry reviews)
-        let next_tier = match sub.current_tier {
-            ReviewTier::Cooperative => ReviewTier::Apex,
-            ReviewTier::Apex => ReviewTier::Federation,
-            ReviewTier::Federation => ReviewTier::Federation,
-            ReviewTier::Ministry => ReviewTier::Ministry,
+        let next_tier = if sub.created_by_role == SubmissionCreatedByRole::Apex {
+            ReviewTier::Federation
+        } else {
+            match sub.current_tier {
+                ReviewTier::Cooperative => ReviewTier::Apex,
+                ReviewTier::Apex => ReviewTier::Federation,
+                ReviewTier::Federation => ReviewTier::Federation,
+                ReviewTier::Ministry => ReviewTier::Ministry,
+            }
         };
 
         self.submission_repo
@@ -204,12 +209,24 @@ impl SubmissionWorkflow {
         claims: &Claims,
         comment: Option<String>,
     ) -> AppResult<()> {
+        let sub = self
+            .submission_repo
+            .find_by_id(submission_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+        let next_tier = if sub.created_by_role == SubmissionCreatedByRole::Apex {
+            ReviewTier::Apex
+        } else {
+            ReviewTier::Cooperative
+        };
+
         self.transition(
             submission_id,
             SubmissionStatus::Submitted,
             ReviewAction::Return,
             SubmissionStatus::Draft,
-            ReviewTier::Apex,
+            next_tier,
             claims,
             comment,
         )
