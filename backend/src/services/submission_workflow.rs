@@ -219,9 +219,7 @@ impl SubmissionWorkflow {
             .await?;
 
         // Clear edited_by so the cooperative can auto-claim on open and fix the submission
-        self.submission_repo
-            .clear_edited_by(submission_id)
-            .await?;
+        self.submission_repo.clear_edited_by(submission_id).await?;
 
         Ok(())
     }
