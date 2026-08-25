@@ -976,9 +976,9 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : (
                         <Send className="size-4" />
                       )}
-                      {submission.current_tier === "apex" || submission.created_by_role === "apex"
-                        ? t("submissions.detail.submitToFederation", "Submit to Federation")
-                        : t("submissions.detail.submitToApex")}
+                      {submission.current_tier === "cooperative"
+                        ? t("submissions.detail.submitToApex", "Submit to Apex")
+                        : t("submissions.detail.submitToFederation", "Submit to Federation")}
                     </button>
                   </div>
                 </div>
