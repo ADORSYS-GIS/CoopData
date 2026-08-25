@@ -132,7 +132,7 @@ impl SavingsAccountRepository {
         savings_account::Entity::insert_many(models)
             .on_conflict(
                 OnConflict::columns([
-                    SavingsAccountColumn::CooperativeId,
+                    SavingsAccountColumn::SubmissionId,
                     SavingsAccountColumn::SavingsAccountId,
                 ])
                 .update_columns([
