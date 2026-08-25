@@ -469,6 +469,87 @@ fi
 chmod 600 .env 2>/dev/null || true
 chown -R ubuntu:ubuntu "$SCRIPT_DIR" 2>/dev/null || true
 
+# ── Step 5: Configure Docker log rotation ────────────────────────────────────
+info "Configuring Docker daemon log rotation..."
+DAEMON_JSON="/etc/docker/daemon.json"
+if [[ -f "$DAEMON_JSON" ]] && grep -q '"log-driver"' "$DAEMON_JSON" 2>/dev/null; then
+    ok "Docker log rotation already configured in ${DAEMON_JSON}"
+else
+    # Merge into existing daemon.json if present, otherwise create fresh
+    if [[ -f "$DAEMON_JSON" ]]; then
+        cp "$DAEMON_JSON" "${DAEMON_JSON}.bak"
+        python3 -c "
+import json, sys
+with open('${DAEMON_JSON}') as f:
+    d = json.load(f)
+d.update({'log-driver': 'json-file', 'log-opts': {'max-size': '10m', 'max-file': '3'}})
+print(json.dumps(d, indent=2))
+" > "${DAEMON_JSON}.new" && mv "${DAEMON_JSON}.new" "${DAEMON_JSON}"
+    else
+        cat > "$DAEMON_JSON" << 'DAEMON_EOF'
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+DAEMON_EOF
+    fi
+    systemctl reload docker 2>/dev/null || systemctl restart docker
+    ok "Docker log rotation configured (10MB × 3 files per container)"
+fi
+
+# ── Step 6: Install docker-rollout (zero-downtime deployments) ───────────────
+info "Installing docker-rollout CLI plugin..."
+ROLLOUT_DIR="/home/ubuntu/.docker/cli-plugins"
+ROLLOUT_PATH="${ROLLOUT_DIR}/docker-rollout"
+ROLLOUT_URL="https://raw.githubusercontent.com/wowu/docker-rollout/main/docker-rollout"
+
+mkdir -p "$ROLLOUT_DIR"
+chown ubuntu:ubuntu "$ROLLOUT_DIR"
+
+if [[ -x "$ROLLOUT_PATH" ]]; then
+    ok "docker-rollout already installed"
+else
+    if curl -fsSL "$ROLLOUT_URL" -o "$ROLLOUT_PATH" 2>/dev/null; then
+        chmod +x "$ROLLOUT_PATH"
+        chown ubuntu:ubuntu "$ROLLOUT_PATH"
+        ok "docker-rollout installed at ${ROLLOUT_PATH}"
+    else
+        warn "Could not download docker-rollout (no internet?). Run later:"
+        warn "  ./scripts/install-docker-rollout.sh"
+    fi
+fi
+
+# ── Step 7: Install nightly backup cron job ───────────────────────────────────
+info "Setting up nightly production backup cron job (DB + Keycloak + MinIO)..."
+BACKUP_SCRIPT="${SCRIPT_DIR}/scripts/backup-production.sh"
+
+if [[ -f "$BACKUP_SCRIPT" ]]; then
+    chmod +x "$BACKUP_SCRIPT"
+    chmod +x "${SCRIPT_DIR}/scripts/backup-postgres.sh" 2>/dev/null || true
+    CRON_JOB="0 2 * * * ubuntu ${BACKUP_SCRIPT} >> /var/log/coopdata-backup.log 2>&1"
+    CRON_FILE="/etc/cron.d/coopdata-backup"
+
+    # Write cron file only if not already present
+    if [[ ! -f "$CRON_FILE" ]] || ! grep -qF "$BACKUP_SCRIPT" "$CRON_FILE"; then
+        echo "$CRON_JOB" > "$CRON_FILE"
+        chmod 644 "$CRON_FILE"
+        ok "Backup cron installed: daily at 02:00 → ${CRON_FILE}"
+    else
+        ok "Backup cron already configured at ${CRON_FILE}"
+    fi
+
+    # Create log file with correct permissions
+    touch /var/log/coopdata-backup.log
+    chown ubuntu:ubuntu /var/log/coopdata-backup.log
+    chmod 640 /var/log/coopdata-backup.log
+    ok "Backup log: /var/log/coopdata-backup.log"
+else
+    warn "Backup script not found at ${BACKUP_SCRIPT} — skipping cron setup"
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════════╗${NC}"
@@ -488,11 +569,17 @@ else
     echo -e "  ${YELLOW}►${NC} Note:      ${YELLOW}Browser will warn about cert — click 'Advanced → Proceed'.${NC}"
 fi
 
-echo -e "  ${GREEN}►${NC} Nginx:     ${CYAN}Reverse proxy configured${NC}"
-echo -e "  ${GREEN}►${NC} Docker:    ${CYAN}Installed${NC}"
+echo -e "  ${GREEN}►${NC} Nginx:          ${CYAN}Reverse proxy configured${NC}"
+echo -e "  ${GREEN}►${NC} Docker:         ${CYAN}Installed + log rotation (10MB×3)${NC}"
+echo -e "  ${GREEN}►${NC} docker-rollout: ${CYAN}Zero-downtime deployments enabled${NC}"
+echo -e "  ${GREEN}►${NC} Backups:        ${CYAN}Nightly cron at 02:00 → /var/log/coopdata-backup.log${NC}"
+echo -e "  ${GREEN}►${NC} Recovery:       ${CYAN}Disaster recovery script ready (./scripts/restore-production.sh)${NC}"
 echo ""
 echo -e "  ${YELLOW}NEXT STEPS:${NC}"
-echo -e "    1. Edit .env:                ${CYAN}nano .env${NC}"
-echo -e "    2. Set strong passwords      ${CYAN}(openssl rand -base64 32)${NC}"
-echo -e "    3. Start CoopData:           ${CYAN}./start-prod.sh${NC}"
+echo -e "    1. Edit .env:                  ${CYAN}nano .env${NC}"
+echo -e "    2. Set strong passwords:       ${CYAN}openssl rand -base64 32${NC}"
+echo -e "    3. Configure backup target:    ${CYAN}Set BACKUP_S3_BUCKET + AWS credentials in .env${NC}"
+echo -e "    4. Start CoopData:             ${CYAN}./start-prod.sh${NC}"
+echo -e "    5. Future updates (zero-down): ${CYAN}./scripts/deploy.sh${NC}"
+echo -e "    6. Disaster recovery restore:  ${CYAN}./scripts/restore-production.sh${NC}"
 echo ""

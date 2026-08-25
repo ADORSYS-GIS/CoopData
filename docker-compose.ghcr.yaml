@@ -1,19 +1,60 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# CoopData Production - Pre-built Images from GHCR
+# CoopData Production — Pre-built Images from GHCR
+# Enterprise-grade: healthchecks · autoheal · resource limits · log rotation
 # ─────────────────────────────────────────────────────────────────────────────
 # No local building. Backend + Frontend images pulled from GHCR.
 # Infrastructure images pulled from Docker Hub.
-# Requires: .env file (copy from .env.example), migrations/, keycloak/
+# Requires: .env file (copy from .env.example)
 #
 # Usage:
 #   docker compose -f docker-compose.ghcr.yaml up -d
+#
+# Zero-downtime updates (after installing docker-rollout):
+#   docker rollout -f docker-compose.ghcr.yaml backend
+#   docker rollout -f docker-compose.ghcr.yaml frontend
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Global defaults ──────────────────────────────────────────────────────────
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    tag: "{{.Name}}"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
 services:
-  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  # ── Autoheal — self-healing watchdog ────────────────────────────────────────
+  # Monitors containers labeled autoheal=true. When a container transitions to
+  # unhealthy it is restarted automatically within ~5 seconds.
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: coopdata-autoheal
+    <<: *default-restart
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: 5
+      AUTOHEAL_START_PERIOD: 0
+      AUTOHEAL_DEFAULT_STOP_TIMEOUT: 10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+        reservations:
+          cpus: "0.01"
+          memory: 32M
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: coopdata-postgres
+    <<: *default-restart
     env_file:
       - .env
     environment:
@@ -25,28 +66,54 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
 
   # ── Redis ─────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: coopdata-redis
+    <<: *default-restart
     ports: []
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
 
-  # ── MinIO (S3-compatible storage) ─────────────────────────────────────────
+  # ── MinIO (S3-compatible storage) ──────────────────────────────────────────
   minio:
     image: minio/minio:RELEASE.2024-01-18T22-51-28Z
     container_name: coopdata-minio
+    <<: *default-restart
     command: server /data --console-address ":9001"
     env_file:
       - .env
@@ -63,11 +130,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+        reservations:
+          cpus: "0.10"
+          memory: 256M
 
   # ── Keycloak (OpenID Connect) ──────────────────────────────────────────────
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak
+    <<: *default-restart
     command: start-dev --import-realm
     env_file:
       - .env
@@ -99,16 +179,30 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8180'"]
-      interval: 10s
-      timeout: 5s
+      # Use Keycloak's dedicated health endpoint (requires KC_HEALTH_ENABLED=true)
+      test: ["CMD-SHELL", "curl -sf http://localhost:8180/health/ready || exit 1"]
+      interval: 15s
+      timeout: 10s
       retries: 15
-      start_period: 30s
+      start_period: 60s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+      autoheal.stop.timeout: "30"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 1536M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
 
-  # ── Keycloak Provisioning (creates admin users + SMTP config) ──────────────
+  # ── Keycloak Provisioning (one-shot: creates admin users + SMTP config) ────
   keycloak-provision:
     image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak-provision
+    restart: "no"
     env_file:
       - .env
     environment:
@@ -140,11 +234,22 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
 
   # ── Backend (Rust/Axum) — image from GHCR ─────────────────────────────────
+  # NOTE: container_name intentionally omitted to allow docker-rollout scaling.
+  # During a zero-downtime rollout, two backend instances run simultaneously.
   backend:
-    image: ghcr.io/adorsys-gis/coopdata-backend:latest
-    container_name: coopdata-backend
+    image: ghcr.io/adorsys-gis/coopdata-backend:${BACKEND_IMAGE_TAG:-latest}
+    <<: *default-restart
     env_file:
       - .env
     environment:
@@ -185,16 +290,27 @@ services:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
       retries: 5
-      start_period: 60s
-    restart: unless-stopped
+      start_period: 30s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
-  # ── Frontend (React SPA + Nginx) — image from GHCR ───────────────────────
+  # ── Frontend (React SPA + Nginx) — image from GHCR ──────────────────────
+  # NOTE: container_name intentionally omitted to allow docker-rollout scaling.
   frontend:
-    image: ghcr.io/adorsys-gis/coopdata-frontend:latest
-    container_name: coopdata-frontend
+    image: ghcr.io/adorsys-gis/coopdata-frontend:${FRONTEND_IMAGE_TAG:-latest}
+    <<: *default-restart
     ports:
       - "127.0.0.1:5174:80"
     volumes:
@@ -202,23 +318,57 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
 
-  # ── Gotenberg (PDF Generation Engine) ──────────────────────────────────────
+  # ── Gotenberg (PDF Generation Engine) ────────────────────────────────────
   gotenberg:
     image: gotenberg/gotenberg:7.9
     container_name: coopdata-gotenberg
+    <<: *default-restart
     ports:
       - "127.0.0.1:8081:3000"
     environment:
       - CHROMIUM_DISABLE_SANDBOX=true
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1536M
+        reservations:
+          cpus: "0.10"
+          memory: 256M
 
-  # ── Monitoring Stack ─────────────────────────────────────────────────────
+  # ── Monitoring Stack ──────────────────────────────────────────────────────
 
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: coopdata-prometheus
+    <<: *default-restart
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -240,11 +390,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 1G
+        reservations:
+          cpus: "0.05"
+          memory: 256M
 
   grafana:
     image: grafana/grafana:11.1.0
     container_name: coopdata-grafana
+    <<: *default-restart
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -268,33 +427,60 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: coopdata-postgres-exporter
+    <<: *default-restart
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
     ports: []
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 128M
+        reservations:
+          cpus: "0.01"
+          memory: 32M
 
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: coopdata-redis-exporter
+    <<: *default-restart
     environment:
       REDIS_ADDR: "redis://redis:6379"
     ports: []
     depends_on:
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+        reservations:
+          cpus: "0.01"
+          memory: 16M
 
   node-exporter:
     image: prom/node-exporter:latest
     container_name: coopdata-node-exporter
+    <<: *default-restart
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
@@ -305,7 +491,15 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/host/root:ro
-    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+        reservations:
+          cpus: "0.01"
+          memory: 16M
 
 volumes:
   postgres_data:

@@ -1,10 +1,18 @@
 name: Docker Build, Scan & Publish
 
 on:
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: 'Specific release tag or commit SHA to deploy (e.g. v1.1.0 or latest)'
+        required: false
+        default: 'latest'
   pull_request:
-    branches: [main, develop]
+    branches: [main]
   push:
-    branches: [main, develop, "deployed-*"]
+    branches: [main, deploy, "deploy-*", "deployed-*"]
+    tags:
+      - 'v*'
   release:
     types: [published]
 
@@ -41,8 +49,10 @@ jobs:
         with:
           images: ${{ steps.images.outputs.frontend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
-            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy' || startsWith(github.ref, 'refs/heads/deploy-') || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
             type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
@@ -54,8 +64,10 @@ jobs:
         with:
           images: ${{ steps.images.outputs.backend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
-            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy' || startsWith(github.ref, 'refs/heads/deploy-') || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
             type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
@@ -171,8 +183,10 @@ jobs:
         with:
           images: ${{ steps.images.outputs.frontend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
-            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy' || startsWith(github.ref, 'refs/heads/deploy-') || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
 
@@ -181,8 +195,10 @@ jobs:
         with:
           images: ${{ steps.images.outputs.backend }}
           tags: |
-            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
-            type=raw,value=develop,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=raw,value=latest,enable=${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy' || startsWith(github.ref, 'refs/heads/deploy-') || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
 
@@ -210,3 +226,22 @@ jobs:
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    name: Zero-Downtime Deploy to Production
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy' || startsWith(github.ref, 'refs/heads/deploy-') || startsWith(github.ref, 'refs/heads/deployed-'))) || github.event_name == 'release'
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER || 'ubuntu' }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
+            git pull
+            TARGET_TAG="${{ github.event.inputs.target_tag || 'latest' }}"
+            ./scripts/deploy.sh "$TARGET_TAG"
