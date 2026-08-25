@@ -188,7 +188,7 @@ export const SubmissionDetailPage: React.FC = () => {
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
   const { isOffline, user } = useAuth();
-  const currentUserId = user?.sub ?? user?.id;
+  const currentUserId = user?.id;
   const { verifyIdentity } = useVerifyIdentity();
   const submitMutation = useSubmitSubmission();
   const deleteMutation = useDeleteSubmission();

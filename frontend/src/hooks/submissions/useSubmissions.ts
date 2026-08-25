@@ -383,7 +383,7 @@ export const useUpdateSubmissionMethod = () => {
           const { data, error } = await apiClient.PATCH(basePath as never, {
             params: { path: { id } },
             body: { submission_method: submissionMethod },
-          });
+          } as never);
           if (error) throw new Error(extractErrorMessage(error));
           return data as SubmissionResponse;
         },
@@ -449,7 +449,7 @@ export const useDeleteSubmission = () => {
         optimisticData: undefined,
         verificationToken,
         online: async () => {
-          const { error } = await apiClient.DELETE(basePath as never, {
+          const { error } = await apiClient.DELETE(basePath as "/api/v1/cooperative/submissions/{id}", {
             params: {
               path: { id },
               header: { "x-verification-token": verificationToken } as never,
@@ -641,8 +641,8 @@ export const useClaimCooperativeEdit = () => {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const { data, error } = await apiClient.POST(
-        "/api/v1/cooperative/submissions/{id}/claim-edit",
-        { params: { path: { id } } },
+        "/api/v1/cooperative/submissions/{id}/claim-edit" as never,
+        { params: { path: { id } } } as never,
       );
       if (error) throw new Error(extractErrorMessage(error));
       return data as SubmissionResponse;
@@ -658,9 +658,9 @@ export const useClaimApexEdit = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/claim-edit", {
+      const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/claim-edit" as never, {
         params: { path: { id } },
-      });
+      } as never);
       if (error) throw new Error(extractErrorMessage(error));
       return data as SubmissionResponse;
     },
