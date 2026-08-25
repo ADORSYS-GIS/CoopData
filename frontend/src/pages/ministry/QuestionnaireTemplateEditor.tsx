@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ArrowLeft, Save, AlertCircle, FolderPlus, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,6 +22,16 @@ import {
   setLabelTranslation,
   setSectionTranslation,
 } from "@/lib/contentLocalization";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 interface QuestionnaireTemplateEditorProps {
   templateId: string;
@@ -109,6 +119,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     text: string;
   } | null>(null);
 
+  // Ref to preserve selectedSectionIndex across save operations
+  const preservedSectionIndex = useRef<number | null>(null);
+
+  // Delete confirmation dialog state
+  const [deleteFieldDialogOpen, setDeleteFieldDialogOpen] = useState(false);
+  const [fieldToDeleteIndex, setFieldToDeleteIndex] = useState<number | null>(null);
+
   // Field Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFieldIndex, setModalFieldIndex] = useState<number | null>(null);
@@ -147,8 +164,21 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         setLabelTr({});
       }
       setSections(template.sections || []);
+      // Restore preserved section index if valid, otherwise default to first section
       if ((template.sections || []).length > 0) {
-        setSelectedSectionIndex(0);
+        const preservedIdx = preservedSectionIndex.current;
+        if (
+          preservedIdx !== null &&
+          preservedIdx !== undefined &&
+          preservedIdx >= 0 &&
+          preservedIdx < template.sections.length
+        ) {
+          setSelectedSectionIndex(preservedIdx);
+        } else {
+          setSelectedSectionIndex(0);
+        }
+        // Clear the preserved index after use
+        preservedSectionIndex.current = null;
       }
     }
   }, [template]);
@@ -219,6 +249,8 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
   const handleSave = async (sectionsToSave?: any[]) => {
     const listToSave = sectionsToSave ?? sections;
+    // Preserve current section index before save
+    preservedSectionIndex.current = selectedSectionIndex;
     try {
       setSaveMessage(null);
       // Validate unique keys
@@ -251,6 +283,8 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
       toast.success(t("templateEditor.toastSaved"));
     } catch (err: any) {
+      // Clear preserved index on error
+      preservedSectionIndex.current = null;
       toast.error(err.message || t("templateEditor.toastSaveFailed"));
     }
   };
@@ -454,12 +488,16 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
     // Persist both canonical sections and translations together.
     void (async () => {
+      // Preserve current section index before save
+      preservedSectionIndex.current = selectedSectionIndex;
       try {
         const keys = new Set<string>();
         for (const s of updated) for (const f of s.fields || []) keys.add(f.key);
         await updateMutation.mutateAsync({ label, sections: updated, translations: nextTr });
         toast.success(t("templateEditor.toastSaved"));
       } catch (err: any) {
+        // Clear preserved index on error
+        preservedSectionIndex.current = null;
         toast.error(err.message || t("templateEditor.toastSaveFailed"));
       }
     })();
@@ -467,16 +505,27 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
   const deleteField = (fieldIndex: number) => {
     if (selectedSectionIndex === null) return;
-    if (!window.confirm(t("templateEditor.confirmDeleteField"))) return;
+    setFieldToDeleteIndex(fieldIndex);
+    setDeleteFieldDialogOpen(true);
+  };
+
+  const confirmDeleteField = () => {
+    if (fieldToDeleteIndex === null || selectedSectionIndex === null) return;
+    // Preserve current section index before save
+    preservedSectionIndex.current = selectedSectionIndex;
     const updated = [...sections];
     const section = updated[selectedSectionIndex];
-    section.fields = section.fields.filter((_: any, i: number) => i !== fieldIndex);
+    section.fields = section.fields.filter((_: any, i: number) => i !== fieldToDeleteIndex);
     setSections(updated);
+    setDeleteFieldDialogOpen(false);
+    setFieldToDeleteIndex(null);
     handleSave(updated);
   };
 
   const moveField = (fieldIndex: number, direction: "up" | "down") => {
     if (selectedSectionIndex === null) return;
+    // Preserve current section index before save
+    preservedSectionIndex.current = selectedSectionIndex;
     const updated = [...sections];
     const section = updated[selectedSectionIndex];
     if (direction === "up" && fieldIndex === 0) return;
@@ -664,6 +713,27 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         setOptionTranslation={setOptionTranslation}
         handleSaveModalField={handleSaveModalField}
       />
+
+      {/* Delete Field Confirmation Dialog */}
+      <AlertDialog open={deleteFieldDialogOpen} onOpenChange={setDeleteFieldDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("templateEditor.deleteFieldTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("templateEditor.deleteFieldDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteField}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
