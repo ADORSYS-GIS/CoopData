@@ -88,19 +88,17 @@ export const useUpdateOrganizationLabel = () => {
       icon: string;
       translations: Record<string, unknown>;
     }) => {
-      return runMutation<unknown>("/api/v1/settings/organization-labels/{key}", "PUT", {
-        pathParams: { key },
-        body,
-        optimisticData: body,
-        online: async () => {
-          const { data, error } = await apiClient.PUT("/api/v1/settings/organization-labels/{key}", {
-            params: { path: { key } },
-            body: body as never,
-          });
-          if (error) throw error;
-          return data;
-        },
-      });
+      const { data, error } = await apiClient.PUT(
+        "/api/v1/settings/organization-labels/{key}",
+        {
+          params: { path: { key } },
+          body: body as never,
+        }
+      );
+      if (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [LABELS_KEY] });

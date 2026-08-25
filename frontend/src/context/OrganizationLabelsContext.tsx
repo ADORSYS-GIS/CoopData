@@ -3,15 +3,38 @@ import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { useOrganizationLabels } from "@/hooks/settings/useOrganizationLabels";
 
+export interface OrganizationLabelTranslation {
+  label?: string;
+  short_label?: string;
+  plural_label?: string;
+  description?: string;
+}
+
+export interface OrganizationLabelItem {
+  key: string;
+  label: string;
+  short_label: string;
+  plural_label: string;
+  description?: string | null;
+  icon: string;
+  translations?: Record<string, OrganizationLabelTranslation> | unknown;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface OrganizationLabelsContextValue {
-  labels: any[];
+  labels: OrganizationLabelItem[];
   isLoading: boolean;
   getLabel: (
     key: string,
     type: "label" | "short_label" | "plural_label",
     fallback?: string
   ) => string;
-  t: (key: string, options?: any) => string;
+  t: (
+    key: string,
+    optionsOrDefault?: Record<string, unknown> | string,
+    options?: Record<string, unknown>
+  ) => string;
   replaceOrgTerms: (text: string) => string;
 
   fedLabel: string;
@@ -154,8 +177,13 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
   ]);
 
   const t = useMemo(() => {
-    return (key: string, options?: any): string => {
-      const translation = baseT(key, options);
+    return (
+      key: string,
+      optionsOrDefault?: Record<string, unknown> | string,
+      options?: Record<string, unknown>
+    ): string => {
+      // @ts-expect-error i18next t supports (key, defaultValue, options) or (key, options)
+      const translation = baseT(key, optionsOrDefault, options);
       return replaceOrgTerms(String(translation));
     };
   }, [baseT, replaceOrgTerms]);

@@ -151,8 +151,9 @@ export const TerminologySettingsManager: React.FC = () => {
         translations: data.translations,
       });
       toast.success(t("settings.terminology.saveSuccess", { defaultValue: "Terminology settings updated successfully" }));
-    } catch (err: any) {
-      toast.error(err.message || t("settings.terminology.saveError", { defaultValue: "Failed to update terminology settings" }));
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      toast.error(errorMsg || t("settings.terminology.saveError", { defaultValue: "Failed to update terminology settings" }));
     }
   };
 

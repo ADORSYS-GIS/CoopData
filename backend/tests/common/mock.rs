@@ -9,7 +9,7 @@ use coop_data_backend::{
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
     KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository, QuestionnaireRepository,
     QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
     UserRepository,
@@ -37,6 +37,7 @@ impl TestApp {
         let apex_repo = ApexRepository::new(db.clone());
         let cooperative_repo = CooperativeRepository::new(db.clone());
         let organization_repo = OrganizationRepository::new(db.clone());
+        let organization_label_repo = OrganizationLabelRepository::new(db.clone());
         let user_repo = UserRepository::new(db.clone());
         let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
 
@@ -86,6 +87,7 @@ impl TestApp {
             apex_repo,
             cooperative_repo,
             organization_repo,
+            organization_label_repo,
             user_repo,
             audit,
             submission_repo,
