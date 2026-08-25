@@ -2342,6 +2342,7 @@ pub async fn create_manual_members(
     }
 
     // ── Section status updates (outside transaction — non-critical metadata) ────
+    // Mark sections as "ready" since user explicitly submitted = data entry complete
 
     if !body.members.is_empty() {
         if let Some(sec) = state
@@ -2351,7 +2352,7 @@ pub async fn create_manual_members(
         {
             state
                 .section_repo
-                .update_status(sec.id, "in_progress")
+                .update_status(sec.id, "ready")
                 .await?;
         }
     }
@@ -2363,7 +2364,7 @@ pub async fn create_manual_members(
         {
             state
                 .section_repo
-                .update_status(sec.id, "in_progress")
+                .update_status(sec.id, "ready")
                 .await?;
         }
     }
@@ -2375,7 +2376,7 @@ pub async fn create_manual_members(
         {
             state
                 .section_repo
-                .update_status(sec.id, "in_progress")
+                .update_status(sec.id, "ready")
                 .await?;
         }
     }
@@ -2387,7 +2388,7 @@ pub async fn create_manual_members(
         {
             state
                 .section_repo
-                .update_status(sec.id, "in_progress")
+                .update_status(sec.id, "ready")
                 .await?;
         }
     }
@@ -2399,7 +2400,7 @@ pub async fn create_manual_members(
         {
             state
                 .section_repo
-                .update_status(sec.id, "in_progress")
+                .update_status(sec.id, "ready")
                 .await?;
         }
     }
