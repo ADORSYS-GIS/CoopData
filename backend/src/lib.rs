@@ -21,11 +21,10 @@ pub use repositories::{
     CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository,
-    OrganizationLabelRepository, QuestionnaireRepository,
-    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;

@@ -77,7 +77,9 @@ export const SettingsPage: React.FC = () => {
         activeCategory === "indicators"
           ? t("settings.subtitleIndicators")
           : activeCategory === "terminology"
-            ? t("settings.subtitleTerminology", { defaultValue: "Configure custom names for organization levels" })
+            ? t("settings.subtitleTerminology", {
+                defaultValue: "Configure custom names for organization levels",
+              })
             : t("settings.subtitle")
       }
     >
@@ -179,15 +181,21 @@ export const SettingsPage: React.FC = () => {
 
             {/* Terminology Settings */}
             <Card
-              title={t("settings.terminology.cardTitle", { defaultValue: "Level & Role Terminology" })}
-              subtitle={t("settings.terminology.cardDesc", { defaultValue: "Customize names of organizational levels (federations, apexes, etc.)" })}
+              title={t("settings.terminology.cardTitle", {
+                defaultValue: "Level & Role Terminology",
+              })}
+              subtitle={t("settings.terminology.cardDesc", {
+                defaultValue:
+                  "Customize names of organizational levels (federations, apexes, etc.)",
+              })}
               edge="info"
             >
               <button
                 onClick={() => setActiveCategory("terminology")}
                 className="press-feedback inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
               >
-                <ClipboardList className="size-3.5" /> {t("settings.terminology.cardOpen", { defaultValue: "Configure level names" })}
+                <ClipboardList className="size-3.5" />{" "}
+                {t("settings.terminology.cardOpen", { defaultValue: "Configure level names" })}
                 <ChevronRight className="size-3.5" />
               </button>
             </Card>

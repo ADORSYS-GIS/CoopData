@@ -13,8 +13,8 @@ pub mod national_overview;
 pub mod nf_indicator_stats;
 pub mod non_financial;
 pub mod non_financial_indicator;
-pub mod organizations;
 pub mod organization_label;
+pub mod organizations;
 pub mod questionnaire;
 pub mod questionnaire_template;
 pub mod submission;
@@ -23,7 +23,7 @@ pub mod users;
 
 pub use audit::*;
 pub use health::*;
-pub use organizations::*;
 pub use organization_label::*;
+pub use organizations::*;
 pub use questionnaire::*;
 pub use users::*;

@@ -32,7 +32,11 @@ pub async fn list_organization_labels(
     Extension(_claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     // 1. Try reading from Redis cache first
-    if let Ok(Some(cached)) = state.cache.get::<Vec<OrganizationLabelResponse>>(CACHE_KEY).await {
+    if let Ok(Some(cached)) = state
+        .cache
+        .get::<Vec<OrganizationLabelResponse>>(CACHE_KEY)
+        .await
+    {
         return Ok((StatusCode::OK, Json(cached)));
     }
 
@@ -42,7 +46,11 @@ pub async fn list_organization_labels(
     let response: Vec<OrganizationLabelResponse> = labels.into_iter().map(Into::into).collect();
 
     // 3. Write-through to Redis cache (TTL: 5 min)
-    if let Err(e) = state.cache.set(CACHE_KEY, &response, Duration::from_secs(300)).await {
+    if let Err(e) = state
+        .cache
+        .set(CACHE_KEY, &response, Duration::from_secs(300))
+        .await
+    {
         tracing::warn!("Failed to cache organization labels: {}", e);
     }
 
@@ -73,7 +81,9 @@ pub async fn update_organization_label(
     Json(body): Json<UpdateOrganizationLabelRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !claims.has_role("ministry") {
-        return Err(AppError::Forbidden("Only ministry official can update organization labels".into()));
+        return Err(AppError::Forbidden(
+            "Only ministry official can update organization labels".into(),
+        ));
     }
 
     // Key path parameter validation
@@ -119,7 +129,10 @@ pub async fn update_organization_label(
         tracing::error!("Failed to log audit: {}", e);
     }
 
-    Ok((StatusCode::OK, Json(OrganizationLabelResponse::from(updated))))
+    Ok((
+        StatusCode::OK,
+        Json(OrganizationLabelResponse::from(updated)),
+    ))
 }
 
 #[cfg(test)]

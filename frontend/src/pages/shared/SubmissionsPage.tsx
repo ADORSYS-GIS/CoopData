@@ -69,7 +69,10 @@ function statusTone(status: string): "success" | "warning" | "danger" | "info" |
   }
 }
 
-function statusLabel(status: string, t: (key: string, options?: any) => string): string {
+function statusLabel(
+  status: string,
+  t: (key: string, optionsOrDefault?: Record<string, unknown> | string) => string,
+): string {
   const labels: Record<string, string> = {
     draft: t("submissions.status.draft"),
     awaiting_coop_validation: t("submissions.status.awaitingValidation"),

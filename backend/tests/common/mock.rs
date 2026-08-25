@@ -9,10 +9,10 @@ use coop_data_backend::{
     CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
     KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository, QuestionnaireRepository,
-    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 use sea_orm::DatabaseConnection;
 

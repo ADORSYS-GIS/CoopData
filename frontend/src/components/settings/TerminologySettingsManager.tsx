@@ -5,7 +5,11 @@ import { Shield, Network, Building, Users, Save, Loader2 } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
-import { useOrganizationLabels, useUpdateOrganizationLabel, DEFAULT_ORGANIZATION_LABELS } from "@/hooks/settings/useOrganizationLabels";
+import {
+  useOrganizationLabels,
+  useUpdateOrganizationLabel,
+  DEFAULT_ORGANIZATION_LABELS,
+} from "@/hooks/settings/useOrganizationLabels";
 
 const KEY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   ministry: Shield,
@@ -21,7 +25,7 @@ export const TerminologySettingsManager: React.FC = () => {
 
   const effectiveLabels = useMemo(
     () => (labels && labels.length > 0 ? labels : DEFAULT_ORGANIZATION_LABELS),
-    [labels]
+    [labels],
   );
 
   // Local editing state for each of the organization levels
@@ -33,7 +37,7 @@ export const TerminologySettingsManager: React.FC = () => {
         short_label: string;
         plural_label: string;
         description: string;
-        translations: Record<string, any>;
+        translations: Record<string, Record<string, string>>;
       }
     >
   >({});
@@ -61,7 +65,11 @@ export const TerminologySettingsManager: React.FC = () => {
     );
   }
 
-  const handleFieldChange = (key: string, field: "label" | "short_label" | "plural_label" | "description", value: string) => {
+  const handleFieldChange = (
+    key: string,
+    field: "label" | "short_label" | "plural_label" | "description",
+    value: string,
+  ) => {
     setEditingLabels((prev) => ({
       ...prev,
       [key]: {
@@ -71,7 +79,11 @@ export const TerminologySettingsManager: React.FC = () => {
     }));
   };
 
-  const handleTranslationsChange = (key: string, field: "label" | "short_label" | "plural_label" | "description", newFieldTr: FieldTranslations) => {
+  const handleTranslationsChange = (
+    key: string,
+    field: "label" | "short_label" | "plural_label" | "description",
+    newFieldTr: FieldTranslations,
+  ) => {
     setEditingLabels((prev) => {
       const current = prev[key] || { translations: {} };
       const currentTr = { ...(current.translations || {}) };
@@ -102,12 +114,15 @@ export const TerminologySettingsManager: React.FC = () => {
         [key]: {
           ...current,
           translations: currentTr,
-        } as any,
+        },
       };
     });
   };
 
-  const extractTranslationsForField = (key: string, field: "label" | "short_label" | "plural_label" | "description"): FieldTranslations => {
+  const extractTranslationsForField = (
+    key: string,
+    field: "label" | "short_label" | "plural_label" | "description",
+  ): FieldTranslations => {
     const current = editingLabels[key];
     if (!current || !current.translations) return {};
 
@@ -128,15 +143,25 @@ export const TerminologySettingsManager: React.FC = () => {
     if (!data) return;
 
     if (!data.label.trim()) {
-      toast.error(t("settings.terminology.errLabelRequired", { defaultValue: "Singular label is required" }));
+      toast.error(
+        t("settings.terminology.errLabelRequired", { defaultValue: "Singular label is required" }),
+      );
       return;
     }
     if (!data.short_label.trim()) {
-      toast.error(t("settings.terminology.errShortLabelRequired", { defaultValue: "Short label is required" }));
+      toast.error(
+        t("settings.terminology.errShortLabelRequired", {
+          defaultValue: "Short label is required",
+        }),
+      );
       return;
     }
     if (!data.plural_label.trim()) {
-      toast.error(t("settings.terminology.errPluralLabelRequired", { defaultValue: "Plural label is required" }));
+      toast.error(
+        t("settings.terminology.errPluralLabelRequired", {
+          defaultValue: "Plural label is required",
+        }),
+      );
       return;
     }
 
@@ -150,10 +175,19 @@ export const TerminologySettingsManager: React.FC = () => {
         icon: originalItem?.icon || "",
         translations: data.translations,
       });
-      toast.success(t("settings.terminology.saveSuccess", { defaultValue: "Terminology settings updated successfully" }));
+      toast.success(
+        t("settings.terminology.saveSuccess", {
+          defaultValue: "Terminology settings updated successfully",
+        }),
+      );
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      toast.error(errorMsg || t("settings.terminology.saveError", { defaultValue: "Failed to update terminology settings" }));
+      toast.error(
+        errorMsg ||
+          t("settings.terminology.saveError", {
+            defaultValue: "Failed to update terminology settings",
+          }),
+      );
     }
   };
 
@@ -165,7 +199,8 @@ export const TerminologySettingsManager: React.FC = () => {
         </h3>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {t("settings.terminology.desc", {
-            defaultValue: "Customize dynamic display names and abbreviations for organizational levels inside the application.",
+            defaultValue:
+              "Customize dynamic display names and abbreviations for organizational levels inside the application.",
           })}
         </p>
       </div>
@@ -179,7 +214,12 @@ export const TerminologySettingsManager: React.FC = () => {
           const isMutating = updateMutation.isPending && updateMutation.variables?.key === item.key;
 
           return (
-            <Card key={item.key} edge={item.key === "ministry" ? "accent" : item.key === "federation" ? "primary" : "none"}>
+            <Card
+              key={item.key}
+              edge={
+                item.key === "ministry" ? "accent" : item.key === "federation" ? "primary" : "none"
+              }
+            >
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-accent/10 text-accent grid place-items-center shrink-0">
@@ -190,7 +230,8 @@ export const TerminologySettingsManager: React.FC = () => {
                       {item.key} {t("settings.terminology.levelSuffix", { defaultValue: "Level" })}
                     </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {t("settings.terminology.defaultTitle", { defaultValue: "Default name" })}: <span className="font-semibold text-foreground/80">{item.key}</span>
+                      {t("settings.terminology.defaultTitle", { defaultValue: "Default name" })}:{" "}
+                      <span className="font-semibold text-foreground/80">{item.key}</span>
                     </p>
                   </div>
                 </div>
@@ -225,7 +266,9 @@ export const TerminologySettingsManager: React.FC = () => {
                   value={current.plural_label}
                   onChange={(val) => handleFieldChange(item.key, "plural_label", val)}
                   translations={extractTranslationsForField(item.key, "plural_label")}
-                  onTranslationsChange={(tr) => handleTranslationsChange(item.key, "plural_label", tr)}
+                  onTranslationsChange={(tr) =>
+                    handleTranslationsChange(item.key, "plural_label", tr)
+                  }
                   required
                 />
                 <LocalizedField
@@ -234,7 +277,9 @@ export const TerminologySettingsManager: React.FC = () => {
                   value={current.short_label}
                   onChange={(val) => handleFieldChange(item.key, "short_label", val)}
                   translations={extractTranslationsForField(item.key, "short_label")}
-                  onTranslationsChange={(tr) => handleTranslationsChange(item.key, "short_label", tr)}
+                  onTranslationsChange={(tr) =>
+                    handleTranslationsChange(item.key, "short_label", tr)
+                  }
                   required
                 />
               </div>
@@ -242,11 +287,15 @@ export const TerminologySettingsManager: React.FC = () => {
               <div className="mt-6">
                 <LocalizedField
                   id={`${item.key}-description`}
-                  label={t("settings.terminology.levelDescription", { defaultValue: "Level Description" })}
+                  label={t("settings.terminology.levelDescription", {
+                    defaultValue: "Level Description",
+                  })}
                   value={current.description}
                   onChange={(val) => handleFieldChange(item.key, "description", val)}
                   translations={extractTranslationsForField(item.key, "description")}
-                  onTranslationsChange={(tr) => handleTranslationsChange(item.key, "description", tr)}
+                  onTranslationsChange={(tr) =>
+                    handleTranslationsChange(item.key, "description", tr)
+                  }
                   multiline
                 />
               </div>

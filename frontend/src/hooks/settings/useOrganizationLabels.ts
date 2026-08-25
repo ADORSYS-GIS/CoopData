@@ -20,7 +20,8 @@ export const DEFAULT_ORGANIZATION_LABELS = [
     label: "Ministry Official",
     short_label: "Ministry",
     plural_label: "Ministries",
-    description: "National oversight — view all cooperatives, generate national reports, monitor compliance, manage users",
+    description:
+      "National oversight — view all cooperatives, generate national reports, monitor compliance, manage users",
     icon: "Landmark",
     translations: {},
   },
@@ -29,7 +30,8 @@ export const DEFAULT_ORGANIZATION_LABELS = [
     label: "Federation Officer",
     short_label: "Federation",
     plural_label: "Federations",
-    description: "Regional management — validate submissions, generate federation reports, monitor regional performance",
+    description:
+      "Regional management — validate submissions, generate federation reports, monitor regional performance",
     icon: "UserCog",
     translations: {},
   },
@@ -38,7 +40,8 @@ export const DEFAULT_ORGANIZATION_LABELS = [
     label: "Apex Officer",
     short_label: "Apex",
     plural_label: "Apexes",
-    description: "Cooperative oversight — review submissions, manage cooperatives, validate data, approve or request changes",
+    description:
+      "Cooperative oversight — review submissions, manage cooperatives, validate data, approve or request changes",
     icon: "ClipboardList",
     translations: {},
   },
@@ -47,7 +50,8 @@ export const DEFAULT_ORGANIZATION_LABELS = [
     label: "Cooperative Manager",
     short_label: "Cooperative",
     plural_label: "Cooperatives",
-    description: "Data submission — submit financial statements, update records, view own reports and analytics",
+    description:
+      "Data submission — submit financial statements, update records, view own reports and analytics",
     icon: "Users",
     translations: {},
   },
@@ -88,13 +92,10 @@ export const useUpdateOrganizationLabel = () => {
       icon: string;
       translations: Record<string, unknown>;
     }) => {
-      const { data, error } = await apiClient.PUT(
-        "/api/v1/settings/organization-labels/{key}",
-        {
-          params: { path: { key } },
-          body: body as never,
-        }
-      );
+      const { data, error } = await apiClient.PUT("/api/v1/settings/organization-labels/{key}", {
+        params: { path: { key } },
+        body: body as never,
+      });
       if (error) {
         throw new Error(extractErrorMessage(error));
       }

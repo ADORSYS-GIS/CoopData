@@ -111,11 +111,13 @@ function Sidebar({
 
   const getItemLabel = (item: { to: string; label: string }) => {
     if (item.to === "/app/dashboard") return t("nav.dashboard");
-    if (item.to === "/app/federations") return getLabel("federation", "plural_label", t("nav.federations"));
+    if (item.to === "/app/federations")
+      return getLabel("federation", "plural_label", t("nav.federations"));
     if (item.to === "/app/invitations") return t("nav.invitations");
     if (item.to === "/app/members") return t("nav.members");
     if (item.to === "/app/apexes") return getLabel("apex", "plural_label", t("nav.apexes"));
-    if (item.to === "/app/cooperatives") return getLabel("cooperative", "plural_label", t("nav.cooperatives"));
+    if (item.to === "/app/cooperatives")
+      return getLabel("cooperative", "plural_label", t("nav.cooperatives"));
     if (item.to === "/app/submissions") return t("nav.submissions");
 
     if (item.to === "/app/reports") return t("nav.reports");
@@ -129,7 +131,8 @@ function Sidebar({
     if (item.to === "/app/questionnaire-templates") return t("nav.questionnaireForms");
     if (item.to === "/app/users") return t("nav.usersAndRoles");
     if (item.to === "/app/settings") return t("nav.settings");
-    if (item.to === "/app/configure-roles") return t("nav.configureRoles", { defaultValue: "Configure Levels" });
+    if (item.to === "/app/configure-roles")
+      return t("nav.configureRoles", { defaultValue: "Configure Levels" });
     if (item.to === "/app/profile") return t("nav.profile");
     return item.label;
   };

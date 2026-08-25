@@ -15,11 +15,10 @@ use coop_data_backend::{
     ChartOfAccountsRepository, CooperativeRepository, ExtractionJobRepository, FarmCoopRepository,
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, ObjectStorageService, OrganizationRepository,
-    OrganizationLabelRepository,
-    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
-    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
-    UploadedFileRepository, UserRepository,
+    NonFinancialIndicatorEntryRepository, ObjectStorageService, OrganizationLabelRepository,
+    OrganizationRepository, QuestionnaireRepository, QuestionnaireTemplateRepository,
+    SavingsAccountRepository, SubmissionRepository, SubmissionReviewRepository,
+    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
 };
 
 #[tokio::main]

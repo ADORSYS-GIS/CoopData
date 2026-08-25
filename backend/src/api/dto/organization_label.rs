@@ -1,6 +1,6 @@
+use crate::error::{AppError, AppResult};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::error::{AppError, AppResult};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct UpdateOrganizationLabelRequest {
@@ -16,41 +16,64 @@ impl UpdateOrganizationLabelRequest {
     pub fn validate(&self) -> AppResult<()> {
         let label = self.label.trim();
         if label.is_empty() || label.len() > 100 {
-            return Err(AppError::BadRequest("label must be between 1 and 100 characters".into()));
+            return Err(AppError::BadRequest(
+                "label must be between 1 and 100 characters".into(),
+            ));
         }
         let short_label = self.short_label.trim();
         if short_label.is_empty() || short_label.len() > 50 {
-            return Err(AppError::BadRequest("short_label must be between 1 and 50 characters".into()));
+            return Err(AppError::BadRequest(
+                "short_label must be between 1 and 50 characters".into(),
+            ));
         }
         let plural_label = self.plural_label.trim();
         if plural_label.is_empty() || plural_label.len() > 100 {
-            return Err(AppError::BadRequest("plural_label must be between 1 and 100 characters".into()));
+            return Err(AppError::BadRequest(
+                "plural_label must be between 1 and 100 characters".into(),
+            ));
         }
         if let Some(ref desc) = self.description {
             if desc.len() > 500 {
-                return Err(AppError::BadRequest("description cannot exceed 500 characters".into()));
+                return Err(AppError::BadRequest(
+                    "description cannot exceed 500 characters".into(),
+                ));
             }
         }
         let icon = self.icon.trim();
         if icon.is_empty() || icon.len() > 100 {
-            return Err(AppError::BadRequest("icon must be between 1 and 100 characters".into()));
+            return Err(AppError::BadRequest(
+                "icon must be between 1 and 100 characters".into(),
+            ));
         }
-        if !icon.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
-            return Err(AppError::BadRequest("icon contains invalid characters".into()));
+        if !icon
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+        {
+            return Err(AppError::BadRequest(
+                "icon contains invalid characters".into(),
+            ));
         }
         // Translations schema validation
         if let Some(obj) = self.translations.as_object() {
             const ALLOWED_LANGS: &[&str] = &["en", "fr", "pt", "ss"];
             for (lang, val) in obj {
                 if !ALLOWED_LANGS.contains(&lang.as_str()) {
-                    return Err(AppError::BadRequest(format!("Unsupported translation language '{}'", lang)));
+                    return Err(AppError::BadRequest(format!(
+                        "Unsupported translation language '{}'",
+                        lang
+                    )));
                 }
                 if !val.is_object() {
-                    return Err(AppError::BadRequest(format!("Translation for '{}' must be an object", lang)));
+                    return Err(AppError::BadRequest(format!(
+                        "Translation for '{}' must be an object",
+                        lang
+                    )));
                 }
             }
         } else {
-            return Err(AppError::BadRequest("translations must be a JSON object".into()));
+            return Err(AppError::BadRequest(
+                "translations must be a JSON object".into(),
+            ));
         }
         Ok(())
     }

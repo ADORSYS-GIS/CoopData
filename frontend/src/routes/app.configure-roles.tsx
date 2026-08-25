@@ -11,7 +11,8 @@ function ConfigureRolesRoute() {
       <AppShell
         title={t("settings.terminology.cardTitle", { defaultValue: "Configure Role Labels" })}
         subtitle={t("settings.terminology.cardDesc", {
-          defaultValue: "Customize the names shown for each organization level across the whole application",
+          defaultValue:
+            "Customize the names shown for each organization level across the whole application",
         })}
       >
         <TerminologySettingsManager />

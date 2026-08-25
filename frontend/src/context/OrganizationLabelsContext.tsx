@@ -28,12 +28,12 @@ export interface OrganizationLabelsContextValue {
   getLabel: (
     key: string,
     type: "label" | "short_label" | "plural_label",
-    fallback?: string
+    fallback?: string,
   ) => string;
   t: (
     key: string,
     optionsOrDefault?: Record<string, unknown> | string,
-    options?: Record<string, unknown>
+    options?: Record<string, unknown>,
   ) => string;
   replaceOrgTerms: (text: string) => string;
 
@@ -56,15 +56,13 @@ export interface OrganizationLabelsContextValue {
 
 const OrganizationLabelsContext = createContext<OrganizationLabelsContextValue | null>(null);
 
-const DEFAULT_LABELS: Record<
-  string,
-  { label: string; short_label: string; plural_label: string }
-> = {
-  ministry: { label: "Ministry", short_label: "Min", plural_label: "Ministries" },
-  federation: { label: "Federation", short_label: "Fed", plural_label: "Federations" },
-  apex: { label: "Apex", short_label: "Apex", plural_label: "Apexes" },
-  cooperative: { label: "Cooperative", short_label: "Coop", plural_label: "Cooperatives" },
-};
+const DEFAULT_LABELS: Record<string, { label: string; short_label: string; plural_label: string }> =
+  {
+    ministry: { label: "Ministry", short_label: "Min", plural_label: "Ministries" },
+    federation: { label: "Federation", short_label: "Fed", plural_label: "Federations" },
+    apex: { label: "Apex", short_label: "Apex", plural_label: "Apexes" },
+    cooperative: { label: "Cooperative", short_label: "Coop", plural_label: "Cooperatives" },
+  };
 
 export function OrganizationLabelsProvider({ children }: { children: ReactNode }) {
   const { data: labels, isLoading } = useOrganizationLabels();
@@ -74,7 +72,7 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
     return (
       key: string,
       type: "label" | "short_label" | "plural_label",
-      fallback?: string
+      fallback?: string,
     ): string => {
       const currentLang = i18n.language || "en";
       const item = labels?.find((l) => l.key === key);
@@ -85,7 +83,9 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
 
       // 1. Try to read from translations map in the current language
       if (item.translations && typeof item.translations === "object") {
-        const langOverrides = (item.translations as Record<string, any>)[currentLang];
+        const langOverrides = (item.translations as Record<string, Record<string, string>>)[
+          currentLang
+        ];
         if (langOverrides && typeof langOverrides === "object") {
           const val = langOverrides[type];
           if (val && typeof val === "string" && val.trim().length > 0) {
@@ -180,10 +180,9 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
     return (
       key: string,
       optionsOrDefault?: Record<string, unknown> | string,
-      options?: Record<string, unknown>
+      options?: Record<string, unknown>,
     ): string => {
-      // @ts-expect-error i18next t supports (key, defaultValue, options) or (key, options)
-      const translation = baseT(key, optionsOrDefault, options);
+      const translation = baseT(key, optionsOrDefault as never, options as never);
       return replaceOrgTerms(String(translation));
     };
   }, [baseT, replaceOrgTerms]);
@@ -226,7 +225,7 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
       ministryLabel,
       ministryPlural,
       ministryShort,
-    ]
+    ],
   );
 
   return (
@@ -240,7 +239,7 @@ export function useOrganizationLabelsContext() {
   const context = useContext(OrganizationLabelsContext);
   if (!context) {
     throw new Error(
-      "useOrganizationLabelsContext must be used within an OrganizationLabelsProvider"
+      "useOrganizationLabelsContext must be used within an OrganizationLabelsProvider",
     );
   }
   return context;
