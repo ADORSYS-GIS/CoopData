@@ -173,9 +173,12 @@ export const useSubmitSubmission = () => {
         pathParams: { id: submissionId },
         optimisticData: { id: submissionId, status: "submitted", current_tier: "apex" },
         online: async () => {
-          const { data, error } = await apiClient.POST(basePath as "/api/v1/cooperative/submissions/{id}/submit", {
-            params: { path: { id: submissionId } },
-          });
+          const { data, error } = await apiClient.POST(
+            basePath as "/api/v1/cooperative/submissions/{id}/submit",
+            {
+              params: { path: { id: submissionId } },
+            },
+          );
           if (error) throw new Error(extractErrorMessage(error));
           return data;
         },
