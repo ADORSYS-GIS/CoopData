@@ -2350,10 +2350,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "members")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "ready")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if savings_imported > 0 {
@@ -2362,10 +2359,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "savings")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "ready")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if loans_imported > 0 {
@@ -2374,10 +2368,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "loans")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "ready")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if fd_imported > 0 {
@@ -2386,10 +2377,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "fixed_deposits")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "ready")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if farm_coop_imported > 0 {
@@ -2398,10 +2386,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "farm_coop")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "ready")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if let Err(e) = state
