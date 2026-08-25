@@ -51,7 +51,7 @@ export const TerminologySettingsManager: React.FC = () => {
         short_label: item.short_label,
         plural_label: item.plural_label,
         description: item.description || "",
-        translations: item.translations || {},
+        translations: (item.translations as Record<string, Record<string, string>>) || {},
       };
     }
     setEditingLabels(initial);
