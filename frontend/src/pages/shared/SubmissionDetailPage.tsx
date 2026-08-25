@@ -988,7 +988,7 @@ export const SubmissionDetailPage: React.FC = () => {
 
           {role === "apex" &&
             submission.status === "submitted" &&
-            submission.created_by_role !== "apex" && (
+            submission.current_tier === "apex" && (
               <ReviewActionPanel
                 title={t("submissions.detail.apexReviewTitle")}
                 description={t("submissions.detail.apexReviewDesc")}
