@@ -247,7 +247,8 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const createApexSubmission = useCreateApexSubmission();
   const { data: cooperatives = [], isLoading: coopsLoading } = useCooperatives();
 
-  const selectedCoop = cooperatives.find((c) => c.id === selectedCoopId) as { id: string; display_name?: string; name: string } | undefined;
+  const selectedCoop = cooperatives.find((c) => c.id === selectedCoopId) as
+    { id: string; display_name?: string; name: string } | undefined;
 
   const handleCreate = async () => {
     if (!selectedCoopId) {
