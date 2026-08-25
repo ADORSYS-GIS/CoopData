@@ -365,6 +365,12 @@ export const SubmissionDetailPage: React.FC = () => {
     hasClaimedRef.current = true;
     if (role === "cooperative" && submission.current_tier === "cooperative") {
       claimCoopEdit.mutate({ id });
+    } else if (
+      role === "cooperative" &&
+      submission.current_tier === "apex" &&
+      submission.created_by_role === "apex"
+    ) {
+      claimCoopEdit.mutate({ id });
     } else if (role === "apex" && submission.current_tier === "apex") {
       claimApexEdit.mutate({ id });
     }

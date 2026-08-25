@@ -218,14 +218,9 @@ impl SubmissionWorkflow {
             .reset_to_in_progress(submission_id)
             .await?;
 
-        // Set edited_by to the caller (apex user) so they can fix the submission
-        let user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-        let user_name = claims
-            .name
-            .clone()
-            .or_else(|| claims.preferred_username.clone());
+        // Clear edited_by so the cooperative can auto-claim on open and fix the submission
         self.submission_repo
-            .set_edited_by(submission_id, user_id, user_name)
+            .clear_edited_by(submission_id)
             .await?;
 
         Ok(())
