@@ -25,7 +25,7 @@ import { useCooperativeStats, useCooperativeSubmissions } from "@/hooks/submissi
 import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─────────────────────────────────────────────────────────────────────
 // COOPERATIVE DASHBOARD — essential statistics and profile only
@@ -35,7 +35,7 @@ const accentColor = "var(--accent)";
 const accentOpacities = [1, 0.72, 0.48, 0.32, 0.18];
 
 export function CooperativeDashboard() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: stats, isLoading: statsLoading } = useCooperativeStats();
   const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
   const { data: profile, isLoading: profileLoading } = useMyCooperativeProfile();

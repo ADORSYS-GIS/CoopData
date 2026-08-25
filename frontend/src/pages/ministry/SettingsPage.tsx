@@ -18,6 +18,7 @@ import { Link } from "@tanstack/react-router";
 import { useTheme, type Theme } from "@/lib/theme";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { NonFinancialCatalogManager } from "@/components/submissions/non-financial-catalog-manager";
+import { TerminologySettingsManager } from "@/components/settings/TerminologySettingsManager";
 
 const THEME_OPTIONS: { value: Theme; labelKey: string; icon: typeof Sun }[] = [
   { value: "light", labelKey: "settings.appearance.light", icon: Sun },
@@ -73,11 +74,25 @@ export const SettingsPage: React.FC = () => {
     <AppShell
       title={t("settings.title")}
       subtitle={
-        activeCategory === "indicators" ? t("settings.subtitleIndicators") : t("settings.subtitle")
+        activeCategory === "indicators"
+          ? t("settings.subtitleIndicators")
+          : activeCategory === "terminology"
+            ? t("settings.subtitleTerminology", { defaultValue: "Configure custom names for organization levels" })
+            : t("settings.subtitle")
       }
     >
       <div className="space-y-8">
-        {activeCategory === "indicators" ? (
+        {activeCategory === "terminology" ? (
+          <div className="space-y-6">
+            <button
+              onClick={() => setActiveCategory("general")}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2"
+            >
+              <ArrowLeft className="size-3.5" /> {t("settings.backBtn")}
+            </button>
+            <TerminologySettingsManager />
+          </div>
+        ) : activeCategory === "indicators" ? (
           <div className="space-y-6">
             <button
               onClick={() => setActiveCategory("general")}
@@ -158,6 +173,21 @@ export const SettingsPage: React.FC = () => {
                 className="press-feedback inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
               >
                 <ClipboardList className="size-3.5" /> {t("settings.indicators.open")}
+                <ChevronRight className="size-3.5" />
+              </button>
+            </Card>
+
+            {/* Terminology Settings */}
+            <Card
+              title={t("settings.terminology.cardTitle", { defaultValue: "Level & Role Terminology" })}
+              subtitle={t("settings.terminology.cardDesc", { defaultValue: "Customize names of organizational levels (federations, apexes, etc.)" })}
+              edge="info"
+            >
+              <button
+                onClick={() => setActiveCategory("terminology")}
+                className="press-feedback inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
+              >
+                <ClipboardList className="size-3.5" /> {t("settings.terminology.cardOpen", { defaultValue: "Configure level names" })}
                 <ChevronRight className="size-3.5" />
               </button>
             </Card>

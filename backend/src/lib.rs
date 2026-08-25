@@ -21,7 +21,8 @@ pub use repositories::{
     CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationRepository,
+    OrganizationLabelRepository, QuestionnaireRepository,
     QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
     SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
     UserRepository,
@@ -43,6 +44,7 @@ pub struct AppState {
     pub apex_repo: ApexRepository,
     pub cooperative_repo: CooperativeRepository,
     pub organization_repo: OrganizationRepository,
+    pub organization_label_repo: OrganizationLabelRepository,
     pub user_repo: UserRepository,
     pub audit: AuditService,
     // pipeline repos

@@ -14,7 +14,7 @@ import {
   XCircle,
   PauseCircle,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -53,7 +53,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export const CooperativesPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const navigate = useNavigate();
   const { data: cooperatives, isLoading, error } = useCooperativeProfiles();
   const deleteCoop = useDeleteCooperative();

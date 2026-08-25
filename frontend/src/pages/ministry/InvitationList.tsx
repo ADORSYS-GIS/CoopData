@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -179,7 +179,7 @@ function InvitationForm({
   onSubmit: (values: InvitationFormValues) => void;
   isPending: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
 
   const invitationFormSchema = useMemo(() => {
     return z.object({
@@ -279,7 +279,7 @@ function InvitationForm({
 // ─── Page Component ───────────────────────────────────────────────────────
 
 export const InvitationList: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{

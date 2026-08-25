@@ -10,7 +10,7 @@ import {
   Clock,
   XCircle,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useApexStats } from "@/hooks/submissions/useSubmissions";
@@ -18,7 +18,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 
 export const ApexDashboard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { user } = useAuth();
   const { data: cooperativesData, isLoading: coopLoading, error } = useCooperatives();
   const { data: stats, isLoading: statsLoading } = useApexStats();

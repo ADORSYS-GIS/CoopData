@@ -36,7 +36,7 @@ import {
 } from "@/hooks/submissions/useSubmissions";
 import { getAccessToken } from "@/services/shared/authService";
 import { useState, useRef, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -73,7 +73,7 @@ const STATUS_CONFIG: Record<
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const lower = status.toLowerCase();
   const config = STATUS_CONFIG[lower] || {
     label: status,
@@ -109,7 +109,7 @@ function ExportButton({
   onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
   isExporting: string | null;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const isThis = isExporting === submissionId;
 
   return (
@@ -142,7 +142,7 @@ function RegenerateButton({
   onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
   isExporting: string | null;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const isThis = isExporting === submissionId + "-regen";
 
   return (
@@ -168,7 +168,7 @@ function RegenerateButton({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const ReportsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
   const { user } = useAuth();
   const [isExporting, setIsExporting] = useState<string | null>(null);

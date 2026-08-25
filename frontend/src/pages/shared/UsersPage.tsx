@@ -4,12 +4,12 @@ import { useApexes } from "@/hooks/apexes/useApexes";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useUserRole } from "@/lib/auth";
 import { Link } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─── Federation / Ministry view: list apexes → drill into apex members ───────
 
 function ApexList() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: apexes, isLoading, error } = useApexes();
 
   if (isLoading) return <CenteredSpinner />;
@@ -99,7 +99,7 @@ function ApexList() {
 type CoopItem = { id: string; name: string; description?: string | null };
 
 function CooperativeList() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: rawData, isLoading, error } = useCooperatives();
   const coops = (rawData as CoopItem[]) ?? [];
 
@@ -197,7 +197,7 @@ function ErrorBlock({ label, message }: { label: string; message: string }) {
 }
 
 function SectionHeader({ title, count, unit }: { title: string; count: number; unit: string }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="mb-4 flex items-center justify-between">
       <div>
@@ -236,7 +236,7 @@ function EmptyState({
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export const UsersPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
 
   if (!role) return null;

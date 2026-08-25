@@ -3202,6 +3202,16 @@
           },
           "404": {
             "description": "Submission not found"
+          },
+          "428": {
+            "description": "Identity verification required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6850,6 +6860,100 @@
         }
       }
     },
+    "/api/v1/settings/organization-labels": {
+      "get": {
+        "tags": [
+          "OrganizationLabels"
+        ],
+        "operationId": "list_organization_labels",
+        "responses": {
+          "200": {
+            "description": "List of organization level labels",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationLabelResponse"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/settings/organization-labels/{key}": {
+      "put": {
+        "tags": [
+          "OrganizationLabels"
+        ],
+        "operationId": "update_organization_label",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Role level key (ministry, federation, apex, cooperative)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationLabelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Organization label updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationLabelResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Organization label not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -8976,6 +9080,11 @@
           "reporting_year"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "priority": {
             "type": "string"
           },
@@ -11892,6 +12001,47 @@
           }
         }
       },
+      "OrganizationLabelResponse": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "short_label",
+          "plural_label",
+          "icon",
+          "translations",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "plural_label": {
+            "type": "string"
+          },
+          "short_label": {
+            "type": "string"
+          },
+          "translations": {},
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "OrganizationResponse": {
         "type": "object",
         "required": [
@@ -13785,6 +13935,35 @@
             "type": "string",
             "nullable": true
           }
+        }
+      },
+      "UpdateOrganizationLabelRequest": {
+        "type": "object",
+        "required": [
+          "label",
+          "short_label",
+          "plural_label",
+          "icon",
+          "translations"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "plural_label": {
+            "type": "string"
+          },
+          "short_label": {
+            "type": "string"
+          },
+          "translations": {}
         }
       },
       "UpdateOrganizationRequest": {

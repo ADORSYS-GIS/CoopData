@@ -25,7 +25,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { formatCurrency, formatNumber } from "@/lib/mock-data";
 import { useState, useMemo } from "react";
@@ -209,7 +209,7 @@ function FederationForm({
   isPending: boolean;
   isEdit?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
 
   const federationFormSchema = useMemo(() => {
     return z.object({
@@ -316,7 +316,7 @@ function FederationForm({
 // ─── Page Component ────────────────────────────────────────────────────────
 
 export const FederationsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: federations = [], isLoading, error, refetch } = useFederations();
   const createMutation = useCreateFederation();
   const updateMutation = useUpdateFederation();

@@ -16,6 +16,7 @@ use coop_data_backend::{
     FederationRepository, FinancialStatementRepository, FixedDepositRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
     NonFinancialIndicatorEntryRepository, ObjectStorageService, OrganizationRepository,
+    OrganizationLabelRepository,
     QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
     SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
     UploadedFileRepository, UserRepository,
@@ -52,6 +53,7 @@ async fn main() -> anyhow::Result<()> {
     let apex_repo = ApexRepository::new(db.clone());
     let cooperative_repo = CooperativeRepository::new(db.clone());
     let organization_repo = OrganizationRepository::new(db.clone());
+    let organization_label_repo = OrganizationLabelRepository::new(db.clone());
     let user_repo = UserRepository::new(db.clone());
     let submission_repo = SubmissionRepository::new(db.clone());
     let uploaded_file_repo = UploadedFileRepository::new(db.clone());
@@ -103,6 +105,7 @@ async fn main() -> anyhow::Result<()> {
         apex_repo,
         cooperative_repo,
         organization_repo,
+        organization_label_repo,
         user_repo,
         audit,
         submission_repo,
