@@ -1444,6 +1444,7 @@ pub async fn update_submission_section(
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
         (status = 204, description = "Submission deleted"),
+        (status = 400, description = "Cannot delete a submitted submission"),
         (status = 403, description = "Forbidden — not your cooperative"),
         (status = 404, description = "Submission not found"),
         (status = 428, description = "Identity verification required", body = ErrorResponse)
@@ -1482,10 +1483,14 @@ pub async fn delete_submission(
         ));
     }
 
-    if submission.status == crate::entities::enums::SubmissionStatus::Approved {
-        return Err(AppError::BadRequest(
-            "Cannot delete an approved submission".into(),
-        ));
+    match submission.status {
+        crate::entities::enums::SubmissionStatus::Draft
+        | crate::entities::enums::SubmissionStatus::Rejected => {}
+        _ => {
+            return Err(AppError::BadRequest(
+                "Cannot delete a submitted submission. Only draft or rejected submissions can be deleted.".into(),
+            ));
+        }
     }
 
     state.submission_repo.delete(id).await?;

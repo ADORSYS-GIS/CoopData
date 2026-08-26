@@ -3497,6 +3497,8 @@
     "toastDuplicateKey": "Duplicate field key \"{{key}}\" found. All keys must be unique.",
     "confirmDeleteSection": "Are you sure you want to delete this section and all of its fields?",
     "confirmDeleteField": "Are you sure you want to delete this question?",
+    "deleteFieldTitle": "Delete Question",
+    "deleteFieldDescription": "Are you sure you want to delete this question? This action cannot be undone.",
     "alertLabelRequired": "Please enter a question label.",
     "loading": "Loading template details...",
     "failedLoad": "Failed to load template",

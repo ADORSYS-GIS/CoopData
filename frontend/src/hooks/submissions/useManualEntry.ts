@@ -83,6 +83,16 @@ export const useSubmitManualMembers = (submissionId: string) => {
         queryKey: ["cooperative-submissions", submissionId, "sections"],
       });
       void queryClient.invalidateQueries({ queryKey: ["members"] });
+      for (const key of [
+        "non-financial-members",
+        "non-financial-savings",
+        "non-financial-loans",
+        "non-financial-fixed-deposits",
+        "non-financial-farm-coop",
+        "non-financial",
+      ]) {
+        void queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 };
@@ -146,6 +156,16 @@ export const useDeleteManualNonFinancialData = (submissionId: string) => {
         queryKey: ["cooperative-submissions", submissionId, "sections"],
       });
       void queryClient.invalidateQueries({ queryKey: ["members"] });
+      for (const key of [
+        "non-financial-members",
+        "non-financial-savings",
+        "non-financial-loans",
+        "non-financial-fixed-deposits",
+        "non-financial-farm-coop",
+        "non-financial",
+      ]) {
+        void queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 };
