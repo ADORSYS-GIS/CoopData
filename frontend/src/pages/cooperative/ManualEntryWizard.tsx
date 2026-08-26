@@ -301,10 +301,17 @@ export function ManualEntryWizard() {
   useEffect(() => {
     const list = existingSavings?.data;
     if (list) {
+      // SavingsAccountResponse.member_id is a UUID (DB FK), but memberBusinessId
+      // must be the business-key string (e.g. "MEM-001") so the backend member_map
+      // lookup succeeds at submit time. Build a UUID → business-key map from members.
+      const uuidToKey: Record<string, string> = {};
+      for (const m of existingMembers?.data ?? []) {
+        uuidToKey[String(m.id)] = m.member_id;
+      }
       setSavings(
         list.map((s) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: s.member_id || "",
+          memberBusinessId: uuidToKey[String(s.member_id)] ?? String(s.member_id),
           savingsAccountId: s.savings_account_id,
           accountType: s.account_type as "Voluntary" | "Mandatory" | "Fixed",
           accountOpeningDate: s.account_opening_date,
@@ -321,15 +328,19 @@ export function ManualEntryWizard() {
         })),
       );
     }
-  }, [existingSavings]);
+  }, [existingSavings, existingMembers]);
 
   useEffect(() => {
     const list = existingLoans?.data;
     if (list) {
+      const uuidToKey: Record<string, string> = {};
+      for (const m of existingMembers?.data ?? []) {
+        uuidToKey[String(m.id)] = m.member_id;
+      }
       setLoans(
         list.map((l) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: l.member_id || "",
+          memberBusinessId: uuidToKey[String(l.member_id)] ?? String(l.member_id),
           loanId: l.loan_id,
           loanProductType: l.loan_product_type,
           loanStartDate: l.loan_start_date,
@@ -354,15 +365,19 @@ export function ManualEntryWizard() {
         })),
       );
     }
-  }, [existingLoans]);
+  }, [existingLoans, existingMembers]);
 
   useEffect(() => {
     const list = existingDeposits?.data;
     if (list) {
+      const uuidToKey: Record<string, string> = {};
+      for (const m of existingMembers?.data ?? []) {
+        uuidToKey[String(m.id)] = m.member_id;
+      }
       setFixedDeposits(
         list.map((f) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: f.member_id || "",
+          memberBusinessId: uuidToKey[String(f.member_id)] ?? String(f.member_id),
           fixedDepositId: f.fixed_deposit_id,
           depositType: f.deposit_type,
           startDate: f.start_date,
@@ -380,7 +395,7 @@ export function ManualEntryWizard() {
         })),
       );
     }
-  }, [existingDeposits]);
+  }, [existingDeposits, existingMembers]);
 
   useEffect(() => {
     const list = existingFarm?.data;

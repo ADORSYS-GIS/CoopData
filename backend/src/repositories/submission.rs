@@ -1,5 +1,6 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
+    EntityTrait, QueryFilter, QueryOrder, Set, Statement,
 };
 use uuid::Uuid;
 
@@ -209,8 +210,19 @@ impl SubmissionRepository {
         status: SubmissionStatus,
         current_tier: ReviewTier,
     ) -> AppResult<submission::Model> {
+        self.update_status_tx(&self.db, id, status, current_tier)
+            .await
+    }
+
+    pub async fn update_status_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        id: Uuid,
+        status: SubmissionStatus,
+        current_tier: ReviewTier,
+    ) -> AppResult<submission::Model> {
         let existing = Entity::find_by_id(id)
-            .one(&self.db)
+            .one(db)
             .await
             .map_err(crate::error::AppError::from)?
             .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
@@ -219,7 +231,7 @@ impl SubmissionRepository {
         active.status = Set(status);
         active.current_tier = Set(current_tier);
         active.updated_at = Set(chrono::Utc::now());
-        active.update(&self.db).await.map_err(Into::into)
+        active.update(db).await.map_err(Into::into)
     }
 
     pub async fn update_submission_method(
@@ -235,6 +247,110 @@ impl SubmissionRepository {
 
         let mut active: ActiveModel = existing.into();
         active.submission_method = Set(method);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
+
+    /// Atomically claim editing rights — only succeeds if edited_by is currently NULL.
+    /// Returns the updated model on success, or None if the row was already claimed.
+    /// This prevents race conditions where two concurrent requests both think they own it.
+    pub async fn claim_edited_by(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        user_name: Option<String>,
+    ) -> AppResult<Option<submission::Model>> {
+        self.claim_edited_by_tx(&self.db, id, user_id, user_name)
+            .await
+    }
+
+    pub async fn claim_edited_by_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        id: Uuid,
+        user_id: Uuid,
+        user_name: Option<String>,
+    ) -> AppResult<Option<submission::Model>> {
+        let user_name_val = match user_name {
+            Some(n) => sea_orm::Value::String(Some(Box::new(n))),
+            None => sea_orm::Value::String(None),
+        };
+        let stmt = Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            "UPDATE submissions SET edited_by = $1, edited_by_name = $2, updated_at = NOW() WHERE id = $3 AND edited_by IS NULL",
+            vec![
+                sea_orm::Value::Uuid(Some(Box::new(user_id))),
+                user_name_val,
+                sea_orm::Value::Uuid(Some(Box::new(id))),
+            ],
+        );
+        let res = db
+            .execute(stmt)
+            .await
+            .map_err(crate::error::AppError::from)?;
+
+        match res.rows_affected() {
+            0 => Ok(None),
+            _ => {
+                let updated = Entity::find_by_id(id)
+                    .one(db)
+                    .await
+                    .map_err(crate::error::AppError::from)?;
+                Ok(updated)
+            }
+        }
+    }
+
+    /// Transfer editing rights to a new user (exclusive editor model).
+    /// Use `claim_edited_by` for atomic claim-with-check; use this for unconditional sets.
+    pub async fn set_edited_by(
+        &self,
+        id: Uuid,
+        user_id: Option<Uuid>,
+        user_name: Option<String>,
+    ) -> AppResult<submission::Model> {
+        self.set_edited_by_tx(&self.db, id, user_id, user_name)
+            .await
+    }
+
+    pub async fn set_edited_by_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        id: Uuid,
+        user_id: Option<Uuid>,
+        user_name: Option<String>,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.edited_by = Set(user_id);
+        active.edited_by_name = Set(user_name);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(db).await.map_err(Into::into)
+    }
+
+    /// Clear edited_by when submission is submitted (no one editing).
+    pub async fn clear_edited_by(&self, id: Uuid) -> AppResult<submission::Model> {
+        self.set_edited_by(id, None, None).await
+    }
+
+    pub async fn set_current_tier(
+        &self,
+        id: Uuid,
+        tier: ReviewTier,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.current_tier = Set(tier);
         active.updated_at = Set(chrono::Utc::now());
         active.update(&self.db).await.map_err(Into::into)
     }

@@ -236,6 +236,17 @@ async function doFlushSyncQueue(): Promise<void> {
               `[syncQueue] Item ${item.id} already processed on server (${res.status}), marking done.`,
             );
             await offlineDb.syncQueue.update(item.id!, { status: "done" });
+          } else if (res.status === 422) {
+            // 422 = Unprocessable Entity: body schema mismatch — won't fix itself with retries
+            console.error(
+              `[syncQueue] Item ${item.id} got 422 (body validation error), marking failed.`,
+              { endpoint: item.endpoint, errorText },
+            );
+            await offlineDb.syncQueue.update(item.id!, {
+              status: "failed",
+              retryCount: (item.retryCount ?? 0) + 1,
+              lastError: errorText,
+            });
           } else {
             const retryCount = (item.retryCount ?? 0) + 1;
             await offlineDb.syncQueue.update(item.id!, {

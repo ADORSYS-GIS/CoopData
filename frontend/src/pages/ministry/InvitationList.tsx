@@ -79,12 +79,17 @@ type InvitationFormValues = {
 // ─── Columns ──────────────────────────────────────────────────────────────
 
 function extractErrorMessage(err: unknown): string {
-  const e = err as { body?: { message?: string }; response?: { data?: { message?: string } } };
-  return (
-    e?.body?.message ??
-    e?.response?.data?.message ??
-    (err instanceof Error ? err.message : String(err))
-  );
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+
+    // Fallbacks for nested structures
+    const bodyObj = e["body"] as Record<string, unknown> | undefined;
+    const bodyMsg = bodyObj?.["message"];
+    if (typeof bodyMsg === "string" && bodyMsg.length > 0) return bodyMsg;
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 function createColumns(

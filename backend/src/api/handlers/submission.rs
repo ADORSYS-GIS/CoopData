@@ -4,16 +4,16 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use chrono::Datelike;
-use sea_orm::Set;
+use sea_orm::{Set, TransactionTrait};
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::dto::apex::ApexStatsResponse;
 #[allow(unused_imports)]
 use crate::api::dto::submission::{
-    CooperativeStatsResponse, CreateSubmissionRequest, MembershipStatsResponse,
-    PortfolioBreakdownResponse, SubmissionResponse, SubmissionReviewResponse,
+    CooperativeStatsResponse, CreateApexSubmissionRequest, CreateSubmissionRequest,
+    DelegateSubmissionRequest, MembershipStatsResponse, PortfolioBreakdownResponse,
+    ReclaimSubmissionRequest, SubmissionResponse, SubmissionReviewResponse,
     SubmissionSectionResponse, UpdateSectionStatusRequest, UpdateSubmissionMethodRequest,
 };
 use crate::auth::claims::Claims;
@@ -65,13 +65,10 @@ pub async fn create_submission(
     Extension(claims): Extension<Arc<Claims>>,
     Json(body): Json<CreateSubmissionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let current_year = chrono::Utc::now().year();
-    if body.reporting_year < current_year - 5 || body.reporting_year > current_year {
-        return Err(AppError::BadRequest(format!(
-            "reporting_year must be between {} and {}",
-            current_year - 5,
-            current_year
-        )));
+    if body.reporting_year < 1900 || body.reporting_year > 2100 {
+        return Err(AppError::BadRequest(
+            "reporting_year must be between 1900 and 2100".to_string(),
+        ));
     }
 
     let coop =
@@ -82,19 +79,21 @@ pub async fn create_submission(
         .find_by_cooperative_and_year(coop.id, body.reporting_year)
         .await?
     {
-        if existing.status == crate::entities::enums::SubmissionStatus::Draft {
-            tracing::info!(
-                submission_id = %existing.id,
-                "Deleting existing draft submission to allow re-creation"
-            );
-            state.submission_repo.delete(existing.id).await?;
-        } else {
-            return Err(AppError::Conflict(format!(
-                "A submission already exists for reporting year {} (status: {})",
+        tracing::info!(
+            submission_id = %existing.id,
+            cooperative_id = %coop.id,
+            reporting_year = body.reporting_year,
+            status = %existing.status.as_str(),
+            "Draft already exists for this cooperative and year"
+        );
+        return Err(AppError::ConflictWithSubmission {
+            message: format!(
+                "A submission already exists for this cooperative for year {} (Status: {}). You will be redirected to the existing submission.",
                 body.reporting_year,
                 existing.status.as_str()
-            )));
-        }
+            ),
+            submission_id: existing.id,
+        });
     }
 
     let seq = state
@@ -111,6 +110,11 @@ pub async fn create_submission(
     } else {
         body.submission_method.clone()
     };
+
+    let creator_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
 
     let model = ActiveModel {
         id: Set(body.id.unwrap_or_else(Uuid::new_v4)),
@@ -129,6 +133,11 @@ pub async fn create_submission(
         submission_method: Set(submission_method_val.clone()),
         created_at: Set(chrono::Utc::now()),
         updated_at: Set(chrono::Utc::now()),
+        created_by_role: Set(crate::entities::enums::SubmissionCreatedByRole::Cooperative),
+        created_by_user_id: Set(submitted_by),
+        created_by_name: Set(creator_name.clone()),
+        edited_by: Set(submitted_by),
+        edited_by_name: Set(creator_name),
     };
 
     let submission = state.submission_repo.create(model).await?;
@@ -492,6 +501,74 @@ pub async fn submit_submission(
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
+// ── Submit (apex-created → federation) ───────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/submissions/{id}/submit",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Submission submitted to federation", body = SubmissionResponse),
+        (status = 400, description = "Error flags must be resolved first"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Apex"
+)]
+pub async fn apex_submit_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    // Verify submission belongs to a cooperative under this apex
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let belongs = cooperatives
+        .iter()
+        .any(|c| c.id == submission.cooperative_id);
+    if !belongs {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your apex".into(),
+        ));
+    }
+
+    // Verify this is an apex-created submission
+    if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+        return Err(AppError::BadRequest(
+            "This submission was not created by an apex user".into(),
+        ));
+    }
+
+    let workflow = SubmissionWorkflow::new(
+        state.submission_repo.clone(),
+        state.review_repo.clone(),
+        state.flag_repo.clone(),
+        state.section_repo.clone(),
+        state.financial_statement_repo.clone(),
+        state.line_item_repo.clone(),
+        state.kpi_record_repo.clone(),
+        state.db.clone(),
+    );
+    workflow.submit(id, &claims).await?;
+
+    let updated = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    tracing::info!(submission_id = %id, apex_id = %apex_db_id, "Apex-initiated submission submitted to federation");
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
+}
+
 // ── Get submission flags ──────────────────────────────────────────────────────
 
 #[utoipa::path(
@@ -556,7 +633,6 @@ pub async fn list_apex_submissions(
         .find_by_cooperative_ids(coop_ids)
         .await?
         .into_iter()
-        .filter(|s| s.status != SubmissionStatus::Draft)
         .map(|s| {
             let name = coop_map.get(&s.cooperative_id).cloned();
             SubmissionResponse::from(s)
@@ -1379,17 +1455,25 @@ pub async fn update_submission_section(
     Path((id, section)): Path<(Uuid, String)>,
     Json(body): Json<UpdateSectionStatusRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-
     let submission = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
-        return Err(AppError::Forbidden("Access denied".into()));
+    if claims.has_role("apex") {
+        let coop_ids =
+            crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims)
+                .await?;
+        if !coop_ids.contains(&submission.cooperative_id) {
+            return Err(AppError::Forbidden("Access denied".into()));
+        }
+    } else {
+        let coop =
+            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+        if submission.cooperative_id != coop.id {
+            return Err(AppError::Forbidden("Access denied".into()));
+        }
     }
 
     if submission.status != SubmissionStatus::Draft {
@@ -1397,6 +1481,16 @@ pub async fn update_submission_section(
             "Cannot update sections when submission is in '{}' status",
             submission.status.as_str()
         )));
+    }
+
+    // Enforce exclusive editor: only the user who owns the draft can edit sections
+    let current_user_id = Uuid::parse_str(&claims.sub).ok();
+    if let Some(editor_id) = submission.edited_by {
+        if current_user_id != Some(editor_id) {
+            return Err(AppError::Forbidden(
+                "Only the editor assigned to this submission can modify sections".into(),
+            ));
+        }
     }
 
     if !crate::repositories::submission_section::SECTIONS.contains(&section.as_str()) {
@@ -1468,19 +1562,51 @@ pub async fn delete_submission(
 
     VerificationTokenService::validate_and_consume(&state.cache, &claims.sub, token).await?;
 
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-
     let submission = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
-        return Err(AppError::Forbidden(
-            "This submission does not belong to your cooperative".into(),
-        ));
+    let current_user_id = Uuid::parse_str(&claims.sub).ok();
+
+    if claims.has_role("apex") {
+        let apex_db_id =
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+                .await?;
+        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+        let belongs = cooperatives
+            .iter()
+            .any(|c| c.id == submission.cooperative_id);
+        if !belongs {
+            return Err(AppError::Forbidden(
+                "Access denied: submission does not belong to your apex".into(),
+            ));
+        }
+        if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+            return Err(AppError::Forbidden(
+                "Only the apex that created this submission can delete it".into(),
+            ));
+        }
+        if submission.created_by_user_id != current_user_id {
+            return Err(AppError::Forbidden(
+                "Only the user who created this submission can delete it".into(),
+            ));
+        }
+    } else {
+        let coop =
+            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+        if submission.cooperative_id != coop.id {
+            return Err(AppError::Forbidden(
+                "This submission does not belong to your cooperative".into(),
+            ));
+        }
+        if submission.created_by_role == crate::entities::enums::SubmissionCreatedByRole::Apex {
+            return Err(AppError::Forbidden(
+                "This submission was created by the apex and cannot be deleted by the cooperative"
+                    .into(),
+            ));
+        }
     }
 
     match submission.status {
@@ -1495,7 +1621,11 @@ pub async fn delete_submission(
 
     state.submission_repo.delete(id).await?;
 
-    tracing::info!(submission_id = %id, status = %submission.status.as_str(), "Submission deleted");
+    tracing::info!(
+        submission_id = %id,
+        status = %submission.status.as_str(),
+        "Submission deleted"
+    );
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1835,17 +1965,46 @@ pub async fn update_submission_method(
         )));
     }
 
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-
     let submission = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
-        return Err(AppError::Forbidden("Access denied".into()));
+    if claims.has_role("apex") {
+        let apex_db_id =
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+                .await?;
+        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+        let belongs = cooperatives
+            .iter()
+            .any(|c| c.id == submission.cooperative_id);
+        if !belongs {
+            return Err(AppError::Forbidden(
+                "Access denied: submission does not belong to your apex".into(),
+            ));
+        }
+    } else {
+        let coop =
+            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+        if submission.cooperative_id != coop.id {
+            return Err(AppError::Forbidden("Access denied".into()));
+        }
+        if coop.tier == "basic" {
+            return Err(AppError::BadRequest(
+                "Basic cooperatives are restricted to the questionnaire method".into(),
+            ));
+        }
+    }
+
+    // Enforce exclusive editor
+    let current_user_id = Uuid::parse_str(&claims.sub).ok();
+    if let Some(editor_id) = submission.edited_by {
+        if current_user_id != Some(editor_id) {
+            return Err(AppError::Forbidden(
+                "Only the editor assigned to this submission can modify it".into(),
+            ));
+        }
     }
 
     if submission.status != SubmissionStatus::Draft {
@@ -1855,12 +2014,6 @@ pub async fn update_submission_method(
         )));
     }
 
-    if coop.tier == "basic" {
-        return Err(AppError::BadRequest(
-            "Basic cooperatives are restricted to the questionnaire method".into(),
-        ));
-    }
-
     let updated = state
         .submission_repo
         .update_submission_method(id, method)
@@ -1868,9 +2021,543 @@ pub async fn update_submission_method(
 
     tracing::info!(
         submission_id = %id,
-        cooperative_id = %coop.id,
+        cooperative_id = %submission.cooperative_id,
         method = %body.submission_method,
         "Submission method updated"
+    );
+
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
+}
+
+// ── Apex-Initiated Submissions ─────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/submissions",
+    request_body = CreateApexSubmissionRequest,
+    responses(
+        (status = 201, description = "Submission created on behalf of cooperative", body = SubmissionResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden — cooperative not under your apex"),
+        (status = 404, description = "Cooperative not found"),
+        (status = 409, description = "Submission already exists for this cooperative and year")
+    ),
+    tag = "Apex"
+)]
+pub async fn create_apex_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Json(body): Json<CreateApexSubmissionRequest>,
+) -> AppResult<impl IntoResponse> {
+    if body.reporting_year < 1900 || body.reporting_year > 2100 {
+        return Err(AppError::BadRequest(
+            "reporting_year must be between 1900 and 2100".to_string(),
+        ));
+    }
+
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    // The frontend sends the Keycloak group UUID (from list_cooperatives which returns Keycloak groups).
+    // Resolve it to the database cooperative record.
+    let coop_keycloak_id = body.cooperative_id.to_string();
+    let coop = state
+        .cooperative_repo
+        .find_by_keycloak_id(&coop_keycloak_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found in database".into()))?;
+
+    // Verify this cooperative belongs to the caller's apex
+    if coop.apex_id != apex_db_id {
+        return Err(AppError::Forbidden(
+            "Access denied: cooperative does not belong to your apex".into(),
+        ));
+    }
+
+    // Check no existing submission for this coop+year
+    if let Some(existing) = state
+        .submission_repo
+        .find_by_cooperative_and_year(coop.id, body.reporting_year)
+        .await?
+    {
+        tracing::info!(
+            submission_id = %existing.id,
+            cooperative_id = %coop.id,
+            reporting_year = body.reporting_year,
+            status = %existing.status.as_str(),
+            "Draft already exists for this cooperative and year"
+        );
+        return Err(AppError::ConflictWithSubmission {
+            message: format!(
+                "A submission already exists for {} for year {} (Status: {}). You will be redirected to the existing submission.",
+                coop.display_name.as_str(),
+                body.reporting_year,
+                existing.status.as_str()
+            ),
+            submission_id: existing.id,
+        });
+    }
+
+    let seq = state
+        .submission_repo
+        .count_by_reporting_year(body.reporting_year)
+        .await? as u32
+        + 1;
+    let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+
+    let submitted_by = Uuid::parse_str(&claims.sub).ok();
+    let creator_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
+
+    let submission_method_val = if coop.tier == "basic" {
+        "questionnaire".to_string()
+    } else {
+        body.submission_method.clone()
+    };
+
+    let model = ActiveModel {
+        id: Set(Uuid::new_v4()),
+        reference: Set(Some(reference)),
+        cooperative_id: Set(coop.id),
+        reporting_year: Set(body.reporting_year),
+        status: Set(crate::entities::enums::SubmissionStatus::Draft),
+        current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
+        submitted_by: Set(submitted_by),
+        submitted_at: Set(None),
+        last_reviewed_by: Set(None),
+        last_reviewed_at: Set(None),
+        rejection_reason: Set(None),
+        priority: Set(body.priority),
+        metadata: Set(serde_json::json!({})),
+        submission_method: Set(submission_method_val.clone()),
+        created_at: Set(chrono::Utc::now()),
+        updated_at: Set(chrono::Utc::now()),
+        created_by_role: Set(crate::entities::enums::SubmissionCreatedByRole::Apex),
+        created_by_user_id: Set(submitted_by),
+        created_by_name: Set(creator_name.clone()),
+        edited_by: Set(submitted_by),
+        edited_by_name: Set(creator_name),
+    };
+
+    let submission = state.submission_repo.create(model).await?;
+
+    let section_models =
+        crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
+            submission.id,
+            &submission_method_val,
+        );
+    let sections = state
+        .section_repo
+        .create_many(section_models)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to create submission sections");
+            e
+        })?;
+
+    tracing::info!(
+        submission_id = %submission.id,
+        cooperative_id = %coop.id,
+        apex_id = %apex_db_id,
+        reporting_year = %body.reporting_year,
+        "Apex-initiated submission created with {} sections",
+        sections.len()
+    );
+
+    let mut resp = SubmissionResponse::from(submission);
+    resp.sections = sections
+        .into_iter()
+        .map(SubmissionSectionResponse::from)
+        .collect();
+    Ok((StatusCode::CREATED, Json(resp)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/submissions/{id}/delegate",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = DelegateSubmissionRequest,
+    responses(
+        (status = 200, description = "Submission delegated to cooperative", body = SubmissionResponse),
+        (status = 400, description = "Invalid state — submission is not returned to apex"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Apex"
+)]
+pub async fn delegate_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<DelegateSubmissionRequest>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    // Verify the submission belongs to one of this apex's cooperatives
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let belongs = cooperatives
+        .iter()
+        .any(|c| c.id == submission.cooperative_id);
+    if !belongs {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your apex".into(),
+        ));
+    }
+
+    // Verify submission is delegatable:
+    // - "returned" status at apex tier (federation returned to apex)
+    // - "submitted" status at apex tier (returned by federation, set to submitted)
+    // - "submitted" status at federation tier (apex-created, not yet reviewed by fed)
+    // - "draft" status at apex tier (reclaimed by apex or apex returned to self)
+    let delegatable = match submission.status {
+        crate::entities::enums::SubmissionStatus::Returned
+            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
+        {
+            true
+        }
+        crate::entities::enums::SubmissionStatus::Draft
+            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
+        {
+            true
+        }
+        crate::entities::enums::SubmissionStatus::Submitted => {
+            submission.current_tier == crate::entities::enums::ReviewTier::Apex
+                || submission.current_tier == crate::entities::enums::ReviewTier::Federation
+        }
+        _ => false,
+    };
+    if !delegatable {
+        return Err(AppError::BadRequest(format!(
+            "Cannot delegate a submission in '{}' status at {:?} tier. Only returned or submitted submissions can be delegated.",
+            submission.status.as_str(),
+            submission.current_tier
+        )));
+    }
+
+    // Find the cooperative's primary user to set as edited_by
+    // For now, we clear edited_by and set it when cooperative user opens the submission
+    let delegate_comment = body.comment.clone();
+
+    let txn = state.db.begin().await.map_err(AppError::DatabaseError)?;
+
+    // Transition status to draft at cooperative tier so the coop can edit
+    state
+        .submission_repo
+        .update_status_tx(
+            &txn,
+            id,
+            crate::entities::enums::SubmissionStatus::Draft,
+            crate::entities::enums::ReviewTier::Cooperative,
+        )
+        .await?;
+
+    // Record the delegation review
+    let reviewer_id = Uuid::parse_str(&claims.sub).ok();
+    let review_model = crate::entities::submission_review::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        submission_id: Set(id),
+        tier: Set(crate::entities::enums::ReviewTier::Apex),
+        reviewer_id: Set(reviewer_id),
+        action: Set(crate::entities::enums::ReviewAction::Return),
+        comment: Set(delegate_comment.clone()),
+        target_tier: Set(Some(crate::entities::enums::ReviewTier::Cooperative)),
+        created_at: Set(chrono::Utc::now()),
+    };
+    state.review_repo.create_tx(&txn, review_model).await?;
+
+    // Transfer ownership to cooperative (clear edited_by — cooperative will pick it up)
+    let updated = state
+        .submission_repo
+        .set_edited_by_tx(&txn, id, None, None)
+        .await?;
+
+    txn.commit().await.map_err(AppError::DatabaseError)?;
+
+    tracing::info!(
+        submission_id = %id,
+        apex_id = %apex_db_id,
+        delegate_to = %submission.cooperative_id,
+        comment = ?delegate_comment,
+        "Submission delegated to cooperative"
+    );
+
+    let mut resp = SubmissionResponse::from(updated);
+    resp.cooperative_name = Some(
+        cooperatives
+            .iter()
+            .find(|c| c.id == submission.cooperative_id)
+            .map(|c| {
+                if c.display_name.is_empty() {
+                    c.name.clone()
+                } else {
+                    c.display_name.clone()
+                }
+            })
+            .unwrap_or_default(),
+    );
+    Ok((StatusCode::OK, Json(resp)))
+}
+
+// ── Claim edit (Cooperative) ────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/claim-edit",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Edit rights claimed", body = SubmissionResponse),
+        (status = 400, description = "Cannot claim — not a draft or already has editor"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn claim_cooperative_edit(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let coop =
+        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_id = coop.id;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.cooperative_id != coop_id {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your cooperative".into(),
+        ));
+    }
+
+    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot claim edit on a '{}' submission. Only draft submissions can be claimed.",
+            submission.status.as_str()
+        )));
+    }
+
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
+    let user_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
+
+    let updated = state
+        .submission_repo
+        .claim_edited_by(id, user_id, user_name)
+        .await?
+        .ok_or_else(|| {
+            AppError::Conflict("Another user is currently editing this submission".into())
+        })?;
+
+    tracing::info!(
+        submission_id = %id,
+        coop_id = %coop_id,
+        user_id = %user_id,
+        "Cooperative user claimed edit rights"
+    );
+
+    Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/submissions/{id}/reclaim",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    request_body = ReclaimSubmissionRequest,
+    responses(
+        (status = 200, description = "Submission reclaimed by apex", body = SubmissionResponse),
+        (status = 400, description = "Invalid state — submission is not delegated to cooperative"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Apex"
+)]
+pub async fn reclaim_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<ReclaimSubmissionRequest>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    // Verify the submission belongs to one of this apex's cooperatives
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let belongs = cooperatives
+        .iter()
+        .any(|c| c.id == submission.cooperative_id);
+    if !belongs {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your apex".into(),
+        ));
+    }
+
+    // Verify submission is a draft (returned + delegated state)
+    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot reclaim a submission in '{}' status. Only draft submissions can be reclaimed.",
+            submission.status.as_str()
+        )));
+    }
+
+    // Verify the submission was originally delegated (not an apex-created draft)
+    // The submission must have been returned from federation before delegation
+    let reviews = state.review_repo.find_by_submission(id).await?;
+    let was_delegated = reviews.iter().any(|r| {
+        r.action == crate::entities::enums::ReviewAction::Return
+            && r.target_tier == Some(crate::entities::enums::ReviewTier::Cooperative)
+    });
+    if !was_delegated {
+        return Err(AppError::BadRequest(
+            "Cannot reclaim: this submission was not delegated to a cooperative".into(),
+        ));
+    }
+
+    let apex_user_id = Uuid::parse_str(&claims.sub).ok();
+    let apex_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
+
+    // Record the reclaim review
+    let reviewer_id = apex_user_id;
+    let review_model = crate::entities::submission_review::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        submission_id: Set(id),
+        tier: Set(crate::entities::enums::ReviewTier::Apex),
+        reviewer_id: Set(reviewer_id),
+        action: Set(crate::entities::enums::ReviewAction::Comment),
+        comment: Set(Some(format!(
+            "Reclaimed by apex{}",
+            body.comment
+                .as_deref()
+                .map(|c| format!(": {}", c))
+                .unwrap_or_default()
+        ))),
+        target_tier: Set(None),
+        created_at: Set(chrono::Utc::now()),
+    };
+    state.review_repo.create(review_model).await?;
+
+    // Transfer ownership back to apex
+    state
+        .submission_repo
+        .set_current_tier(id, crate::entities::enums::ReviewTier::Apex)
+        .await?;
+    let updated = state
+        .submission_repo
+        .set_edited_by(id, apex_user_id, apex_name)
+        .await?;
+
+    tracing::info!(
+        submission_id = %id,
+        apex_id = %apex_db_id,
+        "Submission reclaimed by apex from cooperative"
+    );
+
+    let mut resp = SubmissionResponse::from(updated);
+    resp.cooperative_name = Some(
+        cooperatives
+            .iter()
+            .find(|c| c.id == submission.cooperative_id)
+            .map(|c| {
+                if c.display_name.is_empty() {
+                    c.name.clone()
+                } else {
+                    c.display_name.clone()
+                }
+            })
+            .unwrap_or_default(),
+    );
+    Ok((StatusCode::OK, Json(resp)))
+}
+
+// ── Claim edit (Apex) ───────────────────────────────────────────────────────
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/submissions/{id}/claim-edit",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Edit rights claimed", body = SubmissionResponse),
+        (status = 400, description = "Cannot claim — not a draft or already has editor"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Apex"
+)]
+pub async fn claim_apex_edit(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let apex_db_id =
+        crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
+
+    let submission = state
+        .submission_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+    let belongs = cooperatives
+        .iter()
+        .any(|c| c.id == submission.cooperative_id);
+    if !belongs {
+        return Err(AppError::Forbidden(
+            "Access denied: submission does not belong to your apex".into(),
+        ));
+    }
+
+    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(format!(
+            "Cannot claim edit on a '{}' submission. Only draft submissions can be claimed.",
+            submission.status.as_str()
+        )));
+    }
+
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
+    let user_name = claims
+        .name
+        .clone()
+        .or_else(|| claims.preferred_username.clone());
+
+    let updated = state
+        .submission_repo
+        .claim_edited_by(id, user_id, user_name)
+        .await?
+        .ok_or_else(|| {
+            AppError::Conflict("Another user is currently editing this submission".into())
+        })?;
+
+    tracing::info!(
+        submission_id = %id,
+        apex_id = %apex_db_id,
+        user_id = %user_id,
+        "Apex user claimed edit rights"
     );
 
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))

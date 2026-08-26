@@ -3,7 +3,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::entities::enums::{ReviewTier, SubmissionStatus};
+use crate::entities::enums::{ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "submissions")]
@@ -31,6 +31,20 @@ pub struct Model {
     pub submission_method: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Who created this submission: cooperative or apex
+    pub created_by_role: SubmissionCreatedByRole,
+    /// UUID of the user who created this submission
+    #[sea_orm(nullable)]
+    pub created_by_user_id: Option<Uuid>,
+    /// Display name of the creator (denormalized for read performance)
+    #[sea_orm(nullable)]
+    pub created_by_name: Option<String>,
+    /// UUID of the user who currently owns the draft (exclusive editing)
+    #[sea_orm(nullable)]
+    pub edited_by: Option<Uuid>,
+    /// Display name of the current editor (denormalized for read performance)
+    #[sea_orm(nullable)]
+    pub edited_by_name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

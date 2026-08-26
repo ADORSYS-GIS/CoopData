@@ -95,6 +95,21 @@ pub struct SubmissionResponse {
     /// Federation ID (populated for hierarchical filtering)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub federation_id: Option<Uuid>,
+    /// Who created this submission: cooperative or apex
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_by_role: Option<String>,
+    /// UUID of the user who created this submission
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_by_user_id: Option<Uuid>,
+    /// Display name of the creator
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_by_name: Option<String>,
+    /// UUID of the user who currently owns the draft (exclusive editing)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edited_by: Option<Uuid>,
+    /// Display name of the current editor
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edited_by_name: Option<String>,
 }
 
 impl From<SubmissionModel> for SubmissionResponse {
@@ -121,6 +136,11 @@ impl From<SubmissionModel> for SubmissionResponse {
             federation_name: None,
             apex_id: None,
             federation_id: None,
+            created_by_role: Some(m.created_by_role.as_str().to_string()),
+            created_by_user_id: m.created_by_user_id,
+            created_by_name: m.created_by_name,
+            edited_by: m.edited_by,
+            edited_by_name: m.edited_by_name,
         }
     }
 }
@@ -165,6 +185,17 @@ impl SubmissionResponse {
 
     pub fn with_federation_id(mut self, id: Option<Uuid>) -> Self {
         self.federation_id = id;
+        self
+    }
+
+    pub fn with_created_by_name(mut self, name: Option<String>) -> Self {
+        self.created_by_name = name;
+        self
+    }
+
+    pub fn with_edited_by(mut self, user_id: Option<Uuid>, name: Option<String>) -> Self {
+        self.edited_by = user_id;
+        self.edited_by_name = name;
         self
     }
 }
@@ -227,4 +258,24 @@ pub struct MembershipStatsResponse {
     pub active_members: i64,
     pub inactive_members: i64,
     pub agm_attendance: i64,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateApexSubmissionRequest {
+    pub cooperative_id: Uuid,
+    pub reporting_year: i32,
+    #[serde(default = "default_priority")]
+    pub priority: String,
+    #[serde(default = "default_submission_method")]
+    pub submission_method: String,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct DelegateSubmissionRequest {
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ReclaimSubmissionRequest {
+    pub comment: Option<String>,
 }

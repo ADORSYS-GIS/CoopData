@@ -190,3 +190,21 @@ All roles receive accurate financial and non-financial analytics with authorized
 3. Real role-specific cards, trends, comparisons and risk views.
 4. Aggregate-to-detail drill-down to cooperative, submission and raw records.
 5. Calculation, scope and role-journey verification.
+
+---
+
+## 12. Apex-Initiated Submissions
+
+See [Apex-Initiated Submissions Design](apex-initiated-submissions.md) for the complete feature design, including:
+- End-to-end flow (apex creates, fills, submits on behalf of cooperative)
+- Exclusive editor model (only one person can edit a draft at a time)
+- Delegation and reclaim flows
+- Database schema changes
+- API endpoints
+- Frontend components
+- Scenarios and edge cases
+- Implementation phases
+
+---
+
+**Reference:** Full architecture details in `docs/RBAC_AND_AUTH_SYSTEM.md`
