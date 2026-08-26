@@ -162,6 +162,13 @@ pub async fn upload_financial_statement(
         ));
     }
 
+    crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+        &state,
+        &claims,
+        submission_id,
+    )
+    .await?;
+
     tracing::info!(submission_id = %submission_id, "Attaching financial statement to submission");
 
     let reporting_year = existing.reporting_year;
@@ -386,6 +393,13 @@ pub async fn delete_financial_statement(
             "Can only delete financial statement from draft submissions".into(),
         ));
     }
+
+    crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+        &state,
+        &claims,
+        submission_id,
+    )
+    .await?;
 
     let fs = state
         .financial_statement_repo

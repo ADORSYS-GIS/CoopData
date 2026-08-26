@@ -37,6 +37,20 @@ fn parse_uploaded_by(claims: &Claims) -> Option<Uuid> {
     Uuid::parse_str(&claims.sub).ok()
 }
 
+async fn verify_nf_submission_editor(
+    state: &AppState,
+    claims: &Claims,
+    submission_id: Option<Uuid>,
+) -> AppResult<()> {
+    if let Some(sub_id) = submission_id {
+        crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+            state, claims, sub_id,
+        )
+        .await?;
+    }
+    Ok(())
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/cooperative/non-financial/upload",
@@ -637,6 +651,7 @@ pub async fn create_member(
     Json(body): Json<NfCreateMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = resolve_cooperative_id_for_nf(&state, &claims, body.submission_id).await?;
+    verify_nf_submission_editor(&state, &claims, body.submission_id).await?;
     let now = chrono::Utc::now();
     let active_model = member::ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -702,6 +717,7 @@ pub async fn update_member(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Member not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     let mut active: member::ActiveModel = existing.into();
     if let Some(v) = body.join_date {
         active.join_date = Set(v);
@@ -781,6 +797,7 @@ pub async fn delete_member(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Member not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     state.member_repo.delete(id).await?;
     if let Err(e) = state
         .audit
@@ -876,6 +893,7 @@ pub async fn create_savings_account(
     Json(body): Json<CreateSavingsAccountRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = resolve_cooperative_id_for_nf(&state, &claims, body.submission_id).await?;
+    verify_nf_submission_editor(&state, &claims, body.submission_id).await?;
     let member = state
         .member_repo
         .find_by_id(body.member_id)
@@ -954,6 +972,7 @@ pub async fn update_savings_account(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Savings account not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     let mut active: savings_account::ActiveModel = existing.into();
     if let Some(v) = body.account_type {
         active.account_type = Set(v);
@@ -1036,6 +1055,7 @@ pub async fn delete_savings_account(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Savings account not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     state.savings_account_repo.delete(id).await?;
     if let Err(e) = state
         .audit
@@ -1131,6 +1151,7 @@ pub async fn create_loan(
     Json(body): Json<CreateLoanRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = resolve_cooperative_id_for_nf(&state, &claims, body.submission_id).await?;
+    verify_nf_submission_editor(&state, &claims, body.submission_id).await?;
     let member = state
         .member_repo
         .find_by_id(body.member_id)
@@ -1216,6 +1237,7 @@ pub async fn update_loan(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Loan not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     let mut active: loan::ActiveModel = existing.into();
     if let Some(v) = body.loan_product_type {
         active.loan_product_type = Set(v);
@@ -1322,6 +1344,7 @@ pub async fn delete_loan(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Loan not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     state.loan_repo.delete(id).await?;
     if let Err(e) = state
         .audit
@@ -1417,6 +1440,7 @@ pub async fn create_fixed_deposit(
     Json(body): Json<CreateFixedDepositRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = resolve_cooperative_id_for_nf(&state, &claims, body.submission_id).await?;
+    verify_nf_submission_editor(&state, &claims, body.submission_id).await?;
     let member = state
         .member_repo
         .find_by_id(body.member_id)
@@ -1496,6 +1520,7 @@ pub async fn update_fixed_deposit(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Fixed deposit not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     let mut active: fixed_deposit::ActiveModel = existing.into();
     if let Some(v) = body.deposit_type {
         active.deposit_type = Set(v);
@@ -1584,6 +1609,7 @@ pub async fn delete_fixed_deposit(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Fixed deposit not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     state.fixed_deposit_repo.delete(id).await?;
     if let Err(e) = state
         .audit
@@ -1736,6 +1762,7 @@ pub async fn create_farm_coop(
     Json(body): Json<CreateFarmCoopRequest>,
 ) -> AppResult<impl IntoResponse> {
     let coop_id = resolve_cooperative_id_for_nf(&state, &claims, body.submission_id).await?;
+    verify_nf_submission_editor(&state, &claims, body.submission_id).await?;
     let now = chrono::Utc::now();
     let active = farm_coop::ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -1812,6 +1839,7 @@ pub async fn update_farm_coop(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Farm coop record not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     let coop_id = existing.cooperative_id;
     let mut active: farm_coop::ActiveModel = existing.into();
     if let Some(v) = body.cooperative_type {
@@ -1913,6 +1941,7 @@ pub async fn delete_farm_coop(
     if !coop_ids.contains(&existing.cooperative_id) {
         return Err(AppError::NotFound("Farm coop record not found".into()));
     }
+    verify_nf_submission_editor(&state, &claims, existing.submission_id).await?;
     state.farm_coop_repo.delete(id).await?;
     tracing::info!(cooperative_id = %existing.cooperative_id, id = %id, "Farm coop record deleted");
     Ok(StatusCode::NO_CONTENT)
@@ -1960,6 +1989,8 @@ pub async fn create_manual_members(
             "Can only add members to a draft submission".into(),
         ));
     }
+
+    verify_nf_submission_editor(&state, &claims, Some(submission_id)).await?;
 
     let coop_id = submission.cooperative_id;
     let now = chrono::Utc::now();
