@@ -13,6 +13,8 @@ import { getUserProfile } from "@/services/shared/authService";
 
 import { flushSyncQueue } from "@/services/shared/syncQueueService";
 
+import { OrganizationLabelsProvider } from "../context/OrganizationLabelsContext";
+
 const IDB_QUERY_CACHE_KEY = "coopdata_query_cache";
 const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -165,9 +167,11 @@ function RootComponent() {
             void flushSyncQueue();
           }}
         >
-          <OfflineStatusBanner />
-          <Outlet />
-          <Toaster position="top-right" richColors closeButton duration={4000} />
+          <OrganizationLabelsProvider>
+            <OfflineStatusBanner />
+            <Outlet />
+            <Toaster position="top-right" richColors closeButton duration={4000} />
+          </OrganizationLabelsProvider>
         </PersistQueryClientProvider>
       </KeycloakAuthProvider>
     </ThemeProvider>

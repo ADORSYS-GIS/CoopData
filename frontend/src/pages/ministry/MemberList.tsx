@@ -9,7 +9,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { toast } from "sonner";
 import {
   useFederations,
@@ -135,7 +135,7 @@ function createColumns(
 // ─── Page Component ───────────────────────────────────────────────────────
 
 export const MemberList: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [isPending, startTransition] = useTransition();
   const { data: federations, isLoading: federationsLoading } = useFederations();
   const federationList = useMemo(

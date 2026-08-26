@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Plus, Calculator, Sparkles, Layers, Hash, Loader2, Calendar, Trash2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { useCustomKpis } from "@/hooks/analytics/useCustomKpis";
@@ -50,7 +50,7 @@ interface CustomKpiItem {
 }
 
 export function CustomKpisPage() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const {
     kpis,
     isLoading: isKpiLoading,

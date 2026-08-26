@@ -21,10 +21,10 @@ pub use repositories::{
     CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationRepository, QuestionnaireRepository,
-    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
@@ -43,6 +43,7 @@ pub struct AppState {
     pub apex_repo: ApexRepository,
     pub cooperative_repo: CooperativeRepository,
     pub organization_repo: OrganizationRepository,
+    pub organization_label_repo: OrganizationLabelRepository,
     pub user_repo: UserRepository,
     pub audit: AuditService,
     // pipeline repos

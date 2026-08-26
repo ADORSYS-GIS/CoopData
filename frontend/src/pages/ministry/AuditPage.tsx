@@ -11,7 +11,7 @@ import {
   ChevronRight,
   Eye,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { useAuditLogs, type AuditLog, type AuditLogFilters } from "@/hooks/audit/useAuditLogs";
 import {
@@ -64,7 +64,7 @@ const actionTone: Record<string, string> = {
 };
 
 export const AuditPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [action, setAction] = useState("");
   const [resourceType, setResourceType] = useState("");
   const [actor, setActor] = useState("");

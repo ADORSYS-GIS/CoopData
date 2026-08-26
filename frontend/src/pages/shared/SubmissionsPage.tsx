@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
 import {
   Inbox,
@@ -69,7 +69,10 @@ function statusTone(status: string): "success" | "warning" | "danger" | "info" |
   }
 }
 
-function statusLabel(status: string, t: TFunction): string {
+function statusLabel(
+  status: string,
+  t: (key: string, optionsOrDefault?: Record<string, unknown> | string) => string,
+): string {
   const labels: Record<string, string> = {
     draft: t("submissions.status.draft"),
     awaiting_coop_validation: t("submissions.status.awaitingValidation"),
@@ -149,7 +152,7 @@ function CalendarYearPicker({
 }
 
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -244,7 +247,7 @@ function OrgCard({
   onClick: () => void;
   icon?: React.ElementType;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <button
       onClick={onClick}
@@ -317,7 +320,7 @@ function SubmissionTable({
   showCoopColumn: boolean;
   onExport: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
   const { isOffline } = useAuth();
   const { verifyIdentity } = useVerifyIdentity();
@@ -529,7 +532,7 @@ function SubmissionTable({
 }
 
 export const SubmissionsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");

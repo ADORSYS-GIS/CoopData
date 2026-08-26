@@ -22,7 +22,7 @@ import {
 import { StatusPill } from "@/components/app-shell";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─────────────────────────────────────────────────────────────────────
 // Shared Types
@@ -33,7 +33,7 @@ export type { Cooperative, Submission } from "@/lib/mock-data";
 // Time Range Selector
 // ─────────────────────────────────────────────────────────────────────
 export function TimeRange() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="flex items-center gap-1 text-xs">
       {["1M", "3M", "YTD", "1Y", "All"].map((r, i) => (
@@ -54,7 +54,7 @@ export function TimeRange() {
 // Trend Chart (Area)
 // ─────────────────────────────────────────────────────────────────────
 export function TrendChart() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
@@ -221,7 +221,7 @@ const getRegionCellData = (regionCode: string, index: number) => {
 };
 
 export function RegionsHeatGrid() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="grid grid-cols-2 gap-4">
       {REGIONS.map((r) => {
@@ -299,7 +299,7 @@ export function RegionsHeatGrid() {
 // Activity Feed List
 // ─────────────────────────────────────────────────────────────────────
 export function ActivityFeedList({ activities }: { activities: typeof INITIAL_ACTIVITY_FEED }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const toneMap = {
     success: "bg-success/10 text-success",
     info: "bg-info/10 text-info",
@@ -338,7 +338,7 @@ export function ActivityFeedList({ activities }: { activities: typeof INITIAL_AC
 // Top Cooperatives Table
 // ─────────────────────────────────────────────────────────────────────
 export function TopTable({ cooperatives }: { cooperatives: typeof INITIAL_COOPERATIVES }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const rows = [...cooperatives].sort((a, b) => b.portfolio - a.portfolio).slice(0, 6);
   return (
     <div className="-mx-5 -mb-5 overflow-x-auto">
