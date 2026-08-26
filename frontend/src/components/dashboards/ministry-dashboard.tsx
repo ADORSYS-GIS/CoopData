@@ -5,14 +5,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
 import { useMinistrySubmissions } from "@/hooks/submissions/useSubmissions";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─────────────────────────────────────────────────────────────────────
 // MINISTRY DASHBOARD — real data only
 // Full national oversight: all federations, apexes, cooperatives
 // ─────────────────────────────────────────────────────────────────────
 export function MinistryDashboard() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: stats, isLoading: statsLoading } = useMinistryStats();
   const { data: submissions = [], isLoading: subsLoading } = useMinistrySubmissions();
 

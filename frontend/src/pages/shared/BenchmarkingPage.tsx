@@ -9,10 +9,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Scale } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 export const BenchmarkingPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
 

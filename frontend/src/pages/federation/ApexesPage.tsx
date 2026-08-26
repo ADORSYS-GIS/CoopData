@@ -12,7 +12,7 @@ import {
   ChevronRight,
   UserCog,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import {
   useApexes,
@@ -31,7 +31,7 @@ import { toast } from "sonner";
 type ApexResponse = components["schemas"]["ApexResponse"];
 
 export const ApexesPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: apexesData, isLoading, error } = useApexes();
   const createApex = useCreateApex();
   const updateApex = useUpdateApex();

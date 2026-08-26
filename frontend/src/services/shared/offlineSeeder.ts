@@ -145,6 +145,11 @@ export async function seedOfflineCache(): Promise<void> {
       });
 
       await safeFetch(async () => {
+        const { data } = await apiClient.GET("/api/v1/settings/organization-labels", {});
+        if (data) await cacheSet("analytics", "organization-labels-list", userId, data);
+      });
+
+      await safeFetch(async () => {
         const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates`);
         if (res.ok) {
           const data = await res.json();

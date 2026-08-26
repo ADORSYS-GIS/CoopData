@@ -2359,6 +2359,7 @@ pub async fn create_manual_members(
     }
 
     // ── Section status updates (outside transaction — non-critical metadata) ────
+    // Mark sections as "ready" since user explicitly submitted = data entry complete
 
     if !body.members.is_empty() {
         if let Some(sec) = state
@@ -2366,10 +2367,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "members")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "in_progress")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if savings_imported > 0 {
@@ -2378,10 +2376,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "savings")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "in_progress")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if loans_imported > 0 {
@@ -2390,10 +2385,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "loans")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "in_progress")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if fd_imported > 0 {
@@ -2402,10 +2394,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "fixed_deposits")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "in_progress")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if farm_coop_imported > 0 {
@@ -2414,10 +2403,7 @@ pub async fn create_manual_members(
             .find_by_submission_and_section(submission_id, "farm_coop")
             .await?
         {
-            state
-                .section_repo
-                .update_status(sec.id, "in_progress")
-                .await?;
+            state.section_repo.update_status(sec.id, "ready").await?;
         }
     }
     if let Err(e) = state

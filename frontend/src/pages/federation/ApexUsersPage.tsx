@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell } from "@/components/app-shell";
 import {
   useAddApexMember,
@@ -61,7 +61,7 @@ const Avatar = ({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg"
 };
 
 export const ApexUsersPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { apexId } = useParams({ from: "/app/users/$apexId" });
 
   const { data: apex, isLoading: apexLoading } = useApex(apexId);

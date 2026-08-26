@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { useFederationSubmissions, useApexSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useApexes } from "@/hooks/apexes/useApexes";
 import { useFederationStats } from "@/hooks/analytics/useFederationStats";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─────────────────────────────────────────────────────────────────────
 // FEDERATION DASHBOARD — real data only
@@ -25,7 +25,7 @@ import { useTranslation } from "react-i18next";
 // ─────────────────────────────────────────────────────────────────────
 
 export function FederationDashboard() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved" | "rejected">(
     "all",
   );

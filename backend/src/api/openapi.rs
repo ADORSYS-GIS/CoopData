@@ -189,6 +189,8 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::questionnaire_template::activate_template,
         api_module::handlers::questionnaire_template::delete_template,
         api_module::handlers::questionnaire_template::get_active_template_coop,
+        api_module::handlers::list_organization_labels,
+        api_module::handlers::update_organization_label,
     ),
     components(schemas(
         api_module::handlers::questionnaire::QuestionnaireResponseDto,
@@ -208,6 +210,8 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::CreateOrganizationRequest,
         api_module::dto::UpdateOrganizationRequest,
         api_module::dto::OrganizationResponse,
+        api_module::dto::OrganizationLabelResponse,
+        api_module::dto::UpdateOrganizationLabelRequest,
         api_module::dto::CreateUserRequest,
         api_module::dto::UpdateUserRequest,
         api_module::dto::UserResponse,

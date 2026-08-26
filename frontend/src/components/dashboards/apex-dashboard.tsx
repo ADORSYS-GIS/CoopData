@@ -16,7 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useApexStats, useApexSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 // ─────────────────────────────────────────────────────────────────────
 // APEX DASHBOARD
@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 // Has dashboard, analytics, consolidated/individual reports
 // ─────────────────────────────────────────────────────────────────────
 export function ApexDashboard() {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "verified" | "rejected">(
     "all",
   );
