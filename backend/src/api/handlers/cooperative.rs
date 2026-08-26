@@ -1187,6 +1187,25 @@ pub async fn resolve_cooperative_id_for_nf(
     }
 }
 
+/// Enforces exclusive editor on a submission: if `edited_by` is set, only that user can modify data.
+pub async fn verify_exclusive_editor_for_submission(
+    state: &AppState,
+    claims: &Claims,
+    submission_id: Uuid,
+) -> AppResult<()> {
+    if let Some(sub) = state.submission_repo.find_by_id(submission_id).await? {
+        let current_user_id = Uuid::parse_str(&claims.sub).ok();
+        if let Some(editor_id) = sub.edited_by {
+            if current_user_id != Some(editor_id) {
+                return Err(AppError::Forbidden(
+                    "Only the editor assigned to this submission can modify it".into(),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Verifies that a cooperative profile belongs to the calling apex user's group.
 /// Compares the cooperative's `apex_id` against the caller's resolved apex DB ID.
 async fn assert_profile_belongs_to_apex(

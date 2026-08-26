@@ -31,10 +31,12 @@ import {
   Scale,
   Calculator,
   Gauge,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 import { useTheme } from "@/lib/theme";
 import { UnauthorizedPage } from "@/components/UnauthorizedPage";
@@ -74,10 +76,11 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
     id: "system",
     label: "System",
     items: [
-      { to: "/app/audit", label: "Audit Log", icon: ScrollText },
+      { to: "/app/settings", label: "Settings", icon: Settings },
+      { to: "/app/configure-roles", label: "Configure Levels", icon: Tags },
       { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
-      { to: "/app/settings", label: "Settings", icon: Settings },
+      { to: "/app/audit", label: "Audit Log", icon: ScrollText },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
   },
@@ -95,6 +98,7 @@ function Sidebar({
   onToggleCollapse?: () => void;
 }) {
   const { t } = useTranslation();
+  const { getLabel } = useOrganizationLabelsContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, role } = useAuth();
 
@@ -107,11 +111,13 @@ function Sidebar({
 
   const getItemLabel = (item: { to: string; label: string }) => {
     if (item.to === "/app/dashboard") return t("nav.dashboard");
-    if (item.to === "/app/federations") return t("nav.federations");
+    if (item.to === "/app/federations")
+      return getLabel("federation", "plural_label", t("nav.federations"));
     if (item.to === "/app/invitations") return t("nav.invitations");
     if (item.to === "/app/members") return t("nav.members");
-    if (item.to === "/app/apexes") return t("nav.apexes");
-    if (item.to === "/app/cooperatives") return t("nav.cooperatives");
+    if (item.to === "/app/apexes") return getLabel("apex", "plural_label", t("nav.apexes"));
+    if (item.to === "/app/cooperatives")
+      return getLabel("cooperative", "plural_label", t("nav.cooperatives"));
     if (item.to === "/app/submissions") return t("nav.submissions");
 
     if (item.to === "/app/reports") return t("nav.reports");
@@ -125,6 +131,8 @@ function Sidebar({
     if (item.to === "/app/questionnaire-templates") return t("nav.questionnaireForms");
     if (item.to === "/app/users") return t("nav.usersAndRoles");
     if (item.to === "/app/settings") return t("nav.settings");
+    if (item.to === "/app/configure-roles")
+      return t("nav.configureRoles", { defaultValue: "Configure Levels" });
     if (item.to === "/app/profile") return t("nav.profile");
     return item.label;
   };

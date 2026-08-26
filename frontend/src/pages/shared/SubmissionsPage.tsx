@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
 import {
   Inbox,
@@ -33,8 +34,11 @@ import {
   useFederationSubmissions,
   useMinistrySubmissions,
   useCreateSubmission,
+  useCreateApexSubmission,
   useDeleteSubmission,
+  DuplicateSubmissionError,
 } from "@/hooks/submissions/useSubmissions";
+import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
 
 // Suppress unused import warnings for icons that may be used in JSX conditionally
@@ -69,7 +73,10 @@ function statusTone(status: string): "success" | "warning" | "danger" | "info" |
   }
 }
 
-function statusLabel(status: string, t: TFunction): string {
+function statusLabel(
+  status: string,
+  t: (key: string, optionsOrDefault?: Record<string, unknown> | string) => string,
+): string {
   const labels: Record<string, string> = {
     draft: t("submissions.status.draft"),
     awaiting_coop_validation: t("submissions.status.awaitingValidation"),
@@ -149,7 +156,7 @@ function CalendarYearPicker({
 }
 
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -162,7 +169,13 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("submissions.failedCreate"));
+      if (err instanceof DuplicateSubmissionError) {
+        toast.info(err.message);
+        onClose();
+        navigate({ to: "/app/submissions/$id", params: { id: err.submissionId } });
+      } else {
+        toast.error(err instanceof Error ? err.message : t("submissions.failedCreate"));
+      }
     }
   };
 
@@ -229,6 +242,142 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const [selectedCoopId, setSelectedCoopId] = useState("");
+  const createApexSubmission = useCreateApexSubmission();
+  const { data: cooperatives = [], isLoading: coopsLoading } = useCooperatives();
+
+  const selectedCoop = cooperatives.find((c) => c.id === selectedCoopId) as
+    { id: string; display_name?: string; name: string } | undefined;
+
+  const handleCreate = async () => {
+    if (!selectedCoopId) {
+      toast.error("Please select a cooperative");
+      return;
+    }
+    try {
+      const sub = await createApexSubmission.mutateAsync({
+        cooperative_id: selectedCoopId,
+        reporting_year: year,
+      });
+      toast.success(t("submissions.submissionCreated", { year }));
+      onClose();
+      navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
+    } catch (err) {
+      if (err instanceof DuplicateSubmissionError) {
+        toast.info(err.message);
+        onClose();
+        navigate({ to: "/app/submissions/$id", params: { id: err.submissionId } });
+      } else {
+        toast.error(err instanceof Error ? err.message : t("submissions.failedCreate"));
+      }
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="w-full max-w-lg bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="flex items-start justify-between px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+              <Calendar className="size-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                {t("submissions.newSubmission")} — On Behalf of Cooperative
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("submissions.startAnnualReturn")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-8 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="px-6 pb-2 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+              Cooperative
+            </label>
+            {coopsLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="size-3.5 animate-spin" /> Loading cooperatives...
+              </div>
+            ) : cooperatives.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">
+                No cooperatives found under your apex.
+              </p>
+            ) : (
+              <select
+                value={selectedCoopId}
+                onChange={(e) => setSelectedCoopId(e.target.value)}
+                className="w-full rounded-xl border border-input bg-muted/30 py-2.5 px-3 text-sm transition-all focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none"
+              >
+                <option value="">Select cooperative...</option>
+                {cooperatives.map((coop: { id: string; display_name?: string; name: string }) => (
+                  <option key={coop.id} value={coop.id}>
+                    {coop.display_name || coop.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+              {t("submissions.reportingYear")}
+            </label>
+            <CalendarYearPicker selectedYear={year} onChangeYear={setYear} />
+          </div>
+
+          {selectedCoop && (
+            <div className="rounded-xl bg-muted/30 border border-border/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Creating submission for:</p>
+              <p className="text-sm font-bold text-foreground">
+                {selectedCoop.display_name || selectedCoop.name}
+              </p>
+              <p className="text-xs text-muted-foreground">Year {year}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 px-6 py-5">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+          >
+            {t("submissions.cancel")}
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={createApexSubmission.isPending || !selectedCoopId}
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+          >
+            {createApexSubmission.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            {t("submissions.createSubmission")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrgCard({
   name,
   count,
@@ -244,7 +393,7 @@ function OrgCard({
   onClick: () => void;
   icon?: React.ElementType;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <button
       onClick={onClick}
@@ -317,7 +466,7 @@ function SubmissionTable({
   showCoopColumn: boolean;
   onExport: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
   const { isOffline } = useAuth();
   const { verifyIdentity } = useVerifyIdentity();
@@ -431,8 +580,18 @@ function SubmissionTable({
                   className="group border-l-2 border-l-transparent hover:border-l-accent hover:bg-accent/[0.03] transition-all duration-150 cursor-pointer"
                   onClick={() => onRowClick(s.id)}
                 >
-                  <td className="px-5 py-4 font-mono text-[12px] font-semibold text-foreground/70">
-                    {s.reference ?? s.id.slice(0, 8).toUpperCase()}
+                  <td className="px-5 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-[12px] font-semibold text-foreground/70">
+                        {s.reference ?? s.id.slice(0, 8).toUpperCase()}
+                      </span>
+                      {s.created_by_role === "apex" && s.created_by_name && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-md px-1.5 py-0.5 w-fit">
+                          <span className="size-1 rounded-full bg-primary" />
+                          Created by {s.created_by_name}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   {showCoopColumn && (
                     <td className="px-5 py-4 text-xs text-foreground hidden md:table-cell max-w-[160px] truncate font-medium">
@@ -473,24 +632,30 @@ function SubmissionTable({
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="inline-flex items-center gap-2 justify-end">
-                      {role === "cooperative" && s.status !== "approved" && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSubmissionToDelete({ id: s.id, reference: s.reference });
-                          }}
-                          disabled={deleteSubmission.isPending || isOffline}
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={
-                            isOffline
-                              ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
-                              : t("submissions.detail.deleteSubmission")
-                          }
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      )}
+                      {((role === "cooperative" &&
+                        (s.created_by_role === "cooperative" || !s.created_by_role)) ||
+                        (role === "apex" && s.created_by_role === "apex")) &&
+                        s.status !== "approved" && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSubmissionToDelete({ id: s.id, reference: s.reference });
+                            }}
+                            disabled={deleteSubmission.isPending || isOffline}
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={
+                              isOffline
+                                ? t(
+                                    "submissions.cannotDeleteOffline",
+                                    "Cannot delete while offline",
+                                  )
+                                : t("submissions.detail.deleteSubmission")
+                            }
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 border border-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-all duration-150 group-hover:bg-primary/10">
                         {canValidate && s.status !== "draft"
                           ? t("submissions.actionReview")
@@ -529,7 +694,7 @@ function SubmissionTable({
 }
 
 export const SubmissionsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");
@@ -541,7 +706,7 @@ export const SubmissionsPage: React.FC = () => {
 
   const cooperativeQ = useCooperativeSubmissions(role === "cooperative");
   const apexQ = useApexSubmissions(role === "apex");
-  const federationQ = useFederationSubmissions({ all: true, enabled: role === "federation" });
+  const federationQ = useFederationSubmissions({ enabled: role === "federation" });
   const ministryQ = useMinistrySubmissions(role === "ministry");
 
   const {
@@ -672,13 +837,16 @@ export const SubmissionsPage: React.FC = () => {
 
   return (
     <>
-      {showNewModal && <NewSubmissionModal onClose={() => setShowNewModal(false)} />}
+      {showNewModal && isApex && <NewApexSubmissionModal onClose={() => setShowNewModal(false)} />}
+      {showNewModal && isCooperative && (
+        <NewSubmissionModal onClose={() => setShowNewModal(false)} />
+      )}
 
       <AppShell
         title={titleByRole[role] ?? t("submissions.title.fallback")}
         subtitle={subtitleByRole[role] ?? t("submissions.subtitle.fallback")}
         actions={
-          isCooperative ? (
+          isCooperative || isApex ? (
             <button
               onClick={() => setShowNewModal(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"

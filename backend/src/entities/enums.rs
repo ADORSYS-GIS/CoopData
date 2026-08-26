@@ -712,3 +712,35 @@ impl FdStatus {
         }
     }
 }
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+)]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "Enum",
+    enum_name = "submission_created_by_role"
+)]
+pub enum SubmissionCreatedByRole {
+    #[sea_orm(string_value = "cooperative")]
+    Cooperative,
+    #[sea_orm(string_value = "apex")]
+    Apex,
+}
+
+impl SubmissionCreatedByRole {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "cooperative" => Some(Self::Cooperative),
+            "apex" => Some(Self::Apex),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Cooperative => "cooperative",
+            Self::Apex => "apex",
+        }
+    }
+}

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ArrowLeft, Save, AlertCircle, FolderPlus, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,6 +22,16 @@ import {
   setLabelTranslation,
   setSectionTranslation,
 } from "@/lib/contentLocalization";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 interface QuestionnaireTemplateEditorProps {
   templateId: string;
@@ -49,8 +59,33 @@ const getEmoji = (iconName: string): string => {
     TrendingUp: "📈",
     BarChart3: "📊",
     ClipboardList: "📋",
+    FileText: "📋",
+    HelpCircle: "❓",
   };
   return map[iconName] || iconName || "📋";
+};
+
+/**
+ * Automatically deduplicates any duplicate field keys across all sections.
+ */
+const sanitizeSectionKeys = (rawSections: any[]): any[] => {
+  const seenKeys = new Set<string>();
+  return rawSections.map((sec) => ({
+    ...sec,
+    fields: (sec.fields || []).map((field: any) => {
+      let key = field.key?.trim() || `field_${Date.now()}`;
+      if (seenKeys.has(key)) {
+        const baseKey = key;
+        let counter = 1;
+        while (seenKeys.has(`${baseKey}_${counter}`)) {
+          counter++;
+        }
+        key = `${baseKey}_${counter}`;
+      }
+      seenKeys.add(key);
+      return { ...field, key };
+    }),
+  }));
 };
 
 // Merge canonical sections with translations for a given language (read-only display).
@@ -109,6 +144,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     text: string;
   } | null>(null);
 
+  // Ref to preserve selectedSectionIndex across save operations
+  const preservedSectionIndex = useRef<number | null>(null);
+
+  // Delete confirmation dialog state
+  const [deleteFieldDialogOpen, setDeleteFieldDialogOpen] = useState(false);
+  const [fieldToDeleteIndex, setFieldToDeleteIndex] = useState<number | null>(null);
+
   // Field Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFieldIndex, setModalFieldIndex] = useState<number | null>(null);
@@ -117,6 +159,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   const [modalType, setModalType] = useState("text");
   const [modalDescription, setModalDescription] = useState("");
   const [modalDescTr, setModalDescTr] = useState<FieldTranslations>({});
+  const [modalRequired, setModalRequired] = useState(true);
   const [modalOptions, setModalOptions] = useState<string[]>([]);
   const [modalOptionsTr, setModalOptionsTr] = useState<FieldTranslations[]>([]);
   const [newOptionText, setNewOptionText] = useState("");
@@ -146,9 +189,23 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       } else {
         setLabelTr({});
       }
-      setSections(template.sections || []);
+      const cleanSections = sanitizeSectionKeys(template.sections || []);
+      setSections(cleanSections);
+      // Restore preserved section index if valid, otherwise default to first section
       if ((template.sections || []).length > 0) {
-        setSelectedSectionIndex(0);
+        const preservedIdx = preservedSectionIndex.current;
+        if (
+          preservedIdx !== null &&
+          preservedIdx !== undefined &&
+          preservedIdx >= 0 &&
+          preservedIdx < template.sections.length
+        ) {
+          setSelectedSectionIndex(preservedIdx);
+        } else {
+          setSelectedSectionIndex(0);
+        }
+        // Clear the preserved index after use
+        preservedSectionIndex.current = null;
       }
     }
   }, [template]);
@@ -218,7 +275,11 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   };
 
   const handleSave = async (sectionsToSave?: any[]) => {
-    const listToSave = sectionsToSave ?? sections;
+    const rawList = sectionsToSave ?? sections;
+    const listToSave = sanitizeSectionKeys(rawList);
+    setSections(listToSave);
+    // Preserve current section index before save
+    preservedSectionIndex.current = selectedSectionIndex;
     try {
       setSaveMessage(null);
       // Validate unique keys
@@ -251,6 +312,8 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
       toast.success(t("templateEditor.toastSaved"));
     } catch (err: any) {
+      // Clear preserved index on error
+      preservedSectionIndex.current = null;
       toast.error(err.message || t("templateEditor.toastSaveFailed"));
     }
   };
@@ -355,6 +418,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     setModalDescription("");
     setModalDescTr({});
     setModalType("text");
+    setModalRequired(true);
     setModalOptions([]);
     setModalOptionsTr([]);
     setNewOptionText("");
@@ -369,6 +433,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     setModalDescription(field.description || "");
     setModalDescTr(readFieldTr(sec.id, field.key, "description"));
     setModalType(field.type);
+    setModalRequired(field.required ?? true);
     const options = field.options || [];
     setModalOptions(options);
     setModalOptionsTr(readFieldOptionsTr(sec.id, field.key, options.length));
@@ -410,19 +475,34 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
     let fieldKey: string;
     if (modalFieldIndex === null) {
-      const generatedKey =
+      const baseKey =
         modalLabel
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "_")
           .replace(/^_+|_+$/g, "") || `field_${Date.now()}`;
+
+      // Check all existing field keys across all sections to prevent collisions
+      const existingKeys = new Set<string>();
+      for (const s of sections) {
+        for (const f of s.fields || []) {
+          existingKeys.add(f.key);
+        }
+      }
+
+      let generatedKey = baseKey;
+      let counter = 1;
+      while (existingKeys.has(generatedKey)) {
+        generatedKey = `${baseKey}_${counter}`;
+        counter++;
+      }
       fieldKey = generatedKey;
       const newField: FieldConfig = {
         key: generatedKey,
         label: modalLabel.trim(),
         description: modalDescription.trim() || undefined,
         type: modalType,
-        required: true,
+        required: modalRequired,
         options: modalType === "select" ? modalOptions : [],
       };
       sec.fields = [...(sec.fields || []), newField];
@@ -434,12 +514,13 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         label: modalLabel.trim(),
         description: modalDescription.trim() || undefined,
         type: modalType,
-        required: true,
+        required: modalRequired,
         options: modalType === "select" ? modalOptions : [],
       };
     }
 
-    setSections(updated);
+    const sanitizedUpdated = sanitizeSectionKeys(updated);
+    setSections(sanitizedUpdated);
     setIsModalOpen(false);
 
     const nextTr = persistFieldTranslations(
@@ -454,12 +535,18 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
     // Persist both canonical sections and translations together.
     void (async () => {
+      // Preserve current section index before save
+      preservedSectionIndex.current = selectedSectionIndex;
       try {
-        const keys = new Set<string>();
-        for (const s of updated) for (const f of s.fields || []) keys.add(f.key);
-        await updateMutation.mutateAsync({ label, sections: updated, translations: nextTr });
+        await updateMutation.mutateAsync({
+          label,
+          sections: sanitizedUpdated,
+          translations: nextTr,
+        });
         toast.success(t("templateEditor.toastSaved"));
       } catch (err: any) {
+        // Clear preserved index on error
+        preservedSectionIndex.current = null;
         toast.error(err.message || t("templateEditor.toastSaveFailed"));
       }
     })();
@@ -467,16 +554,27 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
 
   const deleteField = (fieldIndex: number) => {
     if (selectedSectionIndex === null) return;
-    if (!window.confirm(t("templateEditor.confirmDeleteField"))) return;
+    setFieldToDeleteIndex(fieldIndex);
+    setDeleteFieldDialogOpen(true);
+  };
+
+  const confirmDeleteField = () => {
+    if (fieldToDeleteIndex === null || selectedSectionIndex === null) return;
+    // Preserve current section index before save
+    preservedSectionIndex.current = selectedSectionIndex;
     const updated = [...sections];
     const section = updated[selectedSectionIndex];
-    section.fields = section.fields.filter((_: any, i: number) => i !== fieldIndex);
+    section.fields = section.fields.filter((_: any, i: number) => i !== fieldToDeleteIndex);
     setSections(updated);
+    setDeleteFieldDialogOpen(false);
+    setFieldToDeleteIndex(null);
     handleSave(updated);
   };
 
   const moveField = (fieldIndex: number, direction: "up" | "down") => {
     if (selectedSectionIndex === null) return;
+    // Preserve current section index before save
+    preservedSectionIndex.current = selectedSectionIndex;
     const updated = [...sections];
     const section = updated[selectedSectionIndex];
     if (direction === "up" && fieldIndex === 0) return;
@@ -653,6 +751,8 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         setModalDescTr={setModalDescTr}
         modalType={modalType}
         setModalType={setModalType}
+        modalRequired={modalRequired}
+        setModalRequired={setModalRequired}
         modalOptions={modalOptions}
         setModalOptions={setModalOptions}
         modalOptionsTr={modalOptionsTr}
@@ -664,6 +764,27 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         setOptionTranslation={setOptionTranslation}
         handleSaveModalField={handleSaveModalField}
       />
+
+      {/* Delete Field Confirmation Dialog */}
+      <AlertDialog open={deleteFieldDialogOpen} onOpenChange={setDeleteFieldDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("templateEditor.deleteFieldTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("templateEditor.deleteFieldDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteField}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

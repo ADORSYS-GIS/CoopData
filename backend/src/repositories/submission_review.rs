@@ -1,6 +1,6 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
+    QueryFilter, QueryOrder,
 };
 use uuid::Uuid;
 
@@ -31,7 +31,15 @@ impl SubmissionReviewRepository {
     }
 
     pub async fn create(&self, model: ActiveModel) -> AppResult<submission_review::Model> {
-        model.insert(&self.db).await.map_err(Into::into)
+        self.create_tx(&self.db, model).await
+    }
+
+    pub async fn create_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        model: ActiveModel,
+    ) -> AppResult<submission_review::Model> {
+        model.insert(db).await.map_err(Into::into)
     }
 
     pub async fn find_by_submission_for_tier(

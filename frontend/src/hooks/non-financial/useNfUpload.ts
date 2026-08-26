@@ -1,10 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
-import { runMutation } from "@/services/shared/syncQueueService";
+import { useUserRole } from "@/lib/auth";
 import type { NfUploadResponse } from "@/types/non-financial";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
-const NF_KEY = "non-financial";
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -20,34 +19,33 @@ export interface UploadParams {
   submissionId: string;
 }
 
-async function uploadFile({ file, submissionId }: UploadParams): Promise<NfUploadResponse> {
-  const token = await getAccessToken();
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("submission_id", submissionId);
-
-  const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/upload`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
-
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(extractErrorMessage(json));
-  return json as NfUploadResponse;
+function nfUploadUrl(role: string | null): string {
+  const base = role === "apex" ? "/api/v1/apex" : "/api/v1/cooperative";
+  return `${API_BASE}${base}/non-financial/upload`;
 }
 
 export const useNfUpload = () => {
   const queryClient = useQueryClient();
+  const role = useUserRole();
   return useMutation({
-    mutationFn: async (vars: UploadParams) => {
-      return runMutation<NfUploadResponse>("/api/v1/cooperative/non-financial/upload", "POST", {
-        optimisticData: undefined,
-        online: () => uploadFile(vars),
+    mutationFn: async ({ file, submissionId }: UploadParams): Promise<NfUploadResponse> => {
+      const token = await getAccessToken();
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("submission_id", submissionId);
+
+      const url = nfUploadUrl(role);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractErrorMessage(json));
+      return json as NfUploadResponse;
     },
     onSuccess: (_data, vars) => {
-      // Invalidate all 5 non-financial data caches so tables refresh immediately
       for (const key of [
         "non-financial-members",
         "non-financial-savings",
@@ -58,7 +56,6 @@ export const useNfUpload = () => {
       ]) {
         void queryClient.invalidateQueries({ queryKey: [key] });
       }
-      // Also refresh submission sections so status pills update
       void queryClient.invalidateQueries({
         queryKey: ["cooperative-submissions", vars.submissionId, "sections"],
       });
@@ -66,6 +63,7 @@ export const useNfUpload = () => {
       void queryClient.invalidateQueries({
         queryKey: ["cooperative-submissions", vars.submissionId],
       });
+      void queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
     },
   });
 };

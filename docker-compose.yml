@@ -60,7 +60,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak
-    command: start-dev --import-realm
+    command: start-dev --import-realm --features=organization
     env_file:
       - .env
     environment:

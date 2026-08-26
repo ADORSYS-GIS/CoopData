@@ -30,6 +30,7 @@ import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
+import { Route as AppConfigureRolesRouteImport } from './routes/app.configure-roles'
 import { Route as AppBenchmarkingRouteImport } from './routes/app.benchmarking'
 import { Route as AppBasicBenchmarkingRouteImport } from './routes/app.basic-benchmarking'
 import { Route as AppBasicAnalyticsRouteImport } from './routes/app.basic-analytics'
@@ -155,6 +156,11 @@ const AppCooperativesRoute = AppCooperativesRouteImport.update({
   path: '/cooperatives',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfigureRolesRoute = AppConfigureRolesRouteImport.update({
+  id: '/configure-roles',
+  path: '/configure-roles',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBenchmarkingRoute = AppBenchmarkingRouteImport.update({
   id: '/benchmarking',
   path: '/benchmarking',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/basic-benchmarking': typeof AppBasicBenchmarkingRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
+  '/app/configure-roles': typeof AppConfigureRolesRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/basic-benchmarking': typeof AppBasicBenchmarkingRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
+  '/app/configure-roles': typeof AppConfigureRolesRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/app/basic-analytics': typeof AppBasicAnalyticsRoute
   '/app/basic-benchmarking': typeof AppBasicBenchmarkingRoute
   '/app/benchmarking': typeof AppBenchmarkingRoute
+  '/app/configure-roles': typeof AppConfigureRolesRoute
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/app/basic-analytics'
     | '/app/basic-benchmarking'
     | '/app/benchmarking'
+    | '/app/configure-roles'
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
@@ -425,6 +435,7 @@ export interface FileRouteTypes {
     | '/app/basic-analytics'
     | '/app/basic-benchmarking'
     | '/app/benchmarking'
+    | '/app/configure-roles'
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
@@ -464,6 +475,7 @@ export interface FileRouteTypes {
     | '/app/basic-analytics'
     | '/app/basic-benchmarking'
     | '/app/benchmarking'
+    | '/app/configure-roles'
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
@@ -655,6 +667,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCooperativesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configure-roles': {
+      id: '/app/configure-roles'
+      path: '/configure-roles'
+      fullPath: '/app/configure-roles'
+      preLoaderRoute: typeof AppConfigureRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/benchmarking': {
       id: '/app/benchmarking'
       path: '/benchmarking'
@@ -820,6 +839,7 @@ interface AppRouteChildren {
   AppBasicAnalyticsRoute: typeof AppBasicAnalyticsRoute
   AppBasicBenchmarkingRoute: typeof AppBasicBenchmarkingRoute
   AppBenchmarkingRoute: typeof AppBenchmarkingRoute
+  AppConfigureRolesRoute: typeof AppConfigureRolesRoute
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppCustomKpisRoute: typeof AppCustomKpisRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -849,6 +869,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBasicAnalyticsRoute: AppBasicAnalyticsRoute,
   AppBasicBenchmarkingRoute: AppBasicBenchmarkingRoute,
   AppBenchmarkingRoute: AppBenchmarkingRoute,
+  AppConfigureRolesRoute: AppConfigureRolesRoute,
   AppCooperativesRoute: AppCooperativesRoute,
   AppCustomKpisRoute: AppCustomKpisRoute,
   AppDashboardRoute: AppDashboardRoute,

@@ -21,6 +21,7 @@ pub mod ministry_report_narratives;
 pub mod non_financial_indicator_catalog;
 pub mod non_financial_indicator_entry;
 pub mod organization;
+pub mod organization_label;
 pub mod questionnaire_response;
 pub mod questionnaire_template;
 pub mod savings_account;
@@ -63,6 +64,10 @@ pub use non_financial_indicator_entry::{
 };
 pub use organization::{
     Column as OrganizationColumn, Entity as OrganizationEntity, Model as OrganizationModel,
+};
+pub use organization_label::{
+    Column as OrganizationLabelColumn, Entity as OrganizationLabelEntity,
+    Model as OrganizationLabelModel,
 };
 pub use questionnaire_response::{
     Column as QuestionnaireResponseColumn, Entity as QuestionnaireResponseEntity,
