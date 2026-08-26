@@ -246,7 +246,9 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
-            git pull
+            git fetch --all --tags
+            git checkout main || git checkout -b main origin/main
+            git pull origin main
             TARGET_TAG="${{ github.event.inputs.target_tag || 'latest' }}"
             ./scripts/deploy.sh "$TARGET_TAG"
 
@@ -265,5 +267,7 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
-            git pull
+            git fetch --all --tags
+            git checkout develop || git checkout -b develop origin/develop
+            git pull origin develop
             ./scripts/deploy-demo.sh develop

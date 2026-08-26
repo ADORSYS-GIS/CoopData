@@ -6,7 +6,7 @@ This document defines the enterprise-grade backup architecture, offsite S3 integ
 
 ## 🎯 1. Backup Architecture Overview
 
-CoopData implements a **3-Layer Comprehensive Offsite Backup System** ([`scripts/backup-production.sh`](file:///home/ariel/Desktop/CoopData/scripts/backup-production.sh)) to guarantee zero data loss across all stateful components:
+CoopData implements a **3-Layer Comprehensive Offsite Backup System** ([`scripts/backup-production.sh`](../scripts/backup-production.sh)) to guarantee zero data loss across all stateful components:
 
 ```mermaid
 flowchart TD
@@ -95,7 +95,9 @@ To trigger a manual backup outside of the automated schedule:
 
 ## 🚑 5. Disaster Recovery & Restore Procedure
 
-In the event of a catastrophic server hardware failure or host deletion, use [`scripts/restore-production.sh`](file:///home/ariel/Desktop/CoopData/scripts/restore-production.sh) for single-command recovery.
+In the event of a catastrophic server hardware failure or host deletion, use [`scripts/restore-production.sh`](../scripts/restore-production.sh) for single-command recovery.
+
+> ⚠️ **NETWORK & S3 DEPENDENCY NOTE**: Standard disaster recovery downloads backups from cloud S3 object storage (AWS S3 or Hetzner S3). If cloud connectivity is unreachable or S3 is unavailable, you can perform an offline disaster recovery from a locally stored backup tarball using: `./scripts/restore-production.sh --local /path/to/backup_archive.tar.gz`.
 
 ### Method A: Interactive Date Selection (Recommended)
 ```bash

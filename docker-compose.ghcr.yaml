@@ -33,11 +33,14 @@ services:
     image: willfarrell/autoheal:latest
     container_name: coopdata-autoheal
     <<: *default-restart
+    env_file:
+      - .env
     environment:
       AUTOHEAL_CONTAINER_LABEL: autoheal
       AUTOHEAL_INTERVAL: 5
       AUTOHEAL_START_PERIOD: 0
       AUTOHEAL_DEFAULT_STOP_TIMEOUT: 10
+      WEBHOOK_URL: ${AUTOHEAL_WEBHOOK_URL:-${SLACK_WEBHOOK_URL:-}}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     logging: *default-logging
@@ -311,6 +314,8 @@ services:
   frontend:
     image: ghcr.io/adorsys-gis/coopdata-frontend:${FRONTEND_IMAGE_TAG:-latest}
     <<: *default-restart
+    environment:
+      NODE_ENV: production
     ports:
       - "127.0.0.1:5174:80"
     volumes:
@@ -404,14 +409,20 @@ services:
     image: grafana/grafana:11.1.0
     container_name: coopdata-grafana
     <<: *default-restart
+    env_file:
+      - .env
     environment:
       - GF_SECURITY_ADMIN_USER=admin
+      # WARNING: Operators MUST override GRAFANA_ADMIN_PASSWORD in .env for production deployment!
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_DOMAIN=${DOMAIN_NAME:-localhost}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - SLACK_CHANNEL=${SLACK_CHANNEL:-#alerts}
     ports:
       - "127.0.0.1:3001:3000"
     volumes:

@@ -528,7 +528,8 @@ else
 fi
 
 chmod 600 .env .env.demo 2>/dev/null || true
-chown -R ubuntu:ubuntu "$SCRIPT_DIR" 2>/dev/null || true
+TARGET_USER="${SUDO_USER:-$USER}"
+chown -R "$TARGET_USER:$TARGET_USER" "$SCRIPT_DIR" 2>/dev/null || true
 
 # ── Step 5: Configure Docker log rotation ────────────────────────────────────
 info "Configuring Docker daemon log rotation..."

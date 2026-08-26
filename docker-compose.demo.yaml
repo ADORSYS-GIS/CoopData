@@ -235,6 +235,8 @@ services:
     image: ghcr.io/adorsys-gis/coopdata-frontend:${DEMO_FRONTEND_IMAGE_TAG:-develop}
     container_name: coopdata-demo-frontend
     <<: *default-restart
+    environment:
+      NODE_ENV: production
     ports:
       - "127.0.0.1:5175:80"
     volumes:

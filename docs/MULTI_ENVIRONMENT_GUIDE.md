@@ -22,8 +22,8 @@ Instead of paying for two separate EC2 hosts or cloud clusters, you can run Prod
 
 | Component | Production Environment (`coopdata`) | Demo / Staging Environment (`coopdata-demo`) |
 |---|---|---|
-| **Compose File** | [`docker-compose.ghcr.yaml`](file:///home/ariel/Desktop/CoopData/docker-compose.ghcr.yaml) | [`docker-compose.demo.yaml`](file:///home/ariel/Desktop/CoopData/docker-compose.demo.yaml) |
-| **Env Secret File** | `.env` (from [`.env.example`](file:///home/ariel/Desktop/CoopData/.env.example)) | `.env.demo` (from [`.env.demo.example`](file:///home/ariel/Desktop/CoopData/.env.demo.example)) |
+| **Compose File** | [`docker-compose.ghcr.yaml`](../docker-compose.ghcr.yaml) | [`docker-compose.demo.yaml`](../docker-compose.demo.yaml) |
+| **Env Secret File** | `.env` (from [`.env.example`](../.env.example)) | `.env.demo` (from [`.env.demo.example`](../.env.demo.example)) |
 | **Domain** | `coopdata.dgrvcoop360.com` | `demo.coopdata.dgrvcoop360.com` |
 | **Resource Allocation** | **75% Host CPU & RAM** | **25% Host CPU & RAM (Capped)** |
 | **Max RAM Limit** | ~10 GB | ~2 GB |
@@ -32,7 +32,7 @@ Instead of paying for two separate EC2 hosts or cloud clusters, you can run Prod
 | **Backend Internal Port** | `127.0.0.1:3000` | `127.0.0.1:3005` |
 | **Frontend Internal Port** | `127.0.0.1:5174` | `127.0.0.1:5175` |
 | **Keycloak Internal Port** | `127.0.0.1:8180` | `127.0.0.1:8185` |
-| **Deployment Script** | [`./scripts/deploy.sh`](file:///home/ariel/Desktop/CoopData/scripts/deploy.sh) | [`./scripts/deploy-demo.sh`](file:///home/ariel/Desktop/CoopData/scripts/deploy-demo.sh) |
+| **Deployment Script** | [`./scripts/deploy.sh`](../scripts/deploy.sh) | [`./scripts/deploy-demo.sh`](../scripts/deploy-demo.sh) |
 
 ---
 

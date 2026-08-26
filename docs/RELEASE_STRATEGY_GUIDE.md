@@ -84,7 +84,7 @@ When a release is created (e.g. `v1.2.3`), `docker/metadata-action@v5` in GitHub
 
 Traditional `docker compose up -d` kills the running container before starting the new one, resulting in a 5–15 second outage window for active users.
 
-CoopData uses `docker-rollout` (executed via [`scripts/deploy.sh`](file:///home/ariel/Desktop/CoopData/scripts/deploy.sh)) to achieve **zero-downtime updates**:
+CoopData uses `docker-rollout` (executed via [`scripts/deploy.sh`](../scripts/deploy.sh)) to achieve **zero-downtime updates**:
 
 ```mermaid
 sequenceDiagram

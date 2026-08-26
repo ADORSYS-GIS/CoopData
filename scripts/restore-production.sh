@@ -176,18 +176,20 @@ fi
 # 2a. Restore CoopData App DB
 info "Restoring CoopData Application DB ('${APP_DB}')..."
 docker exec -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-    psql -U "$PG_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${APP_DB}' AND pid <> pg_backend_pid();" &>/dev/null || true
+    psql -U "$PG_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${APP_DB}' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
 
 docker exec -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-    psql -U "$PG_USER" -d postgres -c "DROP DATABASE IF EXISTS ${APP_DB};" &>/dev/null
+    psql -U "$PG_USER" -d postgres -c "DROP DATABASE IF EXISTS ${APP_DB};" >/dev/null
 
 docker exec -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
     psql -U "$PG_USER" -d postgres -c "CREATE DATABASE ${APP_DB} OWNER ${PG_USER};"
 
-gzip -dc "$APP_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-    pg_restore -U "$PG_USER" -d "$APP_DB" --no-owner --role="$PG_USER" --clean --if-exists 2>/dev/null || \
-gzip -dc "$APP_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-    psql -U "$PG_USER" -d "$APP_DB" &>/dev/null
+if ! gzip -dc "$APP_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
+    pg_restore -U "$PG_USER" -d "$APP_DB" --no-owner --role="$PG_USER" --clean --if-exists 2>&1; then
+    info "pg_restore failed or file is plain SQL — attempting psql import..."
+    gzip -dc "$APP_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
+        psql -U "$PG_USER" -d "$APP_DB" -v ON_ERROR_STOP=1 || error "Failed to restore CoopData Application DB!"
+fi
 
 ok "CoopData Application DB restored successfully!"
 
@@ -195,18 +197,20 @@ ok "CoopData Application DB restored successfully!"
 if [[ -f "$KC_DUMP_FILE" ]]; then
     info "Restoring Keycloak IAM DB ('${KEYCLOAK_DB}')..."
     docker exec -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-        psql -U "$PG_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${KEYCLOAK_DB}' AND pid <> pg_backend_pid();" &>/dev/null || true
+        psql -U "$PG_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${KEYCLOAK_DB}' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
 
     docker exec -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-        psql -U "$PG_USER" -d postgres -c "DROP DATABASE IF EXISTS ${KEYCLOAK_DB};" &>/dev/null
+        psql -U "$PG_USER" -d postgres -c "DROP DATABASE IF EXISTS ${KEYCLOAK_DB};" >/dev/null
 
     docker exec -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
         psql -U "$PG_USER" -d postgres -c "CREATE DATABASE ${KEYCLOAK_DB} OWNER ${PG_USER};"
 
-    gzip -dc "$KC_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-        pg_restore -U "$PG_USER" -d "$KEYCLOAK_DB" --no-owner --role="$PG_USER" --clean --if-exists 2>/dev/null || \
-    gzip -dc "$KC_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
-        psql -U "$PG_USER" -d "$KEYCLOAK_DB" &>/dev/null
+    if ! gzip -dc "$KC_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
+        pg_restore -U "$PG_USER" -d "$KEYCLOAK_DB" --no-owner --role="$PG_USER" --clean --if-exists 2>&1; then
+        info "pg_restore failed or file is plain SQL — attempting psql import..."
+        gzip -dc "$KC_DUMP_FILE" | docker exec -i -e PGPASSWORD="${PG_PASSWORD}" "$PG_CONTAINER" \
+            psql -U "$PG_USER" -d "$KEYCLOAK_DB" -v ON_ERROR_STOP=1 || error "Failed to restore Keycloak IAM DB!"
+    fi
 
     ok "Keycloak IAM DB restored successfully!"
 fi

@@ -1,9 +1,9 @@
 # CoopData Production Deployment & Operations Specification
 
 > 📖 **MASTER SPECIFICATIONS**:
-> - 🚀 **Release Strategy & SemVer Guide**: [`RELEASE_STRATEGY_GUIDE.md`](file:///home/ariel/Desktop/CoopData/docs/RELEASE_STRATEGY_GUIDE.md)
-> - 🛡️ **Backup & Disaster Recovery Guide**: [`BACKUP_AND_RECOVERY_GUIDE.md`](file:///home/ariel/Desktop/CoopData/docs/BACKUP_AND_RECOVERY_GUIDE.md)
-> - 🧪 **Multi-Environment Guide (Prod + Demo)**: [`MULTI_ENVIRONMENT_GUIDE.md`](file:///home/ariel/Desktop/CoopData/docs/MULTI_ENVIRONMENT_GUIDE.md)
+> - 🚀 **Release Strategy & SemVer Guide**: [`RELEASE_STRATEGY_GUIDE.md`](./RELEASE_STRATEGY_GUIDE.md)
+> - 🛡️ **Backup & Disaster Recovery Guide**: [`BACKUP_AND_RECOVERY_GUIDE.md`](./BACKUP_AND_RECOVERY_GUIDE.md)
+> - 🧪 **Multi-Environment Guide (Prod + Demo)**: [`MULTI_ENVIRONMENT_GUIDE.md`](./MULTI_ENVIRONMENT_GUIDE.md)
 
 ---
 
@@ -41,19 +41,19 @@ flowchart TD
 
 ### Phase 2: Automated Demo Staging (`develop` branch)
 - Merge PR into `develop`.
-- GitHub Actions ([`.github/workflows/docker.yml`](file:///home/ariel/Desktop/CoopData/.github/workflows/docker.yml)) builds images and pushes `:develop` tags to GHCR.
-- SSHs to server and executes [`./scripts/deploy-demo.sh develop`](file:///home/ariel/Desktop/CoopData/scripts/deploy-demo.sh).
-- Updates Demo stack ([`docker-compose.demo.yaml`](file:///home/ariel/Desktop/CoopData/docker-compose.demo.yaml)) accessible at `https://demo.coopdata.dgrvcoop360.com`.
+- GitHub Actions ([`.github/workflows/docker.yml`](../.github/workflows/docker.yml)) builds images and pushes `:develop` tags to GHCR.
+- SSHs to server and executes [`./scripts/deploy-demo.sh develop`](../scripts/deploy-demo.sh).
+- Updates Demo stack ([`docker-compose.demo.yaml`](../docker-compose.demo.yaml)) accessible at `https://demo.coopdata.dgrvcoop360.com`.
 - **Safety Isolation**: Demo uses `.env.demo` and is strictly capped at **25% CPU / RAM**. Demo load **can NEVER disrupt Production**.
 
 ### Phase 3: Release Creation & SemVer Tagging (`main` branch)
 - Open PR from `develop` into `main`.
-- Upon merge to `main`, Google's `release-please` ([`.github/workflows/release-please.yml`](file:///home/ariel/Desktop/CoopData/.github/workflows/release-please.yml)) scans conventional commits and opens a **Release PR** (`chore(main): release 1.1.0`).
+- Upon merge to `main`, Google's `release-please` ([`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml)) scans conventional commits and opens a **Release PR** (`chore(main): release 1.1.0`).
 - Merging the Release PR automatically generates Git Tag `v1.1.0` and publishes the GitHub Release.
 
 ### Phase 4: Production Zero-Downtime Rollout (`v1.1.0`)
 - Tag `v1.1.0` triggers GitHub Actions to build GHCR images (`:v1.1.0`, `:latest`).
-- SSHs to production server and executes [`./scripts/deploy.sh v1.1.0`](file:///home/ariel/Desktop/CoopData/scripts/deploy.sh).
+- SSHs to production server and executes [`./scripts/deploy.sh v1.1.0`](../scripts/deploy.sh).
 - `docker-rollout` boots `v2` alongside `v1`, verifies health, shifts Nginx traffic, and stops `v1`.
 - **Client Downtime**: **0 Seconds** (< 1 sec drop window).
 
@@ -139,7 +139,7 @@ sudo ./setup-ec2.sh
 3. **Nginx Reverse Proxy Config**: Writes `/etc/nginx/sites-available/coopdata` routing `/`, `/api/v1`, `/auth`, `/realms`, and `/grafana`.
 4. **Docker Daemon Log Rotation**: Configures `/etc/docker/daemon.json` (`json-file`, 10MB $\times$ 3 log retention per container).
 5. **Zero-Downtime CLI Plugin**: Installs `docker-rollout` plugin at `~/.docker/cli-plugins/docker-rollout`.
-6. **Nightly Offsite Backup Cron**: Registers `/etc/cron.d/coopdata-backup` running [`scripts/backup-production.sh`](file:///home/ariel/Desktop/CoopData/scripts/backup-production.sh) daily at 02:00 AM.
+6. **Nightly Offsite Backup Cron**: Registers `/etc/cron.d/coopdata-backup` running [`scripts/backup-production.sh`](../scripts/backup-production.sh) daily at 02:00 AM.
 7. **Environment Template**: Generates local `.env` file pre-filled with host domain parameters.
 
 ---
@@ -209,7 +209,7 @@ Boot the stack for the first time:
 ## 🤖 6. Phase 5 — CI/CD & Automated Semantic Releases
 
 ### 📝 Commit Convention Rules
-Developers use Conventional Commit prefixes. Google's `release-please` action ([`.github/workflows/release-please.yml`](file:///home/ariel/Desktop/CoopData/.github/workflows/release-please.yml)) inspects commit prefixes on `main` to calculate SemVer tags:
+Developers use Conventional Commit prefixes. Google's `release-please` action ([`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml)) inspects commit prefixes on `main` to calculate SemVer tags:
 
 | Commit Prefix | Release Type | Version Bump | Example Commit |
 |---|---|---|---|
@@ -217,7 +217,7 @@ Developers use Conventional Commit prefixes. Google's `release-please` action ([
 | `feat:` | **Minor** | `v1.0.0` $\rightarrow$ `v1.1.0` | `feat: add peer benchmarking export to excel` |
 | `feat!:` / `BREAKING CHANGE:` | **Major** | `v1.0.0` $\rightarrow$ `v2.0.0` | `feat!: overhaul database schema for non-financial indicators` |
 
-### 🔄 CI/CD Pipeline Stages ([`.github/workflows/docker.yml`](file:///home/ariel/Desktop/CoopData/.github/workflows/docker.yml))
+### 🔄 CI/CD Pipeline Stages ([`.github/workflows/docker.yml`](../.github/workflows/docker.yml))
 1. **`build-scan` Job**: Compiles frontend/backend Docker images and runs Trivy security vulnerability scanner.
 2. **`publish` Job**: Pushes tagged images to GitHub Container Registry:
    - `ghcr.io/adorsys-gis/coopdata-backend:v1.1.0`
@@ -352,4 +352,42 @@ In case of total server loss, provision fresh server and execute:
 - **Real-World Incident Example**:
   > *Scenario*: A physical server disaster strikes at 1:00 PM on Wednesday. The disaster recovery script restores the offsite S3 backup generated by the automated nightly cron job at 02:00 AM on Wednesday morning.
   > *Result*: All database entries, non-financial ledger submissions, and uploaded PDF files created up to 02:00 AM Wednesday are 100% intact. Only transactions created between 02:00 AM Wednesday and 1:00 PM Wednesday (11 hours of data) need to be re-submitted.
-  > *(Note: Enabling automated hourly AWS EBS volume snapshots reduces this data loss window to < 1 hour).*
+---
+
+## 🔔 11. Automated Slack & Discord Alerting Setup
+
+CoopData includes dual-layer real-time alerting via **Grafana Alerting** and **Autoheal Watchdog**.
+
+### 1. Dual Alerting Mechanisms
+
+| Alert Trigger | Source | Destination | Trigger Condition |
+|---|---|---|---|
+| **Service Down / High Latency / OOM** | Grafana Alerting ([`monitoring/alerts.yml`](../monitoring/alerts.yml)) | Slack & Discord | Backend down > 1m, DB query > 100ms, CPU > 80%, RAM > 85%, 5xx errors > 1%. |
+| **Container Freeze / Auto-Restart** | Autoheal Watchdog (`willfarrell/autoheal`) | Slack & Discord | Container HTTP `/health` check fails 3 consecutive times. |
+
+### 2. How to Enable Slack & Discord Notifications
+
+Simply add your Webhook URLs in your `/opt/coopdata/.env` file on the server:
+
+```env
+# Slack Incoming Webhook URL:
+SLACK_WEBHOOK_URL=https://hooks.slack.example.com/services/YOUR_SLACK_WEBHOOK_SECRET
+
+# Discord Webhook URL:
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/1234567890/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Slack Channel Name:
+SLACK_CHANNEL=#alerts
+```
+
+### 3. Pre-Configured Alerting Rules
+
+- 🚨 **BackendDown**: API container is unreachable.
+- 🚨 **PostgresDown**: PostgreSQL database is unreachable.
+- 🚨 **RedisDown**: Redis cache is unreachable.
+- 🚨 **MinIODown**: MinIO S3 object storage is unreachable.
+- 🚨 **HighErrorRate**: 5xx HTTP response rate > 1% over 5 minutes.
+- ⚠️ **HighLatency**: 99th percentile response time > 2 seconds.
+- ⚠️ **DiskSpaceLow**: EC2 root volume free disk space < 20%.
+- ⚠️ **HighMemoryUsage**: Server RAM utilization > 85%.
+- ⚠️ **HighCPUUsage**: Server CPU utilization > 80%.
