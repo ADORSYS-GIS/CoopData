@@ -538,7 +538,11 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       // Preserve current section index before save
       preservedSectionIndex.current = selectedSectionIndex;
       try {
-        await updateMutation.mutateAsync({ label, sections: sanitizedUpdated, translations: nextTr });
+        await updateMutation.mutateAsync({
+          label,
+          sections: sanitizedUpdated,
+          translations: nextTr,
+        });
         toast.success(t("templateEditor.toastSaved"));
       } catch (err: any) {
         // Clear preserved index on error
