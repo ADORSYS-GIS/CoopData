@@ -488,7 +488,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   <h3 className="font-heading text-base font-bold text-foreground">
                     {t("reportExport.exportReport")}
                   </h3>
-                  <p className="text-xs text-muted-foreground">{replaceOrgTerms(selectedOption.label)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {replaceOrgTerms(selectedOption.label)}
+                  </p>
                 </div>
               </div>
               <button

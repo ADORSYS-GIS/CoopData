@@ -564,6 +564,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
                     </h2>
                     <StatusPill tone={statusTone(submission.status)}>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {statusLabel(submission.status, t as any)}
                     </StatusPill>
                     {submission.created_by_role === "apex" && submission.created_by_name && (
@@ -1102,7 +1103,9 @@ export const SubmissionDetailPage: React.FC = () => {
             >
               <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
                 <div className="px-6 pt-6 pb-4">
-                  <h3 className="text-base font-bold text-foreground">{replaceOrgTerms("Delegate to Cooperative")}</h3>
+                  <h3 className="text-base font-bold text-foreground">
+                    {replaceOrgTerms("Delegate to Cooperative")}
+                  </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     {replaceOrgTerms("The cooperative will be notified to fix and resubmit.")}
                   </p>

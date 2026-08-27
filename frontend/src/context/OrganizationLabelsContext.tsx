@@ -260,12 +260,17 @@ const FALLBACK_VALUE: OrganizationLabelsContextValue = {
 
 export function useOrganizationLabelsContext() {
   const context = useContext(OrganizationLabelsContext);
+  const { t: baseT } = useTranslation();
+
   if (context) return context;
 
-  const { t: baseT } = useTranslation();
   return {
     ...FALLBACK_VALUE,
-    t: (key: string, optionsOrDefault?: Record<string, unknown> | string, options?: Record<string, unknown>) => {
+    t: (
+      key: string,
+      optionsOrDefault?: Record<string, unknown> | string,
+      options?: Record<string, unknown>,
+    ) => {
       const val = baseT(key, optionsOrDefault as never, options as never);
       return String(val || key);
     },

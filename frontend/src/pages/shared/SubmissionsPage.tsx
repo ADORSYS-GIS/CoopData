@@ -252,8 +252,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const { data: cooperatives = [], isLoading: coopsLoading } = useCooperatives();
 
   const selectedCoop = cooperatives.find((c) => c.id === selectedCoopId) as
-    | { id: string; display_name?: string; name: string }
-    | undefined;
+    { id: string; display_name?: string; name: string } | undefined;
 
   const handleCreate = async () => {
     if (!selectedCoopId) {
@@ -314,7 +313,8 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
             </label>
             {coopsLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                <Loader2 className="size-3.5 animate-spin" /> {replaceOrgTerms("Loading cooperatives...")}
+                <Loader2 className="size-3.5 animate-spin" />{" "}
+                {replaceOrgTerms("Loading cooperatives...")}
               </div>
             ) : cooperatives.length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">

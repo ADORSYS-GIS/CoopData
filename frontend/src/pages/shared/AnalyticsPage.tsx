@@ -293,7 +293,10 @@ export const AnalyticsPage: React.FC = () => {
   if (!role) return null;
 
   return (
-    <AppShell title={replaceOrgTerms(titleByRole[role])} subtitle={replaceOrgTerms(subtitleByRole[role])}>
+    <AppShell
+      title={replaceOrgTerms(titleByRole[role])}
+      subtitle={replaceOrgTerms(subtitleByRole[role])}
+    >
       <div className="space-y-6">
         {/* Role badge */}
         <div>

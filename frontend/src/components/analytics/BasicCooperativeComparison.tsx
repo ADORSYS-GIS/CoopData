@@ -46,6 +46,7 @@ export function BasicCooperativeComparison({ reportingYear }: BasicCooperativeCo
   const isCoopUser = role === "cooperative";
 
   const metricGroups = useMemo(() => buildMetricGroups(t), [t]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const metrics = useMemo(() => buildBasicMetrics(t as any), [t]);
 
   // The benchmark endpoint serves both roles: coop callers get their own row +

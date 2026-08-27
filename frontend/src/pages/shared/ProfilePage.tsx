@@ -290,7 +290,9 @@ export const ProfilePage: React.FC = () => {
                 <h2 className="font-heading text-xl font-bold text-foreground">{user.name}</h2>
                 <StatusPill tone="success">{t("profile.activeSession")}</StatusPill>
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{replaceOrgTerms(currentRole.label)}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {replaceOrgTerms(currentRole.label)}
+              </p>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-3 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="size-3.5 text-accent" /> {user.email}
