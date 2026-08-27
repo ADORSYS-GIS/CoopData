@@ -171,9 +171,9 @@ pub async fn save_questionnaire_response(
                 "You do not have access to this submission".into(),
             ));
         }
-    } else if !claims.has_role("ministry") {
+    } else if !claims.has_role("ministry") && !claims.has_role("apex") {
         return Err(AppError::Forbidden(
-            "Only cooperative or ministry roles can save questionnaires".into(),
+            "Only cooperative, apex, or ministry roles can save questionnaires".into(),
         ));
     }
 
