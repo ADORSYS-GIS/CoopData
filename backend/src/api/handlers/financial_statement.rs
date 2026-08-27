@@ -306,6 +306,15 @@ pub async fn create_manual_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
+    // Security: Verify submission belongs to the caller's cooperative.
+    // This prevents cross-tenant modification where a cooperative user could
+    // modify another cooperative's financial statement.
+    if submission.cooperative_id != coop_id {
+        return Err(AppError::Forbidden(
+            "Submission does not belong to your cooperative".into(),
+        ));
+    }
+
     crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
         &state,
         &claims,
