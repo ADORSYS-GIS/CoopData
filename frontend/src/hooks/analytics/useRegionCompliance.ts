@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 export interface RegionCompliancePoint {
@@ -29,8 +29,10 @@ const extractErrorMessage = (error: unknown): string => {
 };
 
 export const useRegionCompliance = (enabled = true, filters: RegionComplianceFilters = {}) =>
-  useQuery<RegionComplianceResponse>({
+  useOfflineQuery<RegionComplianceResponse>({
     queryKey: ["region-compliance", filters],
+    cacheTable: "analytics",
+    cacheKey: `region-compliance-${JSON.stringify(filters)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

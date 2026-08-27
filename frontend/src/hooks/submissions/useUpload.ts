@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
+import { useUserRole } from "@/lib/auth";
 import type { components } from "@/openapi-client/api";
 
 export type UploadResponse = components["schemas"]["UploadResponse"];
@@ -8,6 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export const useUploadFinancialStatement = (submissionId?: string) => {
   const queryClient = useQueryClient();
+  const role = useUserRole();
   return useMutation({
     mutationFn: async ({
       file,
@@ -22,6 +24,7 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       currency?: string;
       submissionId?: string;
     }): Promise<UploadResponse> => {
+      const base = role === "apex" ? "/api/v1/apex" : "/api/v1/cooperative";
       const token = await getAccessToken();
       const form = new FormData();
       form.append("file", file);
@@ -33,7 +36,7 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
         form.append("submission_id", resolvedId);
       }
 
-      const res = await fetch(`${API_BASE}/api/v1/cooperative/financial-statement/upload`, {
+      const res = await fetch(`${API_BASE}${base}/financial-statement/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,
@@ -45,11 +48,12 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
           (err as Record<string, string>)["message"] ?? `Upload failed: ${res.status}`,
         );
       }
-      return res.json();
+      return res.json() as Promise<UploadResponse>;
     },
     onSuccess: (_data, vars) => {
       const sid = vars.submissionId ?? submissionId;
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
       if (sid) {
         queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", sid] });
       }

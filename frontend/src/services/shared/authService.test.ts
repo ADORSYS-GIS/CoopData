@@ -318,7 +318,7 @@ describe("authService", () => {
       expect(mockKeycloakInstance.login).toHaveBeenCalledWith(
         expect.objectContaining({
           redirectUri: expect.stringContaining("/app/dashboard"),
-          scope: "openid profile email",
+          scope: expect.stringContaining("openid profile email"),
         }),
       );
     });

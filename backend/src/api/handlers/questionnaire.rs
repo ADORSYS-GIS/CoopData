@@ -155,6 +155,13 @@ pub async fn save_questionnaire_response(
         ));
     }
 
+    crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+        &state,
+        &claims,
+        submission_id,
+    )
+    .await?;
+
     // Scope check: Cooperative users can only update their own submissions.
     // Ministry users can also edit questionnaires on behalf of the cooperative.
     if claims.has_role("cooperative") {

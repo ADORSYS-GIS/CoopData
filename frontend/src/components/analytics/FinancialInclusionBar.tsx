@@ -18,6 +18,7 @@ interface Props {
 
 export function FinancialInclusionBar({ stats }: Props) {
   const { t } = useTranslation();
+  if (!stats) return null;
 
   if (stats.total_loans === 0) {
     return (

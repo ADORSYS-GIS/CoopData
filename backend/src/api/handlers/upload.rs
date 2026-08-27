@@ -39,8 +39,7 @@ pub async fn upload_financial_statement(
     Extension(claims): Extension<Arc<Claims>>,
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let is_apex = claims.has_role("apex");
 
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut original_name = String::from("upload");
@@ -135,16 +134,40 @@ pub async fn upload_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if existing.cooperative_id != coop.id {
-        return Err(AppError::Forbidden(
-            "Submission does not belong to your cooperative".into(),
-        ));
-    }
+    let coop = if is_apex {
+        let apex_db_id =
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+                .await?;
+        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+        let coop_model = cooperatives
+            .iter()
+            .find(|c| c.id == existing.cooperative_id)
+            .ok_or_else(|| {
+                AppError::Forbidden("Access denied: submission does not belong to your apex".into())
+            })?;
+        coop_model.clone()
+    } else {
+        let resolved =
+            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+        if existing.cooperative_id != resolved.id {
+            return Err(AppError::Forbidden(
+                "Submission does not belong to your cooperative".into(),
+            ));
+        }
+        resolved
+    };
     if existing.status != crate::entities::enums::SubmissionStatus::Draft {
         return Err(AppError::Conflict(
             "Can only upload to a draft submission".into(),
         ));
     }
+
+    crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+        &state,
+        &claims,
+        submission_id,
+    )
+    .await?;
 
     tracing::info!(submission_id = %submission_id, "Attaching financial statement to submission");
 
@@ -370,6 +393,13 @@ pub async fn delete_financial_statement(
             "Can only delete financial statement from draft submissions".into(),
         ));
     }
+
+    crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+        &state,
+        &claims,
+        submission_id,
+    )
+    .await?;
 
     let fs = state
         .financial_statement_repo

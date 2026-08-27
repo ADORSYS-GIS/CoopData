@@ -195,8 +195,8 @@ async fn compute_coop_rows(
         .await?
         .into_iter()
         .filter(|submission| {
-            let is_approved = submission.status
-                == crate::entities::enums::SubmissionStatus::Approved;
+            let is_approved =
+                submission.status == crate::entities::enums::SubmissionStatus::Approved;
             let matches_year = reporting_year
                 .map(|year| submission.reporting_year == year)
                 .unwrap_or(true);

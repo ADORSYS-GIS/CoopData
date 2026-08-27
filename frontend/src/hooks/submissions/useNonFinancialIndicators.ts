@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 import i18n from "@/i18n";
 import type { components } from "@/openapi-client/api";
 
@@ -25,8 +27,10 @@ function extractErrorMessage(err: unknown): string {
 
 export const useIndicatorCatalog = (coopType?: string) => {
   const lang = i18n.language?.split("-")[0] || "en";
-  return useQuery({
+  return useOfflineQuery({
     queryKey: [INDICATOR_CATALOG_KEY, coopType, lang],
+    cacheTable: "submissions",
+    cacheKey: `indicator-catalog-${coopType}-${lang}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/non-financial-indicators/catalog", {
         params: {
@@ -40,8 +44,10 @@ export const useIndicatorCatalog = (coopType?: string) => {
 };
 
 export const useSubmissionEntries = (submissionId: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [SUBMISSION_ENTRIES_KEY, submissionId],
+    cacheTable: "submissions",
+    cacheKey: `nf-indicators-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/submissions/{id}/non-financial-indicators",
@@ -59,15 +65,26 @@ export const useSaveSubmissionEntries = (submissionId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (entries: SaveIndicatorEntry[]) => {
-      const { data, error } = await apiClient.POST(
+      return runMutation<IndicatorEntryResponse[]>(
         "/api/v1/cooperative/submissions/{id}/non-financial-indicators",
+        "POST",
         {
-          params: { path: { id: submissionId } },
+          pathParams: { id: submissionId },
           body: { entries },
+          optimisticData: entries as unknown as IndicatorEntryResponse[],
+          online: async () => {
+            const { data, error } = await apiClient.POST(
+              "/api/v1/cooperative/submissions/{id}/non-financial-indicators",
+              {
+                params: { path: { id: submissionId } },
+                body: { entries },
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as IndicatorEntryResponse[];
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as IndicatorEntryResponse[];
     },
     onSuccess: () => {
       // Invalidate entries
@@ -86,12 +103,22 @@ export const useCreateCatalogItem = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: CreateIndicatorRequest) => {
-      const { data, error } = await apiClient.POST(
+      return runMutation<IndicatorCatalogResponse>(
         "/api/v1/ministry/non-financial-indicators/catalog",
-        { body },
+        "POST",
+        {
+          body,
+          optimisticData: body as unknown as IndicatorCatalogResponse,
+          online: async () => {
+            const { data, error } = await apiClient.POST(
+              "/api/v1/ministry/non-financial-indicators/catalog",
+              { body },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as IndicatorCatalogResponse;
+          },
+        },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as IndicatorCatalogResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [INDICATOR_CATALOG_KEY] });
@@ -103,15 +130,26 @@ export const useUpdateCatalogItem = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: UpdateIndicatorRequest }) => {
-      const { data, error } = await apiClient.PUT(
+      return runMutation<IndicatorCatalogResponse>(
         "/api/v1/ministry/non-financial-indicators/catalog/{id}",
+        "PUT",
         {
-          params: { path: { id } },
+          pathParams: { id },
           body,
+          optimisticData: body as unknown as IndicatorCatalogResponse,
+          online: async () => {
+            const { data, error } = await apiClient.PUT(
+              "/api/v1/ministry/non-financial-indicators/catalog/{id}",
+              {
+                params: { path: { id } },
+                body,
+              },
+            );
+            if (error) throw new Error(extractErrorMessage(error));
+            return data as IndicatorCatalogResponse;
+          },
         },
       );
-      if (error) throw new Error(extractErrorMessage(error));
-      return data as IndicatorCatalogResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [INDICATOR_CATALOG_KEY] });
@@ -123,13 +161,18 @@ export const useDeleteCatalogItem = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await apiClient.DELETE(
-        "/api/v1/ministry/non-financial-indicators/catalog/{id}",
-        {
-          params: { path: { id } },
+      return runMutation<void>("/api/v1/ministry/non-financial-indicators/catalog/{id}", "DELETE", {
+        pathParams: { id },
+        online: async () => {
+          const { error } = await apiClient.DELETE(
+            "/api/v1/ministry/non-financial-indicators/catalog/{id}",
+            {
+              params: { path: { id } },
+            },
+          );
+          if (error) throw new Error(extractErrorMessage(error));
         },
-      );
-      if (error) throw new Error(extractErrorMessage(error));
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [INDICATOR_CATALOG_KEY] });
@@ -138,8 +181,10 @@ export const useDeleteCatalogItem = () => {
 };
 
 export const useConsolidateIndicator = (indicatorName: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [CONSOLIDATION_KEY, indicatorName],
+    cacheTable: "submissions",
+    cacheKey: `indicator-consolidation-${indicatorName}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/ministry/non-financial-indicators/consolidate",

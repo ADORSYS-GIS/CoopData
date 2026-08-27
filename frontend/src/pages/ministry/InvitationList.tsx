@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -79,12 +79,17 @@ type InvitationFormValues = {
 // ─── Columns ──────────────────────────────────────────────────────────────
 
 function extractErrorMessage(err: unknown): string {
-  const e = err as { body?: { message?: string }; response?: { data?: { message?: string } } };
-  return (
-    e?.body?.message ??
-    e?.response?.data?.message ??
-    (err instanceof Error ? err.message : String(err))
-  );
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e["message"] ?? e["error"] ?? e["detail"];
+    if (typeof msg === "string" && msg.length > 0) return msg;
+
+    // Fallbacks for nested structures
+    const bodyObj = e["body"] as Record<string, unknown> | undefined;
+    const bodyMsg = bodyObj?.["message"];
+    if (typeof bodyMsg === "string" && bodyMsg.length > 0) return bodyMsg;
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 function createColumns(
@@ -96,16 +101,18 @@ function createColumns(
     {
       accessorKey: "email",
       header: t("invitationList.tableHeaders.email"),
-      cell: ({ row }) => (
-        <div>
-          <span className="font-medium">{row.getValue<string>("email") || "N/A"}</span>
-          {(row.original.first_name || row.original.last_name) && (
-            <p className="text-xs text-muted-foreground">
-              {[row.original.first_name, row.original.last_name].filter(Boolean).join(" ")}
-            </p>
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const email = row.getValue<string>("email");
+        const name = [row.original.first_name, row.original.last_name].filter(Boolean).join(" ");
+        return (
+          <div>
+            <span className={`font-medium ${!email ? "text-muted-foreground italic text-xs" : ""}`}>
+              {email || "Email not available"}
+            </span>
+            {name && <p className="text-xs text-muted-foreground">{name}</p>}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "email_sent",
@@ -177,7 +184,7 @@ function InvitationForm({
   onSubmit: (values: InvitationFormValues) => void;
   isPending: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
 
   const invitationFormSchema = useMemo(() => {
     return z.object({
@@ -277,7 +284,7 @@ function InvitationForm({
 // ─── Page Component ───────────────────────────────────────────────────────
 
 export const InvitationList: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [selectedFederationId, setSelectedFederationId] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{

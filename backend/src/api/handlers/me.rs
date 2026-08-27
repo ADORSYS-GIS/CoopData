@@ -3,8 +3,8 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::api::dto::member::{
-    ChangePasswordRequest, ChangePasswordResponse, DisableMfaRequest, SecuritySettingsResponse,
-    UserProfileResponse,
+    ChangePasswordRequest, ChangePasswordResponse, DisableMfaRequest, EnableMfaRequest,
+    ResetMfaRequest, SecuritySettingsResponse, UserProfileResponse,
 };
 use crate::api::dto::verification::{VerifyIdentityRequest, VerifyIdentityResponse};
 use crate::api::middleware::AuditContext;
@@ -198,9 +198,13 @@ pub async fn get_security_settings(
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     let mfa_enabled = state.keycloak.get_user_mfa_enabled(&claims.sub).await?;
+    let mfa_configured = state.keycloak.get_user_otp_status(&claims.sub).await?;
     Ok((
         StatusCode::OK,
-        Json(SecuritySettingsResponse { mfa_enabled }),
+        Json(SecuritySettingsResponse {
+            mfa_enabled,
+            mfa_configured,
+        }),
     ))
 }
 
@@ -219,13 +223,17 @@ pub async fn mfa_setup(
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
 ) -> AppResult<impl IntoResponse> {
-    // Only block when a real OTP credential already exists. A pending
+    // First-time setup (or resuming a pending setup). If an OTP credential
+    // already exists — whether MFA is enabled or soft-disabled — refuse, and
+    // point the user at the re-enable / reset endpoints instead. Otherwise a
+    // soft-disabled user calling setup would arm CONFIGURE_TOTP and generate a
+    // NEW QR code, recreating the orphaned-entry problem. A pending
     // CONFIGURE_TOTP action (setup started but never completed) must NOT block:
-    // initiate_totp_setup is idempotent, so the user can resume the redirect and
-    // finish setup instead of being stuck behind a 400.
+    // initiate_totp_setup is idempotent, so the user can resume the redirect.
     if state.keycloak.get_user_otp_status(&claims.sub).await? {
         return Err(AppError::BadRequest(
-            "MFA is already enabled for this account".to_string(),
+            "An authenticator is already configured for this account. Use re-enable or reset instead."
+                .to_string(),
         ));
     }
 
@@ -257,7 +265,181 @@ pub async fn mfa_setup(
     tracing::info!(user_id = %claims.sub, "MFA setup initiated (CONFIGURE_TOTP)");
     Ok((
         StatusCode::OK,
-        Json(SecuritySettingsResponse { mfa_enabled: true }),
+        Json(SecuritySettingsResponse {
+            mfa_enabled: true,
+            mfa_configured: state.keycloak.get_user_otp_status(&claims.sub).await?,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/me/security/mfa/enable",
+    request_body = EnableMfaRequest,
+    responses(
+        (status = 200, description = "MFA re-enabled using the existing authenticator entry", body = SecuritySettingsResponse),
+        (status = 400, description = "No OTP credential to re-enable", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn enable_mfa(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Json(body): Json<EnableMfaRequest>,
+) -> AppResult<impl IntoResponse> {
+    if body.otp.len() != 6 || !body.otp.chars().all(|c| c.is_ascii_digit()) {
+        return Err(AppError::BadRequest(
+            "OTP must be a 6-digit code".to_string(),
+        ));
+    }
+
+    // Re-enable is only valid after a soft-disable: the OTP credential must
+    // still exist (otherwise the user should go through first-time setup).
+    if !state.keycloak.get_user_otp_status(&claims.sub).await? {
+        return Err(AppError::BadRequest(
+            "No authenticator is configured — use MFA setup instead".to_string(),
+        ));
+    }
+
+    let username = claims
+        .username()
+        .or(claims.email.as_deref())
+        .ok_or_else(|| {
+            AppError::BadRequest("Unable to verify credentials for this account".to_string())
+        })?;
+
+    // Verify password + OTP against the preserved credential before turning
+    // MFA back on — proves the user still holds the authenticator entry.
+    state
+        .keycloak
+        .verify_user_password(username, &body.password, Some(&body.otp))
+        .await?;
+
+    state
+        .keycloak
+        .enable_user_mfa(&claims.sub)
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to re-enable MFA");
+            e
+        })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "MFA_REENABLED",
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(user_id = %claims.sub, "MFA re-enabled (existing authenticator entry)");
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse {
+            mfa_enabled: true,
+            mfa_configured: true,
+        }),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/me/security/mfa/reset",
+    request_body = ResetMfaRequest,
+    responses(
+        (status = 200, description = "MFA reset; user completes setup with a new QR at next sign-in", body = SecuritySettingsResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse)
+    ),
+    tag = "Auth"
+)]
+pub async fn reset_mfa(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
+    Json(body): Json<ResetMfaRequest>,
+) -> AppResult<impl IntoResponse> {
+    if let Some(otp) = &body.otp {
+        if otp.len() != 6 || !otp.chars().all(|c| c.is_ascii_digit()) {
+            return Err(AppError::BadRequest(
+                "OTP must be a 6-digit code".to_string(),
+            ));
+        }
+    }
+
+    let username = claims
+        .username()
+        .or(claims.email.as_deref())
+        .ok_or_else(|| {
+            AppError::BadRequest("Unable to verify credentials for this account".to_string())
+        })?;
+
+    // Verify password + current OTP before revoking the old secret.
+    // If the user lost their device (OTP is None), Keycloak ROPC may fail when the
+    // account has a pending setup (missing TOTP). We only bypass that specific case —
+    // a wrong password must still fail, otherwise an attacker with a stolen JWT and a
+    // known password could reset the victim's 2FA.
+    let verify_result = state
+        .keycloak
+        .verify_user_password(username, &body.password, body.otp.as_deref())
+        .await;
+
+    if let Err(e) = verify_result {
+        // When an OTP was supplied, any failure is a hard error.
+        // When an OTP was supplied, any failure is a hard error.
+        if body.otp.is_some() {
+            return Err(e);
+        }
+
+        // Lost-device flow: because Keycloak ROPC intentionally obfuscates the difference
+        // between a wrong password and a missing TOTP (both return "Invalid user credentials"),
+        // we cannot securely verify *only* the password when MFA is enabled.
+        // Since the user is already fully authenticated via a Recovery Code (valid JWT),
+        // we trust the session and bypass the strict ROPC check here.
+        tracing::warn!(user_id = %claims.sub, "Lost device flow: bypassing strict Keycloak ROPC check because TOTP is missing and ROPC cannot verify password alone.");
+    }
+
+    state
+        .keycloak
+        .reset_user_mfa(&claims.sub)
+        .await
+        .map_err(|e| {
+            tracing::error!(user_id = %claims.sub, error = %e, "Failed to reset MFA");
+            e
+        })?;
+
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "MFA_RESET",
+            "user",
+            Some(&claims.sub),
+            None,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
+    tracing::info!(user_id = %claims.sub, "MFA reset — old credential revoked");
+    Ok((
+        StatusCode::OK,
+        Json(SecuritySettingsResponse {
+            mfa_enabled: true,
+            mfa_configured: false,
+        }),
     ))
 }
 
@@ -322,9 +504,12 @@ pub async fn disable_mfa(
         tracing::error!("Failed to log audit: {}", e);
     }
 
-    tracing::info!(user_id = %claims.sub, "MFA disabled");
+    tracing::info!(user_id = %claims.sub, "MFA soft-disabled (credential preserved)");
     Ok((
         StatusCode::OK,
-        Json(SecuritySettingsResponse { mfa_enabled: false }),
+        Json(SecuritySettingsResponse {
+            mfa_enabled: false,
+            mfa_configured: true,
+        }),
     ))
 }

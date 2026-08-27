@@ -16,6 +16,7 @@ interface Props {
 
 export function AgriResilienceRadar({ stats }: Props) {
   const { t } = useTranslation();
+  if (!stats) return null;
 
   if (stats.total_coops === 0 && stats.active_producers === 0) {
     return (

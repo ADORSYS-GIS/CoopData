@@ -27,6 +27,7 @@ import {
 } from "@/hooks/submissions/useManualEntry";
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import { apiClient } from "@/openapi-client";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -117,8 +118,10 @@ export function ManualEntryWizard() {
   const deleteNonFinancialData = useDeleteManualNonFinancialData(submissionId);
 
   // ── Existing Data Query Loaders ──
-  const { data: existingLineItems, isLoading: existingLineItemsLoading } = useQuery({
+  const { data: existingLineItems, isLoading: existingLineItemsLoading } = useOfflineQuery({
     queryKey: ["submission-line-items", submission?.financial_statement_id],
+    cacheTable: "submissions",
+    cacheKey: `manual-line-items-${submission?.financial_statement_id}`,
     queryFn: async () => {
       if (!submission?.financial_statement_id) return null;
       const { data, error } = await apiClient.GET(
@@ -136,8 +139,10 @@ export function ManualEntryWizard() {
     enabled: !!submission?.financial_statement_id && isFinancialWizard,
   });
 
-  const { data: existingMembers, isLoading: existingMembersLoading } = useQuery({
+  const { data: existingMembers, isLoading: existingMembersLoading } = useOfflineQuery({
     queryKey: ["manual-entry-members", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-members-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/members", {
         params: {
@@ -156,8 +161,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingSavings, isLoading: existingSavingsLoading } = useQuery({
+  const { data: existingSavings, isLoading: existingSavingsLoading } = useOfflineQuery({
     queryKey: ["manual-entry-savings", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-savings-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/savings", {
         params: {
@@ -176,8 +183,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingLoans, isLoading: existingLoansLoading } = useQuery({
+  const { data: existingLoans, isLoading: existingLoansLoading } = useOfflineQuery({
     queryKey: ["manual-entry-loans", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-loans-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/loans", {
         params: {
@@ -196,8 +205,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingDeposits, isLoading: existingDepositsLoading } = useQuery({
+  const { data: existingDeposits, isLoading: existingDepositsLoading } = useOfflineQuery({
     queryKey: ["manual-entry-deposits", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-deposits-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/non-financial/fixed-deposits",
@@ -219,8 +230,10 @@ export function ManualEntryWizard() {
     enabled: !isFinancialWizard,
   });
 
-  const { data: existingFarm, isLoading: existingFarmLoading } = useQuery({
+  const { data: existingFarm, isLoading: existingFarmLoading } = useOfflineQuery({
     queryKey: ["manual-entry-farm", submissionId],
+    cacheTable: "submissions",
+    cacheKey: `manual-farm-${submissionId}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/farm-coop", {
         params: {
@@ -288,10 +301,17 @@ export function ManualEntryWizard() {
   useEffect(() => {
     const list = existingSavings?.data;
     if (list) {
+      // SavingsAccountResponse.member_id is a UUID (DB FK), but memberBusinessId
+      // must be the business-key string (e.g. "MEM-001") so the backend member_map
+      // lookup succeeds at submit time. Build a UUID → business-key map from members.
+      const uuidToKey: Record<string, string> = {};
+      for (const m of existingMembers?.data ?? []) {
+        uuidToKey[String(m.id)] = m.member_id;
+      }
       setSavings(
         list.map((s) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: s.member_id || "",
+          memberBusinessId: uuidToKey[String(s.member_id)] ?? String(s.member_id),
           savingsAccountId: s.savings_account_id,
           accountType: s.account_type as "Voluntary" | "Mandatory" | "Fixed",
           accountOpeningDate: s.account_opening_date,
@@ -308,15 +328,19 @@ export function ManualEntryWizard() {
         })),
       );
     }
-  }, [existingSavings]);
+  }, [existingSavings, existingMembers]);
 
   useEffect(() => {
     const list = existingLoans?.data;
     if (list) {
+      const uuidToKey: Record<string, string> = {};
+      for (const m of existingMembers?.data ?? []) {
+        uuidToKey[String(m.id)] = m.member_id;
+      }
       setLoans(
         list.map((l) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: l.member_id || "",
+          memberBusinessId: uuidToKey[String(l.member_id)] ?? String(l.member_id),
           loanId: l.loan_id,
           loanProductType: l.loan_product_type,
           loanStartDate: l.loan_start_date,
@@ -341,15 +365,19 @@ export function ManualEntryWizard() {
         })),
       );
     }
-  }, [existingLoans]);
+  }, [existingLoans, existingMembers]);
 
   useEffect(() => {
     const list = existingDeposits?.data;
     if (list) {
+      const uuidToKey: Record<string, string> = {};
+      for (const m of existingMembers?.data ?? []) {
+        uuidToKey[String(m.id)] = m.member_id;
+      }
       setFixedDeposits(
         list.map((f) => ({
           _rowKey: Math.random().toString(36).slice(2),
-          memberBusinessId: f.member_id || "",
+          memberBusinessId: uuidToKey[String(f.member_id)] ?? String(f.member_id),
           fixedDepositId: f.fixed_deposit_id,
           depositType: f.deposit_type,
           startDate: f.start_date,
@@ -367,7 +395,7 @@ export function ManualEntryWizard() {
         })),
       );
     }
-  }, [existingDeposits]);
+  }, [existingDeposits, existingMembers]);
 
   useEffect(() => {
     const list = existingFarm?.data;

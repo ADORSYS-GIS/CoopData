@@ -8,6 +8,7 @@ interface SavingsRadialGaugesProps {
 
 export function SavingsRadialGauges({ data }: SavingsRadialGaugesProps) {
   const { t } = useTranslation();
+  if (!data) return null;
   const gauges = [
     {
       title: t("analytics.savingsPenetration"),

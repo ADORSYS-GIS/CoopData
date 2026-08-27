@@ -8,11 +8,13 @@
 //! All routes require the `apex` role.
 //! Scope enforcement ensures users can only access cooperatives within their own group.
 
-use axum::routing::{delete, get, post};
+use axum::extract::DefaultBodyLimit;
+use axum::routing::{delete, get, patch, post};
 use axum::Router;
 
 use crate::api::handlers;
-use crate::api::handlers::upload::serve_uploaded_file;
+use crate::api::handlers::non_financial;
+use crate::api::handlers::upload::{serve_uploaded_file, upload_financial_statement};
 use crate::AppState;
 
 pub fn apex_routes() -> Router<AppState> {
@@ -67,11 +69,13 @@ pub fn apex_routes() -> Router<AppState> {
         // Submission review
         .route(
             "/submissions",
-            get(handlers::submission::list_apex_submissions),
+            get(handlers::submission::list_apex_submissions)
+                .post(handlers::submission::create_apex_submission),
         )
         .route(
             "/submissions/{id}",
-            get(handlers::submission::get_submission_as_apex),
+            get(handlers::submission::get_submission_as_apex)
+                .delete(handlers::submission::delete_submission),
         )
         .route(
             "/submissions/{id}/approve",
@@ -80,6 +84,30 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/return",
             post(handlers::submission::apex_return_submission),
+        )
+        .route(
+            "/submissions/{id}/submit",
+            post(handlers::submission::apex_submit_submission),
+        )
+        .route(
+            "/submissions/{id}/delegate",
+            post(handlers::submission::delegate_submission),
+        )
+        .route(
+            "/submissions/{id}/claim-edit",
+            post(handlers::submission::claim_apex_edit),
+        )
+        .route(
+            "/submissions/{id}/reclaim",
+            post(handlers::submission::reclaim_submission),
+        )
+        .route(
+            "/submissions/{id}/sections/{section}",
+            patch(handlers::submission::update_submission_section),
+        )
+        .route(
+            "/submissions/{id}/method",
+            patch(handlers::submission::update_submission_method),
         )
         .route(
             "/submissions/{id}/flags",
@@ -110,5 +138,14 @@ pub fn apex_routes() -> Router<AppState> {
         .route(
             "/submissions/{id}/kpis",
             get(handlers::financial_statement::get_submission_kpis),
+        )
+        // File uploads (apex fills data on behalf of cooperatives)
+        .route(
+            "/non-financial/upload",
+            post(non_financial::upload_non_financial),
+        )
+        .route(
+            "/financial-statement/upload",
+            post(upload_financial_statement).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
         )
 }

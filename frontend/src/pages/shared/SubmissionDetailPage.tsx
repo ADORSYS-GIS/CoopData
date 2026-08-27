@@ -23,12 +23,16 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
-import { useUserRole } from "@/lib/auth";
+import { useUserRole, useAuth } from "@/lib/auth";
 import {
   useSubmission,
   useDeleteSubmission,
   useSubmissionReviews,
   useDeleteFinancialStatement,
+  useDelegateSubmission,
+  useReclaimSubmission,
+  useClaimCooperativeEdit,
+  useClaimApexEdit,
 } from "@/hooks/submissions/useSubmissions";
 import { useDeleteManualNonFinancialData } from "@/hooks/submissions/useManualEntry";
 import {
@@ -54,7 +58,9 @@ import { NfParseResults } from "@/components/non-financial/NfParseResults";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NonFinancialIndicatorsForm } from "@/components/submissions/non-financial-indicators-form";
 import { QuestionnaireResponseViewer } from "@/components/submissions/QuestionnaireResponseViewer";
-import { useQuestionnaire } from "@/hooks/submissions/useQuestionnaire";
+import { useQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
+import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -122,8 +128,46 @@ function sectionStatusLabel(status: string, t: TFunction) {
   return key ? t(key) : status;
 }
 
-const isQuestionnaireFilled = (q: { id?: string } | null | undefined): boolean => {
-  return !!(q && q.id && q.id !== "00000000-0000-0000-0000-000000000000");
+const isValueFilled = (val: unknown): boolean => {
+  if (val === undefined || val === null) return false;
+  if (typeof val === "string") return val.trim().length > 0;
+  if (typeof val === "number") return val !== 0;
+  if (typeof val === "boolean") return true;
+  if (Array.isArray(val)) return val.length > 0;
+  if (typeof val === "object") return Object.keys(val).length > 0;
+  return false;
+};
+
+const isQuestionnaireComplete = (
+  q: { answers?: Record<string, unknown> } | null | undefined,
+  template:
+    | { sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }> }
+    | null
+    | undefined,
+): boolean => {
+  if (!q || !q.answers) return false;
+  const answers = q.answers;
+
+  if (template && template.sections && template.sections.length > 0) {
+    let requiredCount = 0;
+    for (const sec of template.sections) {
+      if (!sec.fields) continue;
+      for (const field of sec.fields) {
+        if (field.required) {
+          requiredCount++;
+          if (!isValueFilled(answers[field.key])) {
+            return false;
+          }
+        }
+      }
+    }
+    if (requiredCount > 0) return true;
+  }
+
+  // Fallback when template is uninitialized or has no required flags:
+  // Requires at least 5 non-empty, non-zero filled values in answers
+  const filledCount = Object.values(answers).filter(isValueFilled).length;
+  return filledCount >= 5;
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -143,6 +187,9 @@ export const SubmissionDetailPage: React.FC = () => {
   } = useSubmission(id ?? "", role ?? undefined);
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
+  const { isOffline, user } = useAuth();
+  const currentUserId = user?.id;
+  const { verifyIdentity } = useVerifyIdentity();
   const submitMutation = useSubmitSubmission();
   const deleteMutation = useDeleteSubmission();
   const apexApprove = useApexApprove();
@@ -151,14 +198,22 @@ export const SubmissionDetailPage: React.FC = () => {
   const federationReturn = useFederationReturn();
   const ministryApprove = useMinistryApprove();
   const ministryReject = useMinistryReject();
+  const delegateSubmission = useDelegateSubmission();
+  const reclaimSubmission = useReclaimSubmission();
   const [reviewComment, setReviewComment] = useState("");
+  const [showDelegateModal, setShowDelegateModal] = useState(false);
+  const [showReclaimModal, setShowReclaimModal] = useState(false);
+  const [delegateComment, setDelegateComment] = useState("");
   const [nfResult, setNfResult] = useState<NfUploadResponse | null>(null);
   const [activeTab, setActiveTab] = useState("financial");
   const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
   const [methodModalOpen, setMethodModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const { data: reviews } = useSubmissionReviews(id);
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
+  const { data: financialTemplate } = useActiveTemplate("financial");
+  const { data: nonFinancialTemplate } = useActiveTemplate("non_financial");
   const { data: fsLineItems = [] } = useLineItems(submission?.financial_statement_id ?? null);
 
   const params = useMemo(() => ({ submission_id: id ?? "", page: 1, page_size: 1 }), [id]);
@@ -170,10 +225,28 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const hasUploadedData = (sectionKey: string): boolean => {
     if (sectionKey === "financial") {
-      return fsLineItems.length > 0 || isQuestionnaireFilled(financialQ);
+      return (
+        fsLineItems.length > 0 ||
+        isQuestionnaireComplete(
+          financialQ,
+          financialTemplate as unknown as {
+            sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+          },
+        )
+      );
     }
-    if (sectionKey === "indicators") {
-      return isQuestionnaireFilled(nonFinancialQ);
+    if (
+      sectionKey === "indicators" ||
+      ["members", "savings", "loans", "fixed_deposits"].includes(sectionKey)
+    ) {
+      if (submissionMethod === "questionnaire") {
+        return isQuestionnaireComplete(
+          nonFinancialQ,
+          nonFinancialTemplate as unknown as {
+            sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+          },
+        );
+      }
     }
     if (sectionKey === "members") {
       return (membersData?.total ?? 0) > 0 || (membersData?.data?.length ?? 0) > 0;
@@ -261,6 +334,7 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const isDraft = submission?.status === "draft";
   const isCooperative = role === "cooperative";
+  const isCreatorRole = submission?.created_by_role === role;
   const CHOSEN_METHODS: SubmissionMethod[] = ["upload", "manual", "questionnaire"];
   const submissionMethod: SubmissionMethod | null =
     submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
@@ -268,30 +342,58 @@ export const SubmissionDetailPage: React.FC = () => {
       : null;
   const methodChosen = submissionMethod !== null;
 
+  // Exclusive editor model: only the user who owns the draft (edited_by) can edit
+  // Hooks must be called before any early returns
+  const claimCoopEdit = useClaimCooperativeEdit();
+  const claimApexEdit = useClaimApexEdit();
+
+  // Check if this is a delegated/reclaimed draft waiting to be claimed
+  const isDelegatedToMe =
+    isDraft &&
+    submission?.edited_by == null &&
+    ((role === "cooperative" && submission?.current_tier === "cooperative") ||
+      (role === "apex" && submission?.current_tier === "apex"));
+
+  const isEditor = isDraft && (submission?.edited_by === currentUserId || isDelegatedToMe);
+
+  // Auto-claim edit rights when opening a delegated draft with no editor
+  // Guard against React StrictMode double-mount and rapid navigation triggering multiple claims
+  const hasClaimedRef = useRef(false);
   useEffect(() => {
-    if (isCooperative && isDraft && !methodChosen) {
+    if (!submission || !isDraft || submission.edited_by != null || !id) return;
+    if (hasClaimedRef.current) return;
+    hasClaimedRef.current = true;
+    if (role === "cooperative" && submission.current_tier === "cooperative") {
+      claimCoopEdit.mutate({ id });
+    } else if (
+      role === "cooperative" &&
+      submission.current_tier === "apex" &&
+      submission.created_by_role === "apex"
+    ) {
+      claimCoopEdit.mutate({ id });
+    } else if (role === "apex" && submission.current_tier === "apex") {
+      claimApexEdit.mutate({ id });
+    }
+  }, [submission, isDraft, id, role, claimCoopEdit, claimApexEdit]);
+
+  useEffect(() => {
+    if (isEditor && isDraft && !methodChosen) {
       setMethodModalOpen(true);
     }
-  }, [isCooperative, isDraft, methodChosen]);
+  }, [isEditor, isDraft, methodChosen]);
 
   if (!role) return null;
 
-  const isReadOnly = submission ? submission.status !== "draft" || role !== "cooperative" : true;
+  const isReadOnly = !isEditor;
 
-  const mappedSections = (sections ?? []).map((s) => {
-    // If non-financial questionnaire is filled, database sections are implicitly ready
-    if (
-      isQuestionnaireFilled(nonFinancialQ) &&
-      ["members", "savings", "loans", "fixed_deposits", "farm_coop"].includes(s.section)
-    ) {
-      return { ...s, status: "ready" };
-    }
-    return s;
-  });
+  const mappedSections = (sections ?? []).map((s) => ({
+    ...s,
+    status: s.status ?? "pending",
+  }));
   const requiredSections = mappedSections.filter((s) => s.section !== "farm_coop");
   const allReady =
     requiredSections.length > 0 && requiredSections.every((s) => s.status === "ready");
-  const canSubmit = isDraft && allReady && isCooperative && !isExtracting;
+  const canSubmit = isDraft && allReady && !isReadOnly && !isExtracting;
 
   const readyCount = requiredSections.filter((s) => s.status === "ready").length;
   const totalSectionsCount = requiredSections.length;
@@ -302,23 +404,73 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!id) return;
+
+    if (submissionMethod === "questionnaire") {
+      const finComplete = isQuestionnaireComplete(
+        financialQ,
+        financialTemplate as unknown as {
+          sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+        },
+      );
+      const nonFinComplete = isQuestionnaireComplete(
+        nonFinancialQ,
+        nonFinancialTemplate as unknown as {
+          sections?: Array<{ fields?: Array<{ key: string; required?: boolean }> }>;
+        },
+      );
+
+      if (!finComplete) {
+        toast.error(
+          "Please complete all required fields in the Financial Questionnaire before submitting.",
+        );
+        return;
+      }
+      if (!nonFinComplete) {
+        toast.error(
+          "Please complete all required fields in the Non-Financial Questionnaire before submitting.",
+        );
+        return;
+      }
+    }
+
+    if (!canSubmit) {
+      if (remainingSections.length > 0) {
+        toast.error(
+          `Please complete the remaining required sections: ${remainingSections.join(", ")}`,
+        );
+      } else {
+        toast.error("Please complete all sections before submitting.");
+      }
+      return;
+    }
+
     try {
       await submitMutation.mutateAsync(id);
-      toast.success(t("submissions.detail.toastSubmitted"));
+      toast.success(
+        submission?.current_tier === "apex" || submission?.created_by_role === "apex"
+          ? "Submitted to Federation"
+          : t("submissions.detail.toastSubmitted"),
+      );
       navigate({ to: "/app/submissions" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("submissions.detail.toastSubmitFailed"));
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (verificationToken: string) => {
     if (!id) return;
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync({ id, verificationToken });
       toast.success(t("submissions.detail.toastDraftDeleted"));
+      setDeleteModalOpen(false);
       navigate({ to: "/app/submissions" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("submissions.detail.toastDeleteFailed"));
+      throw e;
     }
   };
 
@@ -407,13 +559,25 @@ export const SubmissionDetailPage: React.FC = () => {
             <div className="px-6 py-5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-3 mb-1 flex-wrap">
                     <h2 className="font-mono text-xl font-bold text-foreground tracking-tight">
                       {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
                     </h2>
                     <StatusPill tone={statusTone(submission.status)}>
                       {statusLabel(submission.status, t)}
                     </StatusPill>
+                    {submission.created_by_role === "apex" && submission.created_by_name && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
+                        <span className="size-1.5 rounded-full bg-primary" />
+                        Created by {submission.created_by_name} (Apex)
+                      </span>
+                    )}
+                    {submission.edited_by_name && submission.status === "draft" && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground bg-muted/50 border border-border/60 rounded-lg px-2 py-1">
+                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Editing: {submission.edited_by_name}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {t("submissions.reportingYear")}{" "}
@@ -426,20 +590,35 @@ export const SubmissionDetailPage: React.FC = () => {
                     </span>
                   </p>
                 </div>
-                {isCooperative && submission.status !== "approved" && (
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
-                    className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {deleteMutation.isPending ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-3.5" />
-                    )}
-                    {t("submissions.detail.deleteSubmission")}
-                  </button>
-                )}
+                <button
+                  onClick={handleDelete}
+                  disabled={
+                    !isEditor ||
+                    deleteMutation.isPending ||
+                    isOffline ||
+                    submission.status === "approved"
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title={
+                    !isEditor
+                      ? t(
+                          "submissions.detail.onlyEditorCanDelete",
+                          "Only the editor can delete this submission",
+                        )
+                      : isOffline
+                        ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                        : t("submissions.detail.deleteSubmission")
+                  }
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-3.5" />
+                  )}
+                  {isOffline
+                    ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                    : t("submissions.detail.deleteSubmission")}
+                </button>
               </div>
 
               {/* Metadata strip */}
@@ -508,7 +687,7 @@ export const SubmissionDetailPage: React.FC = () => {
             </div>
           )}
 
-          {isCooperative && isDraft && (
+          {isDraft && (
             <div className="rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-1)] overflow-hidden">
               {/* Card header */}
               <div
@@ -675,7 +854,7 @@ export const SubmissionDetailPage: React.FC = () => {
                             </button>
                           ) : (
                             <div className="flex items-center gap-2">
-                              {hasData && (
+                              {hasData && isEditor && (
                                 <button
                                   onClick={async () => {
                                     setUpdatingSectionKey(m.key);
@@ -759,20 +938,35 @@ export const SubmissionDetailPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {submission?.status !== "approved" && (
-                      <button
-                        onClick={handleDelete}
-                        disabled={deleteMutation.isPending}
-                        className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {deleteMutation.isPending ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="size-3.5" />
-                        )}
-                        {t("submissions.detail.deleteDraft")}
-                      </button>
-                    )}
+                    <button
+                      onClick={handleDelete}
+                      disabled={
+                        !isEditor ||
+                        deleteMutation.isPending ||
+                        isOffline ||
+                        submission?.status === "approved"
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title={
+                        !isEditor
+                          ? t(
+                              "submissions.detail.onlyEditorCanDelete",
+                              "Only the editor can delete this submission",
+                            )
+                          : isOffline
+                            ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                            : t("submissions.detail.deleteDraft")
+                      }
+                    >
+                      {deleteMutation.isPending ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                      {isOffline
+                        ? t("submissions.cannotDeleteOffline", "Cannot delete while offline")
+                        : t("submissions.detail.deleteDraft")}
+                    </button>
                     <button
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitMutation.isPending}
@@ -788,7 +982,9 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : (
                         <Send className="size-4" />
                       )}
-                      {t("submissions.detail.submitToApex")}
+                      {submission.current_tier === "cooperative"
+                        ? t("submissions.detail.submitToApex", "Submit to Apex")
+                        : t("submissions.detail.submitToFederation", "Submit to Federation")}
                     </button>
                   </div>
                 </div>
@@ -796,26 +992,229 @@ export const SubmissionDetailPage: React.FC = () => {
             </div>
           )}
 
-          {role === "apex" && submission.status === "submitted" && (
-            <ReviewActionPanel
-              title={t("submissions.detail.apexReviewTitle")}
-              description={t("submissions.detail.apexReviewDesc")}
-              comment={reviewComment}
-              setComment={setReviewComment}
-              onApprove={() =>
-                handleReviewAction(apexApprove, t("submissions.detail.apexReviewApprovedMsg"))
-              }
-              onReturn={() =>
-                handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))
-              }
-              approveLabel={t("submissions.detail.btnApproveForward")}
-              returnLabel={t("submissions.detail.btnRequestChanges")}
-              isPending={apexApprove.isPending || apexReturn.isPending}
-            />
+          {role === "apex" &&
+            submission.status === "submitted" &&
+            submission.current_tier === "apex" && (
+              <ReviewActionPanel
+                title={t("submissions.detail.apexReviewTitle")}
+                description={t("submissions.detail.apexReviewDesc")}
+                comment={reviewComment}
+                setComment={setReviewComment}
+                onApprove={() =>
+                  handleReviewAction(apexApprove, t("submissions.detail.apexReviewApprovedMsg"))
+                }
+                onReturn={() =>
+                  handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))
+                }
+                approveLabel={t("submissions.detail.btnApproveForward")}
+                returnLabel={t("submissions.detail.btnRequestChanges")}
+                isPending={apexApprove.isPending || apexReturn.isPending}
+              />
+            )}
+
+          {/* Apex: Action Required — Fix myself or Delegate to Cooperative */}
+          {role === "apex" &&
+            submission.status === "submitted" &&
+            submission.created_by_role === "apex" &&
+            submission.current_tier === "apex" && (
+              <Card
+                title="Action Required"
+                subtitle="Fix this submission yourself or delegate to the cooperative"
+              >
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={async () => {
+                      if (!id) return;
+                      try {
+                        await apexReturn.mutateAsync({ id });
+                        toast.success("Returned to draft. You can now edit this submission.");
+                      } catch (err) {
+                        toast.error(
+                          err instanceof Error ? err.message : "Failed to return submission",
+                        );
+                      }
+                    }}
+                    disabled={apexReturn.isPending}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {apexReturn.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <PenLine className="size-4" />
+                    )}{" "}
+                    Fix Myself
+                  </button>
+                  <button
+                    onClick={() => setShowDelegateModal(true)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm font-semibold text-amber-600 hover:bg-amber-500/10 transition-colors"
+                  >
+                    <Users className="size-4" /> Delegate to Cooperative
+                  </button>
+                </div>
+              </Card>
+            )}
+
+          {/* Apex: Delegated submission — Reclaim back */}
+          {role === "apex" &&
+            submission.status === "draft" &&
+            submission.current_tier === "cooperative" &&
+            submission.created_by_role === "apex" && (
+              <Card
+                title="Delegated to Cooperative"
+                subtitle="This submission is being fixed by the cooperative"
+              >
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowReclaimModal(true)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <PenLine className="size-4" /> Reclaim Submission
+                  </button>
+                </div>
+              </Card>
+            )}
+
+          {/* Apex: Reclaimed draft — Delegate to Cooperative */}
+          {role === "apex" &&
+            submission.status === "draft" &&
+            submission.current_tier === "apex" &&
+            submission.created_by_role === "apex" && (
+              <Card
+                title="Ready to Delegate"
+                subtitle="Delegate this submission to the cooperative for editing"
+              >
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowDelegateModal(true)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm font-semibold text-amber-600 hover:bg-amber-500/10 transition-colors"
+                  >
+                    <Users className="size-4" /> Delegate to Cooperative
+                  </button>
+                </div>
+              </Card>
+            )}
+
+          {/* Delegate Modal */}
+          {showDelegateModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
+              onClick={(e) => e.target === e.currentTarget && setShowDelegateModal(false)}
+            >
+              <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div className="px-6 pt-6 pb-4">
+                  <h3 className="text-base font-bold text-foreground">Delegate to Cooperative</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The cooperative will be notified to fix and resubmit.
+                  </p>
+                </div>
+                <div className="px-6 pb-2">
+                  <textarea
+                    value={delegateComment}
+                    onChange={(e) => setDelegateComment(e.target.value)}
+                    placeholder="Add a comment (optional)..."
+                    className="w-full rounded-xl border border-input bg-muted/30 p-3 text-sm resize-none focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none placeholder:text-muted-foreground/60"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-3 px-6 py-5">
+                  <button
+                    onClick={() => setShowDelegateModal(false)}
+                    className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!id) return;
+                      try {
+                        await delegateSubmission.mutateAsync({
+                          id,
+                          comment: delegateComment || undefined,
+                        });
+                        toast.success("Submission delegated to cooperative");
+                        setShowDelegateModal(false);
+                        setDelegateComment("");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to delegate");
+                      }
+                    }}
+                    disabled={delegateSubmission.isPending}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    {delegateSubmission.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Users className="size-4" />
+                    )}
+                    Delegate
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reclaim Modal */}
+          {showReclaimModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
+              onClick={(e) => e.target === e.currentTarget && setShowReclaimModal(false)}
+            >
+              <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div className="px-6 pt-6 pb-4">
+                  <h3 className="text-base font-bold text-foreground">Reclaim Submission</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Transfer editing rights back to you. The cooperative will no longer be able to
+                    edit.
+                  </p>
+                </div>
+                <div className="px-6 pb-2">
+                  <textarea
+                    value={delegateComment}
+                    onChange={(e) => setDelegateComment(e.target.value)}
+                    placeholder="Add a comment (optional)..."
+                    className="w-full rounded-xl border border-input bg-muted/30 p-3 text-sm resize-none focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none placeholder:text-muted-foreground/60"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-3 px-6 py-5">
+                  <button
+                    onClick={() => setShowReclaimModal(false)}
+                    className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!id) return;
+                      try {
+                        await reclaimSubmission.mutateAsync({
+                          id,
+                          comment: delegateComment || undefined,
+                        });
+                        toast.success("Submission reclaimed");
+                        setShowReclaimModal(false);
+                        setDelegateComment("");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to reclaim");
+                      }
+                    }}
+                    disabled={reclaimSubmission.isPending}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    {reclaimSubmission.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <PenLine className="size-4" />
+                    )}
+                    Reclaim
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {role === "federation" &&
-            submission.status === "in_review" &&
+            (submission.status === "in_review" || submission.status === "submitted") &&
             submission.current_tier === "federation" && (
               <ReviewActionPanel
                 title={t("submissions.detail.fedReviewTitle")}
@@ -872,16 +1271,16 @@ export const SubmissionDetailPage: React.FC = () => {
                     <div className="flex flex-col items-center">
                       <div
                         className={`size-8 rounded-full grid place-items-center shrink-0 ring-2 ring-background ${
-                          r.action === "approve"
+                          r.action?.toLowerCase() === "approve"
                             ? "bg-success/15 text-success ring-success/10"
-                            : r.action === "reject"
+                            : r.action?.toLowerCase() === "reject"
                               ? "bg-destructive/15 text-destructive ring-destructive/10"
                               : "bg-warning/15 text-warning-foreground ring-warning/10"
                         }`}
                       >
-                        {r.action === "approve" ? (
+                        {r.action?.toLowerCase() === "approve" ? (
                           <CheckCircle2 className="size-4" />
-                        ) : r.action === "reject" ? (
+                        ) : r.action?.toLowerCase() === "reject" ? (
                           <XCircle className="size-4" />
                         ) : (
                           <ArrowLeft className="size-4" />
@@ -929,6 +1328,7 @@ export const SubmissionDetailPage: React.FC = () => {
             submission={submission}
             isDraft={!!isDraft}
             isCooperative={isCooperative}
+            isCreatorRole={isCreatorRole}
             role={role}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -955,6 +1355,15 @@ export const SubmissionDetailPage: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ["submission", id] });
           queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
         }}
+      />
+      <DeleteConfirmationDialog
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        entityName={submission ? submission.reference || submission.id.slice(0, 8) : ""}
+        entityType="submission"
+        entityId={submission?.id ?? ""}
+        onVerifyIdentity={async (password, otp) => verifyIdentity({ password, otp })}
+        onConfirmDelete={handleConfirmDelete}
       />
     </AppShell>
   );

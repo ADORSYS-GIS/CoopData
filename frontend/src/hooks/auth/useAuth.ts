@@ -5,14 +5,17 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 const AUTH_KEY = "auth";
 
 /** Get current user profile from /api/v1/me */
 export const useCurrentUser = () =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [AUTH_KEY, "me"],
+    cacheTable: "users",
+    cacheKey: "user-profile-me",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/me");
       if (error) throw error;

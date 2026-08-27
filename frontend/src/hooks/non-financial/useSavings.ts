@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
+import { runMutation } from "@/services/shared/syncQueueService";
 import type {
   SavingsAccountResponse,
   CreateSavingsAccountRequest,
@@ -80,14 +82,18 @@ async function deleteSavings(id: string): Promise<void> {
 }
 
 export const useSavings = (params?: NfListParams) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_SAVINGS_KEY, params],
+    cacheTable: "submissions",
+    cacheKey: `savings-list-${JSON.stringify(params ?? {})}`,
     queryFn: () => fetchSavings(params),
   });
 
 export const useSaving = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [NF_SAVINGS_KEY, id],
+    cacheTable: "submissions",
+    cacheKey: `saving-${id}`,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/non-financial/savings/${id}`, {
@@ -103,7 +109,17 @@ export const useSaving = (id: string) =>
 export const useCreateSavings = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createSavings,
+    mutationFn: async (body: CreateSavingsAccountRequest) => {
+      return runMutation<SavingsAccountResponse>(
+        "/api/v1/cooperative/non-financial/savings",
+        "POST",
+        {
+          body,
+          optimisticData: body as unknown as SavingsAccountResponse,
+          online: () => createSavings(body),
+        },
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_SAVINGS_KEY] });
     },
@@ -113,7 +129,18 @@ export const useCreateSavings = () => {
 export const useUpdateSavings = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateSavings,
+    mutationFn: async (vars: { id: string; body: UpdateSavingsAccountRequest }) => {
+      return runMutation<SavingsAccountResponse>(
+        "/api/v1/cooperative/non-financial/savings/{id}",
+        "PUT",
+        {
+          pathParams: { id: vars.id },
+          body: vars.body,
+          optimisticData: vars.body as unknown as SavingsAccountResponse,
+          online: () => updateSavings(vars),
+        },
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_SAVINGS_KEY] });
     },
@@ -123,7 +150,12 @@ export const useUpdateSavings = () => {
 export const useDeleteSavings = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteSavings,
+    mutationFn: async (id: string) => {
+      return runMutation<void>("/api/v1/cooperative/non-financial/savings/{id}", "DELETE", {
+        pathParams: { id },
+        online: () => deleteSavings(id),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NF_SAVINGS_KEY] });
     },

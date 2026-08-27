@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 
 export interface FederationStatsResponse {
@@ -21,8 +21,10 @@ function extractErrorMessage(err: unknown): string {
 }
 
 export const useFederationStats = (enabled = true) =>
-  useQuery<FederationStatsResponse>({
+  useOfflineQuery<FederationStatsResponse>({
     queryKey: ["federation-stats"],
+    cacheTable: "analytics",
+    cacheKey: "federation-stats",
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,11 +1,13 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
+    EntityTrait, QueryFilter, QueryOrder, Set, Statement,
 };
 use uuid::Uuid;
 
 use crate::entities::enums::{ReviewTier, SubmissionStatus};
 use crate::entities::submission::{self, ActiveModel, Column, Entity};
 use crate::error::AppResult;
+use crate::repositories::db_query;
 
 #[derive(Clone)]
 pub struct SubmissionRepository {
@@ -18,51 +20,63 @@ impl SubmissionRepository {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<submission::Model>> {
-        Entity::find_by_id(id)
-            .one(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_id", async {
+            Entity::find_by_id(id)
+                .one(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn find_by_cooperative(
         &self,
         cooperative_id: Uuid,
     ) -> AppResult<Vec<submission::Model>> {
-        Entity::find()
-            .filter(Column::CooperativeId.eq(cooperative_id))
-            .order_by_desc(Column::CreatedAt)
-            .all(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_cooperative", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn find_by_status(
         &self,
         status: SubmissionStatus,
     ) -> AppResult<Vec<submission::Model>> {
-        let query = if status == SubmissionStatus::Approved {
-            Entity::find().filter(
-                Column::Status
-                    .eq(SubmissionStatus::Approved)
-                    .or(Column::Status.eq(SubmissionStatus::Submitted)),
-            )
-        } else {
-            Entity::find().filter(Column::Status.eq(status))
-        };
-        query
-            .order_by_desc(Column::CreatedAt)
-            .all(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_status", async {
+            let query = if status == SubmissionStatus::Approved {
+                Entity::find().filter(
+                    Column::Status
+                        .eq(SubmissionStatus::Approved)
+                        .or(Column::Status.eq(SubmissionStatus::Submitted)),
+                )
+            } else {
+                Entity::find().filter(Column::Status.eq(status))
+            };
+            query
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn find_by_tier(&self, tier: ReviewTier) -> AppResult<Vec<submission::Model>> {
-        Entity::find()
-            .filter(Column::CurrentTier.eq(tier))
-            .order_by_desc(Column::CreatedAt)
-            .all(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_tier", async {
+            Entity::find()
+                .filter(Column::CurrentTier.eq(tier))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn find_by_cooperative_and_year(
@@ -70,22 +84,28 @@ impl SubmissionRepository {
         cooperative_id: Uuid,
         reporting_year: i32,
     ) -> AppResult<Option<submission::Model>> {
-        Entity::find()
-            .filter(Column::CooperativeId.eq(cooperative_id))
-            .filter(Column::ReportingYear.eq(reporting_year))
-            .one(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_cooperative_and_year", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .filter(Column::ReportingYear.eq(reporting_year))
+                .one(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn count_by_reporting_year(&self, reporting_year: i32) -> AppResult<i64> {
-        use sea_orm::PaginatorTrait;
-        let count = Entity::find()
-            .filter(Column::ReportingYear.eq(reporting_year))
-            .count(&self.db)
-            .await
-            .map_err(crate::error::AppError::from)?;
-        Ok(count as i64)
+        db_query("submission", "count_by_reporting_year", async {
+            use sea_orm::PaginatorTrait;
+            let count = Entity::find()
+                .filter(Column::ReportingYear.eq(reporting_year))
+                .count(&self.db)
+                .await
+                .map_err(crate::error::AppError::from)?;
+            Ok(count as i64)
+        })
+        .await
     }
 
     pub async fn find_by_cooperative_ids(
@@ -95,21 +115,27 @@ impl SubmissionRepository {
         if cooperative_ids.is_empty() {
             return Ok(vec![]);
         }
-        Entity::find()
-            .filter(Column::CooperativeId.is_in(cooperative_ids))
-            .order_by_desc(Column::CreatedAt)
-            .all(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_cooperative_ids", async {
+            Entity::find()
+                .filter(Column::CooperativeId.is_in(cooperative_ids))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn find_all_non_draft(&self) -> AppResult<Vec<submission::Model>> {
-        Entity::find()
-            .filter(Column::Status.ne(SubmissionStatus::Draft))
-            .order_by_desc(Column::CreatedAt)
-            .all(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_all_non_draft", async {
+            Entity::find()
+                .filter(Column::Status.ne(SubmissionStatus::Draft))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn find_by_cooperative_ids_and_tier(
@@ -120,25 +146,34 @@ impl SubmissionRepository {
         if cooperative_ids.is_empty() {
             return Ok(vec![]);
         }
-        Entity::find()
-            .filter(Column::CooperativeId.is_in(cooperative_ids))
-            .filter(Column::CurrentTier.eq(tier))
-            .order_by_desc(Column::CreatedAt)
-            .all(&self.db)
-            .await
-            .map_err(Into::into)
+        db_query("submission", "find_by_cooperative_ids_and_tier", async {
+            Entity::find()
+                .filter(Column::CooperativeId.is_in(cooperative_ids))
+                .filter(Column::CurrentTier.eq(tier))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn create(&self, model: ActiveModel) -> AppResult<submission::Model> {
-        model.insert(&self.db).await.map_err(Into::into)
+        db_query("submission", "create", async {
+            model.insert(&self.db).await.map_err(Into::into)
+        })
+        .await
     }
 
     pub async fn delete(&self, id: Uuid) -> AppResult<()> {
-        Entity::delete_by_id(id)
-            .exec(&self.db)
-            .await
-            .map_err(crate::error::AppError::from)?;
-        Ok(())
+        db_query("submission", "delete", async {
+            Entity::delete_by_id(id)
+                .exec(&self.db)
+                .await
+                .map_err(crate::error::AppError::from)?;
+            Ok(())
+        })
+        .await
     }
 
     pub async fn update_metadata(
@@ -175,8 +210,19 @@ impl SubmissionRepository {
         status: SubmissionStatus,
         current_tier: ReviewTier,
     ) -> AppResult<submission::Model> {
+        self.update_status_tx(&self.db, id, status, current_tier)
+            .await
+    }
+
+    pub async fn update_status_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        id: Uuid,
+        status: SubmissionStatus,
+        current_tier: ReviewTier,
+    ) -> AppResult<submission::Model> {
         let existing = Entity::find_by_id(id)
-            .one(&self.db)
+            .one(db)
             .await
             .map_err(crate::error::AppError::from)?
             .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
@@ -185,7 +231,7 @@ impl SubmissionRepository {
         active.status = Set(status);
         active.current_tier = Set(current_tier);
         active.updated_at = Set(chrono::Utc::now());
-        active.update(&self.db).await.map_err(Into::into)
+        active.update(db).await.map_err(Into::into)
     }
 
     pub async fn update_submission_method(
@@ -201,6 +247,110 @@ impl SubmissionRepository {
 
         let mut active: ActiveModel = existing.into();
         active.submission_method = Set(method);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
+
+    /// Atomically claim editing rights — only succeeds if edited_by is currently NULL.
+    /// Returns the updated model on success, or None if the row was already claimed.
+    /// This prevents race conditions where two concurrent requests both think they own it.
+    pub async fn claim_edited_by(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        user_name: Option<String>,
+    ) -> AppResult<Option<submission::Model>> {
+        self.claim_edited_by_tx(&self.db, id, user_id, user_name)
+            .await
+    }
+
+    pub async fn claim_edited_by_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        id: Uuid,
+        user_id: Uuid,
+        user_name: Option<String>,
+    ) -> AppResult<Option<submission::Model>> {
+        let user_name_val = match user_name {
+            Some(n) => sea_orm::Value::String(Some(Box::new(n))),
+            None => sea_orm::Value::String(None),
+        };
+        let stmt = Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            "UPDATE submissions SET edited_by = $1, edited_by_name = $2, updated_at = NOW() WHERE id = $3 AND edited_by IS NULL",
+            vec![
+                sea_orm::Value::Uuid(Some(Box::new(user_id))),
+                user_name_val,
+                sea_orm::Value::Uuid(Some(Box::new(id))),
+            ],
+        );
+        let res = db
+            .execute(stmt)
+            .await
+            .map_err(crate::error::AppError::from)?;
+
+        match res.rows_affected() {
+            0 => Ok(None),
+            _ => {
+                let updated = Entity::find_by_id(id)
+                    .one(db)
+                    .await
+                    .map_err(crate::error::AppError::from)?;
+                Ok(updated)
+            }
+        }
+    }
+
+    /// Transfer editing rights to a new user (exclusive editor model).
+    /// Use `claim_edited_by` for atomic claim-with-check; use this for unconditional sets.
+    pub async fn set_edited_by(
+        &self,
+        id: Uuid,
+        user_id: Option<Uuid>,
+        user_name: Option<String>,
+    ) -> AppResult<submission::Model> {
+        self.set_edited_by_tx(&self.db, id, user_id, user_name)
+            .await
+    }
+
+    pub async fn set_edited_by_tx<C: ConnectionTrait>(
+        &self,
+        db: &C,
+        id: Uuid,
+        user_id: Option<Uuid>,
+        user_name: Option<String>,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.edited_by = Set(user_id);
+        active.edited_by_name = Set(user_name);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(db).await.map_err(Into::into)
+    }
+
+    /// Clear edited_by when submission is submitted (no one editing).
+    pub async fn clear_edited_by(&self, id: Uuid) -> AppResult<submission::Model> {
+        self.set_edited_by(id, None, None).await
+    }
+
+    pub async fn set_current_tier(
+        &self,
+        id: Uuid,
+        tier: ReviewTier,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.current_tier = Set(tier);
         active.updated_at = Set(chrono::Utc::now());
         active.update(&self.db).await.map_err(Into::into)
     }

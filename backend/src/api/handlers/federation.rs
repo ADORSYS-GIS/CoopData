@@ -557,6 +557,22 @@ pub async fn invite_user_to_federation(
             email
         )));
     }
+
+    let existing_invitations = state
+        .keycloak
+        .get_organization_invitations(&id)
+        .await
+        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
+
+    let already_invited = existing_invitations
+        .iter()
+        .any(|inv| inv.email.as_deref().map(|e| e.to_lowercase()).as_deref() == Some(&email));
+
+    if already_invited {
+        return Err(crate::error::AppError::Conflict(
+            "This email has already been used to invite a user. You can either click on the Resend Invitation button on the dashboard or change the email.".to_string()
+        ));
+    }
     // ─────────────────────────────────────────────────────────────────────────
 
     let redirect_url = body

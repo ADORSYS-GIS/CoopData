@@ -1,7 +1,8 @@
+use metrics::counter;
 use uuid::Uuid;
 
 use crate::auth::claims::Claims;
-use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionStatus};
+use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
 use crate::entities::submission_review::ActiveModel as ReviewModel;
 use crate::error::{AppError, AppResult};
 use crate::repositories::{
@@ -131,9 +132,31 @@ impl SubmissionWorkflow {
             }
         }
 
+        // Route based on current tier and creator role:
+        // - Apex-created submissions skip apex review, go directly to Federation
+        // - Cooperative tier → Apex (coop submits after delegation, apex reviews)
+        // - Apex tier → Federation (apex is done reviewing, sends to federation)
+        // - Federation tier → stays at federation (federation reviews)
+        // - Ministry tier → stays at ministry (ministry reviews)
+        let next_tier = if sub.created_by_role == SubmissionCreatedByRole::Apex {
+            ReviewTier::Federation
+        } else {
+            match sub.current_tier {
+                ReviewTier::Cooperative => ReviewTier::Apex,
+                ReviewTier::Apex => ReviewTier::Federation,
+                ReviewTier::Federation => ReviewTier::Federation,
+                ReviewTier::Ministry => ReviewTier::Ministry,
+            }
+        };
+
         self.submission_repo
-            .update_status(submission_id, SubmissionStatus::Submitted, ReviewTier::Apex)
+            .update_status(submission_id, SubmissionStatus::Submitted, next_tier)
             .await?;
+
+        // Clear edited_by — submission is now in review, no one editing
+        self.submission_repo.clear_edited_by(submission_id).await?;
+
+        counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
 
         // Immediately compute and save KPIs to database for cooperative analytics
         if sub.submission_method != "questionnaire" {
@@ -186,12 +209,24 @@ impl SubmissionWorkflow {
         claims: &Claims,
         comment: Option<String>,
     ) -> AppResult<()> {
+        let sub = self
+            .submission_repo
+            .find_by_id(submission_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+        let next_tier = if sub.created_by_role == SubmissionCreatedByRole::Apex {
+            ReviewTier::Apex
+        } else {
+            ReviewTier::Cooperative
+        };
+
         self.transition(
             submission_id,
             SubmissionStatus::Submitted,
             ReviewAction::Return,
             SubmissionStatus::Draft,
-            ReviewTier::Cooperative,
+            next_tier,
             claims,
             comment,
         )
@@ -199,45 +234,117 @@ impl SubmissionWorkflow {
         self.section_repo
             .reset_to_in_progress(submission_id)
             .await?;
+
+        // Clear edited_by so the cooperative can auto-claim on open and fix the submission
+        self.submission_repo.clear_edited_by(submission_id).await?;
+
         Ok(())
     }
 
-    /// Federation approves → ministry_review (InReview/Federation → InReview/Ministry)
+    /// Federation approves → ministry_review
+    /// Accepts InReview/Federation (coop-created after apex approves)
+    /// or Submitted/Federation (apex-created, skipped apex tier)
     pub async fn federation_approve(
         &self,
         submission_id: Uuid,
         claims: &Claims,
         comment: Option<String>,
     ) -> AppResult<()> {
-        self.transition(
+        let sub = self
+            .submission_repo
+            .find_by_id(submission_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+        if sub.current_tier != ReviewTier::Federation {
+            return Err(AppError::BadRequest(format!(
+                "Submission is not at federation tier (current: {:?})",
+                sub.current_tier
+            )));
+        }
+
+        let valid_status =
+            sub.status == SubmissionStatus::InReview || sub.status == SubmissionStatus::Submitted;
+        if !valid_status {
+            return Err(AppError::BadRequest(format!(
+                "Expected status 'in_review' or 'submitted', found '{}'",
+                sub.status.as_str()
+            )));
+        }
+
+        self.submission_repo
+            .update_status(
+                submission_id,
+                SubmissionStatus::InReview,
+                ReviewTier::Ministry,
+            )
+            .await?;
+
+        counter!("coopdata_submission_transitions_total", "status" => "in_review").increment(1);
+
+        self.append_review(
             submission_id,
-            SubmissionStatus::InReview,
-            ReviewAction::Approve,
-            SubmissionStatus::InReview,
-            ReviewTier::Ministry,
+            ReviewTier::Federation,
             claims,
+            ReviewAction::Approve,
             comment,
         )
-        .await
+        .await?;
+        Ok(())
     }
 
-    /// Federation returns → back to apex (InReview/Federation → Submitted/Apex)
+    /// Federation returns → back to apex
+    /// Accepts InReview/Federation (coop-created) or Submitted/Federation (apex-created)
     pub async fn federation_return(
         &self,
         submission_id: Uuid,
         claims: &Claims,
         comment: Option<String>,
     ) -> AppResult<()> {
-        self.transition(
+        let sub = self
+            .submission_repo
+            .find_by_id(submission_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+        if sub.current_tier != ReviewTier::Federation {
+            return Err(AppError::BadRequest(format!(
+                "Submission is not at federation tier (current: {:?})",
+                sub.current_tier
+            )));
+        }
+
+        let valid_status =
+            sub.status == SubmissionStatus::InReview || sub.status == SubmissionStatus::Submitted;
+        if !valid_status {
+            return Err(AppError::BadRequest(format!(
+                "Expected status 'in_review' or 'submitted', found '{}'",
+                sub.status.as_str()
+            )));
+        }
+
+        self.submission_repo
+            .update_status(submission_id, SubmissionStatus::Submitted, ReviewTier::Apex)
+            .await?;
+
+        counter!("coopdata_submission_transitions_total", "status" => "submitted").increment(1);
+
+        // Set edited_by to the apex user who needs to fix/resubmit
+        if let Ok(Some(sub)) = self.submission_repo.find_by_id(submission_id).await {
+            self.submission_repo
+                .set_edited_by(submission_id, sub.created_by_user_id, sub.created_by_name)
+                .await?;
+        }
+
+        self.append_review(
             submission_id,
-            SubmissionStatus::InReview,
-            ReviewAction::Return,
-            SubmissionStatus::Submitted,
-            ReviewTier::Apex,
+            ReviewTier::Federation,
             claims,
+            ReviewAction::Return,
             comment,
         )
-        .await
+        .await?;
+        Ok(())
     }
 
     /// Ministry approves → approved (terminal)
@@ -307,8 +414,18 @@ impl SubmissionWorkflow {
 
         let next_tier = new_tier.clone();
         self.submission_repo
-            .update_status(submission_id, new_status, new_tier)
+            .update_status(submission_id, new_status.clone(), new_tier.clone())
             .await?;
+
+        counter!("coopdata_submission_transitions_total", "status" => new_status.as_str().to_string())
+            .increment(1);
+
+        if new_tier == ReviewTier::Ministry
+            && matches!(action, ReviewAction::Approve | ReviewAction::Reject)
+        {
+            counter!("coopdata_submissions_processed_total", "status" => new_status.as_str().to_string())
+                .increment(1);
+        }
 
         let reviewer_tier = sub.current_tier.clone();
         let target_tier = match action {

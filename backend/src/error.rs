@@ -26,6 +26,12 @@ pub enum AppError {
     #[error("Conflict: {0}")]
     Conflict(String),
 
+    #[error("Conflict: {message}")]
+    ConflictWithSubmission {
+        message: String,
+        submission_id: uuid::Uuid,
+    },
+
     #[error("Internal server error: {0}")]
     InternalServerError(String),
 
@@ -60,6 +66,8 @@ pub struct ErrorResponse {
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required_roles: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submission_id: Option<String>,
 }
 
 impl IntoResponse for AppError {
@@ -71,6 +79,7 @@ impl IntoResponse for AppError {
                     error: "bad_request".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
                 },
             ),
             AppError::Unauthorized(msg) => (
@@ -79,6 +88,7 @@ impl IntoResponse for AppError {
                     error: "unauthorized".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
                 },
             ),
             AppError::Forbidden(msg) => (
@@ -87,6 +97,7 @@ impl IntoResponse for AppError {
                     error: "forbidden".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
                 },
             ),
             AppError::MissingRole {
@@ -98,6 +109,7 @@ impl IntoResponse for AppError {
                     error: "forbidden".to_string(),
                     message: Some(message.clone()),
                     required_roles: Some(required_roles.clone()),
+                    submission_id: None,
                 },
             ),
             AppError::NotFound(msg) => (
@@ -106,6 +118,7 @@ impl IntoResponse for AppError {
                     error: "not_found".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
                 },
             ),
             AppError::Conflict(msg) => (
@@ -114,6 +127,19 @@ impl IntoResponse for AppError {
                     error: "conflict".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::ConflictWithSubmission {
+                message,
+                submission_id,
+            } => (
+                StatusCode::CONFLICT,
+                ErrorResponse {
+                    error: "conflict".to_string(),
+                    message: Some(message.clone()),
+                    required_roles: None,
+                    submission_id: Some(submission_id.to_string()),
                 },
             ),
             AppError::InternalServerError(_) => {
@@ -124,6 +150,7 @@ impl IntoResponse for AppError {
                         error: "internal_server_error".to_string(),
                         message: Some("An internal error occurred".to_string()),
                         required_roles: None,
+                        submission_id: None,
                     },
                 )
             }
@@ -135,6 +162,7 @@ impl IntoResponse for AppError {
                         error: "database_error".to_string(),
                         message: Some("Failed to process database request".to_string()),
                         required_roles: None,
+                        submission_id: None,
                     },
                 )
             }
@@ -144,6 +172,7 @@ impl IntoResponse for AppError {
                     error: "validation_error".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
                 },
             ),
             AppError::CacheError(_) => {
@@ -154,6 +183,7 @@ impl IntoResponse for AppError {
                         error: "cache_error".to_string(),
                         message: Some("Failed to process cache request".to_string()),
                         required_roles: None,
+                        submission_id: None,
                     },
                 )
             }
@@ -165,6 +195,7 @@ impl IntoResponse for AppError {
                         error: "external_service_error".to_string(),
                         message: Some(msg.clone()),
                         required_roles: None,
+                        submission_id: None,
                     },
                 )
             }
@@ -174,6 +205,7 @@ impl IntoResponse for AppError {
                     error: "precondition_required".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
+                    submission_id: None,
                 },
             ),
         };

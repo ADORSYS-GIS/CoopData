@@ -17,6 +17,7 @@ interface LoanDualBarProps {
 
 export function LoanDualBar({ data }: LoanDualBarProps) {
   const { t } = useTranslation();
+  if (!data) return null;
 
   const countData = [
     {

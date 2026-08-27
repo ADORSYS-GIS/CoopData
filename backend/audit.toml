@@ -2,11 +2,15 @@
 ignore = [
   "RUSTSEC-2023-0071", # Marvin Attack: potential key recovery in rsa (no fixed upgrade available)
   "RUSTSEC-2024-0370", # proc-macro-error is unmaintained (informational warning)
+  "RUSTSEC-2026-0099", # rustls-webpki name constraints for wildcard certs — transitive via aws-sdk-s3 → rustls 0.21; will resolve on rustls 0.23+ upgrade
+  "RUSTSEC-2026-0104", # rustls-webpki panic in CRL parsing — transitive via aws-sdk-s3 → rustls 0.21; will resolve on rustls 0.23+ upgrade
+  "RUSTSEC-2026-0098", # rustls-webpki name constraints for URI names — transitive via aws-sdk-s3 → rustls 0.21; will resolve on rustls 0.23+ upgrade
   "RUSTSEC-2026-0173", # proc-macro-error2 is unmaintained (informational warning)
   "RUSTSEC-2026-0187", # lopdf stack overflow via nested PDF objects — transitive via printpdf 0.7; fix requires printpdf upgrade to 0.11+ (breaking API changes)
   "RUSTSEC-2026-0194", # quick-xml quadratic runtime on duplicate attributes — transitive via calamine; calamine 0.36 fix breaks office_oxide compile
   "RUSTSEC-2026-0195", # quick-xml memory exhaustion in NsReader — same transitive dep, same blocker
   "RUSTSEC-2026-0192", # ttf-parser unmaintained — transitive via pdf_oxide; no alternative available
   "RUSTSEC-2026-0221", # event-listener !Send StackSlot — transitive via sqlx-core 0.8.6; fix requires sqlx upgrade
-  "RUSTSEC-2026-0235"  # rkyv archive OOB read — transitive via rust_decimal 1.42.1; fix requires rkyv >= 0.8.17 (breaking)
+  "RUSTSEC-2026-0235", # rkyv archive OOB read — transitive via rust_decimal 1.42.1; fix requires rkyv >= 0.8.17 (breaking)
+  "RUSTSEC-2026-0258"  # h2 unbounded empty DATA frames — transitive via hyper 0.14 / aws-smithy-http-client; no patched 0.3.x, requires hyper 1.x upgrade
 ]

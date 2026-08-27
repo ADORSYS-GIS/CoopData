@@ -16,6 +16,8 @@
 
 use axum::routing::get;
 use axum::Router;
+use axum_prometheus::{utils::SECONDS_DURATION_BUCKETS, PrometheusMetricLayerBuilder};
+use metrics_exporter_prometheus::PrometheusBuilder;
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::api::handlers;
@@ -151,6 +153,23 @@ pub fn role_guard_layer(
 /// No handler-level role checks are needed — middleware enforces roles.
 /// Scope enforcement (data-level access) is handled in handlers via `ScopeEnforcement`.
 pub fn create_app(state: AppState) -> Router {
+    // Build the Prometheus layer and its metric handle from the SAME recorder so
+    // that the axum_http_* metrics recorded by the layer are rendered at /metrics.
+    // Using `with_metrics_from_fn` lets us keep custom buckets for all histograms
+    // while avoiding the re-entry panic of `set_global_recorder(...).expect(...)`
+    // when `create_app` is called more than once in a process (e.g. tests).
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
+        .with_metrics_from_fn(|| {
+            let recorder = PrometheusBuilder::new()
+                .set_buckets(SECONDS_DURATION_BUCKETS)
+                .unwrap()
+                .build_recorder();
+            let handle = recorder.handle();
+            let _ = metrics::set_global_recorder(recorder);
+            handle
+        })
+        .build_pair();
+
     let protected = Router::new()
         .merge(shared_routes())
         .merge(user_routes())
@@ -182,6 +201,10 @@ pub fn create_app(state: AppState) -> Router {
                 roles::MINISTRY,
             ]))),
         )
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            crate::api::middleware::idempotency_middleware,
+        ))
         .layer(axum::middleware::from_fn(
             crate::api::middleware::audit_context_layer,
         ))
@@ -193,6 +216,11 @@ pub fn create_app(state: AppState) -> Router {
     Router::new()
         .nest("/api/v1", public_routes().merge(protected))
         .merge(crate::api::openapi::serve_openapi())
+        .route(
+            "/metrics",
+            get(move || async move { metric_handle.render() }),
+        )
+        .layer(prometheus_layer)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

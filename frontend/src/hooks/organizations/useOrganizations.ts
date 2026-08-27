@@ -4,8 +4,10 @@
  * Ministry role required for organization CRUD.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { runMutation } from "@/services/shared/syncQueueService";
 
 const ORGANIZATIONS_KEY = "organizations";
 
@@ -20,8 +22,10 @@ function extractErrorMessage(err: unknown): string {
 
 /** List all organizations (ministry only, paginated) */
 export const useOrganizations = (enabled = true) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [ORGANIZATIONS_KEY],
+    cacheTable: "cooperatives",
+    cacheKey: "organizations-list",
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/organizations");
       if (error) throw new Error(extractErrorMessage(error));
@@ -32,8 +36,10 @@ export const useOrganizations = (enabled = true) =>
 
 /** Get a single organization by ID */
 export const useOrganization = (id: string) =>
-  useQuery({
+  useOfflineQuery({
     queryKey: [ORGANIZATIONS_KEY, id],
+    cacheTable: "cooperatives",
+    cacheKey: `organization-${id}`,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/organizations/{id}", {
         params: { path: { id } },
@@ -59,11 +65,17 @@ export const useCreateOrganization = () => {
       address?: string;
       federation_id?: string;
     }) => {
-      const { data, error } = await apiClient.POST("/api/v1/organizations", {
-        body: body as never,
+      return runMutation<unknown>("/api/v1/organizations", "POST", {
+        body,
+        optimisticData: body,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/organizations", {
+            body: body as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ORGANIZATIONS_KEY] });
@@ -91,12 +103,19 @@ export const useUpdateOrganization = () => {
       federation_id?: string;
       is_active?: boolean;
     }) => {
-      const { data, error } = await apiClient.PATCH("/api/v1/organizations/{id}", {
-        params: { path: { id } },
-        body: body as never,
+      return runMutation<unknown>("/api/v1/organizations/{id}", "PATCH", {
+        pathParams: { id },
+        body,
+        optimisticData: body,
+        online: async () => {
+          const { data, error } = await apiClient.PATCH("/api/v1/organizations/{id}", {
+            params: { path: { id } },
+            body: body as never,
+          });
+          if (error) throw error;
+          return data;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
-      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [ORGANIZATIONS_KEY] });
@@ -110,10 +129,15 @@ export const useDeleteOrganization = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await apiClient.DELETE("/api/v1/organizations/{id}", {
-        params: { path: { id } },
+      return runMutation<void>("/api/v1/organizations/{id}", "DELETE", {
+        pathParams: { id },
+        online: async () => {
+          const { error } = await apiClient.DELETE("/api/v1/organizations/{id}", {
+            params: { path: { id } },
+          });
+          if (error) throw error;
+        },
       });
-      if (error) throw new Error(extractErrorMessage(error));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ORGANIZATIONS_KEY] });

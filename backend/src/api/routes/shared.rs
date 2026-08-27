@@ -4,7 +4,7 @@
 
 use axum::{
     extract::{Extension, State},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use std::sync::Arc;
@@ -31,6 +31,14 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/me/security/mfa/setup",
             post(crate::api::handlers::me::mfa_setup),
+        )
+        .route(
+            "/me/security/mfa/enable",
+            post(crate::api::handlers::me::enable_mfa),
+        )
+        .route(
+            "/me/security/mfa/reset",
+            post(crate::api::handlers::me::reset_mfa),
         )
         .route(
             "/me/security/mfa",
@@ -96,6 +104,14 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/analytics/consolidated-nf-statistics",
             get(crate::api::handlers::nf_indicator_stats::get_consolidated_nf_statistics),
+        )
+        .route(
+            "/settings/organization-labels",
+            get(crate::api::handlers::organization_label::list_organization_labels),
+        )
+        .route(
+            "/settings/organization-labels/{key}",
+            put(crate::api::handlers::organization_label::update_organization_label),
         )
 }
 
