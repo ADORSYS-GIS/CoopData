@@ -288,7 +288,7 @@ pub async fn create_manual_financial_statement(
     Json(body): Json<crate::api::dto::financial::ManualFinancialStatementRequest>,
 ) -> AppResult<impl IntoResponse> {
     use crate::entities::balance_sheet_line_item::ActiveModel as LineItemModel;
-    use crate::entities::enums::{AccountCategory, AccountingYear, Currency, SubmissionStatus};
+    use crate::entities::enums::{AccountCategory, AccountingYear, Currency};
     use crate::entities::financial_statement::ActiveModel as FsModel;
     use crate::services::abnormality_detector::AbnormalityDetector;
     use sea_orm::Set;
