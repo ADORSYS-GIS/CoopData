@@ -293,8 +293,12 @@ pub async fn create_manual_financial_statement(
     use crate::services::abnormality_detector::AbnormalityDetector;
     use sea_orm::Set;
 
-    let coop_id =
-        crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(&state, &claims, Some(submission_id)).await?;
+    let coop_id = crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(
+        &state,
+        &claims,
+        Some(submission_id),
+    )
+    .await?;
 
     let submission = state
         .submission_repo
@@ -320,7 +324,6 @@ pub async fn create_manual_financial_statement(
         .find_by_id(coop_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
-
 
     // Check for existing FS so we can delete it inside the transaction
     let existing_fs_id = state
