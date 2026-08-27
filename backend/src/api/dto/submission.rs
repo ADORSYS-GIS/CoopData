@@ -10,10 +10,60 @@ use crate::entities::submission_section::Model as SectionModel;
 pub struct CreateSubmissionRequest {
     pub id: Option<Uuid>,
     pub reporting_year: i32,
+    #[serde(default)]
+    pub period_type: Option<String>,
+    #[serde(default)]
+    pub period_value: Option<String>,
     #[serde(default = "default_priority")]
     pub priority: String,
     #[serde(default = "default_submission_method")]
     pub submission_method: String,
+}
+
+impl CreateSubmissionRequest {
+    pub fn resolved_period(&self) -> (crate::entities::enums::PeriodType, String) {
+        let pt = self
+            .period_type
+            .as_deref()
+            .and_then(crate::entities::enums::PeriodType::parse)
+            .unwrap_or(crate::entities::enums::PeriodType::Yearly);
+        let pv = match self.period_value.as_deref() {
+            Some(v) if !v.trim().is_empty() => v.trim().to_string(),
+            _ => self.reporting_year.to_string(),
+        };
+        (pt, pv)
+    }
+
+    pub fn validate_period(&self) -> Result<(), String> {
+        let (pt, pv) = self.resolved_period();
+        match pt {
+            crate::entities::enums::PeriodType::Yearly => Ok(()),
+            crate::entities::enums::PeriodType::Quarterly => {
+                if matches!(pv.to_uppercase().as_str(), "Q1" | "Q2" | "Q3" | "Q4") {
+                    Ok(())
+                } else {
+                    Err("Invalid period_value for QUARTERLY. Must be one of Q1, Q2, Q3, Q4.".into())
+                }
+            }
+            crate::entities::enums::PeriodType::Monthly => {
+                if matches!(
+                    pv.as_str(),
+                    "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "FULL_YEAR" | "1-12"
+                ) {
+                    Ok(())
+                } else {
+                    Err("Invalid period_value for MONTHLY. Must be a month (01-12) or 1-12.".into())
+                }
+            }
+            crate::entities::enums::PeriodType::SemiAnnual => {
+                if matches!(pv.to_uppercase().as_str(), "H1" | "H2") {
+                    Ok(())
+                } else {
+                    Err("Invalid period_value for SEMI_ANNUAL. Must be H1 or H2.".into())
+                }
+            }
+        }
+    }
 }
 
 fn default_submission_method() -> String {
@@ -64,6 +114,8 @@ pub struct SubmissionResponse {
     pub reference: Option<String>,
     pub cooperative_id: Uuid,
     pub reporting_year: i32,
+    pub period_type: String,
+    pub period_value: String,
     pub status: String,
     pub current_tier: String,
     pub submitted_by: Option<Uuid>,
@@ -119,6 +171,8 @@ impl From<SubmissionModel> for SubmissionResponse {
             reference: m.reference,
             cooperative_id: m.cooperative_id,
             reporting_year: m.reporting_year,
+            period_type: m.period_type.as_str().to_string(),
+            period_value: m.period_value,
             status: m.status.as_str().to_string(),
             current_tier: m.current_tier.as_str().to_string(),
             submitted_by: m.submitted_by,
@@ -264,10 +318,60 @@ pub struct MembershipStatsResponse {
 pub struct CreateApexSubmissionRequest {
     pub cooperative_id: Uuid,
     pub reporting_year: i32,
+    #[serde(default)]
+    pub period_type: Option<String>,
+    #[serde(default)]
+    pub period_value: Option<String>,
     #[serde(default = "default_priority")]
     pub priority: String,
     #[serde(default = "default_submission_method")]
     pub submission_method: String,
+}
+
+impl CreateApexSubmissionRequest {
+    pub fn resolved_period(&self) -> (crate::entities::enums::PeriodType, String) {
+        let pt = self
+            .period_type
+            .as_deref()
+            .and_then(crate::entities::enums::PeriodType::parse)
+            .unwrap_or(crate::entities::enums::PeriodType::Yearly);
+        let pv = match self.period_value.as_deref() {
+            Some(v) if !v.trim().is_empty() => v.trim().to_string(),
+            _ => self.reporting_year.to_string(),
+        };
+        (pt, pv)
+    }
+
+    pub fn validate_period(&self) -> Result<(), String> {
+        let (pt, pv) = self.resolved_period();
+        match pt {
+            crate::entities::enums::PeriodType::Yearly => Ok(()),
+            crate::entities::enums::PeriodType::Quarterly => {
+                if matches!(pv.to_uppercase().as_str(), "Q1" | "Q2" | "Q3" | "Q4") {
+                    Ok(())
+                } else {
+                    Err("Invalid period_value for QUARTERLY. Must be one of Q1, Q2, Q3, Q4.".into())
+                }
+            }
+            crate::entities::enums::PeriodType::Monthly => {
+                if matches!(
+                    pv.as_str(),
+                    "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "FULL_YEAR" | "1-12"
+                ) {
+                    Ok(())
+                } else {
+                    Err("Invalid period_value for MONTHLY. Must be a month (01-12) or 1-12.".into())
+                }
+            }
+            crate::entities::enums::PeriodType::SemiAnnual => {
+                if matches!(pv.to_uppercase().as_str(), "H1" | "H2") {
+                    Ok(())
+                } else {
+                    Err("Invalid period_value for SEMI_ANNUAL. Must be H1 or H2.".into())
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

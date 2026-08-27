@@ -16,6 +16,7 @@ import {
   Clock,
   Sprout,
   Trash2,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, Card } from "@/components/app-shell";
@@ -101,6 +102,19 @@ export function ManualEntryWizard() {
 
   const [currency, setCurrency] = useState<"SZL" | "USD">("SZL");
   const [accountingYear, setAccountingYear] = useState<"calendar" | "fiscal">("calendar");
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">("YEARLY");
+  const [periodValue, setPeriodValue] = useState<string>("2026");
+
+  useEffect(() => {
+    if (submission?.period_type) {
+      setPeriodType(submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+    }
+    if (submission?.period_value) {
+      setPeriodValue(submission.period_value);
+    } else if (submission?.reporting_year) {
+      setPeriodValue(String(submission.reporting_year));
+    }
+  }, [submission?.period_type, submission?.period_value, submission?.reporting_year]);
 
   const [financialData, setFinancialData] = useState<Record<number, Record<number, number>>>(() =>
     createEmptyFinancialGrid(),
@@ -900,6 +914,8 @@ export function ManualEntryWizard() {
     await submitFinancialStatement.mutateAsync({
       accounting_year: accountingYear,
       currency,
+      period_type: periodType,
+      period_value: periodValue,
       line_items: lineItems,
     });
   };
@@ -1165,6 +1181,71 @@ export function ManualEntryWizard() {
                   <option value="fiscal">{t("manualEntry.fiscalYear")}</option>
                 </select>
               </div>
+
+              {/* Interactive Report Frequency Selector */}
+              <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3.5 py-2 border border-primary/20">
+                <Calendar className="size-4 text-primary" />
+                <select
+                  className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
+                  value={periodType}
+                  onChange={(e) => {
+                    const newType = e.target.value as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
+                    setPeriodType(newType);
+                    if (newType === "QUARTERLY") setPeriodValue("Q1");
+                    else if (newType === "MONTHLY") setPeriodValue("FULL_YEAR");
+                    else if (newType === "SEMI_ANNUAL") setPeriodValue("H1");
+                    else setPeriodValue(String(submission?.reporting_year || new Date().getFullYear()));
+                  }}
+                >
+                  <option value="YEARLY">Yearly (Annual)</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="SEMI_ANNUAL">Semi-Annual</option>
+                </select>
+              </div>
+
+              {/* Interactive Period Value Selector */}
+              {periodType !== "YEARLY" && (
+                <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3 py-2 border border-primary/20">
+                  <select
+                    className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
+                    value={periodValue}
+                    onChange={(e) => setPeriodValue(e.target.value)}
+                  >
+                    {periodType === "QUARTERLY" && (
+                      <>
+                        <option value="Q1">Q1 ({submission?.reporting_year || ""})</option>
+                        <option value="Q2">Q2 ({submission?.reporting_year || ""})</option>
+                        <option value="Q3">Q3 ({submission?.reporting_year || ""})</option>
+                        <option value="Q4">Q4 ({submission?.reporting_year || ""})</option>
+                      </>
+                    )}
+                    {periodType === "MONTHLY" && (
+                      <>
+                        <option value="FULL_YEAR">Full 12 Mo ({submission?.reporting_year || ""})</option>
+                        <option value="01">Jan ({submission?.reporting_year || ""})</option>
+                        <option value="02">Feb ({submission?.reporting_year || ""})</option>
+                        <option value="03">Mar ({submission?.reporting_year || ""})</option>
+                        <option value="04">Apr ({submission?.reporting_year || ""})</option>
+                        <option value="05">May ({submission?.reporting_year || ""})</option>
+                        <option value="06">Jun ({submission?.reporting_year || ""})</option>
+                        <option value="07">Jul ({submission?.reporting_year || ""})</option>
+                        <option value="08">Aug ({submission?.reporting_year || ""})</option>
+                        <option value="09">Sep ({submission?.reporting_year || ""})</option>
+                        <option value="10">Oct ({submission?.reporting_year || ""})</option>
+                        <option value="11">Nov ({submission?.reporting_year || ""})</option>
+                        <option value="12">Dec ({submission?.reporting_year || ""})</option>
+                      </>
+                    )}
+                    {periodType === "SEMI_ANNUAL" && (
+                      <>
+                        <option value="H1">H1 (Jan–Jun {submission?.reporting_year || ""})</option>
+                        <option value="H2">H2 (Jul–Dec {submission?.reporting_year || ""})</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              )}
               {import.meta.env.DEV && (
                 <button
                   onClick={() => {
@@ -1258,6 +1339,8 @@ export function ManualEntryWizard() {
               <FinancialExcelGrid
                 accountingYear={accountingYear}
                 currency={currency}
+                periodType={periodType}
+                periodValue={periodValue}
                 financialData={financialData}
                 onChange={handleFinancialCellChange}
               />

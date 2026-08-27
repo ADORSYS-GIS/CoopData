@@ -321,9 +321,20 @@ const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
   },
 ];
 
+interface FinancialExcelGridProps {
+  accountingYear: "calendar" | "fiscal";
+  currency: string;
+  periodType?: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
+  periodValue?: string;
+  financialData: Record<number, Record<number, number>>;
+  onChange: (code: number, monthNum: number, value: number) => void;
+}
+
 export function FinancialExcelGrid({
   accountingYear,
   currency,
+  periodType,
+  periodValue,
   financialData,
   onChange,
 }: FinancialExcelGridProps) {
@@ -331,8 +342,9 @@ export function FinancialExcelGrid({
   const [helpField, setHelpField] = useState<{ title: string; desc: string } | null>(null);
 
   const monthSequence: MonthCol[] = useMemo(() => {
+    let all: MonthCol[] = [];
     if (accountingYear === "calendar") {
-      return [
+      all = [
         { name: "Jan", nameKey: "jan", num: 1 },
         { name: "Feb", nameKey: "feb", num: 2 },
         { name: "Mar", nameKey: "mar", num: 3 },
@@ -347,7 +359,7 @@ export function FinancialExcelGrid({
         { name: "Dec", nameKey: "dec", num: 12 },
       ];
     } else {
-      return [
+      all = [
         { name: "Jul", nameKey: "jul", num: 7 },
         { name: "Aug", nameKey: "aug", num: 8 },
         { name: "Sep", nameKey: "sep", num: 9 },
@@ -362,7 +374,27 @@ export function FinancialExcelGrid({
         { name: "Jun", nameKey: "jun", num: 6 },
       ];
     }
-  }, [accountingYear]);
+
+    if (periodType === "QUARTERLY") {
+      if (periodValue === "Q1") return all.filter((m) => m.num >= 1 && m.num <= 3);
+      if (periodValue === "Q2") return all.filter((m) => m.num >= 4 && m.num <= 6);
+      if (periodValue === "Q3") return all.filter((m) => m.num >= 7 && m.num <= 9);
+      if (periodValue === "Q4") return all.filter((m) => m.num >= 10 && m.num <= 12);
+      return all.filter((m) => m.num >= 1 && m.num <= 3);
+    }
+    if (periodType === "SEMI_ANNUAL") {
+      if (periodValue === "H1") return all.filter((m) => m.num >= 1 && m.num <= 6);
+      if (periodValue === "H2") return all.filter((m) => m.num >= 7 && m.num <= 12);
+      return all.filter((m) => m.num >= 1 && m.num <= 6);
+    }
+    if (periodType === "MONTHLY" && periodValue && periodValue !== "FULL_YEAR") {
+      const targetNum = Number(periodValue);
+      if (!isNaN(targetNum) && targetNum >= 1 && targetNum <= 12) {
+        return all.filter((m) => m.num === targetNum);
+      }
+    }
+    return all;
+  }, [accountingYear, periodType, periodValue]);
 
   const rows = useMemo(() => [...BALANCE_SHEET_ROWS, ...INCOME_STATEMENT_ROWS], []);
 

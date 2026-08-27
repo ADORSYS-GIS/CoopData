@@ -378,6 +378,8 @@ impl From<CoaModel> for ChartOfAccountResponse {
 pub struct ManualFinancialStatementRequest {
     pub accounting_year: String,
     pub currency: String,
+    pub period_type: Option<crate::entities::enums::PeriodType>,
+    pub period_value: Option<String>,
     pub line_items: Vec<ManualLineItemRequest>,
 }
 

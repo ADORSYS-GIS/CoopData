@@ -6,9 +6,18 @@ import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { runMutation } from "@/services/shared/syncQueueService";
 import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
 
-export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
-export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"];
-export type CreateApexSubmissionRequest = components["schemas"]["CreateApexSubmissionRequest"];
+export type SubmissionResponse = components["schemas"]["SubmissionResponse"] & {
+  period_type?: string;
+  period_value?: string;
+};
+export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"] & {
+  period_type?: string;
+  period_value?: string;
+};
+export type CreateApexSubmissionRequest = components["schemas"]["CreateApexSubmissionRequest"] & {
+  period_type?: string;
+  period_value?: string;
+};
 export type DelegateSubmissionRequest = components["schemas"]["DelegateSubmissionRequest"];
 export type ReclaimSubmissionRequest = components["schemas"]["ReclaimSubmissionRequest"];
 

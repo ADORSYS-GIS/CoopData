@@ -80,6 +80,8 @@ export interface NationalOverviewResponse {
 
 export interface NationalOverviewParams {
   reportingYear?: number;
+  periodType?: string;
+  periodValue?: string;
   cooperativeId?: string;
   region?: string;
   sector?: string;
@@ -134,6 +136,8 @@ export const useNationalOverview = (
         params: {
           query: {
             reporting_year: params.reportingYear,
+            period_type: params.periodType && params.periodType !== "all" ? params.periodType : undefined,
+            period_value: params.periodValue && params.periodValue !== "all" ? params.periodValue : undefined,
             cooperative_id: params.cooperativeId,
             region: params.region !== "all" ? params.region : undefined,
             sector: params.sector !== "all" ? params.sector : undefined,

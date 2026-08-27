@@ -314,6 +314,11 @@ pub async fn create_manual_financial_statement(
         ));
     }
 
+    if let Some(pt) = body.period_type {
+        let pv = body.period_value.unwrap_or_else(|| submission.period_value.clone());
+        state.submission_repo.update_period(submission_id, pt, pv).await?;
+    }
+
     // Check for existing FS so we can delete it inside the transaction
     let existing_fs_id = state
         .financial_statement_repo

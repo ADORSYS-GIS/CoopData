@@ -195,6 +195,8 @@ export const AnalyticsPage: React.FC = () => {
   const handleClear = useCallback(() => {
     setFilterValues({
       year: String(new Date().getFullYear()),
+      periodType: "YEARLY",
+      periodValue: "all",
       region: "all",
       sector: "all",
       federationId: "all",
@@ -207,6 +209,8 @@ export const AnalyticsPage: React.FC = () => {
   const filterParams = React.useMemo(
     () => ({
       reportingYear: Number(filterValues.year),
+      periodType: filterValues.periodType,
+      periodValue: filterValues.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
       federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,

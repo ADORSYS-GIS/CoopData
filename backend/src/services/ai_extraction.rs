@@ -24,6 +24,12 @@ pub trait NfHeaderMapper: Send + Sync {
 pub struct ExtractionOutput {
     pub line_items: Vec<ExtractedLineItem>,
     pub totals_reconciliation: TotalsReconciliation,
+    #[serde(default)]
+    pub detected_period_type: Option<String>,
+    #[serde(default)]
+    pub detected_period_value: Option<String>,
+    #[serde(default)]
+    pub detected_reporting_year: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -704,6 +710,12 @@ impl LlmExtractor {
         struct CompactExtractionOutput {
             line_items: Vec<CompactExtractedLineItem>,
             totals_reconciliation: TotalsReconciliation,
+            #[serde(default)]
+            detected_period_type: Option<String>,
+            #[serde(default)]
+            detected_period_value: Option<String>,
+            #[serde(default)]
+            detected_reporting_year: Option<i32>,
         }
 
         #[derive(Serialize, Deserialize)]
@@ -734,6 +746,9 @@ impl LlmExtractor {
             ExtractionOutput {
                 line_items: flat_items,
                 totals_reconciliation: compact.totals_reconciliation,
+                detected_period_type: compact.detected_period_type,
+                detected_period_value: compact.detected_period_value,
+                detected_reporting_year: compact.detected_reporting_year,
             }
         };
 
@@ -1324,6 +1339,9 @@ Miscellaneous Fund               12,000
                 equity_total: Some(112000.0),
                 net_surplus: Some(0.0),
             },
+            detected_period_type: Some("YEARLY".to_string()),
+            detected_period_value: Some("2026".to_string()),
+            detected_reporting_year: Some(2026),
         })
     }
 }
