@@ -22,8 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Info } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface CooperativeRankingProps {
   reportingYear: number;
@@ -35,7 +34,7 @@ interface MonthOption {
   label: string;
 }
 
-function buildMonthOptions(t: TFunction): MonthOption[] {
+function buildMonthOptions(t: (key: string) => string): MonthOption[] {
   return [
     { value: "all", label: t("analytics.yearTotal") },
     { value: "1", label: "31. Jan " },
@@ -60,7 +59,7 @@ interface AccountMetric {
   unit: string;
 }
 
-function buildAccountMetrics(t: TFunction): AccountMetric[] {
+function buildAccountMetrics(t: (key: string) => string): AccountMetric[] {
   return [
     { key: "1999", label: t("analytics.totalAssetsUppercase"), isRawCode: true, unit: "SZL" },
     { key: "1200", label: t("analytics.grossLoansUppercase"), isRawCode: true, unit: "SZL" },
@@ -73,7 +72,7 @@ function buildAccountMetrics(t: TFunction): AccountMetric[] {
 }
 
 export function CooperativeRanking({ reportingYear, filterParams }: CooperativeRankingProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedMetric, setSelectedMetric] = useState<string>("1999");
 

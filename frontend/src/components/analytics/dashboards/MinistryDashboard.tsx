@@ -2,7 +2,7 @@ import { RegionalGroupedBar } from "../RegionalGroupedBar";
 import { GenderStatusDoughnuts } from "../GenderStatusDoughnuts";
 import { type CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface MinistryDashboardProps {
   cooperatives: CoopKpiRow[];
@@ -12,7 +12,7 @@ interface MinistryDashboardProps {
 }
 
 export function MinistryDashboard({ cooperatives, nfStats }: MinistryDashboardProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

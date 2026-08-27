@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Building2,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell } from "@/components/app-shell";
 import { useQuestionnaireAnalytics } from "@/hooks/submissions/useQuestionnaire";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
@@ -42,7 +42,7 @@ const YEAR_OPTIONS = [
 ];
 
 export const QuestionnaireAnalyticsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [reportingYear, setReportingYear] = useState("2026");
   const [region, setRegion] = useState("all");
   const [sector, setSector] = useState("all");

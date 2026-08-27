@@ -10,15 +10,14 @@ import type {
   BenchmarkRow,
 } from "@/components/analytics/benchmark-types";
 import { buildBasicMetrics } from "@/components/analytics/basic-benchmark-utils";
-import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface BasicCooperativeComparisonProps {
   reportingYear: number;
 }
 
 // Group definitions for questionnaire metrics
-function buildMetricGroups(t: TFunction): Record<string, BenchmarkGroup> {
+function buildMetricGroups(t: (key: string) => string): Record<string, BenchmarkGroup> {
   return {
     membership: {
       label: t("basicBenchmarking.groups.membership"),
@@ -42,12 +41,12 @@ function buildMetricGroups(t: TFunction): Record<string, BenchmarkGroup> {
 }
 
 export function BasicCooperativeComparison({ reportingYear }: BasicCooperativeComparisonProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { role } = useAuth();
   const isCoopUser = role === "cooperative";
 
   const metricGroups = useMemo(() => buildMetricGroups(t), [t]);
-  const metrics = useMemo(() => buildBasicMetrics(t), [t]);
+  const metrics = useMemo(() => buildBasicMetrics(t as any), [t]);
 
   // The benchmark endpoint serves both roles: coop callers get their own row +
   // server averages; admin callers get the full rows for their scope.
