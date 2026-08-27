@@ -235,12 +235,44 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
   );
 }
 
+const FALLBACK_VALUE: OrganizationLabelsContextValue = {
+  labels: [],
+  isLoading: false,
+  getLabel: (key, type, fallback) => DEFAULT_LABELS[key]?.[type] || fallback || key,
+  t: (key, optionsOrDefault, options) => {
+    const val = i18n.t(key, optionsOrDefault as never, options as never);
+    return String(val);
+  },
+  replaceOrgTerms: (text) => text,
+  fedLabel: "Federation",
+  fedPlural: "Federations",
+  fedShort: "Fed",
+  apexLabel: "Apex",
+  apexPlural: "Apexes",
+  apexShort: "Apex",
+  coopLabel: "Cooperative",
+  coopPlural: "Cooperatives",
+  coopShort: "Coop",
+  ministryLabel: "Ministry",
+  ministryPlural: "Ministries",
+  ministryShort: "Min",
+};
+
 export function useOrganizationLabelsContext() {
   const context = useContext(OrganizationLabelsContext);
-  if (!context) {
-    throw new Error(
-      "useOrganizationLabelsContext must be used within an OrganizationLabelsProvider",
-    );
-  }
-  return context;
+  const { t: baseT } = useTranslation();
+
+  if (context) return context;
+
+  return {
+    ...FALLBACK_VALUE,
+    t: (
+      key: string,
+      optionsOrDefault?: Record<string, unknown> | string,
+      options?: Record<string, unknown>,
+    ) => {
+      const val = baseT(key, optionsOrDefault as never, options as never);
+      return String(val || key);
+    },
+  };
 }

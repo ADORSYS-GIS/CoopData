@@ -10,7 +10,7 @@ import type {
   BenchmarkMetric,
   BenchmarkRow,
 } from "@/components/analytics/benchmark-types";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
 
 interface CooperativeComparisonProps {
@@ -37,7 +37,7 @@ const LOWER_IS_BETTER_KEYS = new Set([
 ]);
 
 // Group definitions for KPIs
-function buildKpiGroups(t: TFunction): Record<string, BenchmarkGroup> {
+function buildKpiGroups(t: (key: string) => string): Record<string, BenchmarkGroup> {
   return {
     balances: {
       label: t("analytics.comparisonGroupBalances"),
@@ -48,20 +48,20 @@ function buildKpiGroups(t: TFunction): Record<string, BenchmarkGroup> {
     ratios: {
       label: t("analytics.comparisonGroupRatios"),
       icon: Percent,
-      colorClass: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30",
-      comboboxIconClass: "text-indigo-400",
+      colorClass: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30",
+      comboboxIconClass: "text-emerald-400",
     },
     non_financial: {
       label: t("analytics.comparisonGroupNonFinancial"),
       icon: Users,
-      colorClass: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30",
-      comboboxIconClass: "text-emerald-400",
+      colorClass: "text-purple-500 bg-purple-50 dark:bg-purple-950/30",
+      comboboxIconClass: "text-purple-400",
     },
   };
 }
 
 // Complete KPI List (Financial + Non-Financial) with group classifications
-function buildComparableKpis(t: TFunction): ComparableKpi[] {
+function buildComparableKpis(t: (key: string) => string): ComparableKpi[] {
   return [
     // --- Financial Balances ---
     {
@@ -296,7 +296,7 @@ function buildComparableKpis(t: TFunction): ComparableKpi[] {
 }
 
 export function CooperativeComparison({ reportingYear }: CooperativeComparisonProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { role } = useAuth();
   const isCoopUser = role === "cooperative";
 

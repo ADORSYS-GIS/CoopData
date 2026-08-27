@@ -72,7 +72,7 @@ import { useLoans } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
 import {
   SubmissionMethodModal,
@@ -173,7 +173,7 @@ const isQuestionnaireComplete = (
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export const SubmissionDetailPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
   const role = useUserRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -448,7 +448,7 @@ export const SubmissionDetailPage: React.FC = () => {
       await submitMutation.mutateAsync(id);
       toast.success(
         submission?.current_tier === "apex" || submission?.created_by_role === "apex"
-          ? "Submitted to Federation"
+          ? replaceOrgTerms("Submitted to Federation")
           : t("submissions.detail.toastSubmitted"),
       );
       navigate({ to: "/app/submissions" });
@@ -564,12 +564,13 @@ export const SubmissionDetailPage: React.FC = () => {
                       {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
                     </h2>
                     <StatusPill tone={statusTone(submission.status)}>
-                      {statusLabel(submission.status, t)}
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {statusLabel(submission.status, t as any)}
                     </StatusPill>
                     {submission.created_by_role === "apex" && submission.created_by_name && (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
                         <span className="size-1.5 rounded-full bg-primary" />
-                        Created by {submission.created_by_name} (Apex)
+                        {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
                       </span>
                     )}
                     {submission.edited_by_name && submission.status === "draft" && (
@@ -1102,9 +1103,11 @@ export const SubmissionDetailPage: React.FC = () => {
             >
               <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
                 <div className="px-6 pt-6 pb-4">
-                  <h3 className="text-base font-bold text-foreground">Delegate to Cooperative</h3>
+                  <h3 className="text-base font-bold text-foreground">
+                    {replaceOrgTerms("Delegate to Cooperative")}
+                  </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The cooperative will be notified to fix and resubmit.
+                    {replaceOrgTerms("The cooperative will be notified to fix and resubmit.")}
                   </p>
                 </div>
                 <div className="px-6 pb-2">
@@ -1396,7 +1399,7 @@ function ReviewActionPanel({
   rejectLabel?: string;
   isPending: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const hasComment = comment.trim().length > 0;
   const borderCls = onReject
     ? "border-l-4 border-l-destructive/50"

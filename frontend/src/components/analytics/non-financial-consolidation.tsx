@@ -25,12 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Landmark, Users, BarChart3, HelpCircle, Globe, Shield } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export const NonFinancialConsolidation: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const { data: catalog, isLoading: isLoadingCatalog } = useIndicatorCatalog();
   const [selectedIndicator, setSelectedIndicator] = useState<string>("");
 
