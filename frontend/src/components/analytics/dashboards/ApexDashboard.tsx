@@ -2,14 +2,14 @@ import { ApexRadarChart } from "../ApexRadarChart";
 import { CoopScatterPlot } from "../CoopScatterPlot";
 import { TopBottomLeaderboard } from "../TopBottomLeaderboard";
 import { type CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface ApexDashboardProps {
   cooperatives: CoopKpiRow[];
 }
 
 export function ApexDashboard({ cooperatives }: ApexDashboardProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

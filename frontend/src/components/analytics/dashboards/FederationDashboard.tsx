@@ -1,14 +1,14 @@
 import { RegionalGroupedBar } from "../RegionalGroupedBar";
 import { TopBottomLeaderboard } from "../TopBottomLeaderboard";
 import { type CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface FederationDashboardProps {
   cooperatives: CoopKpiRow[];
 }
 
 export function FederationDashboard({ cooperatives }: FederationDashboardProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="space-y-6">
       <div className="rounded-xl border bg-surface p-5 shadow-sm">

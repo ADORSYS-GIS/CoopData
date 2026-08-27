@@ -45,7 +45,7 @@ services:
 
   # ── MinIO (S3-compatible storage) ─────────────────────────────────────────
   minio:
-    image: minio/minio:RELEASE.2024-01-18T22-51-28Z
+    image: minio/minio:latest
     container_name: coopdata-minio
     command: server /data --console-address ":9001"
     env_file:
