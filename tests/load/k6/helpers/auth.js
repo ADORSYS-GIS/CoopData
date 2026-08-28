@@ -24,6 +24,7 @@ export const tokenErrors = new Counter('keycloak_token_errors');
 export function fetchToken() {
   const url = `${config.keycloakUrl}/realms/${config.realm}/protocol/openid-connect/token`;
 
+  // opengrep-ignore: client_secret is from env var, not hardcoded
   const payload = `grant_type=client_credentials&client_id=${config.clientId}&client_secret=${config.clientSecret}`;
 
   const params = {
