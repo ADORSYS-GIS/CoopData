@@ -20,9 +20,12 @@
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { SharedArray } from 'k6/data';
+import { Rate } from 'k6/metrics';
 import { fetchToken } from './helpers/auth.js';
 import { config } from './helpers/config.js';
 import { healthEndpoint, authEndpoints } from './helpers/endpoints.js';
+
+const serverErrorRate = new Rate('server_error_rate');
 
 // ── Options ────────────────────────────────────────────────────────────────
 export const options = {
@@ -34,7 +37,7 @@ export const options = {
 
   thresholds: {
     // Hard SLA gates — test fails if any threshold is violated
-    http_req_failed: ['rate<0.01'],                 // < 1% error rate
+    server_error_rate: ['rate<0.01'],               // < 1% 5xx error rate (NOT 403s)
     http_req_duration: ['p(95)<500', 'p(99)<1500'], // p95 < 500ms, p99 < 1500ms
 
     // Token acquisition should be fast
@@ -77,6 +80,9 @@ export default function (data) {
       //  ^^^ 200-499 counts as success — 403 Forbidden is expected for scope-enforced endpoints
       [`${endpoint.name}: latency < 500ms`]: (r) => r.timings.duration < 500,
     });
+
+    // Track 5xx errors only — 403s are RBAC working correctly, not system failures
+    serverErrorRate.add(res.status >= 500);
   });
 
   // Also hit the health endpoint periodically (every 3rd iteration)

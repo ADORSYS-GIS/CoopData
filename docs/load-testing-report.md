@@ -159,7 +159,7 @@ All tests used **client_credentials** grant type from Keycloak:
 │  k6 ──POST──→ Keycloak ──→ JWT Token ──→ Backend API           │
 │       grant_type=client_credentials                             │
 │       client_id=coopdata-backend                                │
-│       client_secret=bXEH0vTeuidB52EeJ2QixCKFumD9gZ1y          │
+│       client_secret=<K6_CLIENT_SECRET>                        │
 │                                                                 │
 │  Token: Fetched ONCE in setup(), shared across all VUs         │
 │  Service Account: service-account-coopdata-backend              │

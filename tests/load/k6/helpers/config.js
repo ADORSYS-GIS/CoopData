@@ -17,7 +17,7 @@ const environments = {
     keycloakUrl: 'http://localhost:8180',
     realm: 'coop-data',
     clientId: 'coopdata-backend',
-    clientSecret: __ENV.K6_CLIENT_SECRET || 'bXEH0vTeuidB52EeJ2QixCKFumD9gZ1y',
+    clientSecret: __ENV.K6_CLIENT_SECRET || '',
   },
   production: {
     baseUrl: __ENV.K6_BASE_URL || '',
