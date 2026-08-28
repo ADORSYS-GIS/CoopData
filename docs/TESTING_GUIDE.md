@@ -101,29 +101,31 @@ k6 run --out json=results/stress-test.json tests/load/k6/stress-test.js
 
 ## Environment Targeting
 
-Tests default to `localhost`. To target a different environment:
+Tests default to `localhost`. To target production (EC2):
 
 ```bash
-# Demo environment
-K6_TARGET_ENV=demo k6 run tests/load/k6/load-test.js
+# Production (requires .env with K6_CLIENT_SECRET)
+set -a && source .env && set +a
 
-# Demo with custom URLs
-K6_TARGET_ENV=demo K6_BASE_URL=https://demo.coopdata.dgrvcoop360.com k6 run tests/load/k6/load-test.js
-
-# Production (requires client secret)
-K6_TARGET_ENV=production K6_CLIENT_SECRET=<secret> k6 run tests/load/k6/load-test.js
+# Production requires --insecure-skip-tls-verify (self-signed cert)
+k6 run --insecure-skip-tls-verify tests/load/k6/smoke-test.js
+k6 run --insecure-skip-tls-verify tests/load/k6/load-test.js
+k6 run --insecure-skip-tls-verify tests/load/k6/stress-test.js
+k6 run --insecure-skip-tls-verify tests/load/k6/spike-test.js
 ```
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `K6_TARGET_ENV` | `localhost` | Environment name: `localhost`, `demo`, `production` |
+| `K6_TARGET_ENV` | `localhost` | Environment: `localhost` or `production` |
 | `K6_CLIENT_SECRET` | (from .env) | Keycloak client secret for `coopdata-backend` |
 | `K6_BASE_URL` | (per env) | Override backend API base URL |
 | `K6_KEYCLOAK_URL` | (per env) | Override Keycloak server URL |
 | `K6_REALM` | `coop-data` | Keycloak realm name |
 | `K6_CLIENT_ID` | `coopdata-backend` | Keycloak client ID |
+
+> **Note:** Production EC2 uses a self-signed TLS certificate. All production k6 runs require `--insecure-skip-tls-verify` flag.
 
 ## Understanding the Output
 

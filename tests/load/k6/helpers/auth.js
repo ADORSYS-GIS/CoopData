@@ -39,7 +39,7 @@ export function fetchToken() {
   if (res.status !== 200) {
     tokenErrors.add(1);
     throw new Error(
-      `Keycloak token fetch failed: status=${status} body=${res.body}`
+      `Keycloak token fetch failed: status=${res.status} body=${res.body}`
     );
   }
 

@@ -2,8 +2,13 @@
  * k6 Load Test — Environment Configuration
  *
  * Usage:
- *   k6 run tests/load/k6/load-test.js                        # defaults to localhost
- *   K6_TARGET_ENV=demo k6 run tests/load/k6/load-test.js     # demo environment
+ *   k6 run tests/load/k6/load-test.js                           # defaults to localhost
+ *   K6_TARGET_ENV=production k6 run tests/load/k6/load-test.js  # EC2 production
+ *
+ * Production environment requires env vars (set in .env):
+ *   K6_BASE_URL       - Backend URL (e.g., https://ec2-xx-xx-xx-xx.compute.amazonaws.com)
+ *   K6_KEYCLOAK_URL   - Keycloak URL (same domain, Keycloak is at root path)
+ *   K6_CLIENT_SECRET  - Production Keycloak client secret for coopdata-backend
  */
 
 const environments = {
@@ -14,16 +19,9 @@ const environments = {
     clientId: 'coopdata-backend',
     clientSecret: __ENV.K6_CLIENT_SECRET || 'bXEH0vTeuidB52EeJ2QixCKFumD9gZ1y',
   },
-  demo: {
-    baseUrl: __ENV.K6_BASE_URL || 'https://demo.coopdata.dgrvcoop360.com',
-    keycloakUrl: __ENV.K6_KEYCLOAK_URL || 'https://keycloak.demo.coopdata.dgrvcoop360.com',
-    realm: __ENV.K6_REALM || 'coop-data',
-    clientId: __ENV.K6_CLIENT_ID || 'coopdata-backend',
-    clientSecret: __ENV.K6_CLIENT_SECRET || '',
-  },
   production: {
-    baseUrl: __ENV.K6_BASE_URL || 'https://coopdata.dgrvcoop360.com',
-    keycloakUrl: __ENV.K6_KEYCLOAK_URL || 'https://keycloak.coopdata.dgrvcoop360.com',
+    baseUrl: __ENV.K6_BASE_URL || '',
+    keycloakUrl: __ENV.K6_KEYCLOAK_URL || '',
     realm: __ENV.K6_REALM || 'coop-data',
     clientId: __ENV.K6_CLIENT_ID || 'coopdata-backend',
     clientSecret: __ENV.K6_CLIENT_SECRET || '',
