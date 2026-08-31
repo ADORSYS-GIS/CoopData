@@ -39,25 +39,25 @@
 |---|---|---|
 | Backend | Rust, Axum 0.8, SeaORM 1.1, PostgreSQL via `sqlx-postgres` | `backend/Cargo.toml` |
 | Auth / IAM | Keycloak (OAuth2/OIDC), JWT validation, RBAC middleware | `src/auth/`, `src/services/keycloak.rs` |
-| Hierarchy | Ministry → Federation → Apex → Cooperative, stored **entirely in Keycloak** (orgs/groups/subgroups) | `docs/apex-cooperative-architecture.md` |
-| Entities so far | `organization`, `user`, `assessment` (SeaORM stubs) | `src/entities/` |
-| Frontend | React + TanStack Router/Query, shadcn/ui, OpenAPI-fetch client | `frontend/src/` |
-| Mock financial data | Full ADORSYS chart of accounts (1000–6999), KPI calc functions | `lib/financial-data.ts`, `lib/kpi-calculations.ts` |
+| Hierarchy | Ministry → Federation → Apex → Cooperative. Federations/Apexes/Cooperatives stored in **PostgreSQL** with `keycloak_id` FKs linking to Keycloak entities | `entities/federation.rs`, `entities/apex.rs`, `entities/cooperative.rs` |
+| Entities (33 total) | `federation`, `apex`, `cooperative`, `user`, `organization`, `submission`, `financial_statement`, `balance_sheet_line_item`, `chart_of_account`, `chart_of_accounts_coop_type`, `account_alias`, `member`, `savings_account`, `loan`, `fixed_deposit`, `farm_coop`, `kpi_record`, `abnormality_flag`, `extraction_job`, `uploaded_file`, `submission_review`, `submission_section`, `audit_log`, `custom_kpi`, `assessment`, `organization_label`, `non_financial_indicator_catalog`, `non_financial_indicator_entry`, `questionnaire_template`, `questionnaire_response`, `ministry_report_narratives`, `enums` | `src/entities/` |
+| Frontend | React + TanStack Router/Query, shadcn/ui, OpenAPI-fetch client, Dexie (IndexedDB) offline-first | `frontend/src/` |
+| Financial data | Real chart of accounts (1000–6999) seeded in PostgreSQL, KPI engine in Rust (`kpi_engine.rs`), NF indicator engine (`nf_indicator_engine.rs`) | `services/kpi_engine.rs`, `services/nf_indicator_engine.rs` |
+| AI extraction | PDF/image/Excel → structured data pipeline with LLM mapping + validation | `services/ai_extraction.rs`, `services/extraction_pipeline.rs` |
 
-### 1.2 What this document designs (the gap)
+### 1.2 What this document designs (implemented)
 
-1. A **persistent PostgreSQL schema** for financial & non-financial cooperative data (replacing Keycloak-only storage and frontend mock data).
-2. The **submission + 4-tier review workflow** (Cooperative → Apex → Federation → Ministry).
-3. The **AI-extraction pipeline** (PDF/image/Excel → structured chart-of-accounts data → human validation).
-4. **KPI materialization** and **abnormality flagging** as 
-backend services.
-5. **Data-flow** from upload through approval and analytics.
+1. A **persistent PostgreSQL schema** for financial & non-financial cooperative data — ✅ implemented in `backend/src/entities/` and migrations.
+2. The **submission + 4-tier review workflow** (Cooperative → Apex → Federation → Ministry) — ✅ implemented in `services/submission_workflow.rs`.
+3. The **AI-extraction pipeline** (PDF/image/Excel → structured chart-of-accounts data → human validation) — ✅ implemented in `services/ai_extraction.rs` and `services/extraction_pipeline.rs`.
+4. **KPI materialization** and **abnormality flagging** as backend services — ✅ KPI engine in `services/kpi_engine.rs`; abnormality detector exists but is not yet wired to the submission workflow.
+5. **Data-flow** from upload through approval and analytics — ✅ implemented across handlers, services, and frontend analytics pages.
 
 ### 1.3 Key reconciliation decision: Keycloak vs PostgreSQL for identity
 
-Identity (users, roles, federation/apex/cooperative groups) stays in **Keycloak** — it is the single source of truth for *who can do what*. The PostgreSQL database is the source of truth for *business data* (submissions, financial statements, members, loans, KPIs). The bridge is the **stable Keycloak group UUID** which is stored as a foreign key on the `cooperatives` table (see §6.3).
+Identity (users, roles, authentication) stays in **Keycloak** — it is the single source of truth for *who can do what*. The PostgreSQL database is the source of truth for *business data* (submissions, financial statements, members, loans, KPIs) **and** the entity hierarchy (federations, apexes, cooperatives). Each PostgreSQL entity stores a `keycloak_id` foreign key linking to its Keycloak counterpart (see §6.3).
 
-**Why split:** Keycloak owns authentication/authorization; Postgres owns transactional financial data. Mixing them would require duplicating group membership into the DB and keeping them in sync. Instead we store only the **cooperative ID** (Keycloak subgroup UUID) on every business row and rely on JWT-claim scope enforcement (already implemented in `ScopeEnforcement`).
+**Why split:** Keycloak owns authentication/authorization; Postgres owns transactional financial data and entity relationships. The PostgreSQL `federations`, `apexes`, and `cooperatives` tables provide referential integrity (FK constraints), query performance (joins, filtering), audit trails, and scope enforcement — capabilities Keycloak Groups/Organizations lack. Each PG entity stores a `keycloak_id` FK for identity linking.
 
 ---
 
@@ -269,65 +269,120 @@ pub trait FinancialStatementExtractor: Send + Sync {
 
 ## 5. Backend Layer Architecture
 
-### 5.1 Module layout (additions to existing `backend/src/`)
+### 5.1 Module layout (`backend/src/`)
 
 ```
 backend/src/
 ├── api/
 │   ├── handlers/
-│   │   ├── submission.rs        ← NEW: create/submit/validate/review handlers
-│   │   ├── financial_statement.rs ← NEW: CRUD for balance sheets & line items
-│   │   ├── members.rs           ← NEW
-│   │   ├── savings.rs           ← NEW
-│   │   ├── loans.rs             ← NEW
-│   │   ├── fixed_deposits.rs    ← NEW
-│   │   ├── kpi.rs               ← NEW: read computed KPIs + recompute
-│   │   ├── upload.rs            ← NEW: multipart file upload
-│   │   └── extraction.rs        ← NEW: extraction job status/poll
+│   │   ├── submission.rs           — create/submit/validate/review handlers
+│   │   ├── financial_statement.rs  — CRUD for balance sheets & line items
+│   │   ├── non_financial.rs        — members/savings/loans/fd/farm_coop handlers
+│   │   ├── basic_benchmark.rs      — basic benchmarking endpoints
+│   │   ├── custom_kpi.rs           — custom KPI CRUD
+│   │   ├── export.rs               — report export (XLSX/CSV/PDF)
+│   │   ├── extraction.rs           — extraction job status/poll
+│   │   ├── upload.rs               — multipart file upload
+│   │   ├── questionnaire.rs        — questionnaire response handlers
+│   │   ├── questionnaire_template.rs — template CRUD
+│   │   ├── non_financial_indicator.rs — NF indicator catalog/entries
+│   │   ├── nf_indicator_stats.rs    — NF statistics aggregation
+│   │   ├── national_overview.rs    — national KPI overview
+│   │   ├── organization_label.rs   — org label management
+│   │   ├── organizations.rs        — organization CRUD
+│   │   ├── apex.rs                 — apex CRUD + members
+│   │   ├── federation.rs           — federation CRUD + members
+│   │   ├── cooperative.rs          — cooperative CRUD + members
+│   │   ├── users.rs                — user management
+│   │   ├── me.rs                   — current user profile
+│   │   ├── health.rs               — health check
+│   │   └── audit.rs                — audit log queries
 │   ├── dto/
-│   │   ├── submission.rs        ← NEW
-│   │   ├── financial.rs         ← NEW: line items, chart of accounts
-│   │   ├── non_financial.rs     ← NEW: members/savings/loans/fd
-│   │   └── kpi.rs               ← NEW
+│   │   ├── submission.rs
+│   │   ├── financial.rs            — line items, chart of accounts
+│   │   ├── non_financial.rs        — members/savings/loans/fd stats
+│   │   ├── national_overview.rs
+│   │   ├── verification.rs
+│   │   └── common.rs               — PaginatedResponse, ErrorResponse
 │   └── routes/
-│       ├── cooperative.rs       ← EXTEND: cooperative data endpoints
-│       ├── apex.rs              ← EXTEND: review endpoints
-│       ├── federation.rs        ← EXTEND: review endpoints
-│       └── ministry.rs          ← EXTEND: review endpoints
-├── entities/
-│   ├── submission.rs            ← NEW (replaces the old assessment stub)
-│   ├── financial_statement.rs  ← NEW
-│   ├── balance_sheet_line_item.rs ← NEW
-│   ├── chart_of_accounts.rs     ← NEW (reference seed)
-│   ├── member.rs, savings.rs, loan.rs, fixed_deposit.rs ← NEW
-│   ├── kpi.rs, benchmark.rs ← NEW
-│   ├── uploaded_file.rs, extraction_job.rs, submission_review.rs ← NEW
-│   └── cooperative.rs           ← NEW (links to Keycloak group id)
-├── repositories/
-│   ├── submission.rs, financial_statement.rs, ... (mirror entities)
+│       ├── api.rs                  — main router assembly
+│       ├── cooperative.rs          — cooperative data endpoints
+│       ├── apex.rs                 — review endpoints
+│       ├── federation.rs           — review endpoints
+│       ├── ministry.rs             — ministry endpoints
+│       └── shared.rs               — /me, health, verification
+├── entities/                        — 33 SeaORM entity files
+├── repositories/                    — 32+ repository files
 ├── services/
-│   ├── ai_extraction.rs         ← NEW: extraction orchestration
-│   ├── kpi_engine.rs           ← NEW: KPI computation
-│   ├── abnormality_detector.rs  ← NEW: flagging rules
-│   ├── object_storage.rs       ← NEW: S3/MinIO abstraction
-│   └── keycloak.rs, cache.rs    ← existing
-└── migration/
-    └── src/ m20260703_*.rs     ← SeaORM-migration files (NEW dir)
+│   ├── ai_extraction.rs            — AI extraction orchestration
+│   ├── extraction_pipeline.rs      — multi-stage extraction pipeline
+│   ├── kpi_engine.rs               — KPI computation (18 financial KPIs)
+│   ├── nf_indicator_engine.rs      — NF indicator engine (5 categories)
+│   ├── nf_excel_parser.rs          — NF Excel parser
+│   ├── abnormality_detector.rs     — flagging rules (exists, not wired)
+│   ├── object_storage.rs           — S3/MinIO abstraction
+│   ├── export_generator.rs         — report generation (XLSX/CSV/PDF)
+│   ├── pdf_templates.rs            — PDF template rendering
+│   ├── report_narrative.rs         — AI-generated report narratives
+│   ├── submission_workflow.rs      — state machine + authority matrix
+│   ├── benchmark.rs                — benchmark computation + diff. privacy
+│   ├── cache.rs                    — Redis/in-memory caching
+│   ├── audit.rs                    — audit logging service
+│   ├── localization.rs             — dynamic localization
+│   ├── keycloak.rs                 — Keycloak Admin API client
+│   └── verification_token.rs       — Redis-backed delete verification
+└── migration/                       — SeaORM migration files
 ```
 
-### 5.2 `AppState` evolution
+### 5.2 `AppState`
 
 ```rust
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Database,                 // SeaORM DatabaseConnection
+    pub db: Database,
     pub config: AppConfig,
-    pub cache: CacheService,          // existing Redis
-    pub keycloak: KeycloakService,    // existing
+    pub cache: CacheService,
+    pub keycloak: KeycloakService,
     pub jwt_validator: Arc<JwtValidator>,
-    // NEW:
-    pub storage: ObjectStorageService,       // S3/MinIO
-    pub extractor: Arc<dyn FinancialStatementExtractor>, // AI
+    // entity repos
+    pub federation_repo: FederationRepository,
+    pub apex_repo: ApexRepository,
+    pub cooperative_repo: CooperativeRepository,
+    pub organization_repo: OrganizationRepository,
+    pub organization_label_repo: OrganizationLabelRepository,
+    pub user_repo: UserRepository,
+    pub audit: AuditService,
+    // pipeline repos
+    pub submission_repo: SubmissionRepository,
+    pub uploaded_file_repo: UploadedFileRepository,
+    pub extraction_job_repo: ExtractionJobRepository,
+    pub financial_statement_repo: FinancialStatementRepository,
+    pub line_item_repo: BalanceSheetLineItemRepository,
+    pub coa_repo: ChartOfAccountsRepository,
+    pub account_alias_repo: AccountAliasRepository,
+    pub flag_repo: AbnormalityFlagRepository,
+    pub review_repo: SubmissionReviewRepository,
+    pub section_repo: SubmissionSectionRepository,
+    pub questionnaire_repo: QuestionnaireRepository,
+    pub questionnaire_template_repo: QuestionnaireTemplateRepository,
+    // non-financial
+    pub non_financial_indicator_catalog_repo: NonFinancialIndicatorCatalogRepository,
+    pub non_financial_indicator_entry_repo: NonFinancialIndicatorEntryRepository,
+    pub custom_kpi_repo: CustomKpiRepository,
+    pub kpi_record_repo: KpiRecordRepository,
+    pub member_repo: MemberRepository,
+    pub savings_account_repo: SavingsAccountRepository,
+    pub loan_repo: LoanRepository,
+    pub fixed_deposit_repo: FixedDepositRepository,
+    pub farm_coop_repo: FarmCoopRepository,
+    // services
+    pub extractor: Arc<dyn Extractor>,
+    pub narrative_generator: Arc<dyn ReportNarrativeGenerator>,
+    pub storage: ObjectStorageService,
+    pub nf_excel_parser: CalamineNfParser,
+    pub gotenberg_semaphore: Arc<Semaphore>,
+    pub ai_semaphore: Arc<Semaphore>,
+    pub ministry_narratives_repo: MinistryReportNarrativesRepository,
 }
 ```
 

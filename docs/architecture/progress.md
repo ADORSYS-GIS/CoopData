@@ -7,7 +7,7 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 19: Testing & Polish
+- **Current Phase**: Phase 22: Testing & Polish
 - **Overall Progress**: 92%
 
 ---
@@ -367,7 +367,7 @@
   - [x] `GET /api/v1/cooperative/submissions/{id}/export?format=xlsx|csv` — rust_xlsxwriter + csv crate
   - [x] `GET /api/v1/ministry/stats` — ministry dashboard aggregate counts
   - [x] 8 unit tests in `services/kpi_engine.rs`, 4 DTO tests in `dto/financial.rs`
-- [ ] `abnormality_detector.rs` rules wired to submission workflow (existing service, not wired)
+- [x] `abnormality_detector.rs` rules wired to extraction pipeline and financial statement handler
 - [ ] Compliance scoring + nightly batch materialization to `computed_kpis` table
 
 ### Phase 12: Frontend Integration ✅ (Sprint 4)
@@ -453,10 +453,10 @@
 - [x] Created `docs/testing/unit-test-analysis.md` with prioritized improvement roadmap
 - [x] Identified 6 high-priority improvement areas with specific files and recommendations
 
-### Phase 19: Testing & Polish
+### Phase 22: Testing & Polish
 - [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow
 
-### Phase 18: Hierarchical Analytics
+### Phase 19: Hierarchical Analytics
 
 > **Goal**: Replace mock and empty analytics with submission-scoped, hierarchy-aware financial and non-financial data that supports full drill-down at every role.
 
@@ -469,7 +469,7 @@
 - [x] Cooperative, Apex, Federation and Ministry aggregate-to-detail analytics UI
 - [x] Financial/NF indicator, scope and role-journey tests
 
-### Phase 19: Analytics i18n Localization ✅
+### Phase 20: Analytics i18n Localization ✅
 - [x] Replaced all hardcoded UI strings in `frontend/src/components/analytics/*` with `useTranslation()` calls
 - [x] Added all `analytics.*` keys to `frontend/src/i18n/locales/en.json`
 - [x] Localized 25+ components: ComparativeIncomeStatement, CooperativeRanking, CooperativeComparison, CooperativeDeepDive, ComplianceRadialGauges, LoanProvisioningWaterfall, GenderStatusDoughnuts, DepositConcentrationGauge, GovernanceFunnel, FinancialInclusionBar, AgriResilienceRadar, ComplianceDoughnutCharts, AgeDemographicsChart, ApexDistributionBar, FinancialIndicators, GenderParticipationChart, NetworkConsolidatedMetrics, PortfolioClassification, PortfolioOverviewChart, RegionalGroupedBar, SavingsLoansDepositsChart, LoanDualBar, CoopTrendAreaChart, SavingsRadialGauges

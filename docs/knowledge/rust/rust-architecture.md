@@ -9,7 +9,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          DGAT BACKEND ARCHITECTURE                      │
+│                       COOPDATA BACKEND ARCHITECTURE                     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  ┌──────────┐    ┌──────────────┐    ┌─────────────┐    ┌───────────┐ │
@@ -57,8 +57,8 @@
 3. MIDDLEWARE runs (authentication)
    File: src/auth/middleware.rs
    - Extracts JWT token from Authorization header
-   - Validates token with Keycloak
-   - Attaches token to request as Extension<String>
+   - Validates token with Keycloak JWKS
+   - Attaches parsed Claims to request as Extension<Arc<Claims>>
        │
        ▼
 4. HANDLER processes the request
@@ -66,7 +66,7 @@
    ┌─────────────────────────────────────────────┐
    │ pub async fn create_assessment(              │
    │     State(state): State<AppState>,          │  ← App state (DB, services)
-   │     Extension(_token): Extension<String>,    │  ← Auth token
+   │     Extension(claims): Extension<Arc<Claims>>│  ← Parsed JWT claims
    │     Json(request): Json<CreateRequest>,      │  ← Parsed body
    │ ) -> AppResult<impl IntoResponse>            │  ← Typed error handling
    │                                              │
@@ -140,9 +140,10 @@ RESPONSIBILITY: Authentication, CORS, logging, rate limiting
 DO NOT: Add business logic
 
 Flow:
-  Request → Auth Middleware → CORS → Handler
-  - Auth middleware extracts and validates JWT
-  - Attaches token as Extension<String> for handlers
+  Request → Auth Middleware → Role Guard → CORS → Handler
+  - Auth middleware extracts and validates JWT, attaches Claims
+  - Role guard layer enforces realm roles per route group
+  - Handlers receive Extension<Arc<Claims>> for scope enforcement
 ```
 
 ### Layer 3: Handlers (`src/api/handlers/`)
