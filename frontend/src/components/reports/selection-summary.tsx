@@ -1,5 +1,5 @@
 import { Globe, Layers, Building2, FileText } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface SelectionSummaryProps {
   needsFedSelector: boolean;
@@ -48,7 +48,7 @@ export function SelectionSummary({
   selectedYear,
   onClearYear,
 }: SelectionSummaryProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   return (
     <div className="space-y-2">
       {needsFedSelector && selectedFedId && (

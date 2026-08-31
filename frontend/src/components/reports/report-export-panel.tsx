@@ -8,7 +8,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ interface ReportExportPanelProps {
 }
 
 export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
   const role = useUserRole();
 
   // Modal state
@@ -440,11 +440,11 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-heading font-bold text-sm text-foreground truncate">
-                      {report.label}
+                      {replaceOrgTerms(report.label)}
                     </h4>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {report.description}
+                    {replaceOrgTerms(report.description)}
                   </p>
                 </div>
                 <div className="flex gap-1 shrink-0">
@@ -488,7 +488,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   <h3 className="font-heading text-base font-bold text-foreground">
                     {t("reportExport.exportReport")}
                   </h3>
-                  <p className="text-xs text-muted-foreground">{selectedOption.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {replaceOrgTerms(selectedOption.label)}
+                  </p>
                 </div>
               </div>
               <button

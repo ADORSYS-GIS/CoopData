@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiClient } from "@/openapi-client";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface CustomKpiItem {
   id: string;
@@ -81,7 +81,7 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [evalCoopId, setEvalCoopId] = useState<string>("none");
   const [evalResult, setEvalResult] = useState<{
     value: number;

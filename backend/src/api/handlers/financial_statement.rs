@@ -288,13 +288,17 @@ pub async fn create_manual_financial_statement(
     Json(body): Json<crate::api::dto::financial::ManualFinancialStatementRequest>,
 ) -> AppResult<impl IntoResponse> {
     use crate::entities::balance_sheet_line_item::ActiveModel as LineItemModel;
-    use crate::entities::enums::{AccountCategory, AccountingYear, Currency, SubmissionStatus};
+    use crate::entities::enums::{AccountCategory, AccountingYear, Currency};
     use crate::entities::financial_statement::ActiveModel as FsModel;
     use crate::services::abnormality_detector::AbnormalityDetector;
     use sea_orm::Set;
 
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_id = crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(
+        &state,
+        &claims,
+        Some(submission_id),
+    )
+    .await?;
 
     let submission = state
         .submission_repo
@@ -302,13 +306,23 @@ pub async fn create_manual_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
+    // Security: Verify submission belongs to the caller's cooperative.
+    // This prevents cross-tenant modification where a cooperative user could
+    // modify another cooperative's financial statement.
+    if submission.cooperative_id != coop_id {
         return Err(AppError::Forbidden(
             "Submission does not belong to your cooperative".into(),
         ));
     }
 
-    if submission.status != SubmissionStatus::Draft {
+    crate::api::handlers::cooperative::verify_exclusive_editor_for_submission(
+        &state,
+        &claims,
+        submission_id,
+    )
+    .await?;
+
+    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
         return Err(AppError::Conflict(
             "Can only add financial statement to a draft submission".into(),
         ));
