@@ -7,18 +7,29 @@
 
 ```
 src/entities/
-├── mod.rs                 # Re-exports all entities
-├── users.rs               # User entity
-├── organizations.rs      # Organization entity
-├── assessments.rs         # Assessment entity
-└── *.rs                   # Other entities
+├── mod.rs                           # Re-exports all entities
+├── submission.rs                   # Submission entity
+├── submission_section.rs           # Submission section entity
+├── submission_review.rs            # Submission review entity
+├── cooperative.rs                  # Cooperative entity
+├── federation.rs                    # Federation entity
+├── apex.rs                         # Apex entity
+├── organization.rs                 # Organization entity
+├── user.rs                         # User entity
+├── member.rs                        # Member entity
+├── financial_statement.rs          # Financial statement entity
+├── non_financial_indicator_*.rs    # NF indicator entities
+├── questionnaire*.rs              # Questionnaire entities
+├── audit_log.rs                    # Audit log entity
+├── enums.rs                        # Enum definitions
+└── ... (30+ entity files total)
 ```
 
 ---
 
 ## Pattern 1: Standard Entity
 
-**File**: `src/entities/assessments.rs`
+**File**: `src/entities/submission.rs`
 
 ```rust
 use sea_orm::entity::prelude::*;
@@ -29,57 +40,38 @@ use serde::{Deserialize, Serialize};
 // ============================================
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "assessments")]
+#[sea_orm(table_name = "submissions")]
 pub struct Model {
     #[sea_orm(primary_key, auto_generate = false)]
-    pub assessment_id: Uuid,
+    pub id: Uuid,
 
-    pub organization_id: String,
-    pub cooperation_id: Option<String>,
-    pub document_title: String,
-    pub status: AssessmentStatus,
-    pub started_at: Option<DateTimeUtc>,
-    pub completed_at: Option<DateTimeUtc>,
+    pub reference: Option<String>,
+    pub cooperative_id: Uuid,
+    pub reporting_year: i32,
+    pub status: SubmissionStatus,
+    pub current_tier: ReviewTier,
+    pub submitted_by: Option<Uuid>,
+    pub submitted_at: Option<DateTimeUtc>,
+    pub last_reviewed_by: Option<Uuid>,
+    pub last_reviewed_at: Option<DateTimeUtc>,
+    pub rejection_reason: Option<String>,
+    pub priority: Option<i32>,
+    pub metadata: Option<JsonValue>,
+    pub submission_method: Option<String>,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
-    pub dimensions_id: Option<JsonValue>,
+    pub created_by_role: SubmissionCreatedByRole,
+    pub created_by_user_id: Option<Uuid>,
+    pub created_by_name: Option<String>,
+    pub edited_by: Option<Uuid>,
+    pub edited_by_name: Option<String>,
 }
 
 // ============================================
-// ENUM - Status values
+// ENUMS - Status values (defined in enums.rs)
 // ============================================
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(
-    rs_type = "String",
-    db_type = "Enum",
-    enum_name = "assessment_status_enum"
-)]
-pub enum AssessmentStatus {
-    #[sea_orm(string_value = "draft")]
-    Draft,
-    #[sea_orm(string_value = "in_progress")]
-    InProgress,
-    #[sea_orm(string_value = "completed")]
-    Completed,
-    #[sea_orm(string_value = "archived")]
-    Archived,
-}
-
-// Custom implementation for string parsing
-impl std::str::FromStr for AssessmentStatus {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "draft" => Ok(AssessmentStatus::Draft),
-            "in_progress" => Ok(AssessmentStatus::InProgress),
-            "completed" => Ok(AssessmentStatus::Completed),
-            "archived" => Ok(AssessmentStatus::Archived),
-            _ => Err(format!("Invalid assessment status: {s}")),
-        }
-    }
-}
+// SubmissionStatus, ReviewTier, SubmissionCreatedByRole are defined in enums.rs
 
 // ============================================
 // RELATIONS - Foreign key relationships
@@ -87,40 +79,29 @@ impl std::str::FromStr for AssessmentStatus {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::dimension_assessments::Entity")]
-    DimensionAssessments,
+    #[sea_orm(has_many = "super::submission_section::Entity")]
+    SubmissionSections,
 
-    #[sea_orm(has_many = "super::reports::Entity")]
-    Reports,
+    #[sea_orm(has_many = "super::submission_review::Entity")]
+    SubmissionReviews,
 
-    #[sea_orm(has_many = "super::action_plans::Entity")]
-    ActionPlans,
-
-    #[sea_orm(has_many = "super::assessment_recommendations::Entity")]
-    AssessmentRecommendations,
+    #[sea_orm(
+        belongs_to = "super::cooperative::Entity",
+        from = "Column::CooperativeId",
+        to = "super::cooperative::Column::Id"
+    )]
+    Cooperative,
 }
 
-impl Related<super::dimension_assessments::Entity> for Entity {
+impl Related<super::submission_section::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::DimensionAssessments.def()
+        Relation::SubmissionSections.def()
     }
 }
 
-impl Related<super::reports::Entity> for Entity {
+impl Related<super::submission_review::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Reports.def()
-    }
-}
-
-impl Related<super::action_plans::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::ActionPlans.def()
-    }
-}
-
-impl Related<super::assessment_recommendations::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::AssessmentRecommendations.def()
+        Relation::SubmissionReviews.def()
     }
 }
 
@@ -128,118 +109,39 @@ impl Related<super::assessment_recommendations::Entity> for Entity {
 // ACTIVE MODEL BEHAVIOR - Hooks
 // ============================================
 
-impl ActiveModelBehavior for ActiveModel {
-    // Called before insert
-    fn before_save(self) -> Result<Self, DbErr> {
-        let timestamp = chrono::Utc::now();
-        let mut active_model = self;
-
-        // Auto-update timestamps
-        if active_model.created_at.is_not_set() {
-            active_model.created_at = Set(timestamp);
-        }
-        active_model.updated_at = Set(timestamp);
-
-        Ok(active_model)
-    }
-}
+impl ActiveModelBehavior for ActiveModel {}
 ```
 
 **Why**:
 
-- Clear sections: MODEL, ENUM, RELATIONS, BEHAVIOR
+- Clear sections: MODEL, ENUMS, RELATIONS, BEHAVIOR
 - Proper relationships defined
-- Timestamps auto-updated
-- Enum type-safe with database mapping
+- Enums defined separately in `enums.rs`
+- Timestamps auto-updated by database triggers
 
 ---
 
-## Pattern 2: Entity with Composite Keys
+## Pattern 2: Entity with JSON Column
 
-**File**: `src/entities/dimension_assessments.rs`
+**File**: `src/entities/cooperative.rs`
 
 ```rust
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "dimension_assessments")]
+#[sea_orm(table_name = "cooperatives")]
 pub struct Model {
     #[sea_orm(primary_key, auto_generate = false)]
-    pub dimension_assessment_id: Uuid,
+    pub id: Uuid,
 
-    pub assessment_id: Uuid,
-    pub dimension_id: Uuid,
-    pub current_state_id: Option<Uuid>,
-    pub desired_state_id: Option<Uuid>,
-    pub gap_score: i32,
-    pub gap_id: Uuid,
-    pub organization_id: String,
-    pub cooperation_id: Option<String>,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
-}
-
-// Relationships with cascade delete
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::assessments::Entity",
-        from = "Column::AssessmentId",
-        to = "super::assessments::Column::AssessmentId",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
-    Assessments,
-
-    #[sea_orm(
-        belongs_to = "super::dimensions::Entity",
-        from = "Column::DimensionId",
-        to = "super::dimensions::Column::DimensionId",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
-    Dimensions,
-
-    #[sea_orm(
-        belongs_to = "super::gaps::Entity",
-        from = "Column::GapId",
-        to = "super::gaps::Column::GapId",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
-    Gaps,
-}
-
-impl Related<super::assessments::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Assessments.def()
-    }
-}
-
-impl ActiveModelBehavior for ActiveModel {}
-```
-
----
-
-## Pattern 3: Entity with JSON Column
-
-**File**: `src/entities/dimensions.rs`
-
-```rust
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "dimensions")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_generate = false)]
-    pub dimension_id: Uuid,
-
-    pub name: String,
-    pub description: Option<String>,
-    pub language: String,
-    pub order_index: i32,
+    pub keycloak_id: String,
+    pub display_name: String,
+    pub tier: String,
+    pub sector: Option<String>,
+    pub region: Option<String>,
+    pub urban_rural: Option<String>,
+    pub is_active: bool,
 
     // JSON column for flexible data
     pub metadata: Option<JsonValue>,
@@ -250,8 +152,11 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::dimension_assessments::Entity")]
-    DimensionAssessments,
+    #[sea_orm(has_many = "super::submission::Entity")]
+    Submissions,
+
+    #[sea_orm(has_many = "super::member::Entity")]
+    Members,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -259,77 +164,51 @@ impl ActiveModelBehavior for ActiveModel {}
 
 ---
 
-## Pattern 4: Entity Module Exports
+## Pattern 3: Entity Module Exports
 
 **File**: `src/entities/mod.rs`
 
 ```rust
-pub mod action_items;
-pub mod action_plans;
-pub mod assessment_recommendations;
-pub mod assessments;
-pub mod current_states;
-pub mod desired_states;
-pub mod dimension_assessments;
-pub mod dimensions;
-pub mod gaps;
-pub mod organisation_dimension;
-pub mod recommendations;
-pub mod reports;
+pub mod abnormality_flag;
+pub mod account_alias;
+pub mod apex;
+pub mod assessment;
+pub mod audit_log;
+pub mod balance_sheet_line_item;
+pub mod chart_of_account;
+pub mod cooperative;
+pub mod custom_kpi;
+pub mod enums;
+pub mod extraction_job;
+pub mod farm_coop;
+pub mod federation;
+pub mod financial_statement;
+pub mod fixed_deposit;
+pub mod kpi_record;
+pub mod loan;
+pub mod member;
+pub mod ministry_report_narratives;
+pub mod non_financial_indicator_catalog;
+pub mod non_financial_indicator_entry;
+pub mod organization;
+pub mod organization_label;
+pub mod questionnaire_response;
+pub mod questionnaire_template;
+pub mod savings_account;
+pub mod submission;
+pub mod submission_review;
+pub mod submission_section;
+pub mod uploaded_file;
+pub mod user;
 
 // Re-export commonly used types
-pub use assessments::{Entity as Assessments, Model as Assessment, AssessmentStatus};
-pub use dimensions::{Entity as Dimensions, Model as Dimension};
-pub use organisations::{Entity as Organisations, Model as Organisation};
-pub use users::{Entity as Users, Model as User};
-```
-
----
-
-## Pattern 5: Entity with Soft Delete
-
-**File**: `src/entities/recommendations.rs`
-
-```rust
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "recommendations")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_generate = false)]
-    pub recommendation_id: Uuid,
-
-    pub dimension_id: Uuid,
-    pub title: String,
-    pub description: Option<String>,
-    pub priority: String,
-
-    // Soft delete field
-    pub deleted_at: Option<DateTimeUtc>,
-
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::dimensions::Entity",
-        from = "Column::DimensionId",
-        to = "super::dimensions::Column::DimensionId"
-    )]
-    Dimensions,
-}
-
-impl ActiveModelBehavior for ActiveModel {
-    fn before_save(self) -> Result<Self, DbErr> {
-        // Auto-update timestamps
-        let mut active_model = self;
-        active_model.updated_at = Set(chrono::Utc::now());
-        Ok(active_model)
-    }
-}
+pub use submission::{Entity as SubmissionEntity, Model as SubmissionModel};
+pub use cooperative::{Entity as CooperativeEntity, Model as CooperativeModel};
+pub use federation::{Entity as FederationEntity, Model as FederationModel};
+pub use apex::{Entity as ApexEntity, Model as ApexModel};
+pub use organization::{Entity as OrganizationEntity, Model as OrganizationModel};
+pub use user::{Entity as UserEntity, Model as UserModel};
+pub use enums::*;  // All enums: SubmissionStatus, ReviewTier, etc.
 ```
 
 ---
