@@ -341,7 +341,10 @@ export const SubmissionDetailPage: React.FC = () => {
         icon: Database,
         pendingAction:
           submissionMethod === "manual"
-            ? t("submissions.detail.sections.fixed_deposits.pendingActionManual", "Saisir manuellement")
+            ? t(
+                "submissions.detail.sections.fixed_deposits.pendingActionManual",
+                "Saisir manuellement",
+              )
             : t("submissions.detail.sections.fixed_deposits.pendingAction"),
         readyAction: t("submissions.detail.sections.fixed_deposits.readyAction"),
       },

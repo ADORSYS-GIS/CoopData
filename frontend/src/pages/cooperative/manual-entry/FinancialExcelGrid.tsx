@@ -366,7 +366,7 @@ export function FinancialExcelGrid({
       start = 7; // Default fiscal: July - June
     }
 
-    let all: MonthCol[] = [];
+    const all: MonthCol[] = [];
     for (let i = 0; i < 12; i++) {
       const mNum = ((start - 1 + i) % 12) + 1;
       const found = allMonths.find((m) => m.num === mNum);

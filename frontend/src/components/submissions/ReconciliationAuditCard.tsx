@@ -63,7 +63,9 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
       for (const code of codes) {
         const found = items.find((it) => it.account_code === code);
         if (found && found.value != null) {
-          return typeof found.value === "number" ? found.value : parseFloat(String(found.value)) || 0;
+          return typeof found.value === "number"
+            ? found.value
+            : parseFloat(String(found.value)) || 0;
         }
       }
       return null;
@@ -72,7 +74,11 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     // 1. Members Shares (COA 3101 / 3100)
     const membersList = membersRes?.data ?? [];
     const membersShareTotal = membersList.reduce(
-      (sum, m) => sum + (typeof m.share_balance === "number" ? m.share_balance : parseFloat(String(m.share_balance || 0)) || 0),
+      (sum, m) =>
+        sum +
+        (typeof m.share_balance === "number"
+          ? m.share_balance
+          : parseFloat(String(m.share_balance || 0)) || 0),
       0,
     );
     const finShares = getCoaAmount([3101, 3100]);
@@ -80,7 +86,8 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     // 2. Savings Accounts (COA 2101 / 2100)
     const savingsList = savingsRes?.data ?? [];
     const savingsTotal = savingsList.reduce(
-      (sum, s) => sum + (typeof s.balance === "number" ? s.balance : parseFloat(String(s.balance || 0)) || 0),
+      (sum, s) =>
+        sum + (typeof s.balance === "number" ? s.balance : parseFloat(String(s.balance || 0)) || 0),
       0,
     );
     const finSavings = getCoaAmount([2101, 2100]);
@@ -88,7 +95,8 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     // 3. Loan Book (COA 1201 / 1104 / 1200)
     const loansList = loansRes?.data ?? [];
     const loansTotal = loansList.reduce(
-      (sum, l) => sum + (typeof l.balance === "number" ? l.balance : parseFloat(String(l.balance || 0)) || 0),
+      (sum, l) =>
+        sum + (typeof l.balance === "number" ? l.balance : parseFloat(String(l.balance || 0)) || 0),
       0,
     );
     const finLoans = getCoaAmount([1201, 1104, 1200]);
@@ -96,7 +104,8 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     // 4. Fixed Deposits (COA 2103)
     const fdList = fdRes?.data ?? [];
     const fdTotal = fdList.reduce(
-      (sum, d) => sum + (typeof d.balance === "number" ? d.balance : parseFloat(String(d.balance || 0)) || 0),
+      (sum, d) =>
+        sum + (typeof d.balance === "number" ? d.balance : parseFloat(String(d.balance || 0)) || 0),
       0,
     );
     const finFd = getCoaAmount([2103]);
@@ -181,7 +190,9 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
 
   const matchCount = auditRows.filter((r) => r.status === "match").length;
   const varianceCount = auditRows.filter((r) => r.status === "variance").length;
-  const pendingCount = auditRows.filter((r) => r.status === "pending_subledger" || r.status === "pending_financial").length;
+  const pendingCount = auditRows.filter(
+    (r) => r.status === "pending_subledger" || r.status === "pending_financial",
+  ).length;
 
   const fmtCurrency = (val: number | null) => {
     if (val === null) return "—";
@@ -189,7 +200,9 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
       style: "currency",
       currency: "SZL",
       minimumFractionDigits: 2,
-    }).format(val).replace("SZL", "E");
+    })
+      .format(val)
+      .replace("SZL", "E");
   };
 
   return (
@@ -204,13 +217,19 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
           <div className="flex items-center gap-2">
             {varianceCount > 0 ? (
               <StatusPill tone="warning">
-                {t("reconciliation.statusVariance", "{{count}} Variance Alert(s)", { count: varianceCount })}
+                {t("reconciliation.statusVariance", "{{count}} Variance Alert(s)", {
+                  count: varianceCount,
+                })}
               </StatusPill>
             ) : matchCount > 0 && pendingCount === 0 ? (
-              <StatusPill tone="success">{t("reconciliation.statusFullyReconciled", "Fully Reconciled")}</StatusPill>
+              <StatusPill tone="success">
+                {t("reconciliation.statusFullyReconciled", "Fully Reconciled")}
+              </StatusPill>
             ) : (
               <StatusPill tone="neutral">
-                {t("reconciliation.statusInProgress", "{{count}}/4 Reconciled", { count: matchCount })}
+                {t("reconciliation.statusInProgress", "{{count}}/4 Reconciled", {
+                  count: matchCount,
+                })}
               </StatusPill>
             )}
           </div>
@@ -220,7 +239,10 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
       {isLoading ? (
         <div className="flex items-center justify-center py-10 text-muted-foreground text-xs">
           <Loader2 className="size-4 animate-spin mr-2" />
-          {t("reconciliation.loading", "Auditing sub-ledger balances against financial statement...")}
+          {t(
+            "reconciliation.loading",
+            "Auditing sub-ledger balances against financial statement...",
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -247,10 +269,19 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
                   <ShieldCheck className="size-4 text-primary" />
                   <span>
                     {varianceCount > 0
-                      ? t("reconciliation.alertVarianceTitle", "Discrepancy Detected Between Sub-Ledgers and Balance Sheet")
+                      ? t(
+                          "reconciliation.alertVarianceTitle",
+                          "Discrepancy Detected Between Sub-Ledgers and Balance Sheet",
+                        )
                       : matchCount > 0 && pendingCount === 0
-                        ? t("reconciliation.alertSuccessTitle", "100% Sub-Ledger & Financial Statement Integrity Verified")
-                        : t("reconciliation.alertPendingTitle", "Sub-Ledgers Reconciliation In Progress")}
+                        ? t(
+                            "reconciliation.alertSuccessTitle",
+                            "100% Sub-Ledger & Financial Statement Integrity Verified",
+                          )
+                        : t(
+                            "reconciliation.alertPendingTitle",
+                            "Sub-Ledgers Reconciliation In Progress",
+                          )}
                   </span>
                 </h4>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -287,12 +318,24 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left border-b border-border">
-                  <th className="px-3.5 py-2.5">{t("reconciliation.thCategory", "Account Category")}</th>
-                  <th className="px-3.5 py-2.5 text-center">{t("reconciliation.thCoaCode", "COA Code")}</th>
-                  <th className="px-3.5 py-2.5 text-right">{t("reconciliation.thSubLedgerTotal", "Sub-Ledger Total")}</th>
-                  <th className="px-3.5 py-2.5 text-right">{t("reconciliation.thFinancialTotal", "Balance Sheet Line")}</th>
-                  <th className="px-3.5 py-2.5 text-right">{t("reconciliation.thVariance", "Variance")}</th>
-                  <th className="px-3.5 py-2.5 text-center">{t("reconciliation.thStatus", "Audit Status")}</th>
+                  <th className="px-3.5 py-2.5">
+                    {t("reconciliation.thCategory", "Account Category")}
+                  </th>
+                  <th className="px-3.5 py-2.5 text-center">
+                    {t("reconciliation.thCoaCode", "COA Code")}
+                  </th>
+                  <th className="px-3.5 py-2.5 text-right">
+                    {t("reconciliation.thSubLedgerTotal", "Sub-Ledger Total")}
+                  </th>
+                  <th className="px-3.5 py-2.5 text-right">
+                    {t("reconciliation.thFinancialTotal", "Balance Sheet Line")}
+                  </th>
+                  <th className="px-3.5 py-2.5 text-right">
+                    {t("reconciliation.thVariance", "Variance")}
+                  </th>
+                  <th className="px-3.5 py-2.5 text-center">
+                    {t("reconciliation.thStatus", "Audit Status")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -308,10 +351,18 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
                       {row.coaCode}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-foreground">
-                      {row.hasSubLedgerData ? fmtCurrency(row.subLedgerTotal) : <span className="text-muted-foreground/50">—</span>}
+                      {row.hasSubLedgerData ? (
+                        fmtCurrency(row.subLedgerTotal)
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-foreground">
-                      {row.hasFinancialData ? fmtCurrency(row.financialTotal) : <span className="text-muted-foreground/50">—</span>}
+                      {row.hasFinancialData ? (
+                        fmtCurrency(row.financialTotal)
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-bold">
                       {row.status === "variance" ? (

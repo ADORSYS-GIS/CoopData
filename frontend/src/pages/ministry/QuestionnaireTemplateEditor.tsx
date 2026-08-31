@@ -801,7 +801,9 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("templateEditor.deleteSectionTitle", "Delete Section")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("templateEditor.deleteSectionTitle", "Delete Section")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {t("templateEditor.confirmDeleteSection")}
             </AlertDialogDescription>

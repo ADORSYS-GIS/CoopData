@@ -179,7 +179,10 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
           {t("nf.uploadTitle")}
         </CardTitle>
         <CardDescription className="text-xs text-muted-foreground">
-          {t("nf.sectionChoiceSubtitle", "Select a specific section or upload a single workbook containing all sheets")}
+          {t(
+            "nf.sectionChoiceSubtitle",
+            "Select a specific section or upload a single workbook containing all sheets",
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-6">

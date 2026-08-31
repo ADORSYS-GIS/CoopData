@@ -39,7 +39,10 @@ import {
   DuplicateSubmissionError,
 } from "@/hooks/submissions/useSubmissions";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
-import type { SubmissionResponse, CreateApexSubmissionRequest } from "@/hooks/submissions/useSubmissions";
+import type {
+  SubmissionResponse,
+  CreateApexSubmissionRequest,
+} from "@/hooks/submissions/useSubmissions";
 
 // Suppress unused import warnings for icons that may be used in JSX conditionally
 void ArrowUpRight;
@@ -166,10 +169,29 @@ function formatPeriodBadge(periodType?: string, periodValue?: string, year?: num
   }
   if (pt === "MONTHLY") {
     const monthNames: Record<string, string> = {
-      "01": "Jan", "1": "Jan", "02": "Feb", "2": "Feb", "03": "Mar", "3": "Mar",
-      "04": "Apr", "4": "Apr", "05": "May", "5": "May", "06": "Jun", "6": "Jun",
-      "07": "Jul", "7": "Jul", "08": "Aug", "8": "Aug", "09": "Sep", "9": "Sep",
-      "10": "Oct", "11": "Nov", "12": "Dec", "FULL_YEAR": "Jan-Dec", "1-12": "Jan-Dec",
+      "01": "Jan",
+      "1": "Jan",
+      "02": "Feb",
+      "2": "Feb",
+      "03": "Mar",
+      "3": "Mar",
+      "04": "Apr",
+      "4": "Apr",
+      "05": "May",
+      "5": "May",
+      "06": "Jun",
+      "6": "Jun",
+      "07": "Jul",
+      "7": "Jul",
+      "08": "Aug",
+      "8": "Aug",
+      "09": "Sep",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec",
+      FULL_YEAR: "Jan-Dec",
+      "1-12": "Jan-Dec",
     };
     const mName = monthNames[pv] || pv;
     return `Monthly - ${mName} ${yr}`.trim();
@@ -185,7 +207,9 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">("YEARLY");
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
+    "YEARLY",
+  );
   const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
   const createSubmission = useCreateSubmission();
 
@@ -371,10 +395,13 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
               {t("submissions.reportingYear")}
             </label>
-            <CalendarYearPicker selectedYear={year} onChangeYear={(y) => {
-              setYear(y);
-              if (periodType === "YEARLY") setPeriodValue(String(y));
-            }} />
+            <CalendarYearPicker
+              selectedYear={year}
+              onChangeYear={(y) => {
+                setYear(y);
+                if (periodType === "YEARLY") setPeriodValue(String(y));
+              }}
+            />
           </div>
         </div>
 
@@ -410,7 +437,9 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [selectedCoopId, setSelectedCoopId] = useState("");
-  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">("YEARLY");
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
+    "YEARLY",
+  );
   const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
   const createApexSubmission = useCreateApexSubmission();
   const { data: cooperatives = [], isLoading: coopsLoading } = useCooperatives();
@@ -770,7 +799,9 @@ function SubmissionTable({
                       <span className="font-bold text-foreground text-xs">
                         {formatPeriodBadge(s.period_type, s.period_value, s.reporting_year)}
                       </span>
-                      <span className="text-[10px] text-muted-foreground font-medium">Year {s.reporting_year}</span>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        Year {s.reporting_year}
+                      </span>
                     </div>
                   </td>
                   <td className="px-5 py-4 hidden md:table-cell">

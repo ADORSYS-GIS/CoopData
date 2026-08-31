@@ -739,23 +739,26 @@ pub async fn get_benchmarks(
         .filter(|s| s.reporting_year == year)
         .collect();
 
-    // Filter by cooperative_type if provided
+    // Filter by cooperative_type if provided — batch load all coops at once
+    // to avoid N+1 queries (one DB round trip instead of one per submission).
     let type_filtered: Vec<_> = if let Some(coop_type) = &params.cooperative_type {
         let coop_type_lower = coop_type.to_lowercase();
-        let mut result = Vec::new();
-        for sub in &year_filtered {
-            if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(sub.cooperative_id).await {
-                let institution_type = coop
-                    .institution_type
-                    .as_ref()
-                    .map(|t| t.as_str().to_lowercase())
-                    .unwrap_or_default();
-                if institution_type == coop_type_lower {
-                    result.push(*sub);
-                }
-            }
-        }
-        result
+        let coop_ids: Vec<_> = year_filtered.iter().map(|s| s.cooperative_id).collect();
+        let coops = state.cooperative_repo.find_by_ids(coop_ids).await?;
+        let coop_map: std::collections::HashMap<_, _> = coops
+            .into_iter()
+            .map(|c| (c.id, c))
+            .collect();
+        year_filtered
+            .into_iter()
+            .filter(|sub| {
+                coop_map
+                    .get(&sub.cooperative_id)
+                    .and_then(|c| c.institution_type.as_ref())
+                    .map(|t| t.as_str().to_lowercase() == coop_type_lower)
+                    .unwrap_or(false)
+            })
+            .collect()
     } else {
         year_filtered.to_vec()
     };

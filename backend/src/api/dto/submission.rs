@@ -3,8 +3,55 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::entities::enums::PeriodType;
 use crate::entities::submission::Model as SubmissionModel;
 use crate::entities::submission_section::Model as SectionModel;
+
+/// Shared period resolution and validation logic used by all submission
+/// creation request types. Extracted here to avoid duplication.
+pub fn resolve_period(period_type: Option<&str>, period_value: Option<&str>, reporting_year: i32) -> (PeriodType, String) {
+    let pt = period_type
+        .and_then(PeriodType::parse)
+        .unwrap_or(PeriodType::Yearly);
+    let pv = match period_value {
+        Some(v) if !v.trim().is_empty() => v.trim().to_string(),
+        _ => reporting_year.to_string(),
+    };
+    (pt, pv)
+}
+
+pub fn validate_period(period_type: Option<&str>, period_value: Option<&str>, reporting_year: i32) -> Result<(), String> {
+    let (pt, pv) = resolve_period(period_type, period_value, reporting_year);
+    match pt {
+        PeriodType::Yearly => Ok(()),
+        PeriodType::Quarterly => {
+            if matches!(pv.to_uppercase().as_str(), "Q1" | "Q2" | "Q3" | "Q4") {
+                Ok(())
+            } else {
+                Err("Invalid period_value for QUARTERLY. Must be one of Q1, Q2, Q3, Q4.".into())
+            }
+        }
+        PeriodType::Monthly => {
+            if matches!(
+                pv.as_str(),
+                "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09"
+                    | "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6"
+                    | "7" | "8" | "9" | "FULL_YEAR" | "1-12"
+            ) {
+                Ok(())
+            } else {
+                Err("Invalid period_value for MONTHLY. Must be a month (01-12) or 1-12.".into())
+            }
+        }
+        PeriodType::SemiAnnual => {
+            if matches!(pv.to_uppercase().as_str(), "H1" | "H2") {
+                Ok(())
+            } else {
+                Err("Invalid period_value for SEMI_ANNUAL. Must be H1 or H2.".into())
+            }
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateSubmissionRequest {
@@ -21,48 +68,12 @@ pub struct CreateSubmissionRequest {
 }
 
 impl CreateSubmissionRequest {
-    pub fn resolved_period(&self) -> (crate::entities::enums::PeriodType, String) {
-        let pt = self
-            .period_type
-            .as_deref()
-            .and_then(crate::entities::enums::PeriodType::parse)
-            .unwrap_or(crate::entities::enums::PeriodType::Yearly);
-        let pv = match self.period_value.as_deref() {
-            Some(v) if !v.trim().is_empty() => v.trim().to_string(),
-            _ => self.reporting_year.to_string(),
-        };
-        (pt, pv)
+    pub fn resolved_period(&self) -> (PeriodType, String) {
+        resolve_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
     }
 
     pub fn validate_period(&self) -> Result<(), String> {
-        let (pt, pv) = self.resolved_period();
-        match pt {
-            crate::entities::enums::PeriodType::Yearly => Ok(()),
-            crate::entities::enums::PeriodType::Quarterly => {
-                if matches!(pv.to_uppercase().as_str(), "Q1" | "Q2" | "Q3" | "Q4") {
-                    Ok(())
-                } else {
-                    Err("Invalid period_value for QUARTERLY. Must be one of Q1, Q2, Q3, Q4.".into())
-                }
-            }
-            crate::entities::enums::PeriodType::Monthly => {
-                if matches!(
-                    pv.as_str(),
-                    "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "FULL_YEAR" | "1-12"
-                ) {
-                    Ok(())
-                } else {
-                    Err("Invalid period_value for MONTHLY. Must be a month (01-12) or 1-12.".into())
-                }
-            }
-            crate::entities::enums::PeriodType::SemiAnnual => {
-                if matches!(pv.to_uppercase().as_str(), "H1" | "H2") {
-                    Ok(())
-                } else {
-                    Err("Invalid period_value for SEMI_ANNUAL. Must be H1 or H2.".into())
-                }
-            }
-        }
+        validate_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
     }
 }
 
@@ -329,48 +340,12 @@ pub struct CreateApexSubmissionRequest {
 }
 
 impl CreateApexSubmissionRequest {
-    pub fn resolved_period(&self) -> (crate::entities::enums::PeriodType, String) {
-        let pt = self
-            .period_type
-            .as_deref()
-            .and_then(crate::entities::enums::PeriodType::parse)
-            .unwrap_or(crate::entities::enums::PeriodType::Yearly);
-        let pv = match self.period_value.as_deref() {
-            Some(v) if !v.trim().is_empty() => v.trim().to_string(),
-            _ => self.reporting_year.to_string(),
-        };
-        (pt, pv)
+    pub fn resolved_period(&self) -> (PeriodType, String) {
+        resolve_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
     }
 
     pub fn validate_period(&self) -> Result<(), String> {
-        let (pt, pv) = self.resolved_period();
-        match pt {
-            crate::entities::enums::PeriodType::Yearly => Ok(()),
-            crate::entities::enums::PeriodType::Quarterly => {
-                if matches!(pv.to_uppercase().as_str(), "Q1" | "Q2" | "Q3" | "Q4") {
-                    Ok(())
-                } else {
-                    Err("Invalid period_value for QUARTERLY. Must be one of Q1, Q2, Q3, Q4.".into())
-                }
-            }
-            crate::entities::enums::PeriodType::Monthly => {
-                if matches!(
-                    pv.as_str(),
-                    "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "FULL_YEAR" | "1-12"
-                ) {
-                    Ok(())
-                } else {
-                    Err("Invalid period_value for MONTHLY. Must be a month (01-12) or 1-12.".into())
-                }
-            }
-            crate::entities::enums::PeriodType::SemiAnnual => {
-                if matches!(pv.to_uppercase().as_str(), "H1" | "H2") {
-                    Ok(())
-                } else {
-                    Err("Invalid period_value for SEMI_ANNUAL. Must be H1 or H2.".into())
-                }
-            }
-        }
+        validate_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
     }
 }
 
@@ -382,4 +357,93 @@ pub struct DelegateSubmissionRequest {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ReclaimSubmissionRequest {
     pub comment: Option<String>,
+}
+
+#[cfg(test)]
+mod period_validation_tests {
+    use super::validate_period;
+
+    // --- Yearly ---
+    #[test]
+    fn yearly_any_value_is_valid() {
+        assert!(validate_period(Some("YEARLY"), Some("2024"), 2024).is_ok());
+        assert!(validate_period(Some("YEARLY"), None, 2024).is_ok());
+        assert!(validate_period(None, None, 2024).is_ok()); // defaults to Yearly
+    }
+
+    // --- Quarterly ---
+    #[test]
+    fn quarterly_valid_values() {
+        for v in &["Q1", "Q2", "Q3", "Q4", "q1", "q4"] {
+            assert!(
+                validate_period(Some("QUARTERLY"), Some(v), 2024).is_ok(),
+                "Expected {v} to be valid for QUARTERLY"
+            );
+        }
+    }
+
+    #[test]
+    fn quarterly_invalid_values() {
+        for v in &["Q5", "Q0", "H1", "01", "2024", "quarter1", ""] {
+            assert!(
+                validate_period(Some("QUARTERLY"), Some(v), 2024).is_err(),
+                "Expected {v} to be invalid for QUARTERLY"
+            );
+        }
+    }
+
+    // --- Monthly ---
+    #[test]
+    fn monthly_valid_values() {
+        let valid = [
+            "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "01", "02", "03", "04", "05", "06", "07", "08", "09",
+            "10", "11", "12", "FULL_YEAR", "1-12",
+        ];
+        for v in &valid {
+            assert!(
+                validate_period(Some("MONTHLY"), Some(v), 2024).is_ok(),
+                "Expected {v} to be valid for MONTHLY"
+            );
+        }
+    }
+
+    #[test]
+    fn monthly_invalid_values() {
+        for v in &["13", "00", "Q1", "H1", "january", "month1", ""] {
+            assert!(
+                validate_period(Some("MONTHLY"), Some(v), 2024).is_err(),
+                "Expected {v} to be invalid for MONTHLY"
+            );
+        }
+    }
+
+    // --- Semi-Annual ---
+    #[test]
+    fn semi_annual_valid_values() {
+        for v in &["H1", "H2", "h1", "h2"] {
+            assert!(
+                validate_period(Some("SEMI_ANNUAL"), Some(v), 2024).is_ok(),
+                "Expected {v} to be valid for SEMI_ANNUAL"
+            );
+        }
+    }
+
+    #[test]
+    fn semi_annual_invalid_values() {
+        for v in &["H3", "H0", "Q1", "01", "half1", ""] {
+            assert!(
+                validate_period(Some("SEMI_ANNUAL"), Some(v), 2024).is_err(),
+                "Expected {v} to be invalid for SEMI_ANNUAL"
+            );
+        }
+    }
+
+    // --- Case insensitivity for period_type parsing ---
+    #[test]
+    fn period_type_case_insensitive() {
+        assert!(validate_period(Some("quarterly"), Some("Q1"), 2024).is_ok());
+        assert!(validate_period(Some("semiannual"), Some("H1"), 2024).is_ok());
+        assert!(validate_period(Some("monthly"), Some("06"), 2024).is_ok());
+    }
 }

@@ -79,7 +79,11 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
           placeholder="0.00"
           value={member.shareBalance ?? ""}
           onChange={(e) =>
-            onUpdate(member._rowKey, "shareBalance", e.target.value === "" ? 0 : parseFloat(e.target.value))
+            onUpdate(
+              member._rowKey,
+              "shareBalance",
+              e.target.value === "" ? 0 : parseFloat(e.target.value),
+            )
           }
         />
       </td>

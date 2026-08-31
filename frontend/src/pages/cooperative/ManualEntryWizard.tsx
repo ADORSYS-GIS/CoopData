@@ -127,7 +127,9 @@ export function ManualEntryWizard() {
       setStartMonth(1);
     }
   }, [accountingYear]);
-  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">("YEARLY");
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
+    "YEARLY",
+  );
   const [periodValue, setPeriodValue] = useState<string>("2026");
 
   useEffect(() => {
@@ -239,7 +241,10 @@ export function ManualEntryWizard() {
           urbanRural: m.urban_rural as "Urban" | "Rural",
           agmAttendance: m.agm_attendance,
           votingExercised: m.voting_exercised,
-          shareBalance: typeof m.share_balance === "number" ? m.share_balance : parseFloat(String(m.share_balance || 0)) || 0,
+          shareBalance:
+            typeof m.share_balance === "number"
+              ? m.share_balance
+              : parseFloat(String(m.share_balance || 0)) || 0,
         })),
       );
     }
@@ -603,7 +608,9 @@ export function ManualEntryWizard() {
   }, []);
 
   // ── Delete actions ──
-  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<"financial" | "non_financial" | null>(null);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<
+    "financial" | "non_financial" | null
+  >(null);
 
   const confirmDeleteFinancial = async () => {
     try {
@@ -1137,7 +1144,9 @@ export function ManualEntryWizard() {
               {/* Start Month Selector */}
               <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-3.5 py-2 border border-border">
                 <Calendar className="size-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">Start:</span>
+                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                  Start:
+                </span>
                 <select
                   className="bg-transparent text-sm font-bold text-foreground border-none outline-none cursor-pointer"
                   value={startMonth}
@@ -1165,12 +1174,16 @@ export function ManualEntryWizard() {
                   className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
                   value={periodType}
                   onChange={(e) => {
-                    const newType = e.target.value as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
+                    const newType = e.target.value as
+                      "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
                     setPeriodType(newType);
                     if (newType === "QUARTERLY") setPeriodValue("Q1");
                     else if (newType === "MONTHLY") setPeriodValue("FULL_YEAR");
                     else if (newType === "SEMI_ANNUAL") setPeriodValue("H1");
-                    else setPeriodValue(String(submission?.reporting_year || new Date().getFullYear()));
+                    else
+                      setPeriodValue(
+                        String(submission?.reporting_year || new Date().getFullYear()),
+                      );
                   }}
                 >
                   <option value="YEARLY">Yearly (Annual)</option>
@@ -1198,7 +1211,9 @@ export function ManualEntryWizard() {
                     )}
                     {periodType === "MONTHLY" && (
                       <>
-                        <option value="FULL_YEAR">Full 12 Mo ({submission?.reporting_year || ""})</option>
+                        <option value="FULL_YEAR">
+                          Full 12 Mo ({submission?.reporting_year || ""})
+                        </option>
                         <option value="01">Jan ({submission?.reporting_year || ""})</option>
                         <option value="02">Feb ({submission?.reporting_year || ""})</option>
                         <option value="03">Mar ({submission?.reporting_year || ""})</option>
@@ -1558,7 +1573,9 @@ export function ManualEntryWizard() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4 flex gap-2">
-            <AlertDialogCancel className="rounded-xl">{t("common.cancel", "Cancel")}</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">
+              {t("common.cancel", "Cancel")}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={
                 deleteConfirmTarget === "financial"

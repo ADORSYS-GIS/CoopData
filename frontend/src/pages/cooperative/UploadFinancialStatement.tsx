@@ -1,7 +1,15 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X, AlertTriangle } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useUploadFinancialStatement } from "@/hooks/submissions/useUpload";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
@@ -82,7 +90,9 @@ export const UploadFinancialStatementWidget: React.FC<{
         setExtractionFinished(true);
         void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
         if (submissionId) {
-          void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", submissionId] });
+          void queryClient.invalidateQueries({
+            queryKey: ["cooperative-submissions", submissionId],
+          });
         }
         if (onExtractionComplete) {
           onExtractionComplete();
@@ -124,7 +134,10 @@ export const UploadFinancialStatementWidget: React.FC<{
                   {t("uploadFinancial.wrongYearTitle", "Wrong Financial Statement Year")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {t("uploadFinancial.wrongYearSubtitle", "Upload rejected — year mismatch detected")}
+                  {t(
+                    "uploadFinancial.wrongYearSubtitle",
+                    "Upload rejected — year mismatch detected",
+                  )}
                 </p>
               </div>
             </div>
@@ -251,7 +264,9 @@ export const UploadFinancialStatementWidget: React.FC<{
                 <div className="flex items-center gap-3">
                   <div className="text-left">
                     <p className="text-sm font-semibold">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
                   </div>
                   <button
                     disabled={!navigator.onLine}
@@ -270,7 +285,9 @@ export const UploadFinancialStatementWidget: React.FC<{
               <>
                 <Upload className="size-10 mx-auto mb-3 text-muted-foreground/50" />
                 <p className="text-sm font-semibold">{t("uploadFinancial.dropOrBrowse")}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("uploadFinancial.fileSizeHint")}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("uploadFinancial.fileSizeHint")}
+                </p>
               </>
             )}
           </div>
@@ -282,13 +299,22 @@ export const UploadFinancialStatementWidget: React.FC<{
               disabled={!file || upload.isPending || !navigator.onLine}
               title={
                 !navigator.onLine
-                  ? t("uploadFinancial.uploadDisabledOffline", "File upload is disabled when offline")
+                  ? t(
+                      "uploadFinancial.uploadDisabledOffline",
+                      "File upload is disabled when offline",
+                    )
                   : undefined
               }
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
-              {upload.isPending ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {upload.isPending ? t("uploadFinancial.uploading") : t("uploadFinancial.uploadAndExtract")}
+              {upload.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
+              {upload.isPending
+                ? t("uploadFinancial.uploading")
+                : t("uploadFinancial.uploadAndExtract")}
             </button>
             {onClose && (
               <button

@@ -518,7 +518,10 @@ export const FinancialStatementEditor: React.FC<{
                   {t("financialStatementEditor.wrongYearTitle", "Extraction Error / Year Mismatch")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {t("financialStatementEditor.wrongYearSubtitle", "Uploaded document year does not match submission year")}
+                  {t(
+                    "financialStatementEditor.wrongYearSubtitle",
+                    "Uploaded document year does not match submission year",
+                  )}
                 </p>
               </div>
             </div>

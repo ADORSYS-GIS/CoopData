@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Upload, PenLine, ClipboardList, AlertTriangle, ArrowRight, RotateCcw } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  PenLine,
+  ClipboardList,
+  AlertTriangle,
+  ArrowRight,
+  RotateCcw,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,8 +61,14 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
       value: "upload",
       icon: <Upload className="size-6 text-primary" />,
       title: t("submissions.methodModal.uploadTitle", "Excel / PDF Upload"),
-      desc: t("submissions.methodModal.uploadDesc", "Upload financial statements and non-financial Excel templates"),
-      note: t("submissions.methodModal.uploadNote", "Automated AI line-item extraction and template parsing"),
+      desc: t(
+        "submissions.methodModal.uploadDesc",
+        "Upload financial statements and non-financial Excel templates",
+      ),
+      note: t(
+        "submissions.methodModal.uploadNote",
+        "Automated AI line-item extraction and template parsing",
+      ),
       confirm: t("submissions.methodModal.confirmUpload", "Select Upload"),
       accent: "border-primary/20 bg-primary/5 hover:border-primary/40 hover:bg-primary/10",
     },
@@ -62,8 +76,14 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
       value: "manual",
       icon: <PenLine className="size-6 text-accent" />,
       title: t("submissions.methodModal.manualTitle", "Manual Form Entry"),
-      desc: t("submissions.methodModal.manualDesc", "Direct web form & grid entry for financial and sub-ledger data"),
-      note: t("submissions.methodModal.manualNote", "Interactive step-by-step wizard with built-in validation"),
+      desc: t(
+        "submissions.methodModal.manualDesc",
+        "Direct web form & grid entry for financial and sub-ledger data",
+      ),
+      note: t(
+        "submissions.methodModal.manualNote",
+        "Interactive step-by-step wizard with built-in validation",
+      ),
       confirm: t("submissions.methodModal.confirmManual", "Select Manual Form"),
       accent: "border-accent/25 bg-accent/5 hover:border-accent/40 hover:bg-accent/10",
     },
@@ -90,23 +110,35 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
     try {
       if (resetData) {
         // Clear financial statement and line items
-        await apiClient.DELETE("/api/v1/cooperative/submissions/{id}/financial-statement", {
-          params: { path: { id: submissionId } },
-        }).catch(() => null);
+        await apiClient
+          .DELETE("/api/v1/cooperative/submissions/{id}/financial-statement", {
+            params: { path: { id: submissionId } },
+          })
+          .catch(() => null);
 
         // Clear non-financial sub-ledger records
-        await apiClient.DELETE("/api/v1/cooperative/submissions/{id}/non-financial", {
-          params: { path: { id: submissionId } },
-        }).catch(() => null);
+        await apiClient
+          .DELETE("/api/v1/cooperative/submissions/{id}/non-financial", {
+            params: { path: { id: submissionId } },
+          })
+          .catch(() => null);
       }
 
       await updateMethod.mutateAsync({ id: submissionId, submissionMethod: targetMethod });
 
       toast.success(
         resetData
-          ? t("submissions.methodModal.resetSuccess", "Submission method updated and existing data reset.")
+          ? t(
+              "submissions.methodModal.resetSuccess",
+              "Submission method updated and existing data reset.",
+            )
           : t("submissions.methodModal.currentBadge", {
-              method: targetMethod === "upload" ? "Upload" : targetMethod === "manual" ? "Manual Entry" : "Questionnaire",
+              method:
+                targetMethod === "upload"
+                  ? "Upload"
+                  : targetMethod === "manual"
+                    ? "Manual Entry"
+                    : "Questionnaire",
             }),
       );
 
@@ -157,7 +189,10 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
                 </div>
                 <div>
                   <DialogTitle className="text-lg font-bold text-foreground">
-                    {t("submissions.methodModal.confirmResetTitle", "Reset Existing Data & Switch Method?")}
+                    {t(
+                      "submissions.methodModal.confirmResetTitle",
+                      "Reset Existing Data & Switch Method?",
+                    )}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                     {t(
@@ -202,7 +237,10 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
                 ) : (
                   <RotateCcw className="size-3.5" />
                 )}
-                {t("submissions.methodModal.btnResetAndSwitch", "Clear Existing Data & Switch Method")}
+                {t(
+                  "submissions.methodModal.btnResetAndSwitch",
+                  "Clear Existing Data & Switch Method",
+                )}
               </button>
             </div>
           </div>
