@@ -18,6 +18,8 @@ regexes = [
     '''loansInArrears\d+_\d+''',
     # Benchmark DTO doc comments describing a KPI-key -> average mapping (not a secret)
     '''sector\+regional''',
+    # k6 test scripts use __ENV.K6_* env var references (not actual secrets)
+    '''__ENV\.K6_''',
 ]
 paths = [
     '''docs/''',
