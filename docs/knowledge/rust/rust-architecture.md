@@ -274,7 +274,7 @@ Invalidation rules:
 │  5. Frontend merges server data into IndexedDB                  │
 │                                                                  │
 │  BACKEND ROLE:                                                   │
-│  - Accept sync queue items                                       │
+│  - REST API for CRUD operations                                  │
 │  - Validate and persist each item                                │
 │  - Return conflict resolution data                               │
 │  - Provide full data snapshots for initial sync                 │
@@ -282,13 +282,14 @@ Invalidation rules:
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### Backend Sync Endpoints
+### Backend Sync Strategy
 
-```
-POST   /api/sync/push          ← Frontend sends pending changes
-GET    /api/sync/pull          ← Frontend fetches latest data
-POST   /api/sync/conflicts     ← Frontend resolves conflicts
-```
+The backend does NOT have dedicated sync endpoints. Instead:
+- Standard REST endpoints handle all CRUD operations
+- Each entity has `id`, `created_at`, `updated_at` for sync tracking
+- Frontend uses standard API calls when online
+- Frontend queues operations in IndexedDB when offline
+- On reconnect, frontend replays queued operations
 
 ---
 
@@ -389,11 +390,21 @@ AppState is created once at startup and shared across all handlers:
 ┌──────────────────────────────────────────┐
 │              AppState                     │
 ├──────────────────────────────────────────┤
-│  db: Arc<DatabaseConnection>             │  ← SeaORM connection pool
-│  keycloak_service: Arc<KeycloakService>   │  ← External auth service
-│  jwt_validator: Arc<JwtValidator>         │  ← Token validation
-│  report_service: Arc<ReportService>       │  ← Report generation
-│  cache: Arc<CacheService>                │  ← In-memory cache
+│  db: Database                             │  ← SeaORM connection pool
+│  config: AppConfig                       │  ← Application configuration
+│  cache: CacheService                     │  ← In-memory cache
+│  keycloak: KeycloakService               │  ← External auth service
+│  jwt_validator: Arc<JwtValidator>        │  ← Token validation
+│  // Entity repositories                  │
+│  federation_repo: FederationRepository   │
+│  apex_repo: ApexRepository               │
+│  cooperative_repo: CooperativeRepository │
+│  submission_repo: SubmissionRepository  │
+│  // ... (23+ repositories total)          │
+│  // Services                              │
+│  extractor: Arc<dyn Extractor>          │  ← AI extraction service
+│  narrative_generator: Arc<dyn ReportNarrativeGenerator> │
+│  storage: ObjectStorageService           │  ← S3/file storage
 └──────────────────────────────────────────┘
 
 Handlers receive AppState via axum's State extractor:
