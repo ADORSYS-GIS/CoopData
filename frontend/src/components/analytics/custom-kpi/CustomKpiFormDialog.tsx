@@ -31,7 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
 
 interface VariableDef {
@@ -105,7 +105,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
   evaluateFormula,
   isSaving,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const [name, setName] = useState("");
   const [nameTr, setNameTr] = useState<FieldTranslations>({});
   const [description, setDescription] = useState("");

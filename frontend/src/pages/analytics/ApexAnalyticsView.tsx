@@ -19,7 +19,7 @@ import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const year = Number(filterValues.year);
 
   const params = useMemo(

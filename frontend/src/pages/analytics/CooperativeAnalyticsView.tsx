@@ -23,7 +23,7 @@ import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useUserRole } from "@/lib/auth";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 import type { components } from "@/openapi-client/api";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
 
 interface Props {
@@ -31,7 +31,7 @@ interface Props {
 }
 
 export function CooperativeAnalyticsView({ filterValues }: Props) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const reportingYear = Number(filterValues.year);
   const role = useUserRole();
 

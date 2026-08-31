@@ -7,7 +7,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface ActiveStepPickerProps {
   activeStepKey: string;
@@ -64,7 +64,7 @@ export function ActiveStepPicker({
   selectedYear,
   onSelectYear,
 }: ActiveStepPickerProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   if (activeStepKey === "fed") {
     return (
       <div>

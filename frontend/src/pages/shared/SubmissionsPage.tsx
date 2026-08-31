@@ -405,7 +405,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
 }
 
 function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms, coopLabel } = useOrganizationLabelsContext();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -420,7 +420,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
 
   const handleCreate = async () => {
     if (!selectedCoopId) {
-      toast.error("Please select a cooperative");
+      toast.error(replaceOrgTerms("Please select a cooperative"));
       return;
     }
     try {
@@ -458,7 +458,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground">
-                {t("submissions.newSubmission")} — On Behalf of Cooperative
+                {t("submissions.newSubmission")} — {replaceOrgTerms("On Behalf of Cooperative")}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {t("submissions.startAnnualReturn")}
@@ -476,15 +476,16 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
         <div className="px-6 pb-2 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-              Cooperative
+              {coopLabel.toUpperCase()}
             </label>
             {coopsLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                <Loader2 className="size-3.5 animate-spin" /> Loading cooperatives...
+                <Loader2 className="size-3.5 animate-spin" />{" "}
+                {replaceOrgTerms("Loading cooperatives...")}
               </div>
             ) : cooperatives.length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">
-                No cooperatives found under your apex.
+                {replaceOrgTerms("No cooperatives found under your apex.")}
               </p>
             ) : (
               <select
@@ -492,7 +493,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setSelectedCoopId(e.target.value)}
                 className="w-full rounded-xl border border-input bg-muted/30 py-2.5 px-3 text-sm transition-all focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none"
               >
-                <option value="">Select cooperative...</option>
+                <option value="">{replaceOrgTerms("Select cooperative...")}</option>
                 {cooperatives.map((coop: { id: string; display_name?: string; name: string }) => (
                   <option key={coop.id} value={coop.id}>
                     {coop.display_name || coop.name}

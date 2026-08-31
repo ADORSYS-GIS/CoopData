@@ -10,7 +10,7 @@ import {
 import { Card } from "@/components/app-shell";
 import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
 import type { FilterConfig, AnalyticsFilterValues } from "./analyticsTypes";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface Props {
   filters: FilterConfig[];
@@ -39,7 +39,7 @@ export function AnalyticsFilterBar({
   onClear,
 }: Props) {
   const [showFilters, setShowFilters] = useState(false);
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
 
   const activeCount = Object.entries(filterValues).filter(
     ([k, v]) => k !== "year" && v !== "all",
@@ -192,9 +192,9 @@ export function AnalyticsFilterBar({
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold"
             >
               <span className="text-[10px] uppercase tracking-wider opacity-60">
-                {filter?.label}:
+                {replaceOrgTerms(filter?.label || "")}:
               </span>
-              {option.label}
+              {replaceOrgTerms(option.label)}
               <button
                 onClick={() => onFilterChange(key, "all")}
                 className="hover:bg-primary/20 rounded-full p-0.5"
@@ -240,7 +240,7 @@ export function AnalyticsFilterBar({
               return (
                 <div key={filter.id}>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    {filter.label}
+                    {replaceOrgTerms(filter.label)}
                   </label>
                   <select
                     value={filterValues[sk] || "all"}
@@ -250,7 +250,7 @@ export function AnalyticsFilterBar({
                   >
                     {filter.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {replaceOrgTerms(opt.label)}
                       </option>
                     ))}
                   </select>
