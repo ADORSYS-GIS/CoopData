@@ -70,4 +70,10 @@ seed.sh
 
 # Vite PWA dev distribution
 frontend/dev-dist/
+
+# k6 test results (large JSON files)
 results/
+
+# Graphify-out
+graphify-out/
+

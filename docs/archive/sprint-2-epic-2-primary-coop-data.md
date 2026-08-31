@@ -25,9 +25,9 @@ Ticket 1 (DB & Schema Foundation) ───── must be done first
 **Each person is responsible for:**
 - Backend: migration, SeaORM entity, repository, DTOs (with validation), handler(s) with `#[utoipa::path]`, routes, OpenAPI registration
 - Frontend: minimal data-entry page + hook(s) for their feature, wired to the real API (never `fetch`/`axios` — use the generated `openapi-client`)
-- Follow `docs/architecture.md` exact layering: Route → Handler → Repository → Database. **Never skip layers.**
+- Follow `docs/architecture/architecture.md` exact layering: Route → Handler → Repository → Database. **Never skip layers.**
 
-> **Reference docs**: `docs/architecture.md` (source of truth), `docs/database-schema.md` (table-by-table reference), `AGENTS.md` Rust knowledge docs.
+> **Reference docs**: `docs/architecture/architecture.md` (source of truth), `docs/architecture/docs/architecture/database-schema.md` (table-by-table reference), `AGENTS.md` Rust knowledge docs.
 
 ---
 
@@ -63,7 +63,7 @@ This is the foundation ticket that must be completed before any data-module tick
 
 #### Backend — Migrations & Enums
 - Create migration crate/dir with SeaORM-migration entrypoint
-- Migration `m1`: enum types (all 16 from `database-schema.md` §4, minus removed `compliance_status`)
+- Migration `m1`: enum types (all 16 from `docs/architecture/database-schema.md` §4, minus removed `compliance_status`)
 - Migration `m2`: `chart_of_accounts` + `chart_of_accounts_coop_types` + seed rows derived from `ACCOUNT_CODES` in `financial-data.ts`
 - Migration `m3`: `cooperatives`
 - Migration `m4`: `submissions` (no `type` column — annual envelope), `submission_reviews`, `uploaded_files`, `extraction_jobs`
@@ -71,7 +71,7 @@ This is the foundation ticket that must be completed before any data-module tick
 - Migrations run as a separate startup step (Twelve-Factor XII)
 
 #### Backend — cooperatives vertical (US2.1)
-- SeaORM entity `cooperatives` (fields exactly per `database-schema.md` §8.1)
+- SeaORM entity `cooperatives` (fields exactly per `docs/architecture/database-schema.md` §8.1)
 - Repository: `find_by_id`, `find_by_keycloak_group_id`, `create`, `update`, `list_with_filters` — all `AppResult<T>`
 - DTOs: `CreateCooperativeRequest` (validate non-empty name, valid `reg_no`, valid enum), `CooperativeResponse` with `From<entity>`
 - Handler with `#[utoipa::path]` for: `POST /api/v1/cooperatives`, `GET /api/v1/cooperatives/{id}`, `PATCH /api/v1/cooperatives/{id}`, `GET /api/v1/cooperatives` (scoped list)
@@ -99,7 +99,7 @@ This is the foundation ticket that must be completed before any data-module tick
 - [ ] `npm run lint` + `typecheck` pass
 
 ### Technical Notes
-- **Source of truth**: `docs/architecture.md` §6 + `docs/database-schema.md` §8
+- **Source of truth**: `docs/architecture/architecture.md` §6 + `docs/architecture/docs/architecture/database-schema.md` §8
 - **Account aliases** (`account_aliases`) from §6.6 are OPTIONAL for v1 — include the table if time permits; the LLM can map labels without it
 - **`assessments` stub** (`src/entities/`) is replaced/superseded by `submissions` — keep both until Ticket 6 removes `assessments`
 - Follow `docs/knowledge/rust/rust-entities.md`, `rust-migrations` patterns, `rust-api-handlers.md`
@@ -136,7 +136,7 @@ A cooperative reports a full-year balance sheet as a 12-month grid. This ticket 
 ### Requirements
 
 #### Backend
-- Entities for `financial_statements` (header) and `balance_sheet_line_items` (cells) per `database-schema.md` §8.5
+- Entities for `financial_statements` (header) and `balance_sheet_line_items` (cells) per `docs/architecture/database-schema.md` §8.5
 - Repository: upsert cells by `(financial_statement_id, account_code, month)`; aggregate-by-category query for dashboards
 - `balance_validation` function: iterates `chart_of_accounts.formula`, computes totals, compares to reported totals, checks required codes for the cooperative's `institution_type`, returns `Vec<ValidationError>` written to `validation_errors`
 - `is_validated` set true only when zero error-severity issues remain
@@ -165,7 +165,7 @@ A cooperative reports a full-year balance sheet as a 12-month grid. This ticket 
 - [ ] `npm run lint` + `typecheck` pass
 
 ### Technical Notes
-- **Source**: `docs/architecture.md` §4.5 (validation layer), §6.6b, `database-schema.md` §8.5
+- **Source**: `docs/architecture/architecture.md` §4.5 (validation layer), §6.6b, `docs/architecture/database-schema.md` §8.5
 - AI extraction auto-fill is **out of scope** — leave a clean hook (`extraction_jobs` → `balance_sheet_line_items`) for the next sprint
 - Use `rust_decimal`/`sea_query::Expr` for exact-numeric rollups; never floats
 - Depends on: Ticket 1 (chart of accounts + submissions)
@@ -215,7 +215,7 @@ US2.2 requires a primary coop to record and manage membership details with manda
 - [ ] `npm run lint` + `typecheck` pass
 
 ### Technical Notes
-- **Source**: `database-schema.md` §8.7, architecture §6.8
+- **Source**: `docs/architecture/database-schema.md` §8.7, architecture §6.8
 - `member_id` is a display string (`M001`); UUID PK is the relational anchor for savings/loans/fixed_deposits (Tickets 4 uses `member_id` FK)
 - Depends on: Ticket 1 (submissions exists)
 
@@ -263,7 +263,7 @@ US2.3 asks the primary coop to log/update aggregate transactional & status indic
 - [ ] `npm run lint` + `typecheck` pass
 
 ### Technical Notes
-- **Source**: `database-schema.md` §8.7, architecture §6.8
+- **Source**: `docs/architecture/database-schema.md` §8.7, architecture §6.8
 - These tables feed non-financial KPIs (PAR30/60/90, restructured ratio, rollover rate) computed in a later sprint — make sure the flag fields (youth/women/rural borrower, restructured, single-depositor, etc.) are persisted exactly as in the schema
 - Depends on: Ticket 1 (submissions) + Ticket 3 (members — for FK validation)
 
@@ -314,7 +314,7 @@ US2.4 asks the primary coop to submit periodic non-financial indicators (board c
 
 ### Technical Notes
 - **This needs a design decision** before coding: typed columns vs catalog/JSONB. Recommend catalog-driven for v1 (mirrors the `chart_of_accounts` + `chart_of_accounts_coop_types` pattern) so rules are queryable.
-- Update `docs/architecture.md` §6 with the new table(s) once the design is approved (per AGENTS.md "STEP 0: DESIGN FIRST")
+- Update `docs/architecture/architecture.md` §6 with the new table(s) once the design is approved (per AGENTS.md "STEP 0: DESIGN FIRST")
 - Depends on: Ticket 1 (submissions)
 
 ---
@@ -392,7 +392,7 @@ This ticket turns the submission envelope (created in T1) into a working 4-tier 
 - [ ] `npm run lint` + `typecheck` pass
 
 ### Technical Notes
-- **Source**: `docs/architecture.md` §3, §7 (state machine + authority matrix), §10 (API surface), `database-schema.md` §8.2, §8.3, §8.6
+- **Source**: `docs/architecture/architecture.md` §3, §7 (state machine + authority matrix), §10 (API surface), `docs/architecture/database-schema.md` §8.2, §8.3, §8.6
 - Cache invalidation on every transition: key pattern `"submission:{id}"`
 - Worktree the KPI finalize as an empty trait method (`kpi_engine.on_submission_approved(submission_id)`) so the later sprint plugs in without touching workflow code
 - Depends on: Tickets 1–5 (submission envelope + all data sections present so E2E has content to review)

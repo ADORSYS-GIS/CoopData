@@ -6,7 +6,7 @@
 > **Scope**: End-to-end backend architecture, PostgreSQL schema, AI-extraction pipeline, 4-tier review workflow, KPI computation, abnormality flagging
 
 > **CRITICAL**: This is the authoritative architecture for the data-collection & financial-statement subsystem.
-> The earlier `docs/BACKEND_DESIGN.md` proposed a TanStack-Hono-Drizzle stack — that is **superseded** by the
+> The earlier `BACKEND_DESIGN.md` (now removed) proposed a TanStack-Hono-Drizzle stack — that is **superseded** by the
 > actual implemented stack (Rust / Axum / SeaORM / Keycloak) documented here. All code must follow this document.
 
 ---
@@ -1036,7 +1036,7 @@ SeaORM-migration files in `backend/src/migration/` (new dir; currently absent). 
 8. `m20260703_000008_audit.sql` (audit_logs)
 9. `m20260703_000009_indexes.sql`
 
-Migrations run as a separate step at startup (not embedded in app code) per Twelve-Factor Factor XII. Seed script: the existing frontend mock data (`lib/mock-data.ts`) maps directly to these tables (see `BACKEND_DESIGN.md` §8.2 mapping table — still valid).
+Migrations run as a separate step at startup (not embedded in app code) per Twelve-Factor Factor XII. Seed script: the existing frontend mock data (`lib/mock-data.ts`) maps directly to these tables (see the seed data mapping section in the original backend design — still valid).
 
 ---
 
@@ -1070,7 +1070,7 @@ Already chosen by the existing codebase (`Cargo.toml`). Consistent with `AGENTS.
 
 ## 15. Implementation Roadmap (Phases)
 
-Phases map onto `docs/progress.md` (to be extended). Build bottom-up per `AGENTS.md`.
+Phases map onto `docs/architecture/progress.md` (to be extended). Build bottom-up per `AGENTS.md`.
 
 ### Phase 6 — Database & Schema (next)
 - [ ] Create `migration/` dir + SeaORM-migration files (§13)

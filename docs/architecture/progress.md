@@ -7,8 +7,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 16: NF Indicator Engine ✅ Complete
-- **Overall Progress**: 90%
+- **Current Phase**: Phase 19: Testing & Polish
+- **Overall Progress**: 92%
 
 ---
 
@@ -437,7 +437,23 @@
 - [x] **AnalyticsPage.tsx** — National KPI Overview section with traffic-light bars + institution comparison table (ministry/federation/apex only)
 - [x] Verification: `cargo check` ✅, `cargo clippy` ✅, `npm run lint` ✅ (0 errors)
 
-### Phase 17: Testing & Polish
+### Phase 17: Documentation Restructure ✅
+- [x] Restructured `docs/` from 53 root-level files to 5 core files + 7 organized subdirectories
+- [x] Created `features/`, `deployment/`, `operations/`, `testing/`, `analysis/`, `archive/`, `architecture/` directories
+- [x] Moved and renamed 25+ docs with consistent `kebab-case.md` naming (fixed 4 typos)
+- [x] Archived 12 sprint/ticket reports to `archive/`
+- [x] Deleted 4 outdated/duplicate files (`BACKEND_DESIGN.md`, `pdf-export-architecture.md`, `message.md`, `issues encountered .md`)
+- [x] Created `docs/README.md` as entry point with structured index
+- [x] Fixed 5 broken internal links across moved files
+- [x] Moved architecture docs into `docs/architecture/` subdirectory
+
+### Phase 18: Unit Test Analysis ✅
+- [x] Analyzed frontend test coverage: 236 tests across 18 files, gaps in hooks, utilities, and pages
+- [x] Analyzed backend test coverage: 29 inline modules + 8 integration files, zero repository tests
+- [x] Created `docs/testing/unit-test-analysis.md` with prioritized improvement roadmap
+- [x] Identified 6 high-priority improvement areas with specific files and recommendations
+
+### Phase 19: Testing & Polish
 - [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow
 
 ### Phase 18: Hierarchical Analytics
