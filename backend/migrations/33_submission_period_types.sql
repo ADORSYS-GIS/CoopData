@@ -1,8 +1,11 @@
 -- Migration 33: Dynamic Financial Submission Period Types
 -- Adds period_type and period_value to submissions and assessments tables.
 
--- Create enum type for period_type (Postgres 13+ IF NOT EXISTS syntax)
-CREATE TYPE IF NOT EXISTS period_type_enum AS ENUM ('YEARLY', 'QUARTERLY', 'MONTHLY', 'SEMI_ANNUAL');
+-- Create enum type for period_type (standard PostgreSQL DO block)
+DO $$ BEGIN
+    CREATE TYPE period_type_enum AS ENUM ('YEARLY', 'QUARTERLY', 'MONTHLY', 'SEMI_ANNUAL');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 
 -- Add period columns to submissions
 ALTER TABLE submissions

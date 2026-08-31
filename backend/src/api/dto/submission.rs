@@ -53,6 +53,20 @@ pub fn validate_period(period_type: Option<&str>, period_value: Option<&str>, re
     }
 }
 
+pub trait SubmissionPeriodRequest {
+    fn period_type(&self) -> Option<&str>;
+    fn period_value(&self) -> Option<&str>;
+    fn reporting_year(&self) -> i32;
+
+    fn resolved_period(&self) -> (PeriodType, String) {
+        resolve_period(self.period_type(), self.period_value(), self.reporting_year())
+    }
+
+    fn validate_period(&self) -> Result<(), String> {
+        validate_period(self.period_type(), self.period_value(), self.reporting_year())
+    }
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateSubmissionRequest {
     pub id: Option<Uuid>,
@@ -67,13 +81,17 @@ pub struct CreateSubmissionRequest {
     pub submission_method: String,
 }
 
-impl CreateSubmissionRequest {
-    pub fn resolved_period(&self) -> (PeriodType, String) {
-        resolve_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
+impl SubmissionPeriodRequest for CreateSubmissionRequest {
+    fn period_type(&self) -> Option<&str> {
+        self.period_type.as_deref()
     }
 
-    pub fn validate_period(&self) -> Result<(), String> {
-        validate_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
+    fn period_value(&self) -> Option<&str> {
+        self.period_value.as_deref()
+    }
+
+    fn reporting_year(&self) -> i32 {
+        self.reporting_year
     }
 }
 
@@ -339,13 +357,17 @@ pub struct CreateApexSubmissionRequest {
     pub submission_method: String,
 }
 
-impl CreateApexSubmissionRequest {
-    pub fn resolved_period(&self) -> (PeriodType, String) {
-        resolve_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
+impl SubmissionPeriodRequest for CreateApexSubmissionRequest {
+    fn period_type(&self) -> Option<&str> {
+        self.period_type.as_deref()
     }
 
-    pub fn validate_period(&self) -> Result<(), String> {
-        validate_period(self.period_type.as_deref(), self.period_value.as_deref(), self.reporting_year)
+    fn period_value(&self) -> Option<&str> {
+        self.period_value.as_deref()
+    }
+
+    fn reporting_year(&self) -> i32 {
+        self.reporting_year
     }
 }
 

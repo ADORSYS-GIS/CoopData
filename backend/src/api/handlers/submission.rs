@@ -15,6 +15,7 @@ use crate::api::dto::submission::{
     DelegateSubmissionRequest, MembershipStatsResponse, PortfolioBreakdownResponse,
     ReclaimSubmissionRequest, SubmissionResponse, SubmissionReviewResponse,
     SubmissionSectionResponse, UpdateSectionStatusRequest, UpdateSubmissionMethodRequest,
+    SubmissionPeriodRequest,
 };
 use crate::auth::claims::Claims;
 

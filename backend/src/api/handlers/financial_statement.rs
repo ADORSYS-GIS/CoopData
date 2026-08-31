@@ -306,6 +306,12 @@ pub async fn create_manual_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
+    let coop = state
+        .cooperative_repo
+        .find_by_id(submission.cooperative_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
+
     // Security: Verify submission belongs to the caller's cooperative.
     // This prevents cross-tenant modification where a cooperative user could
     // modify another cooperative's financial statement.
@@ -801,20 +807,29 @@ pub async fn get_benchmarks(
         .find_by_submission_ids(submission_ids)
         .await?;
 
+    // Batch load all line items for these financial statements
+    let fs_ids: Vec<_> = all_fs.iter().map(|fs| fs.id).collect();
+    let all_line_items = state
+        .line_item_repo
+        .find_by_financial_statement_ids(fs_ids)
+        .await?;
+
+    // Group line items by financial_statement_id
+    let mut items_by_fs: std::collections::HashMap<Uuid, Vec<crate::entities::balance_sheet_line_item::Model>> = std::collections::HashMap::new();
+    for item in all_line_items {
+        items_by_fs.entry(item.financial_statement_id).or_default().push(item);
+    }
+
     // Compute KPI value for each submission
     let mut kpi_values: Vec<f64> = Vec::with_capacity(all_fs.len());
 
     for fs in &all_fs {
-        let line_items = state
-            .line_item_repo
-            .find_by_financial_statement(fs.id)
-            .await?;
+        let line_items = match items_by_fs.get(&fs.id) {
+            Some(items) if !items.is_empty() => items,
+            _ => continue,
+        };
 
-        if line_items.is_empty() {
-            continue;
-        }
-
-        let kpi_set = crate::services::KpiEngine::compute(&line_items);
+        let kpi_set = crate::services::KpiEngine::compute(line_items);
 
         if let Some(kpi) = kpi_set.get_by_name(&params.kpi_name) {
             kpi_values.push(kpi.value);

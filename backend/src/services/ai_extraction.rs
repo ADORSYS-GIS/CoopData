@@ -522,6 +522,7 @@ pub struct LlmExtractor {
     model: String,
     vision_model: String,
     max_tokens: u32,
+    semaphore: tokio::sync::Semaphore,
 }
 
 impl LlmExtractor {
@@ -539,11 +540,15 @@ impl LlmExtractor {
             model: model.to_string(),
             vision_model: vision_model.to_string(),
             max_tokens,
+            semaphore: tokio::sync::Semaphore::new(2),
         }
     }
 
     /// Call the chat completions endpoint with a text prompt.
     async fn chat(&self, model: &str, prompt: &str) -> AppResult<String> {
+        let _permit = self.semaphore.acquire().await.map_err(|e| {
+            AppError::InternalServerError(format!("Semaphore acquire error: {e}"))
+        })?;
         let url = format!("{}/chat/completions", self.provider_url);
         let body = serde_json::json!({
             "model": model,
@@ -620,6 +625,9 @@ impl LlmExtractor {
                 ALLOWED_MIME_TYPES.join(", ")
             )));
         }
+        let _permit = self.semaphore.acquire().await.map_err(|e| {
+            AppError::InternalServerError(format!("Semaphore acquire error: {e}"))
+        })?;
         let b64 = image_to_base64(file_bytes);
         let url = format!("{}/chat/completions", self.provider_url);
         let data_url = format!("data:{mime_type};base64,{b64}");
@@ -926,6 +934,36 @@ impl LlmExtractor {
             }
         }
     }
+
+    pub async fn map_to_coa_single(
+        &self,
+        raw_text: &str,
+        chart_of_accounts: &[CoaEntry],
+        account_aliases: &[AliasEntry],
+        cooperative_type: &str,
+        reporting_year: i32,
+    ) -> AppResult<ExtractionOutput> {
+        tracing::info!(
+            "=== RAW TEXT CHUNK START ===\n{raw_text}\n=== RAW TEXT CHUNK END ==="
+        );
+
+        let prompt = build_mapping_prompt(
+            raw_text,
+            chart_of_accounts,
+            account_aliases,
+            cooperative_type,
+            reporting_year,
+        );
+
+        let raw_output = self.chat(&self.model, &prompt).await?;
+
+        tracing::info!(
+            output_chars = raw_output.len(),
+            "=== MAP_TO_COA CHUNK RESPONSE ==="
+        );
+
+        Self::parse_llm_output(&raw_output)
+    }
 }
 
 #[async_trait::async_trait]
@@ -1080,26 +1118,98 @@ impl FinancialStatementExtractor for LlmExtractor {
             reporting_year = reporting_year,
             "=== MAP_TO_COA START ==="
         );
-        tracing::info!(
-            "=== RAW TEXT FROM VISION/EXTRACTION START ===\n{raw_text}\n=== RAW TEXT END ==="
-        );
 
-        let prompt = build_mapping_prompt(
-            raw_text,
-            chart_of_accounts,
-            account_aliases,
-            cooperative_type,
-            reporting_year,
-        );
+        let lines: Vec<&str> = raw_text.lines().collect();
+        if lines.len() > 80 {
+            let max_lines = 500;
+            let lines_to_process = if lines.len() > max_lines {
+                tracing::warn!(
+                    total_lines = lines.len(),
+                    max_lines = max_lines,
+                    "Raw text too long, truncating to prevent runaway cost"
+                );
+                &lines[..max_lines]
+            } else {
+                &lines[..]
+            };
 
-        let raw_output = self.chat(&self.model, &prompt).await?;
+            let chunk_size = 80;
+            let mut all_line_items = Vec::new();
+            let mut merged_totals = TotalsReconciliation {
+                assets_total: None,
+                liabilities_total: None,
+                equity_total: None,
+                net_surplus: None,
+            };
+            let mut detected_period_type = None;
+            let mut detected_period_value = None;
+            let mut detected_reporting_year = None;
+            let mut detected_fiscal_start_month = None;
 
-        tracing::info!(
-            output_chars = raw_output.len(),
-            "=== MAP_TO_COA RESPONSE ==="
-        );
+            for (idx, chunk) in lines_to_process.chunks(chunk_size).enumerate() {
+                tracing::info!(
+                    chunk_index = idx,
+                    chunk_lines = chunk.len(),
+                    "Processing raw text chunk"
+                );
+                let chunk_text = chunk.join("\n");
+                let chunk_output = self
+                    .map_to_coa_single(
+                        &chunk_text,
+                        chart_of_accounts,
+                        account_aliases,
+                        cooperative_type,
+                        reporting_year,
+                    )
+                    .await?;
 
-        Self::parse_llm_output(&raw_output)
+                all_line_items.extend(chunk_output.line_items);
+                if merged_totals.assets_total.is_none() {
+                    merged_totals.assets_total = chunk_output.totals_reconciliation.assets_total;
+                }
+                if merged_totals.liabilities_total.is_none() {
+                    merged_totals.liabilities_total =
+                        chunk_output.totals_reconciliation.liabilities_total;
+                }
+                if merged_totals.equity_total.is_none() {
+                    merged_totals.equity_total = chunk_output.totals_reconciliation.equity_total;
+                }
+                if merged_totals.net_surplus.is_none() {
+                    merged_totals.net_surplus = chunk_output.totals_reconciliation.net_surplus;
+                }
+
+                if detected_period_type.is_none() {
+                    detected_period_type = chunk_output.detected_period_type;
+                }
+                if detected_period_value.is_none() {
+                    detected_period_value = chunk_output.detected_period_value;
+                }
+                if detected_reporting_year.is_none() {
+                    detected_reporting_year = chunk_output.detected_reporting_year;
+                }
+                if detected_fiscal_start_month.is_none() {
+                    detected_fiscal_start_month = chunk_output.detected_fiscal_start_month;
+                }
+            }
+
+            Ok(ExtractionOutput {
+                line_items: all_line_items,
+                totals_reconciliation: merged_totals,
+                detected_period_type,
+                detected_period_value,
+                detected_reporting_year,
+                detected_fiscal_start_month,
+            })
+        } else {
+            self.map_to_coa_single(
+                raw_text,
+                chart_of_accounts,
+                account_aliases,
+                cooperative_type,
+                reporting_year,
+            )
+            .await
+        }
     }
 }
 
