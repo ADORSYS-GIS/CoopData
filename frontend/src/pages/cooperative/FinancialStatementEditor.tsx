@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -41,7 +41,9 @@ import {
 import {
   useDeleteSubmission,
   useDeleteFinancialStatement,
+  useSubmission,
 } from "@/hooks/submissions/useSubmissions";
+import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -295,8 +297,18 @@ export const FinancialStatementEditor: React.FC<{
   const updateSection = useUpdateSubmissionSection(submissionId);
   const deleteSubmission = useDeleteSubmission();
   const deleteFs = useDeleteFinancialStatement();
-
+  const { data: submission } = useSubmission(submissionId);
+  const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
+  const [alertError, setAlertError] = useState<string | null>(null);
+  const [hasShownJobError, setHasShownJobError] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (extractionJob?.status === "failed" && extractionJob.error_message && !hasShownJobError) {
+      setAlertError(extractionJob.error_message);
+      setHasShownJobError(true);
+    }
+  }, [extractionJob?.status, extractionJob?.error_message, hasShownJobError]);
 
   const handleDeleteFS = async () => {
     try {
@@ -397,7 +409,9 @@ export const FinancialStatementEditor: React.FC<{
       await validate.mutateAsync(submissionId);
       toast.success(t("financialStatementEditor.toasts.valComplete"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("financialStatementEditor.toasts.valFailed"));
+      const msg = e instanceof Error ? e.message : t("financialStatementEditor.toasts.valFailed");
+      setAlertError(msg);
+      toast.error(msg);
     }
   };
 
@@ -414,16 +428,7 @@ export const FinancialStatementEditor: React.FC<{
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(t("financialStatementEditor.deleteDialog.confirmDeleteDraft"))) return;
-    try {
-      await deleteSubmission.mutateAsync({ id: submissionId, verificationToken: "" });
-      toast.success(t("financialStatementEditor.toasts.draftDeleted"));
-      navigate({ to: "/app/submissions" });
-    } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : t("financialStatementEditor.toasts.deleteFailed"),
-      );
-    }
+    setIsDeleteDialogOpen(true);
   };
 
   const filteredCoaOptions = codeSearch
@@ -431,25 +436,38 @@ export const FinancialStatementEditor: React.FC<{
         (o) =>
           o.name.toLowerCase().includes(codeSearch.toLowerCase()) ||
           String(o.code).includes(codeSearch),
-      ).slice(0, 12)
-    : COA_OPTIONS.slice(0, 12);
+      )
+    : COA_OPTIONS;
 
-  // Pivot line items by Account (code or label) for 13-month Monthly Matrix view
-  const MONTH_HEADERS = [
-    { month: 0, label: t("financialStatementEditor.months.decPrev") },
-    { month: 1, label: t("financialStatementEditor.months.jan") },
-    { month: 2, label: t("financialStatementEditor.months.feb") },
-    { month: 3, label: t("financialStatementEditor.months.mar") },
-    { month: 4, label: t("financialStatementEditor.months.apr") },
-    { month: 5, label: t("financialStatementEditor.months.may") },
-    { month: 6, label: t("financialStatementEditor.months.jun") },
-    { month: 7, label: t("financialStatementEditor.months.jul") },
-    { month: 8, label: t("financialStatementEditor.months.aug") },
-    { month: 9, label: t("financialStatementEditor.months.sep") },
-    { month: 10, label: t("financialStatementEditor.months.oct") },
-    { month: 11, label: t("financialStatementEditor.months.nov") },
-    { month: 12, label: t("financialStatementEditor.months.dec") },
+  const periodType = (submission?.period_type || "MONTHLY").toUpperCase();
+  const startMonth = fs?.start_month || submission?.start_month || 1;
+
+  // Build dynamic month/period headers based on period_type and start_month
+  const isYearly = periodType === "YEARLY";
+  const MONTH_NAMES = [
+    t("financialStatementEditor.months.jan"),
+    t("financialStatementEditor.months.feb"),
+    t("financialStatementEditor.months.mar"),
+    t("financialStatementEditor.months.apr"),
+    t("financialStatementEditor.months.may"),
+    t("financialStatementEditor.months.jun"),
+    t("financialStatementEditor.months.jul"),
+    t("financialStatementEditor.months.aug"),
+    t("financialStatementEditor.months.sep"),
+    t("financialStatementEditor.months.oct"),
+    t("financialStatementEditor.months.nov"),
+    t("financialStatementEditor.months.dec"),
   ];
+
+  const MONTH_HEADERS = isYearly
+    ? [{ month: 0, label: t("financialStatementEditor.months.annual", "Annual Total") }]
+    : [
+        { month: 0, label: t("financialStatementEditor.months.decPrev") },
+        ...Array.from({ length: 12 }, (_, i) => {
+          const mIdx = (startMonth - 1 + i) % 12;
+          return { month: i + 1, label: MONTH_NAMES[mIdx] };
+        }),
+      ];
 
   interface MatrixRow {
     key: string;
@@ -487,6 +505,82 @@ export const FinancialStatementEditor: React.FC<{
 
   return (
     <div className="space-y-4">
+      {/* ── Wrong-year / Extraction error alert dialog ── */}
+      {alertError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-surface border border-destructive/30 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-destructive/5">
+              <div className="flex items-center justify-center size-10 rounded-full bg-destructive/15 shrink-0">
+                <AlertTriangle className="size-5 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-foreground">
+                  {t("financialStatementEditor.wrongYearTitle", "Extraction Error / Year Mismatch")}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("financialStatementEditor.wrongYearSubtitle", "Uploaded document year does not match submission year")}
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-sm text-foreground leading-relaxed">{alertError}</p>
+            </div>
+
+            <div className="px-6 pb-5 flex justify-end">
+              <button
+                onClick={() => setAlertError(null)}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+              >
+                {t("financialStatementEditor.wrongYearDismiss", "Got it")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Persistent extraction job failure banner ── */}
+      {extractionJob?.status === "failed" && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 shadow-sm space-y-3">
+          <div className="flex items-start gap-3.5">
+            <div className="flex items-center justify-center size-10 rounded-full bg-destructive/15 shrink-0 mt-0.5">
+              <AlertTriangle className="size-5 text-destructive" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-destructive">
+                {t("financialStatementEditor.extractionFailedTitle", "Document Extraction Failed")}
+              </h4>
+              <p className="text-xs text-foreground font-medium mt-1 leading-relaxed">
+                {extractionJob.error_message ||
+                  t(
+                    "financialStatementEditor.extractionFailedDesc",
+                    "The AI extraction engine could not process the uploaded file.",
+                  )}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-destructive/20 text-xs">
+            <span className="text-muted-foreground">
+              Submission Year: <strong className="text-foreground">{fs?.reporting_year}</strong>
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleValidate}
+                disabled={validate.isPending || isReadOnly}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {validate.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-3.5" />
+                )}
+                {t("financialStatementEditor.validationPanel.revalidate", "Re-validate Extraction")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {validate.isPending && (
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
           <Loader2 className="size-4 animate-spin text-accent shrink-0" />
@@ -670,9 +764,9 @@ export const FinancialStatementEditor: React.FC<{
                                   setCodeSearch("");
                                 }
                               }}
-                              className="w-20 rounded border border-ring bg-surface px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring/20 font-sans"
+                              className="w-24 rounded border border-primary bg-surface px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 font-sans shadow-sm"
                             />
-                            <div className="absolute left-0 top-7 z-20 w-64 rounded-lg border border-border bg-surface shadow-lg font-sans">
+                            <div className="absolute left-0 top-8 z-30 w-80 max-h-72 overflow-y-auto rounded-lg border border-border bg-surface shadow-2xl font-sans py-1">
                               {filteredCoaOptions.length === 0 ? (
                                 <p className="px-3 py-2 text-xs text-muted-foreground">
                                   {t("financialStatementEditor.matrix.noMatches")}
@@ -682,12 +776,12 @@ export const FinancialStatementEditor: React.FC<{
                                   <button
                                     key={opt.code}
                                     onMouseDown={() => assignCode(row.sampleItem, opt.code)}
-                                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted/50 transition-colors"
+                                    className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-muted transition-colors"
                                   >
-                                    <span className="font-mono text-muted-foreground w-10 shrink-0">
+                                    <span className="font-mono text-muted-foreground w-12 shrink-0 font-bold">
                                       {opt.code}
                                     </span>
-                                    <span className="truncate">{opt.name}</span>
+                                    <span className="truncate flex-1 font-medium">{opt.name}</span>
                                   </button>
                                 ))
                               )}
@@ -695,43 +789,82 @@ export const FinancialStatementEditor: React.FC<{
                           </div>
                         ) : (
                           <button
-                            onClick={() =>
-                              isDraft && !isReadOnly && setEditingCodeId(row.sampleItem.id)
-                            }
-                            className={`font-mono text-xs transition-colors ${
-                              isUnmapped
-                                ? "text-warning-foreground font-bold hover:underline cursor-pointer"
+                            onClick={() => {
+                              if (!isDraft || isReadOnly) return;
+                              setEditingCodeId(row.sampleItem.id);
+                              setCodeSearch("");
+                            }}
+                            disabled={!isDraft || isReadOnly}
+                            className={`font-mono text-xs font-semibold rounded px-1.5 py-0.5 transition-colors text-left flex items-center justify-between gap-1 ${
+                              isDraft && !isReadOnly
+                                ? "hover:bg-primary/10 hover:text-primary cursor-pointer text-primary/90"
                                 : "text-muted-foreground cursor-default"
                             }`}
-                            title={
-                              isUnmapped && isDraft
-                                ? t("financialStatementEditor.matrix.assignTooltip")
-                                : ""
-                            }
+                            title={isDraft && !isReadOnly ? "Click to re-assign account code" : ""}
                           >
-                            {row.account_code ?? "NULL"}
+                            <span>{row.account_code ?? "NULL"}</span>
+                            {isDraft && !isReadOnly && (
+                              <ChevronDown className="size-3 opacity-50 shrink-0" />
+                            )}
                           </button>
                         )}
                       </td>
 
                       {/* Account Name */}
                       <td className="px-4 py-2 sticky left-16 bg-surface z-10 shadow-sm border-r border-border font-sans">
-                        <p
-                          className="font-medium text-foreground text-xs truncate max-w-[220px]"
-                          title={coaEntry ? coaEntry.name : row.account_name}
-                        >
-                          {coaEntry ? coaEntry.name : row.account_name}
-                        </p>
-                        {row.raw_label && (
-                          <p className="text-[10px] text-muted-foreground italic truncate max-w-[220px]">
-                            {row.raw_label}
-                          </p>
+                        {isEditingCode ? (
+                          <div className="relative">
+                            <button
+                              onClick={() => {
+                                setEditingCodeId(null);
+                                setCodeSearch("");
+                              }}
+                              className="text-left w-full"
+                            >
+                              <p className="font-semibold text-primary text-xs truncate max-w-[220px]">
+                                {coaEntry ? coaEntry.name : row.account_name}
+                              </p>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (!isDraft || isReadOnly) return;
+                              setEditingCodeId(row.sampleItem.id);
+                              setCodeSearch("");
+                            }}
+                            disabled={!isDraft || isReadOnly}
+                            className={`text-left w-full rounded px-1 py-0.5 transition-colors flex items-center justify-between group ${
+                              isDraft && !isReadOnly
+                                ? "hover:bg-primary/10 cursor-pointer"
+                                : "cursor-default"
+                            }`}
+                            title={isDraft && !isReadOnly ? "Click to change account" : ""}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground text-xs truncate max-w-[200px] group-hover:text-primary">
+                                {coaEntry ? coaEntry.name : row.account_name}
+                              </p>
+                              {row.raw_label && (
+                                <p className="text-[10px] text-muted-foreground italic truncate max-w-[200px]">
+                                  {row.raw_label}
+                                </p>
+                              )}
+                            </div>
+                            {isDraft && !isReadOnly && (
+                              <ChevronDown className="size-3 opacity-0 group-hover:opacity-60 transition-opacity text-primary shrink-0 ml-1" />
+                            )}
+                          </button>
                         )}
                       </td>
 
-                      {/* 13 Monthly Value Columns */}
+                      {/* Monthly/Period Value Columns */}
                       {MONTH_HEADERS.map((mh) => {
-                        const monthItem = row.itemsByMonth.get(mh.month);
+                        let monthItem = row.itemsByMonth.get(mh.month);
+                        // Fallback for yearly or non-zero single period items stored under month > 0 or month = 0
+                        if (!monthItem && isYearly && row.itemsByMonth.size > 0) {
+                          monthItem = Array.from(row.itemsByMonth.values())[0];
+                        }
                         const isEditingValue = monthItem && editingValueId === monthItem.id;
 
                         return (

@@ -49,6 +49,8 @@ pub struct NfCreateMemberRequest {
     #[serde(default)]
     pub voting_exercised: bool,
     #[serde(default)]
+    pub share_balance: Option<Decimal>,
+    #[serde(default)]
     pub submission_id: Option<Uuid>,
 }
 
@@ -75,6 +77,8 @@ pub struct NfUpdateMemberRequest {
     #[serde(default)]
     pub voting_exercised: Option<bool>,
     #[serde(default)]
+    pub share_balance: Option<Decimal>,
+    #[serde(default)]
     pub submission_id: Option<Option<Uuid>>,
 }
 
@@ -94,6 +98,7 @@ pub struct NfMemberResponse {
     pub agm_attendance: bool,
     pub leadership_role: Option<String>,
     pub voting_exercised: bool,
+    pub share_balance: Decimal,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -115,6 +120,7 @@ impl From<crate::entities::member::Model> for NfMemberResponse {
             agm_attendance: m.agm_attendance,
             leadership_role: m.leadership_role,
             voting_exercised: m.voting_exercised,
+            share_balance: m.share_balance,
             created_at: m.created_at,
             updated_at: m.updated_at,
         }
@@ -1069,6 +1075,8 @@ pub struct ManualMemberEntry {
     pub agm_attendance: bool,
     pub leadership_role: Option<String>,
     pub voting_exercised: bool,
+    #[serde(default)]
+    pub share_balance: Option<Decimal>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

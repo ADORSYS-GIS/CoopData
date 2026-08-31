@@ -33,6 +33,8 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   const params = useMemo(
     () => ({
       reportingYear: year,
+      periodType: filterValues.periodType,
+      periodValue: filterValues.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       region: filterValues.region !== "all" ? filterValues.region : undefined,
       sector: filterValues.sector !== "all" ? filterValues.sector : undefined,

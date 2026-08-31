@@ -468,6 +468,7 @@ export interface MemberRecord {
   agmAttendance: boolean;
   leadershipRole?: string;
   votingExercised: boolean;
+  shareBalance?: number;
 }
 
 export interface SavingsAccount {

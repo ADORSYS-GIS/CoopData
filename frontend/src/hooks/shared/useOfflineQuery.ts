@@ -43,7 +43,8 @@ export function useOfflineQuery<T>({
     cacheKey.includes("federation") ||
     cacheKey.includes("cooperative") ||
     cacheKey.includes("reviews") ||
-    cacheKey.includes("sections")
+    cacheKey.includes("sections") ||
+    cacheKey.includes("line-items")
       ? []
       : {}) as unknown as T;
   };

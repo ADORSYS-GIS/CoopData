@@ -37,6 +37,8 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
   const params = useMemo(
     () => ({
       reportingYear: year,
+      periodType: filterValues.periodType,
+      periodValue: filterValues.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
       federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,

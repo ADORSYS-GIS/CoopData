@@ -1650,7 +1650,16 @@
     "withdrawn": "Levantado",
     "rolledOver": "Renovado",
     "tenureCategory": "Categoria de Prazo",
-    "originalTenure": "Prazo Original"
+    "originalTenure": "Prazo Original",
+    "sectionLabel": "Section",
+    "sectionAll": "All sections (single workbook)",
+    "sectionMembers": "Membership only",
+    "sectionSavings": "Savings only",
+    "sectionLoans": "Loans only",
+    "sectionFixedDeposits": "Fixed deposits only",
+    "sectionFarmCoop": "Farm cooperative only",
+    "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
   },
   "analytics": {
     "filter": {
@@ -2499,6 +2508,7 @@
       "ready": "Secção Pronta"
     },
     "months": {
+      "annual": "Total Anual",
       "decPrev": "Dez (Ant)",
       "jan": "Jan",
       "feb": "Fev",

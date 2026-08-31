@@ -1,4 +1,4 @@
 /target
 .env
 *.pdb
-*.bak
+*.baktarget_spec

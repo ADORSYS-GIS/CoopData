@@ -389,6 +389,7 @@ pub async fn validate_extraction(
         job_id,
         id,
         coop.id,
+        submission.reporting_year,
         file_bytes,
         file.mime_type.clone().unwrap_or_default(),
         coop_type,

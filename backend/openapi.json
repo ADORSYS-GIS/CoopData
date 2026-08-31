@@ -161,6 +161,24 @@
             }
           },
           {
+            "name": "period_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_value",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
             "name": "federation_id",
             "in": "query",
             "required": false,
@@ -285,6 +303,26 @@
             "schema": {
               "type": "integer",
               "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_type",
+            "in": "query",
+            "description": "Filter analytics to a specific period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL). Defaults to YEARLY baseline.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_value",
+            "in": "query",
+            "description": "Filter analytics to a specific period value (e.g. Q1, 08, H1).",
+            "required": false,
+            "schema": {
+              "type": "string",
               "nullable": true
             }
           },
@@ -8649,6 +8687,14 @@
             "type": "string",
             "format": "uuid"
           },
+          "period_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "nullable": true
+          },
           "priority": {
             "type": "string"
           },
@@ -9280,6 +9326,14 @@
           "id": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "period_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
             "nullable": true
           },
           "priority": {
@@ -10889,6 +10943,14 @@
             "items": {
               "$ref": "#/components/schemas/ManualLineItemRequest"
             }
+          },
+          "period_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -11132,6 +11194,10 @@
           },
           "region": {
             "$ref": "#/components/schemas/EswatiniRegion"
+          },
+          "share_balance": {
+            "type": "string",
+            "nullable": true
           },
           "status": {
             "$ref": "#/components/schemas/MemberStatus"
@@ -11563,6 +11629,14 @@
             "format": "uuid",
             "nullable": true
           },
+          "period_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "nullable": true
+          },
           "region": {
             "type": "string",
             "nullable": true
@@ -11718,6 +11792,10 @@
           "region": {
             "$ref": "#/components/schemas/EswatiniRegion"
           },
+          "share_balance": {
+            "type": "string",
+            "nullable": true
+          },
           "status": {
             "$ref": "#/components/schemas/MemberStatus"
           },
@@ -11768,6 +11846,7 @@
           "urban_rural",
           "agm_attendance",
           "voting_exercised",
+          "share_balance",
           "created_at",
           "updated_at"
         ],
@@ -11811,6 +11890,9 @@
           },
           "region": {
             "$ref": "#/components/schemas/EswatiniRegion"
+          },
+          "share_balance": {
+            "type": "string"
           },
           "status": {
             "$ref": "#/components/schemas/MemberStatus"
@@ -12132,6 +12214,10 @@
                 "$ref": "#/components/schemas/EswatiniRegion"
               }
             ],
+            "nullable": true
+          },
+          "share_balance": {
+            "type": "string",
             "nullable": true
           },
           "status": {
@@ -13441,6 +13527,8 @@
           "id",
           "cooperative_id",
           "reporting_year",
+          "period_type",
+          "period_value",
           "status",
           "current_tier",
           "priority",
@@ -13536,6 +13624,12 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "period_type": {
+            "type": "string"
+          },
+          "period_value": {
+            "type": "string"
           },
           "priority": {
             "type": "string"

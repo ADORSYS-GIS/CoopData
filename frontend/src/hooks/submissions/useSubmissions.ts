@@ -9,6 +9,7 @@ import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache"
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"] & {
   period_type?: string;
   period_value?: string;
+  start_month?: number;
 };
 export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"] & {
   period_type?: string;
@@ -191,6 +192,8 @@ export const useCreateSubmission = () => {
           "") as unknown as SubmissionResponse["submission_method"],
         current_tier: "cooperative" as unknown as SubmissionResponse["current_tier"],
         priority: body.priority ?? "Routine",
+        period_type: (body as { period_type?: string }).period_type ?? "",
+        period_value: String((body as { period_value?: number }).period_value ?? ""),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         sections: [],

@@ -333,8 +333,15 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
     handleSave(updated);
   };
 
+  const [deleteSectionIndex, setDeleteSectionIndex] = useState<number | null>(null);
+
   const deleteSection = (index: number) => {
-    if (!window.confirm(t("templateEditor.confirmDeleteSection"))) return;
+    setDeleteSectionIndex(index);
+  };
+
+  const confirmDeleteSection = () => {
+    if (deleteSectionIndex === null) return;
+    const index = deleteSectionIndex;
     const updated = sections.filter((_, i) => i !== index);
     setSections(updated);
     if (selectedSectionIndex === index) {
@@ -343,6 +350,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
       setSelectedSectionIndex(selectedSectionIndex - 1);
     }
     handleSave(updated);
+    setDeleteSectionIndex(null);
   };
 
   const moveSection = (index: number, direction: "up" | "down") => {
@@ -778,6 +786,30 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteField}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Section Confirmation Dialog */}
+      <AlertDialog
+        open={deleteSectionIndex !== null}
+        onOpenChange={(open) => !open && setDeleteSectionIndex(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("templateEditor.deleteSectionTitle", "Delete Section")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("templateEditor.confirmDeleteSection")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSection}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {t("common.delete")}

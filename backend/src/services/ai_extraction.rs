@@ -30,6 +30,8 @@ pub struct ExtractionOutput {
     pub detected_period_value: Option<String>,
     #[serde(default)]
     pub detected_reporting_year: Option<i32>,
+    #[serde(default)]
+    pub detected_fiscal_start_month: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +66,7 @@ pub trait FinancialStatementExtractor: Send + Sync {
         chart_of_accounts: &[CoaEntry],
         account_aliases: &[AliasEntry],
         cooperative_type: &str,
+        reporting_year: i32,
     ) -> AppResult<ExtractionOutput>;
 }
 
@@ -201,6 +204,7 @@ fn build_mapping_prompt(
     coa: &[CoaEntry],
     aliases: &[AliasEntry],
     cooperative_type: &str,
+    reporting_year: i32,
 ) -> String {
     let coa_table: String = coa
         .iter()
@@ -258,19 +262,33 @@ RAW TEXT FROM UPLOADED FILE:
 This is a balance sheet for a {cooperative_type} cooperative.
 
 ═══════════════════════════════════════════════════════
+TARGET YEAR — VERY IMPORTANT
+═══════════════════════════════════════════════════════
+This submission is for reporting year {reporting_year}.
+
+If the document contains financial data for MULTIPLE YEARS (e.g. columns for 2024 and 2025),
+extract ONLY the column for {reporting_year} or the fiscal year ending in {reporting_year}.
+Ignore and discard all data columns for other years.
+
+If the document does NOT contain data for {reporting_year} at all (e.g. it only shows 2024
+and 2025 but this submission is for 2019), set detected_reporting_year to the actual year
+you found in the document (e.g. 2025) so the system can detect the mismatch and alert the user.
+
+═══════════════════════════════════════════════════════
 CRITICAL MAPPING RULES — READ CAREFULLY BEFORE MAPPING
 ═══════════════════════════════════════════════════════
 
-RULE 1 — PARENT vs CHILD CODES (most common mistake):
-Codes that have a Formula column are PARENT/TOTAL codes. NEVER map individual line items to parent codes.
-Always map to the specific child code. Examples of what NOT to do:
-  WRONG: "Cash" → 1100 (parent, has formula)   RIGHT: "Cash" → 1101
-  WRONG: "Retained earnings" → 3300 (parent)   RIGHT: "Retained earnings" → 3301
-  WRONG: "Total Assets" → 1000 (section header) RIGHT: "Total Assets" → 1999
-  WRONG: "Share capital" → 3100 (parent)        RIGHT: "Share capital" → 3101
-  WRONG: "Net surplus" → 6000 (section header)  RIGHT: "Net surplus" → 6999
-  WRONG: "Total Liabilities" → 2000             RIGHT: "Total Liabilities" → 2999
-  WRONG: "Total Equity" → 3000                  RIGHT: "Total Equity" → 3999
+RULE 1 — PARENT vs CHILD CODES & SUBTOTALS:
+- Individual line items (e.g., "Cash on hand", "Property plant and equipment", "Investment") must map to specific leaf account codes (1101, 1303, 1104, etc.).
+- Subtotal and Section Summary rows MUST be mapped to their category summary codes:
+  - "Total Current Assets" / "Current Assets" (subtotal) → 1100
+  - "Total Non-Current Assets" / "Non-Current Assets" (subtotal) → 1300
+  - "Total Assets" (grand total) → 1999
+  - "Total Current Liabilities" / "Current Liabilities" (subtotal) → 2100
+  - "Total Liabilities" (subtotal/total) → 2999
+  - "Total Equity" / "Equity" (subtotal for equity alone, e.g. 570,976) → 3999
+  - CRITICAL WARNING: "Total Equity & Liabilities" or "Total Liabilities & Equity" (grand total e.g. 2,006,383) is a grand total check row (equal to Total Assets). Do NOT output "Total Equity & Liabilities" as an entry in line_items array.
+Do NOT leave standard subtotals as null account_code!
 
 RULE 2 — NEGATIVE VALUES (critical for balance sheet accuracy):
 These accounts MUST always be stored as negative numbers:
@@ -319,40 +337,45 @@ RULE 6 — EXTRACTION COMPLETENESS:
 ═══════════════════════════════════════════
 SPECIFIC LABEL → CODE MAPPINGS (memorize):
 ═══════════════════════════════════════════
-"Cash on Hand" / "Cash in hand" / "Imali" → 1101
+"Cash on Hand" / "Cash in hand" / "Imali" / "Cash and cash equivalent" / "Cash & cash equivalents" → 1101
 "Cash at Bank (Current)" / "Bank current account" → 1102
 "Cash at Bank (Savings)" / "Bank savings account" → 1103
-"Short-term investments" / "Treasury bills" → 1104
-"Performing loans" / "Good loans" → 1201
+"Short-term investments" / "Treasury bills" / "Investment" / "Investments" / "Financial Investment" → 1104
+"Performing loans" / "Good loans" / "Members' long-term loans" / "Members' short-term loans" → 1201
 "Loans in arrears 1-30" → 1202
 "Loans in arrears 31-60" → 1203
 "Loans in arrears 61-90" → 1204
 "Non-performing loans" / "NPL" / "Bad loans" / "Write-offs" → 1205
 "General loan loss provision" / "GLLP" → 1251 (NEGATIVE)
 "Specific loan loss provision" / "SLLP" → 1252 (NEGATIVE)
-"Accounts receivable" / "Receivables" → 1301
+"Accounts receivable" / "Receivables" / "Trade and other receivables" / "Trade & other receivables" → 1301
 "Prepaid expenses" → 1302
-"Fixed assets (cost)" / "Property plant equipment" / "PPE" → 1303
+"Fixed assets (cost)" / "Property plant equipment" / "PPE" / "Property, plant, and equipment" / "Property, plant and equipment" → 1303
 "Accumulated depreciation" / "Accum. depreciation" → 1304 (NEGATIVE)
 "Intangible assets" → 1305
+"Total Current Assets" / "CURRENT ASSETS" (subtotal) → 1100
+"Total Non-Current Assets" / "NON-CURRENT ASSETS" / "OTHER ASSETS" (subtotal) → 1300
 "Total Assets" → 1999
-"Voluntary savings" / "Member savings" → 2101
+"Voluntary savings" / "Member savings" / "Members' short-term savings" / "Short-term savings" → 2101
 "Mandatory savings" / "Compulsory savings" → 2102
-"Fixed term deposits" / "Fixed deposits" / "Term deposits" → 2103
+"Fixed term deposits" / "Fixed deposits" / "Term deposits" / "Members' long-term savings" / "Long-term savings" → 2103
 "Short-term borrowings" → 2201
 "Long-term borrowings" → 2202
-"Accounts payable" / "Trade payables" → 2301
-"Accrued expenses" / "Accruals" → 2302
+"Accounts payable" / "Trade payables" / "Trade and other payables" / "Trade & other payables" → 2301
+"Accrued expenses" / "Accruals" / "Interest provision" / "Provision for interest" → 2302
 "Deferred income" → 2303
-"Total Liabilities" → 2999
-"Permanent share capital" / "Share capital" / "Permanent shares" → 3101
+"Total Current Liabilities" / "CURRENT LIABILITIES" (subtotal) → 2100
+"Total Long Term Liabilities" / "LONG TERM LIABILITIES" (subtotal) → 2200
+"Total Liabilities" / "TOTAL LIABILITIES" → 2999
+"Permanent share capital" / "Share capital" / "Permanent shares" / "Members shares" / "Members' shares" / "EQUITY Members shares" → 3101
 "Withdrawable shares" / "Redeemable shares" → 3102
 "Statutory reserve" → 3201
-"General reserve" → 3202
+"General reserve" / "Reserves" / "EQUITY Reserves" → 3202
 "Risk/capital adequacy reserve" → 3203
 "Accumulated surplus" / "Retained earnings" / "Retained surplus" → 3301
 "Current year surplus" / "Net income" / "Profit this year" → 3302
-"Total Equity" / "Members equity" → 3999
+"Total Equity" / "Members equity" / "EQUITY" (subtotal for equity alone, e.g. 570,976) → 3999
+"Total Equity & Liabilities" / "Total Equity and Liabilities" / "Total Liabilities & Equity" → null (Do NOT map to 3999! Code 3999 is ONLY for Equity alone)
 "Interest income on loans" / "Loan interest" → 4101
 "Fees and commissions" / "Service charges" → 4102
 "Other operating income" → 4201
@@ -368,13 +391,19 @@ SPECIFIC LABEL → CODE MAPPINGS (memorize):
 "Net surplus" / "Net deficit" / "Net income" / "Profit or loss" → 6999
 
 Return ONLY a MINIFIED, SINGLE-LINE JSON object (no pretty-printing, no newlines, no indentation, no spaces in formatting, no markdown fences) with this exact structure. Minifying is absolutely critical to avoid token truncation:
-{{"line_items":[{{"account_code":1101,"account_name":"CASH ON HAND","confidence":1.0,"raw_label":"Cash on Hand","values":{{"0":213165.0,"1":277410.0,"2":362919.0}}}}],"totals_reconciliation":{{"assets_total":null,"liabilities_total":null,"equity_total":null,"net_surplus":null}}}}
+{{"line_items":[{{"account_code":1101,"account_name":"CASH ON HAND","confidence":1.0,"raw_label":"Cash on Hand","values":{{"0":213165.0,"1":277410.0,"2":362919.0}}}}],"totals_reconciliation":{{"assets_total":null,"liabilities_total":null,"equity_total":null,"net_surplus":null}},"detected_period_type":"YEARLY","detected_period_value":"2026","detected_reporting_year":2026,"detected_fiscal_start_month":10}}
 
 Fill totals_reconciliation from the grand total rows in the document:
   assets_total → the value next to "Total Assets" or equivalent
   liabilities_total → the value next to "Total Liabilities" or equivalent
   equity_total → the value next to "Total Equity" or equivalent
   net_surplus → the value next to "Net Surplus/Deficit" or equivalent
+
+Fill auto-detected period & fiscal start month fields:
+  detected_period_type → "YEARLY", "QUARTERLY", "MONTHLY", or "SEMI_ANNUAL"
+  detected_period_value → e.g. "2026", "Q1".."Q4", "01".."12", "H1".."H2"
+  detected_reporting_year → integer year (e.g. 2026)
+  detected_fiscal_start_month → starting month integer (1 = Jan, 10 = Oct, 7 = Jul, etc.) if specified or inferred from column headers (e.g., if columns start in October, set 10).
 
 Ensure all columns (0 to 12) for all rows are fully extracted, and ensure that all equity codes such as General Reserve (3202), Risk/Capital Adequacy Reserve (3203), Accumulated Surplus (3301), and Current Year Surplus (3302) are mapped and not omitted.
 
@@ -716,6 +745,8 @@ impl LlmExtractor {
             detected_period_value: Option<String>,
             #[serde(default)]
             detected_reporting_year: Option<i32>,
+            #[serde(default)]
+            detected_fiscal_start_month: Option<i32>,
         }
 
         #[derive(Serialize, Deserialize)]
@@ -730,6 +761,17 @@ impl LlmExtractor {
         let convert_compact = |compact: CompactExtractionOutput| -> ExtractionOutput {
             let mut flat_items = Vec::new();
             for item in compact.line_items {
+                let lower_label = item.raw_label.to_lowercase();
+                // "Total Equity & Liabilities" is a grand total check row (Total Assets = Liabilities + Equity).
+                // Skip it from line_items so it doesn't appear as an unmapped NULL row.
+                if lower_label.contains("equity & liabilities")
+                    || lower_label.contains("liabilities & equity")
+                    || lower_label.contains("liabilities and equity")
+                    || lower_label.contains("equity and liabilities")
+                {
+                    continue;
+                }
+
                 for (month_str, val) in item.values {
                     if let Ok(month_num) = month_str.parse::<i16>() {
                         flat_items.push(ExtractedLineItem {
@@ -749,6 +791,7 @@ impl LlmExtractor {
                 detected_period_type: compact.detected_period_type,
                 detected_period_value: compact.detected_period_value,
                 detected_reporting_year: compact.detected_reporting_year,
+                detected_fiscal_start_month: compact.detected_fiscal_start_month,
             }
         };
 
@@ -1027,12 +1070,14 @@ impl FinancialStatementExtractor for LlmExtractor {
         chart_of_accounts: &[CoaEntry],
         account_aliases: &[AliasEntry],
         cooperative_type: &str,
+        reporting_year: i32,
     ) -> AppResult<ExtractionOutput> {
         tracing::info!(
             raw_text_chars = raw_text.len(),
             coa_count = chart_of_accounts.len(),
             alias_count = account_aliases.len(),
             cooperative_type = cooperative_type,
+            reporting_year = reporting_year,
             "=== MAP_TO_COA START ==="
         );
         tracing::info!(
@@ -1044,6 +1089,7 @@ impl FinancialStatementExtractor for LlmExtractor {
             chart_of_accounts,
             account_aliases,
             cooperative_type,
+            reporting_year,
         );
 
         let raw_output = self.chat(&self.model, &prompt).await?;
@@ -1132,6 +1178,7 @@ Miscellaneous Fund               12,000
         _chart_of_accounts: &[CoaEntry],
         _account_aliases: &[AliasEntry],
         _cooperative_type: &str,
+        _reporting_year: i32,
     ) -> AppResult<ExtractionOutput> {
         Ok(ExtractionOutput {
             line_items: vec![
@@ -1342,6 +1389,7 @@ Miscellaneous Fund               12,000
             detected_period_type: Some("YEARLY".to_string()),
             detected_period_value: Some("2026".to_string()),
             detected_reporting_year: Some(2026),
+            detected_fiscal_start_month: Some(1),
         })
     }
 }

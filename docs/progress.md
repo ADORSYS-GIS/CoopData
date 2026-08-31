@@ -486,6 +486,7 @@
 - [x] **22.4 Frontend Submission Wizard & Dynamic Inputs** — Updated `NewSubmissionModal` and `NewApexSubmissionModal` in `SubmissionsPage.tsx` with frequency selectors (`YEARLY`, `QUARTERLY`, `MONTHLY`, `SEMI_ANNUAL`) and period value buttons.
 - [x] **22.5 Submissions List UI & Admin Period Filtering** — Added `formatPeriodBadge()` helper and rendered period badges (`Yearly - 2026`, `Quarterly - Q2 2026`, `Monthly - August 2026`, `Semi-Annual - H1 2026`) in submission table rows.
 - [x] **22.6 Analytics Engine & Dashboard Filters** — Added `period_type` and `period_value` query parameters to `NationalOverviewParams` with default fallback to `YEARLY` baseline data.
+- [x] **22.7 Custom Cooperative Financial Year Start Month (Manual & AI Upload)** — Added `startMonth` selector (1..12, e.g. October to September, July to June) to `FinancialExcelGrid` and `ManualEntryWizard`. Updated AI Extraction prompt & DTOs to auto-detect custom fiscal start months (`detected_fiscal_start_month`).
 
 
 ---

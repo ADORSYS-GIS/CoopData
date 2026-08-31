@@ -878,6 +878,7 @@
           "label": "État financier",
           "description": "Téléverser et examiner l'état financier audité",
           "pendingAction": "Téléverser le fichier",
+          "pendingActionManual": "Saisir manuellement",
           "progressAction": "Examiner et marquer prêt",
           "readyAction": "Voir l'état"
         },
@@ -885,30 +886,35 @@
           "label": "Registre des membres",
           "description": "Registre des membres actifs, jeunes, femmes et ruraux",
           "pendingAction": "Téléverser Excel",
+          "pendingActionManual": "Saisir manuellement",
           "readyAction": "Voir le registre"
         },
         "savings": {
           "label": "Grand livre d'épargne",
           "description": "Détails des comptes d'épargne des membres et des fréquences",
           "pendingAction": "Téléverser Excel",
+          "pendingActionManual": "Saisir manuellement",
           "readyAction": "Voir l'épargne"
         },
         "loans": {
           "label": "Livre de prêts",
           "description": "Statut actuel des prêts, soldes et classifications de risque",
           "pendingAction": "Téléverser Excel",
+          "pendingActionManual": "Saisir manuellement",
           "readyAction": "Voir les prêts"
         },
         "fixed_deposits": {
           "label": "Dépôts à terme",
           "description": "Dépôts à terme, comptes renouvelés et échéances",
           "pendingAction": "Téléverser Excel",
+          "pendingActionManual": "Saisir manuellement",
           "readyAction": "Voir les dépôts"
         },
         "farm_coop": {
           "label": "Données de coopérative agricole (Optionnel)",
           "description": "Types de production, activités et métriques de conformité",
           "pendingAction": "Téléverser Excel",
+          "pendingActionManual": "Saisir manuellement",
           "readyAction": "Voir les données agricoles"
         }
       },
@@ -1650,7 +1656,16 @@
     "withdrawn": "Retiré",
     "rolledOver": "Renouvelé",
     "tenureCategory": "Catégorie de durée",
-    "originalTenure": "Durée originale"
+    "originalTenure": "Durée originale",
+    "sectionLabel": "Section",
+    "sectionAll": "All sections (single workbook)",
+    "sectionMembers": "Membership only",
+    "sectionSavings": "Savings only",
+    "sectionLoans": "Loans only",
+    "sectionFixedDeposits": "Fixed deposits only",
+    "sectionFarmCoop": "Farm cooperative only",
+    "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
   },
   "analytics": {
     "filter": {
@@ -2499,6 +2514,7 @@
       "ready": "Section prête"
     },
     "months": {
+      "annual": "Total Annuel",
       "decPrev": "Déc (Préc.)",
       "jan": "Jan",
       "feb": "Fév",

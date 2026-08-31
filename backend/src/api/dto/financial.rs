@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::entities::balance_sheet_line_item::Model as LineItemModel;
 use crate::entities::chart_of_account::Model as CoaModel;
 use crate::entities::financial_statement::Model as FsModel;
+use crate::entities::enums::PeriodType;
 use crate::services::kpi_engine::KpiValue;
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -378,7 +379,8 @@ impl From<CoaModel> for ChartOfAccountResponse {
 pub struct ManualFinancialStatementRequest {
     pub accounting_year: String,
     pub currency: String,
-    pub period_type: Option<crate::entities::enums::PeriodType>,
+    #[schema(value_type = Option<String>)]
+    pub period_type: Option<PeriodType>,
     pub period_value: Option<String>,
     pub line_items: Vec<ManualLineItemRequest>,
 }

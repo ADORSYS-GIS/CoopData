@@ -16,6 +16,8 @@ export interface MonthlyTrendResponse {
 
 export interface MonthlyTrendParams {
   reportingYear?: number;
+  periodType?: string;
+  periodValue?: string;
   cooperativeId?: string;
   // Server-side filter params
   region?: string;
@@ -43,6 +45,8 @@ export const useMonthlyTrend = (params: MonthlyTrendParams = {}, enabled = true)
         params: {
           query: {
             reporting_year: params.reportingYear,
+            period_type: params.periodType !== "all" ? params.periodType : undefined,
+            period_value: params.periodValue !== "all" ? params.periodValue : undefined,
             cooperative_id: params.cooperativeId,
             region: params.region !== "all" ? params.region : undefined,
             sector: params.sector !== "all" ? params.sector : undefined,

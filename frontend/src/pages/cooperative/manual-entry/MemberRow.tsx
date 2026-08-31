@@ -6,7 +6,7 @@ import type { MemberRecord } from "@/lib/financial-data";
 interface MemberRowProps {
   member: WizardMember;
   idx: number;
-  onUpdate: (key: string, field: keyof MemberRecord, value: string | boolean) => void;
+  onUpdate: (key: string, field: keyof MemberRecord, value: string | boolean | number) => void;
   onRemove: (key: string) => void;
 }
 
@@ -69,6 +69,18 @@ export function MemberRow({ member, idx, onUpdate, onRemove }: MemberRowProps) {
           className="size-4 rounded accent-primary mx-auto block"
           checked={member.votingExercised}
           onChange={(e) => onUpdate(member._rowKey, "votingExercised", e.target.checked)}
+        />
+      </td>
+      <td className="px-2 py-2">
+        <input
+          type="number"
+          step="0.01"
+          className="w-full text-xs bg-muted/30 border border-border rounded-lg px-2 py-1.5 font-mono text-right"
+          placeholder="0.00"
+          value={member.shareBalance ?? ""}
+          onChange={(e) =>
+            onUpdate(member._rowKey, "shareBalance", e.target.value === "" ? 0 : parseFloat(e.target.value))
+          }
         />
       </td>
       <td className="px-2 py-2">
