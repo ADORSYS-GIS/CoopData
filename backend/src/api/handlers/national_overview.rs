@@ -709,7 +709,8 @@ pub async fn get_benchmark(
     // returned to the caller; individual rows never leave this function.
     let all_coops = state.cooperative_repo.list_all().await?;
     let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
-    let all_rows = compute_coop_rows(&state, all_coop_ids, params.reporting_year, None, None).await?;
+    let all_rows =
+        compute_coop_rows(&state, all_coop_ids, params.reporting_year, None, None).await?;
 
     // A cooperative caller without an approved/submitted financial statement for
     // the year gets `cooperative: null` with 200 OK — the absence of data is a

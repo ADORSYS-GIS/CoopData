@@ -335,8 +335,13 @@ pub async fn create_manual_financial_statement(
     }
 
     if let Some(pt) = body.period_type {
-        let pv = body.period_value.unwrap_or_else(|| submission.period_value.clone());
-        state.submission_repo.update_period(submission_id, pt, pv).await?;
+        let pv = body
+            .period_value
+            .unwrap_or_else(|| submission.period_value.clone());
+        state
+            .submission_repo
+            .update_period(submission_id, pt, pv)
+            .await?;
     }
 
     // Check for existing FS so we can delete it inside the transaction
@@ -765,10 +770,8 @@ pub async fn get_benchmarks(
         let coop_type_lower = coop_type.to_lowercase();
         let coop_ids: Vec<_> = year_filtered.iter().map(|s| s.cooperative_id).collect();
         let coops = state.cooperative_repo.find_by_ids(coop_ids).await?;
-        let coop_map: std::collections::HashMap<_, _> = coops
-            .into_iter()
-            .map(|c| (c.id, c))
-            .collect();
+        let coop_map: std::collections::HashMap<_, _> =
+            coops.into_iter().map(|c| (c.id, c)).collect();
         year_filtered
             .into_iter()
             .filter(|sub| {
@@ -815,9 +818,15 @@ pub async fn get_benchmarks(
         .await?;
 
     // Group line items by financial_statement_id
-    let mut items_by_fs: std::collections::HashMap<Uuid, Vec<crate::entities::balance_sheet_line_item::Model>> = std::collections::HashMap::new();
+    let mut items_by_fs: std::collections::HashMap<
+        Uuid,
+        Vec<crate::entities::balance_sheet_line_item::Model>,
+    > = std::collections::HashMap::new();
     for item in all_line_items {
-        items_by_fs.entry(item.financial_statement_id).or_default().push(item);
+        items_by_fs
+            .entry(item.financial_statement_id)
+            .or_default()
+            .push(item);
     }
 
     // Compute KPI value for each submission
@@ -2091,7 +2100,9 @@ pub async fn get_monthly_trend(
         .iter()
         .filter(|s| {
             let matches_year = s.reporting_year == year;
-            let matches_pt = params.period_type.as_deref()
+            let matches_pt = params
+                .period_type
+                .as_deref()
                 .map(|pt| {
                     if pt.eq_ignore_ascii_case("all") {
                         true
@@ -2106,7 +2117,9 @@ pub async fn get_monthly_trend(
                     }
                 })
                 .unwrap_or(true);
-            let matches_pv = params.period_value.as_deref()
+            let matches_pv = params
+                .period_value
+                .as_deref()
                 .map(|pv| {
                     if pv.eq_ignore_ascii_case("all") {
                         true
@@ -2115,7 +2128,10 @@ pub async fn get_monthly_trend(
                     }
                 })
                 .unwrap_or(true);
-            matches_year && matches_pt && matches_pv && s.status == crate::entities::enums::SubmissionStatus::Approved
+            matches_year
+                && matches_pt
+                && matches_pv
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
         })
         .collect();
 

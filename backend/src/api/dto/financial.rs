@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::entities::balance_sheet_line_item::Model as LineItemModel;
 use crate::entities::chart_of_account::Model as CoaModel;
-use crate::entities::financial_statement::Model as FsModel;
 use crate::entities::enums::PeriodType;
+use crate::entities::financial_statement::Model as FsModel;
 use crate::services::kpi_engine::KpiValue;
 
 #[derive(Debug, Serialize, ToSchema)]

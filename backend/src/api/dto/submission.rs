@@ -9,7 +9,11 @@ use crate::entities::submission_section::Model as SectionModel;
 
 /// Shared period resolution and validation logic used by all submission
 /// creation request types. Extracted here to avoid duplication.
-pub fn resolve_period(period_type: Option<&str>, period_value: Option<&str>, reporting_year: i32) -> (PeriodType, String) {
+pub fn resolve_period(
+    period_type: Option<&str>,
+    period_value: Option<&str>,
+    reporting_year: i32,
+) -> (PeriodType, String) {
     let pt = period_type
         .and_then(PeriodType::parse)
         .unwrap_or(PeriodType::Yearly);
@@ -20,7 +24,11 @@ pub fn resolve_period(period_type: Option<&str>, period_value: Option<&str>, rep
     (pt, pv)
 }
 
-pub fn validate_period(period_type: Option<&str>, period_value: Option<&str>, reporting_year: i32) -> Result<(), String> {
+pub fn validate_period(
+    period_type: Option<&str>,
+    period_value: Option<&str>,
+    reporting_year: i32,
+) -> Result<(), String> {
     let (pt, pv) = resolve_period(period_type, period_value, reporting_year);
     match pt {
         PeriodType::Yearly => Ok(()),
@@ -34,9 +42,28 @@ pub fn validate_period(period_type: Option<&str>, period_value: Option<&str>, re
         PeriodType::Monthly => {
             if matches!(
                 pv.as_str(),
-                "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09"
-                    | "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6"
-                    | "7" | "8" | "9" | "FULL_YEAR" | "1-12"
+                "01" | "02"
+                    | "03"
+                    | "04"
+                    | "05"
+                    | "06"
+                    | "07"
+                    | "08"
+                    | "09"
+                    | "10"
+                    | "11"
+                    | "12"
+                    | "1"
+                    | "2"
+                    | "3"
+                    | "4"
+                    | "5"
+                    | "6"
+                    | "7"
+                    | "8"
+                    | "9"
+                    | "FULL_YEAR"
+                    | "1-12"
             ) {
                 Ok(())
             } else {
@@ -59,11 +86,19 @@ pub trait SubmissionPeriodRequest {
     fn reporting_year(&self) -> i32;
 
     fn resolved_period(&self) -> (PeriodType, String) {
-        resolve_period(self.period_type(), self.period_value(), self.reporting_year())
+        resolve_period(
+            self.period_type(),
+            self.period_value(),
+            self.reporting_year(),
+        )
     }
 
     fn validate_period(&self) -> Result<(), String> {
-        validate_period(self.period_type(), self.period_value(), self.reporting_year())
+        validate_period(
+            self.period_type(),
+            self.period_value(),
+            self.reporting_year(),
+        )
     }
 }
 
@@ -418,9 +453,29 @@ mod period_validation_tests {
     #[test]
     fn monthly_valid_values() {
         let valid = [
-            "1", "2", "3", "4", "5", "6", "7", "8", "9",
-            "01", "02", "03", "04", "05", "06", "07", "08", "09",
-            "10", "11", "12", "FULL_YEAR", "1-12",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "01",
+            "02",
+            "03",
+            "04",
+            "05",
+            "06",
+            "07",
+            "08",
+            "09",
+            "10",
+            "11",
+            "12",
+            "FULL_YEAR",
+            "1-12",
         ];
         for v in &valid {
             assert!(

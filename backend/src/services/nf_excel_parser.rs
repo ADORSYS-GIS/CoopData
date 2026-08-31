@@ -38,7 +38,9 @@ impl NfSection {
         let normalized = s.trim().to_lowercase().replace(['-', ' '], "_");
         let cleaned = normalized.strip_prefix("nf_").unwrap_or(&normalized);
         match cleaned {
-            "members" | "membership" | "member" | "mship" | "shares" | "share" => Some(NfSection::Members),
+            "members" | "membership" | "member" | "mship" | "shares" | "share" => {
+                Some(NfSection::Members)
+            }
             "savings" | "saving" | "s" => Some(NfSection::Savings),
             "loans" | "loan" => Some(NfSection::Loans),
             "fixed_deposits" | "fixeddeposits" | "fixed_deposit" | "fd" | "fs" | "fixed" => {
@@ -848,10 +850,9 @@ async fn parse_members_sheet(
                     get_optional_string_cell(row, *map.get("leadership_role").unwrap_or(&0));
                 let voting_exercised =
                     get_bool_cell(row, *map.get("voting_exercised").unwrap_or(&0)).unwrap_or(false);
-                let share_balance =
-                    get_decimal_cell(row, *map.get("share_balance").unwrap_or(&0))
-                        .or_else(|| get_decimal_cell(row, *map.get("balance_share").unwrap_or(&0)))
-                        .unwrap_or(Decimal::ZERO);
+                let share_balance = get_decimal_cell(row, *map.get("share_balance").unwrap_or(&0))
+                    .or_else(|| get_decimal_cell(row, *map.get("balance_share").unwrap_or(&0)))
+                    .unwrap_or(Decimal::ZERO);
 
                 result.members.push(MemberRecord {
                     member_id: mid,
@@ -1610,9 +1611,18 @@ mod tests {
         assert_eq!(NfSection::parse("savings"), Some(NfSection::Savings));
         assert_eq!(NfSection::parse("NF S"), Some(NfSection::Savings));
         assert_eq!(NfSection::parse("loans"), Some(NfSection::Loans));
-        assert_eq!(NfSection::parse("fixed_deposits"), Some(NfSection::FixedDeposits));
-        assert_eq!(NfSection::parse("fixed-deposits"), Some(NfSection::FixedDeposits));
-        assert_eq!(NfSection::parse("fixed deposit"), Some(NfSection::FixedDeposits));
+        assert_eq!(
+            NfSection::parse("fixed_deposits"),
+            Some(NfSection::FixedDeposits)
+        );
+        assert_eq!(
+            NfSection::parse("fixed-deposits"),
+            Some(NfSection::FixedDeposits)
+        );
+        assert_eq!(
+            NfSection::parse("fixed deposit"),
+            Some(NfSection::FixedDeposits)
+        );
         assert_eq!(NfSection::parse("NF FS"), Some(NfSection::FixedDeposits));
         assert_eq!(NfSection::parse("farm"), Some(NfSection::FarmCoop));
         assert_eq!(NfSection::parse("bogus"), None);

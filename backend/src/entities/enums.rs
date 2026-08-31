@@ -746,15 +746,22 @@ impl SubmissionCreatedByRole {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, ToSchema,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    Default,
 )]
-#[sea_orm(
-    rs_type = "String",
-    db_type = "Enum",
-    enum_name = "period_type_enum"
-)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "period_type_enum")]
 pub enum PeriodType {
     #[sea_orm(string_value = "YEARLY")]
+    #[default]
     Yearly,
     #[sea_orm(string_value = "QUARTERLY")]
     Quarterly,
@@ -784,10 +791,3 @@ impl PeriodType {
         }
     }
 }
-
-impl Default for PeriodType {
-    fn default() -> Self {
-        Self::Yearly
-    }
-}
-

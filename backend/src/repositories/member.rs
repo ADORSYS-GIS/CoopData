@@ -174,10 +174,7 @@ impl MemberRepository {
         if let Some(sub_id) = submission_id {
             query = query.filter(MemberColumn::SubmissionId.eq(sub_id));
         }
-        query
-            .all(&self.db)
-            .await
-            .map_err(AppError::DatabaseError)
+        query.all(&self.db).await.map_err(AppError::DatabaseError)
     }
 
     pub async fn get_membership_stats(

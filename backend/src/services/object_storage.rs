@@ -157,14 +157,17 @@ impl ObjectStorage for S3FileStorage {
                 if err_str.contains("NoSuchKey") {
                     AppError::NotFound(format!("Object '{key}' not found"))
                 } else {
-                    AppError::ExternalServiceError(format!("Failed to retrieve file from storage: {err_str}"))
+                    AppError::ExternalServiceError(format!(
+                        "Failed to retrieve file from storage: {err_str}"
+                    ))
                 }
             })?;
 
-        let bytes =
-            response.body.collect().await.map_err(|e| {
-                AppError::ExternalServiceError(format!("Failed to read file contents from storage: {e}"))
-            })?;
+        let bytes = response.body.collect().await.map_err(|e| {
+            AppError::ExternalServiceError(format!(
+                "Failed to read file contents from storage: {e}"
+            ))
+        })?;
 
         Ok(bytes.into_bytes().to_vec())
     }

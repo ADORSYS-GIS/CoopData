@@ -293,7 +293,9 @@ pub async fn get_consolidated_nf_statistics(
         .into_iter()
         .filter(|s| {
             let matches_year = s.reporting_year == year;
-            let matches_pt = params.period_type.as_deref()
+            let matches_pt = params
+                .period_type
+                .as_deref()
                 .map(|pt| {
                     if pt.eq_ignore_ascii_case("all") {
                         true
@@ -308,7 +310,9 @@ pub async fn get_consolidated_nf_statistics(
                     }
                 })
                 .unwrap_or(true);
-            let matches_pv = params.period_value.as_deref()
+            let matches_pv = params
+                .period_value
+                .as_deref()
                 .map(|pv| {
                     if pv.eq_ignore_ascii_case("all") {
                         true
@@ -317,7 +321,10 @@ pub async fn get_consolidated_nf_statistics(
                     }
                 })
                 .unwrap_or(true);
-            matches_year && matches_pt && matches_pv && s.status == crate::entities::enums::SubmissionStatus::Approved
+            matches_year
+                && matches_pt
+                && matches_pv
+                && s.status == crate::entities::enums::SubmissionStatus::Approved
         })
         .collect();
 

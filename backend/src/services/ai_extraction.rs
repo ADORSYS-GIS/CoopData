@@ -546,9 +546,10 @@ impl LlmExtractor {
 
     /// Call the chat completions endpoint with a text prompt.
     async fn chat(&self, model: &str, prompt: &str) -> AppResult<String> {
-        let _permit = self.semaphore.acquire().await.map_err(|e| {
-            AppError::InternalServerError(format!("Semaphore acquire error: {e}"))
-        })?;
+        let _permit =
+            self.semaphore.acquire().await.map_err(|e| {
+                AppError::InternalServerError(format!("Semaphore acquire error: {e}"))
+            })?;
         let url = format!("{}/chat/completions", self.provider_url);
         let body = serde_json::json!({
             "model": model,
@@ -625,9 +626,10 @@ impl LlmExtractor {
                 ALLOWED_MIME_TYPES.join(", ")
             )));
         }
-        let _permit = self.semaphore.acquire().await.map_err(|e| {
-            AppError::InternalServerError(format!("Semaphore acquire error: {e}"))
-        })?;
+        let _permit =
+            self.semaphore.acquire().await.map_err(|e| {
+                AppError::InternalServerError(format!("Semaphore acquire error: {e}"))
+            })?;
         let b64 = image_to_base64(file_bytes);
         let url = format!("{}/chat/completions", self.provider_url);
         let data_url = format!("data:{mime_type};base64,{b64}");
@@ -943,9 +945,7 @@ impl LlmExtractor {
         cooperative_type: &str,
         reporting_year: i32,
     ) -> AppResult<ExtractionOutput> {
-        tracing::info!(
-            "=== RAW TEXT CHUNK START ===\n{raw_text}\n=== RAW TEXT CHUNK END ==="
-        );
+        tracing::info!("=== RAW TEXT CHUNK START ===\n{raw_text}\n=== RAW TEXT CHUNK END ===");
 
         let prompt = build_mapping_prompt(
             raw_text,
