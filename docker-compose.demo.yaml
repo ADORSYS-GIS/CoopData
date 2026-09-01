@@ -47,13 +47,13 @@ services:
     env_file:
       - .env.demo
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-coopdata}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-demo_password}
-      POSTGRES_DB: ${POSTGRES_DB:-coopdata_demo}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - demo_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-coopdata}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -103,8 +103,8 @@ services:
     env_file:
       - .env.demo
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
     ports:
       - "127.0.0.1:9105:9000"
     volumes:
@@ -139,10 +139,10 @@ services:
       KC_DB_URL_HOST: demo-postgres
       KC_DB_URL_PORT: "5432"
       KC_DB_URL_DATABASE: keycloak_demo
-      KC_DB_USERNAME: ${POSTGRES_USER:-coopdata}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-demo_password}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_PORT: "8180"
       KC_HOSTNAME: "demo.${DOMAIN_NAME:-localhost}"
@@ -185,7 +185,7 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 3000
-      DATABASE_URL: postgres://${POSTGRES_USER:-coopdata}:${POSTGRES_PASSWORD:-demo_password}@demo-postgres:5432/${POSTGRES_DB:-coopdata_demo}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@demo-postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://demo-redis:6379
       KEYCLOAK_URL: http://demo-keycloak:8180
       KEYCLOAK_REALM: coop-data

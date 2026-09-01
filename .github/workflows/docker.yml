@@ -57,6 +57,7 @@ jobs:
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
             type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=${{ inputs.target_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.target_tag != '' }}
           labels: |
             org.opencontainers.image.title=CoopData Frontend
 
@@ -73,6 +74,7 @@ jobs:
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
             type=raw,value=pr-${{ github.event.number }},enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=${{ inputs.target_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.target_tag != '' }}
           labels: |
             org.opencontainers.image.title=CoopData Backend
 
@@ -192,6 +194,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
+            type=raw,value=${{ inputs.target_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.target_tag != '' }}
 
       - id: meta-backend
         uses: docker/metadata-action@v5
@@ -205,6 +208,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha,prefix=,enable=${{ github.event_name == 'push' || github.event_name == 'release' }}
             type=ref,event=tag
+            type=raw,value=${{ inputs.target_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.target_tag != '' }}
 
       - name: Push frontend image
         uses: docker/build-push-action@v5

@@ -230,11 +230,11 @@ fi
 if [[ -f "$MINIO_DUMP_FILE" ]]; then
     step "4. Restoring MinIO S3 Object Storage Data..."
     if docker ps --format '{{.Names}}' | grep -q "^${MINIO_CONTAINER}$"; then
-        docker exec -i "$MINIO_CONTAINER" tar -xzf - -C / < "$MINIO_DUMP_FILE"
+        docker exec -i "$MINIO_CONTAINER" tar -xzf - -C /data < "$MINIO_DUMP_FILE"
         ok "MinIO object storage data unpacked into container"
     else
         warn "MinIO container not running — unpacking into Docker named volume..."
-        VOL_PATH=$(docker volume inspect minio_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
+        VOL_PATH=$(docker volume inspect coopdata_minio_data --format '{{ .Mountpoint }}' 2>/dev/null || docker volume inspect minio_data --format '{{ .Mountpoint }}' 2>/dev/null || echo "")
         if [[ -n "$VOL_PATH" && -d "$VOL_PATH" ]]; then
             tar -xzf "$MINIO_DUMP_FILE" -C "$VOL_PATH"
             ok "MinIO data volume restored directly"

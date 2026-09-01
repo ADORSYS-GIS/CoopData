@@ -150,13 +150,14 @@ info "[3/4] Archiving MinIO Object Storage Data..."
 MINIO_DUMP_FILE="${TMP_DIR}/minio_data_${DATE}.tar.gz"
 
 if docker ps --format '{{.Names}}' | grep -q "^${MINIO_CONTAINER}$"; then
-    docker exec "$MINIO_CONTAINER" tar -czf - /data > "$MINIO_DUMP_FILE"
+    docker exec "$MINIO_CONTAINER" tar -czf - -C /data . > "$MINIO_DUMP_FILE"
     MINIO_SIZE=$(du -sh "$MINIO_DUMP_FILE" | cut -f1)
     ok "MinIO object storage archived: ${MINIO_DUMP_FILE} (${MINIO_SIZE})"
 else
     warn "MinIO container '${MINIO_CONTAINER}' not running — attempting host volume archive..."
-    if docker volume inspect minio_data &>/dev/null; then
-        VOL_PATH=$(docker volume inspect minio_data --format '{{ .Mountpoint }}')
+    if docker volume inspect coopdata_minio_data &>/dev/null || docker volume inspect minio_data &>/dev/null; then
+        VOL_NAME=$(docker volume inspect coopdata_minio_data &>/dev/null && echo "coopdata_minio_data" || echo "minio_data")
+        VOL_PATH=$(docker volume inspect "$VOL_NAME" --format '{{ .Mountpoint }}')
         tar -czf "$MINIO_DUMP_FILE" -C "$VOL_PATH" .
         MINIO_SIZE=$(du -sh "$MINIO_DUMP_FILE" | cut -f1)
         ok "MinIO volume archived directly: ${MINIO_DUMP_FILE} (${MINIO_SIZE})"
