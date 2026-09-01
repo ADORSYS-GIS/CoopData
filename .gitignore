@@ -70,3 +70,11 @@ seed.sh
 
 # Vite PWA dev distribution
 frontend/dev-dist/
+
+# Terraform (EC2 infrastructure)
+terraform-ec2/.terraform/
+terraform-ec2/*.tfstate
+terraform-ec2/*.tfstate.*
+terraform-ec2/*.pem
+terraform-ec2/*.tfvars
+!terraform-ec2/terraform.tfvars.example
