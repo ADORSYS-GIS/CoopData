@@ -11,7 +11,7 @@ The CoopData system supports two methods of data ingestion for annual submission
 2. **Manual Questionnaire Entry:** For cooperatives without digital systems, they manually enter their data via a questionnaire.
 
 ### The Structural Mismatch
-* **Financial Data:** The manual questionnaire enters summary data (Assets, Liabilities, Equity) and portfolio values. This is already successfully handled by `convert_financial_questionnaire` in [questionnaire_converter.rs](file:///home/ariel/Desktop/CoopData/backend/src/services/questionnaire_converter.rs), which translates these inputs into standardized balance sheet line items (e.g. Account Code `1999` for Total Assets, `2101` for Member Savings). Thus, **the financial manual entry maps perfectly into the KPI engine**.
+* **Financial Data:** The manual questionnaire enters summary data (Assets, Liabilities, Equity) and portfolio values. This is already successfully handled by `convert_financial_questionnaire` in [questionnaire_converter.rs](../../backend/src/services/questionnaire_converter.rs), which translates these inputs into standardized balance sheet line items (e.g. Account Code `1999` for Total Assets, `2101` for Member Savings). Thus, **the financial manual entry maps perfectly into the KPI engine**.
 * **Non-Financial Data:** The database tables (`members`, `loans`, `savings_accounts`, `fixed_deposits`) are designed for **granular, row-by-row records** (e.g., one row per member with age, gender, agm attendance). The `NfIndicatorEngine` aggregates these tables to compute dashboard metrics. However, the manual questionnaire only collects **aggregated summaries** (e.g., "Total active members: 250 male, 150 female"). If a cooperative uses manual entry, these granular tables remain empty, causing the `NfIndicatorEngine` to return zero for all non-financial statistics.
 
 ---
@@ -21,7 +21,7 @@ The CoopData system supports two methods of data ingestion for annual submission
 To solve the structural mismatch without bloating the database with thousands of fake member/account rows, we propose a two-pronged approach:
 
 ### A. Dynamic Fallback in `NfIndicatorEngine`
-Update the [NfIndicatorEngine](file:///home/ariel/Desktop/CoopData/backend/src/services/nf_indicator_engine.rs) to detect the source of data for a submission:
+Update the [NfIndicatorEngine](../../backend/src/services/nf_indicator_engine.rs) to detect the source of data for a submission:
 1. Check if granular records exist in the database for the submission ID (e.g., count of members > 0).
 2. **If granular data exists:** Execute the existing SQL aggregation logic.
 3. **If NO granular data exists:** Load the submission's `metadata` JSON field, extract the `non_financial_questionnaire` or `financial_questionnaire` object, and directly populate the `NfStatisticsResponse` structs using the questionnaire values.
@@ -101,7 +101,7 @@ Modify `submit_non_financial_questionnaire` and `submit_financial_questionnaire`
 2. Upsert the entries into the `non_financial_indicator_entries` table.
 
 ### Step 3: Implement JSON Fallback inside `NfIndicatorEngine`
-Modify [nf_indicator_engine.rs](file:///home/ariel/Desktop/CoopData/backend/src/services/nf_indicator_engine.rs):
+Modify [nf_indicator_engine.rs](../../backend/src/services/nf_indicator_engine.rs):
 ```rust
 // Pseudocode concept for compute_membership fallback
 let member_count = member::Entity::find().filter(C::SubmissionId.eq(submission_id)).count(db).await?;

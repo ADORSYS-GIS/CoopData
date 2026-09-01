@@ -163,7 +163,7 @@ Already defined in `docs/architecture/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key e
 
 ## 11. Report Export Subsystem
 
-See [Report Export Design & Roadmap](file:///home/ariel/Desktop/CoopData/docs/design-report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
+See [Report Export Design & Roadmap](features/report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
 
 ---
 
