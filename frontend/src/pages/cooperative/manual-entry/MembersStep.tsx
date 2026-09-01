@@ -8,7 +8,7 @@ import type { MemberRecord } from "@/lib/financial-data";
 interface MembersStepProps {
   members: WizardMember[];
   addMember: () => void;
-  updateMember: (key: string, field: keyof MemberRecord, value: string | boolean) => void;
+  updateMember: (key: string, field: keyof MemberRecord, value: string | boolean | number) => void;
   removeMember: (key: string) => void;
 }
 
@@ -70,6 +70,9 @@ export function MembersStep({ members, addMember, updateMember, removeMember }: 
                 </th>
                 <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">
                   {t("membersStep.tableHeaders.voted")}
+                </th>
+                <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground w-32">
+                  {t("membersStep.tableHeaders.shareBalance", "Balance Share")}
                 </th>
                 <th className="px-2 py-2 w-8" />
               </tr>

@@ -7,7 +7,10 @@ import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import type { SubmissionResponse } from "./useSubmissions";
 import type { components } from "@/openapi-client/api";
 
-export type FinancialStatementResponse = components["schemas"]["FinancialStatementResponse"];
+export type FinancialStatementResponse = components["schemas"]["FinancialStatementResponse"] & {
+  start_month?: number;
+  period_type?: string;
+};
 export type LineItemResponse = components["schemas"]["LineItemResponse"];
 export type LineItemBulkUpdateRequest = components["schemas"]["LineItemBulkUpdateRequest"];
 

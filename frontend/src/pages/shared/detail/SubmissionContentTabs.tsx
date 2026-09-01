@@ -21,6 +21,7 @@ import { UploadFinancialStatementWidget } from "@/pages/cooperative/UploadFinanc
 import { useDeleteFinancialStatement } from "@/hooks/submissions/useSubmissions";
 import { NfDatabasesTab } from "./NfDatabasesTab";
 import { DocumentViewer } from "./DocumentViewer";
+import { ReconciliationAuditCard } from "@/components/submissions/ReconciliationAuditCard";
 import { toast } from "sonner";
 import type { SubmissionSectionResponse } from "@/hooks/submissions/useSubmissionSections";
 import type { NfUploadResponse } from "@/types/non-financial";
@@ -53,13 +54,24 @@ const isQuestionnaireFilled = (q: { id?: string } | null | undefined): boolean =
   return !!(q && q.id && q.id !== "00000000-0000-0000-0000-000000000000");
 };
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const deleteFS = useDeleteFinancialStatement();
+  const [open, setOpen] = React.useState(false);
 
-  const handleClick = async () => {
-    if (!window.confirm(t("submissions.detail.contentTabs.confirmDeleteDoc"))) return;
+  const handleDelete = async () => {
     try {
       await deleteFS.mutateAsync(submissionId);
       toast.success(t("submissions.detail.contentTabs.toastDeleteDocSuccess"));
@@ -69,22 +81,63 @@ const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) 
       toast.error(
         e instanceof Error ? e.message : t("submissions.detail.contentTabs.toastDeleteDocFailed"),
       );
+    } finally {
+      setOpen(false);
     }
   };
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={deleteFS.isPending}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
-    >
-      {deleteFS.isPending ? (
-        <Loader2 className="size-3.5 animate-spin" />
-      ) : (
-        <Trash2 className="size-3.5" />
-      )}
-      {t("submissions.detail.contentTabs.btnDeleteDoc")}
-    </button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        disabled={deleteFS.isPending}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
+      >
+        {deleteFS.isPending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <Trash2 className="size-3.5" />
+        )}
+        {t("submissions.detail.contentTabs.btnDeleteDoc")}
+      </button>
+
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="rounded-2xl border border-destructive/20 bg-background p-6 shadow-2xl max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center justify-center size-10 rounded-full bg-destructive/15 shrink-0">
+                <Trash2 className="size-5 text-destructive" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-base font-bold text-foreground">
+                  {t("submissions.detail.contentTabs.btnDeleteDoc", "Supprimer le document")}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  {t("submissions.detail.contentTabs.confirmDeleteDoc")}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex gap-2">
+            <AlertDialogCancel disabled={deleteFS.isPending} className="rounded-xl">
+              {t("common.cancel", "Annuler")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteFS.isPending}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteFS.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-1" />
+              ) : (
+                <Trash2 className="size-4 mr-1" />
+              )}
+              {t("common.delete", "Supprimer")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
@@ -260,6 +313,13 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
             isDraft={isDraft}
             onOpenMethodModal={onOpenMethodModal}
           />
+          <div className="mb-5">
+            <ReconciliationAuditCard
+              submissionId={submission.id}
+              financialStatementId={submission.financial_statement_id}
+              onNavigateToTab={setActiveTab}
+            />
+          </div>
           <TabsList id="detail-tabs-list" className="w-full grid grid-cols-2 mb-5 h-auto p-1">
             <TabsTrigger
               value="financial"

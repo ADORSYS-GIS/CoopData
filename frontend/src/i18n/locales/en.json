@@ -878,6 +878,7 @@
           "label": "Financial Statement",
           "description": "Upload and review audited financial statement",
           "pendingAction": "Upload File",
+          "pendingActionManual": "Enter Manually",
           "progressAction": "Review & Mark Ready",
           "readyAction": "View Statement"
         },
@@ -885,30 +886,35 @@
           "label": "Membership Register",
           "description": "Register of active, youth, women, and rural members",
           "pendingAction": "Upload Excel",
+          "pendingActionManual": "Enter Manually",
           "readyAction": "View Register"
         },
         "savings": {
           "label": "Savings Ledger",
           "description": "Details of member savings accounts and frequencies",
           "pendingAction": "Upload Excel",
+          "pendingActionManual": "Enter Manually",
           "readyAction": "View Savings"
         },
         "loans": {
           "label": "Loan Book",
           "description": "Current loan status, balances, and risk classifications",
           "pendingAction": "Upload Excel",
+          "pendingActionManual": "Enter Manually",
           "readyAction": "View Loans"
         },
         "fixed_deposits": {
           "label": "Fixed Deposits",
           "description": "Term deposits, renewed accounts, and maturities",
           "pendingAction": "Upload Excel",
+          "pendingActionManual": "Enter Manually",
           "readyAction": "View Deposits"
         },
         "farm_coop": {
           "label": "Farm Cooperative Data (Optional)",
           "description": "Production types, activities and compliance metrics",
           "pendingAction": "Upload Excel",
+          "pendingActionManual": "Enter Manually",
           "readyAction": "View Farm Data"
         }
       },
@@ -1650,7 +1656,16 @@
     "withdrawn": "Withdrawn",
     "rolledOver": "Rolled Over",
     "tenureCategory": "Tenure Category",
-    "originalTenure": "Original Tenure"
+    "originalTenure": "Original Tenure",
+    "sectionLabel": "Section",
+    "sectionAll": "All sections (single workbook)",
+    "sectionMembers": "Membership only",
+    "sectionSavings": "Savings only",
+    "sectionLoans": "Loans only",
+    "sectionFixedDeposits": "Fixed deposits only",
+    "sectionFarmCoop": "Farm cooperative only",
+    "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
   },
   "analytics": {
     "filter": {
@@ -2511,6 +2526,7 @@
       "ready": "Section Ready"
     },
     "months": {
+      "annual": "Annual Total",
       "decPrev": "Dec (Prev)",
       "jan": "Jan",
       "feb": "Feb",

@@ -95,6 +95,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       urbanRural: "Rural",
       agmAttendance: true,
       votingExercised: true,
+      shareBalance: 5000,
     },
     {
       _rowKey: Math.random().toString(36).slice(2),
@@ -107,6 +108,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       urbanRural: "Urban",
       agmAttendance: true,
       votingExercised: true,
+      shareBalance: 12000,
     },
     {
       _rowKey: Math.random().toString(36).slice(2),
@@ -119,6 +121,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       urbanRural: "Rural",
       agmAttendance: false,
       votingExercised: false,
+      shareBalance: 3500,
     },
     {
       _rowKey: Math.random().toString(36).slice(2),
@@ -131,6 +134,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       urbanRural: "Rural",
       agmAttendance: true,
       votingExercised: false,
+      shareBalance: 1500,
     },
     {
       _rowKey: Math.random().toString(36).slice(2),
@@ -143,6 +147,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       urbanRural: "Rural",
       agmAttendance: false,
       votingExercised: true,
+      shareBalance: 8000,
     },
   ];
 

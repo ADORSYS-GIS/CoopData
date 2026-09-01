@@ -111,7 +111,18 @@ Content-Type: multipart/form-data
 Parameters:
   - file: .xlsx or .xls file (required)
   - submission_id: UUID (required — links to an existing draft submission)
+  - section: optional — one of `members`, `savings`, `loans`, `fixed_deposits`, `farm`.
+             When omitted, the file is treated as a combined workbook containing all
+             tables as named sheets (NF MSHIP, NF S, NF LOANS, NF FS, NF FARM).
+             When provided, only that section is parsed from the file (matched by its
+             canonical sheet name, or the first sheet if the name differs).
   - cooperative_id: UUID (resolved from JWT claims, not user-supplied)
+```
+
+**Two supported upload flows:**
+
+1. **Combined workbook** (no `section`): one Excel file containing all tables as named sheets. This is the original behavior.
+2. **Per-section upload** (`section` set): one Excel file per section (e.g. a membership-only file, a savings-only file, a loans-only file). Only that section's data is parsed and replaced. Cross-table member validation is skipped for single-section child uploads; instead the handler requires members to already exist for the submission (upload the membership file first) and resolves member FKs against those existing members.
 
 Response 201:
 {

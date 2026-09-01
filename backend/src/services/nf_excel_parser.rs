@@ -12,6 +12,46 @@ use crate::entities::enums::{
 use crate::error::{AppError, AppResult};
 use crate::services::ai_extraction::NfHeaderMapper;
 
+// ── Section ───────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NfSection {
+    Members,
+    Savings,
+    Loans,
+    FixedDeposits,
+    FarmCoop,
+}
+
+impl NfSection {
+    pub fn sheet_name(&self) -> &'static str {
+        match self {
+            NfSection::Members => SHEET_MEMBERS,
+            NfSection::Savings => SHEET_SAVINGS,
+            NfSection::Loans => SHEET_LOANS,
+            NfSection::FixedDeposits => SHEET_FIXED_DEPOSITS,
+            NfSection::FarmCoop => SHEET_FARM_COOP,
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<NfSection> {
+        let normalized = s.trim().to_lowercase().replace(['-', ' '], "_");
+        let cleaned = normalized.strip_prefix("nf_").unwrap_or(&normalized);
+        match cleaned {
+            "members" | "membership" | "member" | "mship" | "shares" | "share" => {
+                Some(NfSection::Members)
+            }
+            "savings" | "saving" | "s" => Some(NfSection::Savings),
+            "loans" | "loan" => Some(NfSection::Loans),
+            "fixed_deposits" | "fixeddeposits" | "fixed_deposit" | "fd" | "fs" | "fixed" => {
+                Some(NfSection::FixedDeposits)
+            }
+            "farm" | "farm_coop" | "farmcoop" => Some(NfSection::FarmCoop),
+            _ => None,
+        }
+    }
+}
+
 // ── Trait ─────────────────────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
@@ -20,6 +60,7 @@ pub trait NfExcelParser: Send + Sync {
         &self,
         file_bytes: &[u8],
         mapper: Option<Arc<dyn NfHeaderMapper>>,
+        section: Option<NfSection>,
     ) -> AppResult<NfParseResult>;
 }
 
@@ -44,8 +85,9 @@ impl NfExcelParser for CalamineNfParser {
         &self,
         file_bytes: &[u8],
         mapper: Option<Arc<dyn NfHeaderMapper>>,
+        section: Option<NfSection>,
     ) -> AppResult<NfParseResult> {
-        parse_workbook(file_bytes, mapper).await
+        parse_workbook(file_bytes, mapper, section).await
     }
 }
 
@@ -165,6 +207,8 @@ pub struct MemberRecord {
     pub agm_attendance: bool,
     pub leadership_role: Option<String>,
     pub voting_exercised: bool,
+    #[serde(default)]
+    pub share_balance: Decimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -289,12 +333,14 @@ pub struct NfParseWarning {
 async fn parse_workbook(
     file_bytes: &[u8],
     mapper: Option<Arc<dyn NfHeaderMapper>>,
+    section: Option<NfSection>,
 ) -> AppResult<NfParseResult> {
     use calamine::{open_workbook_auto_from_rs, Reader};
 
     tracing::info!(
         bytes = file_bytes.len(),
         ai_mapper = mapper.is_some(),
+        section = ?section,
         "Starting non-financial Excel workbook parse"
     );
 
@@ -321,49 +367,66 @@ async fn parse_workbook(
     let sheet_names: Vec<String> = sheets_data.keys().cloned().collect();
     tracing::info!(available_sheets = ?sheet_names, "Opened workbook");
 
+    // Single-section upload: parse only the requested section. Cross-table member
+    // validation is skipped because members may be uploaded in a separate file.
+    if let Some(section) = section {
+        parse_single_section(&sheets_data, section, &mut result, mapper.as_deref()).await;
+        if result.sheets_found.is_empty() {
+            tracing::error!(
+                available_sheets = ?sheet_names,
+                section = ?section,
+                "No data found for requested section"
+            );
+            return Err(AppError::BadRequest(format!(
+                "No data found for section '{}'. Expected a sheet named '{}' or a sheet with the section's columns.",
+                section_name(section),
+                section.sheet_name()
+            )));
+        }
+        return Ok(result);
+    }
+
     for sheet_name in &sheet_names {
-        match sheet_name.as_str() {
-            SHEET_MEMBERS => {
-                result.sheets_found.push(SHEET_MEMBERS.to_string());
-                tracing::info!(sheet = SHEET_MEMBERS, "Processing members sheet");
-                if let Some(range) = sheets_data.get(SHEET_MEMBERS) {
-                    parse_members_sheet(range, &mut result, mapper.as_deref()).await;
+        if let Some(section) = NfSection::parse(sheet_name) {
+            match section {
+                NfSection::Members => {
+                    result.sheets_found.push(sheet_name.clone());
+                    tracing::info!(sheet = %sheet_name, "Processing members sheet");
+                    if let Some(range) = sheets_data.get(sheet_name) {
+                        parse_members_sheet(range, &mut result, mapper.as_deref()).await;
+                    }
+                }
+                NfSection::Savings => {
+                    result.sheets_found.push(sheet_name.clone());
+                    tracing::info!(sheet = %sheet_name, "Processing savings sheet");
+                    if let Some(range) = sheets_data.get(sheet_name) {
+                        parse_savings_sheet(range, &mut result, mapper.as_deref()).await;
+                    }
+                }
+                NfSection::Loans => {
+                    result.sheets_found.push(sheet_name.clone());
+                    tracing::info!(sheet = %sheet_name, "Processing loans sheet");
+                    if let Some(range) = sheets_data.get(sheet_name) {
+                        parse_loans_sheet(range, &mut result, mapper.as_deref()).await;
+                    }
+                }
+                NfSection::FixedDeposits => {
+                    result.sheets_found.push(sheet_name.clone());
+                    tracing::info!(sheet = %sheet_name, "Processing fixed deposits sheet");
+                    if let Some(range) = sheets_data.get(sheet_name) {
+                        parse_fixed_deposits_sheet(range, &mut result, mapper.as_deref()).await;
+                    }
+                }
+                NfSection::FarmCoop => {
+                    result.sheets_found.push(sheet_name.clone());
+                    tracing::info!(sheet = %sheet_name, "Processing farm coop sheet");
+                    if let Some(range) = sheets_data.get(sheet_name) {
+                        parse_farm_coop_sheet(range, &mut result, mapper.as_deref()).await;
+                    }
                 }
             }
-            SHEET_SAVINGS => {
-                result.sheets_found.push(SHEET_SAVINGS.to_string());
-                tracing::info!(sheet = SHEET_SAVINGS, "Processing savings sheet");
-                if let Some(range) = sheets_data.get(SHEET_SAVINGS) {
-                    parse_savings_sheet(range, &mut result, mapper.as_deref()).await;
-                }
-            }
-            SHEET_LOANS => {
-                result.sheets_found.push(SHEET_LOANS.to_string());
-                tracing::info!(sheet = SHEET_LOANS, "Processing loans sheet");
-                if let Some(range) = sheets_data.get(SHEET_LOANS) {
-                    parse_loans_sheet(range, &mut result, mapper.as_deref()).await;
-                }
-            }
-            SHEET_FIXED_DEPOSITS => {
-                result.sheets_found.push(SHEET_FIXED_DEPOSITS.to_string());
-                tracing::info!(
-                    sheet = SHEET_FIXED_DEPOSITS,
-                    "Processing fixed deposits sheet"
-                );
-                if let Some(range) = sheets_data.get(SHEET_FIXED_DEPOSITS) {
-                    parse_fixed_deposits_sheet(range, &mut result, mapper.as_deref()).await;
-                }
-            }
-            SHEET_FARM_COOP => {
-                result.sheets_found.push(SHEET_FARM_COOP.to_string());
-                tracing::info!(sheet = SHEET_FARM_COOP, "Processing farm coop sheet");
-                if let Some(range) = sheets_data.get(SHEET_FARM_COOP) {
-                    parse_farm_coop_sheet(range, &mut result, mapper.as_deref()).await;
-                }
-            }
-            other => {
-                tracing::debug!(sheet = other, "Skipping unrecognized sheet");
-            }
+        } else {
+            tracing::debug!(sheet = %sheet_name, "Skipping unrecognized sheet");
         }
     }
 
@@ -390,6 +453,61 @@ async fn parse_workbook(
     );
 
     Ok(result)
+}
+
+fn section_name(section: NfSection) -> &'static str {
+    match section {
+        NfSection::Members => "Membership",
+        NfSection::Savings => "Savings",
+        NfSection::Loans => "Loans",
+        NfSection::FixedDeposits => "Fixed Deposits",
+        NfSection::FarmCoop => "Farm Cooperative",
+    }
+}
+
+async fn parse_single_section(
+    sheets_data: &HashMap<String, Range<Data>>,
+    section: NfSection,
+    result: &mut NfParseResult,
+    mapper: Option<&dyn NfHeaderMapper>,
+) {
+    // 1. Try finding a sheet in the workbook that maps to the requested section
+    let mut found_sheet_name = None;
+    for name in sheets_data.keys() {
+        if NfSection::parse(name) == Some(section) {
+            found_sheet_name = Some(name.clone());
+            break;
+        }
+    }
+
+    // 2. Fallback to canonical name or first sheet
+    let sheet_to_use = found_sheet_name.unwrap_or_else(|| {
+        let canonical = section.sheet_name();
+        if sheets_data.contains_key(canonical) {
+            canonical.to_string()
+        } else {
+            sheets_data.keys().next().cloned().unwrap_or_default()
+        }
+    });
+
+    if sheet_to_use.is_empty() {
+        return;
+    }
+
+    let range = sheets_data.get(&sheet_to_use);
+    let Some(range) = range else {
+        return;
+    };
+
+    result.sheets_found.push(sheet_to_use.clone());
+    tracing::info!(section = ?section, sheet = %sheet_to_use, "Processing single-section upload");
+    match section {
+        NfSection::Members => parse_members_sheet(range, result, mapper).await,
+        NfSection::Savings => parse_savings_sheet(range, result, mapper).await,
+        NfSection::Loans => parse_loans_sheet(range, result, mapper).await,
+        NfSection::FixedDeposits => parse_fixed_deposits_sheet(range, result, mapper).await,
+        NfSection::FarmCoop => parse_farm_coop_sheet(range, result, mapper).await,
+    }
 }
 
 use calamine::{Data, Range};
@@ -732,6 +850,9 @@ async fn parse_members_sheet(
                     get_optional_string_cell(row, *map.get("leadership_role").unwrap_or(&0));
                 let voting_exercised =
                     get_bool_cell(row, *map.get("voting_exercised").unwrap_or(&0)).unwrap_or(false);
+                let share_balance = get_decimal_cell(row, *map.get("share_balance").unwrap_or(&0))
+                    .or_else(|| get_decimal_cell(row, *map.get("balance_share").unwrap_or(&0)))
+                    .unwrap_or(Decimal::ZERO);
 
                 result.members.push(MemberRecord {
                     member_id: mid,
@@ -745,6 +866,7 @@ async fn parse_members_sheet(
                     agm_attendance,
                     leadership_role,
                     voting_exercised,
+                    share_balance,
                 });
             }
             _ => {
@@ -1478,6 +1600,33 @@ mod tests {
     fn test_calamine_parser_creates() {
         let parser = CalamineNfParser::new();
         let _ = &parser;
+    }
+
+    #[test]
+    fn test_nf_section_parse() {
+        assert_eq!(NfSection::parse("members"), Some(NfSection::Members));
+        assert_eq!(NfSection::parse("Membership"), Some(NfSection::Members));
+        assert_eq!(NfSection::parse("NF MSHIP"), Some(NfSection::Members));
+        assert_eq!(NfSection::parse("shares"), Some(NfSection::Members));
+        assert_eq!(NfSection::parse("savings"), Some(NfSection::Savings));
+        assert_eq!(NfSection::parse("NF S"), Some(NfSection::Savings));
+        assert_eq!(NfSection::parse("loans"), Some(NfSection::Loans));
+        assert_eq!(
+            NfSection::parse("fixed_deposits"),
+            Some(NfSection::FixedDeposits)
+        );
+        assert_eq!(
+            NfSection::parse("fixed-deposits"),
+            Some(NfSection::FixedDeposits)
+        );
+        assert_eq!(
+            NfSection::parse("fixed deposit"),
+            Some(NfSection::FixedDeposits)
+        );
+        assert_eq!(NfSection::parse("NF FS"), Some(NfSection::FixedDeposits));
+        assert_eq!(NfSection::parse("farm"), Some(NfSection::FarmCoop));
+        assert_eq!(NfSection::parse("bogus"), None);
+        assert_eq!(NfSection::parse(""), None);
     }
 
     #[test]

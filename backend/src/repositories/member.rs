@@ -164,6 +164,19 @@ impl MemberRepository {
             .map_err(AppError::DatabaseError)
     }
 
+    pub async fn find_all_by_cooperative_and_submission(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Option<Uuid>,
+    ) -> AppResult<Vec<member::Model>> {
+        let mut query =
+            member::Entity::find().filter(MemberColumn::CooperativeId.eq(cooperative_id));
+        if let Some(sub_id) = submission_id {
+            query = query.filter(MemberColumn::SubmissionId.eq(sub_id));
+        }
+        query.all(&self.db).await.map_err(AppError::DatabaseError)
+    }
+
     pub async fn get_membership_stats(
         &self,
         cooperative_id: Uuid,

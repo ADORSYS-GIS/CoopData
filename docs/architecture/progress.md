@@ -492,6 +492,19 @@
 - [x] i18n: added `offline.online` key to en/fr/pt/ss
 - [x] Verification: `tsc --noEmit` ✅, ESLint on changed files ✅ (18 pre-existing auth-test failures unrelated to this work)
 
+### Phase 22: Dynamic Financial Submission Period Types (Yearly, Quarterly, Monthly, Semi-Annual) ✅ Complete
+
+> **Goal**: Extend submission, AI extraction, manual entry, and analytics dashboards to support dynamic period frequencies (`YEARLY`, `QUARTERLY`, `MONTHLY`, `SEMI_ANNUAL`) with database uniqueness constraints and dynamic UI grid editors.
+
+- [x] **22.1 Database Migration & Entity Definitions** — Created migration `33_submission_period_types.sql` (`period_type_enum`, `period_value` columns, default backfill, unique indexes). Added `PeriodType` enum to `backend/src/entities/enums.rs`, updated `submission.rs` and `assessment.rs` entities.
+- [x] **22.2 Backend DTOs & Validation** — Updated `CreateSubmissionRequest`, `CreateApexSubmissionRequest`, and `SubmissionResponse` DTOs with period validation (`Q1..Q4`, `01..12`, `H1..H2`). Updated repository with `find_by_cooperative_and_period` and conflict checking.
+- [x] **22.3 AI Extraction Auto-Detection & Pipeline** — Updated `ExtractionOutput` struct in `ai_extraction.rs` with `detected_period_type`, `detected_period_value`, and `detected_reporting_year` auto-detection metadata fields.
+- [x] **22.4 Frontend Submission Wizard & Dynamic Inputs** — Updated `NewSubmissionModal` and `NewApexSubmissionModal` in `SubmissionsPage.tsx` with frequency selectors (`YEARLY`, `QUARTERLY`, `MONTHLY`, `SEMI_ANNUAL`) and period value buttons.
+- [x] **22.5 Submissions List UI & Admin Period Filtering** — Added `formatPeriodBadge()` helper and rendered period badges (`Yearly - 2026`, `Quarterly - Q2 2026`, `Monthly - August 2026`, `Semi-Annual - H1 2026`) in submission table rows.
+- [x] **22.6 Analytics Engine & Dashboard Filters** — Added `period_type` and `period_value` query parameters to `NationalOverviewParams` with default fallback to `YEARLY` baseline data.
+- [x] **22.7 Custom Cooperative Financial Year Start Month (Manual & AI Upload)** — Added `startMonth` selector (1..12, e.g. October to September, July to June) to `FinancialExcelGrid` and `ManualEntryWizard`. Updated AI Extraction prompt & DTOs to auto-detect custom fiscal start months (`detected_fiscal_start_month`).
+
+
 ---
 
 ## Token Management Strategy
@@ -500,3 +513,4 @@
 - **Mark** the item as `[x]` above.
 - **Commit** changes.
 - **Instruct User**: "Phase X complete. Please start a new chat to continue to Phase Y."
+

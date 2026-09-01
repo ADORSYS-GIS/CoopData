@@ -14,7 +14,7 @@ use crate::auth::claims::Claims;
 
 use crate::entities::{farm_coop, fixed_deposit, loan, member, savings_account, uploaded_file};
 use crate::error::{AppError, AppResult};
-use crate::services::nf_excel_parser::{NfExcelParser, NfParseWarning};
+use crate::services::nf_excel_parser::{NfExcelParser, NfParseWarning, NfSection};
 use crate::AppState;
 
 use crate::api::handlers::cooperative::{
@@ -70,6 +70,7 @@ pub async fn upload_non_financial(
     let mut file_name = String::new();
     let mut content_type = String::new();
     let mut submission_id: Option<Uuid> = None;
+    let mut section: Option<NfSection> = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -98,6 +99,16 @@ pub async fn upload_non_financial(
                     Some(Uuid::parse_str(text.trim()).map_err(|e| {
                         AppError::BadRequest(format!("Invalid submission_id: {}", e))
                     })?);
+            }
+            Some("section") => {
+                let text = field
+                    .text()
+                    .await
+                    .map_err(|e| AppError::BadRequest(e.to_string()))?;
+                section = NfSection::parse(&text).or_else(|| {
+                    tracing::warn!(value = %text, "Unrecognized non-financial section");
+                    None
+                });
             }
             _ => {}
         }
@@ -172,7 +183,7 @@ pub async fn upload_non_financial(
 
     let parse_result = state
         .nf_excel_parser
-        .parse(&file_bytes, Some(state.extractor.clone()))
+        .parse(&file_bytes, Some(state.extractor.clone()), section)
         .await?;
 
     if parse_result.sheets_found.is_empty() {
@@ -242,28 +253,74 @@ pub async fn upload_non_financial(
 
     let now = chrono::Utc::now();
 
-    // Clear all existing NF data for this submission before re-importing.
-    // Order matters: delete child tables before members (FK constraints).
-    state
-        .savings_account_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .loan_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .fixed_deposit_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .farm_coop_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
-    state
-        .member_repo
-        .delete_by_cooperative_and_submission(coop_id, submission_id)
-        .await?;
+    // Clear only the section(s) being imported. For a combined upload (None),
+    // clear everything; order matters (child tables before members, FK constraints).
+    match section {
+        Some(NfSection::Members) => {
+            state
+                .savings_account_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .loan_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .fixed_deposit_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .member_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+        }
+        Some(NfSection::Savings) => {
+            state
+                .savings_account_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+        }
+        Some(NfSection::Loans) => {
+            state
+                .loan_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+        }
+        Some(NfSection::FixedDeposits) => {
+            state
+                .fixed_deposit_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+        }
+        Some(NfSection::FarmCoop) => {
+            state
+                .farm_coop_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+        }
+        None => {
+            state
+                .savings_account_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .loan_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .fixed_deposit_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .farm_coop_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .member_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+        }
+    }
 
     let mut member_active_models: Vec<member::ActiveModel> = Vec::new();
     for record in &parse_result.members {
@@ -283,6 +340,7 @@ pub async fn upload_non_financial(
             agm_attendance: Set(record.agm_attendance),
             leadership_role: Set(record.leadership_role.clone()),
             voting_exercised: Set(record.voting_exercised),
+            share_balance: Set(record.share_balance),
             created_at: Set(now),
             updated_at: Set(now),
         });
@@ -307,6 +365,30 @@ pub async fn upload_non_financial(
             (&am.member_id, &am.id)
         {
             member_map.insert(member_id_str.clone(), *db_uuid);
+        }
+    }
+
+    // For a single-section upload of a child table (savings/loans/fixed deposits),
+    // members are not in this file. Resolve FKs against members already imported
+    // for this submission, and require them to exist first.
+    if member_map.is_empty()
+        && matches!(
+            section,
+            Some(NfSection::Savings | NfSection::Loans | NfSection::FixedDeposits)
+        )
+    {
+        let existing = state
+            .member_repo
+            .find_all_by_cooperative_and_submission(coop_id, Some(submission_id))
+            .await?;
+        if existing.is_empty() {
+            return Err(AppError::BadRequest(
+                "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
+                    .into(),
+            ));
+        }
+        for m in existing {
+            member_map.insert(m.member_id, m.id);
         }
     }
 
@@ -668,6 +750,7 @@ pub async fn create_member(
         agm_attendance: Set(body.agm_attendance),
         leadership_role: Set(body.leadership_role),
         voting_exercised: Set(body.voting_exercised),
+        share_balance: Set(body.share_balance.unwrap_or_default()),
         created_at: Set(now),
         updated_at: Set(now),
     };
@@ -2017,6 +2100,7 @@ pub async fn create_manual_members(
             agm_attendance: Set(record.agm_attendance),
             leadership_role: Set(record.leadership_role.clone()),
             voting_exercised: Set(record.voting_exercised),
+            share_balance: Set(record.share_balance.unwrap_or_default()),
             created_at: Set(now),
             updated_at: Set(now),
         });

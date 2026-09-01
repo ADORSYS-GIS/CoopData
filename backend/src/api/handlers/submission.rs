@@ -13,8 +13,9 @@ use crate::api::dto::apex::ApexStatsResponse;
 use crate::api::dto::submission::{
     CooperativeStatsResponse, CreateApexSubmissionRequest, CreateSubmissionRequest,
     DelegateSubmissionRequest, MembershipStatsResponse, PortfolioBreakdownResponse,
-    ReclaimSubmissionRequest, SubmissionResponse, SubmissionReviewResponse,
-    SubmissionSectionResponse, UpdateSectionStatusRequest, UpdateSubmissionMethodRequest,
+    ReclaimSubmissionRequest, SubmissionPeriodRequest, SubmissionResponse,
+    SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
+    UpdateSubmissionMethodRequest,
 };
 use crate::auth::claims::Claims;
 
@@ -71,24 +72,31 @@ pub async fn create_submission(
         ));
     }
 
+    body.validate_period().map_err(AppError::BadRequest)?;
+    let (period_type, period_value) = body.resolved_period();
+
     let coop =
         crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
 
     if let Some(existing) = state
         .submission_repo
-        .find_by_cooperative_and_year(coop.id, body.reporting_year)
+        .find_by_cooperative_and_period(coop.id, body.reporting_year, period_type, &period_value)
         .await?
     {
         tracing::info!(
             submission_id = %existing.id,
             cooperative_id = %coop.id,
             reporting_year = body.reporting_year,
+            period_type = period_type.as_str(),
+            period_value = %period_value,
             status = %existing.status.as_str(),
-            "Draft already exists for this cooperative and year"
+            "Submission draft already exists for this cooperative and period"
         );
         return Err(AppError::ConflictWithSubmission {
             message: format!(
-                "A submission already exists for this cooperative for year {} (Status: {}). You will be redirected to the existing submission.",
+                "A submission already exists for this cooperative for {} {} {} (Status: {}). You will be redirected to the existing submission.",
+                period_type.as_str(),
+                period_value,
                 body.reporting_year,
                 existing.status.as_str()
             ),
@@ -121,6 +129,8 @@ pub async fn create_submission(
         reference: Set(Some(reference)),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
+        period_type: Set(period_type),
+        period_value: Set(period_value),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
         current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
         submitted_by: Set(submitted_by),
@@ -380,6 +390,7 @@ pub async fn validate_extraction(
         job_id,
         id,
         coop.id,
+        submission.reporting_year,
         file_bytes,
         file.mime_type.clone().unwrap_or_default(),
         coop_type,
@@ -2074,23 +2085,30 @@ pub async fn create_apex_submission(
         ));
     }
 
-    // Check no existing submission for this coop+year
+    body.validate_period().map_err(AppError::BadRequest)?;
+    let (period_type, period_value) = body.resolved_period();
+
+    // Check no existing submission for this coop+period
     if let Some(existing) = state
         .submission_repo
-        .find_by_cooperative_and_year(coop.id, body.reporting_year)
+        .find_by_cooperative_and_period(coop.id, body.reporting_year, period_type, &period_value)
         .await?
     {
         tracing::info!(
             submission_id = %existing.id,
             cooperative_id = %coop.id,
             reporting_year = body.reporting_year,
+            period_type = period_type.as_str(),
+            period_value = %period_value,
             status = %existing.status.as_str(),
-            "Draft already exists for this cooperative and year"
+            "Draft already exists for this cooperative and period"
         );
         return Err(AppError::ConflictWithSubmission {
             message: format!(
-                "A submission already exists for {} for year {} (Status: {}). You will be redirected to the existing submission.",
+                "A submission already exists for {} for {} {} {} (Status: {}). You will be redirected to the existing submission.",
                 coop.display_name.as_str(),
+                period_type.as_str(),
+                period_value,
                 body.reporting_year,
                 existing.status.as_str()
             ),
@@ -2122,6 +2140,8 @@ pub async fn create_apex_submission(
         reference: Set(Some(reference)),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
+        period_type: Set(period_type),
+        period_value: Set(period_value),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
         current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
         submitted_by: Set(submitted_by),
