@@ -21,6 +21,7 @@ pub async fn run_extraction_pipeline(
     job_id: Uuid,
     submission_id: Uuid,
     cooperative_id: Uuid,
+    reporting_year: i32,
     file_bytes: Vec<u8>,
     mime_type: String,
     cooperative_type: String,
@@ -39,6 +40,7 @@ pub async fn run_extraction_pipeline(
         job_id,
         submission_id,
         cooperative_id,
+        reporting_year,
         file_bytes,
         mime_type,
         cooperative_type,
@@ -78,6 +80,7 @@ pub async fn run_pipeline_inner(
     job_id: Uuid,
     submission_id: Uuid,
     cooperative_id: Uuid,
+    reporting_year: i32,
     file_bytes: Vec<u8>,
     mime_type: String,
     cooperative_type: String,
@@ -128,7 +131,7 @@ pub async fn run_pipeline_inner(
         let mut result = None;
         for attempt in 1u8..=3 {
             match extractor
-                .map_to_coa(&raw_text, &coa, &aliases, &cooperative_type)
+                .map_to_coa(&raw_text, &coa, &aliases, &cooperative_type, reporting_year)
                 .await
             {
                 Ok(o) => {
@@ -162,6 +165,36 @@ pub async fn run_pipeline_inner(
             })
         })?
     };
+
+    // ── Year validation: reject if the document year doesn't match the submission ──
+    // Allow a tolerance of ±1 year for fiscal years that straddle calendar years
+    // (e.g. a fiscal year ending in 2024 may appear as "2024" or "2023-24")
+    if let Some(detected_year) = output.detected_reporting_year {
+        let year_diff = (detected_year - reporting_year).abs();
+        if year_diff > 1 {
+            let msg = format!(
+                "Wrong financial statement year detected. This submission is for {reporting_year}, \
+                 but the uploaded document appears to be for {detected_year}. \
+                 Please upload the financial statement for {reporting_year}."
+            );
+            tracing::warn!(
+                job_id = %job_id,
+                submission_id = %submission_id,
+                reporting_year,
+                detected_year,
+                "{msg}"
+            );
+            return Err(crate::error::AppError::BadRequest(msg));
+        }
+        if year_diff == 1 {
+            tracing::info!(
+                job_id = %job_id,
+                reporting_year,
+                detected_year,
+                "Year difference of 1 — accepting as likely fiscal year boundary"
+            );
+        }
+    }
 
     // Get financial statement for this submission
     let fs = fs_repo

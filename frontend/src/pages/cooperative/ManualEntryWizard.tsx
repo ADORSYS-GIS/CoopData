@@ -16,9 +16,20 @@ import {
   Clock,
   Sprout,
   Trash2,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, Card } from "@/components/app-shell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   useSubmitManualFinancialStatement,
   useSubmitManualMembers,
@@ -29,6 +40,11 @@ import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
+import { useMembers } from "@/hooks/non-financial/useMembers";
+import { useSavings } from "@/hooks/non-financial/useSavings";
+import { useLoans } from "@/hooks/non-financial/useLoans";
+import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
+import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { apiClient } from "@/openapi-client";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { MemberRecord } from "@/lib/financial-data";
@@ -101,6 +117,31 @@ export function ManualEntryWizard() {
 
   const [currency, setCurrency] = useState<"SZL" | "USD">("SZL");
   const [accountingYear, setAccountingYear] = useState<"calendar" | "fiscal">("calendar");
+  const [startMonth, setStartMonth] = useState<number>(1);
+
+  // Sync startMonth with accountingYear default if changed
+  useEffect(() => {
+    if (accountingYear === "fiscal" && startMonth === 1) {
+      setStartMonth(7); // July default for fiscal
+    } else if (accountingYear === "calendar" && startMonth === 7) {
+      setStartMonth(1);
+    }
+  }, [accountingYear]);
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
+    "YEARLY",
+  );
+  const [periodValue, setPeriodValue] = useState<string>("2026");
+
+  useEffect(() => {
+    if (submission?.period_type) {
+      setPeriodType(submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+    }
+    if (submission?.period_value) {
+      setPeriodValue(submission.period_value);
+    } else if (submission?.reporting_year) {
+      setPeriodValue(String(submission.reporting_year));
+    }
+  }, [submission?.period_type, submission?.period_value, submission?.reporting_year]);
 
   const [financialData, setFinancialData] = useState<Record<number, Record<number, number>>>(() =>
     createEmptyFinancialGrid(),
@@ -139,118 +180,25 @@ export function ManualEntryWizard() {
     enabled: !!submission?.financial_statement_id && isFinancialWizard,
   });
 
-  const { data: existingMembers, isLoading: existingMembersLoading } = useOfflineQuery({
-    queryKey: ["manual-entry-members", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `manual-members-${submissionId}`,
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/members", {
-        params: {
-          query: {
-            submission_id: submissionId,
-            page_size: 1000,
-          },
-        },
-      });
-      if (error)
-        throw new Error(
-          (error as { message?: string }).message || "Failed to fetch existing members",
-        );
-      return data;
-    },
-    enabled: !isFinancialWizard,
-  });
+  const { data: existingMembers, isLoading: existingMembersLoading } = useMembers(
+    isFinancialWizard ? undefined : { submission_id: submissionId, page_size: 1000 },
+  );
 
-  const { data: existingSavings, isLoading: existingSavingsLoading } = useOfflineQuery({
-    queryKey: ["manual-entry-savings", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `manual-savings-${submissionId}`,
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/savings", {
-        params: {
-          query: {
-            submission_id: submissionId,
-            page_size: 1000,
-          },
-        },
-      });
-      if (error)
-        throw new Error(
-          (error as { message?: string }).message || "Failed to fetch existing savings accounts",
-        );
-      return data;
-    },
-    enabled: !isFinancialWizard,
-  });
+  const { data: existingSavings, isLoading: existingSavingsLoading } = useSavings(
+    isFinancialWizard ? undefined : { submission_id: submissionId, page_size: 1000 },
+  );
 
-  const { data: existingLoans, isLoading: existingLoansLoading } = useOfflineQuery({
-    queryKey: ["manual-entry-loans", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `manual-loans-${submissionId}`,
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/loans", {
-        params: {
-          query: {
-            submission_id: submissionId,
-            page_size: 1000,
-          },
-        },
-      });
-      if (error)
-        throw new Error(
-          (error as { message?: string }).message || "Failed to fetch existing loans",
-        );
-      return data;
-    },
-    enabled: !isFinancialWizard,
-  });
+  const { data: existingLoans, isLoading: existingLoansLoading } = useLoans(
+    isFinancialWizard ? undefined : { submission_id: submissionId, page_size: 1000 },
+  );
 
-  const { data: existingDeposits, isLoading: existingDepositsLoading } = useOfflineQuery({
-    queryKey: ["manual-entry-deposits", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `manual-deposits-${submissionId}`,
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET(
-        "/api/v1/cooperative/non-financial/fixed-deposits",
-        {
-          params: {
-            query: {
-              submission_id: submissionId,
-              page_size: 1000,
-            },
-          },
-        },
-      );
-      if (error)
-        throw new Error(
-          (error as { message?: string }).message || "Failed to fetch existing fixed deposits",
-        );
-      return data;
-    },
-    enabled: !isFinancialWizard,
-  });
+  const { data: existingDeposits, isLoading: existingDepositsLoading } = useFixedDeposits(
+    isFinancialWizard ? undefined : { submission_id: submissionId, page_size: 1000 },
+  );
 
-  const { data: existingFarm, isLoading: existingFarmLoading } = useOfflineQuery({
-    queryKey: ["manual-entry-farm", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `manual-farm-${submissionId}`,
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/cooperative/non-financial/farm-coop", {
-        params: {
-          query: {
-            submission_id: submissionId,
-            page_size: 10,
-          },
-        },
-      });
-      if (error)
-        throw new Error(
-          (error as { message?: string }).message || "Failed to fetch existing farm profile",
-        );
-      return data;
-    },
-    enabled: !isFinancialWizard,
-  });
+  const { data: existingFarm, isLoading: existingFarmLoading } = useFarmCoops(
+    isFinancialWizard ? undefined : { submission_id: submissionId, page_size: 10 },
+  );
 
   const isDataLoading =
     isSubmissionLoading ||
@@ -293,6 +241,10 @@ export function ManualEntryWizard() {
           urbanRural: m.urban_rural as "Urban" | "Rural",
           agmAttendance: m.agm_attendance,
           votingExercised: m.voting_exercised,
+          shareBalance:
+            typeof m.share_balance === "number"
+              ? m.share_balance
+              : parseFloat(String(m.share_balance || 0)) || 0,
         })),
       );
     }
@@ -428,10 +380,16 @@ export function ManualEntryWizard() {
     }
   }, [existingFarm]);
 
-  // Snapshot computations for the final month of the period
-  const finalMonth = accountingYear === "fiscal" ? 6 : 12;
+  // Snapshot computations for the final month or annual total (num: 0) of the period
+  const finalMonth = periodType === "YEARLY" ? 0 : accountingYear === "fiscal" ? 6 : 12;
   const getVal = useCallback(
-    (code: number, m?: number) => financialData[code]?.[m || finalMonth] || 0,
+    (code: number, m?: number) => {
+      const targetMonth = m !== undefined ? m : finalMonth;
+      if (financialData[code]?.[targetMonth] !== undefined) {
+        return financialData[code][targetMonth];
+      }
+      return financialData[code]?.[0] || financialData[code]?.[12] || financialData[code]?.[6] || 0;
+    },
     [financialData, finalMonth],
   );
 
@@ -521,7 +479,7 @@ export function ManualEntryWizard() {
   };
 
   const updateMember = useCallback(
-    (key: string, field: keyof MemberRecord, value: string | boolean) => {
+    (key: string, field: keyof MemberRecord, value: string | boolean | number) => {
       setMembers((prev) => prev.map((m) => (m._rowKey === key ? { ...m, [field]: value } : m)));
     },
     [],
@@ -650,19 +608,23 @@ export function ManualEntryWizard() {
   }, []);
 
   // ── Delete actions ──
-  const handleDeleteFinancial = async () => {
-    if (!window.confirm(t("manualEntry.confirmDeleteFinancial"))) return;
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<
+    "financial" | "non_financial" | null
+  >(null);
+
+  const confirmDeleteFinancial = async () => {
     try {
       await deleteFinancialStatement.mutateAsync();
       setFinancialData(createEmptyFinancialGrid());
       toast.success(t("manualEntry.toastFinancialDeleted"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("manualEntry.toastDeleteFinancialFailed"));
+    } finally {
+      setDeleteConfirmTarget(null);
     }
   };
 
-  const handleDeleteNonFinancial = async () => {
-    if (!window.confirm(t("manualEntry.confirmDeleteNonFinancial"))) return;
+  const confirmDeleteNonFinancial = async () => {
     try {
       await deleteNonFinancialData.mutateAsync();
       setMembers([]);
@@ -673,7 +635,17 @@ export function ManualEntryWizard() {
       toast.success(t("manualEntry.toastNonFinancialCleared"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("manualEntry.toastDeleteNonFinancialFailed"));
+    } finally {
+      setDeleteConfirmTarget(null);
     }
+  };
+
+  const handleDeleteFinancial = () => {
+    setDeleteConfirmTarget("financial");
+  };
+
+  const handleDeleteNonFinancial = () => {
+    setDeleteConfirmTarget("non_financial");
   };
 
   // ── Submit handlers ──
@@ -900,6 +872,8 @@ export function ManualEntryWizard() {
     await submitFinancialStatement.mutateAsync({
       accounting_year: accountingYear,
       currency,
+      period_type: periodType,
+      period_value: periodValue,
       line_items: lineItems,
     });
   };
@@ -933,6 +907,7 @@ export function ManualEntryWizard() {
         agm_attendance: m.agmAttendance,
         leadership_role: m.leadershipRole ?? null,
         voting_exercised: m.votingExercised,
+        share_balance: Number(m.shareBalance) || 0,
       })),
       savings_accounts:
         savings.length > 0
@@ -1165,6 +1140,103 @@ export function ManualEntryWizard() {
                   <option value="fiscal">{t("manualEntry.fiscalYear")}</option>
                 </select>
               </div>
+
+              {/* Start Month Selector */}
+              <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-3.5 py-2 border border-border">
+                <Calendar className="size-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                  Start:
+                </span>
+                <select
+                  className="bg-transparent text-sm font-bold text-foreground border-none outline-none cursor-pointer"
+                  value={startMonth}
+                  onChange={(e) => setStartMonth(Number(e.target.value))}
+                >
+                  <option value={1}>Jan - Dec (Calendar)</option>
+                  <option value={10}>Oct - Sep (Oct Start)</option>
+                  <option value={7}>Jul - Jun (Jul Start)</option>
+                  <option value={4}>Apr - Mar (Apr Start)</option>
+                  <option value={2}>Feb - Jan</option>
+                  <option value={3}>Mar - Feb</option>
+                  <option value={5}>May - Apr</option>
+                  <option value={6}>Jun - May</option>
+                  <option value={8}>Aug - Jul</option>
+                  <option value={9}>Sep - Aug</option>
+                  <option value={11}>Nov - Oct</option>
+                  <option value={12}>Dec - Nov</option>
+                </select>
+              </div>
+
+              {/* Interactive Report Frequency Selector */}
+              <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3.5 py-2 border border-primary/20">
+                <Calendar className="size-4 text-primary" />
+                <select
+                  className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
+                  value={periodType}
+                  onChange={(e) => {
+                    const newType = e.target.value as
+                      "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
+                    setPeriodType(newType);
+                    if (newType === "QUARTERLY") setPeriodValue("Q1");
+                    else if (newType === "MONTHLY") setPeriodValue("FULL_YEAR");
+                    else if (newType === "SEMI_ANNUAL") setPeriodValue("H1");
+                    else
+                      setPeriodValue(
+                        String(submission?.reporting_year || new Date().getFullYear()),
+                      );
+                  }}
+                >
+                  <option value="YEARLY">Yearly (Annual)</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="SEMI_ANNUAL">Semi-Annual</option>
+                </select>
+              </div>
+
+              {/* Interactive Period Value Selector */}
+              {periodType !== "YEARLY" && (
+                <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3 py-2 border border-primary/20">
+                  <select
+                    className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
+                    value={periodValue}
+                    onChange={(e) => setPeriodValue(e.target.value)}
+                  >
+                    {periodType === "QUARTERLY" && (
+                      <>
+                        <option value="Q1">Q1 ({submission?.reporting_year || ""})</option>
+                        <option value="Q2">Q2 ({submission?.reporting_year || ""})</option>
+                        <option value="Q3">Q3 ({submission?.reporting_year || ""})</option>
+                        <option value="Q4">Q4 ({submission?.reporting_year || ""})</option>
+                      </>
+                    )}
+                    {periodType === "MONTHLY" && (
+                      <>
+                        <option value="FULL_YEAR">
+                          Full 12 Mo ({submission?.reporting_year || ""})
+                        </option>
+                        <option value="01">Jan ({submission?.reporting_year || ""})</option>
+                        <option value="02">Feb ({submission?.reporting_year || ""})</option>
+                        <option value="03">Mar ({submission?.reporting_year || ""})</option>
+                        <option value="04">Apr ({submission?.reporting_year || ""})</option>
+                        <option value="05">May ({submission?.reporting_year || ""})</option>
+                        <option value="06">Jun ({submission?.reporting_year || ""})</option>
+                        <option value="07">Jul ({submission?.reporting_year || ""})</option>
+                        <option value="08">Aug ({submission?.reporting_year || ""})</option>
+                        <option value="09">Sep ({submission?.reporting_year || ""})</option>
+                        <option value="10">Oct ({submission?.reporting_year || ""})</option>
+                        <option value="11">Nov ({submission?.reporting_year || ""})</option>
+                        <option value="12">Dec ({submission?.reporting_year || ""})</option>
+                      </>
+                    )}
+                    {periodType === "SEMI_ANNUAL" && (
+                      <>
+                        <option value="H1">H1 (Jan–Jun {submission?.reporting_year || ""})</option>
+                        <option value="H2">H2 (Jul–Dec {submission?.reporting_year || ""})</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              )}
               {import.meta.env.DEV && (
                 <button
                   onClick={() => {
@@ -1258,6 +1330,9 @@ export function ManualEntryWizard() {
               <FinancialExcelGrid
                 accountingYear={accountingYear}
                 currency={currency}
+                periodType={periodType}
+                periodValue={periodValue}
+                startMonth={startMonth}
                 financialData={financialData}
                 onChange={handleFinancialCellChange}
               />
@@ -1447,6 +1522,20 @@ export function ManualEntryWizard() {
           {step !== "review" && (
             <button
               onClick={() => {
+                if (step === "financial") {
+                  if (totalAssets === 0 && totalLiabilities === 0 && totalEquity === 0) {
+                    toast.error(t("manualEntry.toastEmptyError"));
+                    return;
+                  }
+                  if (!isBalanced) {
+                    toast.error(
+                      t("manualEntry.periodGap", {
+                        gap: fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity))),
+                      }),
+                    );
+                    return;
+                  }
+                }
                 const idx = steps.findIndex((s) => s.id === step);
                 if (idx < steps.length - 1) setStep(steps[idx + 1].id);
               }}
@@ -1458,6 +1547,49 @@ export function ManualEntryWizard() {
           )}
         </div>
       </div>
+
+      <AlertDialog
+        open={deleteConfirmTarget !== null}
+        onOpenChange={(open) => !open && setDeleteConfirmTarget(null)}
+      >
+        <AlertDialogContent className="rounded-2xl border border-destructive/20 bg-background p-6 shadow-2xl max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center justify-center size-10 rounded-full bg-destructive/15 shrink-0">
+                <Trash2 className="size-5 text-destructive" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-base font-bold text-foreground">
+                  {deleteConfirmTarget === "financial"
+                    ? t("manualEntry.deleteFinancialTitle", "Delete Financial Data")
+                    : t("manualEntry.deleteNonFinancialTitle", "Clear Non-Financial Data")}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  {deleteConfirmTarget === "financial"
+                    ? t("manualEntry.confirmDeleteFinancial")
+                    : t("manualEntry.confirmDeleteNonFinancial")}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex gap-2">
+            <AlertDialogCancel className="rounded-xl">
+              {t("common.cancel", "Cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={
+                deleteConfirmTarget === "financial"
+                  ? confirmDeleteFinancial
+                  : confirmDeleteNonFinancial
+              }
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="size-4 mr-1" />
+              {t("common.delete", "Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

@@ -39,7 +39,10 @@ import {
   DuplicateSubmissionError,
 } from "@/hooks/submissions/useSubmissions";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
-import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
+import type {
+  SubmissionResponse,
+  CreateApexSubmissionRequest,
+} from "@/hooks/submissions/useSubmissions";
 
 // Suppress unused import warnings for icons that may be used in JSX conditionally
 void ArrowUpRight;
@@ -155,16 +158,77 @@ function CalendarYearPicker({
   );
 }
 
+function formatPeriodBadge(periodType?: string, periodValue?: string, year?: number) {
+  const pt = (periodType || "YEARLY").toUpperCase();
+  const yr = year || "";
+  const pv = periodValue || String(yr);
+
+  if (pt === "QUARTERLY") {
+    const qName = pv.toUpperCase().startsWith("Q") ? pv.toUpperCase() : `Q${pv}`;
+    return `Quarterly - ${qName} ${yr}`.trim();
+  }
+  if (pt === "MONTHLY") {
+    const monthNames: Record<string, string> = {
+      "01": "Jan",
+      "1": "Jan",
+      "02": "Feb",
+      "2": "Feb",
+      "03": "Mar",
+      "3": "Mar",
+      "04": "Apr",
+      "4": "Apr",
+      "05": "May",
+      "5": "May",
+      "06": "Jun",
+      "6": "Jun",
+      "07": "Jul",
+      "7": "Jul",
+      "08": "Aug",
+      "8": "Aug",
+      "09": "Sep",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec",
+      FULL_YEAR: "Jan-Dec",
+      "1-12": "Jan-Dec",
+    };
+    const mName = monthNames[pv] || pv;
+    return `Monthly - ${mName} ${yr}`.trim();
+  }
+  if (pt === "SEMI_ANNUAL") {
+    return `Semi-Annual - ${pv.toUpperCase()} ${yr}`.trim();
+  }
+  return `Yearly - ${yr}`.trim();
+}
+
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t } = useOrganizationLabelsContext();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
+    "YEARLY",
+  );
+  const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
   const createSubmission = useCreateSubmission();
+
+  const handlePeriodTypeChange = (type: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL") => {
+    setPeriodType(type);
+    if (type === "YEARLY") setPeriodValue(String(year));
+    else if (type === "QUARTERLY") setPeriodValue("Q1");
+    else if (type === "MONTHLY") setPeriodValue("01");
+    else if (type === "SEMI_ANNUAL") setPeriodValue("H1");
+  };
 
   const handleCreate = async () => {
     try {
-      const sub = await createSubmission.mutateAsync({ reporting_year: year });
+      const pVal = periodType === "YEARLY" ? String(year) : periodValue;
+      const sub = await createSubmission.mutateAsync({
+        reporting_year: year,
+        period_type: periodType,
+        period_value: pVal,
+      });
       toast.success(t("submissions.submissionCreated", { year }));
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
@@ -184,9 +248,9 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+      <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4">
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
               <Calendar className="size-5 text-primary" />
@@ -196,7 +260,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
                 {t("submissions.newSubmission")}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {t("submissions.startAnnualReturn")}
+                Select submission period and reporting year
               </p>
             </div>
           </div>
@@ -209,15 +273,140 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Body */}
-        <div className="px-6 pb-2">
-          <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-            {t("submissions.reportingYear")}
-          </label>
-          <CalendarYearPicker selectedYear={year} onChangeYear={setYear} />
+        <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Period Frequency Selector */}
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+              Reporting Frequency
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["YEARLY", "QUARTERLY", "MONTHLY", "SEMI_ANNUAL"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handlePeriodTypeChange(type)}
+                  className={`rounded-xl py-2 px-3 text-xs font-bold border transition-all text-center ${
+                    periodType === type
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border bg-muted/20 text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {type === "YEARLY" && "Yearly (Annual)"}
+                  {type === "QUARTERLY" && "Quarterly"}
+                  {type === "MONTHLY" && "Monthly (12 Mo.)"}
+                  {type === "SEMI_ANNUAL" && "Semi-Annual (H1/H2)"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dynamic Period Value Selector */}
+          {periodType === "QUARTERLY" && (
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                Select Quarter
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {["Q1", "Q2", "Q3", "Q4"].map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setPeriodValue(q)}
+                    className={`rounded-xl py-2 text-xs font-bold border transition-all ${
+                      periodValue === q
+                        ? "border-primary bg-primary/10 text-primary border-2"
+                        : "border-border bg-surface text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {periodType === "MONTHLY" && (
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                Select Month / Full Year
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { key: "FULL_YEAR", label: "Full 12 Mo" },
+                  { key: "01", label: "Jan" },
+                  { key: "02", label: "Feb" },
+                  { key: "03", label: "Mar" },
+                  { key: "04", label: "Apr" },
+                  { key: "05", label: "May" },
+                  { key: "06", label: "Jun" },
+                  { key: "07", label: "Jul" },
+                  { key: "08", label: "Aug" },
+                  { key: "09", label: "Sep" },
+                  { key: "10", label: "Oct" },
+                  { key: "11", label: "Nov" },
+                  { key: "12", label: "Dec" },
+                ].map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setPeriodValue(m.key)}
+                    className={`rounded-lg py-1.5 text-xs font-bold border transition-all ${
+                      periodValue === m.key
+                        ? "border-primary bg-primary/10 text-primary border-2"
+                        : "border-border bg-surface text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {periodType === "SEMI_ANNUAL" && (
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                Select Half
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: "H1", label: "H1 (Jan – Jun)" },
+                  { key: "H2", label: "H2 (Jul – Dec)" },
+                ].map((h) => (
+                  <button
+                    key={h.key}
+                    type="button"
+                    onClick={() => setPeriodValue(h.key)}
+                    className={`rounded-xl py-2 text-xs font-bold border transition-all ${
+                      periodValue === h.key
+                        ? "border-primary bg-primary/10 text-primary border-2"
+                        : "border-border bg-surface text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {h.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reporting Year Picker */}
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+              {t("submissions.reportingYear")}
+            </label>
+            <CalendarYearPicker
+              selectedYear={year}
+              onChangeYear={(y) => {
+                setYear(y);
+                if (periodType === "YEARLY") setPeriodValue(String(y));
+              }}
+            />
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-5">
+        <div className="flex gap-3 px-6 py-4 border-t border-border bg-muted/10">
           <button
             onClick={onClose}
             className="flex-1 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
@@ -248,6 +437,10 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [selectedCoopId, setSelectedCoopId] = useState("");
+  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
+    "YEARLY",
+  );
+  const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
   const createApexSubmission = useCreateApexSubmission();
   const { data: cooperatives = [], isLoading: coopsLoading } = useCooperatives();
 
@@ -260,10 +453,13 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
       return;
     }
     try {
+      const pVal = periodType === "YEARLY" ? String(year) : periodValue;
       const sub = await createApexSubmission.mutateAsync({
         cooperative_id: selectedCoopId,
         reporting_year: year,
-      });
+        period_type: periodType,
+        period_value: pVal,
+      } as unknown as CreateApexSubmissionRequest);
       toast.success(t("submissions.submissionCreated", { year }));
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
@@ -600,7 +796,14 @@ function SubmissionTable({
                     </td>
                   )}
                   <td className="px-5 py-4">
-                    <p className="font-bold text-foreground text-sm">{s.reporting_year}</p>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-foreground text-xs">
+                        {formatPeriodBadge(s.period_type, s.period_value, s.reporting_year)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        Year {s.reporting_year}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-5 py-4 hidden md:table-cell">
                     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium capitalize">

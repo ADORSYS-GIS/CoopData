@@ -744,3 +744,50 @@ impl SubmissionCreatedByRole {
         }
     }
 }
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    Default,
+)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "period_type_enum")]
+pub enum PeriodType {
+    #[sea_orm(string_value = "YEARLY")]
+    #[default]
+    Yearly,
+    #[sea_orm(string_value = "QUARTERLY")]
+    Quarterly,
+    #[sea_orm(string_value = "MONTHLY")]
+    Monthly,
+    #[sea_orm(string_value = "SEMI_ANNUAL")]
+    SemiAnnual,
+}
+
+impl PeriodType {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.to_uppercase().as_str() {
+            "YEARLY" => Some(Self::Yearly),
+            "QUARTERLY" => Some(Self::Quarterly),
+            "MONTHLY" => Some(Self::Monthly),
+            "SEMI_ANNUAL" | "SEMIANNUAL" => Some(Self::SemiAnnual),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Yearly => "YEARLY",
+            Self::Quarterly => "QUARTERLY",
+            Self::Monthly => "MONTHLY",
+            Self::SemiAnnual => "SEMI_ANNUAL",
+        }
+    }
+}

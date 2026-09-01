@@ -271,6 +271,17 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const updateSection = useUpdateSubmissionSection(id ?? "");
 
+  const isDraft = submission?.status === "draft";
+  const isCooperative = role === "cooperative";
+  const isCreatorRole = submission?.created_by_role === role;
+
+  const CHOSEN_METHODS: SubmissionMethod[] = ["upload", "manual", "questionnaire"];
+  const submissionMethod: SubmissionMethod | null =
+    submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
+      ? (submission.submission_method as SubmissionMethod)
+      : null;
+  const methodChosen = submissionMethod !== null;
+
   const sectionMeta = useMemo(
     () => [
       {
@@ -279,7 +290,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.financial.description"),
         tab: "financial",
         icon: FileText,
-        pendingAction: t("submissions.detail.sections.financial.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.financial.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.financial.pendingAction"),
         progressAction: t("submissions.detail.sections.financial.progressAction"),
         readyAction: t("submissions.detail.sections.financial.readyAction"),
       },
@@ -289,7 +303,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.members.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.members.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.members.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.members.pendingAction"),
         readyAction: t("submissions.detail.sections.members.readyAction"),
       },
       {
@@ -298,7 +315,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.savings.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.savings.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.savings.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.savings.pendingAction"),
         readyAction: t("submissions.detail.sections.savings.readyAction"),
       },
       {
@@ -307,7 +327,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.loans.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.loans.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.loans.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.loans.pendingAction"),
         readyAction: t("submissions.detail.sections.loans.readyAction"),
       },
       {
@@ -316,7 +339,13 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.fixed_deposits.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.fixed_deposits.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t(
+                "submissions.detail.sections.fixed_deposits.pendingActionManual",
+                "Saisir manuellement",
+              )
+            : t("submissions.detail.sections.fixed_deposits.pendingAction"),
         readyAction: t("submissions.detail.sections.fixed_deposits.readyAction"),
       },
       {
@@ -325,22 +354,15 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.farm_coop.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.farm_coop.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.farm_coop.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.farm_coop.pendingAction"),
         readyAction: t("submissions.detail.sections.farm_coop.readyAction"),
       },
     ],
-    [t],
+    [t, submissionMethod],
   );
-
-  const isDraft = submission?.status === "draft";
-  const isCooperative = role === "cooperative";
-  const isCreatorRole = submission?.created_by_role === role;
-  const CHOSEN_METHODS: SubmissionMethod[] = ["upload", "manual", "questionnaire"];
-  const submissionMethod: SubmissionMethod | null =
-    submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
-      ? (submission.submission_method as SubmissionMethod)
-      : null;
-  const methodChosen = submissionMethod !== null;
 
   // Exclusive editor model: only the user who owns the draft (edited_by) can edit
   // Hooks must be called before any early returns
@@ -1353,10 +1375,25 @@ export const SubmissionDetailPage: React.FC = () => {
       <SubmissionMethodModal
         open={methodModalOpen}
         submissionId={id ?? ""}
+        currentMethod={submissionMethod}
+        hasExistingData={
+          fsLineItems.length > 0 ||
+          (membersData?.total ?? 0) > 0 ||
+          (savingsData?.total ?? 0) > 0 ||
+          (loansData?.total ?? 0) > 0 ||
+          (fdsData?.total ?? 0) > 0 ||
+          (farmCoopsData?.total ?? 0) > 0
+        }
         onClose={() => setMethodModalOpen(false)}
         onMethodSelected={() => {
           queryClient.invalidateQueries({ queryKey: ["submission", id] });
           queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+          queryClient.invalidateQueries({ queryKey: ["line-items"] });
+          queryClient.invalidateQueries({ queryKey: ["financial-statement"] });
+          queryClient.invalidateQueries({ queryKey: ["members"] });
+          queryClient.invalidateQueries({ queryKey: ["savings"] });
+          queryClient.invalidateQueries({ queryKey: ["loans"] });
+          queryClient.invalidateQueries({ queryKey: ["fixed-deposits"] });
         }}
       />
       <DeleteConfirmationDialog

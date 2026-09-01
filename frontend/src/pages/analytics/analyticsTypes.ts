@@ -2,6 +2,8 @@ import type { Role } from "@/lib/auth";
 
 export interface AnalyticsFilterValues {
   year: string;
+  periodType: string;
+  periodValue: string;
   region: string;
   sector: string;
   federationId: string;
@@ -44,6 +46,8 @@ export const roleBadge: Record<Role, { label: string; color: string }> = {
 
 export const defaultFilterValues: AnalyticsFilterValues = {
   year: String(new Date().getFullYear()),
+  periodType: "YEARLY",
+  periodValue: "all",
   region: "all",
   sector: "all",
   federationId: "all",

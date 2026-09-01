@@ -36,12 +36,23 @@ function sectionStatusTone(status: string): "neutral" | "warning" | "success" {
   return status === "ready" ? "success" : status === "in_progress" ? "warning" : "neutral";
 }
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
   const { t } = useTranslation();
   const deleteNf = useDeleteManualNonFinancialData(submissionId);
+  const [open, setOpen] = useState(false);
 
-  const handleClick = async () => {
-    if (!window.confirm(t("submissions.detail.nfDatabases.confirmClear"))) return;
+  const handleDelete = async () => {
     try {
       await deleteNf.mutateAsync();
       toast.success(t("submissions.detail.nfDatabases.toastClearSuccess"));
@@ -49,22 +60,63 @@ const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissio
       toast.error(
         e instanceof Error ? e.message : t("submissions.detail.nfDatabases.toastClearFailed"),
       );
+    } finally {
+      setOpen(false);
     }
   };
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={deleteNf.isPending}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
-    >
-      {deleteNf.isPending ? (
-        <Loader2 className="size-3.5 animate-spin" />
-      ) : (
-        <Trash2 className="size-3.5" />
-      )}
-      {t("submissions.detail.nfDatabases.btnClearDbs")}
-    </button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        disabled={deleteNf.isPending}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
+      >
+        {deleteNf.isPending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <Trash2 className="size-3.5" />
+        )}
+        {t("submissions.detail.nfDatabases.btnClearDbs")}
+      </button>
+
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="rounded-2xl border border-destructive/20 bg-background p-6 shadow-2xl max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center justify-center size-10 rounded-full bg-destructive/15 shrink-0">
+                <Trash2 className="size-5 text-destructive" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-base font-bold text-foreground">
+                  {t("submissions.detail.nfDatabases.btnClearDbs", "Clear Databases")}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  {t("submissions.detail.nfDatabases.confirmClear")}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex gap-2">
+            <AlertDialogCancel disabled={deleteNf.isPending} className="rounded-xl">
+              {t("common.cancel", "Cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteNf.isPending}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteNf.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-1" />
+              ) : (
+                <Trash2 className="size-4 mr-1" />
+              )}
+              {t("common.clear", "Clear")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
@@ -400,6 +452,7 @@ export function NfDatabasesTab({
             "urban_rural",
             "agm_attendance",
             "voting_exercised",
+            "share_balance",
             "join_date",
           ]}
           rows={members as unknown as Record<string, unknown>[]}

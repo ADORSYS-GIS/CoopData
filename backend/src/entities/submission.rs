@@ -3,7 +3,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::entities::enums::{ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
+use crate::entities::enums::{PeriodType, ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "submissions")]
@@ -14,6 +14,8 @@ pub struct Model {
     pub reference: Option<String>,
     pub cooperative_id: Uuid,
     pub reporting_year: i32,
+    pub period_type: PeriodType,
+    pub period_value: String,
     pub status: SubmissionStatus,
     pub current_tier: ReviewTier,
     #[sea_orm(nullable)]

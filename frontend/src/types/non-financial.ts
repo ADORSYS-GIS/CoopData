@@ -23,6 +23,7 @@ export interface NfMemberResponse {
   agm_attendance: boolean;
   leadership_role: string | null;
   voting_exercised: boolean;
+  share_balance?: number;
   created_at: string;
   updated_at: string;
 }

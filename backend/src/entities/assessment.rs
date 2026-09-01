@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::entities::enums::PeriodType;
+
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "assessments")]
 pub struct Model {
@@ -9,6 +11,8 @@ pub struct Model {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub fiscal_year: i32,
+    pub period_type: PeriodType,
+    pub period_value: String,
     pub quarter: Option<i32>,
     pub status: String,
     pub submitted_by: Option<Uuid>,
