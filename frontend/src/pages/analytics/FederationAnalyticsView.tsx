@@ -21,7 +21,7 @@ import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -29,12 +29,14 @@ interface Props {
 }
 
 export function FederationAnalyticsView({ filterValues, onFilterChange }: Props) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const year = Number(filterValues.year);
 
   const params = useMemo(
     () => ({
       reportingYear: year,
+      periodType: filterValues.periodType,
+      periodValue: filterValues.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
       region: filterValues.region !== "all" ? filterValues.region : undefined,

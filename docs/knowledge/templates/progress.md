@@ -2,8 +2,8 @@
 
 > **Instructions for AI:**
 >
-> 1.  **Create this file** immediately after `docs/design.md` is approved.
-> 2.  **Analyze the Design**: Read `docs/design.md` and break the entire project down into logical Phases.
+> 1.  **Create this file** immediately after `docs/architecture/design.md` is approved.
+> 2.  **Analyze the Design**: Read `docs/architecture/design.md` and break the entire project down into logical Phases.
 > 3.  **Populate the Phases**: Replace the examples below with the ACTUAL steps needed for this specific project.
 > 4.  **Update this file** after EVERY successful feature implementation.
 > 5.  **Check this file** at the start of every new chat session to resume work.

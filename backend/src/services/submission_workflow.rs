@@ -138,7 +138,7 @@ impl SubmissionWorkflow {
         // - Apex tier → Federation (apex is done reviewing, sends to federation)
         // - Federation tier → stays at federation (federation reviews)
         // - Ministry tier → stays at ministry (ministry reviews)
-        let next_tier = if sub.created_by_role == SubmissionCreatedByRole::Apex {
+        let next_tier = if claims.is_apex() {
             ReviewTier::Federation
         } else {
             match sub.current_tier {

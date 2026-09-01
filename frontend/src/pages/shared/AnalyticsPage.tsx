@@ -29,7 +29,7 @@ import { FinancialIndicators } from "@/components/analytics/FinancialIndicators"
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederations } from "@/hooks/federations/useFederations";
 import { useApexes, useMinistryApexes } from "@/hooks/apexes/useApexes";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import {
   titleByRole,
   subtitleByRole,
@@ -97,7 +97,7 @@ const FILTERS_BY_ROLE: Record<string, FilterConfig[]> = {
 
 // ── Component ───────────────────────────────────────────────────────────────
 export const AnalyticsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
   const role = useUserRole();
 
   // Build filter configs inside component to use t()
@@ -195,6 +195,8 @@ export const AnalyticsPage: React.FC = () => {
   const handleClear = useCallback(() => {
     setFilterValues({
       year: String(new Date().getFullYear()),
+      periodType: "YEARLY",
+      periodValue: "all",
       region: "all",
       sector: "all",
       federationId: "all",
@@ -207,6 +209,8 @@ export const AnalyticsPage: React.FC = () => {
   const filterParams = React.useMemo(
     () => ({
       reportingYear: Number(filterValues.year),
+      periodType: filterValues.periodType,
+      periodValue: filterValues.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
       federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
@@ -293,14 +297,17 @@ export const AnalyticsPage: React.FC = () => {
   if (!role) return null;
 
   return (
-    <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>
+    <AppShell
+      title={replaceOrgTerms(titleByRole[role])}
+      subtitle={replaceOrgTerms(subtitleByRole[role])}
+    >
       <div className="space-y-6">
         {/* Role badge */}
         <div>
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${roleBadge[role].color}`}
           >
-            {roleBadge[role].label}
+            {replaceOrgTerms(roleBadge[role].label)}
           </span>
         </div>
 

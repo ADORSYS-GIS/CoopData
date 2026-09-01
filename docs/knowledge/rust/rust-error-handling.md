@@ -32,99 +32,208 @@ use thiserror::Error;
 /// All errors should be converted to this type using From implementations.
 #[derive(Error, Debug)]
 pub enum AppError {
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Conflict: {0}")]
+    Conflict(String),
+
+    #[error("Conflict: {message}")]
+    ConflictWithSubmission {
+        message: String,
+        submission_id: Uuid,
+    },
+
+    #[error("Internal server error: {0}")]
+    InternalServerError(String),
+
     #[error("Database error: {0}")]
     DatabaseError(#[from] sea_orm::DbErr),
 
     #[error("Validation error: {0}")]
     ValidationError(String),
 
-    #[error("Not found: {0}")]
-    NotFound(String),
-
-    #[error("Unauthorized: {0}")]
-    Unauthorized(String),
-
-    #[error("Bad request: {0}")]
-    BadRequest(String),
-
-    #[error("Internal server error: {0}")]
-    InternalServerError(String),
-
-    #[error("Authentication error: {0}")]
-    AuthError(String),
-
-    #[error("File storage error: {0}")]
-    FileStorageError(String),
-
-    #[error("Conflict: {0}")]
-    Conflict(String),
+    #[error("Cache error: {0}")]
+    CacheError(String),
 
     #[error("External service error: {0}")]
     ExternalServiceError(String),
 
-    #[error("Rate limit exceeded: {0}")]
-    RateLimitExceeded(String),
+    #[error("Precondition required: {0}")]
+    PreconditionRequired(String),
+
+    #[error("Forbidden: missing required role(s): {required_roles:?}")]
+    MissingRole {
+        message: String,
+        required_roles: Vec<String>,
+    },
 }
 
 /// Type alias for Result with AppError
 pub type AppResult<T> = Result<T, AppError>;
 
+/// Error response structure for API errors
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required_roles: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submission_id: Option<String>,
+}
+
 /// Convert AppError into HTTP responses
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, error_message) = match &self {
-            AppError::DatabaseError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database error")
-            }
-            AppError::ValidationError(_) => {
-                (StatusCode::BAD_REQUEST, "Validation error")
-            }
-            AppError::NotFound(_) => {
-                (StatusCode::NOT_FOUND, "Resource not found")
-            }
-            AppError::Unauthorized(_) => {
-                (StatusCode::UNAUTHORIZED, "Unauthorized")
-            }
-            AppError::BadRequest(_) => {
-                (StatusCode::BAD_REQUEST, "Bad request")
-            }
+        let (status, error_response) = match &self {
+            AppError::BadRequest(msg) => (
+                StatusCode::BAD_REQUEST,
+                ErrorResponse {
+                    error: "bad_request".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::Unauthorized(msg) => (
+                StatusCode::UNAUTHORIZED,
+                ErrorResponse {
+                    error: "unauthorized".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::Forbidden(msg) => (
+                StatusCode::FORBIDDEN,
+                ErrorResponse {
+                    error: "forbidden".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::NotFound(msg) => (
+                StatusCode::NOT_FOUND,
+                ErrorResponse {
+                    error: "not_found".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::Conflict(msg) => (
+                StatusCode::CONFLICT,
+                ErrorResponse {
+                    error: "conflict".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::ConflictWithSubmission { message, submission_id } => (
+                StatusCode::CONFLICT,
+                ErrorResponse {
+                    error: "conflict".to_string(),
+                    message: Some(message.clone()),
+                    required_roles: None,
+                    submission_id: Some(submission_id.to_string()),
+                },
+            ),
             AppError::InternalServerError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+                tracing::error!("Internal server error: {:?}", self);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    ErrorResponse {
+                        error: "internal_server_error".to_string(),
+                        message: Some("An internal error occurred".to_string()),
+                        required_roles: None,
+                        submission_id: None,
+                    },
+                )
             }
-            AppError::AuthError(_) => {
-                (StatusCode::UNAUTHORIZED, "Authentication error")
+            AppError::DatabaseError(err) => {
+                tracing::error!("Database error: {:?}", err);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    ErrorResponse {
+                        error: "database_error".to_string(),
+                        message: Some("Failed to process database request".to_string()),
+                        required_roles: None,
+                        submission_id: None,
+                    },
+                )
             }
-            AppError::FileStorageError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "File storage error")
-            }
-            AppError::Conflict(_) => {
-                (StatusCode::CONFLICT, "Conflict")
-            }
-            AppError::ExternalServiceError(_) => {
-                (StatusCode::BAD_GATEWAY, "External service error")
-            }
-            AppError::RateLimitExceeded(_) => {
-                (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded")
-            }
-            AppError::AnyhowError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal error")
-            }
+            AppError::ValidationError(msg) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                ErrorResponse {
+                    error: "validation_error".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::CacheError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorResponse {
+                    error: "cache_error".to_string(),
+                    message: Some("Failed to process cache request".to_string()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::ExternalServiceError(msg) => (
+                StatusCode::BAD_GATEWAY,
+                ErrorResponse {
+                    error: "external_service_error".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::PreconditionRequired(msg) => (
+                StatusCode::PRECONDITION_REQUIRED,
+                ErrorResponse {
+                    error: "precondition_required".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::MissingRole { message, required_roles } => (
+                StatusCode::FORBIDDEN,
+                ErrorResponse {
+                    error: "forbidden".to_string(),
+                    message: Some(message.clone()),
+                    required_roles: Some(required_roles.clone()),
+                    submission_id: None,
+                },
+            ),
         };
 
-        // Log the error for debugging (but don't expose internals to client)
-        tracing::error!(
-            status_code = status.as_u16(),
-            error = %self,
-            "Request failed"
-        );
+        (status, Json(json!(error_response))).into_response()
+    }
+}
 
-        let body = Json(json!({
-            "error": error_message,
-            "message": self.to_string(),
-            "code": status.as_u16(),
-        }));
-
-        (status, body).into_response()
+/// Helper function for forbidden errors with roles
+pub fn forbidden_with_roles(
+    message: impl Into<String>,
+    required_roles: Vec<&'static str>,
+) -> AppError {
+    AppError::MissingRole {
+        message: message.into(),
+        required_roles: required_roles.iter().map(|s| s.to_string()).collect(),
     }
 }
 ```
@@ -136,124 +245,27 @@ impl IntoResponse for AppError {
 - Structured logging for debugging
 - Safe error messages to clients (no internals exposed)
 - HTTP status codes are mapped consistently
+- `ErrorResponse` struct for consistent JSON format
 
 ---
 
-## Pattern 2: Validation Errors with Details
-
-**File**: `src/error.rs` (extension)
-
-```rust
-use serde::Serialize;
-
-/// Detailed validation error for structured error responses
-#[derive(Debug, Serialize)]
-pub struct ValidationErrorDetail {
-    pub field: String,
-    pub message: String,
-    pub code: String,
-}
-
-impl ValidationErrorDetail {
-    pub fn new(field: impl Into<String>, message: impl Into<String>, code: impl Into<String>) -> Self {
-        Self {
-            field: field.into(),
-            message: message.into(),
-            code: code.into(),
-        }
-    }
-}
-
-/// Multiple validation errors
-#[derive(Debug, Error)]
-pub struct ValidationErrors {
-    pub errors: Vec<ValidationErrorDetail>,
-}
-
-impl ValidationErrors {
-    pub fn new(errors: Vec<ValidationErrorDetail>) -> Self {
-        Self { errors }
-    }
-
-    pub fn single(field: impl Into<String>, message: impl Into<String>) -> Self {
-        Self {
-            errors: vec![ValidationErrorDetail::new(field, message, "validation_failed")],
-        }
-    }
-}
-
-impl IntoResponse for ValidationErrors {
-    fn into_response(self) -> Response {
-        tracing::warn!(
-            errors = ?self.errors,
-            "Validation failed"
-        );
-
-        let body = Json(json!({
-            "error": "Validation error",
-            "details": self.errors,
-            "code": 400,
-        }));
-
-        (StatusCode::BAD_REQUEST, body).into_response()
-    }
-}
-```
-
-**Usage in handlers**:
-
-```rust
-use crate::error::{AppError, ValidationErrors, ValidationErrorDetail};
-
-pub async fn create_user(
-    Json(payload): Json<CreateUserRequest>,
-) -> AppResult<impl IntoResponse> {
-    // Validation with detailed errors
-    let mut errors = Vec::new();
-
-    if payload.email.is_empty() {
-        errors.push(ValidationErrorDetail::new(
-            "email","Email is required",
-            "required_field"
-        ));
-    }
-
-    if payload.name.len() < 2 {
-        errors.push(ValidationErrorDetail::new(
-            "name","Name must be at least 2 characters",
-            "min_length"
-        ));
-    }
-
-    if !errors.is_empty() {
-        return Err(AppError::ValidationError(
-            ValidationErrors::new(errors).to_string()
-        ));
-    }
-
-    // ... rest of handler
-    Ok((StatusCode::CREATED, Json(created_user)))
-}
-```
-
----
-
-## Pattern 3: Error Propagation with Context
+## Pattern 2: Error Propagation with Context
 
 **File**: Handler with context
 
 ```rust
 use crate::error::{AppError, AppResult};
-use tracing::instrument;
+use uuid::Uuid;
 
 /// Handler that demonstrates proper error propagation
-#[instrument(skip(state), fields(user_id = %user_id))]
 pub async fn get_user(
     State(state): State<AppState>,
-    Path(user_id): Path<String>,
+    Path(user_id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
+    let repo = UserRepository::new(state.db.clone());
+    
     // Repository call with automatic error conversion
-    let user = UserRepository::find_by_id(&state.db, &user_id)
+    let user = repo.find_by_id(user_id)
         .await
         .map_err(|e| {
             tracing::error!(
@@ -269,7 +281,7 @@ pub async fn get_user(
             AppError::NotFound(format!("User not found: {}", user_id))
         })?;
 
-    Ok(Json(user))
+    Ok(Json(UserResponse::from(user)))
 }
 ```
 
@@ -278,23 +290,21 @@ pub async fn get_user(
 - `?` operator for clean error propagation
 - `map_err` adds context and logging
 - `ok_or_else` converts Option to Result
-- `instrument` attribute for tracing
+- Repository created with `new()` pattern
 
 ---
 
-## Pattern 4: External Service Error Handling
+## Pattern 3: External Service Error Handling
 
 **File**: Service layer error handling
 
 ```rust
-use anyhow::Context;
 use crate::error::{AppError, AppResult};
 
 impl KeycloakService {
     /// All external service calls should handle errors explicitly
     pub async fn get_user_by_id(
         &self,
-        token: &str,
         user_id: &str,
     ) -> AppResult<KeycloakUser> {
         let url = format!(
@@ -306,10 +316,8 @@ impl KeycloakService {
 
         let response = self.client
             .get(&url)
-            .bearer_auth(token)
             .send()
             .await
-            .context("Failed to send request to Keycloak")
             .map_err(|e| {
                 tracing::error!(
                     user_id = %user_id,
@@ -325,7 +333,6 @@ impl KeycloakService {
             StatusCode::OK => {
                 response.json::<KeycloakUser>()
                     .await
-                    .context("Failed to parse Keycloak response")
                     .map_err(|e| {
                         tracing::error!(
                             user_id = %user_id,
@@ -362,7 +369,7 @@ impl KeycloakService {
 
 ---
 
-## Pattern 5: Database Transaction Errors
+## Pattern 4: Database Transaction Errors
 
 **File**: Repository with transaction handling
 
@@ -371,42 +378,37 @@ use sea_orm::*;
 use crate::error::{AppError, AppResult};
 use uuid::Uuid;
 
-impl UserRepository {
-    /// Create user with transaction and rollback on error
-    pub async fn create_with_audit(
-        db: &DbConn,
-        user_data: users::ActiveModel,
-        audit_data: audit_logs::ActiveModel,
-    ) -> AppResult<users::Model> {
+impl SubmissionRepository {
+    /// Create submission with sections in a transaction
+    pub async fn create_with_sections(
+        &self,
+        submission: ActiveModel,
+        sections: Vec<SubmissionSectionActiveModel>,
+    ) -> AppResult<submission::Model> {
         // Start transaction
-        let txn = db.begin().await.map_err(|e| {
+        let txn = self.db.begin().await.map_err(|e| {
             tracing::error!(error = %e, "Failed to begin transaction");
             AppError::DatabaseError(e)
         })?;
 
-        // Create user
-        let user = users::ActiveModel {
-            ..user_data
-        }
-        .insert(&txn)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to insert user");
-            AppError::DatabaseError(e)
-        })?;
+        // Create submission
+        let created = submission.insert(&txn)
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to insert submission");
+                AppError::DatabaseError(e)
+            })?;
 
-        // Create audit log
-        audit_logs::ActiveModel {
-            user_id: Set(user.id),
-            action: Set("user_created".to_string()),
-            ..audit_data
+        // Create all sections
+        for mut section in sections {
+            section.submission_id = Set(created.id);
+            section.insert(&txn)
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "Failed to insert section");
+                    AppError::DatabaseError(e)
+                })?;
         }
-        .insert(&txn)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to insert audit log");
-            AppError::DatabaseError(e)
-        })?;
 
         // Commit transaction
         txn.commit().await.map_err(|e| {
@@ -415,85 +417,23 @@ impl UserRepository {
         })?;
 
         tracing::info!(
-            user_id = %user.id,
-            "User created successfully"
+            submission_id = %created.id,
+            "Submission created successfully"
         );
 
-        Ok(user)
+        Ok(created)
     }
 }
 ```
 
 ---
 
-## Pattern 6: Request Validation Middleware
-
-**File**: `src/api/middleware/validation.rs`
-
-```rust
-use axum::{
-    body::Body,
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::IntoResponse,
-};
-use crate::error::AppError;
-
-/// Request size limit middleware
-pub async fn limit_request_size(
-    req: Request,
-    next: Next,
-) -> Result<impl IntoResponse, AppError> {
-    const MAX_SIZE: usize = 10 * 1024 * 1024; // 10MB
-
-    if let Some(content_length) = req.headers()
-        .get("content-length")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.parse::<usize>().ok())
-    {
-        if content_length > MAX_SIZE {
-            return Err(AppError::BadRequest(
-                format!("Request body too large. Maximum size is {} bytes", MAX_SIZE)
-            ));
-        }
-    }
-
-    Ok(next.run(req).await)
-}
-
-/// Request ID middleware for tracing
-pub async fn add_request_id(
-    mut req: Request,
-    next: Next,
-) -> Result<impl IntoResponse, AppError> {
-    let request_id = uuid::Uuid::new_v4().to_string();
-    req.headers_mut().insert(
-        "X-Request-Id",
-        request_id.parse().unwrap(),
-    );
-
-    let res = next.run(req).await;
-
-    // Add request ID to response headers
-    let mut res = res;
-    res.headers_mut().insert(
-        "X-Request-Id",
-        request_id.parse().unwrap(),
-    );
-
-    Ok(res)
-}
-```
-
----
-
-## Pattern 7: Error Recovery and Fallbacks
+## Pattern 5: Cache Error Handling
 
 **File**: Service with fallback
 
 ```rust
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
 
 impl CacheService {
     /// Get with fallback to database
@@ -503,7 +443,7 @@ impl CacheService {
         db_fetch: impl Future<Output = AppResult<T>>,
     ) -> AppResult<T>
     where
-        T: Serialize + for<'de> Deserialize<'de> + Clone,
+        T: serde::Serialize + for<'de> serde::Deserialize<'de> + Clone,
     {
         // Try cache first
         match self.get::<T>(key).await {

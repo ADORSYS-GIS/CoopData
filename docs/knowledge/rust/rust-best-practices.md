@@ -34,31 +34,31 @@ src/
 
 ```rust
 // FILES: snake_case
-assessment_repository.rs    // NOT AssessmentRepo.rs
+submission_repository.rs    // NOT SubmissionRepo.rs
 organization_handler.rs     // NOT OrganizationHandler.rs
 
 // TYPES: PascalCase
-pub struct AssessmentStatus  // NOT assessment_status
-pub enum AssessmentStatus    // NOT ASSESSMENT_STATUS
+pub struct SubmissionStatus  // NOT submission_status
+pub enum SubmissionStatus    // NOT SUBMISSION_STATUS
 
 // FUNCTIONS: snake_case
 pub async fn find_by_id()    // NOT findById
-pub async fn create_assessment() // NOT CreateAssessment
+pub async fn create_submission() // NOT CreateSubmission
 
 // CONSTANTS: SCREAMING_SNAKE_CASE
 const MAX_RETRIES: u32 = 3;
 const DEFAULT_PAGE_SIZE: u32 = 20;
 
 // DATABASE COLUMNS: snake_case
-pub organization_id: String  // NOT organizationId
+pub cooperative_id: Uuid    // NOT cooperativeId
 
 // DTO FIELDS (JSON): camelCase via serde rename
-#[serde(rename = "organizationId")]
-pub organization_id: String
+#[serde(rename = "cooperativeId")]
+pub cooperative_id: Uuid
 
 // ERROR MESSAGES: Sentence case
-"Assessment not found"      // NOT "assessment not found"
-"Organization ID is required"
+"Submission not found"      // NOT "submission not found"
+"Cooperative ID is required"
 ```
 
 ---
@@ -115,9 +115,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // 3. Internal modules (alphabetical)
-use crate::api::dto::assessment::*;
+use crate::api::dto::submission::*;
 use crate::error::{AppError, AppResult};
-use crate::repositories::assessments::AssessmentsRepository;
+use crate::repositories::submission::SubmissionRepository;
 use crate::AppState;
 ```
 

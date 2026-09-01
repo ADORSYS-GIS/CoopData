@@ -93,8 +93,11 @@ impl S3FileStorage {
             }
             Err(e) => {
                 let err_str = e.to_string();
+                let debug_str = format!("{:?}", e);
                 if err_str.contains("BucketAlreadyExists")
                     || err_str.contains("BucketAlreadyOwnedByYou")
+                    || debug_str.contains("BucketAlreadyOwnedByYou")
+                    || debug_str.contains("BucketAlreadyExists")
                     || err_str.contains("409")
                 {
                     tracing::info!(
@@ -105,6 +108,7 @@ impl S3FileStorage {
                     tracing::warn!(
                         bucket = %bucket,
                         error = %err_str,
+                        debug_error = ?e,
                         "Could not auto-create S3 bucket. Proceeding anyway..."
                     );
                 }
@@ -126,7 +130,16 @@ impl ObjectStorage for S3FileStorage {
             .content_type(content_type)
             .send()
             .await
-            .map_err(|e| AppError::ExternalServiceError(format!("S3 put_object error: {}", e)))?;
+            .map_err(|e| {
+                let debug_str = format!("{:?}", e);
+                let err_str = e.to_string();
+                tracing::error!(error = %err_str, debug_error = %debug_str, bucket = %self.bucket, key = %key, "S3 put_object failed");
+                if debug_str.contains("XMinioStorageFull") || debug_str.contains("minimum free drive threshold") || err_str.contains("XMinioStorageFull") {
+                    AppError::ExternalServiceError("Storage server is out of disk space (MinIO free drive threshold reached). Please free up disk space on your computer to proceed with file uploads.".to_string())
+                } else {
+                    AppError::ExternalServiceError(format!("File storage failed: {err_str}"))
+                }
+            })?;
 
         Ok(())
     }
@@ -140,17 +153,21 @@ impl ObjectStorage for S3FileStorage {
             .send()
             .await
             .map_err(|e| {
-                if e.to_string().contains("NoSuchKey") {
-                    AppError::NotFound(format!("Object '{}' not found", key))
+                let err_str = e.to_string();
+                if err_str.contains("NoSuchKey") {
+                    AppError::NotFound(format!("Object '{key}' not found"))
                 } else {
-                    AppError::ExternalServiceError(format!("S3 get_object error: {}", e))
+                    AppError::ExternalServiceError(format!(
+                        "Failed to retrieve file from storage: {err_str}"
+                    ))
                 }
             })?;
 
-        let bytes =
-            response.body.collect().await.map_err(|e| {
-                AppError::ExternalServiceError(format!("S3 read body error: {}", e))
-            })?;
+        let bytes = response.body.collect().await.map_err(|e| {
+            AppError::ExternalServiceError(format!(
+                "Failed to read file contents from storage: {e}"
+            ))
+        })?;
 
         Ok(bytes.into_bytes().to_vec())
     }
@@ -163,7 +180,7 @@ impl ObjectStorage for S3FileStorage {
             .send()
             .await
             .map_err(|e| {
-                AppError::ExternalServiceError(format!("S3 delete_object error: {}", e))
+                AppError::ExternalServiceError(format!("Failed to delete file from storage: {e}"))
             })?;
 
         Ok(())

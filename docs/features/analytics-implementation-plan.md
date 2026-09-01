@@ -26,7 +26,7 @@ To design and implement a highly professional, hierarchical Analytics Page for t
 16. **Deposits to Loans**: Total Deposits / GLP.
 
 ### 2.2 Non-Financial KPIs (Derived from Excel Upload Pipeline)
-Based on the `docs/ticket-3-non-financial-data.md` Excel mappings:
+Based on the `docs/archive/ticket-3-non-financial-data.md` Excel mappings:
 
 **Membership Metrics**
 17. Total Members

@@ -28,6 +28,10 @@ pub struct NationalOverviewParams {
     /// Filter analytics to a specific reporting year (e.g. 2026).
     /// When omitted, uses the most recent approved submission per cooperative.
     pub reporting_year: Option<i32>,
+    /// Filter analytics to a specific period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL). Defaults to YEARLY baseline.
+    pub period_type: Option<String>,
+    /// Filter analytics to a specific period value (e.g. Q1, 08, H1).
+    pub period_value: Option<String>,
     pub cooperative_id: Option<uuid::Uuid>,
     pub region: Option<String>,
     pub sector: Option<String>,
@@ -62,7 +66,14 @@ pub async fn get_national_overview(
     )
     .await?;
 
-    let coop_rows = compute_coop_rows(&state, filtered_coop_ids, params.reporting_year).await?;
+    let coop_rows = compute_coop_rows(
+        &state,
+        filtered_coop_ids,
+        params.reporting_year,
+        params.period_type.as_deref(),
+        params.period_value.as_deref(),
+    )
+    .await?;
 
     let total = coop_rows.len() as u64;
 
@@ -176,6 +187,8 @@ async fn compute_coop_rows(
     state: &AppState,
     coop_ids: Vec<Uuid>,
     reporting_year: Option<i32>,
+    period_type: Option<&str>,
+    period_value: Option<&str>,
 ) -> AppResult<Vec<CoopKpiRow>> {
     // Batch 1: fetch all cooperatives
     let cooperatives = state.cooperative_repo.find_by_ids(coop_ids.clone()).await?;
@@ -200,7 +213,31 @@ async fn compute_coop_rows(
             let matches_year = reporting_year
                 .map(|year| submission.reporting_year == year)
                 .unwrap_or(true);
-            is_approved && matches_year
+            let matches_period_type = period_type
+                .map(|pt| {
+                    if pt.eq_ignore_ascii_case("all") {
+                        true
+                    } else {
+                        let submission_pt_str = match submission.period_type {
+                            crate::entities::enums::PeriodType::Yearly => "YEARLY",
+                            crate::entities::enums::PeriodType::Quarterly => "QUARTERLY",
+                            crate::entities::enums::PeriodType::Monthly => "MONTHLY",
+                            crate::entities::enums::PeriodType::SemiAnnual => "SEMI_ANNUAL",
+                        };
+                        submission_pt_str.eq_ignore_ascii_case(pt)
+                    }
+                })
+                .unwrap_or(true);
+            let matches_period_value = period_value
+                .map(|pv| {
+                    if pv.eq_ignore_ascii_case("all") {
+                        true
+                    } else {
+                        submission.period_value.eq_ignore_ascii_case(pv)
+                    }
+                })
+                .unwrap_or(true);
+            is_approved && matches_year && matches_period_type && matches_period_value
         })
         .collect();
     let submission_ids: Vec<_> = approved_submissions
@@ -672,7 +709,8 @@ pub async fn get_benchmark(
     // returned to the caller; individual rows never leave this function.
     let all_coops = state.cooperative_repo.list_all().await?;
     let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
-    let all_rows = compute_coop_rows(&state, all_coop_ids, params.reporting_year).await?;
+    let all_rows =
+        compute_coop_rows(&state, all_coop_ids, params.reporting_year, None, None).await?;
 
     // A cooperative caller without an approved/submitted financial statement for
     // the year gets `cooperative: null` with 200 OK — the absence of data is a

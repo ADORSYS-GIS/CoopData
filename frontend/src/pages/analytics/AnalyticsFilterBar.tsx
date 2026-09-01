@@ -10,7 +10,7 @@ import {
 import { Card } from "@/components/app-shell";
 import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
 import type { FilterConfig, AnalyticsFilterValues } from "./analyticsTypes";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface Props {
   filters: FilterConfig[];
@@ -39,7 +39,7 @@ export function AnalyticsFilterBar({
   onClear,
 }: Props) {
   const [showFilters, setShowFilters] = useState(false);
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
 
   const activeCount = Object.entries(filterValues).filter(
     ([k, v]) => k !== "year" && v !== "all",
@@ -83,6 +83,126 @@ export function AnalyticsFilterBar({
           </Select>
         </div>
 
+        {/* Period Frequency Selector */}
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold">
+          <SlidersHorizontal className="size-3.5 text-primary" />
+          <span className="text-muted-foreground uppercase whitespace-nowrap">Frequency:</span>
+          <Select
+            value={filterValues.periodType || "YEARLY"}
+            onValueChange={(v) => {
+              onFilterChange("periodType", v);
+              onFilterChange("periodValue", "all");
+            }}
+          >
+            <SelectTrigger className="h-auto border-none bg-transparent p-0 font-bold shadow-none focus:ring-0 [&>svg]:opacity-50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="YEARLY" className="font-bold">
+                Yearly (Annual)
+              </SelectItem>
+              <SelectItem value="QUARTERLY" className="font-bold">
+                Quarterly
+              </SelectItem>
+              <SelectItem value="MONTHLY" className="font-bold">
+                Monthly
+              </SelectItem>
+              <SelectItem value="SEMI_ANNUAL" className="font-bold">
+                Semi-Annual
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Period Value Selector */}
+        {filterValues.periodType && filterValues.periodType !== "YEARLY" && (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold animate-in fade-in duration-150">
+            <span className="text-muted-foreground uppercase whitespace-nowrap">Period:</span>
+            <Select
+              value={filterValues.periodValue || "all"}
+              onValueChange={(v) => onFilterChange("periodValue", v)}
+            >
+              <SelectTrigger className="h-auto border-none bg-transparent p-0 font-bold shadow-none focus:ring-0 [&>svg]:opacity-50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="font-bold">
+                  All Periods
+                </SelectItem>
+                {filterValues.periodType === "QUARTERLY" && (
+                  <>
+                    <SelectItem value="Q1" className="font-bold">
+                      Q1
+                    </SelectItem>
+                    <SelectItem value="Q2" className="font-bold">
+                      Q2
+                    </SelectItem>
+                    <SelectItem value="Q3" className="font-bold">
+                      Q3
+                    </SelectItem>
+                    <SelectItem value="Q4" className="font-bold">
+                      Q4
+                    </SelectItem>
+                  </>
+                )}
+                {filterValues.periodType === "MONTHLY" && (
+                  <>
+                    <SelectItem value="FULL_YEAR" className="font-bold">
+                      Full 12 Mo
+                    </SelectItem>
+                    <SelectItem value="01" className="font-bold">
+                      January (01)
+                    </SelectItem>
+                    <SelectItem value="02" className="font-bold">
+                      February (02)
+                    </SelectItem>
+                    <SelectItem value="03" className="font-bold">
+                      March (03)
+                    </SelectItem>
+                    <SelectItem value="04" className="font-bold">
+                      April (04)
+                    </SelectItem>
+                    <SelectItem value="05" className="font-bold">
+                      May (05)
+                    </SelectItem>
+                    <SelectItem value="06" className="font-bold">
+                      June (06)
+                    </SelectItem>
+                    <SelectItem value="07" className="font-bold">
+                      July (07)
+                    </SelectItem>
+                    <SelectItem value="08" className="font-bold">
+                      August (08)
+                    </SelectItem>
+                    <SelectItem value="09" className="font-bold">
+                      September (09)
+                    </SelectItem>
+                    <SelectItem value="10" className="font-bold">
+                      October (10)
+                    </SelectItem>
+                    <SelectItem value="11" className="font-bold">
+                      November (11)
+                    </SelectItem>
+                    <SelectItem value="12" className="font-bold">
+                      December (12)
+                    </SelectItem>
+                  </>
+                )}
+                {filterValues.periodType === "SEMI_ANNUAL" && (
+                  <>
+                    <SelectItem value="H1" className="font-bold">
+                      H1 (Jan–Jun)
+                    </SelectItem>
+                    <SelectItem value="H2" className="font-bold">
+                      H2 (Jul–Dec)
+                    </SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Filters toggle */}
         {otherFilters.length > 0 && (
           <button
@@ -116,9 +236,9 @@ export function AnalyticsFilterBar({
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary px-3 py-1 text-xs font-bold"
             >
               <span className="text-[10px] uppercase tracking-wider opacity-60">
-                {filter?.label}:
+                {replaceOrgTerms(filter?.label || "")}:
               </span>
-              {option.label}
+              {replaceOrgTerms(option.label)}
               <button
                 onClick={() => onFilterChange(key, "all")}
                 className="hover:bg-primary/20 rounded-full p-0.5"
@@ -164,7 +284,7 @@ export function AnalyticsFilterBar({
               return (
                 <div key={filter.id}>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    {filter.label}
+                    {replaceOrgTerms(filter.label)}
                   </label>
                   <select
                     value={filterValues[sk] || "all"}
@@ -174,7 +294,7 @@ export function AnalyticsFilterBar({
                   >
                     {filter.options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {replaceOrgTerms(opt.label)}
                       </option>
                     ))}
                   </select>

@@ -1,17 +1,29 @@
 # Rust Services Guide
 
 > **Goal**: Encapsulate external integrations and complex business logic.
-> **Rule**: Services handle EXTERNAL systems (Keycloak, S3, Email) and complex operations spanning multiple repositories.
+> **Rule**: Services handle EXTERNAL systems (Keycloak, S3) and complex operations spanning multiple repositories.
 
 ## File Structure
 
 ```
 src/services/
-├── mod.rs               # Re-exports
-├── keycloak.rs         # Keycloak integration
-├── s3_storage.rs       # S3/MinIO storage
-├── report_service.rs   # Report generation
-└── email.rs            # Email service
+├── mod.rs                           # Re-exports
+├── keycloak.rs                      # Keycloak integration
+├── object_storage.rs                # S3/MinIO storage
+├── ai_extraction.rs                 # AI extraction service
+├── kpi_engine.rs                    # KPI calculation engine
+├── nf_indicator_engine.rs           # Non-financial indicator engine
+├── report_narrative.rs              # Report narrative generation
+├── cache.rs                         # In-memory cache
+├── audit.rs                         # Audit logging service
+├── export_generator.rs              # Excel/PDF export
+├── pdf_templates.rs                 # PDF template rendering
+├── submission_workflow.rs           # Submission workflow logic
+├── verification_token.rs            # MFA verification tokens
+├── benchmark.rs                     # Benchmark calculations
+├── localization.rs                  # Localization service
+├── nf_excel_parser.rs               # Excel parsing for NF data
+└── ... (18+ service modules total)
 ```
 
 ---
@@ -144,21 +156,29 @@ File: `src/lib.rs`
 ```rust
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Arc<DatabaseConnection>,
-    pub keycloak_service: Arc<KeycloakService>,
-    pub my_service: Arc<MyService>,  // Add here
+    pub db: Database,
+    pub config: AppConfig,
+    pub cache: CacheService,
+    pub keycloak: KeycloakService,           // Note: not keycloak_service
+    pub jwt_validator: Arc<JwtValidator>,
+    pub my_service: MyService,               // Add here (not Arc wrapped)
+    // ... other services
 }
 ```
 
 ### Step 5: Initialize in `run()`
 
 ```rust
-let my_service = Arc::new(MyService::new(config.clone()));
+let my_service = MyService::new(config.clone());
 
 let state = AppState {
     db,
-    keycloak_service,
+    config,
+    cache,
+    keycloak,
+    jwt_validator,
     my_service,
+    // ...
 };
 ```
 

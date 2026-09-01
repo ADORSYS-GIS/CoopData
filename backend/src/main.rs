@@ -39,6 +39,16 @@ async fn main() -> anyhow::Result<()> {
     let db = connect_db_with_retry(&config.database_url).await?;
     tracing::info!("Database connected");
 
+    // Run schema cleanup migrations (ensure period-based unique constraint is active)
+    let _ = sea_orm::ConnectionTrait::execute(
+        &db,
+        sea_orm::Statement::from_string(
+            sea_orm::DatabaseBackend::Postgres,
+            "ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_cooperative_id_reporting_year_key;".to_string(),
+        ),
+    )
+    .await;
+
     let cache = CacheService::new(&config.redis_url).await?;
     tracing::info!("Redis cache connected");
 

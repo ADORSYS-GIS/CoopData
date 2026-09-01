@@ -26,6 +26,8 @@ pub struct Model {
     #[sea_orm(nullable)]
     pub leadership_role: Option<String>,
     pub voting_exercised: bool,
+    #[sea_orm(column_type = "Decimal(Some((15, 2)))")]
+    pub share_balance: Decimal,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

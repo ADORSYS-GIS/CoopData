@@ -72,7 +72,7 @@ import { useLoans } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
 import {
   SubmissionMethodModal,
@@ -173,7 +173,7 @@ const isQuestionnaireComplete = (
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export const SubmissionDetailPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
   const role = useUserRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -271,6 +271,17 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const updateSection = useUpdateSubmissionSection(id ?? "");
 
+  const isDraft = submission?.status === "draft";
+  const isCooperative = role === "cooperative";
+  const isCreatorRole = submission?.created_by_role === role;
+
+  const CHOSEN_METHODS: SubmissionMethod[] = ["upload", "manual", "questionnaire"];
+  const submissionMethod: SubmissionMethod | null =
+    submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
+      ? (submission.submission_method as SubmissionMethod)
+      : null;
+  const methodChosen = submissionMethod !== null;
+
   const sectionMeta = useMemo(
     () => [
       {
@@ -279,7 +290,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.financial.description"),
         tab: "financial",
         icon: FileText,
-        pendingAction: t("submissions.detail.sections.financial.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.financial.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.financial.pendingAction"),
         progressAction: t("submissions.detail.sections.financial.progressAction"),
         readyAction: t("submissions.detail.sections.financial.readyAction"),
       },
@@ -289,7 +303,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.members.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.members.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.members.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.members.pendingAction"),
         readyAction: t("submissions.detail.sections.members.readyAction"),
       },
       {
@@ -298,7 +315,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.savings.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.savings.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.savings.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.savings.pendingAction"),
         readyAction: t("submissions.detail.sections.savings.readyAction"),
       },
       {
@@ -307,7 +327,10 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.loans.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.loans.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.loans.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.loans.pendingAction"),
         readyAction: t("submissions.detail.sections.loans.readyAction"),
       },
       {
@@ -316,7 +339,13 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.fixed_deposits.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.fixed_deposits.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t(
+                "submissions.detail.sections.fixed_deposits.pendingActionManual",
+                "Saisir manuellement",
+              )
+            : t("submissions.detail.sections.fixed_deposits.pendingAction"),
         readyAction: t("submissions.detail.sections.fixed_deposits.readyAction"),
       },
       {
@@ -325,22 +354,15 @@ export const SubmissionDetailPage: React.FC = () => {
         description: t("submissions.detail.sections.farm_coop.description"),
         tab: "databases",
         icon: Database,
-        pendingAction: t("submissions.detail.sections.farm_coop.pendingAction"),
+        pendingAction:
+          submissionMethod === "manual"
+            ? t("submissions.detail.sections.farm_coop.pendingActionManual", "Saisir manuellement")
+            : t("submissions.detail.sections.farm_coop.pendingAction"),
         readyAction: t("submissions.detail.sections.farm_coop.readyAction"),
       },
     ],
-    [t],
+    [t, submissionMethod],
   );
-
-  const isDraft = submission?.status === "draft";
-  const isCooperative = role === "cooperative";
-  const isCreatorRole = submission?.created_by_role === role;
-  const CHOSEN_METHODS: SubmissionMethod[] = ["upload", "manual", "questionnaire"];
-  const submissionMethod: SubmissionMethod | null =
-    submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
-      ? (submission.submission_method as SubmissionMethod)
-      : null;
-  const methodChosen = submissionMethod !== null;
 
   // Exclusive editor model: only the user who owns the draft (edited_by) can edit
   // Hooks must be called before any early returns
@@ -448,7 +470,7 @@ export const SubmissionDetailPage: React.FC = () => {
       await submitMutation.mutateAsync(id);
       toast.success(
         submission?.current_tier === "apex" || submission?.created_by_role === "apex"
-          ? "Submitted to Federation"
+          ? replaceOrgTerms("Submitted to Federation")
           : t("submissions.detail.toastSubmitted"),
       );
       navigate({ to: "/app/submissions" });
@@ -564,12 +586,13 @@ export const SubmissionDetailPage: React.FC = () => {
                       {submission.reference ?? submission.id.slice(0, 8).toUpperCase()}
                     </h2>
                     <StatusPill tone={statusTone(submission.status)}>
-                      {statusLabel(submission.status, t)}
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {statusLabel(submission.status, t as any)}
                     </StatusPill>
                     {submission.created_by_role === "apex" && submission.created_by_name && (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
                         <span className="size-1.5 rounded-full bg-primary" />
-                        Created by {submission.created_by_name} (Apex)
+                        {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
                       </span>
                     )}
                     {submission.edited_by_name && submission.status === "draft" && (
@@ -982,7 +1005,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : (
                         <Send className="size-4" />
                       )}
-                      {submission.current_tier === "cooperative"
+                      {submission.current_tier === "cooperative" && role !== "apex"
                         ? t("submissions.detail.submitToApex", "Submit to Apex")
                         : t("submissions.detail.submitToFederation", "Submit to Federation")}
                     </button>
@@ -1102,9 +1125,11 @@ export const SubmissionDetailPage: React.FC = () => {
             >
               <div className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
                 <div className="px-6 pt-6 pb-4">
-                  <h3 className="text-base font-bold text-foreground">Delegate to Cooperative</h3>
+                  <h3 className="text-base font-bold text-foreground">
+                    {replaceOrgTerms("Delegate to Cooperative")}
+                  </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The cooperative will be notified to fix and resubmit.
+                    {replaceOrgTerms("The cooperative will be notified to fix and resubmit.")}
                   </p>
                 </div>
                 <div className="px-6 pb-2">
@@ -1350,10 +1375,25 @@ export const SubmissionDetailPage: React.FC = () => {
       <SubmissionMethodModal
         open={methodModalOpen}
         submissionId={id ?? ""}
+        currentMethod={submissionMethod}
+        hasExistingData={
+          fsLineItems.length > 0 ||
+          (membersData?.total ?? 0) > 0 ||
+          (savingsData?.total ?? 0) > 0 ||
+          (loansData?.total ?? 0) > 0 ||
+          (fdsData?.total ?? 0) > 0 ||
+          (farmCoopsData?.total ?? 0) > 0
+        }
         onClose={() => setMethodModalOpen(false)}
         onMethodSelected={() => {
           queryClient.invalidateQueries({ queryKey: ["submission", id] });
           queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+          queryClient.invalidateQueries({ queryKey: ["line-items"] });
+          queryClient.invalidateQueries({ queryKey: ["financial-statement"] });
+          queryClient.invalidateQueries({ queryKey: ["members"] });
+          queryClient.invalidateQueries({ queryKey: ["savings"] });
+          queryClient.invalidateQueries({ queryKey: ["loans"] });
+          queryClient.invalidateQueries({ queryKey: ["fixed-deposits"] });
         }}
       />
       <DeleteConfirmationDialog
@@ -1396,7 +1436,7 @@ function ReviewActionPanel({
   rejectLabel?: string;
   isPending: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const hasComment = comment.trim().length > 0;
   const borderCls = onReject
     ? "border-l-4 border-l-destructive/50"

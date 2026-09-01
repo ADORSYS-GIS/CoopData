@@ -9,438 +9,326 @@
 src/api/
 ├── handlers/
 │   ├── mod.rs                 # Re-exports all handlers
-│   ├── user.rs                # User-related handlers
-│   ├── organization.rs        # Organization handlers
-│   └── assessment.rs          # Assessment handlers
+│   ├── users.rs               # User-related handlers
+│   ├── organizations.rs       # Organization handlers
+│   ├── submission.rs          # Submission/workflow handlers
+│   ├── cooperative.rs         # Cooperative handlers
+│   ├── federation.rs          # Federation handlers
+│   ├── apex.rs                # Apex handlers
+│   ├── extraction.rs          # AI extraction handlers
+│   ├── financial_statement.rs # Financial statement handlers
+│   ├── non_financial.rs       # Non-financial indicator handlers
+│   ├── questionnaire.rs       # Questionnaire handlers
+│   └── ... (23+ handlers total)
 ├── dto/
 │   ├── mod.rs
-│   └── user.rs                # Request/Response DTOs
+│   ├── organization.rs        # Request/Response DTOs
+│   └── submission.rs
 └── routes/
     ├── mod.rs
-    └── api.rs                 # Route definitions
+    ├── api.rs                 # Main router assembly
+    ├── shared.rs             # Routes accessible by all roles
+    ├── ministry.rs            # Ministry-level routes
+    ├── federation.rs          # Federation-level routes
+    ├── apex.rs                # Apex-level routes
+    ├── cooperative.rs        # Cooperative-level routes
+    └── users.rs               # User management routes
 ```
 
 ---
 
 ## Pattern 1: Standard CRUD Handler
 
-**File**: `src/api/handlers/organization.rs`
+**File**: `src/api/handlers/organizations.rs`
 
 ```rust
 use crate::{
-    api::dto::organization::{OrganizationCreateRequest, OrganizationUpdateRequest},
+    api::dto::{
+        CreateOrganizationRequest, OrganizationResponse,
+        PaginatedOrganizationResponse, PaginatedResponse, PaginationParams,
+    },
     error::{AppError, AppResult},
     AppState,
 };
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
-use tracing::instrument;
+use std::sync::Arc;
+use uuid::Uuid;
+
+use crate::auth::claims::Claims;
+use crate::repositories::OrganizationRepository;
 
 // ============================================
 // CREATE - Create a new organization
 // ============================================
 #[utoipa::path(
     post,
-    path = "/admin/organizations",
-    tag = "Organization",
-    request_body = OrganizationCreateRequest,
+    path = "/api/v1/organizations",
+    tag = "Organizations",
+    request_body = CreateOrganizationRequest,
     responses(
-        (status = 201, description = "Created", body = KeycloakOrganization),
-        (status = 400, description = "Bad Request"),
-        (status = 401, description = "Unauthorized")
+        (status = 201, description = "Organization created", body = OrganizationResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 409, description = "Organization already exists")
     )
 )]
-#[instrument(skip(state), fields(name = %request.name))]
 pub async fn create_organization(
     State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Json(request): Json<OrganizationCreateRequest>,
+    Extension(claims): Extension<Arc<Claims>>,  // ← Auth via Claims, not token string
+    Json(body): Json<CreateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(?request, "Received organization create request");
-
     // Validate input
-    if request.name.is_empty() {
-        return Err(AppError::BadRequest("Organization name is required".to_string()));
+    if body.name.trim().is_empty() {
+        return Err(AppError::BadRequest("Organization name is required".into()));
     }
 
-    // Get admin token from keycloak service
-    let admin_token = state.keycloak_service.get_admin_token().await?;
+    let repo = OrganizationRepository::new(state.db.clone());
+    let model = organization::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        name: Set(body.name.clone()),
+        // ... other fields
+        created_at: Set(chrono::Utc::now()),
+        updated_at: Set(chrono::Utc::now()),
+    };
 
-    // Call service layer
-    let organization = state.keycloak_service
-        .create_organization(
-            &admin_token,
-            &request.name,
-            request.domains,
-            request.redirect_url,
-            request.enabled,
-            request.attributes,
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to create organization: {}", e);
-            AppError::InternalServerError(format!("Failed to create organization: {}", e))
-        })?;
+    let created = repo.create(model).await?;
 
-    tracing::info!(
-        org_id = %organization.id,
-        "Organization created successfully"
-    );
+    tracing::info!(org_id = %created.id, "Organization created");
 
-    Ok((StatusCode::CREATED, Json(organization)))
+    Ok((StatusCode::CREATED, Json(OrganizationResponse::from(created))))
 }
 
 // ============================================
-// READ - Get all organizations
+// READ - Get organization by ID
 // ============================================
 #[utoipa::path(
     get,
-    path = "/admin/organizations",
-    tag = "Organization",
+    path = "/api/v1/organizations/{id}",
+    tag = "Organizations",
+    params(("id" = Uuid, Path, description = "Organization ID")),
     responses(
-        (status = 200, description = "Success", body = Vec<KeycloakOrganization>)
-    )
-)]
-pub async fn get_organizations(
-    State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-) -> AppResult<impl IntoResponse> {
-    tracing::info!("Fetching all organizations");
-
-    let admin_token = state.keycloak_service.get_admin_token().await?;
-
-    let organizations = state.keycloak_service
-        .get_organizations(&admin_token)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to get organizations: {}", e);
-            AppError::InternalServerError("Failed to get organizations".to_string())
-        })?;
-
-    Ok((StatusCode::OK, Json(organizations)))
-}
-
-// ============================================
-// READ - Get single organization by ID
-// ============================================
-#[utoipa::path(
-    get,
-    path = "/admin/organizations/{org_id}",
-    tag = "Organization",
-    params(("org_id" = String, Path, description = "Organization ID")),
-    responses(
-        (status = 200, description = "Success", body = KeycloakOrganization),
-        (status = 404, description = "Not Found")
+        (status = 200, description = "Organization found", body = OrganizationResponse),
+        (status = 404, description = "Organization not found")
     )
 )]
 pub async fn get_organization(
     State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Path(org_id): Path<String>,
+    Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(org_id = %org_id, "Fetching organization");
+    let repo = OrganizationRepository::new(state.db.clone());
+    let org = repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("Organization {} not found", id)))?;
 
-    let admin_token = state.keycloak_service.get_admin_token().await?;
-
-    let organization = state.keycloak_service
-        .get_organization(&admin_token, &org_id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to get organization: {}", e);
-            AppError::InternalServerError("Failed to get organization".to_string())
-        })?;
-
-    Ok((StatusCode::OK, Json(organization)))
-}
-
-// ============================================
-// UPDATE - Update organization
-// ============================================
-#[utoipa::path(
-    put,
-    path = "/admin/organizations/{org_id}",
-    tag = "Organization",
-    params(("org_id" = String, Path, description = "Organization ID")),
-    request_body = OrganizationUpdateRequest,
-    responses(
-        (status = 204, description = "Updated successfully"),
-        (status = 404, description = "Not Found")
-    )
-)]
-pub async fn update_organization(
-    State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Path(org_id): Path<String>,
-    Json(request): Json<OrganizationUpdateRequest>,
-) -> AppResult<impl IntoResponse> {
-    tracing::info!(org_id = %org_id, ?request, "Updating organization");
-
-    let admin_token = state.keycloak_service.get_admin_token().await?;
-
-    state.keycloak_service
-        .update_organization(
-            &admin_token,
-            &org_id,
-            &request.name,
-            request.domains,
-            request.attributes,
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to update organization: {}", e);
-            AppError::InternalServerError("Failed to update organization".to_string())
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-// ============================================
-// DELETE - Delete organization
-// ============================================
-#[utoipa::path(
-    delete,
-    path = "/admin/organizations/{org_id}",
-    tag = "Organization",
-    params(("org_id" = String, Path, description = "Organization ID")),
-    responses(
-        (status = 204, description = "Deleted successfully"),
-        (status = 404, description = "Not Found")
-    )
-)]
-pub async fn delete_organization(
-    State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Path(org_id): Path<String>,
-) -> AppResult<impl IntoResponse> {
-    tracing::info!(org_id = %org_id, "Deleting organization");
-
-    let admin_token = state.keycloak_service.get_admin_token().await?;
-
-    // Fetch members before deletion for cleanup
-    let members = state.keycloak_service
-        .get_organization_members(&admin_token, &org_id)
-        .await
-        .unwrap_or_default();
-
-    // Delete organization
-    state.keycloak_service
-        .delete_organization(&admin_token, &org_id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to delete organization: {}", e);
-            AppError::InternalServerError("Failed to delete organization".to_string())
-        })?;
-
-    // Cleanup: Delete all users that belonged to this organization
-    for member in &members {
-        if let Err(e) = state.keycloak_service.delete_user(&admin_token, &member.id).await {
-            tracing::warn!("Failed to delete user {}: {}", member.id, e);
-        }
-    }
-
-    // Cleanup: Delete associated database records
-    let db = &state.db;
-    let assessments = crate::repositories::assessments::AssessmentsRepository::find_by_organization_id(
-        db.as_ref(),
-        org_id.clone(),
-    )
-    .await
-    .unwrap_or_default();
-
-    for assessment in assessments {
-        let _ = crate::repositories::assessments::AssessmentsRepository::delete(
-            db.as_ref(),
-            assessment.assessment_id,
-        ).await;
-    }
-
-    tracing::info!(
-        org_id = %org_id,
-        members_deleted = members.len(),
-        "Organization deleted successfully"
-    );
-
-    Ok(StatusCode::NO_CONTENT)
+    Ok((StatusCode::OK, Json(OrganizationResponse::from(org))))
 }
 ```
 
 **Why**:
 
-- Clear separation: CREATE, READ, UPDATE, DELETE sections
-- `#[instrument]` for automatic tracing
+- Uses `Extension<Arc<Claims>>` for authentication (not raw token string)
+- Creates repository instance with `Repository::new(state.db.clone())`
 - Input validation at the start
-- Service layer orchestration
-- Cleanup operations after delete
+- Returns proper DTOs (not raw entities)
 - Consistent error handling with `AppResult<T>`
 
 ---
 
-## Pattern 2: Handler with Repository
+## Pattern 2: Handler with Repository + Claims
 
-**File**: `src/api/handlers/assessment.rs`
+**File**: `src/api/handlers/submission.rs`
 
 ```rust
 use crate::{
-    api::dto::assessment::{AssessmentCreateRequest, AssessmentUpdateRequest},
-    entities::assessments::{self, Entity as Assessments, AssessmentStatus},
+    api::dto::submission::{CreateSubmissionRequest, SubmissionResponse},
+    auth::claims::Claims,
+    entities::submission::ActiveModel,
     error::{AppError, AppResult},
-    repositories::assessments::AssessmentsRepository,
     AppState,
 };
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
-use sea_orm::*;
+use sea_orm::{Set, TransactionTrait};
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[utoipa::path(
     post,
-    path = "/assessments",
-    tag = "Assessment",
-    request_body = AssessmentCreateRequest,
-    responses((status = 201, description = "Created", body = Assessment))
+    path = "/api/v1/cooperative/submissions",
+    tag = "Cooperative",
+    request_body = CreateSubmissionRequest,
+    responses(
+        (status = 201, description = "Submission created", body = SubmissionResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Submission already exists for this year")
+    )
 )]
-pub async fn create_assessment(
+pub async fn create_submission(
     State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Json(request): Json<AssessmentCreateRequest>,
+    Extension(claims): Extension<Arc<Claims>>,  // ← Claims for auth context
+    Json(body): Json<CreateSubmissionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(?request, "Creating assessment");
+    // Validate input
+    if body.reporting_year < 1900 || body.reporting_year > 2100 {
+        return Err(AppError::BadRequest(
+            "reporting_year must be between 1900 and 2100".to_string(),
+        ));
+    }
 
-    // Validate request
-    if request.organization_id.is_empty() {
-        return Err(AppError::BadRequest("Organization ID is required".to_string()));
+    // Resolve cooperative from claims (scope enforcement)
+    let coop = resolve_caller_cooperative(&state, &claims).await?;
+
+    // Check for existing submission
+    if let Some(existing) = state
+        .submission_repo
+        .find_by_cooperative_and_year(coop.id, body.reporting_year)
+        .await?
+    {
+        return Err(AppError::ConflictWithSubmission {
+            message: format!(
+                "A submission already exists for year {} (Status: {})",
+                body.reporting_year,
+                existing.status.as_str()
+            ),
+            submission_id: existing.id,
+        });
     }
 
     // Create active model
-    let assessment = assessments::ActiveModel {
-        assessment_id: Set(Uuid::new_v4()),
-        organization_id: Set(request.organization_id),
-        cooperation_id: Set(request.cooperation_id),
-        document_title: Set(request.document_title),
-        status: Set(AssessmentStatus::Draft),
-        started_at: Set(None),
-        completed_at: Set(None),
+    let model = ActiveModel {
+        id: Set(Uuid::new_v4()),
+        cooperative_id: Set(coop.id),
+        reporting_year: Set(body.reporting_year),
+        status: Set(SubmissionStatus::Draft),
+        // ... other fields
         created_at: Set(chrono::Utc::now()),
         updated_at: Set(chrono::Utc::now()),
-        dimensions_id: Set(request.dimensions_id),
     };
 
-    // Persist via repository
-    let created = AssessmentsRepository::create(&state.db, assessment)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to create assessment");
-            AppError::DatabaseError(e)
-        })?;
+    let submission = state.submission_repo.create(model).await?;
 
     tracing::info!(
-        assessment_id = %created.assessment_id,
-        "Assessment created successfully"
+        submission_id = %submission.id,
+        cooperative_id = %coop.id,
+        "Submission created"
     );
 
-    Ok((StatusCode::CREATED, Json(created)))
-}
-
-#[utoipa::path(
-    get,
-    path = "/assessments/{id}",
-    tag = "Assessment",
-    params(("id" = Uuid, Path, description = "Assessment ID")),
-    responses((status = 200, description = "Success", body = Assessment))
-)]
-pub async fn get_assessment(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> AppResult<impl IntoResponse> {
-    tracing::info!(assessment_id = %id, "Fetching assessment");
-
-    let assessment = AssessmentsRepository::find_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound(format!("Assessment not found: {}", id)))?;
-
-    Ok((StatusCode::OK, Json(assessment)))
+    Ok((StatusCode::CREATED, Json(SubmissionResponse::from(submission))))
 }
 ```
+
+**Key differences from Pattern 1**:
+- Uses `Extension<Arc<Claims>>` to get authenticated user context
+- Calls helper functions like `resolve_caller_cooperative()` for scope enforcement
+- Uses `state.submission_repo` (repository on AppState) instead of creating new instance
+- Returns `ConflictWithSubmission` error for duplicate submissions
 
 ---
 
 ## Pattern 3: Batch Operations Handler
 
-**File**: `src/api/handlers/dimension.rs`
+**File**: `src/api/handlers/cooperative.rs`
 
 ```rust
 use crate::{
-    api::dto::dimension::{BatchUpdateRequest, DimensionResponse},
+    api::dto::cooperative::{CooperativeResponse, CreateCooperativeRequest},
+    auth::claims::Claims,
     error::{AppError, AppResult},
-    repositories::dimensions::DimensionsRepository,
     AppState,
 };
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Extension, Json,
+};
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[utoipa::path(
     post,
-    path = "/dimensions/batch",
-    tag = "Dimension",
-    request_body = BatchUpdateRequest,
-    responses((status = 200, description = "Batch updated successfully"))
+    path = "/api/v1/apex/cooperatives",
+    tag = "Cooperative",
+    request_body = CreateCooperativeRequest,
+    responses(
+        (status = 201, description = "Cooperative created", body = CooperativeResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden - apex role required")
+    )
 )]
-pub async fn batch_update_dimensions(
+pub async fn create_cooperative(
     State(state): State<AppState>,
-    Json(request): Json<BatchUpdateRequest>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Json(body): Json<CreateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(count = request.dimensions.len(), "Batch updating dimensions");
-
-    let mut updated = Vec::new();
-    let mut errors = Vec::new();
-
-    for dimension_data in request.dimensions {
-        match DimensionsRepository::update(&state.db, dimension_data.id, dimension_data.into())
-            .await
-        {
-            Ok(model) => updated.push(DimensionResponse::from(model)),
-            Err(e) => {
-                tracing::error!(error = %e, "Failed to update dimension");
-                errors.push(format!("Failed to update dimension {}: {}", dimension_data.id, e));
-            }
-        }
+    // Validate input
+    if body.name.trim().is_empty() {
+        return Err(AppError::BadRequest("Cooperative name is required".into()));
     }
 
-    if !errors.is_empty() {
-        tracing::warn!(errors = ?errors, "Some dimensions failed to update");
-    }
+    // Scope enforcement: apex can only create cooperatives in their group
+    let apex_id = claims
+        .get_apex_group_id()
+        .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
 
-    Ok((
-        StatusCode::OK,
-        Json(serde_json::json!({
-            "updated": updated,
-            "errors": errors,
-            "total": request.dimensions.len(),
-            "successful": updated.len(),
-            "failed": errors.len(),
-        })),
-    ))
+    // Create in Keycloak
+    let keycloak_group = state
+        .keycloak
+        .create_group(&apex_id, &body.name)
+        .await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+
+    // Create in PostgreSQL
+    let model = cooperative::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        keycloak_id: Set(keycloak_group.id),
+        display_name: Set(body.name.clone()),
+        // ... other fields
+        created_at: Set(chrono::Utc::now()),
+        updated_at: Set(chrono::Utc::now()),
+    };
+
+    let created = state.cooperative_repo.create(model).await?;
+
+    tracing::info!(
+        cooperative_id = %created.id,
+        keycloak_id = %keycloak_group.id,
+        "Cooperative created"
+    );
+
+    Ok((StatusCode::CREATED, Json(CooperativeResponse::from(created))))
 }
 ```
 
+**Key patterns for batch/cooperative operations**:
+- Scope enforcement via `Claims` methods (`get_apex_group_id()`, etc.)
+- Keycloak integration for group management
+- Dual-write: Keycloak + PostgreSQL
+- Proper error types for different failure modes
+
 ---
 
-## Pattern 4: Search/Filter Handler
+## Pattern 4: Search/Filter Handler with Pagination
 
-**File**: `src/api/handlers/user.rs`
+**File**: `src/api/handlers/users.rs`
 
 ```rust
 use crate::{
-    error::{AppError, AppResult},
-    models::keycloak::KeycloakUser,
+    api::dto::{
+        PaginatedResponse, PaginatedUserResponse, PaginationParams, UserResponse,
+    },
+    error::AppResult,
+    repositories::UserRepository,
     AppState,
 };
 use axum::{
@@ -449,140 +337,175 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-pub struct UserFilters {
-    pub search: Option<String>,
-    pub role: Option<String>,
-    pub organization_id: Option<String>,
-    pub page: Option<u32>,
-    pub per_page: Option<u32>,
-}
+use uuid::Uuid;
 
 #[utoipa::path(
     get,
-    path = "/admin/users",
-    tag = "User",
+    path = "/api/v1/users",
+    tag = "Users",
     params(
-        ("search" = Option<String>, Query, description = "Search term"),
-        ("role" = Option<String>, Query, description = "Filter by role"),
-        ("organization_id" = Option<String>, Query, description = "Filter by organization"),
-        ("page" = Option<u32>, Query, description = "Page number"),
-        ("per_page" = Option<u32>, Query, description = "Items per page")
+        PaginationParams  // page, per_page
     ),
-    responses((status = 200, description = "Success", body = Vec<KeycloakUser>))
+    responses(
+        (status = 200, description = "List of users", body = PaginatedUserResponse),
+        (status = 500, description = "Internal server error")
+    )
 )]
 pub async fn list_users(
     State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Query(filters): Query<UserFilters>,
+    Query(params): Query<PaginationParams>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(?filters, "Listing users with filters");
+    let repo = UserRepository::new(state.db.clone());
+    let users = repo.find_all().await?;
 
-    let admin_token = state.keycloak_service.get_admin_token().await?;
-
-    // Implement filtering logic
-    let mut users = state.keycloak_service
-        .get_users(&admin_token)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to fetch users");
-            AppError::InternalServerError("Failed to fetch users".to_string())
-        })?;
-
-    // Apply filters
-    if let Some(search) = &filters.search {
-        users.retain(|u| {
-            u.email.to_lowercase().contains(&search.to_lowercase()) ||
-            u.username.to_lowercase().contains(&search.to_lowercase())
-        });
-    }
-
-    if let Some(role) = &filters.role {
-        users.retain(|u| {
-            u.attributes
-                .as_ref()
-                .and_then(|a| a.get("roles"))
-                .and_then(|r| r.as_array())
-                .map(|roles| roles.iter().any(|r| r.as_str() == Some(role)))
-                .unwrap_or(false)
-        });
-    }
-
-    // Apply pagination
-    let page = filters.page.unwrap_or(1).max(1);
-    let per_page = filters.per_page.unwrap_or(20).min(100).max(1);
-    let total = users.len();
-    let total_pages = (total as f64 / per_page as f64).ceil() as u32;
-    let offset = (page - 1) * per_page;
-
-    let paginated_users: Vec<_> = users
-        .into_iter()
-        .skip(offset as usize)
-        .take(per_page as usize)
-        .collect();
+    let responses: Vec<UserResponse> = users.into_iter().map(Into::into).collect();
+    let total = responses.len() as u64;
 
     Ok((
         StatusCode::OK,
-        Json(serde_json::json!({
-            "data": paginated_users,
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total": total,
-                "total_pages": total_pages,
-            },
-        })),
+        Json(PaginatedUserResponse::from(PaginatedResponse::new(
+            responses,
+            total,
+            params.page,
+            params.per_page,
+        ))),
     ))
 }
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/users/{id}",
+    tag = "Users",
+    params(
+        ("id" = Uuid, Path, description = "User ID")
+    ),
+    responses(
+        (status = 200, description = "User found", body = UserResponse),
+        (status = 404, description = "User not found")
+    )
+)]
+pub async fn get_user(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let repo = UserRepository::new(state.db.clone());
+    let user_model = repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("User {} not found", id)))?;
+
+    Ok((StatusCode::OK, Json(UserResponse::from(user_model))))
+}
 ```
+
+**Key patterns for list handlers**:
+- Use `PaginationParams` struct for standardized pagination
+- Return `PaginatedResponse<T>` wrapper for consistent API shape
+- Create repository with `Repository::new(state.db.clone())`
+- Convert entities to response DTOs with `Into::into`
 
 ---
 
-## Pattern 5: Async Handler with Cache
+## Pattern 5: Current User Profile Handler
 
-**File**: `src/api/handlers/cached.rs`
+**File**: `src/api/handlers/me.rs`
 
 ```rust
 use crate::{
+    api::dto::member::{ChangePasswordRequest, UserProfileResponse},
+    auth::claims::Claims,
     error::{AppError, AppResult},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, Json};
-use std::time::Duration;
+use axum::{
+    extract::{Extension, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use std::sync::Arc;
 
-/// Handler that uses caching for frequently accessed data
 #[utoipa::path(
     get,
-    path = "/dimensions",
-    tag = "Dimension",
-    responses((status = 200, description = "Success"))
+    path = "/api/v1/me",
+    tag = "Auth",
+    responses(
+        (status = 200, description = "Current user profile", body = UserProfileResponse),
+        (status = 401, description = "Unauthorized")
+    )
 )]
-pub async fn list_dimensions_cached(
-    State(state): State<AppState>,
+pub async fn get_current_user_profile(
+    State(_state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    let cache_key = "dimensions:all";
+    // Build profile from JWT claims (no DB lookup needed)
+    let profile = UserProfileResponse {
+        sub: claims.sub.clone(),
+        username: claims.username().map(String::from),
+        email: claims.email.clone(),
+        name: claims.name.clone(),
+        roles: claims.all_roles(),
+        organization_id: claims.get_organization_id(),
+        organization_name: claims.get_organization_name(),
+        cooperation_paths: claims.get_cooperation_paths(),
+        assigned_dimensions: claims.get_assigned_dimensions(),
+    };
 
-    // Try cache first
-    if let Some(cached) = state.cache.get::<Vec<DimensionResponse>>(cache_key).await {
-        tracing::debug!("Cache hit for dimensions");
-        return Ok((StatusCode::OK, Json(cached)));
+    Ok((StatusCode::OK, Json(profile)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/me/password",
+    tag = "Auth",
+    request_body = ChangePasswordRequest,
+    responses(
+        (status = 200, description = "Password changed successfully"),
+        (status = 400, description = "Invalid input"),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+pub async fn change_password(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Json(body): Json<ChangePasswordRequest>,
+) -> AppResult<impl IntoResponse> {
+    // Validate input
+    if body.new_password.len() < 8 {
+        return Err(AppError::BadRequest(
+            "New password must be at least 8 characters".to_string(),
+        ));
     }
 
-    tracing::debug!("Cache miss for dimensions");
+    if body.current_password == body.new_password {
+        return Err(AppError::BadRequest(
+            "New password must be different from current password".to_string(),
+        ));
+    }
 
-    // Fetch from repository
-    let dimensions = DimensionsRepository::find_all(&state.db).await?;
+    // Call Keycloak to change password
+    let username = claims.username().or(claims.email.as_deref()).ok_or_else(|| {
+        AppError::BadRequest("Unable to verify credentials for this account".to_string())
+    })?;
 
-    // Cache for 5 minutes
-    state.cache
-        .set(cache_key, dimensions.clone(), Duration::from_secs(300))
-        .await;
+    state
+        .keycloak
+        .update_user_password(username, &body.current_password, &body.new_password)
+        .await?;
 
-    Ok((StatusCode::OK, Json(dimensions)))
+    tracing::info!(user_id = %claims.sub, "Password changed successfully");
+
+    Ok((StatusCode::OK, Json(serde_json::json!({
+        "message": "Password changed successfully"
+    }))))
 }
 ```
+
+**Key patterns for `/me` handlers**:
+- Build response directly from JWT claims (no DB lookup)
+- Use `claims.username()`, `claims.all_roles()`, etc. for user data
+- Keycloak integration for user operations (`state.keycloak`)
+- Audit context available via `Extension<AuditContext>`
 
 ---
 
@@ -590,24 +513,26 @@ pub async fn list_dimensions_cached(
 
 1. **One responsibility**: Handlers orchestrate, they don't calculate
 2. **Always return AppResult**: Use `Result<T, AppError>` wrapper
-3. **Log at start and end**: Use `#[instrument]` attribute
+3. **Use Claims for auth**: `Extension<Arc<Claims>>` not raw token strings
 4. **Validate early**: Check inputs at the start of handler
 5. **Use proper HTTP codes**: 201 for CREATE, 204 for UPDATE/DELETE, 200 for READ
 6. **Never expose internals**: Sanitize error messages for client
-7. **Use Query structs**: For complex query parameters
-8. **Implement pagination**: Always paginate list endpoints
-9. **Document with utoipa**: Add `#[utoipa::path]` annotations
-10. **Handle cleanup**: Delete related entities when deleting parent
+7. **Use Query structs**: For complex query parameters (e.g., `PaginationParams`)
+8. **Implement pagination**: Always paginate list endpoints with `PaginatedResponse<T>`
+9. **Document with utoipa**: Add `#[utoipa::path]` annotations with all params
+10. **Scope enforcement**: Use `Claims` methods for data-level access control
+11. **Create repos with `new()`**: `Repository::new(state.db.clone())`
+12. **Convert to DTOs**: Return response types, not raw entities
 
 ## Checklist
 
 - [ ] Handler returns `AppResult<impl IntoResponse>`
 - [ ] Input validation at the start
-- [ ] `#[instrument]` attribute for tracing
+- [ ] `Extension<Arc<Claims>>` for authenticated endpoints
 - [ ] Proper HTTP status codes
 - [ ] Error handling with context
-- [ ] Service/Repository used for business logic
-- [ ] Response is properly JSON serialized
+- [ ] Repository or AppState repo used for data access
+- [ ] Response converted to DTO
 - [ ] Pagination implemented for lists
-- [ ] OpenAPI documentation added
-- [ ] Related entities cleaned up on delete
+- [ ] OpenAPI documentation with `#[utoipa::path]`
+- [ ] Scope enforcement via Claims methods

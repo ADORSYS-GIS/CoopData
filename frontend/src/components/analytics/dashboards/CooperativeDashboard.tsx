@@ -3,7 +3,7 @@ import { CoopTrendAreaChart } from "../CoopTrendAreaChart";
 import { GenderStatusDoughnuts } from "../GenderStatusDoughnuts";
 import { KpiChipGrid } from "../KpiChipGrid";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
-import { useTranslation } from "react-i18next";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface KpiItem {
   name: string;
@@ -29,7 +29,7 @@ interface CooperativeDashboardProps {
 }
 
 export function CooperativeDashboard({ kpis, trendData, nfStats }: CooperativeDashboardProps) {
-  const { t } = useTranslation();
+  const { t } = useOrganizationLabelsContext();
   const getKpi = (name: string) => {
     return kpis?.find((k) => k.name === name)?.value || 0;
   };

@@ -2,8 +2,8 @@
 
 > **Epic**: Sprint 2, Epic 2 — Primary Cooperative Data  
 > **Status**: Ready for Implementation  
-> **Architecture Reference**: `docs/architecture.md` §4 (AI-Extraction Pipeline), §7 (State Machine), §9 (Abnormality Flags), §10 (API Surface), §15 (Roadmap Phase 8)  
-> **DB Schema Reference**: `docs/database-schema.md` §6.4–6.7, §6.11  
+> **Architecture Reference**: `docs/architecture/architecture.md` §4 (AI-Extraction Pipeline), §7 (State Machine), §9 (Abnormality Flags), §10 (API Surface), §15 (Roadmap Phase 8)  
+> **DB Schema Reference**: `docs/architecture/database-schema.md` §6.4–6.7, §6.11  
 > **Prerequisite**: Sprint 2 US2.1 (all 23 DB tables, enums, chart_of_accounts seed — COMPLETE)
 
 ---

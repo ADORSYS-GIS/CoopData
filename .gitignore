@@ -78,3 +78,10 @@ terraform-ec2/*.tfstate.*
 terraform-ec2/*.pem
 terraform-ec2/*.tfvars
 !terraform-ec2/terraform.tfvars.example
+
+# k6 test results (large JSON files)
+results/
+
+# Graphify-out
+graphify-out/
+
