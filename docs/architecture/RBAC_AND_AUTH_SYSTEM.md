@@ -1057,44 +1057,31 @@ After provisioning, the first `ministry` user (`360@dgrv.coop`) can:
 
 ## 14. Security Considerations
 
-### 14.1 Current Gaps
+### 14.1 Security Status (implemented)
 
-1. **Backend has no route-level authorization.** The auth middleware only validates that the JWT is properly signed and not expired. There is no middleware or guard that checks realm roles before allowing access to specific endpoints.
+All previously identified gaps have been addressed:
 
-2. **Only 3 handlers check roles** — all in `invitation.rs`, and they only check for `ministry`:
-   - `delete_federation_invitation`
-   - `resend_federation_invitation`
-   - `invite_user_to_federation`
-
-3. **No federation-level or apex-level access control.** No handler verifies that a user belongs to a federation before allowing them to modify that federation's resources.
-
-4. **No role hierarchy enforcement in the backend.** The role hierarchy (`ministry` > `federation` > `apex` > `cooperative`) is only enforced on the frontend via `ProtectedRoute`.
-
-5. **`resource_access` (client roles) is extracted in JWT claims but never checked** by any backend handler.
-
-6. **`organization_id` from JWT claims is available but never used for authorization** in any handler.
-
-7. **`has_realm_role()` method exists but is only called by `is_ministry()`.** No other role checks exist in handlers.
-
-8. **Destructive cascading deletes** — `delete_federation` deletes all Keycloak users belonging to the org before deleting the org itself, with no role check.
-
-9. **Exclusivity checks** are present in `add_member` and `invite_user_to_federation` (preventing users from being in multiple orgs/groups) but are not enforced at the Keycloak level.
+1. **✅ Route-level authorization** — `role_guard_layer` middleware enforces realm roles per route group (`ministry`, `federation`, `apex`, `cooperative`). No handler-level role checks needed.
+2. **✅ Federation-level access control** — `ScopeEnforcement::get_federation_org_id()` extracts `organization_id` from JWT claims for data scoping.
+3. **✅ Apex-level access control** — `ScopeEnforcement::get_apex_group_id()` extracts group ID from `cooperation` claim path.
+4. **✅ Cooperative-level access control** — `ScopeEnforcement::get_cooperative_id()` extracts subgroup ID from `cooperation` claim path.
+5. **✅ Audit logging** — `AuditService` logs all mutations (CREATE, UPDATE, DELETE, INVITE, etc.) with actor, entity, changes, IP, and user agent.
+6. **✅ Cascade deletion with verification** — delete endpoints require `X-Verification-Token` header (Redis-backed, single-use, 120s TTL) plus password + optional OTP re-authentication.
+7. **✅ Exclusivity checks** — enforced in `add_member` and `invite_user_to_federation` handlers.
 
 ### 14.2 What Is Protected
 
-- **Frontend routes:** All protected routes require authenticated JWT + correct role
-- **API endpoints:** All API endpoints require a valid JWT (auth middleware)
-- **Invitation endpoints:** Require `ministry` realm role
-- **User self-service** (`GET/PATCH /api/v1/me`, `POST /api/v1/me/password`): Uses `Claims.subject` to identify the acting user
+- **Frontend routes:** All protected routes require authenticated JWT + correct role via `ProtectedRoute` and `beforeLoad` guards
+- **API endpoints:** Two layers — (1) `auth_layer` validates JWT, (2) `role_guard_layer` enforces realm roles per route group
+- **Data scope:** Handler-level `ScopeEnforcement` ensures users can only access data within their organization/group/cooperative
+- **Destructive actions:** Cascade deletes require identity verification (password + optional OTP) + single-use token
+- **Audit trail:** All mutations logged with actor identity, entity, changes, IP, and user agent
 
-### 14.3 Recommendations
+### 14.3 Remaining Considerations
 
-1. **Add backend role-checking middleware** that validates realm roles against required roles for each route group
-2. **Add federation membership checks** — verify that the calling user belongs to the federation they're operating on
-3. **Add cooperative access checks** — verify user membership before allowing cooperative modifications
-4. **Implement resource-level authorization** — use the `organization_id` claim or query Keycloak for membership
-5. **Add audit logging** for all administrative operations
-6. **Consider using Keycloak Authorization Services** (resource-based permissions) for more granular control
+1. **Client roles (`resource_access`)** — extracted but not checked by handlers. Consider enforcing for fine-grained permissions if needed.
+2. **Nightly batch security** — KPI recomputation and benchmark aggregation run as background tasks; ensure they have appropriate service-level access.
+3. **Rate limiting** — not yet implemented; recommended for public-facing endpoints.
 
 ---
 
@@ -1152,19 +1139,50 @@ After provisioning, the first `ministry` user (`360@dgrv.coop`) can:
 
 ## Appendix B: Frontend Routes
 
-| Route Pattern | Required Roles | Layout |
-|---------------|---------------|--------|
-| `/ministry/*` | `ministry` | `MinistryLayout` (sidebar with Federations, Dimensions, Users, Reports) |
-| `/federation/*` | `federation` | `FederationLayout` (sidebar with Apexes, Members, Assessments, Reports) |
-| `/apex/*` | `apex` | `ApexLayout` (sidebar with Cooperatives, Members, Assessments) |
-| `/cooperative/*` | `cooperative`, `apex` | `CooperativeLayout` (sidebar with Assessments, Submissions) |
-| `/onboarding` | `ministry`, `federation`, `apex`, `cooperative` | — |
+| Route Pattern | Required Roles | Description |
+|---------------|---------------|-------------|
+| `/` | any authenticated | Root redirect |
+| `/login` | unauthenticated | Keycloak login page |
+| `/unauthorized` | any authenticated | 403 access denied page |
+| `/dashboard` | any authenticated | Role-based dashboard redirect |
+| `/profile` | any authenticated | User profile page |
+| `/settings` | `ministry` | System settings |
+| `/federations` | `ministry` | Federation management |
+| `/apexes` | `federation` | Apex management |
+| `/cooperatives` | `apex` | Cooperative management |
+| `/cooperative/:id` | `cooperative`, `apex` | Cooperative detail |
+| `/cooperative-profile/:id` | `cooperative`, `apex` | Cooperative profile |
+| `/cooperative-members/:id` | `cooperative`, `apex` | Cooperative member list |
+| `/members` | `ministry`, `federation`, `apex` | Member management |
+| `/users` | `ministry`, `federation`, `apex` | User management |
+| `/users/:apexId` | `ministry`, `federation`, `apex` | Users by apex |
+| `/invitations` | `ministry` | Federation invitation management |
+| `/configure-roles` | `ministry` | Role configuration |
+| `/submissions` | `cooperative`, `apex`, `federation`, `ministry` | Submissions list |
+| `/submissions/:id` | `cooperative`, `apex`, `federation`, `ministry` | Submission detail |
+| `/submissions/:id/manual-entry` | `cooperative` | Manual data entry |
+| `/submissions/:id/questionnaire` | `cooperative` | Questionnaire form |
+| `/financial-statement` | `cooperative` | Financial statement upload/management |
+| `/non-financial-data` | `cooperative` | Non-financial data entry |
+| `/reports` | any authenticated | Report generation and export |
+| `/analytics` | any authenticated | Analytics dashboards |
+| `/basic-analytics` | any authenticated | Basic analytics view |
+| `/benchmarking` | any authenticated | KPI benchmarking |
+| `/basic-benchmarking` | any authenticated | Basic benchmarking view |
+| `/custom-kpis` | `ministry` | Custom KPI management |
+| `/questionnaire-templates` | `ministry` | Questionnaire template management |
+| `/audit` | `ministry` | Audit log viewer |
+| `/debug-auth` | any authenticated | Auth debug info (dev) |
+| `/print/ministry` | any authenticated | Ministry report print layout |
+| `/print/federation/:id` | any authenticated | Federation report print layout |
+| `/print/apex/:id` | any authenticated | Apex report print layout |
+| `/print/cooperative/:id` | any authenticated | Cooperative report print layout |
 
 ---
 
 ## Appendix C: Testing
 
-### Unit Tests (129 tests — vitest)
+### Unit Tests (236 tests — vitest)
 
 | File | Tests | What It Covers |
 |------|-------|----------------|

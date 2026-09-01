@@ -155,98 +155,86 @@ use crate::services::cache::CacheService;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Arc<DatabaseConnection>,
-    pub keycloak_service: Arc<KeycloakService>,
-    pub cache: Arc<CacheService>,   // Add cache
+    pub db: Database,
+    pub config: AppConfig,
+    pub cache: CacheService,   // Note: not Arc wrapped
+    pub keycloak: KeycloakService,  // Note: not keycloak_service
+    // ...
 }
 
 // Initialize in run()
-let cache = Arc::new(CacheService::new(Duration::from_secs(300))); // 5 min TTL
+let cache = CacheService::new(Duration::from_secs(300)); // 5 min TTL
 
 let state = AppState {
     db,
-    keycloak_service,
+    config,
     cache,
+    keycloak,
+    // ...
 };
 ```
 
 ### Step 3: Use in Handlers
 
-**File:** `src/api/handlers/dimension.rs`
+**File:** `src/api/handlers/organization.rs`
 
 ```rust
 use crate::services::cache::{CacheService, cache_key};
 
-/// Get all dimensions with caching
-pub async fn list_dimensions(
+/// Get all organizations with caching
+pub async fn list_organizations(
     State(state): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
-    let cache_key = "dimensions:all";
+    let cache_key = "organizations:all";
 
     // Try cache first
-    if let Some(cached) = state.cache.get::<Vec<DimensionResponse>>(cache_key).await {
-        tracing::debug!("Cache hit for dimensions");
+    if let Some(cached) = state.cache.get::<Vec<OrganizationResponse>>(cache_key).await {
+        tracing::debug!("Cache hit for organizations");
         return Ok((StatusCode::OK, Json(cached)));
     }
 
-    tracing::debug!("Cache miss for dimensions");
+    tracing::debug!("Cache miss for organizations");
 
     // Fetch from database
-    let dimensions = DimensionsRepository::find_all(&state.db).await?;
+    let repo = OrganizationRepository::new(state.db.clone());
+    let organizations = repo.find_all().await?;
+
+    // Convert to response DTOs
+    let responses: Vec<OrganizationResponse> = organizations
+        .into_iter()
+        .map(Into::into)
+        .collect();
 
     // Store in cache (fire and forget)
     let cache = state.cache.clone();
-    let dimensions_clone = dimensions.clone();
+    let responses_clone = responses.clone();
     tokio::spawn(async move {
-        cache.set(cache_key, &dimensions_clone, Duration::from_secs(300)).await;
+        cache.set(cache_key, &responses_clone, Duration::from_secs(300)).await;
     });
 
-    Ok((StatusCode::OK, Json(dimensions)))
-}
-
-/// Get dimension by ID with caching
-pub async fn get_dimension(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> AppResult<impl IntoResponse> {
-    let key = cache_key("dimension", &id.to_string());
-
-    // Try cache
-    if let Some(cached) = state.cache.get::<DimensionResponse>(&key).await {
-        return Ok((StatusCode::OK, Json(cached)));
-    }
-
-    // Fetch from database
-    let dimension = DimensionsRepository::find_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound(format!("Dimension not found: {}", id)))?;
-
-    let response = DimensionResponse::from(dimension);
-
-    // Cache it
-    state.cache.set(&key, &response, Duration::from_secs(300)).await;
-
-    Ok((StatusCode::OK, Json(response)))
+    Ok((StatusCode::OK, Json(responses)))
 }
 ```
 
 ### Step 4: Invalidate on Updates
 
 ```rust
-/// Update dimension and invalidate cache
-pub async fn update_dimension(
+/// Update organization and invalidate cache
+pub async fn update_organization(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-    Json(request): Json<DimensionUpdateRequest>,
+    Json(request): Json<UpdateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let repo = OrganizationRepository::new(state.db.clone());
+    
     // Update in database
-    let updated = DimensionsRepository::update(&state.db, id, request.into()).await?;
+    let updated = repo.update(id, request).await?;
 
     // Invalidate caches
-    state.cache.delete(&cache_key("dimension", &id.to_string())).await;
-    state.cache.delete("dimensions:all").await;
+    state.cache.delete(&cache_key("organization", &id.to_string())).await;
+    state.cache.delete("organizations:all").await;
 
-    Ok((StatusCode::OK, Json(DimensionResponse::from(updated))))
+    Ok((StatusCode::OK, Json(OrganizationResponse::from(updated))))
 }
 ```
 

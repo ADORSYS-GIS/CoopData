@@ -233,13 +233,13 @@ const handleCreate = (data) => {
 
 **Pages depend on**:
 
-- `frontend/src/hooks/` - Data fetching hooks (see `docs/hooks.md`)
-- `frontend/src/components/` - UI components (see `docs/components.md`)
-- `frontend/src/types/` - TypeScript types (see `docs/data-types.md`)
+- `frontend/src/hooks/` - Data fetching hooks (see `knowledge/frontend/hooks.md`)
+- `frontend/src/components/` - UI components (see `knowledge/frontend/components.md`)
+- `frontend/src/types/` - TypeScript types (see `knowledge/frontend/data-types.md`)
 
 **Pages are used by**:
 
-- `frontend/src/router/` - Router configuration (see `docs/routing.md`)
+- `frontend/src/router/` - Router configuration (see `knowledge/frontend/routing.md`)
 
 ---
 

@@ -1,14 +1,14 @@
 # Project Progress & Roadmap: CoopData IAM Integration
 
 > **Instructions for AI:**
-> 1. Read `docs/design.md` and `docs/RBAC_AND_AUTH_SYSTEM.md` for full context.
+> 1. Read `docs/architecture/design.md` and `docs/architecture/RBAC_AND_AUTH_SYSTEM.md` for full context.
 > 2. Check this file at the start of every new chat session to resume work.
 > 3. Update this file after EVERY successful feature implementation.
 
 ## Project Status
 
-- **Current Phase**: Phase 16: NF Indicator Engine ✅ Complete
-- **Overall Progress**: 90%
+- **Current Phase**: Phase 22: Testing & Polish
+- **Overall Progress**: 92%
 
 ---
 
@@ -198,7 +198,7 @@
 > **Goal**: Implement cascading deletion across Federation → Apex → Cooperative hierarchy with PostgreSQL tracking and audit logging for all mutations.
 > **Issue**: [#12](https://github.com/ADORSYS-GIS/CoopData/issues/12)
 > **Branch**: `cascade-audit` (based on `develop` @ `757e731`)
-> **Documentation**: `docs/ticket-5-cascade-audit-implementation.md`
+> **Documentation**: `docs/archive/ticket-5-cascade-audit-implementation.md`
 
 - [x] **6.1 Database migration** (`backend/migrations/02_cascade_audit_tables.sql`)
   - [x] Tables: `federations`, `apexes`, `cooperatives`, `audit_logs`
@@ -367,7 +367,7 @@
   - [x] `GET /api/v1/cooperative/submissions/{id}/export?format=xlsx|csv` — rust_xlsxwriter + csv crate
   - [x] `GET /api/v1/ministry/stats` — ministry dashboard aggregate counts
   - [x] 8 unit tests in `services/kpi_engine.rs`, 4 DTO tests in `dto/financial.rs`
-- [ ] `abnormality_detector.rs` rules wired to submission workflow (existing service, not wired)
+- [x] `abnormality_detector.rs` rules wired to extraction pipeline and financial statement handler
 - [ ] Compliance scoring + nightly batch materialization to `computed_kpis` table
 
 ### Phase 12: Frontend Integration ✅ (Sprint 4)
@@ -437,10 +437,26 @@
 - [x] **AnalyticsPage.tsx** — National KPI Overview section with traffic-light bars + institution comparison table (ministry/federation/apex only)
 - [x] Verification: `cargo check` ✅, `cargo clippy` ✅, `npm run lint` ✅ (0 errors)
 
-### Phase 17: Testing & Polish
+### Phase 17: Documentation Restructure ✅
+- [x] Restructured `docs/` from 53 root-level files to 5 core files + 7 organized subdirectories
+- [x] Created `features/`, `deployment/`, `operations/`, `testing/`, `analysis/`, `archive/`, `architecture/` directories
+- [x] Moved and renamed 25+ docs with consistent `kebab-case.md` naming (fixed 4 typos)
+- [x] Archived 12 sprint/ticket reports to `archive/`
+- [x] Deleted 4 outdated/duplicate files (`BACKEND_DESIGN.md`, `pdf-export-architecture.md`, `message.md`, `issues encountered .md`)
+- [x] Created `docs/README.md` as entry point with structured index
+- [x] Fixed 5 broken internal links across moved files
+- [x] Moved architecture docs into `docs/architecture/` subdirectory
+
+### Phase 18: Unit Test Analysis ✅
+- [x] Analyzed frontend test coverage: 236 tests across 18 files, gaps in hooks, utilities, and pages
+- [x] Analyzed backend test coverage: 29 inline modules + 8 integration files, zero repository tests
+- [x] Created `docs/testing/unit-test-analysis.md` with prioritized improvement roadmap
+- [x] Identified 6 high-priority improvement areas with specific files and recommendations
+
+### Phase 22: Testing & Polish
 - [ ] Repo unit tests, handler integration tests, state-machine transition tests, abnormality-rule tests, E2E full flow
 
-### Phase 18: Hierarchical Analytics
+### Phase 19: Hierarchical Analytics
 
 > **Goal**: Replace mock and empty analytics with submission-scoped, hierarchy-aware financial and non-financial data that supports full drill-down at every role.
 
@@ -453,7 +469,7 @@
 - [x] Cooperative, Apex, Federation and Ministry aggregate-to-detail analytics UI
 - [x] Financial/NF indicator, scope and role-journey tests
 
-### Phase 19: Analytics i18n Localization ✅
+### Phase 20: Analytics i18n Localization ✅
 - [x] Replaced all hardcoded UI strings in `frontend/src/components/analytics/*` with `useTranslation()` calls
 - [x] Added all `analytics.*` keys to `frontend/src/i18n/locales/en.json`
 - [x] Localized 25+ components: ComparativeIncomeStatement, CooperativeRanking, CooperativeComparison, CooperativeDeepDive, ComplianceRadialGauges, LoanProvisioningWaterfall, GenderStatusDoughnuts, DepositConcentrationGauge, GovernanceFunnel, FinancialInclusionBar, AgriResilienceRadar, ComplianceDoughnutCharts, AgeDemographicsChart, ApexDistributionBar, FinancialIndicators, GenderParticipationChart, NetworkConsolidatedMetrics, PortfolioClassification, PortfolioOverviewChart, RegionalGroupedBar, SavingsLoansDepositsChart, LoanDualBar, CoopTrendAreaChart, SavingsRadialGauges

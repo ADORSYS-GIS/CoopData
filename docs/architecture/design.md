@@ -120,7 +120,7 @@ interface AuthState {
 
 ## 7. API Endpoints (Backend contract)
 
-Already defined in `docs/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key endpoints:
+Already defined in `docs/architecture/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key endpoints:
 
 | Method | Endpoint | Purpose | Auth |
 |--------|----------|---------|------|
@@ -163,11 +163,11 @@ Already defined in `docs/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key endpoints:
 
 ## 11. Report Export Subsystem
 
-See [Report Export Design & Roadmap](file:///home/ariel/Desktop/CoopData/docs/design-report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
+See [Report Export Design & Roadmap](features/report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
 
 ---
 
-**Reference:** Full architecture details in `docs/RBAC_AND_AUTH_SYSTEM.md`
+**Reference:** Full architecture details in `docs/architecture/RBAC_AND_AUTH_SYSTEM.md`
 
 ---
 
@@ -207,4 +207,4 @@ See [Apex-Initiated Submissions Design](apex-initiated-submissions.md) for the c
 
 ---
 
-**Reference:** Full architecture details in `docs/RBAC_AND_AUTH_SYSTEM.md`
+**Reference:** Full architecture details in `docs/architecture/RBAC_AND_AUTH_SYSTEM.md`

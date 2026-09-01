@@ -7,11 +7,18 @@
 
 ```
 src/api/dto/
-├── mod.rs                # Re-exports all DTOs
-├── common.rs             # Shared DTOs (pagination, etc.)
-├── user.rs               # User-related DTOs
-├── organization.rs       # Organization DTOs
-└── assessment.rs         # Assessment DTOs
+├── mod.rs                           # Re-exports all DTOs
+├── common.rs                        # Shared DTOs (pagination, error response)
+├── organization.rs                 # Organization DTOs
+├── submission.rs                    # Submission DTOs
+├── cooperative.rs                   # Cooperative DTOs
+├── federation.rs                    # Federation DTOs
+├── apex.rs                          # Apex DTOs
+├── member.rs                        # Member/user DTOs
+├── financial_statement.rs          # Financial statement DTOs
+├── non_financial_indicator.rs      # Non-financial indicator DTOs
+├── questionnaire.rs                 # Questionnaire DTOs
+└── ... (20+ DTO modules total)
 ```
 
 ---
@@ -22,7 +29,6 @@ src/api/dto/
 
 ```rust
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use utoipa::ToSchema;
 
 // ============================================
@@ -31,53 +37,26 @@ use utoipa::ToSchema;
 
 /// Request body for creating a new organization
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct OrganizationCreateRequest {
+pub struct CreateOrganizationRequest {
     /// Organization display name (required)
-    #[schema(example = "Acme Corporation")]
+    #[schema(example = "Eswatini Federation")]
     pub name: String,
 
-    /// Associated domains for the organization
-    pub domains: Vec<OrganizationDomainRequest>,
+    /// Organization type
+    #[serde(default)]
+    pub organization_type: Option<String>,
 
-    /// Redirect URL after authentication
-    #[serde(rename = "redirectUrl")]
-    pub redirect_url: String,
+    /// Registration number
+    #[serde(default)]
+    pub registration_number: Option<String>,
 
-    /// Organization enabled status
-    #[schema(example = "true")]
-    pub enabled: String,
+    /// Contact email
+    #[serde(default)]
+    pub email: Option<String>,
 
-    /// Custom attributes (key-value pairs)
-    pub attributes: Option<HashMap<String, Vec<String>>>,
-}
-
-impl OrganizationCreateRequest {
-    /// Validate the request
-    pub fn validate(&self) -> Result<(), Vec<String>> {
-        let mut errors = Vec::new();
-
-        if self.name.trim().is_empty() {
-            errors.push("Name is required".to_string());
-        }
-
-        if self.name.len() > 255 {
-            errors.push("Name must be less than 255 characters".to_string());
-        }
-
-        if self.domains.is_empty() {
-            errors.push("At least one domain is required".to_string());
-        }
-
-        if self.redirect_url.trim().is_empty() {
-            errors.push("Redirect URL is required".to_string());
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
+    /// Contact phone
+    #[serde(default)]
+    pub phone: Option<String>,
 }
 
 // ============================================
@@ -85,20 +64,13 @@ impl OrganizationCreateRequest {
 // ============================================
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct OrganizationUpdateRequest {
-    pub name: String,
-    pub domains: Vec<OrganizationDomainRequest>,
-    pub attributes: Option<HashMap<String, Vec<String>>>,
-}
-
-// ============================================
-// DOMAIN SUB-DTO
-// ============================================
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OrganizationDomainRequest {
-    #[schema(example = "acme.com")]
-    pub name: String,
+pub struct UpdateOrganizationRequest {
+    pub name: Option<String>,
+    pub organization_type: Option<String>,
+    pub registration_number: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub is_active: Option<bool>,
 }
 
 // ============================================
@@ -106,39 +78,34 @@ pub struct OrganizationDomainRequest {
 // ============================================
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OrganizationDomain {
+pub struct OrganizationResponse {
+    pub id: uuid::Uuid,
     pub name: String,
-    pub verified: Option<bool>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct KeycloakOrganization {
-    pub id: String,
-    pub name: String,
-    pub alias: Option<String>,
-    pub enabled: bool,
-    pub description: Option<String>,
-    #[serde(rename = "redirectUrl")]
-    pub redirect_url: Option<String>,
-    pub domains: Option<Vec<OrganizationDomain>>,
-    pub attributes: Option<serde_json::Value>,
+    pub organization_type: Option<String>,
+    pub registration_number: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub is_active: bool,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 // ============================================
 // FROM IMPLEMENTATION (Entity -> DTO)
 // ============================================
 
-impl From<crate::entities::organizations::Model> for KeycloakOrganization {
-    fn from(model: crate::entities::organizations::Model) -> Self {
+impl From<crate::entities::organization::Model> for OrganizationResponse {
+    fn from(model: crate::entities::organization::Model) -> Self {
         Self {
             id: model.id,
             name: model.name,
-            alias: model.alias,
-            enabled: model.enabled,
-            description: model.description,
-            redirect_url: model.redirect_url,
-            domains: None, // Populated separately if needed
-            attributes: model.attributes,
+            organization_type: model.organization_type,
+            registration_number: model.registration_number,
+            email: model.email,
+            phone: model.phone,
+            is_active: model.is_active,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
         }
     }
 }
@@ -213,7 +180,7 @@ impl PaginationQuery {
 
 ## Pattern 3: Nested DTOs with Relationships
 
-**File**: `src/api/dto/assessment.rs`
+**File**: `src/api/dto/submission.rs`
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -226,11 +193,21 @@ use chrono::DateTime;
 // ============================================
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AssessmentCreateRequest {
-    pub organization_id: String,
-    pub cooperation_id: Option<String>,
-    pub document_title: String,
-    pub dimensions_id: Option<serde_json::Value>,
+pub struct CreateSubmissionRequest {
+    /// Reporting year (e.g., 2024)
+    pub reporting_year: i32,
+
+    /// Submission method: "financial_statement" or "questionnaire"
+    #[serde(default)]
+    pub submission_method: Option<String>,
+
+    /// Priority level
+    #[serde(default)]
+    pub priority: Option<i32>,
+
+    /// Optional pre-generated ID for sync
+    #[serde(default)]
+    pub id: Option<Uuid>,
 }
 
 // ============================================
@@ -238,10 +215,9 @@ pub struct AssessmentCreateRequest {
 // ============================================
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AssessmentUpdateRequest {
-    pub document_title: Option<String>,
+pub struct UpdateSubmissionRequest {
     pub status: Option<String>,
-    pub dimensions_id: Option<serde_json::Value>,
+    pub priority: Option<i32>,
 }
 
 // ============================================
@@ -249,70 +225,39 @@ pub struct AssessmentUpdateRequest {
 // ============================================
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AssessmentResponse {
+pub struct SubmissionResponse {
     pub id: Uuid,
-    pub organization_id: String,
-    pub cooperation_id: Option<String>,
-    pub document_title: String,
+    pub reference: Option<String>,
+    pub cooperative_id: Uuid,
+    pub reporting_year: i32,
     pub status: String,
-    pub started_at: Option<DateTime<chrono::Utc>>,
-    pub completed_at: Option<DateTime<chrono::Utc>>,
+    pub current_tier: String,
+    pub submission_method: Option<String>,
     pub created_at: DateTime<chrono::Utc>,
     pub updated_at: DateTime<chrono::Utc>,
 
-    /// Nested relationships (populated when requested)
-    pub dimensions: Option<Vec<DimensionSummary>>,
-    pub gaps: Option<Vec<GapSummary>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct DimensionSummary {
-    pub id: Uuid,
-    pub name: String,
-    pub current_score: Option<i32>,
-    pub desired_score: Option<i32>,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct GapSummary {
-    pub id: Uuid,
-    pub dimension_name: String,
-    pub gap_score: i32,
+    /// Nested sections (populated when requested)
+    pub sections: Option<Vec<SubmissionSectionResponse>>,
 }
 
 // ============================================
 // FROM IMPLEMENTATION
 // ============================================
 
-impl From<crate::entities::assessments::Model> for AssessmentResponse {
-    fn from(model: crate::entities::assessments::Model) -> Self {
+impl From<crate::entities::submission::Model> for SubmissionResponse {
+    fn from(model: crate::entities::submission::Model) -> Self {
         Self {
-            id: model.assessment_id,
-            organization_id: model.organization_id,
-            cooperation_id: model.cooperation_id,
-            document_title: model.document_title,
-            status: model.status.to_string(),
-            started_at: model.started_at,
-            completed_at: model.completed_at,
+            id: model.id,
+            reference: model.reference,
+            cooperative_id: model.cooperative_id,
+            reporting_year: model.reporting_year,
+            status: model.status.as_str().to_string(),
+            current_tier: model.current_tier.as_str().to_string(),
+            submission_method: model.submission_method,
             created_at: model.created_at,
             updated_at: model.updated_at,
-            dimensions: None,
-            gaps: None,
+            sections: None,
         }
-    }
-}
-
-impl AssessmentResponse {
-    /// Attach related dimensions
-    pub fn with_dimensions(mut self, dimensions: Vec<DimensionSummary>) -> Self {
-        self.dimensions = Some(dimensions);
-        self
-    }
-
-    /// Attach related gaps
-    pub fn with_gaps(mut self, gaps: Vec<GapSummary>) -> Self {
-        self.gaps = Some(gaps);
-        self
     }
 }
 ```
@@ -489,23 +434,32 @@ impl ReportBuilder {
 ```rust
 pub mod common;
 pub mod organization;
-pub mod assessment;
-pub mod dimension;
-pub mod user;
-pub mod report;
+pub mod submission;
+pub mod cooperative;
+pub mod federation;
+pub mod apex;
+pub mod member;
+pub mod financial_statement;
+pub mod non_financial_indicator;
+pub mod questionnaire;
+pub mod verification;
 
 // Re-export commonly used types
-pub use common::{PaginationMeta, PaginatedResponse, PaginationQuery};
-pub use organization::{
-    OrganizationCreateRequest,
-    OrganizationUpdateRequest,
-    OrganizationDomainRequest,
-    KeycloakOrganization,
+pub use common::{
+    PaginationMeta, PaginatedResponse, PaginationParams,
+    ErrorResponse, SuccessResponse,
 };
-pub use assessment::{
-    AssessmentCreateRequest,
-    AssessmentUpdateRequest,
-    AssessmentResponse,
+pub use organization::{
+    CreateOrganizationRequest,
+    UpdateOrganizationRequest,
+    OrganizationResponse,
+    PaginatedOrganizationResponse,
+};
+pub use submission::{
+    CreateSubmissionRequest,
+    UpdateSubmissionRequest,
+    SubmissionResponse,
+    SubmissionReviewResponse,
 };
 ```
 

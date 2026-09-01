@@ -73,3 +73,7 @@ frontend/dev-dist/
 
 # k6 test results (large JSON files)
 results/
+
+# Graphify-out
+graphify-out/
+

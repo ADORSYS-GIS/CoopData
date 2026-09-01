@@ -4,7 +4,7 @@
 > **Ticket**: [#76](https://github.com/ADORSYS-GIS/CoopData/issues/76) — Implement "Basic Benchmarking" Sidebar Tab for Questionnaire-Based Cooperatives
 > **Branch**: `basicBenchmark`
 > **Scope**: Give less-digitized cooperatives (questionnaire tier) a dedicated benchmarking view against National / Regional / Sector averages — with the exact same premium UI as the standard Benchmarking tab and the same privacy guarantees.
-> **Companion doc**: `docs/benchmarkdesign.md` documents ticket #75 (the standard benchmarking endpoint + role-aware widget this feature builds on).
+> **Companion doc**: `docs/features/benchmark-design.md` documents ticket #75 (the standard benchmarking endpoint + role-aware widget this feature builds on).
 
 ---
 
@@ -217,7 +217,7 @@ All new strings live under the `basicBenchmarking.*` namespace (title, subtitle,
 - `frontend/src/openapi-client/api.d.ts` + `frontend/openapi.json` — regenerated
 
 **Docs**
-- `docs/basic-benchmarking-implementation.md` — this document
+- `docs/features/basic-benchmarking.md` — this document
 
 ---
 

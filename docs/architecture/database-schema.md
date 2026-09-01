@@ -1,6 +1,6 @@
 # CoopData — Database Schema & Entity Relationships
 
-> **Companion to**: `docs/architecture.md` §6
+> **Companion to**: `docs/architecture/architecture.md` §6
 > **Purpose**: A focused reference for the PostgreSQL/SeaORM schema — every table, its columns, and how it links to other tables. Visualized as a Mermaid ER diagram for quick navigation.
 > **Conventions**: All PKs are UUID v7. All monetary values are `numeric(15,2)`. All tables carry `created_at`/`updated_at`. Soft deletes used only on `members` (via `status='Exited'`).
 

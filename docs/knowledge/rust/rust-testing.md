@@ -26,7 +26,7 @@ tests/
 
 ### Step 1: Unit Test for Handler
 
-**File:** `tests/unit/handlers/assessment_test.rs`
+**File:** `tests/unit/handlers/submission_test.rs`
 
 ```rust
 #[cfg(test)]
@@ -38,18 +38,18 @@ mod tests {
     use tower::ServiceExt;  // for oneshot
 
     #[tokio::test]
-    async fn test_create_assessment_success() {
+    async fn test_create_submission_success() {
         // 1. ARRANGE: Set up test data and dependencies
         let state = create_test_app_state().await;
         let request = Request::builder()
             .method("POST")
-            .uri("/assessments")
+            .uri("/api/v1/cooperative/submissions")
             .header("content-type", "application/json")
-            .body(Body::from(r#"{"organization_id": "org-123", "document_title": "Test"}"#))
+            .body(Body::from(r#"{"reporting_year": 2024}"#))
             .unwrap();
 
         // 2. ACT: Execute the handler
-        let response = create_assessment(State(state), Extension("test-token".to_string()), ...)
+        let response = create_submission(State(state), Extension(claims), Json(request))
             .await
             .expect("Failed to execute handler");
 
@@ -58,15 +58,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_assessment_validation_error() {
+    async fn test_create_submission_validation_error() {
         // Test validation failure
         let request = Request::builder()
             .method("POST")
-            .uri("/assessments")
-            .body(Body::from(r#"{}"#))  // Missing required fields
+            .uri("/api/v1/cooperative/submissions")
+            .body(Body::from(r#"{"reporting_year": 9999}"#))  // Invalid year
             .unwrap();
 
-        let result = create_assessment(...).await;
+        let result = create_submission(...).await;
 
         assert!(result.is_err());
     }
@@ -75,7 +75,7 @@ mod tests {
 
 ### Step 2: Integration Test for API
 
-**File:** `tests/integration/api/assessment_integration_test.rs`
+**File:** `tests/integration/api/submission_integration_test.rs`
 
 ```rust
 #[cfg(test)]
@@ -110,33 +110,34 @@ mod tests {
 
         async fn teardown(self) {
             // Clean up test database
-            sqlx::query("DELETE FROM assessments").execute(&self.db).await.ok();drop(self.db);
+            sqlx::query("DELETE FROM submissions").execute(&self.db).await.ok();
+            drop(self.db);
         }
     }
 
     #[test_context(TestContext)]
     #[tokio::test]
-    async fn test_full_assessment_lifecycle(ctx: &mut TestContext) {
+    async fn test_full_submission_lifecycle(ctx: &mut TestContext) {
         // CREATE
         let create_response = ctx.app
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/assessments")
-                    .json(&json!({"organization_id": "org-123", "document_title": "Test"}))
+                    .uri("/api/v1/cooperative/submissions")
+                    .json(&json!({"reporting_year": 2024}))
             )
             .await
             .unwrap();
 
         assert_eq!(create_response.status(), StatusCode::CREATED);
-        let assessment: Assessment = serde_json::from_slice(&create_response.into_body()).unwrap();
+        let submission: Submission = serde_json::from_slice(&create_response.into_body()).unwrap();
 
         // READ
         let get_response = ctx.app
             .oneshot(
                 Request::builder()
                     .method("GET")
-                    .uri(&format!("/assessments/{}", assessment.id))
+                    .uri(&format!("/api/v1/cooperative/submissions/{}", submission.id))
                     .body(Body::empty())
             )
             .await
@@ -158,23 +159,24 @@ mod tests {
 use uuid::Uuid;
 
 /// Factory for creating test entities
-pub struct AssessmentFactory;
+pub struct SubmissionFactory;
 
-impl AssessmentFactory {
-    pub fn create() -> assessments::ActiveModel {
-        assessments::ActiveModel {
-            assessment_id: Set(Uuid::new_v4()),
-            organization_id: Set("test-org".to_string()),
-            document_title: Set("Test Assessment".to_string()),
-            status: Set(AssessmentStatus::Draft),
+impl SubmissionFactory {
+    pub fn create() -> submission::ActiveModel {
+        submission::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            cooperative_id: Set(Uuid::new_v4()),
+            reporting_year: Set(2024),
+            status: Set(SubmissionStatus::Draft),
+            current_tier: Set(ReviewTier::Cooperative),
             created_at: Set(chrono::Utc::now()),
             updated_at: Set(chrono::Utc::now()),
             ..Default::default()
         }
     }
 
-    pub fn with_organization(mut model: assessments::ActiveModel, org_id: &str) -> Self {
-        model.organization_id = Set(org_id.to_string());
+    pub fn with_cooperative(mut model: submission::ActiveModel, coop_id: Uuid) -> Self {
+        model.cooperative_id = Set(coop_id);
         model
     }
 }
@@ -182,8 +184,8 @@ impl AssessmentFactory {
 /// Use in tests
 #[test]
 fn test_with_factory() {
-    let assessment = AssessmentFactory::create()
-        .with_organization("org-456")
+    let submission = SubmissionFactory::create()
+        .with_cooperative(coop_uuid)
         .build();
 }
 ```
@@ -230,10 +232,10 @@ cargo tarpaulin --out Html --output-dir ./coverage
 test_<function>_<scenario>_<expected_result>
 
 Examples:
-- test_create_assessment_valid_input_returns_created
-- test_create_assessment_missing_name_returns_error
-- test_get_assessment_not_found_returns_404
-- test_update_assessment_concurrent_updates_handled
+- test_create_submission_valid_input_returns_created
+- test_create_submission_missing_year_returns_error
+- test_get_submission_not_found_returns_404
+- test_update_submission_concurrent_updates_handled
 ```
 
 ---

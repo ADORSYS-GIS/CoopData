@@ -7,384 +7,238 @@
 
 ```
 src/repositories/
-├── mod.rs                  # Re-exports all repositories
-├── assessments.rs          # Assessment repository
-├── organizations.rs        # Organization repository
-└── users.rs               # User repository
+├── mod.rs                           # Re-exports all repositories
+├── submission.rs                   # Submission repository
+├── submission_section.rs           # Submission section repository
+├── submission_review.rs            # Submission review repository
+├── cooperative.rs                  # Cooperative repository
+├── federation.rs                   # Federation repository
+├── apex.rs                         # Apex repository
+├── organization.rs                 # Organization repository
+├── user.rs                         # User repository
+├── member.rs                        # Member repository
+├── financial_statement.rs          # Financial statement repository
+├── non_financial_indicator_*.rs    # NF indicator repositories
+├── questionnaire*.rs               # Questionnaire repositories
+├── audit_log.rs                    # Audit log repository
+└── ... (30+ repositories total)
 ```
 
 ---
 
 ## Pattern 1: Standard CRUD Repository
 
-**File**: `src/repositories/assessments.rs`
+**File**: `src/repositories/submission.rs`
 
 ```rust
-use crate::entities::assessments::{self, Entity as Assessments, AssessmentStatus};
-use crate::error::{AppError, AppResult};
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set,
+};
 use uuid::Uuid;
 
-/// Repository for Assessment entity operations.
-/// All methods are async and use `AppResult<T>` for error handling.
-pub struct AssessmentsRepository;
+use crate::entities::enums::{ReviewTier, SubmissionStatus};
+use crate::entities::submission::{self, ActiveModel, Column, Entity};
+use crate::error::AppResult;
+use crate::repositories::db_query;
 
-impl AssessmentsRepository {
-    // ============================================
-    // CREATE
-    // ============================================
+/// Repository for Submission entity operations.
+/// Uses struct with db field (not static methods) for metrics tracking.
+#[derive(Clone)]
+pub struct SubmissionRepository {
+    db: DatabaseConnection,
+}
 
-    /// Create a new assessment
-    pub async fn create(
-        db: &DbConn,
-        assessment_data: assessments::ActiveModel,
-    ) -> AppResult<assessments::Model> {
-        assessment_data
-            .insert(db)
-            .await
-            .map_err(AppError::from)
+impl SubmissionRepository {
+    /// Create new repository instance
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 
     // ============================================
     // READ - Single
     // ============================================
 
-    /// Find assessment by ID
-    pub async fn find_by_id(
-        db: &DbConn,
-        assessment_id: Uuid,
-    ) -> AppResult<Option<assessments::Model>> {
-        Assessments::find_by_id(assessment_id)
-            .one(db)
-            .await
-            .map_err(AppError::from)
+    /// Find submission by ID
+    pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<submission::Model>> {
+        db_query("submission", "find_by_id", async {
+            Entity::find_by_id(id)
+                .one(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
-    /// Find assessment by ID or return error
-    pub async fn find_by_id_or_error(
-        db: &DbConn,
-        assessment_id: Uuid,
-    ) -> AppResult<assessments::Model> {
-        Self::find_by_id(db, assessment_id)
+    /// Find submission by ID or return error
+    pub async fn find_by_id_or_error(&self, id: Uuid) -> AppResult<submission::Model> {
+        self.find_by_id(id)
             .await?
-            .ok_or_else(|| AppError::NotFound(format!("Assessment not found: {}", assessment_id)))
+            .ok_or_else(|| AppError::NotFound(format!("Submission not found: {}", id)))
     }
 
     // ============================================
     // READ - List
     // ============================================
 
-    /// Find all assessments
-    pub async fn find_all(db: &DbConn) -> AppResult<Vec<assessments::Model>> {
-        Assessments::find()
-            .all(db)
-            .await
-            .map_err(AppError::from)
+    /// Find all submissions for a cooperative
+    pub async fn find_by_cooperative(
+        &self,
+        cooperative_id: Uuid,
+    ) -> AppResult<Vec<submission::Model>> {
+        db_query("submission", "find_by_cooperative", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
-    /// Find assessments by organization ID
-    pub async fn find_by_organization_id(
-        db: &DbConn,
-        organization_id: String,
-    ) -> AppResult<Vec<assessments::Model>> {
-        Assessments::find()
-            .filter(assessments::Column::OrganizationId.eq(organization_id))
-            .all(db)
-            .await
-            .map_err(AppError::from)
+    /// Find submissions by status
+    pub async fn find_by_status(
+        &self,
+        status: SubmissionStatus,
+    ) -> AppResult<Vec<submission::Model>> {
+        db_query("submission", "find_by_status", async {
+            Entity::find()
+                .filter(Column::Status.eq(status))
+                .order_by_desc(Column::CreatedAt)
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
-    /// Find latest assessment by organization
-    pub async fn find_latest_by_organization_id(
-        db: &DbConn,
-        organization_id: String,
-    ) -> AppResult<Option<assessments::Model>> {
-        Assessments::find()
-            .filter(assessments::Column::OrganizationId.eq(organization_id))
-            .order_by_desc(assessments::Column::CreatedAt)
-            .one(db)
-            .await
-            .map_err(AppError::from)
+    /// Find submissions by cooperative and reporting year
+    pub async fn find_by_cooperative_and_year(
+        &self,
+        cooperative_id: Uuid,
+        reporting_year: i32,
+    ) -> AppResult<Option<submission::Model>> {
+        db_query("submission", "find_by_cooperative_and_year", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .filter(Column::ReportingYear.eq(reporting_year))
+                .one(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
     }
 
-    /// Find completed assessments by organization
-    pub async fn find_all_completed_by_organization_id(
-        db: &DbConn,
-        organization_id: String,
-    ) -> AppResult<Vec<assessments::Model>> {
-        Assessments::find()
-            .filter(assessments::Column::OrganizationId.eq(organization_id))
-            .filter(assessments::Column::Status.eq(AssessmentStatus::Completed))
-            .order_by_desc(assessments::Column::CreatedAt)
-            .all(db)
-            .await
-            .map_err(AppError::from)
-    }
+    // ============================================
+    // CREATE
+    // ============================================
 
-    /// Find by cooperation ID
-    pub async fn find_by_cooperation_id(
-        db: &DbConn,
-        cooperation_id: String,
-    ) -> AppResult<Vec<assessments::Model>> {
-        Assessments::find()
-            .filter(assessments::Column::CooperationId.eq(cooperation_id))
-            .all(db)
-            .await
-            .map_err(AppError::from)
+    /// Create a new submission
+    pub async fn create(&self, data: ActiveModel) -> AppResult<submission::Model> {
+        db_query("submission", "create", async {
+            data.insert(&self.db).await.map_err(Into::into)
+        })
+        .await
     }
 
     // ============================================
     // UPDATE
     // ============================================
 
-    /// Update an existing assessment
-    pub async fn update(
-        db: &DbConn,
-        assessment_id: Uuid,
-        assessment_data: assessments::ActiveModel,
-    ) -> AppResult<assessments::Model> {
-        let assessment = Assessments::find_by_id(assessment_id)
-            .one(db)
-            .await
-            .map_err(AppError::from)?
-            .ok_or_else(|| AppError::NotFound("Assessment not found".to_string()))?;
-
-        let mut active_model: assessments::ActiveModel = assessment.into();
-
-        // Only update fields that are set
-        if assessment_data.organization_id.is_set() {
-            active_model.organization_id = assessment_data.organization_id;
-        }
-        if assessment_data.document_title.is_set() {
-            active_model.document_title = assessment_data.document_title;
-        }
-        if assessment_data.status.is_set() {
-            active_model.status = assessment_data.status;
-        }
-        if assessment_data.started_at.is_set() {
-            active_model.started_at = assessment_data.started_at;
-        }
-        if assessment_data.completed_at.is_set() {
-            active_model.completed_at = assessment_data.completed_at;
-        }
-        if assessment_data.dimensions_id.is_set() {
-            active_model.dimensions_id = assessment_data.dimensions_id;
-        }
-
-        active_model.updated_at = Set(chrono::Utc::now());
-
-        active_model.update(db).await.map_err(AppError::from)
-    }
-
-    /// Update assessment status only
+    /// Update submission status
     pub async fn update_status(
-        db: &DbConn,
-        assessment_id: Uuid,
-        status: AssessmentStatus,
-    ) -> AppResult<assessments::Model> {
-        let assessment = Self::find_by_id_or_error(db, assessment_id).await?;
-
-        let mut active_model: assessments::ActiveModel = assessment.into();
-        active_model.status = Set(status);
-        active_model.updated_at = Set(chrono::Utc::now());
-
-        active_model.update(db).await.map_err(AppError::from)
+        &self,
+        id: Uuid,
+        status: SubmissionStatus,
+    ) -> AppResult<submission::Model> {
+        let mut model = self.find_by_id_or_error(id).await?;
+        model.status = Set(status);
+        model.updated_at = Set(chrono::Utc::now());
+        model.update(&self.db).await.map_err(Into::into)
     }
 
     // ============================================
     // DELETE
     // ============================================
 
-    /// Delete an assessment by ID
-    pub async fn delete(db: &DbConn, assessment_id: Uuid) -> AppResult<bool> {
-        let result = Assessments::delete_by_id(assessment_id)
-            .exec(db)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(result.rows_affected > 0)
-    }
-
-    /// Delete all assessments for an organization
-    pub async fn delete_by_organization(
-        db: &DbConn,
-        organization_id: String,
-    ) -> AppResult<u64> {
-        let result = Assessments::delete_many()
-            .filter(assessments::Column::OrganizationId.eq(organization_id))
-            .exec(db)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok(result.rows_affected)
-    }
-
-    // ============================================
-    // COUNT
-    // ============================================
-
-    /// Count assessments by organization
-    pub async fn count_by_organization(
-        db: &DbConn,
-        organization_id: String,
-    ) -> AppResult<u64> {
-        Assessments::find()
-            .filter(assessments::Column::OrganizationId.eq(organization_id))
-            .count(db)
-            .await
-            .map_err(AppError::from)
-    }
-
-    /// Count assessments by status
-    pub async fn count_by_status(
-        db: &DbConn,
-        status: AssessmentStatus,
-    ) -> AppResult<u64> {
-        Assessments::find()
-            .filter(assessments::Column::Status.eq(status))
-            .count(db)
-            .await
-            .map_err(AppError::from)
+    /// Delete submission by ID
+    pub async fn delete(&self, id: Uuid) -> AppResult<bool> {
+        db_query("submission", "delete", async {
+            let result = Entity::delete_by_id(id)
+                .exec(&self.db)
+                .await
+                .map_err(Into::into)?;
+            Ok(result.rows_affected > 0)
+        })
+        .await
     }
 }
 ```
 
+**Key patterns**:
+- Struct with `db` field (not static methods) for metrics tracking
+- Use `db_query()` wrapper for performance metrics
+- Return `Option<T>` for find_by_id, `Result<T>` for find_by_id_or_error
+- Use `#[derive(Clone)]` on repository struct
+
 ---
 
-## Pattern 2: Repository with Joins
+## Pattern 2: Repository with Transactions
 
-**File**: `src/repositories/dimension_assessments.rs`
+**File**: `src/repositories/submission.rs`
 
 ```rust
-use crate::entities::{
-    assessments,
-    dimension_assessments,
-    dimensions,
-    DimensionAssessments,
-    Dimensions,
-};
-use crate::error::{AppError, AppResult};
-use sea_orm::*;
+use sea_orm::{TransactionTrait, Set};
 use uuid::Uuid;
 
-pub struct DimensionAssessmentsRepository;
-
-impl DimensionAssessmentsRepository {
-    /// Find dimension assessment with related dimension
-    pub async fn find_with_dimension(
-        db: &DbConn,
-        dimension_assessment_id: Uuid,
-    ) -> AppResult<Option<(dimension_assessments::Model, Option<dimensions::Model>)>> {
-        dimension_assessments::Entity::find_by_id(dimension_assessment_id)
-            .find_also_related(dimensions::Entity)
-            .one(db)
-            .await
-            .map_err(AppError::from)
-    }
-
-    /// Find all dimension assessments for an assessment with their dimensions
-    pub async fn find_all_by_assessment_with_dimensions(
-        db: &DbConn,
-        assessment_id: Uuid,
-    ) -> AppResult<Vec<(dimension_assessments::Model, dimensions::Model)>> {
-        dimension_assessments::Entity::find()
-            .filter(dimension_assessments::Column::AssessmentId.eq(assessment_id))
-            .find_also_related(dimensions::Entity)
-            .all(db)
-            .await
-            .map_err(AppError::from)?
-            .into_iter()
-            .map(|(da, d)| {
-                d.map(|dimension| (da, dimension))
-            })
-            .collect::<Option<Vec<_>>>()
-            .ok_or_else(|| AppError::NotFound("One or more dimensions not found".to_string()))
-    }
-
-    /// Find by assessment and dimension IDs
-    pub async fn find_by_assessment_and_dimension(
-        db: &DbConn,
-        assessment_id: Uuid,
-        dimension_id: Uuid,
-    ) -> AppResult<Option<dimension_assessments::Model>> {
-        dimension_assessments::Entity::find()
-            .filter(dimension_assessments::Column::AssessmentId.eq(assessment_id))
-            .filter(dimension_assessments::Column::DimensionId.eq(dimension_id))
-            .one(db)
-            .await
-            .map_err(AppError::from)
-    }
+pub struct SubmissionRepository {
+    db: DatabaseConnection,
 }
-```
 
----
-
-## Pattern 3: Repository with Transactions
-
-**File**: `src/repositories/action_plans.rs`
-
-```rust
-use crate::entities::{action_plans, action_items};
-use crate::error::{AppError, AppResult};
-use sea_orm::*;
-use uuid::Uuid;
-
-pub struct ActionPlansRepository;
-
-impl ActionPlansRepository {
-    /// Create action plan with items in a transaction
-    pub async fn create_with_items(
-        db: &DbConn,
-        action_plan: action_plans::ActiveModel,
-        items: Vec<action_items::ActiveModel>,
-    ) -> AppResult<action_plans::Model> {
+impl SubmissionRepository {
+    /// Create submission with sections in a transaction
+    pub async fn create_with_sections(
+        &self,
+        submission: ActiveModel,
+        sections: Vec<SubmissionSectionActiveModel>,
+    ) -> AppResult<submission::Model> {
         // Start transaction
-        let txn = db.begin().await.map_err(AppError::from)?;
+        let txn = self.db.begin().await.map_err(AppError::from)?;
 
-        // Create action plan
-        let created_plan = action_plan
-            .insert(&txn)
-            .await
-            .map_err(AppError::from)?;
+        // Create submission
+        let created = submission.insert(&txn).await.map_err(AppError::from)?;
 
-        // Create all items
-        let plan_id = created_plan.action_plan_id;
-        let mut created_items = Vec::new();
-
-        for mut item in items {
-            item.action_plan_id = Set(plan_id);
-            let created = item.insert(&txn).await.map_err(AppError::from)?;
-            created_items.push(created);
+        // Create all sections
+        for mut section in sections {
+            section.submission_id = Set(created.id);
+            section.insert(&txn).await.map_err(AppError::from)?;
         }
 
         // Commit transaction
         txn.commit().await.map_err(AppError::from)?;
 
         tracing::info!(
-            action_plan_id = %plan_id,
-            items_count = created_items.len(),
-            "Created action plan with items"
+            submission_id = %created.id,
+            sections_count = sections.len(),
+            "Created submission with sections"
         );
 
-        Ok(created_plan)
+        Ok(created)
     }
 
-    /// Delete action plan and all its items
-    pub async fn delete_cascade(
-        db: &DbConn,
-        action_plan_id: Uuid,
-    ) -> AppResult<bool> {
-        let txn = db.begin().await.map_err(AppError::from)?;
+    /// Delete submission and cascade delete sections
+    pub async fn delete_cascade(&self, id: Uuid) -> AppResult<bool> {
+        let txn = self.db.begin().await.map_err(AppError::from)?;
 
-        // Delete items first
-        action_items::Entity::delete_many()
-            .filter(action_items::Column::ActionPlanId.eq(action_plan_id))
+        // Delete sections first
+        submission_section::Entity::delete_many()
+            .filter(submission_section::Column::SubmissionId.eq(id))
             .exec(&txn)
             .await
             .map_err(AppError::from)?;
 
-        // Delete plan
-        let result = action_plans::Entity::delete_by_id(action_plan_id)
+        // Delete submission
+        let result = submission::Entity::delete_by_id(id)
             .exec(&txn)
             .await
             .map_err(AppError::from)?;
@@ -392,6 +246,56 @@ impl ActionPlansRepository {
         txn.commit().await.map_err(AppError::from)?;
 
         Ok(result.rows_affected > 0)
+    }
+}
+```
+
+---
+
+## Pattern 3: Repository with Related Queries
+
+**File**: `src/repositories/submission_section.rs`
+
+```rust
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use uuid::Uuid;
+
+pub struct SubmissionSectionRepository {
+    db: DatabaseConnection,
+}
+
+impl SubmissionSectionRepository {
+    /// Find all sections for a submission
+    pub async fn find_by_submission(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Vec<submission_section::Model>> {
+        submission_section::Entity::find()
+            .filter(submission_section::Column::SubmissionId.eq(submission_id))
+            .order_by_asc(submission_section::Column::DisplayOrder)
+            .all(&self.db)
+            .await
+            .map_err(AppError::from)
+    }
+
+    /// Find section with submission details
+    pub async fn find_with_submission(
+        &self,
+        section_id: Uuid,
+    ) -> AppResult<Option<submission_section::Model>> {
+        submission_section::Entity::find_by_id(section_id)
+            .one(&self.db)
+            .await
+            .map_err(AppError::from)
+    }
+
+    /// Count sections by submission
+    pub async fn count_by_submission(&self, submission_id: Uuid) -> AppResult<u64> {
+        submission_section::Entity::find()
+            .filter(submission_section::Column::SubmissionId.eq(submission_id))
+            .count(&self.db)
+            .await
+            .map_err(AppError::from)
     }
 }
 ```
@@ -403,113 +307,145 @@ impl ActionPlansRepository {
 **File**: `src/repositories/mod.rs`
 
 ```rust
-pub mod action_items;
-pub mod action_plans;
-pub mod assessment_recommendations;
-pub mod assessments;
-pub mod consolidated_report;
-pub mod current_states;
-pub mod desired_states;
-pub mod dimension_assessments;
-pub mod dimensions;
-pub mod gaps;
-pub mod organisation_dimension;
-pub mod recommendations;
-pub mod reports;
+use metrics::histogram;
+use std::future::Future;
+use std::time::Instant;
+
+use crate::error::AppResult;
+
+/// Performance tracking wrapper for repository queries
+pub async fn db_query<F, T>(entity: &str, operation: &str, f: F) -> AppResult<T>
+where
+    F: Future<Output = AppResult<T>>,
+{
+    let start = Instant::now();
+    let result = f.await;
+    let elapsed = start.elapsed().as_secs_f64();
+
+    histogram!("coopdata_db_query_duration_seconds",
+        "entity" => entity.to_string(),
+        "operation" => operation.to_string()
+    )
+    .record(elapsed);
+
+    result
+}
+
+// Entity repositories
+pub mod abnormality_flag;
+pub mod account_alias;
+pub mod apex;
+pub mod assessment;
+pub mod audit_log;
+pub mod balance_sheet_line_item;
+pub mod chart_of_accounts;
+pub mod cooperative;
+pub mod custom_kpi_repository;
+pub mod extraction_job;
+pub mod farm_coop;
+pub mod federation;
+pub mod financial_statement;
+pub mod fixed_deposit;
+pub mod kpi_record;
+pub mod loan;
+pub mod member;
+pub mod ministry_report_narratives;
+pub mod non_financial_indicator_catalog;
+pub mod non_financial_indicator_entry;
+pub mod organization;
+pub mod organization_label;
+pub mod questionnaire;
+pub mod questionnaire_template;
+pub mod savings_account;
+pub mod submission;
+pub mod submission_review;
+pub mod submission_section;
+pub mod uploaded_file;
+pub mod user;
 
 // Re-export commonly used types
-pub use assessments::AssessmentsRepository;
-pub use action_plans::ActionPlansRepository;
-pub use dimensions::DimensionsRepository;
-pub use gaps::GapsRepository;
+pub use submission::SubmissionRepository;
+pub use cooperative::CooperativeRepository;
+pub use federation::FederationRepository;
+pub use apex::ApexRepository;
+pub use organization::OrganizationRepository;
+pub use user::UserRepository;
+pub use audit_log::AuditLogRepository;
 ```
 
 ---
 
-## Pattern 5: Paginated Query
+## Pattern 5: Pagination (Handled in Handlers)
 
-**File**: `src/repositories/recommendations.rs`
+Pagination is NOT done in repositories. Instead, repositories return full lists and handlers apply pagination:
+
+**File**: `src/api/handlers/organizations.rs`
 
 ```rust
-use crate::entities::recommendations;
-use crate::error::{AppError, AppResult};
-use sea_orm::*;
-use uuid::Uuid;
+use crate::api::dto::{
+    PaginatedOrganizationResponse, PaginatedResponse, PaginationParams,
+};
 
-pub struct RecommendationsRepository;
+pub async fn list_organizations(
+    State(state): State<AppState>,
+    Query(params): Query<PaginationParams>,
+) -> AppResult<impl IntoResponse> {
+    let repo = OrganizationRepository::new(state.db.clone());
+    let organizations = repo.find_all().await?;
 
-impl RecommendationsRepository {
-    /// Find all recommendations with pagination
-    pub async fn find_paginated(
-        db: &DbConn,
-        page: u32,
-        per_page: u32,
-    ) -> AppResult<(Vec<recommendations::Model>, u64)> {
-        let offset = (page.saturating_sub(1)) * per_page;
+    // Convert to response DTOs
+    let responses: Vec<OrganizationResponse> = organizations
+        .into_iter()
+        .map(Into::into)
+        .collect();
+    let total = responses.len() as u64;
 
-        // Get total count
-        let total = recommendations::Entity::find()
-            .count(db)
-            .await
-            .map_err(AppError::from)?;
-
-        // Get paginated results
-        let items = recommendations::Entity::find()
-            .order_by_asc(recommendations::Column::Priority)
-            .offset(offset as u64)
-            .limit(per_page as u64)
-            .all(db)
-            .await
-            .map_err(AppError::from)?;
-
-        Ok((items, total))
-    }
-
-    /// Search recommendations by title
-    pub async fn search(
-        db: &DbConn,
-        query: &str,
-        limit: u64,
-    ) -> AppResult<Vec<recommendations::Model>> {
-        recommendations::Entity::find()
-            .filter(
-                Condition::any()
-                    .add(recommendations::Column::Title.contains(query))
-                    .add(recommendations::Column::Description.contains(query))
-            )
-            .limit(limit)
-            .all(db)
-            .await
-            .map_err(AppError::from)
-    }
+    // Wrap in paginated response
+    Ok((
+        StatusCode::OK,
+        Json(PaginatedOrganizationResponse::from(PaginatedResponse::new(
+            responses,
+            total,
+            params.page,
+            params.per_page,
+        ))),
+    ))
 }
 ```
+
+**Key points**:
+- Repository returns `Vec<Model>` (full list)
+- Handler applies pagination with `PaginatedResponse::new()`
+- `PaginationParams` struct handles `page` and `per_page` query params
+- Response wrapped in `PaginatedResponse<T>`
 
 ---
 
 ## Best Practices
 
-1. **One entity = One repository**: Keep focused
-2. **Static methods**: No state, just functions
+1. **One entity = One repository**: Keep focused, single responsibility
+2. **Struct with db field**: Use `#[derive(Clone)]` and `Repository::new(db)`
 3. **Consistent naming**: `find_by_*`, `create`, `update`, `delete`
-4. **Return AppResult**: Convert all errors
-5. **Use transactions**: For multi-entity operations
-6. **Add documentation**: Document what each method does
-7. **Implement count methods**: Useful for pagination
-8. **Handle not found**: Return `Option<T>` or error
-9. **Use SeaORM queries**: Don't write raw SQL
-10. **Log important operations**: Create, Update, Delete
+4. **Return AppResult**: Convert all errors with `.map_err(Into::into)`
+5. **Use transactions**: For multi-entity operations (create_with_*)
+6. **Use db_query wrapper**: For performance metrics tracking
+7. **Handle not found**: Return `Option<T>` for find_by_id, error for *_or_error
+8. **Use SeaORM queries**: Don't write raw SQL
+9. **Pagination in handlers**: Repository returns full list, handler paginates
+10. **Cloneable**: Derive Clone so repository can be stored in AppState
 
 ## Checklist
 
-- [ ] Repository name matches entity
-- [ ] All CRUD operations implemented
+- [ ] Repository struct with `db: DatabaseConnection` field
+- [ ] `#[derive(Clone)]` on repository struct
+- [ ] `Repository::new(db)` constructor
 - [ ] `find_by_id` returns `Option<T>`
 - [ ] `find_by_id_or_error` returns `Result<T>`
-- [ ] Transactions used for related operations
-- [ ] Pagination utilities included
-- [ ] Count methods available
-- [ ] Delete cascade handled
-- [ ] Exported in mod.rs
+- [ ] `find_all` returns `Vec<T>`
+- [ ] `create` method
+- [ ] `update` method
+- [ ] `delete` method
+- [ ] Transactions for related operations
+- [ ] Exported in `mod.rs`
 - [ ] All methods are async
 - [ ] `AppResult<T>` return type
