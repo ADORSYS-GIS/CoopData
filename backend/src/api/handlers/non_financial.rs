@@ -258,6 +258,18 @@ pub async fn upload_non_financial(
     match section {
         Some(NfSection::Members) => {
             state
+                .savings_account_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .loan_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
+                .fixed_deposit_repo
+                .delete_by_cooperative_and_submission(coop_id, submission_id)
+                .await?;
+            state
                 .member_repo
                 .delete_by_cooperative_and_submission(coop_id, submission_id)
                 .await?;
