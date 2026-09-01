@@ -27,7 +27,7 @@ Ticket 1 (DB & Schema Foundation) ───── must be done first
 - Frontend: minimal data-entry page + hook(s) for their feature, wired to the real API (never `fetch`/`axios` — use the generated `openapi-client`)
 - Follow `docs/architecture/architecture.md` exact layering: Route → Handler → Repository → Database. **Never skip layers.**
 
-> **Reference docs**: `docs/architecture/architecture.md` (source of truth), `docs/architecture/docs/architecture/database-schema.md` (table-by-table reference), `AGENTS.md` Rust knowledge docs.
+> **Reference docs**: `docs/architecture/architecture.md` (source of truth), `docs/architecture/database-schema.md` (table-by-table reference), `AGENTS.md` Rust knowledge docs.
 
 ---
 
@@ -99,7 +99,7 @@ This is the foundation ticket that must be completed before any data-module tick
 - [ ] `npm run lint` + `typecheck` pass
 
 ### Technical Notes
-- **Source of truth**: `docs/architecture/architecture.md` §6 + `docs/architecture/docs/architecture/database-schema.md` §8
+- **Source of truth**: `docs/architecture/architecture.md` §6 + `docs/architecture/database-schema.md` §8
 - **Account aliases** (`account_aliases`) from §6.6 are OPTIONAL for v1 — include the table if time permits; the LLM can map labels without it
 - **`assessments` stub** (`src/entities/`) is replaced/superseded by `submissions` — keep both until Ticket 6 removes `assessments`
 - Follow `docs/knowledge/rust/rust-entities.md`, `rust-migrations` patterns, `rust-api-handlers.md`

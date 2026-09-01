@@ -1,7 +1,7 @@
 # Project Progress & Roadmap: CoopData IAM Integration
 
 > **Instructions for AI:**
-> 1. Read `docs/design.md` and `docs/RBAC_AND_AUTH_SYSTEM.md` for full context.
+> 1. Read `docs/architecture/design.md` and `docs/architecture/RBAC_AND_AUTH_SYSTEM.md` for full context.
 > 2. Check this file at the start of every new chat session to resume work.
 > 3. Update this file after EVERY successful feature implementation.
 
@@ -198,7 +198,7 @@
 > **Goal**: Implement cascading deletion across Federation → Apex → Cooperative hierarchy with PostgreSQL tracking and audit logging for all mutations.
 > **Issue**: [#12](https://github.com/ADORSYS-GIS/CoopData/issues/12)
 > **Branch**: `cascade-audit` (based on `develop` @ `757e731`)
-> **Documentation**: `docs/ticket-5-cascade-audit-implementation.md`
+> **Documentation**: `docs/archive/ticket-5-cascade-audit-implementation.md`
 
 - [x] **6.1 Database migration** (`backend/migrations/02_cascade_audit_tables.sql`)
   - [x] Tables: `federations`, `apexes`, `cooperatives`, `audit_logs`
