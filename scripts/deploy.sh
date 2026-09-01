@@ -81,11 +81,11 @@ fi
 
 # ── Check docker-rollout is installed ────────────────────────────────────────
 HAS_ROLLOUT=false
-if docker rollout --version &>/dev/null 2>&1; then
+if docker rollout -v &>/dev/null 2>&1 || [[ -x "${HOME}/.docker/cli-plugins/docker-rollout" ]]; then
     HAS_ROLLOUT=true
-    ok "docker-rollout: $(docker rollout --version 2>/dev/null || echo 'installed')"
+    ok "docker-rollout: $(docker rollout -v 2>/dev/null || echo 'installed')"
 else
-    warn "docker-rollout not installed — falling back to standard restart (causes ~5s downtime)"
+    warn "docker-rollout not installed — falling back to standard restart"
     warn "Install it: ./scripts/install-docker-rollout.sh"
 fi
 
