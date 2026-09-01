@@ -252,9 +252,10 @@ jobs:
             cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
             BRANCH_NAME="${GITHUB_REF#refs/heads/}"
             [[ "$BRANCH_NAME" == "refs/tags/"* || -z "$BRANCH_NAME" ]] && BRANCH_NAME="main"
+            git reset --hard HEAD || true
             git fetch --all --tags
-            git checkout "$BRANCH_NAME" || git checkout -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
-            git pull origin "$BRANCH_NAME"
+            git checkout "$BRANCH_NAME" || git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+            git reset --hard "origin/$BRANCH_NAME"
             TARGET_TAG="${{ github.event.inputs.target_tag || 'latest' }}"
             ./scripts/deploy.sh "$TARGET_TAG"
 
@@ -275,7 +276,8 @@ jobs:
             cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
             BRANCH_NAME="${GITHUB_REF#refs/heads/}"
             [[ -z "$BRANCH_NAME" ]] && BRANCH_NAME="develop"
+            git reset --hard HEAD || true
             git fetch --all --tags
-            git checkout "$BRANCH_NAME" || git checkout -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
-            git pull origin "$BRANCH_NAME"
+            git checkout "$BRANCH_NAME" || git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+            git reset --hard "origin/$BRANCH_NAME"
             ./scripts/deploy-demo.sh "$BRANCH_NAME"
