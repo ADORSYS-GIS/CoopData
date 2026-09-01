@@ -104,13 +104,8 @@ DEPLOY_START=$(date +%s)
 for svc in "${SERVICES_TO_DEPLOY[@]}"; do
     if [[ "$HAS_ROLLOUT" == true ]]; then
         info "Rolling update: ${svc}..."
-        if docker rollout -f "$COMPOSE_FILE" "$svc"; then
-            ok "${svc} rolled out with zero downtime"
-        else
-            warn "docker-rollout skipped due to host port binding — falling back to standard compose update..."
-            $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --no-build "$svc"
-            ok "${svc} updated via standard reload"
-        fi
+        docker rollout -f "$COMPOSE_FILE" "$svc"
+        ok "${svc} rolled out with zero downtime"
     else
         info "Standard update: ${svc} (brief downtime expected)..."
         $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --no-build "$svc"

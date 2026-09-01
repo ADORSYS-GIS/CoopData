@@ -41,6 +41,7 @@ backend/target
 .env
 .env.*
 !.env.example
+!.env.demo.example
 backend/.env.development
 
 # Docs (generated)
