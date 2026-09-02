@@ -54,7 +54,7 @@ PG_PASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}"
 APP_DB="${POSTGRES_DB:-coopdata}"
 KEYCLOAK_DB="keycloak"
 
-S3_BUCKET="${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET is required in .env}"
+S3_BUCKET="${BACKUP_S3_BUCKET:-}"
 S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-}" # Leave blank for AWS S3
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 LOCAL_RETENTION_DAYS="${LOCAL_BACKUP_RETENTION_DAYS:-7}"
@@ -80,7 +80,9 @@ info "Starting Enterprise Offsite Backup: ${DATE}"
 info "==============================================================="
 
 command -v docker &>/dev/null || error "docker CLI not found"
-command -v aws &>/dev/null    || error "aws CLI not found (run: pip install awscli or apt install awscli)"
+if [[ -n "$S3_BUCKET" ]]; then
+    command -v aws &>/dev/null || error "aws CLI not found (run: pip install awscli or apt install awscli)"
+fi
 
 # Check container readiness
 if ! docker ps --format '{{.Names}}' | grep -q "^${PG_CONTAINER}$"; then
@@ -92,11 +94,13 @@ if [[ -n "$S3_ENDPOINT" ]]; then
     AWS_ARGS+=(--endpoint-url "$S3_ENDPOINT")
 fi
 
-# Test S3 accessibility
-info "Verifying offsite target bucket: s3://${S3_BUCKET}..."
-if ! aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}" &>/dev/null; then
-    warn "Cannot list s3://${S3_BUCKET}. Attempting to verify or create bucket..."
-    aws s3 mb "${AWS_ARGS[@]}" "s3://${S3_BUCKET}" &>/dev/null || true
+if [[ -n "$S3_BUCKET" ]]; then
+    # Test S3 accessibility
+    info "Verifying offsite target bucket: s3://${S3_BUCKET}..."
+    if ! aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}" &>/dev/null; then
+        warn "Cannot list s3://${S3_BUCKET}. Attempting to verify or create bucket..."
+        aws s3 mb "${AWS_ARGS[@]}" "s3://${S3_BUCKET}" &>/dev/null || true
+    fi
 fi
 
 mkdir -p "${TMP_DIR}"
@@ -151,21 +155,19 @@ fi
 info "[3/4] Archiving MinIO Object Storage Data..."
 MINIO_DUMP_FILE="${TMP_DIR}/minio_data_${DATE}.tar.gz"
 
-if docker ps --format '{{.Names}}' | grep -q "^${MINIO_CONTAINER}$"; then
-    docker exec "$MINIO_CONTAINER" tar -czf - -C /data . > "$MINIO_DUMP_FILE"
+VOL_NAME=""
+if docker volume inspect coopdata_minio_data &>/dev/null; then
+    VOL_NAME="coopdata_minio_data"
+elif docker volume inspect minio_data &>/dev/null; then
+    VOL_NAME="minio_data"
+fi
+
+if [[ -n "$VOL_NAME" ]]; then
+    docker run --rm -v "${VOL_NAME}:/data:ro" -v "${TMP_DIR}:/backup" alpine tar -czf "/backup/minio_data_${DATE}.tar.gz" -C /data .
     MINIO_SIZE=$(du -sh "$MINIO_DUMP_FILE" | cut -f1)
-    ok "MinIO object storage archived: ${MINIO_DUMP_FILE} (${MINIO_SIZE})"
+    ok "MinIO volume archived: ${MINIO_DUMP_FILE} (${MINIO_SIZE})"
 else
-    warn "MinIO container '${MINIO_CONTAINER}' not running — attempting host volume archive..."
-    if docker volume inspect coopdata_minio_data &>/dev/null || docker volume inspect minio_data &>/dev/null; then
-        VOL_NAME=$(docker volume inspect coopdata_minio_data &>/dev/null && echo "coopdata_minio_data" || echo "minio_data")
-        VOL_PATH=$(docker volume inspect "$VOL_NAME" --format '{{ .Mountpoint }}')
-        tar -czf "$MINIO_DUMP_FILE" -C "$VOL_PATH" .
-        MINIO_SIZE=$(du -sh "$MINIO_DUMP_FILE" | cut -f1)
-        ok "MinIO volume archived directly: ${MINIO_DUMP_FILE} (${MINIO_SIZE})"
-    else
-        warn "MinIO data volume not found — skipping MinIO storage backup"
-    fi
+    warn "MinIO data volume not found — skipping MinIO storage backup"
 fi
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -177,6 +179,10 @@ upload_file() {
     local src_file="$1"
     local s3_key="$2"
     local file_label="$3"
+
+    if [[ -z "$S3_BUCKET" ]]; then
+        return 0
+    fi
 
     if [[ -f "$src_file" ]]; then
         info "Uploading ${file_label} $\rightarrow$ s3://${S3_BUCKET}/${s3_key}..."
@@ -198,7 +204,7 @@ upload_file "$MINIO_DUMP_FILE" "minio/minio_data_${DATE}.tar.gz"        "MinIO O
 LOCAL_DEST="${LOCAL_BACKUP_DIR}/${DATE}"
 mkdir -p "$LOCAL_DEST" 2>/dev/null || sudo mkdir -p "$LOCAL_DEST" 2>/dev/null || true
 if [[ -d "$LOCAL_DEST" ]]; then
-    cp -f "$TMP_DIR"/* "$LOCAL_DEST/" 2>/dev/null || true
+    cp -f "$TMP_DIR"/* "$LOCAL_DEST/" 2>/dev/null || sudo cp -f "$TMP_DIR"/* "$LOCAL_DEST/" 2>/dev/null || true
     ok "Saved local backup copy to ${LOCAL_DEST}"
 fi
 
@@ -206,18 +212,22 @@ fi
 CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +"%Y-%m-%d" 2>/dev/null \
     || date -v "-${RETENTION_DAYS}d" +"%Y-%m-%d" 2>/dev/null)
 
-info "Pruning offsite backups older than ${RETENTION_DAYS} days (prior to ${CUTOFF_DATE})..."
+if [[ -n "$S3_BUCKET" ]]; then
+    info "Pruning offsite backups older than ${RETENTION_DAYS} days (prior to ${CUTOFF_DATE})..."
 
-for prefix in postgres keycloak minio; do
-    while IFS= read -r key; do
-        [[ -z "$key" ]] && continue
-        FILE_DATE=$(echo "$key" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
-        if [[ -n "$FILE_DATE" && "$FILE_DATE" < "$CUTOFF_DATE" ]]; then
-            aws s3 rm "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/${key}" --quiet
-            info "Pruned old offsite backup: ${key}"
-        fi
-    done < <(aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/${prefix}/" 2>/dev/null | awk '{print $4}' | sed "s|^|${prefix}/|")
-done
+    for prefix in postgres keycloak minio; do
+        while IFS= read -r key; do
+            [[ -z "$key" ]] && continue
+            FILE_DATE=$(echo "$key" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+            if [[ -n "$FILE_DATE" && "$FILE_DATE" < "$CUTOFF_DATE" ]]; then
+                aws s3 rm "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/${key}" --quiet
+                info "Pruned old offsite backup: ${key}"
+            fi
+        done < <(aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/${prefix}/" 2>/dev/null | awk '{print $4}' | sed "s|^|${prefix}/|")
+    done
+else
+    info "BACKUP_S3_BUCKET not set — skipping offsite cloud backup upload & pruning"
+fi
 
 # Prune local backups older than LOCAL_RETENTION_DAYS (7 days)
 LOCAL_CUTOFF=$(date -d "-${LOCAL_RETENTION_DAYS} days" +"%Y-%m-%d" 2>/dev/null || date -v "-${LOCAL_RETENTION_DAYS}d" +"%Y-%m-%d" 2>/dev/null)

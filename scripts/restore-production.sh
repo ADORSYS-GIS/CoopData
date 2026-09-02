@@ -49,7 +49,7 @@ PG_PASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}"
 APP_DB="${POSTGRES_DB:-coopdata}"
 KEYCLOAK_DB="keycloak"
 
-S3_BUCKET="${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET is required in .env}"
+S3_BUCKET="${BACKUP_S3_BUCKET:-}"
 S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-}"
 FORCE_YES=false
 
@@ -73,7 +73,9 @@ trap cleanup EXIT
 
 # ── Pre-flight Checks ─────────────────────────────────────────────────────────
 command -v docker &>/dev/null || error "docker CLI not found"
-command -v aws &>/dev/null    || error "aws CLI not found"
+if [[ -n "$S3_BUCKET" ]]; then
+    command -v aws &>/dev/null || error "aws CLI not found"
+fi
 
 AWS_ARGS=()
 if [[ -n "$S3_ENDPOINT" ]]; then
