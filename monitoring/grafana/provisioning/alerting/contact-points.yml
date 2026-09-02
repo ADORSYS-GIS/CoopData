@@ -1,32 +1,24 @@
 apiVersion: 1
 contactPoints:
   - orgId: 1
-    name: Slack Channel
-    receivers:
-      - uid: slack-default
-        type: slack
-        settings:
-          url: "${SLACK_WEBHOOK_URL}"
-          recipient: "${SLACK_CHANNEL:-#alerts}"
-          title: '{{ .GroupLabels.alertname }} - {{ .CommonLabels.severity | toUpper }}'
-          text: |
-            *Alert:* {{ .CommonAnnotations.summary }}
-            *Description:* {{ .CommonAnnotations.description }}
-            *Service:* {{ .CommonLabels.service }}
-            *Severity:* {{ .CommonLabels.severity }}
-        disableResolveMessage: false
-
-  - orgId: 1
     name: Discord Channel
     receivers:
       - uid: discord-default
         type: discord
         settings:
           url: "${DISCORD_WEBHOOK_URL}"
-          title: '{{ .GroupLabels.alertname }} - {{ .CommonLabels.severity | toUpper }}'
+          title: '{{ if eq .Status "firing" }}🚨 [ALERT FIRING]{{ else }}✅ [RESOLVED]{{ end }} {{ .GroupLabels.alertname }} ({{ .CommonLabels.severity | toUpper }})'
           message: |
-            **Alert:** {{ .CommonAnnotations.summary }}
-            **Description:** {{ .CommonAnnotations.description }}
-            **Service:** {{ .CommonLabels.service }}
-            **Severity:** {{ .CommonLabels.severity }}
+            {{ range .Alerts }}
+            {{ if eq .Status "firing" }}🚨 **ALERT FIRING**{{ else }}✅ **RESOLVED**{{ end }} — **{{ .Labels.alertname }}**
+
+            > 📌 **Summary:** {{ .Annotations.summary }}
+            > 📝 **Description:** {{ .Annotations.description }}
+
+            **Metadata:**
+            • **Service:** `{{ .Labels.service }}`
+            • **Severity:** `{{ .Labels.severity | toUpper }}`
+            • **Timestamp:** `{{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}`
+            --------------------------------------------------
+            {{ end }}
         disableResolveMessage: false
