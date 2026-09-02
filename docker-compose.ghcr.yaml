@@ -182,8 +182,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      # Use Keycloak's dedicated health endpoint (requires KC_HEALTH_ENABLED=true)
-      test: ["CMD-SHELL", "curl -sf http://localhost:8180/health/ready || exit 1"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8180 || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 15
