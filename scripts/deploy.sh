@@ -97,6 +97,9 @@ for svc in "${SERVICES_TO_DEPLOY[@]}"; do
 done
 ok "Images pulled"
 
+# ── Ensure internal reverse proxy is running ────────────────────────────────
+$COMPOSE_CMD -f "$COMPOSE_FILE" up -d --no-deps nginx-proxy 2>/dev/null || true
+
 # ── Rolling deployment ────────────────────────────────────────────────────────
 step "Deploying services: ${SERVICES_TO_DEPLOY[*]}"
 DEPLOY_START=$(date +%s)
