@@ -57,6 +57,8 @@ KEYCLOAK_DB="keycloak"
 S3_BUCKET="${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET is required in .env}"
 S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-}" # Leave blank for AWS S3
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
+LOCAL_RETENTION_DAYS="${LOCAL_BACKUP_RETENTION_DAYS:-7}"
+LOCAL_BACKUP_DIR="${LOCAL_BACKUP_DIR:-/var/backups/coopdata}"
 
 TMP_DIR="/tmp/coopdata-backup-${DATE}-$$"
 
@@ -192,6 +194,14 @@ upload_file "$KC_DUMP_FILE"   "keycloak/keycloak_db_${DATE}.dump.gz"   "Keycloak
 upload_file "$KC_CONFIG_FILE" "keycloak/keycloak_config_${DATE}.tar.gz" "Keycloak Config"
 upload_file "$MINIO_DUMP_FILE" "minio/minio_data_${DATE}.tar.gz"        "MinIO Object Data"
 
+# ── Save Local Copy ───────────────────────────────────────────────────────────
+LOCAL_DEST="${LOCAL_BACKUP_DIR}/${DATE}"
+mkdir -p "$LOCAL_DEST" 2>/dev/null || sudo mkdir -p "$LOCAL_DEST" 2>/dev/null || true
+if [[ -d "$LOCAL_DEST" ]]; then
+    cp -f "$TMP_DIR"/* "$LOCAL_DEST/" 2>/dev/null || true
+    ok "Saved local backup copy to ${LOCAL_DEST}"
+fi
+
 # ── Prune Old Backups ─────────────────────────────────────────────────────────
 CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +"%Y-%m-%d" 2>/dev/null \
     || date -v "-${RETENTION_DAYS}d" +"%Y-%m-%d" 2>/dev/null)
@@ -209,7 +219,21 @@ for prefix in postgres keycloak minio; do
     done < <(aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/${prefix}/" 2>/dev/null | awk '{print $4}' | sed "s|^|${prefix}/|")
 done
 
-ok "Offsite backup & retention cleanup completed successfully!"
+# Prune local backups older than LOCAL_RETENTION_DAYS (7 days)
+LOCAL_CUTOFF=$(date -d "-${LOCAL_RETENTION_DAYS} days" +"%Y-%m-%d" 2>/dev/null || date -v "-${LOCAL_RETENTION_DAYS}d" +"%Y-%m-%d" 2>/dev/null)
+info "Pruning local backups older than ${LOCAL_RETENTION_DAYS} days (prior to ${LOCAL_CUTOFF})..."
+
+if [[ -d "$LOCAL_BACKUP_DIR" ]]; then
+    find "$LOCAL_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while read -r dir; do
+        folder_name=$(basename "$dir")
+        if [[ "$folder_name" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$folder_name" < "$LOCAL_CUTOFF" ]]; then
+            rm -rf "$dir" 2>/dev/null || sudo rm -rf "$dir" 2>/dev/null || true
+            info "Pruned old local backup directory: ${dir}"
+        fi
+    done
+fi
+
+ok "Offsite & local backup retention cleanup completed successfully!"
 echo ""
 echo -e "${BOLD}${GREEN}===============================================================${NC}"
 echo -e "${BOLD}${GREEN}   CoopData Enterprise Backup Completed Successfully!         ${NC}"
