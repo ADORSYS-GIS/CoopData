@@ -1,22 +1,6 @@
 apiVersion: 1
 contactPoints:
   - orgId: 1
-    name: Slack Channel
-    receivers:
-      - uid: slack-default
-        type: slack
-        settings:
-          url: "${SLACK_WEBHOOK_URL}"
-          recipient: "${SLACK_CHANNEL:-#alerts}"
-          title: '{{ .GroupLabels.alertname }} - {{ .CommonLabels.severity | toUpper }}'
-          text: |
-            *Alert:* {{ .CommonAnnotations.summary }}
-            *Description:* {{ .CommonAnnotations.description }}
-            *Service:* {{ .CommonLabels.service }}
-            *Severity:* {{ .CommonLabels.severity }}
-        disableResolveMessage: false
-
-  - orgId: 1
     name: Discord Channel
     receivers:
       - uid: discord-default
