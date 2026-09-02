@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.1.0...v1.2.0) (2026-09-02)
+
+
+### Features
+
+* **backup:** enable dual retention — 30-day offsite S3 retention + rolling 7-day local disk retention ([5d43064](https://github.com/ADORSYS-GIS/CoopData/commit/5d43064c9a4676aa77f84f80eff2ed94e0b55900))
+* **restore:** prompt user to select backup source (Offsite S3 vs Local Server Disk) during interactive restore ([4bdc8fe](https://github.com/ADORSYS-GIS/CoopData/commit/4bdc8fef286792c0e08ddc4d43d6d430d45e76db))
+
+
+### Bug Fixes
+
+* **ci:** allow push events on deployment branches (main, deploy, deploy-*) to trigger zero-downtime deploy ([f1dcc17](https://github.com/ADORSYS-GIS/CoopData/commit/f1dcc179c8023e868b751a642e3993b1fe413c09))
+
 ## [1.1.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.0.0...v1.1.0) (2026-09-02)
 
 
