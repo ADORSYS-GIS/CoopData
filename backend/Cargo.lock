@@ -1396,6 +1396,7 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "serde_test",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tokio-test",
