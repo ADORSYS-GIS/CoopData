@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { OrganizationLabelsProvider, useOrganizationLabelsContext } from "./OrganizationLabelsContext";
+import {
+  OrganizationLabelsProvider,
+  useOrganizationLabelsContext,
+} from "./OrganizationLabelsContext";
 import * as useOrganizationLabelsModule from "@/hooks/settings/useOrganizationLabels";
 
 vi.mock("@/hooks/settings/useOrganizationLabels");
@@ -64,9 +67,9 @@ describe("OrganizationLabelsContext", () => {
 
     it("returns fallback when key not found", () => {
       vi.mocked(useOrganizationLabelsModule.useOrganizationLabels).mockReturnValue({
-        data: [],
+        data: [] as unknown,
         isLoading: false,
-      } as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
+      } as unknown as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
 
       const { result } = renderHook(() => useOrganizationLabelsContext(), { wrapper: Wrapper });
 
@@ -76,9 +79,9 @@ describe("OrganizationLabelsContext", () => {
 
     it("returns key as fallback when no fallback provided", () => {
       vi.mocked(useOrganizationLabelsModule.useOrganizationLabels).mockReturnValue({
-        data: [],
+        data: [] as unknown,
         isLoading: false,
-      } as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
+      } as unknown as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
 
       const { result } = renderHook(() => useOrganizationLabelsContext(), { wrapper: Wrapper });
 
@@ -116,9 +119,9 @@ describe("OrganizationLabelsContext", () => {
 
     it("handles empty string", () => {
       vi.mocked(useOrganizationLabelsModule.useOrganizationLabels).mockReturnValue({
-        data: [],
+        data: [] as unknown,
         isLoading: false,
-      } as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
+      } as unknown as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
 
       const { result } = renderHook(() => useOrganizationLabelsContext(), { wrapper: Wrapper });
 
@@ -128,9 +131,9 @@ describe("OrganizationLabelsContext", () => {
 
     it("handles null/undefined gracefully", () => {
       vi.mocked(useOrganizationLabelsModule.useOrganizationLabels).mockReturnValue({
-        data: [],
+        data: [] as unknown,
         isLoading: false,
-      } as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
+      } as unknown as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
 
       const { result } = renderHook(() => useOrganizationLabelsContext(), { wrapper: Wrapper });
 
@@ -142,9 +145,9 @@ describe("OrganizationLabelsContext", () => {
   describe("short labels", () => {
     it("provides fedShort, apexShort, coopShort, ministryShort", () => {
       vi.mocked(useOrganizationLabelsModule.useOrganizationLabels).mockReturnValue({
-        data: [],
+        data: [] as unknown,
         isLoading: false,
-      } as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
+      } as unknown as ReturnType<typeof useOrganizationLabelsModule.useOrganizationLabels>);
 
       const { result } = renderHook(() => useOrganizationLabelsContext(), { wrapper: Wrapper });
 

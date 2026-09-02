@@ -2,15 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useNetworkStatus } from "./useNetworkStatus";
 
-const mockGetPendingCount = vi.hoisted(() =>
-  vi.fn<() => Promise<number>>().mockResolvedValue(0),
-);
+const mockGetPendingCount = vi.hoisted(() => vi.fn<() => Promise<number>>().mockResolvedValue(0));
 const mockFlushSyncQueue = vi.hoisted(() =>
   vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
 );
-const mockIsOfflineModeActive = vi.hoisted(() =>
-  vi.fn<() => boolean>().mockReturnValue(false),
-);
+const mockIsOfflineModeActive = vi.hoisted(() => vi.fn<() => boolean>().mockReturnValue(false));
 
 vi.mock("../../services/shared/syncQueueService", () => ({
   getPendingCount: mockGetPendingCount,

@@ -5,12 +5,14 @@ import {
   calculateSavingsKPIs,
   calculateLoanKPIs,
   calculateFixedDepositKPIs,
+} from "./kpi-calculations";
+import {
   type BalanceSheet,
   type MemberRecord,
   type SavingsAccount,
   type LoanRecord,
   type FixedDepositRecord,
-} from "./kpi-calculations";
+} from "./financial-data";
 import { createEmptyBalanceSheet } from "./financial-data";
 
 function createMinimalBalanceSheet(): BalanceSheet {
@@ -239,8 +241,8 @@ describe("calculateMembershipKPIs", () => {
       joinDate: "2020-01-01",
       status: "Active" as const,
       exitDate: undefined,
-      gender: i % 2 === 0 ? "Female" as const : "Male" as const,
-      ageGroup: i % 3 === 0 ? "18-35" as const : "36-50" as const,
+      gender: i % 2 === 0 ? ("Female" as const) : ("Male" as const),
+      ageGroup: i % 3 === 0 ? ("18-35" as const) : ("36-50" as const),
       region: "Shiselweni",
       urbanRural: "Rural" as const,
       agmAttendance: i % 2 === 0,
@@ -333,7 +335,10 @@ describe("calculateMembershipKPIs", () => {
 });
 
 describe("calculateSavingsKPIs", () => {
-  const createSavingsAccounts = (count: number, overrides: Partial<SavingsAccount> = {}): SavingsAccount[] => {
+  const createSavingsAccounts = (
+    count: number,
+    overrides: Partial<SavingsAccount> = {},
+  ): SavingsAccount[] => {
     return Array.from({ length: count }, (_, i) => ({
       savingsAccountId: `savings-${i}`,
       memberId: `member-${i}`,
@@ -361,25 +366,25 @@ describe("calculateSavingsKPIs", () => {
 
   it("calculates active savers ratio", () => {
     const accounts = createSavingsAccounts(10);
-    const kpis = calculateSavingsKPIs(accounts);
+    const kpis = calculateSavingsKPIs(accounts, 10);
     expect(kpis.activeSaversRatio.value).toBe(100);
   });
 
   it("calculates dormant savings percentage", () => {
     const accounts = createSavingsAccounts(10, { accountStatus: "Dormant" });
-    const kpis = calculateSavingsKPIs(accounts);
+    const kpis = calculateSavingsKPIs(accounts, 10);
     expect(kpis.dormantSavingsAccountsPercent.value).toBe(100);
   });
 
   it("calculates zero balance percentage", () => {
     const accounts = createSavingsAccounts(10, { zeroBalanceFlag: true });
-    const kpis = calculateSavingsKPIs(accounts);
+    const kpis = calculateSavingsKPIs(accounts, 10);
     expect(kpis.zeroBalanceAccountsPercent.value).toBe(100);
   });
 
   it("handles empty accounts array", () => {
     const accounts: SavingsAccount[] = [];
-    const kpis = calculateSavingsKPIs(accounts);
+    const kpis = calculateSavingsKPIs(accounts, 0);
     expect(kpis.savingsPenetration.value).toBe(0);
     expect(kpis.activeSaversRatio.value).toBe(0);
   });
@@ -470,7 +475,10 @@ describe("calculateLoanKPIs", () => {
 });
 
 describe("calculateFixedDepositKPIs", () => {
-  const createFixedDeposits = (count: number, overrides: Partial<FixedDepositRecord> = {}): FixedDepositRecord[] => {
+  const createFixedDeposits = (
+    count: number,
+    overrides: Partial<FixedDepositRecord> = {},
+  ): FixedDepositRecord[] => {
     return Array.from({ length: count }, (_, i) => ({
       fixedDepositId: `fd-${i}`,
       memberId: `member-${i}`,

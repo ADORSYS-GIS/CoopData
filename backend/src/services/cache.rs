@@ -424,7 +424,7 @@ mod tests {
     #[tokio::test]
     async fn cache_multiple_operations_sequence() {
         let cache = CacheService::new("memory://").await.unwrap();
-        let data = create_test_data();
+        let _data = create_test_data();
 
         for i in 0..100 {
             let key = format!("batch:{}", i);

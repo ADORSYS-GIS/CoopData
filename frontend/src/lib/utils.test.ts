@@ -11,7 +11,8 @@ describe("cn() — Tailwind class merger", () => {
   });
 
   it("filters out falsy values", () => {
-    expect(cn("foo", false && "bar", undefined, "baz")).toBe("foo baz");
+    const shouldInclude = false;
+    expect(cn("foo", shouldInclude && "bar", undefined, "baz")).toBe("foo baz");
   });
 
   it("handles null as falsy", () => {
