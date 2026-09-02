@@ -86,37 +86,78 @@ echo -e "${BOLD}║      CoopData — Production Disaster Recovery & Restore    
 echo -e "${BOLD}╚═════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# ── Select Date interactively if not provided ─────────────────────────────────
+# ── Select Storage Source and Date interactively if not provided ─────────────────
+RESTORE_SOURCE=""
 if [[ -z "$TARGET_DATE" || "$TARGET_DATE" == "--force" ]]; then
-    info "Querying available offsite backups from s3://${S3_BUCKET}/postgres/..."
-    
-    AVAILABLE_DATES=$(aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/postgres/" 2>/dev/null \
-        | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort -u -r || true)
-    
-    if [[ -z "$AVAILABLE_DATES" ]]; then
-        error "No backups found in s3://${S3_BUCKET}/postgres/"
+    echo -e "${BOLD}Select Backup Storage Source:${NC}"
+    echo -e "  ${CYAN}1)${NC} Offsite S3 Cloud Storage (s3://${S3_BUCKET})"
+    echo -e "  ${CYAN}2)${NC} Local Disk Storage (${LOCAL_BACKUP_DIR:-/var/backups/coopdata})"
+    echo -ne "\n${BOLD}Enter choice [1-2]:${NC} "
+    read -r SOURCE_CHOICE
+
+    if [[ "$SOURCE_CHOICE" == "2" ]]; then
+        RESTORE_SOURCE="local"
+        LOCAL_DIR="${LOCAL_BACKUP_DIR:-/var/backups/coopdata}"
+        if [[ ! -d "$LOCAL_DIR" ]]; then
+            error "Local backup directory '${LOCAL_DIR}' does not exist!"
+        fi
+
+        AVAILABLE_DATES=$(find "$LOCAL_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
+            | xargs -n1 basename | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort -u -r || true)
+
+        if [[ -z "$AVAILABLE_DATES" ]]; then
+            error "No local backups found in ${LOCAL_DIR}"
+        fi
+
+        echo -e "\n${BOLD}Available Backup Dates on Local Server Disk:${NC}"
+        DATES_ARRAY=()
+        i=1
+        while IFS= read -r d; do
+            DATES_ARRAY+=("$d")
+            echo -e "  ${CYAN}${i})${NC} ${d}"
+            i=$((i + 1))
+        done <<< "$AVAILABLE_DATES"
+
+        echo -ne "\n${BOLD}Select backup date to restore [1-${#DATES_ARRAY[@]}]:${NC} "
+        read -r CHOICE
+
+        if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || (( CHOICE < 1 || CHOICE > ${#DATES_ARRAY[@]} )); then
+            error "Invalid selection"
+        fi
+
+        TARGET_DATE="${DATES_ARRAY[$((CHOICE - 1))]}"
+    else
+        RESTORE_SOURCE="s3"
+        info "Querying available offsite backups from s3://${S3_BUCKET}/postgres/..."
+
+        AVAILABLE_DATES=$(aws s3 ls "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/postgres/" 2>/dev/null \
+            | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort -u -r || true)
+
+        if [[ -z "$AVAILABLE_DATES" ]]; then
+            error "No backups found in s3://${S3_BUCKET}/postgres/"
+        fi
+
+        echo -e "\n${BOLD}Available Backup Dates in Offsite S3 Storage:${NC}"
+        DATES_ARRAY=()
+        i=1
+        while IFS= read -r d; do
+            DATES_ARRAY+=("$d")
+            echo -e "  ${CYAN}${i})${NC} ${d}"
+            i=$((i + 1))
+        done <<< "$AVAILABLE_DATES"
+
+        echo -ne "\n${BOLD}Select backup date to restore [1-${#DATES_ARRAY[@]}]:${NC} "
+        read -r CHOICE
+
+        if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || (( CHOICE < 1 || CHOICE > ${#DATES_ARRAY[@]} )); then
+            error "Invalid selection"
+        fi
+
+        TARGET_DATE="${DATES_ARRAY[$((CHOICE - 1))]}"
     fi
-    
-    echo -e "${BOLD}Available Backup Dates in Offsite Storage:${NC}"
-    DATES_ARRAY=()
-    i=1
-    while IFS= read -r d; do
-        DATES_ARRAY+=("$d")
-        echo -e "  ${CYAN}${i})${NC} ${d}"
-        i=$((i + 1))
-    done <<< "$AVAILABLE_DATES"
-    
-    echo -ne "\n${BOLD}Select backup date to restore [1-${#DATES_ARRAY[@]}]:${NC} "
-    read -r CHOICE
-    
-    if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || (( CHOICE < 1 || CHOICE > ${#DATES_ARRAY[@]} )); then
-        error "Invalid selection"
-    fi
-    
-    TARGET_DATE="${DATES_ARRAY[$((CHOICE - 1))]}"
 fi
 
-ok "Selected backup target date: ${BOLD}${TARGET_DATE}${NC}"
+ok "Selected backup target date: ${BOLD}${TARGET_DATE}${NC} (Source: ${RESTORE_SOURCE:-auto})"
 
 # ── Safety Warning ────────────────────────────────────────────────────────────
 if [[ "$FORCE_YES" == false ]]; then
@@ -141,28 +182,37 @@ mkdir -p "$TMP_DIR"
 chmod 700 "$TMP_DIR"
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 1. DOWNLOAD BACKUP ARTIFACTS FROM S3
+# 1. FETCH BACKUP ARTIFACTS (LOCAL DISK OR S3)
 # ═════════════════════════════════════════════════════════════════════════════
-step "1. Downloading offsite backup artifacts from S3 for ${TARGET_DATE}..."
+LOCAL_SOURCE_DIR="${LOCAL_BACKUP_DIR:-/var/backups/coopdata}/${TARGET_DATE}"
 
 APP_DUMP_FILE="${TMP_DIR}/coopdata_db_${TARGET_DATE}.dump.gz"
 KC_DUMP_FILE="${TMP_DIR}/keycloak_db_${TARGET_DATE}.dump.gz"
 KC_CFG_FILE="${TMP_DIR}/keycloak_config_${TARGET_DATE}.tar.gz"
 MINIO_DUMP_FILE="${TMP_DIR}/minio_data_${TARGET_DATE}.tar.gz"
 
-info "Downloading App DB dump..."
-aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/postgres/coopdata_db_${TARGET_DATE}.dump.gz" "$APP_DUMP_FILE" || error "App DB backup not found on S3 for ${TARGET_DATE}"
+if [[ "$RESTORE_SOURCE" == "local" || ( -z "$RESTORE_SOURCE" && -d "$LOCAL_SOURCE_DIR" ) ]]; then
+    step "1. Loading backup artifacts from LOCAL DISK (${LOCAL_SOURCE_DIR})..."
+    cp "$LOCAL_SOURCE_DIR"/coopdata_db_*.dump.gz "$APP_DUMP_FILE" 2>/dev/null || error "App DB backup not found in ${LOCAL_SOURCE_DIR}"
+    cp "$LOCAL_SOURCE_DIR"/keycloak_db_*.dump.gz "$KC_DUMP_FILE" 2>/dev/null || warn "Keycloak DB dump not found in ${LOCAL_SOURCE_DIR}"
+    cp "$LOCAL_SOURCE_DIR"/keycloak_config_*.tar.gz "$KC_CFG_FILE" 2>/dev/null || warn "Keycloak config not found in ${LOCAL_SOURCE_DIR}"
+    cp "$LOCAL_SOURCE_DIR"/minio_data_*.tar.gz "$MINIO_DUMP_FILE" 2>/dev/null || warn "MinIO storage archive not found in ${LOCAL_SOURCE_DIR}"
+    ok "Loaded backup artifacts from local disk storage"
+else
+    step "1. Downloading offsite backup artifacts from S3 for ${TARGET_DATE}..."
+    info "Downloading App DB dump..."
+    aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/postgres/coopdata_db_${TARGET_DATE}.dump.gz" "$APP_DUMP_FILE" || error "App DB backup not found on S3 for ${TARGET_DATE}"
 
-info "Downloading Keycloak DB dump..."
-aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/keycloak/keycloak_db_${TARGET_DATE}.dump.gz" "$KC_DUMP_FILE" || warn "Keycloak DB dump not found on S3"
+    info "Downloading Keycloak DB dump..."
+    aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/keycloak/keycloak_db_${TARGET_DATE}.dump.gz" "$KC_DUMP_FILE" || warn "Keycloak DB dump not found on S3"
 
-info "Downloading Keycloak Config..."
-aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/keycloak/keycloak_config_${TARGET_DATE}.tar.gz" "$KC_CFG_FILE" 2>/dev/null || warn "Keycloak config archive not found on S3"
+    info "Downloading Keycloak Config..."
+    aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/keycloak/keycloak_config_${TARGET_DATE}.tar.gz" "$KC_CFG_FILE" 2>/dev/null || warn "Keycloak config archive not found on S3"
 
-info "Downloading MinIO Object Storage archive..."
-aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/minio/minio_data_${TARGET_DATE}.tar.gz" "$MINIO_DUMP_FILE" || warn "MinIO storage archive not found on S3"
-
-ok "All available artifacts downloaded into scratch directory"
+    info "Downloading MinIO Object Storage archive..."
+    aws s3 cp "${AWS_ARGS[@]}" "s3://${S3_BUCKET}/minio/minio_data_${TARGET_DATE}.tar.gz" "$MINIO_DUMP_FILE" || warn "MinIO storage archive not found on S3"
+    ok "All available artifacts downloaded from offsite S3"
+fi
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 2. RESTORE POSTGRES DBs
