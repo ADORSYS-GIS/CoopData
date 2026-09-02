@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.0.0...v1.1.0) (2026-09-02)
+
+
+### Features
+
+* **ci:** add Discord and Slack notifications for deployment success and failure ([bc34847](https://github.com/ADORSYS-GIS/CoopData/commit/bc348470768a5e759313d5ebfa15d269d09db42a))
+
+
+### Bug Fixes
+
+* **alerting:** remove accidental dollar sign syntax error in Grafana service label template ([893b5fa](https://github.com/ADORSYS-GIS/CoopData/commit/893b5fa7a2e5cce4659d103f8cfd6b2ef8d4971f))
+* **auth:** update JWT_ISSUER_ALIASES to accept tokens issued via public domain issuer URLs ([465d9e2](https://github.com/ADORSYS-GIS/CoopData/commit/465d9e2594baa46257b1defad80048a252c7f3b0))
+* **ci:** restrict production deploy to release events and v* tags only ([242ee22](https://github.com/ADORSYS-GIS/CoopData/commit/242ee227d2dea879a73eb90cde1ce41c459a5e85))
+* **monitoring:** configure Discord contact points and notification policies for Grafana alerting ([661ab35](https://github.com/ADORSYS-GIS/CoopData/commit/661ab3569177b7ee75e998e9f93fb671475a8cf9))
+
 ## 1.0.0 (2026-09-02)
 
 
