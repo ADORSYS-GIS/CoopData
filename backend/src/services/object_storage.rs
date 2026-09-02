@@ -22,7 +22,10 @@ mod tests {
         let storage = LocalFileStorage::new(temp.path().to_str().unwrap());
 
         let data = create_test_data();
-        storage.store("test/file.txt", &data, "text/plain").await.unwrap();
+        storage
+            .store("test/file.txt", &data, "text/plain")
+            .await
+            .unwrap();
 
         let retrieved = storage.retrieve("test/file.txt").await.unwrap();
         assert_eq!(retrieved, data);
@@ -45,7 +48,10 @@ mod tests {
         let storage = LocalFileStorage::new(temp.path().to_str().unwrap());
 
         let data = create_test_data();
-        storage.store("delete/me.txt", &data, "text/plain").await.unwrap();
+        storage
+            .store("delete/me.txt", &data, "text/plain")
+            .await
+            .unwrap();
         storage.delete("delete/me.txt").await.unwrap();
 
         let result = storage.retrieve("delete/me.txt").await;

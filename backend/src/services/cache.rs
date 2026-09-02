@@ -380,11 +380,18 @@ mod tests {
         let data = create_test_data();
 
         cache
-            .set("coop:eswatini:region:shiselweni:2024", &data, Duration::from_secs(300))
+            .set(
+                "coop:eswatini:region:shiselweni:2024",
+                &data,
+                Duration::from_secs(300),
+            )
             .await
             .unwrap();
 
-        let result: Option<TestStruct> = cache.get("coop:eswatini:region:shiselweni:2024").await.unwrap();
+        let result: Option<TestStruct> = cache
+            .get("coop:eswatini:region:shiselweni:2024")
+            .await
+            .unwrap();
         assert!(result.is_some());
     }
 
