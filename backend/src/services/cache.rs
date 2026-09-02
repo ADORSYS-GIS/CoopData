@@ -1,16 +1,10 @@
 use metrics::counter;
 use redis::AsyncCommands;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-struct TestStruct {
-    name: String,
-    value: i32,
-}
 
 pub struct CacheService {
     backend: CacheBackend,
@@ -196,6 +190,13 @@ impl CacheService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    struct TestStruct {
+        name: String,
+        value: i32,
+    }
 
     fn create_test_data() -> TestStruct {
         TestStruct {
