@@ -66,6 +66,7 @@ test-utils = []
 [dev-dependencies]
 tokio-test = "0.4"
 serde_test = "1"
+tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
 coop-data-backend = { path = ".", features = ["test-utils"] }
 
