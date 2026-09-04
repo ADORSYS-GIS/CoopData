@@ -1,0 +1,267 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CoopData Demo / Staging Environment — Resource-Constrained (25% Host Cap)
+# ─────────────────────────────────────────────────────────────────────────────
+# Project Name: coopdata-demo
+# Subdomain: demo.coopdata.dgrvcoop360.com
+#
+# Isolated volumes, networks, and environment from Production.
+# Resource limits strictly capped at ~25% of total server CPU & RAM.
+#
+# Usage:
+#   docker compose -p coopdata-demo -f docker-compose.demo.yaml up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    tag: "{{.Name}}"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+services:
+  # ── Demo Autoheal Watchdog ──────────────────────────────────────────────────
+  demo-autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: coopdata-demo-autoheal
+    <<: *default-restart
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal-demo
+      AUTOHEAL_INTERVAL: 10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 32M
+
+  # ── Demo PostgreSQL ─────────────────────────────────────────────────────────
+  demo-postgres:
+    image: postgres:16-alpine
+    container_name: coopdata-demo-postgres
+    <<: *default-restart
+    env_file:
+      - .env.demo
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - demo_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *default-logging
+    labels:
+      autoheal-demo: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+
+  # ── Demo Redis ─────────────────────────────────────────────────────────────
+  demo-redis:
+    image: redis:7-alpine
+    container_name: coopdata-demo-redis
+    <<: *default-restart
+    volumes:
+      - demo_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    labels:
+      autoheal-demo: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 128M
+        reservations:
+          cpus: "0.01"
+          memory: 32M
+
+  # ── Demo MinIO Object Storage ─────────────────────────────────────────────
+  demo-minio:
+    image: minio/minio:RELEASE.2024-01-18T22-51-28Z
+    container_name: coopdata-demo-minio
+    <<: *default-restart
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env.demo
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    ports:
+      - "127.0.0.1:9105:9000"
+    volumes:
+      - demo_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    labels:
+      autoheal-demo: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.02"
+          memory: 64M
+
+  # ── Demo Keycloak IAM ───────────────────────────────────────────────────────
+  demo-keycloak:
+    image: quay.io/keycloak/keycloak:26.4.6
+    container_name: coopdata-demo-keycloak
+    <<: *default-restart
+    command: start-dev --import-realm
+    env_file:
+      - .env.demo
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: demo-postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: keycloak_demo
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: "8180"
+      KC_HOSTNAME: "demo.${DOMAIN_NAME:-localhost}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+    ports:
+      - "127.0.0.1:8185:8180"
+    volumes:
+      - ./keycloak/realm-coopdata.json:/opt/keycloak/data/import/realm-coopdata.json:ro
+      - ./keycloak/themes/coopdata:/opt/keycloak/themes/coopdata:ro
+    depends_on:
+      demo-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8180/health/ready || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    logging: *default-logging
+    labels:
+      autoheal-demo: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 256M
+
+  # ── Demo Backend API (Rust/Axum) ──────────────────────────────────────────
+  demo-backend:
+    image: ghcr.io/adorsys-gis/coopdata-backend:${DEMO_BACKEND_IMAGE_TAG:-develop}
+    container_name: coopdata-demo-backend
+    <<: *default-restart
+    env_file:
+      - .env.demo
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@demo-postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://demo-redis:6379
+      KEYCLOAK_URL: http://demo-keycloak:8180
+      KEYCLOAK_REALM: coop-data
+      KEYCLOAK_CLIENT_ID: coopdata-backend
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      JWT_ISSUER: https://demo.${DOMAIN_NAME:-localhost}/auth/realms/coop-data
+      JWT_ISSUER_ALIASES: https://demo.${DOMAIN_NAME:-localhost}/auth/realms/coop-data,http://demo-keycloak:8180/realms/coop-data
+      JWT_AUDIENCE: coopdata-frontend
+      FRONTEND_URL: https://demo.${DOMAIN_NAME:-localhost}
+      ENVIRONMENT: demo
+      STORAGE_TYPE: s3
+      S3_ENDPOINT: http://demo-minio:9000
+      S3_BUCKET: coopdata-demo
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_REGION: us-east-1
+      EXTRACTION_BACKEND: mock
+    ports:
+      - "127.0.0.1:3005:3000"
+    depends_on:
+      demo-postgres:
+        condition: service_healthy
+      demo-redis:
+        condition: service_healthy
+      demo-keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+    labels:
+      autoheal-demo: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+
+  # ── Demo Frontend SPA (React + Nginx) ─────────────────────────────────────
+  demo-frontend:
+    image: ghcr.io/adorsys-gis/coopdata-frontend:${DEMO_FRONTEND_IMAGE_TAG:-develop}
+    container_name: coopdata-demo-frontend
+    <<: *default-restart
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:5175:80"
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      demo-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+    labels:
+      autoheal-demo: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 32M
+
+volumes:
+  demo_postgres_data:
+  demo_redis_data:
+  demo_minio_data:

@@ -1,0 +1,24 @@
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: Discord Channel
+    receivers:
+      - uid: discord-default
+        type: discord
+        settings:
+          url: "${DISCORD_WEBHOOK_URL}"
+          title: '{{ if eq .Status "firing" }}🚨 [ALERT FIRING]{{ else }}✅ [RESOLVED]{{ end }} {{ .GroupLabels.alertname }} ({{ .CommonLabels.severity | toUpper }})'
+          message: |
+            {{ range .Alerts }}
+            {{ if eq .Status "firing" }}🚨 **ALERT FIRING**{{ else }}✅ **RESOLVED**{{ end }} — **{{ .Labels.alertname }}**
+
+            > 📌 **Summary:** {{ .Annotations.summary }}
+            > 📝 **Description:** {{ .Annotations.description }}
+
+            **Metadata:**
+            • **Service:** `{{ .Labels.service }}`
+            • **Severity:** `{{ .Labels.severity | toUpper }}`
+            • **Timestamp:** `{{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}`
+            --------------------------------------------------
+            {{ end }}
+        disableResolveMessage: false
